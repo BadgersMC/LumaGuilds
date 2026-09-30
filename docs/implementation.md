@@ -145,7 +145,7 @@ defaults to deny. Read-model migration remains LG-1214. See the
 
 `GuildRewardService` reads one transactionally consistent level/ownership snapshot
 through `RewardStateRepositorySQL`, then resolves all entitlements. The reloadable
-`progression.chapter_two_rewards_enabled` switch defaults false. Disabled reads do
+`progression.chapter_two_rewards_enabled` switch defaults true for the production Chapter 2 cutover. Disabled reads do
 not access reward storage; missing, failed or invalid state is explicitly unavailable
 and never falls back to legacy grants. No read initializes an account. Gold settings,
 progression/home benefits and member limits share this resolver. Java and Bedrock

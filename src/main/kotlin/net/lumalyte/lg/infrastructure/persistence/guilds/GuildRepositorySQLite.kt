@@ -572,12 +572,25 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     override fun addCreated(guild: Guild, creatorId: UUID): Boolean = try {
         require(guild.homes.homes.isEmpty()) { "New guild must not contain activated homes" }
         val added = creationHistory.create(guild.id, creatorId, guild.createdAt) { connection ->
-            insertGuild(guild, GuildSqlWriter { sql, args ->
+            val inserted = insertGuild(guild, GuildSqlWriter { sql, args ->
                 connection.prepareStatement(sql).use { statement ->
                     args.forEachIndexed { index, value -> statement.setObject(index + 1, value) }
                     statement.executeUpdate()
                 }
             }, false)
+            if (!inserted) {
+                false
+            } else {
+                connection.prepareStatement(
+                    "INSERT INTO guild_reward_accounts (guild_id, version, initial_home_capacity, prestige_count) VALUES (?, 0, 1, 0)"
+                ).use { statement ->
+                    statement.setString(1, guild.id.toString())
+                    check(statement.executeUpdate() == 1) {
+                        "Failed to initialize reward account for new guild ${guild.id}"
+                    }
+                }
+                true
+            }
         }
         if (added) guilds[guild.id] = guild
         added
@@ -604,6 +617,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                 it.setString(2, guildId.toString())
                 it.executeUpdate()
             }
+            deleteRewardOwnershipState(connection, guildId)
             connection.prepareStatement("DELETE FROM guilds WHERE id = ?").use {
                 it.setString(1, guildId.toString())
                 it.executeUpdate() == 1
@@ -1014,16 +1028,62 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     }
 
     override fun remove(guildId: UUID): Boolean {
-        val sql = "DELETE FROM guilds WHERE id = ?"
-        
         return try {
-            val rowsAffected = storage.connection.executeUpdate(sql, guildId.toString())
-            if (rowsAffected > 0) {
-                guilds.remove(guildId)
+            val removed = storage.connection.connection.use { connection ->
+                val autoCommit = connection.autoCommit
+                connection.autoCommit = false
+                var failure: Throwable? = null
+                var rolledBack = false
+                try {
+                    deleteRewardOwnershipState(connection, guildId)
+                    val rowsAffected = connection.prepareStatement("DELETE FROM guilds WHERE id = ?").use {
+                        it.setString(1, guildId.toString())
+                        it.executeUpdate()
+                    }
+                    if (rowsAffected > 0) {
+                        connection.commit()
+                        true
+                    } else {
+                        connection.rollback()
+                        rolledBack = true
+                        false
+                    }
+                } catch (error: Throwable) {
+                    failure = error
+                    try {
+                        connection.rollback()
+                        rolledBack = true
+                    } catch (rollback: Throwable) {
+                        if (rollback !== error) error.addSuppressed(rollback)
+                    }
+                    throw error
+                } finally {
+                    // Never re-enable auto-commit after a failed rollback; doing so may commit partial writes.
+                    if (failure == null || rolledBack) {
+                        try {
+                            connection.autoCommit = autoCommit
+                        } catch (restore: Throwable) {
+                            if (failure == null) throw restore
+                            if (restore !== failure) failure.addSuppressed(restore)
+                        }
+                    }
+                }
             }
-            rowsAffected > 0
-        } catch (e: SQLException) {
+            if (removed) guilds.remove(guildId)
+            removed
+        } catch (_: Throwable) {
             false
+        }
+    }
+
+    private fun deleteRewardOwnershipState(connection: java.sql.Connection, guildId: UUID) {
+        connection.prepareStatement("DELETE FROM guild_reward_ownership WHERE guild_id = ?").use {
+            it.setString(1, guildId.toString())
+            it.executeUpdate()
+        }
+        connection.prepareStatement("DELETE FROM guild_reward_accounts WHERE guild_id = ?").use {
+            it.setString(1, guildId.toString())
+            it.executeUpdate()
         }
     }
     

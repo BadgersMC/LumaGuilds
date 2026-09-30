@@ -6141,7 +6141,7 @@ menu:
         disabled: "<yellow>Prestige is currently disabled by the server operator."
         maximum: "<gold>Prestige complete: <count>/<max>"
         level: "<gray>Current level: <white><level><dark_gray>/100"
-        no_choices: "<yellow>No eligible purchased reward is available to retain."
+        no_choices: "<yellow>Purchase an eligible perk first, then return to Prestige."
         ready: "<green>Ready — Prestige <count>/<max> | Fee: <gold><fee> Gold Ore <gray>| <choices> choices"
       selection:
         title: "<white>Select Prestige Reward"
