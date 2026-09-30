@@ -158,19 +158,26 @@ class GuildDiscordRoleService(
 
     fun discordAccountUnlinked(
         playerId: UUID,
-        discordId: String,
+        accountReference: DiscordAccountReference,
     ): CompletableFuture<DiscordGuildRoleSyncSummary> {
         val config = config()
         if (!config.enabled || !gateway.isAvailable()) return completed(DiscordGuildRoleSyncSummary())
         val futures = memberService.getPlayerGuilds(playerId).mapNotNull { guildId ->
             val link = repository.get(guildId) ?: return@mapNotNull null
             serializeMemberUpdate(guildId, playerId) {
-                gateway.revokeRoleByDiscordId(discordId, link.discordRoleId)
+                gateway.revokeRoleForAccount(accountReference, link.discordRoleId)
                     .handle { result, error -> memberResult(result, error, grant = false) }
             }
         }
         return combine(futures)
     }
+
+    @Deprecated("Use the provider-neutral DiscordAccountReference overload")
+    fun discordAccountUnlinked(
+        playerId: UUID,
+        discordId: String,
+    ): CompletableFuture<DiscordGuildRoleSyncSummary> =
+        discordAccountUnlinked(playerId, DiscordAccountReference(discordId))
 
     fun guildRenamed(guildId: UUID): CompletableFuture<DiscordGuildRoleSyncSummary> = reconcileGuild(guildId)
 

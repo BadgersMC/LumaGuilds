@@ -3,7 +3,7 @@ package net.lumalyte.lg.infrastructure.services
 import github.scarsz.discordsrv.DiscordSRV
 import github.scarsz.discordsrv.dependencies.jda.api.entities.Guild
 import github.scarsz.discordsrv.dependencies.jda.api.entities.Member
-import github.scarsz.discordsrv.dependencies.jda.api.entities.Role
+import net.lumalyte.lg.application.services.DiscordAccountReference
 import net.lumalyte.lg.application.services.DiscordGuildRoleGateway
 import net.lumalyte.lg.application.services.DiscordMemberRoleResult
 import net.lumalyte.lg.application.services.DiscordRoleEnsureResult
@@ -44,11 +44,11 @@ class DiscordSrvGuildRoleGateway : DiscordGuildRoleGateway {
     override fun revokeRole(playerId: UUID, roleId: String): CompletableFuture<DiscordMemberRoleResult> =
         mutateRole(playerId, roleId, grant = false)
 
-    override fun revokeRoleByDiscordId(
-        discordId: String,
+    override fun revokeRoleForAccount(
+        accountReference: DiscordAccountReference,
         roleId: String,
     ): CompletableFuture<DiscordMemberRoleResult> =
-        mutateRoleByDiscordId(discordId, roleId, grant = false)
+        mutateRoleByDiscordId(accountReference.value, roleId, grant = false)
 
     override fun revokeUnexpectedRoleMembers(
         roleId: String,
