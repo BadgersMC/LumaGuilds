@@ -115,7 +115,10 @@ dependencies {
 
     // geyser
     compileOnly("org.geysermc.geyser:api:2.9.4-SNAPSHOT")
-    compileOnly("org.geysermc.floodgate:api:2.2.5-SNAPSHOT")
+    compileOnly("org.geysermc.floodgate:api:2.2.5-SNAPSHOT") {
+        // The legacy Geyser implementation embeds Gson 2.3.1; only Floodgate's API is required.
+        exclude(group = "org.geysermc.geyser", module = "common")
+    }
     compileOnly("org.geysermc.cumulus:cumulus:2.0.0-SNAPSHOT")
     // Exercise actual Bedrock form responses in the reward confirmation contracts.
     testImplementation("org.geysermc.cumulus:cumulus:2.0.0-SNAPSHOT")
