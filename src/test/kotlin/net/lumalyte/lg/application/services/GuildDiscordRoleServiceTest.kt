@@ -117,37 +117,43 @@ class GuildDiscordRoleServiceTest {
     @Test
     fun `simultaneous callers claim in flight slot before gateway role creation`() {
         val fixture = fixture(guild(level = 50))
-        val entered = CountDownLatch(1)
-        val release = CountDownLatch(1)
-        fixture.gateway.ensureEntered = entered
-        fixture.gateway.ensureRelease = release
+        val pendingEnsure = CompletableFuture<DiscordRoleEnsureResult>()
+        fixture.gateway.ensureOverride = pendingEnsure
         val executor = Executors.newFixedThreadPool(2)
+        val ready = CountDownLatch(2)
+        val start = CountDownLatch(1)
 
         try {
-            val first = CompletableFuture.supplyAsync(
-                { fixture.service.memberJoined(guildId, playerOne).join() },
-                executor,
-            )
-            assertTrue(entered.await(5, TimeUnit.SECONDS))
-
-            val secondClaimedInFlight = CountDownLatch(1)
-            val second = CompletableFuture.supplyAsync(
+            val firstCall = CompletableFuture.supplyAsync(
                 {
-                    val future = fixture.service.memberJoined(guildId, playerTwo)
-                    secondClaimedInFlight.countDown()
-                    future
+                    ready.countDown()
+                    assertTrue(start.await(5, TimeUnit.SECONDS))
+                    fixture.service.memberJoined(guildId, playerOne)
                 },
                 executor,
-            ).thenCompose { it }
-            assertTrue(secondClaimedInFlight.await(5, TimeUnit.SECONDS))
+            )
+            val secondCall = CompletableFuture.supplyAsync(
+                {
+                    ready.countDown()
+                    assertTrue(start.await(5, TimeUnit.SECONDS))
+                    fixture.service.memberJoined(guildId, playerTwo)
+                },
+                executor,
+            )
+            assertTrue(ready.await(5, TimeUnit.SECONDS))
+            start.countDown()
+
+            val first = firstCall.join()
+            val second = secondCall.join()
             assertEquals(1, fixture.gateway.ensureCalls)
 
-            release.countDown()
+            pendingEnsure.complete(DiscordRoleEnsureResult(FakeGateway.ROLE_ID, created = true))
+
             first.join()
             second.join()
             assertEquals(1, fixture.gateway.ensureCalls)
         } finally {
-            release.countDown()
+            start.countDown()
             executor.shutdownNow()
         }
     }
