@@ -130,16 +130,16 @@ class GuildDiscordRoleServiceTest {
             )
             assertTrue(entered.await(5, TimeUnit.SECONDS))
 
-            val secondStarted = CountDownLatch(1)
+            val secondClaimedInFlight = CountDownLatch(1)
             val second = CompletableFuture.supplyAsync(
                 {
-                    secondStarted.countDown()
-                    fixture.service.memberJoined(guildId, playerTwo).join()
+                    val future = fixture.service.memberJoined(guildId, playerTwo)
+                    secondClaimedInFlight.countDown()
+                    future
                 },
                 executor,
-            )
-            assertTrue(secondStarted.await(5, TimeUnit.SECONDS))
-            Thread.sleep(100)
+            ).thenCompose { it }
+            assertTrue(secondClaimedInFlight.await(5, TimeUnit.SECONDS))
             assertEquals(1, fixture.gateway.ensureCalls)
 
             release.countDown()
