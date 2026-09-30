@@ -7,11 +7,14 @@ import net.lumalyte.lg.domain.entities.GuildListSortKey
 import net.lumalyte.lg.infrastructure.services.ProgressionConfigService
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executor
 
 data class GuildListEntry(
     val guild: Guild,
     val sortValue: Long,
     val uniquePvpKills: Int,
+    val memberCount: Int,
 )
 
 data class GuildListPage(
@@ -29,6 +32,7 @@ class GuildListService(
     private val guildRepository: GuildRepository,
     private val configService: ConfigService,
     private val progressionConfigService: ProgressionConfigService,
+    private val asyncExecutor: Executor = Executor { task -> task.run() },
     private val nowProvider: () -> Instant = Instant::now,
 ) {
     fun configuredPageSize(): Int =
@@ -67,6 +71,7 @@ class GuildListService(
                     guild = guild,
                     sortValue = ranked.sortValue,
                     uniquePvpKills = ranked.uniquePvpKills,
+                    memberCount = ranked.memberCount,
                 )
             }
         }
@@ -81,6 +86,17 @@ class GuildListService(
             ascending = ascending,
         )
     }
+
+    fun getPageAsync(
+        page: Int,
+        pageSize: Int,
+        sortKey: GuildListSortKey,
+        ascending: Boolean,
+    ): CompletableFuture<GuildListPage> =
+        CompletableFuture.supplyAsync(
+            { getPage(page, pageSize, sortKey, ascending) },
+            asyncExecutor,
+        )
 
     companion object {
         const val MAX_PAGE_SIZE = 36

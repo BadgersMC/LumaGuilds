@@ -19,4 +19,5 @@ data class GuildListRankedRow(
     val guildId: UUID,
     val sortValue: Long,
     val uniquePvpKills: Int = 0,
+    val memberCount: Int = 0,
 )

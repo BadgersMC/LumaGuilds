@@ -2,7 +2,6 @@ package net.lumalyte.lg.interaction.menus.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildListService
-import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.GuildListSortKey
 import net.lumalyte.lg.infrastructure.i18n.bedrock
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -21,11 +20,12 @@ class BedrockGuildListMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val guildListService: GuildListService by inject()
-    private val memberService: MemberService by inject()
     private val lang: LangService by inject()
 
     private var currentPage = 0
     private var sortKey = GuildListSortKey.ALL_TIME_ACTIVE
+
+    override fun shouldBuildAsync(): Boolean = true
 
     override fun getForm(): Form {
         val page = guildListService.getPage(
@@ -69,7 +69,7 @@ class BedrockGuildListMenu(
                         "bedrock.guild_list.guild_button",
                         "guild" to guild.name,
                         "level" to guild.level,
-                        "members" to memberService.getMemberCount(guild.id),
+                        "members" to entry.memberCount,
                         "created" to CREATED_DATE.format(guild.createdAt),
                         "activity" to activity,
                     ))
