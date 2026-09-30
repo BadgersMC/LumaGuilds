@@ -22,6 +22,8 @@ class KillRepositorySQLite(private val storage: Storage<Database>) : KillReposit
     private val guildStats: MutableMap<UUID, GuildKillStats> = ConcurrentHashMap()
     private val playerStats: MutableMap<UUID, PlayerKillStats> = ConcurrentHashMap()
     private val antiFarmData: MutableMap<UUID, AntiFarmData> = ConcurrentHashMap()
+    private val initializationLock = Any()
+    @Volatile
     private var isInitialized = false
 
     init {
@@ -30,7 +32,11 @@ class KillRepositorySQLite(private val storage: Storage<Database>) : KillReposit
     }
 
     private fun ensureInitialized() {
-        if (!isInitialized) {
+        if (isInitialized) return
+
+        synchronized(initializationLock) {
+            if (isInitialized) return
+
             logger.info("Initializing kill database...")
             try {
                 createKillTables()
