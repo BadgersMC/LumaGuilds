@@ -546,9 +546,8 @@ seasonal_elo:
   rematch_window_days: 7
 
 progression:
-  # Keep false until Chapter 2 migration and player interfaces are ready.
-  # This switch never migrates guilds; missing reward accounts block benefit reads.
-  chapter_two_rewards_enabled: false
+  # Chapter 2 reward reads and purchases are production-ready. Set false to disable explicitly.
+  chapter_two_rewards_enabled: true
   # Independent from reward purchasing; enables physical creation cost and guild-gold home activation charges.
   chapter_two_gold_costs_enabled: false
   # Scheduled increased XP. Source caps stay fixed; UTC end is exclusive.
@@ -560,9 +559,9 @@ progression:
     ends_at: '2026-09-21T00:00:00Z'
     # sources: [MOB_KILL, PLAYER_KILL, COAL_ORE]
   max_level: 100                      # Permanent progression cap
-  # Prestige is deliberately gated off until migration/readiness and live validation are complete.
+  # Prestige is production-ready. Set false to disable it explicitly.
   prestige:
-    enabled: false
+    enabled: true
     max_count: 6
     fees: [10000, 20000, 30000, 30000, 30000, 30000]
 

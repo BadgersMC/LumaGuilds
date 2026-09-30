@@ -51,7 +51,7 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             warBanner = loadWarBannerConfig(),
             discordGuildRoles = loadDiscordGuildRolesConfig(),
             guildList = loadGuildListConfig(),
-            chapterTwoRewardsEnabled = config.getBoolean("progression.chapter_two_rewards_enabled", false),
+            chapterTwoRewardsEnabled = config.getBoolean("progression.chapter_two_rewards_enabled", true),
             chapterTwoGoldCostsEnabled = config.getBoolean("progression.chapter_two_gold_costs_enabled", false)
         )
     }
