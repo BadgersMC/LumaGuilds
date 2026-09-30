@@ -12,15 +12,16 @@ import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 class KillRepositorySQLite(private val storage: Storage<Database>) : KillRepository {
 
     private val logger = LoggerFactory.getLogger(KillRepositorySQLite::class.java)
 
-    private val kills: MutableMap<UUID, Kill> = mutableMapOf()
-    private val guildStats: MutableMap<UUID, GuildKillStats> = mutableMapOf()
-    private val playerStats: MutableMap<UUID, PlayerKillStats> = mutableMapOf()
-    private val antiFarmData: MutableMap<UUID, AntiFarmData> = mutableMapOf()
+    private val kills: MutableMap<UUID, Kill> = ConcurrentHashMap()
+    private val guildStats: MutableMap<UUID, GuildKillStats> = ConcurrentHashMap()
+    private val playerStats: MutableMap<UUID, PlayerKillStats> = ConcurrentHashMap()
+    private val antiFarmData: MutableMap<UUID, AntiFarmData> = ConcurrentHashMap()
     private var isInitialized = false
 
     init {
@@ -352,7 +353,7 @@ class KillRepositorySQLite(private val storage: Storage<Database>) : KillReposit
         """.trimIndent()
 
         return try {
-            storage.connection.executeUpdate(sql,
+            val saved = storage.connection.executeUpdate(sql,
                 kill.id.toString(),
                 kill.killerId.toString(),
                 kill.victimId.toString(),
@@ -365,6 +366,8 @@ class KillRepositorySQLite(private val storage: Storage<Database>) : KillReposit
                 kill.location?.y?.toDouble(),
                 kill.location?.z?.toDouble()
             ) > 0
+            if (saved) kills[kill.id] = kill
+            saved
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to record kill", e)
         }
@@ -457,8 +460,12 @@ class KillRepositorySQLite(private val storage: Storage<Database>) : KillReposit
 
     override fun getGuildKillStats(guildId: UUID): GuildKillStats {
         ensureInitialized()
-
         return guildStats[guildId] ?: GuildKillStats(guildId)
+    }
+
+    override fun getAllGuildKillStats(): Map<UUID, GuildKillStats> {
+        ensureInitialized()
+        return guildStats.toMap()
     }
 
     override fun updateGuildKillStats(stats: GuildKillStats): Boolean {
@@ -469,7 +476,7 @@ class KillRepositorySQLite(private val storage: Storage<Database>) : KillReposit
         """.trimIndent()
 
         return try {
-            storage.connection.executeUpdate(sql,
+            val saved = storage.connection.executeUpdate(sql,
                 stats.guildId.toString(),
                 stats.totalKills,
                 stats.totalDeaths,
@@ -477,6 +484,8 @@ class KillRepositorySQLite(private val storage: Storage<Database>) : KillReposit
                 stats.killDeathRatio,
                 stats.lastUpdated.toString()
             ) > 0
+            if (saved) guildStats[stats.guildId] = stats
+            saved
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to update guild kill stats", e)
         }
@@ -497,7 +506,7 @@ class KillRepositorySQLite(private val storage: Storage<Database>) : KillReposit
         """.trimIndent()
 
         return try {
-            storage.connection.executeUpdate(sql,
+            val saved = storage.connection.executeUpdate(sql,
                 stats.playerId.toString(),
                 stats.guildId?.toString(),
                 stats.totalKills,
@@ -507,6 +516,8 @@ class KillRepositorySQLite(private val storage: Storage<Database>) : KillReposit
                 stats.lastKillTime?.toEpochMilli(),
                 stats.lastDeathTime?.toEpochMilli()
             ) > 0
+            if (saved) playerStats[stats.playerId] = stats
+            saved
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to update player kill stats", e)
         }
@@ -524,13 +535,15 @@ class KillRepositorySQLite(private val storage: Storage<Database>) : KillReposit
         """.trimIndent()
 
         return try {
-            storage.connection.executeUpdate(sql,
+            val saved = storage.connection.executeUpdate(sql,
                 data.playerId.toString(),
                 serializeRecentKills(data.recentKills),
                 data.farmScore,
                 data.lastFarmCheck.toString(),
                 if (data.isCurrentlyFarming) 1 else 0
             ) > 0
+            if (saved) antiFarmData[data.playerId] = data
+            saved
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to update anti-farm data", e)
         }
@@ -618,7 +631,9 @@ class KillRepositorySQLite(private val storage: Storage<Database>) : KillReposit
         val sql = "DELETE FROM guild_kill_stats WHERE guild_id = ?"
 
         return try {
-            storage.connection.executeUpdate(sql, guildId.toString()) >= 0
+            val reset = storage.connection.executeUpdate(sql, guildId.toString()) >= 0
+            if (reset) guildStats.remove(guildId)
+            reset
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to reset guild kill stats", e)
         }
@@ -628,7 +643,9 @@ class KillRepositorySQLite(private val storage: Storage<Database>) : KillReposit
         val sql = "DELETE FROM player_kill_stats WHERE player_id = ?"
 
         return try {
-            storage.connection.executeUpdate(sql, playerId.toString()) >= 0
+            val reset = storage.connection.executeUpdate(sql, playerId.toString()) >= 0
+            if (reset) playerStats.remove(playerId)
+            reset
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to reset player kill stats", e)
         }
