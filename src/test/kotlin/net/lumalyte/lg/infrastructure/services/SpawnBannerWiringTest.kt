@@ -43,7 +43,9 @@ class SpawnBannerWiringTest {
     fun pluginStartsAndStopsDynamicBannerReconciliation() {
         val source = File("src/main/kotlin/net/lumalyte/lg/LumaGuilds.kt").readText()
         assertTrue(source.contains("SpawnBannerListener"))
-        assertTrue(source.contains("SpawnBannerServiceBukkit>().start()"))
+        assertTrue(source.contains("GuildLeaderboardProjectionService>().start"))
+        assertTrue(source.contains("spawnBannerService.start()"))
+        assertTrue(source.contains("GuildLeaderboardProjectionService>()?.stop()"))
         assertTrue(source.contains("SpawnBannerServiceBukkit>()?.stop()"))
     }
 }

@@ -295,6 +295,21 @@ class LeaderboardRepositorySQLite(private val storage: Storage<Database>) : Lead
         }
     }
 
+    override fun deleteLeaderboardEntries(
+        type: ExtendedLeaderboardType,
+        entityId: UUID,
+        period: LeaderboardPeriod,
+    ): Int = try {
+        storage.connection.executeUpdate(
+            "DELETE FROM leaderboard_entries WHERE leaderboard_type = ? AND entity_id = ? AND period = ?",
+            type.name,
+            entityId.toString(),
+            period.name,
+        )
+    } catch (e: SQLException) {
+        throw DatabaseOperationException("Failed to delete leaderboard entries", e)
+    }
+
     override fun getLeaderboardEntriesPaged(type: ExtendedLeaderboardType, period: LeaderboardPeriod, offset: Int, limit: Int): List<LeaderboardEntry> {
         val sql = """
             SELECT id, leaderboard_type, entity_id, entity_type, value, rank, period,

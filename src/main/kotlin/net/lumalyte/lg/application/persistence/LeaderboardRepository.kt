@@ -37,6 +37,9 @@ interface LeaderboardRepository {
      */
     fun getLeaderboardEntry(type: ExtendedLeaderboardType, entityId: UUID, period: LeaderboardPeriod): LeaderboardEntry?
 
+    /** Removes all rows for one entity in a specific leaderboard period. */
+    fun deleteLeaderboardEntries(type: ExtendedLeaderboardType, entityId: UUID, period: LeaderboardPeriod): Int
+
     /**
      * Gets paginated leaderboard entries.
      *

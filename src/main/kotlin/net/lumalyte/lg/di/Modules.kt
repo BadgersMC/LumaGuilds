@@ -731,6 +731,17 @@ fun progressionModule() = module {
     }
     single<LeaderboardService> { LeaderboardServiceBukkit(get()) }
     single {
+        net.lumalyte.lg.infrastructure.services.GuildLeaderboardProjectionService(
+            get<LumaGuilds>(),
+            get(),
+            get(),
+            getOrNull<ClaimRepository>(),
+            get(),
+            get(),
+            get(),
+        )
+    }
+    single {
         net.lumalyte.lg.application.services.GuildListService(get(), get(), get(), get())
     }
     single {
