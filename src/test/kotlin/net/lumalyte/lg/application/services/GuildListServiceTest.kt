@@ -42,7 +42,7 @@ class GuildListServiceTest {
                 claimsEnabled = true,
                 uniqueKillWeight = 25,
             )
-        } returns listOf(GuildListRankedRow(rankedId, 75, 2))
+        } returns listOf(GuildListRankedRow(rankedId, 75, 2, 11))
         every { guildRepository.getById(rankedId) } returns guild
         every { configService.loadConfig() } returns MainConfig(
             claimsEnabled = true,
@@ -71,6 +71,7 @@ class GuildListServiceTest {
         assertEquals(listOf(guild), page.entries.map { it.guild })
         assertEquals(75L, page.entries.single().sortValue)
         assertEquals(2, page.entries.single().uniquePvpKills)
+        assertEquals(11, page.entries.single().memberCount)
         verify(exactly = 1) {
             repository.getPage(
                 offset = 36,

@@ -30,14 +30,17 @@ class GuildListWiringTest {
             "src/main/kotlin/net/lumalyte/lg/interaction/menus/bedrock/BedrockGuildListMenu.kt"
         ).readText()
 
-        assertTrue(java.contains("guildListService.getPage("))
+        assertTrue(java.contains("guildListService.getPageAsync("))
         assertTrue(bedrock.contains("guildListService.getPage("))
+        assertTrue(bedrock.contains("override fun shouldBuildAsync(): Boolean = true"))
         assertTrue(java.contains("guildListService.configuredPageSize()"))
         assertTrue(bedrock.contains("guildListService.configuredPageSize()"))
         assertFalse(java.contains("getAllGuilds"))
         assertFalse(bedrock.contains("getAllGuilds"))
         assertFalse(java.contains(".subList("))
         assertFalse(bedrock.contains(".subList("))
+        assertFalse(java.contains("memberService.getMemberCount("))
+        assertFalse(bedrock.contains("memberService.getMemberCount("))
     }
 
     @Test
