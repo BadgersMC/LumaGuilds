@@ -70,6 +70,9 @@ interface KillRepository {
      */
     fun getGuildKillStats(guildId: UUID): GuildKillStats
 
+    /** Returns the current cached statistics for every guild. */
+    fun getAllGuildKillStats(): Map<UUID, GuildKillStats>
+
     /**
      * Updates guild kill statistics.
      *
