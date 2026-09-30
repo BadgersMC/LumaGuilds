@@ -53,6 +53,7 @@ class LumaGuilds : JavaPlugin() {
     private lateinit var qualifiedRecruitScheduler: net.lumalyte.lg.infrastructure.services.QualifiedRecruitScheduler
     private var experienceTransactionCleanupScheduler: net.lumalyte.lg.infrastructure.services.ExperienceTransactionCleanupScheduler? = null
     private var chapterRolloverScheduler: net.lumalyte.lg.infrastructure.services.ChapterRolloverScheduler? = null
+    private var liteBansStrikeHookRegistered = false
     internal lateinit var vaultProtectionListener: net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener
     internal var enabledAtMillis: Long = 0L
         private set
@@ -1155,26 +1156,52 @@ class LumaGuilds : JavaPlugin() {
 
     /**
      * Wires the Guild Strikes listener into LiteBans and kicks off the one-shot
-     * backfill. Safe to call multiple times: Events.register with the same
-     * listener is idempotent in practice (and the backfill is deduped by
-     * LiteBans entry id). Wrapped in try/catch (including LinkageError, which
+     * backfill. Safe to call multiple times: the method keeps an explicit
+     * registration guard, and the backfill is additionally deduped by LiteBans
+     * entry id. Wrapped in try/catch (including LinkageError, which
      * Bukkit can throw on class-load of a plugin dependency) so a LiteBans API
      * hiccup can never take down LumaGuilds.
      */
     private fun registerLiteBansStrikeHook() {
+        if (liteBansStrikeHookRegistered) return
+
         try {
-            litebans.api.Events.get().register(get().get<net.lumalyte.lg.infrastructure.litebans.LiteBansStrikeListener>())
+            val strikeService = get().get<net.lumalyte.lg.application.services.StrikeService>()
+            val guildService = get().get<net.lumalyte.lg.application.services.GuildService>()
+            val membershipHistoryRepository =
+                get().get<net.lumalyte.lg.application.persistence.MembershipHistoryRepository>()
+            val configProvider = { get().get<net.lumalyte.lg.config.StrikesConfig>() }
+
+            // Construct LiteBans-bound classes only after LiteBans is actually enabled.
+            // Keeping these classes out of the core Koin graph is what makes LiteBans
+            // a true optional dependency at JVM class-loading time.
+            val listener = net.lumalyte.lg.infrastructure.litebans.LiteBansStrikeListener(
+                plugin = this,
+                guildService = guildService,
+                strikeService = strikeService,
+                membershipHistoryRepository = membershipHistoryRepository,
+                configProvider = configProvider,
+            )
+            litebans.api.Events.get().register(listener)
+            liteBansStrikeHookRegistered = true
             logColored("✓ Guild Strikes hooked into LiteBans (punishments tracked per guild)")
 
             // One-shot backfill of pre-existing LiteBans punishments
             // (async, idempotent — deduped by LiteBans entry id).
             Bukkit.getScheduler().runTaskAsynchronously(this, Runnable {
                 try {
-                    val result = get().get<net.lumalyte.lg.infrastructure.litebans.StrikeBackfillService>().run()
+                    val result = net.lumalyte.lg.infrastructure.litebans.StrikeBackfillService(
+                        strikeService = strikeService,
+                        membershipHistoryRepository = membershipHistoryRepository,
+                        guildService = guildService,
+                        configProvider = configProvider,
+                    ).run()
                     logColored(
                         "✓ Guild Strikes backfill: ${result.recorded} recorded, " +
                             "${result.attributed} attributed, ${result.skippedUnattributable} skipped (unattributable)",
                     )
+                } catch (e: LinkageError) {
+                    logger.warning("Guild Strikes backfill unavailable (LiteBans API incompatible): ${e.message}")
                 } catch (e: Exception) {
                     logger.warning("Guild Strikes backfill failed: ${e.message}")
                 }
@@ -1430,40 +1457,30 @@ class LumaGuilds : JavaPlugin() {
 
         // Stop vault auto-save service (this will flush all pending writes)
         try {
-            val vaultAutoSaveService = get().get<net.lumalyte.lg.infrastructure.vault.VaultAutoSaveService>()
-            vaultAutoSaveService.stop()
+            get().getOrNull<net.lumalyte.lg.infrastructure.vault.VaultAutoSaveService>()?.stop()
         } catch (e: Exception) {
-            // Broad exception handling acceptable - shutdown should be resilient
-            logger.severe("Failed to stop vault auto-save service: ${e.message}")
-            e.printStackTrace()
+            logger.warning("Failed to stop vault auto-save service: ${e.message}")
         }
 
         // Stop vault backup service
         try {
-            val vaultBackupService = get().get<net.lumalyte.lg.application.services.VaultBackupService>()
-            vaultBackupService.stopAutoBackup()
+            get().getOrNull<net.lumalyte.lg.application.services.VaultBackupService>()?.stopAutoBackup()
         } catch (e: Exception) {
-            // Broad exception handling acceptable - shutdown should be resilient
-            logger.severe("Failed to stop vault backup service: ${e.message}")
-            e.printStackTrace()
+            logger.warning("Failed to stop vault backup service: ${e.message}")
         }
 
         // Stop vault hologram service
         try {
-            val hologramService = get().get<net.lumalyte.lg.infrastructure.services.VaultHologramService>()
-            hologramService.stop()
+            get().getOrNull<net.lumalyte.lg.infrastructure.services.VaultHologramService>()?.stop()
         } catch (e: Exception) {
-            // Broad exception handling acceptable - shutdown should be resilient
-            logger.severe("Failed to stop vault hologram service: ${e.message}")
-            e.printStackTrace()
+            logger.warning("Failed to stop vault hologram service: ${e.message}")
         }
 
         // Despawn all bannerman displays
         try {
-            val bannermanRenderer = get().get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanRenderService>()
-            bannermanRenderer.despawnAll()
+            get().getOrNull<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanRenderService>()?.despawnAll()
         } catch (_: Exception) {
-            // Koin already torn down — nothing to clean up
+            // Koin may not have completed startup; nothing to clean up.
         }
 
         // Stop the daily war costs scheduler

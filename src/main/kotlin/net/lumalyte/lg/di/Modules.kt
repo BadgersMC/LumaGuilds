@@ -483,23 +483,11 @@ fun guildsModule() = module {
             configProvider = { get<net.lumalyte.lg.config.StrikesConfig>() }
         )
     }
-    single<net.lumalyte.lg.infrastructure.litebans.LiteBansStrikeListener> {
-        net.lumalyte.lg.infrastructure.litebans.LiteBansStrikeListener(
-            plugin = get<LumaGuilds>(),
-            guildService = get(),
-            strikeService = get(),
-            membershipHistoryRepository = get(),
-            configProvider = { get<net.lumalyte.lg.config.StrikesConfig>() }
-        )
-    }
-    single<net.lumalyte.lg.infrastructure.litebans.StrikeBackfillService> {
-        net.lumalyte.lg.infrastructure.litebans.StrikeBackfillService(
-            strikeService = get(),
-            membershipHistoryRepository = get(),
-            guildService = get(),
-            configProvider = { get<net.lumalyte.lg.config.StrikesConfig>() }
-        )
-    }
+    // LiteBans-bound listener/backfill classes are intentionally NOT registered
+    // in the always-loaded Koin graph. Their class hierarchy references the
+    // optional LiteBans API, so resolving their KClass here would make LiteBans
+    // a hard runtime dependency. LumaGuilds constructs them lazily only after
+    // confirming LiteBans is enabled; see registerLiteBansStrikeHook().
 }
 
 /**
