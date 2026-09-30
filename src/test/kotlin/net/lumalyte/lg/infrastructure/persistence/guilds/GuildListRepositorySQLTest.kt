@@ -33,6 +33,12 @@ class GuildListRepositorySQLTest {
             )""".trimIndent()
         )
         storage.connection.executeUpdate(
+            """CREATE TABLE members (
+                player_id TEXT NOT NULL,
+                guild_id TEXT NOT NULL
+            )""".trimIndent()
+        )
+        storage.connection.executeUpdate(
             """CREATE TABLE experience_transactions (
                 id TEXT PRIMARY KEY,
                 guild_id TEXT NOT NULL,
@@ -53,6 +59,9 @@ class GuildListRepositorySQLTest {
         insertGuild(alpha, "Alpha", 2, "2026-01-03 00:00:00")
         insertGuild(beta, "Beta", 1, "2026-01-01 00:00:00")
         insertGuild(charlie, "Charlie", 1, "2026-01-02 00:00:00")
+        insertMember(alpha)
+        insertMember(alpha)
+        insertMember(beta)
         repository = GuildListRepositorySQL(storage)
     }
 
@@ -84,6 +93,7 @@ class GuildListRepositorySQLTest {
             uniqueKillWeight = 25,
         )
         assertEquals(listOf(beta, charlie, alpha), creation.map { it.guildId })
+        assertEquals(listOf(1, 0, 2), creation.map { it.memberCount })
     }
 
     @Test
@@ -139,6 +149,14 @@ class GuildListRepositorySQLTest {
         storage.connection.executeUpdate(
             "INSERT INTO guilds (id, name, level, created_at) VALUES (?, ?, ?, ?)",
             id.toString(), name, level, createdAt
+        )
+    }
+
+    private fun insertMember(guildId: UUID) {
+        storage.connection.executeUpdate(
+            "INSERT INTO members (player_id, guild_id) VALUES (?, ?)",
+            UUID.randomUUID().toString(),
+            guildId.toString(),
         )
     }
 

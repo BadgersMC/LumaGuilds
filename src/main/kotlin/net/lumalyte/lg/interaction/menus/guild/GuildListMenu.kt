@@ -5,9 +5,10 @@ import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.LumaGuilds
 import net.lumalyte.lg.application.services.GuildListEntry
+import net.lumalyte.lg.application.services.GuildListPage
 import net.lumalyte.lg.application.services.GuildListService
-import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.GuildListSortKey
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
@@ -18,6 +19,7 @@ import net.lumalyte.lg.utils.GuiTheme
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
+import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.entity.Player
@@ -27,27 +29,45 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.atomic.AtomicLong
 
 class GuildListMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
 ) : Menu, KoinComponent {
     private val guildListService: GuildListService by inject()
-    private val memberService: MemberService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val lang: LangService by inject()
+    private val plugin: LumaGuilds by inject()
 
     private var currentPage = 0
     private var sortKey = GuildListSortKey.ALL_TIME_ACTIVE
+    private val loadGeneration = AtomicLong()
 
     override fun open() {
+        val generation = loadGeneration.incrementAndGet()
+        val requestedPage = currentPage
+        val requestedSort = sortKey
         val pageSize = guildListService.configuredPageSize()
-        val page = guildListService.getPage(
-            page = currentPage,
+
+        guildListService.getPageAsync(
+            page = requestedPage,
             pageSize = pageSize,
-            sortKey = sortKey,
-            ascending = sortKey.defaultAscending,
-        )
+            sortKey = requestedSort,
+            ascending = requestedSort.defaultAscending,
+        ).whenComplete { page, error ->
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                if (!player.isOnline || loadGeneration.get() != generation) return@Runnable
+                if (error != null) {
+                    plugin.logger.warning("Failed to load /g list for ${player.name}: ${error.message}")
+                    return@Runnable
+                }
+                render(page)
+            })
+        }
+    }
+
+    private fun render(page: GuildListPage) {
         currentPage = page.page
 
         val gui = ChestGui(
@@ -140,7 +160,7 @@ class GuildListMenu(
             .lore(lang.gui("menu.guild_list.guild.level", "level" to guild.level))
             .lore(lang.gui(
                 "menu.guild_list.guild.members",
-                "count" to memberService.getMemberCount(guild.id),
+                "count" to entry.memberCount,
             ))
             .lore(lang.gui(
                 "menu.guild_list.guild.created",

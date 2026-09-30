@@ -8,6 +8,7 @@ import net.lumalyte.lg.config.BedrockConfig
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.MenuFactory
+import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.bukkit.scheduler.BukkitRunnable
@@ -89,46 +90,7 @@ abstract class BaseBedrockMenu(
      * Opens the menu by building and sending the form to the Bedrock player
      */
     override fun open() {
-        try {
-            // Check if Bedrock services are still available before opening
-            if (!isBedrockServicesAvailable()) {
-                handleBedrockUnavailable()
-                return
-            }
-
-            val form = getFormCached()
-
-        // Send the form using Floodgate API
-        val floodgateApi = FloodgateApi.getInstance()
-        // Send the built form with timeout handling
-        floodgateApi.sendForm(player.uniqueId, form)
-
-        // Register timeout for this form
-        val config = getBedrockConfig()
-        registerFormTimeout(player.uniqueId.toString(), config.formTimeoutSeconds)
-
-        // Log successful form opening for debugging
-        logger.fine("Opened Bedrock form ${this::class.simpleName} for player ${player.name} (Timeout: ${config.formTimeoutSeconds}s)")
-
-        } catch (e: IllegalStateException) {
-            // Handle cases where Floodgate is not properly initialized
-            logger.warning("Floodgate not properly initialized for menu ${this::class.simpleName}: ${e.message}")
-            handleBedrockUnavailable()
-
-        } catch (e: IllegalArgumentException) {
-            // Handle invalid player UUID or form data
-            logger.warning("Invalid arguments for Bedrock menu ${this::class.simpleName}: ${e.message}")
-            player.sendMessage(lang.msg("bedrock.common.error.invalid_data"))
-
-        } catch (e: Exception) {
-            // Menu operation - catching all exceptions to prevent UI failure
-            // Generic error handling
-            logger.warning("Unexpected error opening Bedrock menu ${this::class.simpleName} for player ${player.name}: ${e.message}")
-            logger.warning("Stack trace: ${e.stackTraceToString()}")
-
-            // Try fallback to Java menu
-            handleBedrockUnavailable()
-        }
+        openMenu()
     }
 
     /**
@@ -456,29 +418,29 @@ abstract class BaseBedrockMenu(
             }
         }
 
-        // Handle completion
+        // Form construction can happen off-thread, but sending forms and touching
+        // Bukkit/player state belongs back on the server thread.
         formFuture.thenAccept { form ->
-            try {
-                // Send the form using Floodgate API
-                val floodgateApi = FloodgateApi.getInstance()
-                floodgateApi.sendForm(player.uniqueId, form)
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                try {
+                    val floodgateApi = FloodgateApi.getInstance()
+                    floodgateApi.sendForm(player.uniqueId, form)
 
-                // Register timeout for this form
-                val config = getBedrockConfig()
-                registerFormTimeout(player.uniqueId.toString(), config.formTimeoutSeconds)
+                    val config = getBedrockConfig()
+                    registerFormTimeout(player.uniqueId.toString(), config.formTimeoutSeconds)
 
-                // Clear loading message and show success
-                player.sendMessage(lang.msg("bedrock.common.loading.complete"))
-                logger.fine("Opened Bedrock form asynchronously ${this::class.simpleName} for player ${player.name}")
-
-            } catch (e: Exception) {
-                // Menu operation - catching all exceptions to prevent UI failure
-                logger.warning("Error sending async form ${this::class.simpleName} to player ${player.name}: ${e.message}")
-                player.sendMessage(lang.msg("bedrock.common.error.load_failed"))
-            }
+                    player.sendMessage(lang.msg("bedrock.common.loading.complete"))
+                    logger.fine("Opened Bedrock form asynchronously ${this::class.simpleName} for player ${player.name}")
+                } catch (e: Exception) {
+                    logger.warning("Error sending async form ${this::class.simpleName} to player ${player.name}: ${e.message}")
+                    player.sendMessage(lang.msg("bedrock.common.error.load_failed"))
+                }
+            })
         }.exceptionally { throwable ->
-            logger.warning("Async form building failed for ${this::class.simpleName}: ${throwable.message}")
-            player.sendMessage(lang.msg("bedrock.common.error.load_failed"))
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                logger.warning("Async form building failed for ${this::class.simpleName}: ${throwable.message}")
+                player.sendMessage(lang.msg("bedrock.common.error.load_failed"))
+            })
             null
         }
     }
