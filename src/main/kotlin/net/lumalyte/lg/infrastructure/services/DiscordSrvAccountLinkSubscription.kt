@@ -5,6 +5,7 @@ import github.scarsz.discordsrv.api.Subscribe
 import github.scarsz.discordsrv.api.events.AccountLinkedEvent
 import github.scarsz.discordsrv.api.events.AccountUnlinkedEvent
 import net.lumalyte.lg.application.services.DiscordAccountLinkSubscription
+import net.lumalyte.lg.application.services.DiscordAccountReference
 import net.lumalyte.lg.application.services.DiscordGuildRoleSyncSummary
 import net.lumalyte.lg.application.services.GuildDiscordRoleService
 import org.slf4j.LoggerFactory
@@ -41,7 +42,10 @@ class DiscordSrvAccountLinkSubscription(
     fun onAccountUnlinked(event: AccountUnlinkedEvent) {
         observe(
             "Discord account unlink player=${event.player.uniqueId}",
-            service.discordAccountUnlinked(event.player.uniqueId, event.discordId),
+            service.discordAccountUnlinked(
+                event.player.uniqueId,
+                DiscordAccountReference(event.discordId),
+            ),
         )
     }
 

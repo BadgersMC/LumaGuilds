@@ -48,6 +48,19 @@ The replacement must preserve the observable behavior of the existing DiscordSRV
 
 One Discord account may be linked to multiple Minecraft accounts. Desired membership must therefore be calculated without accidentally revoking a role while another linked Minecraft account still qualifies.
 
+## Checkpoint 1: provider-neutral unlink identity
+
+The first migration checkpoint intentionally leaves DiscordSRV operational while removing a provider-specific identity leak from application orchestration.
+
+- `DiscordAccountReference` is a bounded printable opaque account reference; LumaGuilds does not parse provider-specific identity formats.
+- `GuildDiscordRoleService` now performs unlink cleanup through the opaque reference overload.
+- `DiscordGuildRoleGateway` exposes `revokeRoleForAccount(...)` as the provider-neutral cleanup seam.
+- the DiscordSRV adapter alone unwraps the reference into its legacy Discord snowflake;
+- the raw `String` cleanup overload remains temporarily as a compatibility seam for existing callers/test doubles and will be removed after consumers migrate;
+- focused validation covers opaque-value preservation and malformed/unbounded reference rejection.
+
+This checkpoint does **not** add an Enthusia transport client, change the configured provider, or authorize DiscordSRV removal.
+
 ## Migration sequence
 
 1. Keep the existing DiscordSRV implementation working while the Enthusia platform contract is introduced.
