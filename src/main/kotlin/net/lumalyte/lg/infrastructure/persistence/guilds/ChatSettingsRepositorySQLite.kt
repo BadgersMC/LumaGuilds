@@ -91,8 +91,10 @@ class ChatSettingsRepositorySQLite(
                 val playerId = UUID.fromString(result.getString("player_id"))
                 val rateLimit = ChatRateLimit(
                     playerId = playerId,
-                    lastAnnounceTime = result.getLong("last_announce_time"),
-                    lastPingTime = result.getLong("last_ping_time"),
+                    // IDB returns small SQLite INTEGER values as Int, including the default 0.
+                    // getLong casts to Long and fails when a player has not used one action yet.
+                    lastAnnounceTime = (result.get("last_announce_time") as Number).toLong(),
+                    lastPingTime = (result.get("last_ping_time") as Number).toLong(),
                     announceCount = result.getInt("announce_count"),
                     pingCount = result.getInt("ping_count")
                 )

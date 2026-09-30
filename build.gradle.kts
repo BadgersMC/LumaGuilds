@@ -56,7 +56,8 @@ dependencies {
     testImplementation("com.github.MilkBowl:VaultAPI:1.7") {
         exclude(group = "org.bukkit", module = "bukkit")
     }
-    testImplementation("org.junit.jupiter:junit-jupiter:5.8.1")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:6.1.3")
     testImplementation("org.xerial:sqlite-jdbc:3.45.1.0")
     testImplementation("com.lemonappdev:konsist:0.17.3")
 
