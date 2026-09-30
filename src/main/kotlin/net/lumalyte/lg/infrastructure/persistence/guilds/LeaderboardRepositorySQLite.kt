@@ -185,17 +185,19 @@ class LeaderboardRepositorySQLite(private val storage: Storage<Database>) : Lead
             leaderboardType = ExtendedLeaderboardType.valueOf(rs.getString("leaderboard_type")),
             entityId = UUID.fromString(rs.getString("entity_id")),
             entityType = EntityType.valueOf(rs.getString("entity_type")),
-            value = when (val rawValue = rs.get<Any>("value")) {
-                is Number -> rawValue.toDouble()
-                is String -> rawValue.toDoubleOrNull() ?: 0.0
-                else -> 0.0
-            },
+            value = parseLeaderboardValue(rs.get("value")),
             rank = rs.getInt("rank"),
             period = LeaderboardPeriod.valueOf(rs.getString("period")),
             periodStart = (rs.get("period_start") as? Number)?.let { Instant.ofEpochMilli(it.toLong()) },
             periodEnd = (rs.get("period_end") as? Number)?.let { Instant.ofEpochMilli(it.toLong()) },
             lastUpdated = Instant.ofEpochMilli((rs.get("last_updated") as Number).toLong())
         )
+    }
+
+    private fun parseLeaderboardValue(rawValue: Any?): Double = when (rawValue) {
+        is Number -> rawValue.toDouble()
+        is String -> rawValue.toDoubleOrNull() ?: 0.0
+        else -> 0.0
     }
 
     private fun mapResultSetToWeeklyActivity(rs: co.aikar.idb.DbRow): WeeklyActivity {

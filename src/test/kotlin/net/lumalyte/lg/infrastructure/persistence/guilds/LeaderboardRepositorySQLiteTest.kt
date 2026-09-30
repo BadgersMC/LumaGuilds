@@ -13,33 +13,37 @@ import java.nio.file.Path
 import java.time.Instant
 import java.util.UUID
 
-class LeaderboardRepositorySQLiteTest {
-    @TempDir lateinit var tempDir: Path
+private const val LARGE_TIMESTAMP = 1_800_000_000_000L
 
+/** Verifies leaderboard rows through the real SQLite adapter. */
+internal class LeaderboardRepositorySQLiteTest {
+    /** SQLite REAL values and mixed-width INTEGER timestamps round-trip. */
     @Test
-    fun `reads SQLite real values and integer timestamps after saving and preloading`() {
+    fun readsRealAndIntegerValues(@TempDir tempDir: Path) {
         val storage = VirtualThreadSQLiteStorage(tempDir.toFile())
         try {
             val repository = LeaderboardRepositorySQLite(storage)
-            val allTime = LeaderboardEntry(
-                leaderboardType = ExtendedLeaderboardType.GUILD_BANK_BALANCE,
-                entityId = UUID.randomUUID(),
-                entityType = EntityType.GUILD,
-                value = 42.5,
-                rank = 1,
-                lastUpdated = Instant.ofEpochMilli(1_800_000_000_000L),
-            )
-            val weekly = LeaderboardEntry(
-                leaderboardType = ExtendedLeaderboardType.WEEKLY_ACTIVITY,
-                entityId = UUID.randomUUID(),
-                entityType = EntityType.GUILD,
-                value = 0.0,
-                rank = 1,
-                period = LeaderboardPeriod.WEEKLY,
-                periodStart = Instant.EPOCH,
-                periodEnd = Instant.ofEpochMilli(1_800_000_000_000L),
-                lastUpdated = Instant.ofEpochMilli(1_800_000_000_000L),
-            )
+            val allTime =
+                LeaderboardEntry(
+                    leaderboardType = ExtendedLeaderboardType.GUILD_BANK_BALANCE,
+                    entityId = UUID.randomUUID(),
+                    entityType = EntityType.GUILD,
+                    value = 42.5,
+                    rank = 1,
+                    lastUpdated = Instant.ofEpochMilli(LARGE_TIMESTAMP),
+                )
+            val weekly =
+                LeaderboardEntry(
+                    leaderboardType = ExtendedLeaderboardType.WEEKLY_ACTIVITY,
+                    entityId = UUID.randomUUID(),
+                    entityType = EntityType.GUILD,
+                    value = 0.0,
+                    rank = 1,
+                    period = LeaderboardPeriod.WEEKLY,
+                    periodStart = Instant.EPOCH,
+                    periodEnd = Instant.ofEpochMilli(LARGE_TIMESTAMP),
+                    lastUpdated = Instant.ofEpochMilli(LARGE_TIMESTAMP),
+                )
             assertTrue(repository.saveLeaderboardEntry(allTime))
             assertTrue(repository.saveLeaderboardEntry(weekly))
 
