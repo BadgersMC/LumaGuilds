@@ -23,27 +23,8 @@ internal class LeaderboardRepositorySQLiteTest {
         val storage = VirtualThreadSQLiteStorage(tempDir.toFile())
         try {
             val repository = LeaderboardRepositorySQLite(storage)
-            val allTime =
-                LeaderboardEntry(
-                    leaderboardType = ExtendedLeaderboardType.GUILD_BANK_BALANCE,
-                    entityId = UUID.randomUUID(),
-                    entityType = EntityType.GUILD,
-                    value = 42.5,
-                    rank = 1,
-                    lastUpdated = Instant.ofEpochMilli(LARGE_TIMESTAMP),
-                )
-            val weekly =
-                LeaderboardEntry(
-                    leaderboardType = ExtendedLeaderboardType.WEEKLY_ACTIVITY,
-                    entityId = UUID.randomUUID(),
-                    entityType = EntityType.GUILD,
-                    value = 0.0,
-                    rank = 1,
-                    period = LeaderboardPeriod.WEEKLY,
-                    periodStart = Instant.EPOCH,
-                    periodEnd = Instant.ofEpochMilli(LARGE_TIMESTAMP),
-                    lastUpdated = Instant.ofEpochMilli(LARGE_TIMESTAMP),
-                )
+            val allTime = allTimeEntry()
+            val weekly = weeklyEntry()
             assertTrue(repository.saveLeaderboardEntry(allTime))
             assertTrue(repository.saveLeaderboardEntry(weekly))
 
@@ -55,4 +36,27 @@ internal class LeaderboardRepositorySQLiteTest {
             storage.connection.close()
         }
     }
+
+    private fun allTimeEntry() =
+        LeaderboardEntry(
+            leaderboardType = ExtendedLeaderboardType.GUILD_BANK_BALANCE,
+            entityId = UUID.randomUUID(),
+            entityType = EntityType.GUILD,
+            value = 42.5,
+            rank = 1,
+            lastUpdated = Instant.ofEpochMilli(LARGE_TIMESTAMP),
+        )
+
+    private fun weeklyEntry() =
+        LeaderboardEntry(
+            leaderboardType = ExtendedLeaderboardType.WEEKLY_ACTIVITY,
+            entityId = UUID.randomUUID(),
+            entityType = EntityType.GUILD,
+            value = 0.0,
+            rank = 1,
+            period = LeaderboardPeriod.WEEKLY,
+            periodStart = Instant.EPOCH,
+            periodEnd = Instant.ofEpochMilli(LARGE_TIMESTAMP),
+            lastUpdated = Instant.ofEpochMilli(LARGE_TIMESTAMP),
+        )
 }
