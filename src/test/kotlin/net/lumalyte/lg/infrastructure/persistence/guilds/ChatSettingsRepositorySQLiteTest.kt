@@ -17,26 +17,8 @@ internal class ChatSettingsRepositorySQLiteTest {
         val storage = VirtualThreadSQLiteStorage(tempDir.toFile())
         try {
             val playerId = UUID.randomUUID()
-            storage.connection.executeUpdate(
-                """
-                CREATE TABLE chat_rate_limits (
-                    player_id TEXT PRIMARY KEY,
-                    last_announce_time INTEGER NOT NULL DEFAULT 0,
-                    last_ping_time INTEGER NOT NULL DEFAULT 0,
-                    announce_count INTEGER NOT NULL DEFAULT 0,
-                    ping_count INTEGER NOT NULL DEFAULT 0
-                )
-                """.trimIndent(),
-            )
-            storage.connection.executeUpdate(
-                """
-                INSERT INTO chat_rate_limits
-                    (player_id, last_announce_time, last_ping_time, announce_count, ping_count)
-                    VALUES (?, ?, 0, 1, 0)
-                """.trimIndent(),
-                playerId.toString(),
-                LARGE_TIMESTAMP,
-            )
+            createRateLimitTable(storage)
+            insertRateLimit(storage, playerId)
 
             val repository = ChatSettingsRepositorySQLite(storage)
             val rateLimit = repository.getRateLimit(playerId)
@@ -46,5 +28,23 @@ internal class ChatSettingsRepositorySQLiteTest {
         } finally {
             storage.connection.close()
         }
+    }
+
+    private fun createRateLimitTable(storage: VirtualThreadSQLiteStorage) {
+        storage.connection.executeUpdate(
+            "CREATE TABLE chat_rate_limits (player_id TEXT PRIMARY KEY, " +
+                "last_announce_time INTEGER NOT NULL DEFAULT 0, last_ping_time INTEGER NOT NULL DEFAULT 0, " +
+                "announce_count INTEGER NOT NULL DEFAULT 0, ping_count INTEGER NOT NULL DEFAULT 0)",
+        )
+    }
+
+    private fun insertRateLimit(storage: VirtualThreadSQLiteStorage, playerId: UUID) {
+        storage.connection.executeUpdate(
+            "INSERT INTO chat_rate_limits " +
+                "(player_id, last_announce_time, last_ping_time, announce_count, ping_count) " +
+                "VALUES (?, ?, 0, 1, 0)",
+            playerId.toString(),
+            LARGE_TIMESTAMP,
+        )
     }
 }
