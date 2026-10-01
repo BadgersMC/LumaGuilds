@@ -435,10 +435,14 @@ class GuildSettingsMenu(
         // Guild Mode
         val config = configService.loadConfig()
         if (config.guild.peacefulModeEnabled) {
-            val modeItem = ItemStack.of(
-                if (guild.mode == GuildMode.PEACEFUL)
-                    Material.GREEN_WOOL else Material.RED_WOOL
-            )
+            val modeItem = NexoItemProvider.getItemStackOrFallback(
+                if (guild.mode == GuildMode.PEACEFUL) "lg_mode_peaceful" else "lg_mode_hostile"
+            ) {
+                ItemStack.of(
+                    if (guild.mode == GuildMode.PEACEFUL)
+                        Material.GREEN_WOOL else Material.RED_WOOL
+                )
+            }
                 .name(lang.gui("menu.guild_settings.item.mode.name"))
                 .lore(if (guild.mode == GuildMode.PEACEFUL) lang.gui("menu.guild_settings.item.mode.lore.current.peaceful") else lang.gui("menu.guild_settings.item.mode.lore.current.hostile"))
                 .lore(lang.gui("menu.common.blank"))

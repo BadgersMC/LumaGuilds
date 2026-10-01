@@ -1,0 +1,326 @@
+# LumaGuilds GUI icons - Enthusia style (16x16).
+# Drop into plugins/Nexo/items/ and copy pack/ into plugins/Nexo/pack/, then /nexo reload all.
+# IDs that already exist in your current LumaGuilds Nexo config must be removed there first
+# (Nexo item IDs have to be unique). New IDs are marked "new".
+
+lg_nav_info:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/guild_info
+
+lg_nav_members:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/members
+
+lg_nav_ranks:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/ranks
+
+lg_nav_quests:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/quests
+
+lg_nav_economy:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/bank
+
+lg_nav_settings:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/settings
+
+lg_nav_progression:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/level
+
+lg_nav_diplomacy:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/alliances
+
+lg_nav_warfare:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/wars
+
+lg_nav_statistics:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/statistics
+
+lg_back:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/back
+
+lg_page_prev:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/prev
+
+lg_page_next:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/next
+
+lg_close:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/close
+
+lg_confirm:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/confirm
+
+lg_cancel:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/cancel
+
+lg_toggle_on:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/toggle_on
+
+lg_toggle_off:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/toggle_off
+
+lg_invite:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/invite
+
+lg_kick:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/kick
+
+lg_promote:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/promote
+
+lg_home:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/home
+
+lg_bank:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/bank
+
+lg_deposit:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/deposit
+
+lg_withdraw:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/withdraw
+
+lg_history:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/history
+
+lg_level:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/level
+
+lg_emoji:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/emoji
+
+lg_tag:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/tag
+
+lg_description:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/description
+
+lg_rank_create:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/rank_create
+
+lg_alliance:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/alliances
+
+lg_truce:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/history
+
+lg_peace:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/mode_peaceful
+
+lg_enemy:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/enemy
+
+lg_declare_war:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/declare_war
+
+lg_war_stats:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/war_stats
+
+lg_relations_history:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/book
+
+lg_leader:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/leader
+
+lg_leave:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/leave
+
+lg_disband:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/disband
+
+lg_claims:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/claims
+
+lg_mode_peaceful:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/mode_peaceful
+
+lg_mode_hostile:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/mode_hostile
+
+lg_party:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/party
+
+lg_vault:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/vault

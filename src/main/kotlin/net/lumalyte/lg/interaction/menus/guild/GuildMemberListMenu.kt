@@ -20,6 +20,7 @@ import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Bukkit
+import net.lumalyte.lg.utils.NexoItemProvider
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
@@ -103,7 +104,7 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
         // Navigation buttons
         if (paginatedPane.pages > 1) {
             // Previous page button
-            val prevButton = ItemStack.of(Material.ARROW)
+            val prevButton = NexoItemProvider.getItemStackOrFallback("lg_page_prev") { ItemStack.of(Material.ARROW) }
                 .name(lang.gui("menu.member_list.item.previous.name"))
                 .lore(lang.gui("menu.common.item.page.name", "current_page" to (paginatedPane.page + 1), "total_pages" to paginatedPane.pages))
 
@@ -116,7 +117,7 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
             staticPane.addItem(prevGuiItem, 0, 0)
 
             // Next page button
-            val nextButton = ItemStack.of(Material.ARROW)
+            val nextButton = NexoItemProvider.getItemStackOrFallback("lg_page_next") { ItemStack.of(Material.ARROW) }
                 .name(lang.gui("menu.member_list.item.next.name"))
                 .lore(lang.gui("menu.common.item.page.name", "current_page" to (paginatedPane.page + 1), "total_pages" to paginatedPane.pages))
 
@@ -136,7 +137,7 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
         staticPane.addItem(GuiItem(infoItem), 4, 0)
 
         // Back button
-        val backButton = ItemStack.of(Material.BARRIER)
+        val backButton = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
             .name(lang.gui("menu.member_list.item.back.name"))
             .lore(lang.gui("menu.member_list.item.back.lore"))
 

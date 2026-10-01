@@ -20,6 +20,7 @@ import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.deserializeToItemStack
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
+import net.lumalyte.lg.utils.NexoItemProvider
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
@@ -103,7 +104,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addGuildSettingsButton(pane: StaticPane, x: Int, y: Int) {
-        val settingsItem = ItemStack.of(Material.COMMAND_BLOCK)
+        val settingsItem = NexoItemProvider.getItemStackOrFallback("lg_nav_settings") { ItemStack.of(Material.COMMAND_BLOCK) }
             .name(lang.gui("menu.control_panel.item.settings.name"))
             .lore(lang.gui("menu.control_panel.item.settings.lore.description"))
             .lore(lang.gui("menu.control_panel.item.settings.lore.details"))
@@ -115,7 +116,7 @@ class GuildControlPanelMenu(
 
     private fun addEmojiSettingsButton(pane: StaticPane, x: Int, y: Int) {
         val emoji = guildService.getEmoji(guild.id)
-        val emojiItem = ItemStack.of(Material.NAME_TAG)
+        val emojiItem = NexoItemProvider.getItemStackOrFallback("lg_emoji") { ItemStack.of(Material.NAME_TAG) }
             .name(lang.gui("menu.control_panel.item.emoji.name"))
             .lore(lang.gui(
                 "menu.control_panel.item.emoji.lore.current",
@@ -160,8 +161,8 @@ class GuildControlPanelMenu(
 
     private fun addModeSettingsButton(pane: StaticPane, x: Int, y: Int) {
         val modeItem = when (guild.mode) {
-            GuildMode.PEACEFUL -> ItemStack.of(Material.GREEN_WOOL)
-            GuildMode.HOSTILE -> ItemStack.of(Material.RED_WOOL)
+            GuildMode.PEACEFUL -> NexoItemProvider.getItemStackOrFallback("lg_mode_peaceful") { ItemStack.of(Material.GREEN_WOOL) }
+            GuildMode.HOSTILE -> NexoItemProvider.getItemStackOrFallback("lg_mode_hostile") { ItemStack.of(Material.RED_WOOL) }
         }
             .name(lang.gui("menu.control_panel.item.mode.name"))
             .lore(lang.gui(
@@ -182,7 +183,7 @@ class GuildControlPanelMenu(
 
     private fun addHomeSettingsButton(pane: StaticPane, x: Int, y: Int) {
         val home = guildService.getHome(guild.id)
-        val homeItem = ItemStack.of(Material.COMPASS)
+        val homeItem = NexoItemProvider.getItemStackOrFallback("lg_home") { ItemStack.of(Material.COMPASS) }
             .name(lang.gui("menu.control_panel.item.home.name"))
             .lore(if (home != null) {
                 lang.gui("menu.control_panel.item.home.lore.set")
@@ -202,7 +203,7 @@ class GuildControlPanelMenu(
             rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RANKS) ||
                 rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_GUILD_SETTINGS)
 
-        val rankItem = ItemStack.of(Material.IRON_SWORD)
+        val rankItem = NexoItemProvider.getItemStackOrFallback("lg_nav_ranks") { ItemStack.of(Material.IRON_SWORD) }
             .name(lang.gui("menu.control_panel.item.rank_management.name"))
             .lore(lang.gui("menu.control_panel.item.rank_management.lore.description"))
             .lore(lang.gui("menu.control_panel.item.rank_management.lore.count", "count" to rankCount))
@@ -225,7 +226,7 @@ class GuildControlPanelMenu(
 
     private fun addMemberManagementButton(pane: StaticPane, x: Int, y: Int) {
         val memberCount = memberService.getMemberCount(guild.id)
-        val memberItem = ItemStack.of(Material.PLAYER_HEAD)
+        val memberItem = NexoItemProvider.getItemStackOrFallback("lg_nav_members") { ItemStack.of(Material.PLAYER_HEAD) }
             .name(lang.gui("menu.control_panel.item.member_management.name"))
             .lore(lang.gui("menu.control_panel.item.member_management.lore.description"))
             .lore(lang.gui("menu.control_panel.item.member_management.lore.count", "count" to memberCount))
@@ -236,7 +237,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addPartyManagementButton(pane: StaticPane, x: Int, y: Int) {
-        val partyItem = ItemStack.of(Material.FIREWORK_ROCKET)
+        val partyItem = NexoItemProvider.getItemStackOrFallback("lg_party") { ItemStack.of(Material.FIREWORK_ROCKET) }
             .name(lang.gui("menu.control_panel.item.party.name"))
             .lore(lang.gui("menu.control_panel.item.party.lore.description"))
             .lore(lang.gui("menu.control_panel.item.party.lore.details"))
@@ -247,7 +248,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addWarManagementButton(pane: StaticPane, x: Int, y: Int) {
-        val warItem = ItemStack.of(Material.DIAMOND_SWORD)
+        val warItem = NexoItemProvider.getItemStackOrFallback("lg_nav_warfare") { ItemStack.of(Material.DIAMOND_SWORD) }
             .name(lang.gui("menu.control_panel.item.war.name"))
             .lore(lang.gui("menu.control_panel.item.war.lore.description"))
             .lore(lang.gui("menu.control_panel.item.war.lore.details"))
@@ -258,7 +259,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addRelationManagementButton(pane: StaticPane, x: Int, y: Int) {
-        val relationItem = ItemStack.of(Material.BOOK)
+        val relationItem = NexoItemProvider.getItemStackOrFallback("lg_nav_diplomacy") { ItemStack.of(Material.BOOK) }
             .name(lang.gui("menu.control_panel.item.relations.name"))
             .lore(lang.gui("menu.control_panel.item.relations.lore.description"))
             .lore(lang.gui("menu.control_panel.item.relations.lore.details"))
@@ -269,7 +270,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addBankManagementButton(pane: StaticPane, x: Int, y: Int) {
-        val bankItem = ItemStack.of(Material.GOLD_BLOCK)
+        val bankItem = NexoItemProvider.getItemStackOrFallback("lg_nav_economy") { ItemStack.of(Material.GOLD_BLOCK) }
             .name(lang.gui("menu.control_panel.item.bank.name"))
             .lore(lang.gui("menu.control_panel.item.bank.lore.description"))
             .lore(lang.gui("menu.control_panel.item.bank.lore.details"))
@@ -282,7 +283,7 @@ class GuildControlPanelMenu(
     private fun addVaultButton(pane: StaticPane, x: Int, y: Int) {
         val vaultItem = when (guild.vaultStatus) {
             net.lumalyte.lg.domain.entities.VaultStatus.AVAILABLE -> {
-                ItemStack.of(Material.CHEST)
+                NexoItemProvider.getItemStackOrFallback("lg_vault") { ItemStack.of(Material.CHEST) }
                     .name(lang.gui("menu.control_panel.item.vault.name"))
                     .lore(lang.gui("menu.control_panel.item.vault.lore.available"))
                     .lore(lang.gui("menu.control_panel.item.vault.lore.open"))
@@ -338,7 +339,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addStatisticsButton(pane: StaticPane, x: Int, y: Int) {
-        val statsItem = ItemStack.of(Material.BOOKSHELF)
+        val statsItem = NexoItemProvider.getItemStackOrFallback("lg_nav_statistics") { ItemStack.of(Material.BOOKSHELF) }
             .name(lang.gui("menu.control_panel.item.statistics.name"))
             .lore(lang.gui("menu.control_panel.item.statistics.lore.description"))
             .lore(lang.gui("menu.control_panel.item.statistics.lore.details"))
@@ -355,7 +356,7 @@ class GuildControlPanelMenu(
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
             // Fallback if progression system isn't available
-            ItemStack.of(Material.EXPERIENCE_BOTTLE)
+            NexoItemProvider.getItemStackOrFallback("lg_nav_progression") { ItemStack.of(Material.EXPERIENCE_BOTTLE) }
                 .name(lang.gui("menu.control_panel.item.progression.name"))
                 .lore(lang.gui("menu.control_panel.item.progression.lore.starting_level"))
                 .lore(lang.gui("menu.control_panel.item.progression.lore.starting_progress"))
@@ -372,7 +373,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addInvitePlayerButton(pane: StaticPane, x: Int, y: Int) {
-        val inviteItem = ItemStack.of(Material.PAPER)
+        val inviteItem = NexoItemProvider.getItemStackOrFallback("lg_invite") { ItemStack.of(Material.PAPER) }
             .name(lang.gui("menu.control_panel.item.invite.name"))
             .lore(lang.gui("menu.control_panel.item.invite.lore"))
         val guiItem = GuiItem(inviteItem) {
@@ -382,7 +383,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addKickPlayerButton(pane: StaticPane, x: Int, y: Int) {
-        val kickItem = ItemStack.of(Material.BARRIER)
+        val kickItem = NexoItemProvider.getItemStackOrFallback("lg_kick") { ItemStack.of(Material.BARRIER) }
             .name(lang.gui("menu.control_panel.item.kick.name"))
             .lore(lang.gui("menu.control_panel.item.kick.lore"))
         val guiItem = GuiItem(kickItem) {
@@ -392,7 +393,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addPromotePlayerButton(pane: StaticPane, x: Int, y: Int) {
-        val promoteItem = ItemStack.of(Material.ANVIL)
+        val promoteItem = NexoItemProvider.getItemStackOrFallback("lg_promote") { ItemStack.of(Material.ANVIL) }
             .name(lang.gui("menu.control_panel.item.promote.name"))
             .lore(lang.gui("menu.control_panel.item.promote.lore"))
         val guiItem = GuiItem(promoteItem) {
@@ -402,7 +403,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addGuildInfoButton(pane: StaticPane, x: Int, y: Int) {
-        val infoItem = ItemStack.of(Material.KNOWLEDGE_BOOK)
+        val infoItem = NexoItemProvider.getItemStackOrFallback("lg_nav_info") { ItemStack.of(Material.KNOWLEDGE_BOOK) }
             .name(lang.gui("menu.control_panel.item.info.name"))
             .lore(lang.gui("menu.control_panel.item.info.lore"))
         val guiItem = GuiItem(infoItem) {
@@ -413,7 +414,7 @@ class GuildControlPanelMenu(
 
     private fun addMemberListButton(pane: StaticPane, x: Int, y: Int) {
         val memberCount = memberService.getMemberCount(guild.id)
-        val listItem = ItemStack.of(Material.BOOK)
+        val listItem = NexoItemProvider.getItemStackOrFallback("lg_nav_members") { ItemStack.of(Material.BOOK) }
             .name(lang.gui("menu.control_panel.item.member_list.name"))
             .lore(lang.gui("menu.control_panel.item.member_list.lore.description"))
             .lore(lang.gui("menu.control_panel.item.member_list.lore.count", "count" to memberCount))
@@ -425,7 +426,7 @@ class GuildControlPanelMenu(
 
     private fun addRankListButton(pane: StaticPane, x: Int, y: Int) {
         val rankCount = rankService.listRanks(guild.id).size
-        val listItem = ItemStack.of(Material.WRITABLE_BOOK)
+        val listItem = NexoItemProvider.getItemStackOrFallback("lg_leader") { ItemStack.of(Material.WRITABLE_BOOK) }
             .name(lang.gui("menu.control_panel.item.rank_list.name"))
             .lore(lang.gui("menu.control_panel.item.rank_list.lore.description"))
             .lore(lang.gui("menu.control_panel.item.rank_list.lore.count", "count" to rankCount))
@@ -436,7 +437,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addDisbandGuildButton(pane: StaticPane, x: Int, y: Int) {
-        val disbandItem = ItemStack.of(Material.TNT)
+        val disbandItem = NexoItemProvider.getItemStackOrFallback("lg_disband") { ItemStack.of(Material.TNT) }
             .name(lang.gui("menu.control_panel.item.disband.name"))
             .lore(lang.gui("menu.control_panel.item.disband.lore.warning"))
             .lore(lang.gui("menu.control_panel.item.disband.lore.description"))
@@ -448,7 +449,7 @@ class GuildControlPanelMenu(
     }
 
     private fun addLeaveGuildButton(pane: StaticPane, x: Int, y: Int) {
-        val leaveItem = ItemStack.of(Material.DARK_OAK_DOOR)
+        val leaveItem = NexoItemProvider.getItemStackOrFallback("lg_leave") { ItemStack.of(Material.DARK_OAK_DOOR) }
             .name(lang.gui("menu.control_panel.item.leave.name"))
             .lore(lang.gui("menu.control_panel.item.leave.lore.description"))
             .lore(lang.gui("menu.control_panel.item.leave.lore.rejoin"))
@@ -459,7 +460,7 @@ class GuildControlPanelMenu(
     }
 
     private fun createProgressionInfoItem(): ItemStack {
-        val levelingItem = ItemStack.of(Material.EXPERIENCE_BOTTLE)
+        val levelingItem = NexoItemProvider.getItemStackOrFallback("lg_nav_progression") { ItemStack.of(Material.EXPERIENCE_BOTTLE) }
             .name(lang.gui("menu.control_panel.item.progression.name"))
 
         // Check if claims are enabled in config
