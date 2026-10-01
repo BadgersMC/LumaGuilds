@@ -828,7 +828,8 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [ ] **LG-1901** Show the custom Enthusia icons to Bedrock players through Geyser custom items.
   - Tag: `INFRA`
   - References: Geyser custom items v2 (`item_model` mappings, Bedrock resource pack required — https://geysermc.org/wiki/geyser/custom-items/); Nexo Scaffolding add-on (https://docs.nexomc.com/addons/scaffolding, needs Nexo 1.26+ and Geyser 2.11.0-SNAPSHOT+); Rainbow (https://geysermc.org/wiki/other/rainbow/).
-  - Next step (blocked on operator): check production (Bloom.host panel, `plugins/`) for Scaffolding and record the Nexo, Geyser and Floodgate versions. The panel needs the operator signed in on the desktop browser.
+  - Production check 2026-10-01 (Bloom.host file manager, read-only): Scaffolding is **not installed** (not in `plugins/` or `plugins/Nexo/`). Backend has `nexo-1.28.jar` (meets Scaffolding's Nexo 1.26+), `floodgate-spigot.jar`, `packetevents-spigot-2.13.0.jar`, `ProtocolLib-26.2-dev`, `LumaGuilds-3.0.4-guild-chat-fix.4.jar`, ViaVersion/ViaBackwards 5.12.0, on Leaf 26.2. **No Geyser jar on the backend** — Geyser must run on the proxy, so its version is still unknown and Scaffolding would need to deploy mappings where Geyser actually runs.
+  - Next step (operator): confirm the Geyser version/location on the proxy (needs 2.11.0-SNAPSHOT+). Staging already runs Geyser 2.11.3-b1247 (LG-1812), so trial Scaffolding there first.
   - Plan: prefer Scaffolding if production meets its requirements; otherwise generate the Geyser v2 mappings + Bedrock pack from `resourcepack/enthusia-icons` (needs one icon's `item_model` value via F3+H). When Bedrock mappings are live, add a config switch so `MenuIconAdapter` stops swapping icons for Bedrock players (the title cleanup stays).
   - Evidence: none yet.
 
