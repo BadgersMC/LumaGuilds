@@ -4,12 +4,16 @@ import io.mockk.every
 import io.mockk.mockk
 import net.lumalyte.lg.application.persistence.GuildDiscordRoleRepository
 import net.lumalyte.lg.application.persistence.ProgressionRepository
+import net.lumalyte.lg.application.persistence.RewardOwnershipRepository
 import net.lumalyte.lg.config.DiscordGuildRolesConfig
 import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildDiscordRoleLink
 import net.lumalyte.lg.domain.entities.GuildProgression
 import net.lumalyte.lg.domain.entities.Member
+import net.lumalyte.lg.domain.rewards.RewardOwnership
+import net.lumalyte.lg.domain.rewards.RewardOwnershipRead
+import net.lumalyte.lg.domain.rewards.RewardOwnershipSnapshot
 import org.junit.jupiter.api.Test
 import java.time.Clock
 import java.time.Instant
@@ -117,6 +121,69 @@ class GuildDiscordRoleServiceTest {
         assertEquals(FakeGateway.ROLE_ID, fixture.repository.get(guildId)?.discordRoleId)
     }
 
+    /** A deleted legacy role stays absent until the configured level is reached. */
+    @Test
+    fun deletedRoleWaitsForLevel() {
+        val liveLevel = AtomicInteger(BELOW_ROLE_LEVEL)
+        val fixture = fixture(
+            guild(level = BELOW_ROLE_LEVEL),
+            members = setOf(member(playerOne)),
+            minimumLevel = ROLE_LEVEL,
+            levelProvider = { liveLevel.get() },
+        )
+        fixture.repository.upsert(GuildDiscordRoleLink(guildId, FakeGateway.ROLE_ID, now))
+        fixture.gateway.roleMissing = true
+
+        fixture.service.reconcileAll().join()
+        fixture.service.memberJoined(guildId, playerTwo).join()
+        assertTrue(fixture.gateway.granted.isEmpty())
+        assertTrue(fixture.gateway.deleted.isEmpty())
+        assertNotNull(fixture.repository.get(guildId))
+
+        liveLevel.set(ROLE_LEVEL)
+        val result = fixture.service.reconcileGuild(guildId).join()
+        assertEquals(1, result.rolesCreated)
+        assertEquals(listOf(playerOne), fixture.gateway.granted)
+    }
+
+    /** A completed prestige keeps role creation eligible after the reset to level one. */
+    @Test
+    fun prestigedGuildRepairsDeletedRole() {
+        val fixture = fixture(
+            guild(level = 1),
+            members = setOf(member(playerOne)),
+            minimumLevel = ROLE_LEVEL,
+            prestigeCount = 1,
+        )
+        fixture.repository.upsert(GuildDiscordRoleLink(guildId, FakeGateway.ROLE_ID, now))
+        fixture.gateway.roleMissing = true
+
+        val result = fixture.service.reconcileGuild(guildId).join()
+
+        assertEquals(1, result.rolesCreated)
+        assertEquals(listOf(playerOne), fixture.gateway.granted)
+        assertTrue(fixture.gateway.deleted.isEmpty())
+    }
+
+    /** A failed prestige read cannot authorize recreation or discard a saved link. */
+    @Test
+    fun failedPrestigeReadPreservesLink() {
+        val fixture = fixture(
+            guild(level = 1),
+            minimumLevel = ROLE_LEVEL,
+            ownershipRead = RewardOwnershipRead.Failed("database unavailable"),
+        )
+        fixture.repository.upsert(GuildDiscordRoleLink(guildId, FakeGateway.ROLE_ID, now))
+        fixture.gateway.roleMissing = true
+
+        val result = fixture.service.reconcileGuild(guildId).join()
+
+        assertEquals(1, result.failures)
+        assertEquals(0, fixture.gateway.ensureCalls)
+        assertTrue(fixture.gateway.deleted.isEmpty())
+        assertNotNull(fixture.repository.get(guildId))
+    }
+
     /** A level drop during an in-flight create cannot leave an orphan role. */
     @Test
     fun dropDuringCreateCleansRole() {
@@ -126,7 +193,7 @@ class GuildDiscordRoleServiceTest {
             minimumLevel = ROLE_LEVEL,
             levelProvider = { liveLevel.get() },
         )
-        val pendingEnsure = CompletableFuture<DiscordRoleEnsureResult>()
+        val pendingEnsure = CompletableFuture<DiscordRoleEnsureResult?>()
         fixture.gateway.ensureOverride = pendingEnsure
 
         val pending = fixture.service.reconcileGuild(guildId)
@@ -226,7 +293,7 @@ class GuildDiscordRoleServiceTest {
     @Test
     fun `simultaneous callers claim in flight slot before gateway role creation`() {
         val fixture = fixture(guild(level = 50))
-        val pendingEnsure = CompletableFuture<DiscordRoleEnsureResult>()
+        val pendingEnsure = CompletableFuture<DiscordRoleEnsureResult?>()
         fixture.gateway.ensureOverride = pendingEnsure
         val executor = Executors.newFixedThreadPool(2)
         val ready = CountDownLatch(2)
@@ -270,7 +337,7 @@ class GuildDiscordRoleServiceTest {
     @Test
     fun `two concurrent joins share one role creation`() {
         val fixture = fixture(guild(level = 50))
-        val pendingEnsure = CompletableFuture<DiscordRoleEnsureResult>()
+        val pendingEnsure = CompletableFuture<DiscordRoleEnsureResult?>()
         fixture.gateway.ensureOverride = pendingEnsure
 
         val first = fixture.service.memberJoined(guildId, playerOne)
@@ -479,6 +546,10 @@ class GuildDiscordRoleServiceTest {
         minimumLevel: Int = 1,
         currentLevel: Int? = guild?.level,
         levelProvider: () -> Int? = { currentLevel },
+        prestigeCount: Int = 0,
+        ownershipRead: RewardOwnershipRead = RewardOwnershipRead.Found(
+            RewardOwnershipSnapshot(0, RewardOwnership(prestigeCount = prestigeCount)),
+        ),
     ): Fixture {
         val configService = mockk<ConfigService>()
         every { configService.loadConfig() } returns MainConfig(
@@ -512,6 +583,9 @@ class GuildDiscordRoleServiceTest {
                     every { getGuildProgression(guildId) } answers {
                         levelProvider()?.let { GuildProgression(guildId, currentLevel = it) }
                     }
+                },
+                mockk<RewardOwnershipRepository> {
+                    every { read(guildId) } returns ownershipRead
                 },
                 clock,
             ),
@@ -567,9 +641,10 @@ class GuildDiscordRoleServiceTest {
 
         var available = true
         var createOnEnsure = true
+        var roleMissing = false
         private val ensureCallCounter = AtomicInteger()
         val ensureCalls: Int get() = ensureCallCounter.get()
-        var ensureOverride: CompletableFuture<DiscordRoleEnsureResult>? = null
+        var ensureOverride: CompletableFuture<DiscordRoleEnsureResult?>? = null
         var ensureEntered: CountDownLatch? = null
         var ensureRelease: CountDownLatch? = null
         val unexpectedRoleMembers = linkedSetOf<UUID>()
@@ -588,16 +663,18 @@ class GuildDiscordRoleServiceTest {
         override fun ensureRole(
             existingRoleId: String?,
             roleName: String,
-        ): CompletableFuture<DiscordRoleEnsureResult> {
+            allowCreate: Boolean,
+        ): CompletableFuture<DiscordRoleEnsureResult?> {
             ensureCallCounter.incrementAndGet()
             ensureRequests += existingRoleId to roleName
             ensureEntered?.countDown()
             ensureRelease?.await(5, TimeUnit.SECONDS)
             ensureOverride?.let { return it }
+            if (roleMissing && !allowCreate) return CompletableFuture.completedFuture(null)
             return CompletableFuture.completedFuture(
                 DiscordRoleEnsureResult(
                     existingRoleId ?: ROLE_ID,
-                    created = existingRoleId == null && createOnEnsure,
+                    created = (existingRoleId == null || roleMissing) && createOnEnsure,
                 )
             )
         }
