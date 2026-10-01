@@ -74,20 +74,13 @@ class GuildDiscordRoleService(
         if (!config.enabled || !gateway.isAvailable()) return completed(DiscordGuildRoleSyncSummary())
         val guild = guildService.getGuild(guildId) ?: return completed(DiscordGuildRoleSyncSummary())
         val allowCreate = canCreateRole(guild, config) ?: return completed(DiscordGuildRoleSyncSummary(failures = 1))
-        val previouslyUnlocked = repository.get(guildId) != null
-        if (!allowCreate && !previouslyUnlocked) {
-            return completed(DiscordGuildRoleSyncSummary())
-        }
+        if (!allowCreate) return removeIneligibleRole(guildId)
 
         return ensureRole(guild, config, allowCreate).thenCompose { ensured ->
             if (ensured == null) return@thenCompose completed(DiscordGuildRoleSyncSummary())
             val stillAllowed = canCreateRole(guild, config)
                 ?: return@thenCompose completed(DiscordGuildRoleSyncSummary(failures = 1))
-            if (!stillAllowed && ensured.created) {
-                val link = repository.get(guild.id)
-                    ?: return@thenCompose completed(DiscordGuildRoleSyncSummary())
-                return@thenCompose deleteManagedRole(link, "ineligible guild")
-            }
+            if (!stillAllowed) return@thenCompose removeIneligibleRole(guildId)
             val allowedPlayerIds = memberService.getGuildMembers(guild.id)
                 .mapTo(linkedSetOf()) { it.playerId }
             gateway.revokeUnexpectedRoleMembers(ensured.roleId, allowedPlayerIds)
@@ -128,21 +121,14 @@ class GuildDiscordRoleService(
                 ?: return@serializeMemberUpdate completed(DiscordGuildRoleSyncSummary())
             val allowCreate = canCreateRole(guild, config)
                 ?: return@serializeMemberUpdate completed(DiscordGuildRoleSyncSummary(failures = 1))
-            val previouslyUnlocked = repository.get(guildId) != null
-            if (!allowCreate && !previouslyUnlocked) {
-                return@serializeMemberUpdate completed(DiscordGuildRoleSyncSummary())
-            }
+            if (!allowCreate) return@serializeMemberUpdate removeIneligibleRole(guildId)
 
             ensureRole(guild, config, allowCreate)
                 .thenCompose { ensured ->
                     if (ensured == null) return@thenCompose completed(DiscordGuildRoleSyncSummary())
                     val stillAllowed = canCreateRole(guild, config)
                         ?: return@thenCompose completed(DiscordGuildRoleSyncSummary(failures = 1))
-                    if (!stillAllowed && ensured.created) {
-                        val link = repository.get(guild.id)
-                            ?: return@thenCompose completed(DiscordGuildRoleSyncSummary())
-                        return@thenCompose deleteManagedRole(link, "ineligible guild")
-                    }
+                    if (!stillAllowed) return@thenCompose removeIneligibleRole(guildId)
                     gateway.grantRole(playerId, ensured.roleId).thenApply { result ->
                         memberResult(result, null, grant = true)
                             .copy(rolesCreated = if (ensured.created) 1 else 0)
@@ -315,6 +301,11 @@ class GuildDiscordRoleService(
 
     private fun deleteOrphan(link: GuildDiscordRoleLink): CompletableFuture<DiscordGuildRoleSyncSummary> =
         deleteManagedRole(link, "orphan")
+
+    private fun removeIneligibleRole(guildId: UUID): CompletableFuture<DiscordGuildRoleSyncSummary> {
+        val link = repository.get(guildId) ?: return completed(DiscordGuildRoleSyncSummary())
+        return deleteManagedRole(link, "ineligible guild")
+    }
 
     private fun deleteManagedRole(
         link: GuildDiscordRoleLink,
