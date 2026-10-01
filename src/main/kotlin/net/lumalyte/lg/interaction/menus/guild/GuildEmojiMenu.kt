@@ -313,7 +313,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
         val guiItem = GuiItem(cancelItem) {
             // Close menu without saving
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(guiItem, x, y)
     }
@@ -324,7 +324,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
             .lore(lang.gui("menu.guild_emoji.action.back.description"))
 
         val guiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(guiItem, x, y)
     }

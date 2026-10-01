@@ -23,6 +23,7 @@ import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
+import net.lumalyte.lg.utils.MenuIcons
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
@@ -79,7 +80,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
 
         if (activeWars.isEmpty()) {
-            val noWarsItem = ItemStack.of(Material.BARRIER)
+            val noWarsItem = NexoItemProvider.getItemStackOrFallback("lg_no_wars") { ItemStack.of(Material.BARRIER) }
                 .name(lang.gui("menu.guild_war_management.current.none.name"))
                 .lore(lang.gui("menu.guild_war_management.current.none.description"))
                 .lore(lang.gui("menu.guild_war_management.current.none.hint"))
@@ -118,7 +119,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         val outgoingDeclarations = warService.getDeclarationsByGuild(guild.id).filter { it.isValid }
 
         // Incoming declarations
-        val incomingItem = ItemStack.of(if (incomingDeclarations.isEmpty()) Material.GRAY_DYE else Material.PAPER)
+        val incomingItem = MenuIcons.requests(incoming = true, count = incomingDeclarations.size)
             .name(lang.gui("menu.guild_war_management.declarations.incoming.name"))
             .lore(lang.gui("menu.guild_war_management.declarations.incoming.description"))
             .lore(lang.gui("menu.guild_war_management.declarations.count", "count" to incomingDeclarations.size))
@@ -129,7 +130,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         pane.addItem(incomingGuiItem, 3, 1)
 
         // Outgoing declarations
-        val outgoingItem = ItemStack.of(if (outgoingDeclarations.isEmpty()) Material.GRAY_DYE else Material.WRITABLE_BOOK)
+        val outgoingItem = MenuIcons.requests(incoming = false, count = outgoingDeclarations.size)
             .name(lang.gui("menu.guild_war_management.declarations.outgoing.name"))
             .lore(lang.gui("menu.guild_war_management.declarations.outgoing.description"))
             .lore(lang.gui("menu.guild_war_management.declarations.count", "count" to outgoingDeclarations.size))
@@ -217,7 +218,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
             .lore(lang.gui("menu.guild_war_management.back.description"))
 
         val guiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(guiItem, x, y)
     }

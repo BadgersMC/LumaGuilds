@@ -19,6 +19,7 @@ import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
+import net.lumalyte.lg.utils.MenuIcons
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
@@ -126,7 +127,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val outgoingRequests = relationService.getOutgoingRequests(guild.id)
 
         // Incoming requests
-        val incomingItem = ItemStack.of(if (incomingRequests.isEmpty()) Material.GRAY_DYE else Material.PAPER)
+        val incomingItem = MenuIcons.requests(incoming = true, count = incomingRequests.size)
             .name(lang.gui("menu.guild_relations.requests.incoming.name"))
             .lore(lang.gui("menu.guild_relations.requests.incoming.description"))
             .lore(lang.gui("menu.guild_relations.count", "count" to incomingRequests.size))
@@ -138,7 +139,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         pane.addItem(incomingGuiItem, 1, 1)
 
         // Outgoing requests
-        val outgoingItem = ItemStack.of(if (outgoingRequests.isEmpty()) Material.GRAY_DYE else Material.WRITABLE_BOOK)
+        val outgoingItem = MenuIcons.requests(incoming = false, count = outgoingRequests.size)
             .name(lang.gui("menu.guild_relations.requests.outgoing.name"))
             .lore(lang.gui("menu.guild_relations.requests.outgoing.description"))
             .lore(lang.gui("menu.guild_relations.count", "count" to outgoingRequests.size))
@@ -232,7 +233,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             .lore(lang.gui("menu.guild_home.back.description"))
 
         val guiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(guiItem, x, y)
     }

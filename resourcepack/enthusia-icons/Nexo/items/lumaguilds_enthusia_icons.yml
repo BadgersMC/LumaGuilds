@@ -225,21 +225,21 @@ lg_alliance:
   excludeFromInventory: true
   Pack:
     parent_model: item/generated
-    texture: lumaguilds:enthusia/alliances
+    texture: lumaguilds:enthusia/alliance_rings
 
 lg_truce:
   material: PAPER
   excludeFromInventory: true
   Pack:
     parent_model: item/generated
-    texture: lumaguilds:enthusia/history
+    texture: lumaguilds:enthusia/truce
 
 lg_peace:
   material: PAPER
   excludeFromInventory: true
   Pack:
     parent_model: item/generated
-    texture: lumaguilds:enthusia/mode_peaceful
+    texture: lumaguilds:enthusia/olive_branch
 
 lg_enemy:
   material: PAPER
@@ -324,3 +324,136 @@ lg_vault:  # new
   Pack:
     parent_model: item/generated
     texture: lumaguilds:enthusia/vault
+
+lg_created:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/calendar
+
+lg_sort:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/sort
+
+lg_confirm_danger:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/confirm_danger
+
+lg_requests_in:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/requests_in
+
+lg_requests_out:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/requests_out
+
+lg_requests_in_empty:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/requests_in_empty
+
+lg_requests_out_empty:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/requests_out_empty
+
+lg_no_wars:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/no_wars
+
+lg_no_parties:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/no_parties
+
+lg_deposit_100:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/deposit_100
+
+lg_withdraw_100:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/withdraw_100
+
+lg_deposit_1000:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/deposit_1000
+
+lg_withdraw_1000:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/withdraw_1000
+
+lg_deposit_10000:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/deposit_10000
+
+lg_withdraw_10000:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/withdraw_10000
+
+lg_deposit_all:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/deposit_all
+
+lg_withdraw_all:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/withdraw_all
+
+lg_nav_actions:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/actions
+
+lg_vault_unavailable:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/vault_unavailable

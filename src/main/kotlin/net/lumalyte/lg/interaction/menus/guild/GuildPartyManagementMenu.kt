@@ -22,6 +22,7 @@ import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
+import net.lumalyte.lg.utils.MenuIcons
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
@@ -85,7 +86,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         }.toSet()
 
         if (activeParties.isEmpty()) {
-            val noPartiesItem = ItemStack.of(Material.BARRIER)
+            val noPartiesItem = NexoItemProvider.getItemStackOrFallback("lg_no_parties") { ItemStack.of(Material.BARRIER) }
                 .name(lang.gui("menu.party.management.empty.name"))
                 .lore(lang.gui("menu.party.management.empty.lore"))
                 .lore(lang.gui("menu.party.management.empty.hint"))
@@ -137,7 +138,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         val outgoingRequests = partyService.getPendingRequestsFromGuild(guild.id)
 
         // Incoming requests
-        val incomingItem = ItemStack.of(if (incomingRequests.isEmpty()) Material.GRAY_DYE else Material.PAPER)
+        val incomingItem = MenuIcons.requests(incoming = true, count = incomingRequests.size)
             .name(lang.gui("menu.party.management.incoming.name"))
             .lore(lang.gui("menu.party.management.incoming.lore"))
             .lore(lang.gui("menu.party.management.request_count", "count" to incomingRequests.size))
@@ -148,7 +149,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         pane.addItem(incomingGuiItem, 3, 1)
 
         // Outgoing requests
-        val outgoingItem = ItemStack.of(if (outgoingRequests.isEmpty()) Material.GRAY_DYE else Material.WRITABLE_BOOK)
+        val outgoingItem = MenuIcons.requests(incoming = false, count = outgoingRequests.size)
             .name(lang.gui("menu.party.management.outgoing.name"))
             .lore(lang.gui("menu.party.management.outgoing.lore"))
             .lore(lang.gui("menu.party.management.request_count", "count" to outgoingRequests.size))
@@ -252,7 +253,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
             .lore(lang.gui("menu.party.management.back.lore"))
 
         val guiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(guiItem, x, y)
     }

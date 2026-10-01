@@ -2454,7 +2454,7 @@ item:
     name: "Move Claim '<claim>'"
 menu:
   quests:
-    title: "<white><guild>'s Weekly Quests"
+    title: '<white>Weekly Quests • <guild>'
     feedback:
       not_member: '<red>❌ You must belong to this guild to view its weekly quests.'
       no_quests: '<yellow>No weekly quests are active right now.'
@@ -2645,7 +2645,7 @@ menu:
         name_set: '<green>✅ Party name set to: ''<party>'''
         input_cancelled: '<gray>Input cancelled.'
     management:
-      title: '<white>Party Management - <guild>'
+      title: '<white>Parties • <guild>'
       unnamed: Unnamed
       never: Never
       this_channel: this channel
@@ -2708,7 +2708,7 @@ menu:
         events: '<gray>Parties coordinate guild events'
         restrictions: '<gray>Rank restrictions available'
       back:
-        name: '<yellow>Back to Control Panel'
+        name: '<yellow>Back'
         lore: '<gray>Return to guild management'
       incoming_request:
         name: '<green>✉ Invitation from <white><guild>'
@@ -2986,12 +2986,17 @@ menu:
       hostile: Hostile
       not_set: '<red>Not set'
       peaceful: Peaceful
-    title: '<white>Guild Control Panel - <guild>'
+    title: '<white>Guild Actions • <guild>'
   dashboard:
     feedback:
       guild_missing: '<red>❌ Guild no longer exists.'
       not_member: '<red>❌ You cannot access the dashboard for a guild you are not a member of!'
     item:
+      actions:
+        lore:
+          line_1: '<gray>Parties, guild vault,'
+          line_2: '<gray>leave or disband'
+        name: '<red>Guild Actions'
       diplomacy:
         lore:
           line_1: '<gray>Alliances, enemies,'
@@ -3214,7 +3219,7 @@ menu:
         name: Search
     title: All Players
   bank:
-    title: '<white>Guild Bank - <guild>'
+    title: '<white>Bank • <guild>'
     close: '<red>Close'
     back_to_control_panel: Back to Control Panel
     unavailable:
@@ -3375,7 +3380,7 @@ menu:
       contributions_name: Member Contributions
       contributions_description: See who contributes and who freeloads
       contributions_detail: Net deposits vs withdrawals
-      back_description: Return to guild control panel
+      back_description: Return to the previous menu
     processing:
       name: '⏳ Processing...'
       animated: '<frame> Processing...'
@@ -3663,7 +3668,7 @@ menu:
       select_member_for_rank_change: '<green>✅ Click on a member head to promote/demote them'
     item:
       back:
-        lore: '<gray>Return to guild control panel'
+        lore: '<gray>Return to the previous menu'
         name: '<red>⬅ BACK'
       invite:
         lore:
@@ -3703,7 +3708,7 @@ menu:
           description: '<gray>Change member ranks'
           requirement: '<gray>Requires MANAGE_MEMBERS permission'
         name: '<gold>⬆ PROMOTE/DEMOTE'
-    title: '<white>Member Management - <guild>'
+    title: '<white>Members • <guild>'
   rank_list:
     feedback:
       empty: '<red>This guild has no ranks configured.'
@@ -3737,7 +3742,7 @@ menu:
       required_permission: '<gray>Required permission: <white>MANAGE_RANKS'
     item:
       back:
-        name: '<gray>← Back to Control Panel'
+        name: '<gray>← Back'
       create:
         lore:
           description: '<gray>Add a new rank to your guild'
@@ -3761,7 +3766,7 @@ menu:
           permission: '<gray>  • <green><permission>'
           priority: '<gray>Priority: <white><priority>'
         name: '<gold><rank>'
-    title: '<white>Rank Management - <guild>'
+    title: '<white>Ranks • <guild>'
   naming:
     title: Naming Claim
   player_permissions:
@@ -3839,7 +3844,7 @@ menu:
           open: '<gray>Open: Anyone can join freely'
         name: '<white>🚪 GUILD ACCESS'
       back:
-        lore: '<gray>Return to control panel'
+        lore: '<gray>Return to the previous menu'
         name: '<red>⬅ BACK'
       banner:
         lore:
@@ -3938,7 +3943,7 @@ menu:
           enabled: '<gray>Enabled: Guild members visible'
           hud: '<gray>on Lunar Client minimap & HUD'
         name: '<white>🗺 LUNAR TRACKING'
-    title: '<white>Guild Settings - <guild>'
+    title: '<white>Settings • <guild>'
     theme_selector:
       title: '<white>GUI Theme'
   war_acceptance:
@@ -4424,7 +4429,7 @@ menu:
         name: '<green>Next Page →'
       previous_page:
         name: '<green>← Previous Page'
-    title: '<white><guild> - Statistics'
+    title: '<white>Statistics • <guild>'
     feedback:
       load_failed:
         kd: '<red>❌ Failed to load K/D analysis. Please try again later.'
@@ -4718,7 +4723,7 @@ menu:
       page_description: "<gray>Current page indicator"
       back:
         name: "<red>⬅ BACK"
-        description: "<gray>Return to guild control panel"
+        description: "<gray>Return to the previous menu"
 
   bank_automation:
     title: "<white>Automation & Rewards - <guild>"
@@ -5063,7 +5068,7 @@ menu:
         name: "<white>NEXT PAGE ➡"
       back:
         name: "<red>⬅ BACK"
-        description: "<gray>Return to guild control panel"
+        description: "<gray>Return to the previous menu"
 
   guild_invite:
     title: "<white>Invite Player - <guild>"
@@ -5294,7 +5299,7 @@ menu:
       error: "<red>❌ <message>"
 
   guild_info:
-    title: "<white>Guild Info - <guild>"
+    title: '<white>Guild Info • <guild>'
     feedback:
       guild_missing: "<red>This guild no longer exists."
     fallback:
@@ -5689,7 +5694,7 @@ menu:
       description: "<gray>Return to settings"
 
   guild_war_management:
-    title: "<white>War Management - <guild>"
+    title: '<white>Warfare • <guild>'
     fallback:
       unknown: "Unknown"
     current:
@@ -5739,7 +5744,7 @@ menu:
       seasonal_level: "<aqua>Displayed Level: <white><level>"
       seasonal_rank: "<aqua>Seasonal Rank: <white>#<rank>"
     back:
-      name: "<yellow>Back to Control Panel"
+      name: "<yellow>Back"
       description: "<gray>Return to guild management"
     war_details:
       title: "<white>War Details - vs <enemy>"
@@ -6265,7 +6270,7 @@ menu:
       added: "<gray>💡 The banner has been added to your inventory"
 
   guild_relations:
-    title: '<white>Diplomatic Relations - <guild>'
+    title: '<white>Diplomacy • <guild>'
     count: '<gray>Count: <white><count>'
     overview:
       allies:
@@ -6437,7 +6442,7 @@ menu:
       input_cancelled: '<gray>Emoji input cancelled.'
       selected: '<green>Selected emoji: <emoji>'
   guild_home:
-    title: '<white>Guild Homes - <guild>'
+    title: '<white>Homes • <guild>'
     world: '<gray>World: <white><world>'
     slots:
       name: '<yellow>🏠 Guild Home Slots'
@@ -6506,7 +6511,7 @@ menu:
       teleport: '<yellow>Click to teleport'
       denied: '<red>Your rank lacks USE_ALLY_HOMES, or this guild has not allowed yours.'
     back:
-      name: '<yellow>Back to Control Panel'
+      name: '<yellow>Back'
       description: '<gray>Return to guild management'
     feedback:
       sethome_command: '<gold>Use <yellow>/guild sethome \<name> <gold>to set additional homes'

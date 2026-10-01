@@ -147,7 +147,7 @@ class GuildSettingsMenu(
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
 
-        val createdItem = NexoItemProvider.getItemStackOrFallback("lg_history") { ItemStack.of(Material.CLOCK) }
+        val createdItem = NexoItemProvider.getItemStackOrFallback("lg_created") { ItemStack.of(Material.CLOCK) }
             .name(lang.gui("menu.guild_settings.item.created.name"))
             .lore(lang.gui("menu.guild_settings.item.created.lore.date", "date" to localDateTime.format(dateFormatter)))
             .lore(lang.gui("menu.guild_settings.item.created.lore.time", "time" to localDateTime.format(timeFormatter)))
@@ -500,7 +500,7 @@ class GuildSettingsMenu(
             .lore(lang.gui("menu.guild_settings.item.back.lore"))
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(backGuiItem, 4, 5)
     }

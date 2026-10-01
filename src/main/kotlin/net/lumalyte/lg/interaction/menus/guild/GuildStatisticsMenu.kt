@@ -90,7 +90,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
         // Row 5: Navigation
         addRefreshStatsButton(pane, 0, 4)
-        addBackButton(pane, 7, 4)
+        addBackButton(pane, 4, 5)
 
         gui.show(player)
     }
@@ -187,12 +187,11 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack.of(Material.ARROW)
-            .name(lang.gui("menu.statistics.item.back_control.name"))
-            .lore(lang.gui("menu.statistics.item.back_control.lore"))
+        val item = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
+            .name(lang.gui("menu.common.item.back.name"))
 
         val guiItem = GuiItem(item) {
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(guiItem, x, y)
     }
@@ -270,7 +269,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             pane.addItem(GuiItem(summaryItem), 4, 1)
 
             val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
-                .name(lang.gui("menu.statistics.item.back.name"))
+                .name(lang.gui("menu.common.item.back.name"))
                 .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 3)
 
@@ -551,7 +550,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             }
 
             val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
-                .name(lang.gui("menu.statistics.item.back.name"))
+                .name(lang.gui("menu.common.item.back.name"))
                 .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 8, 4)
 
@@ -590,7 +589,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             pane.addItem(GuiItem(perfItem), 4, 1)
 
             val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
-                .name(lang.gui("menu.statistics.item.back.name"))
+                .name(lang.gui("menu.common.item.back.name"))
                 .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 3)
 
@@ -949,7 +948,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             pane.addItem(GuiItem(titleItem), 4, 1)
 
             val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
-                .name(lang.gui("menu.statistics.item.back.name"))
+                .name(lang.gui("menu.common.item.back.name"))
                 .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 4)
 
@@ -993,7 +992,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             pane.addItem(GuiItem(titleItem), 4, 1)
 
             val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
-                .name(lang.gui("menu.statistics.item.back.name"))
+                .name(lang.gui("menu.common.item.back.name"))
                 .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 4)
 
@@ -1053,7 +1052,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             }
 
             val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
-                .name(lang.gui("menu.statistics.item.back.name"))
+                .name(lang.gui("menu.common.item.back.name"))
                 .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 4)
             gui.show(player)
@@ -1088,7 +1087,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             pane.addItem(GuiItem(kdItem), 4, 1)
 
             val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
-                .name(lang.gui("menu.statistics.item.back.name"))
+                .name(lang.gui("menu.common.item.back.name"))
                 .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 3)
 
@@ -1135,7 +1134,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             pane.addItem(GuiItem(titleItem), 4, 1)
 
             val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
-                .name(lang.gui("menu.statistics.item.back.name"))
+                .name(lang.gui("menu.common.item.back.name"))
                 .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 4)
 
@@ -1193,7 +1192,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             }
 
             val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
-                .name(lang.gui("menu.statistics.item.back.name"))
+                .name(lang.gui("menu.common.item.back.name"))
                 .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 3)
 
@@ -1352,7 +1351,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             }
 
             val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
-                .name(lang.gui("menu.statistics.item.back.name"))
+                .name(lang.gui("menu.common.item.back.name"))
                 .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 2)
 

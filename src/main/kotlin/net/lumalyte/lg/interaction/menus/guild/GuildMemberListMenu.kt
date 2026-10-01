@@ -134,7 +134,7 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
         val infoItem = ItemStack.of(Material.PLAYER_HEAD)
             .name(lang.gui("menu.member_list.item.summary.name", "member_count" to members.size))
             .lore(lang.gui("menu.member_list.item.summary.lore", "guild" to guild.name))
-        staticPane.addItem(GuiItem(infoItem), 4, 0)
+        staticPane.addItem(GuiItem(infoItem), 7, 0)
 
         // Back button
         val backButton = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
@@ -144,7 +144,7 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
         val backGuiItem = GuiItem(backButton) {
             menuNavigator.goBack()
         }
-        staticPane.addItem(backGuiItem, 7, 0)
+        staticPane.addItem(backGuiItem, 4, 0)
 
         gui.addPane(paginatedPane)
         gui.addPane(staticPane)
