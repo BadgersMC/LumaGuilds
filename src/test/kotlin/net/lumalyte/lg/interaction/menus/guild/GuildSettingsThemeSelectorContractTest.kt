@@ -29,4 +29,10 @@ class GuildSettingsThemeSelectorContractTest {
         assertTrue(source.contains("GuiTheme.VANILLA"))
         assertTrue(source.contains("Material.CHEST"))
     }
+
+    @Test
+    fun `selector lists only the selectable styles`() {
+        assertTrue(source.contains("GuiTheme.SELECTABLE.forEachIndexed"))
+        assertFalse(source.contains("GuiTheme.entries.forEachIndexed"))
+    }
 }

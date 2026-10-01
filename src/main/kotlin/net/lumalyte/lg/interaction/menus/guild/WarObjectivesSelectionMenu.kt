@@ -40,7 +40,7 @@ class WarObjectivesSelectionMenu(
     override fun open() {
         val claimsEnabled = configService.loadConfig().claimsEnabled
 
-        val gui = ChestGui(5, MenuTitleBuilder.build(GuiTheme.NEUTRAL, 5, lang.guiTitle("menu.war_objectives.title")))
+        val gui = ChestGui(5, MenuTitleBuilder.build(GuiTheme.DEFAULT, 5, lang.guiTitle("menu.war_objectives.title")))
         val pane = StaticPane(0, 0, 9, 5)
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick { if (it.click == ClickType.SHIFT_LEFT || it.click == ClickType.SHIFT_RIGHT) it.isCancelled = true }

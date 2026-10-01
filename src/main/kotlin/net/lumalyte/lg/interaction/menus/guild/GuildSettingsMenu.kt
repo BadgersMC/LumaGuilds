@@ -287,10 +287,10 @@ class GuildSettingsMenu(
 
         // GUI Theme Selector
         val themeItem = NexoItemProvider.getItemStackOrFallback(
-            "lg_theme_${guild.guiTheme.name.lowercase()}"
+            "lg_theme_${guild.guiTheme.resolved().name.lowercase()}"
         ) { ItemStack.of(Material.PAINTING) }
             .name(lang.gui("menu.guild_settings.item.theme.name"))
-            .lore(lang.gui("menu.guild_settings.item.theme.lore.current", "theme" to guild.guiTheme.displayName))
+            .lore(lang.gui("menu.guild_settings.item.theme.lore.current", "theme" to guild.guiTheme.resolved().displayName))
             .lore(lang.gui("menu.common.blank"))
             .lore(lang.gui("menu.guild_settings.item.theme.lore.description"))
             .lore(lang.gui("menu.guild_settings.item.theme.lore.details"))
@@ -530,8 +530,8 @@ class GuildSettingsMenu(
             RankPermission.MANAGE_GUILD_SETTINGS
         )
 
-        net.lumalyte.lg.utils.GuiTheme.entries.forEachIndexed { index, theme ->
-            val isCurrent = theme == guild.guiTheme
+        net.lumalyte.lg.utils.GuiTheme.SELECTABLE.forEachIndexed { index, theme ->
+            val isCurrent = theme == guild.guiTheme.resolved()
             val nexoId = "lg_theme_${theme.name.lowercase()}"
             // The vanilla style is shown as what it is: a plain chest.
             val item = (if (theme == net.lumalyte.lg.utils.GuiTheme.VANILLA) ItemStack.of(Material.CHEST)

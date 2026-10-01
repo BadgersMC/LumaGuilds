@@ -39,12 +39,13 @@ object MenuTitleBuilder {
      * Result:
      *   <shift:-9><glyph:guild_bg_<theme>_<R>_row><shift:-161><title>
      *
-     * @param theme  GUI background theme (default: NEUTRAL)
+     * @param theme  GUI background theme (default: Enthusia; retired themes resolve to it)
      * @param rows   Inventory row count (3-6)
      * @param title  Optional visible title text (default: empty = no title)
      * @return       Title string for the ChestGui constructor.
      */
-    fun build(theme: GuiTheme = GuiTheme.NEUTRAL, rows: Int, title: String = ""): String {
+    fun build(theme: GuiTheme = GuiTheme.DEFAULT, rows: Int, title: String = ""): String {
+        val theme = theme.resolved()
         // Vanilla style: plain chest title. White text is meant for the dark themed backgrounds,
         // so it is reset to the default chest colour; other colours are kept.
         if (!theme.hasBackground) return title.replace("§f", "§r")
