@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.listeners
 
 import net.lumalyte.lg.api.events.GuildCreatedEvent
 import net.lumalyte.lg.api.events.GuildDisbandedEvent
+import net.lumalyte.lg.api.events.GuildLevelChangedEvent
 import net.lumalyte.lg.api.events.GuildMemberJoinEvent
 import net.lumalyte.lg.api.events.GuildMemberRemovedEvent
 import net.lumalyte.lg.api.events.GuildRenamedEvent
@@ -34,6 +35,12 @@ class GuildDiscordRoleListener(
     fun onGuildCreated(event: GuildCreatedEvent) = observe(
         "guild create guild=${event.guild.id}",
         service.reconcileGuild(event.guild.id),
+    )
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    fun onGuildLevelChanged(event: GuildLevelChangedEvent) = observe(
+        "guild level ${event.newLevel} guild=${event.guildId}",
+        service.reconcileGuild(event.guildId),
     )
 
     @EventHandler(priority = EventPriority.MONITOR)
