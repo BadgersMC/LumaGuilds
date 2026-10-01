@@ -81,9 +81,11 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         // Current mode display
-        val currentModeItem = ItemStack.of(
-            if (guild.mode == GuildMode.PEACEFUL) Material.GREEN_WOOL else Material.RED_WOOL
-        )
+        val currentModeItem = NexoItemProvider.getItemStackOrFallback(
+            if (guild.mode == GuildMode.PEACEFUL) "lg_mode_peaceful" else "lg_mode_hostile"
+        ) {
+            ItemStack.of(if (guild.mode == GuildMode.PEACEFUL) Material.GREEN_WOOL else Material.RED_WOOL)
+        }
             .name(lang.gui("menu.guild_mode.current.name"))
             .lore(lang.gui("menu.guild_mode.current.mode", "mode" to modeDisplayName(guild.mode)))
             .lore(lang.gui("menu.common.blank"))
@@ -108,7 +110,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Peaceful Mode Option
         if (guild.mode != GuildMode.PEACEFUL) {
-            val peacefulItem = ItemStack.of(Material.GREEN_WOOL)
+            val peacefulItem = NexoItemProvider.getItemStackOrFallback("lg_mode_peaceful") { ItemStack.of(Material.GREEN_WOOL) }
                 .name(lang.gui("menu.guild_mode.peaceful.name"))
                 .lore(lang.gui("menu.guild_mode.peaceful.benefits"))
 
@@ -163,7 +165,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Hostile Mode Option
         if (guild.mode != GuildMode.HOSTILE) {
-            val hostileItem = ItemStack.of(Material.RED_WOOL)
+            val hostileItem = NexoItemProvider.getItemStackOrFallback("lg_mode_hostile") { ItemStack.of(Material.RED_WOOL) }
                 .name(lang.gui("menu.guild_mode.hostile.name"))
                 .lore(lang.gui("menu.guild_mode.hostile.benefits"))
 
@@ -205,9 +207,11 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         // Current Mode Display
-        val currentModeItem = ItemStack.of(
-            if (guild.mode == GuildMode.PEACEFUL) Material.GREEN_WOOL else Material.RED_WOOL
-        )
+        val currentModeItem = NexoItemProvider.getItemStackOrFallback(
+            if (guild.mode == GuildMode.PEACEFUL) "lg_mode_peaceful" else "lg_mode_hostile"
+        ) {
+            ItemStack.of(if (guild.mode == GuildMode.PEACEFUL) Material.GREEN_WOOL else Material.RED_WOOL)
+        }
             .name(lang.gui("menu.guild_mode.current.name"))
             .lore(lang.gui("menu.guild_mode.current.mode", "mode" to modeDisplayName(guild.mode)))
             .lore(lang.gui("menu.common.blank"))
