@@ -1,4 +1,4 @@
-# Enthusia guild-menu backgrounds (copper trim, crimson slots).
+# Enthusia guild-menu backgrounds (gold knot trim, crimson slots).
 # Glyph names follow MenuTitleBuilder: guild_bg_<theme>_<rows>_row.
 # IMPORTANT: copy "ascent" and "height" from your existing guild_bg_neutral_* glyphs so the
 # background lines up exactly like the other themes. The values below are the usual ones for a
