@@ -33,6 +33,7 @@ import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 private const val DISCORD_ROLE_LEVEL = 50
+private const val AWARD_XP = 2_000
 
 class ProgressionServiceBukkitAwardTest {
 
@@ -84,22 +85,10 @@ class ProgressionServiceBukkitAwardTest {
         val progressionRepository = mockk<ProgressionRepository>(relaxed = true)
         val service = serviceWith(awards, progressionRepository)
         val guildId = UUID.randomUUID()
-        val pluginManager = mockk<PluginManager>(relaxed = true)
-        mockkStatic(Bukkit::class)
-        try {
-            every { Bukkit.isPrimaryThread() } returns true
-            every { Bukkit.getPluginManager() } returns pluginManager
-
-            assertEquals(DISCORD_ROLE_LEVEL, service.awardExperience(guildId, 2_000, ExperienceSource.MOB_KILL))
-
-            verify(exactly = 1) {
-                pluginManager.callEvent(match {
-                    it is GuildLevelChangedEvent && it.guildId == guildId && it.newLevel == DISCORD_ROLE_LEVEL
-                })
-            }
+        withCapturedLevelEvents { pluginManager ->
+            assertEquals(DISCORD_ROLE_LEVEL, service.awardExperience(guildId, AWARD_XP, ExperienceSource.MOB_KILL))
+            verifyLevelChange(pluginManager, guildId)
             verify(exactly = 1) { progressionRepository.refreshGuildProgression(guildId) }
-        } finally {
-            unmockkStatic(Bukkit::class)
         }
     }
 
@@ -109,24 +98,34 @@ class ProgressionServiceBukkitAwardTest {
         val guildId = UUID.randomUUID()
         val progressionRepository = mockk<ProgressionRepository>(relaxed = true)
         every { progressionRepository.getGuildProgression(guildId) } returns
-            GuildProgression(guildId, currentLevel = DISCORD_ROLE_LEVEL + 1, totalExperience = 1_000_000)
+            GuildProgression(guildId, currentLevel = DISCORD_ROLE_LEVEL + 1)
         every { progressionRepository.saveGuildProgression(any()) } returns true
         val service = serviceWith(RecordingRepository(), progressionRepository)
+        withCapturedLevelEvents { pluginManager ->
+            assertEquals(DISCORD_ROLE_LEVEL, service.reduceLevel(guildId, 1, ExperienceSource.ADMIN_BONUS))
+            verifyLevelChange(pluginManager, guildId)
+        }
+    }
+
+    private fun withCapturedLevelEvents(action: (PluginManager) -> Unit) {
         val pluginManager = mockk<PluginManager>(relaxed = true)
         mockkStatic(Bukkit::class)
         try {
             every { Bukkit.isPrimaryThread() } returns true
             every { Bukkit.getPluginManager() } returns pluginManager
-
-            assertEquals(DISCORD_ROLE_LEVEL, service.reduceLevel(guildId, 1, ExperienceSource.ADMIN_BONUS))
-
-            verify(exactly = 1) {
-                pluginManager.callEvent(match {
-                    it is GuildLevelChangedEvent && it.guildId == guildId && it.newLevel == DISCORD_ROLE_LEVEL
-                })
-            }
+            action(pluginManager)
         } finally {
             unmockkStatic(Bukkit::class)
+        }
+    }
+
+    private fun verifyLevelChange(pluginManager: PluginManager, guildId: UUID) {
+        verify(exactly = 1) {
+            pluginManager.callEvent(
+                match { event ->
+                    event is GuildLevelChangedEvent && event.guildId == guildId && event.newLevel == DISCORD_ROLE_LEVEL
+                },
+            )
         }
     }
 
