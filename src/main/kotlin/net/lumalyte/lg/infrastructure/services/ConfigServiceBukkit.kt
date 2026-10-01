@@ -279,6 +279,8 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             fallbackToJavaMenus = config.getBoolean("bedrock.fallback_to_java_menus", true),
             fallbackOnFloodgateUnavailable = config.getBoolean("bedrock.fallback_on_floodgate_unavailable", true),
             fallbackOnCumulusUnavailable = config.getBoolean("bedrock.fallback_on_cumulus_unavailable", true),
+            javaMenuVanillaIcons = config.getBoolean("bedrock.java_menu_vanilla_icons", false),
+            javaMenuPlainTitles = config.getBoolean("bedrock.java_menu_plain_titles", false),
             formCacheEnabled = config.getBoolean("bedrock.form_cache_enabled", true),
             formCacheSize = config.getInt("bedrock.form_cache_size", 100),
             formCacheExpirationMinutes = config.getInt("bedrock.form_cache_expiration_minutes", 30),

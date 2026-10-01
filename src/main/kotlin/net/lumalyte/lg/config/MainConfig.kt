@@ -569,6 +569,11 @@ data class BedrockConfig(
     var fallbackOnFloodgateUnavailable: Boolean = true,
     var fallbackOnCumulusUnavailable: Boolean = true,
 
+    // Java chest menus seen by Bedrock players (opt-in: Geyser custom-item mappings may already
+    // draw the lg_ icons and menu art for Bedrock, and these would override them)
+    var javaMenuVanillaIcons: Boolean = false, // send vanilla items instead of Nexo menu icons
+    var javaMenuPlainTitles: Boolean = false, // drop the font-glyph background from themed titles
+
     // Performance tuning
     var formCacheEnabled: Boolean = true,
     var formCacheSize: Int = 100,
