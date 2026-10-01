@@ -166,7 +166,7 @@ class GuildListMenu(
 
     private fun createGuildItem(entry: GuildListEntry): ItemStack {
         val guild = entry.guild
-        val item = GuildBannerItemResolver.resolve(guild)
+        val item = GuildBannerItemResolver.resolveForDisplay(guild)
             .name(lang.gui("menu.guild_list.guild.name", "guild" to guild.name))
             .lore(lang.gui("menu.guild_list.guild.level", "level" to guild.level))
             .lore(lang.gui(
