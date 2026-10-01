@@ -106,7 +106,7 @@ class GuildRelationBrowserMenu(
         gui.show(player)
     }
     private fun createGuildItem(otherGuild: Guild): ItemStack {
-        val banner = GuildBannerItemResolver.resolve(otherGuild)
+        val banner = GuildBannerItemResolver.resolveForDisplay(otherGuild)
 
         val displayName = if (relationType == RelationType.ALLY) {
             lang.gui("menu.guild_info.relation_browser.allies.guild_name", "guild" to otherGuild.name)

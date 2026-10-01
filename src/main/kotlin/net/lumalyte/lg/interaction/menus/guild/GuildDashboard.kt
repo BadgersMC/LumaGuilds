@@ -16,8 +16,8 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.interaction.menus.GuildBannerItemResolver
 import net.lumalyte.lg.utils.NexoItemProvider
-import net.lumalyte.lg.utils.deserializeToItemStack
 import net.lumalyte.lg.utils.name
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
@@ -200,12 +200,7 @@ class GuildDashboard(
 
         val displayName = nexoEmojiService.formatGuildDisplayName(guild.name, emoji)
 
-        val item = (
-            guild.banner?.deserializeToItemStack()?.clone()
-                ?: NexoItemProvider.getItemStackOrFallback("lg_nav_info") {
-                    ItemStack.of(Material.WHITE_BANNER)
-                }
-            ).name(lang.gui("menu.dashboard.item.guild_info.name", "display_name" to displayName))
+        val item = GuildBannerItemResolver.resolveForDisplay(guild).name(lang.gui("menu.dashboard.item.guild_info.name", "display_name" to displayName))
         val lore = java.util.ArrayList<Component>().apply {
             add(lang.gui("menu.dashboard.item.guild_info.lore.members", "member_count" to memberCount))
             add(lang.gui("menu.dashboard.item.guild_info.lore.ranks", "rank_count" to rankCount))
