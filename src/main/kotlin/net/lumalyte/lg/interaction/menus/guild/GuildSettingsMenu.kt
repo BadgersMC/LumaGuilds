@@ -511,15 +511,16 @@ class GuildSettingsMenu(
      * with the new theme applied.
      */
     private fun openThemeSelector() {
+        // Three rows (every theme ships a 3-row background): up to 18 styles, Back in the standard bottom-centre slot.
         val gui = ChestGui(
-            1,
+            3,
             MenuTitleBuilder.build(
                 guild.guiTheme,
-                1,
+                3,
                 lang.guiTitle("menu.guild_settings.theme_selector.title")
             )
         )
-        val pane = StaticPane(0, 0, 9, 1)
+        val pane = StaticPane(0, 0, 9, 3)
         gui.setOnGlobalClick { it.isCancelled = true }
         gui.addPane(pane)
 
@@ -572,12 +573,12 @@ class GuildSettingsMenu(
                 } else {
                     player.sendMessage(lang.msg("menu.guild_settings.feedback.theme_change_failed"))
                 }
-            }, index, 0)
+            }, index % 9, index / 9)
         }
 
         val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
             .name(lang.gui("menu.guild_settings.item.back.name"))
-        pane.addItem(GuiItem(backItem) { open() }, 8, 0)
+        pane.addItem(GuiItem(backItem) { open() }, 4, 2)
 
         gui.show(player)
     }

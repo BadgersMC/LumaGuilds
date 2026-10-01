@@ -1,0 +1,123 @@
+# Extra guild-menu styles built on the Enthusia design (gold/silver/bronze/amethyst trim).
+# Glyph names follow MenuTitleBuilder: guild_bg_<theme>_<rows>_row.
+# IMPORTANT: copy "ascent" and "height" from your existing guild_bg_neutral_* glyphs.
+
+guild_bg_frostbound_1_row:
+  texture: minecraft:gui/frostbound/guild_menu_frostbound_1_row
+  ascent: 13
+  height: 256
+
+guild_bg_frostbound_2_row:
+  texture: minecraft:gui/frostbound/guild_menu_frostbound_2_row
+  ascent: 13
+  height: 256
+
+guild_bg_frostbound_3_row:
+  texture: minecraft:gui/frostbound/guild_menu_frostbound_3_row
+  ascent: 13
+  height: 256
+
+guild_bg_frostbound_4_row:
+  texture: minecraft:gui/frostbound/guild_menu_frostbound_4_row
+  ascent: 13
+  height: 256
+
+guild_bg_frostbound_5_row:
+  texture: minecraft:gui/frostbound/guild_menu_frostbound_5_row
+  ascent: 13
+  height: 256
+
+guild_bg_frostbound_6_row:
+  texture: minecraft:gui/frostbound/guild_menu_frostbound_6_row
+  ascent: 13
+  height: 256
+
+guild_bg_verdant_1_row:
+  texture: minecraft:gui/verdant/guild_menu_verdant_1_row
+  ascent: 13
+  height: 256
+
+guild_bg_verdant_2_row:
+  texture: minecraft:gui/verdant/guild_menu_verdant_2_row
+  ascent: 13
+  height: 256
+
+guild_bg_verdant_3_row:
+  texture: minecraft:gui/verdant/guild_menu_verdant_3_row
+  ascent: 13
+  height: 256
+
+guild_bg_verdant_4_row:
+  texture: minecraft:gui/verdant/guild_menu_verdant_4_row
+  ascent: 13
+  height: 256
+
+guild_bg_verdant_5_row:
+  texture: minecraft:gui/verdant/guild_menu_verdant_5_row
+  ascent: 13
+  height: 256
+
+guild_bg_verdant_6_row:
+  texture: minecraft:gui/verdant/guild_menu_verdant_6_row
+  ascent: 13
+  height: 256
+
+guild_bg_voidlight_1_row:
+  texture: minecraft:gui/voidlight/guild_menu_voidlight_1_row
+  ascent: 13
+  height: 256
+
+guild_bg_voidlight_2_row:
+  texture: minecraft:gui/voidlight/guild_menu_voidlight_2_row
+  ascent: 13
+  height: 256
+
+guild_bg_voidlight_3_row:
+  texture: minecraft:gui/voidlight/guild_menu_voidlight_3_row
+  ascent: 13
+  height: 256
+
+guild_bg_voidlight_4_row:
+  texture: minecraft:gui/voidlight/guild_menu_voidlight_4_row
+  ascent: 13
+  height: 256
+
+guild_bg_voidlight_5_row:
+  texture: minecraft:gui/voidlight/guild_menu_voidlight_5_row
+  ascent: 13
+  height: 256
+
+guild_bg_voidlight_6_row:
+  texture: minecraft:gui/voidlight/guild_menu_voidlight_6_row
+  ascent: 13
+  height: 256
+
+guild_bg_obsidian_1_row:
+  texture: minecraft:gui/obsidian/guild_menu_obsidian_1_row
+  ascent: 13
+  height: 256
+
+guild_bg_obsidian_2_row:
+  texture: minecraft:gui/obsidian/guild_menu_obsidian_2_row
+  ascent: 13
+  height: 256
+
+guild_bg_obsidian_3_row:
+  texture: minecraft:gui/obsidian/guild_menu_obsidian_3_row
+  ascent: 13
+  height: 256
+
+guild_bg_obsidian_4_row:
+  texture: minecraft:gui/obsidian/guild_menu_obsidian_4_row
+  ascent: 13
+  height: 256
+
+guild_bg_obsidian_5_row:
+  texture: minecraft:gui/obsidian/guild_menu_obsidian_5_row
+  ascent: 13
+  height: 256
+
+guild_bg_obsidian_6_row:
+  texture: minecraft:gui/obsidian/guild_menu_obsidian_6_row
+  ascent: 13
+  height: 256

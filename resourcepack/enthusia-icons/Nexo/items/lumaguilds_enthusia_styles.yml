@@ -1,0 +1,29 @@
+# Style swatches for the guild theme picker (new IDs).
+
+lg_theme_frostbound:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/theme_frostbound
+
+lg_theme_verdant:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/theme_verdant
+
+lg_theme_voidlight:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/theme_voidlight
+
+lg_theme_obsidian:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/theme_obsidian

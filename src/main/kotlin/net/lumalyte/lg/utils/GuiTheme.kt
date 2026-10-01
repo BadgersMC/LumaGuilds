@@ -17,7 +17,11 @@ enum class GuiTheme(val displayName: String) {
     MOSSBOUND("Mossbound"),
     LAVENDER_HALL("Lavender Hall"),
     IRON_ROSE("Iron Rose"),
-    ENTHUSIA("Enthusia");
+    ENTHUSIA("Enthusia"),
+    FROSTBOUND("Frostbound"),
+    VERDANT("Verdant"),
+    VOIDLIGHT("Voidlight"),
+    OBSIDIAN("Obsidian");
 
     companion object {
         /** Maps the database/storage string back to an enum value. */
