@@ -85,7 +85,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
         addStatisticsSection(pane, 6, 0)
 
         // Back button
-        addBackButton(pane, 8, 5)
+        addBackButton(pane, 4, 5)
 
         gui.addPane(pane)
         gui.show(player)

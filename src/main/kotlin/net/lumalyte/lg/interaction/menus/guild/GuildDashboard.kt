@@ -80,6 +80,15 @@ class GuildDashboard(
         // Guild info display at top center
         addGuildInfoDisplay(pane, 4, 0)
 
+        // Top-right corner: Guild Actions (parties, vault, leave, disband) — kept apart from
+        // the everyday sections so the destructive options are never a misclick away.
+        addNavButton(pane, 8, 0, "lg_nav_actions", Material.ANVIL,
+            lang.gui("menu.dashboard.item.actions.name"),
+            lang.gui("menu.dashboard.item.actions.lore.line_1"),
+            lang.gui("menu.dashboard.item.actions.lore.line_2")) {
+            menuNavigator.openMenu(menuFactory.createGuildActionsMenu(menuNavigator, player, guild))
+        }
+
         // Row 1 (y=1): Information, Members, Ranks, Economy
         addNavButton(pane, 0, 1, "lg_nav_info", Material.KNOWLEDGE_BOOK,
             lang.gui("menu.dashboard.item.information.name"),

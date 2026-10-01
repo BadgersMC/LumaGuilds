@@ -50,7 +50,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
         if (!canManageRanks && !canManageSettings) {
             player.sendMessage(lang.msg("menu.rank_management.feedback.no_permission"))
             player.sendMessage(lang.msg("menu.rank_management.feedback.required_permission"))
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
             return
         }
 
@@ -110,14 +110,15 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
                 open()
             }, 0, 4)
         }
+        pane.addItem(guiCreateItem, 4, 3)
 
         // Back button
         val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.rank_management.item.back.name"))
         val guiBackItem = GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
-        pane.addItem(guiBackItem, 8, 4)
+        pane.addItem(guiBackItem, 4, 4)
 
         gui.show(player)
     }
@@ -134,14 +135,14 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
                 open()
             }
         }
-        pane.addItem(prevGuiItem, 0, 3)
+        pane.addItem(prevGuiItem, 0, 4)
 
         // Page indicator
         val pageItem = ItemStack.of(Material.PAPER)
             .name(lang.gui("menu.rank_management.item.page.name", "current" to currentPage + 1, "total" to totalPages))
             .lore(lang.gui("menu.rank_management.item.page.lore", "count" to totalRanks))
 
-        pane.addItem(GuiItem(pageItem), 4, 3)
+        pane.addItem(GuiItem(pageItem), 7, 4)
 
         // Next page button
         val nextItem = NexoItemProvider.getItemStackOrFallback("lg_page_next") { ItemStack.of(Material.ARROW) }
@@ -154,7 +155,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
                 open()
             }
         }
-        pane.addItem(nextGuiItem, 8, 3)
+        pane.addItem(nextGuiItem, 8, 4)
     }
 
     private fun addRankButton(pane: StaticPane, rank: Rank, x: Int, y: Int, canManageRanks: Boolean) {

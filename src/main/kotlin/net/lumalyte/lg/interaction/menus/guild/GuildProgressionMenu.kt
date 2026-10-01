@@ -118,12 +118,11 @@ class GuildProgressionMenu(
         addPerksInfo(pane, 0, 3)
         addPrestigeInfo(pane, 0, 4)
 
-        // ---- Back / Close (top right) ----
-        addBackButton(pane, 8, 0)
-        addCloseButton(pane, 8, 1)
+        // ---- Back (bottom centre, same spot as every guild menu) ----
+        addBackButton(pane, 4, 5)
 
         // ---- Page navigation (row 5) ----
-        if (currentPage > 0) addPreviousPageButton(pane, 7, 5)
+        if (currentPage > 0) addPreviousPageButton(pane, 0, 5)
         if (currentPage + 1 < totalPages) addNextPageButton(pane, 8, 5)
 
         // ---- Source grid (paginated) ----
@@ -453,13 +452,6 @@ class GuildProgressionMenu(
             ItemStack.of(Material.ARROW).name(lang.gui("menu.guild_progression.navigation.back_fallback"))
         }.also { it.editMeta { meta -> meta.displayName(lang.gui("menu.guild_progression.navigation.back")) }}
         pane.addItem(GuiItem(item) { menuNavigator.goBack() }, x, y)
-    }
-
-    private fun addCloseButton(pane: StaticPane, x: Int, y: Int) {
-        val item = NexoItemProvider.getItemStackOrFallback("lg_close") {
-            ItemStack.of(Material.BARRIER).name(lang.gui("menu.guild_progression.navigation.close"))
-        }.also { it.editMeta { meta -> meta.displayName(lang.gui("menu.guild_progression.navigation.close")) }}
-        pane.addItem(GuiItem(item) { menuNavigator.clearMenuStack(); player.closeInventory() }, x, y)
     }
 
     private fun addPreviousPageButton(pane: StaticPane, x: Int, y: Int) {

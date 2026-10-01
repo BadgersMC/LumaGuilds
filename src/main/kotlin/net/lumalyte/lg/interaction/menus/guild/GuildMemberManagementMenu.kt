@@ -77,7 +77,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
         addSortButton(pane, 2, 5)
         addPromoteDemoteButton(pane, 3, 5)
         addKickButton(pane, 5, 5)
-        addBackButton(pane, 7, 5)
+        addBackButton(pane, 4, 5)
 
         gui.addPane(memberPane)
         gui.addPane(pane)
@@ -186,11 +186,11 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
             ))
             .lore(lang.gui("menu.member_management.item.page.lore"))
 
-        pane.addItem(GuiItem(pageItem), 4, 5)
+        pane.addItem(GuiItem(pageItem), 7, 5)
     }
 
     private fun addSortButton(pane: StaticPane, x: Int, y: Int) {
-        val baseItem = NexoItemProvider.getItemStackOrFallback("lg_nav_ranks") {
+        val baseItem = NexoItemProvider.getItemStackOrFallback("lg_sort") {
             ItemStack.of(Material.COMPARATOR)
         }
         val sortItem = if (sortByRank) {
@@ -279,7 +279,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
             .lore(lang.gui("menu.member_management.item.back.lore"))
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(backGuiItem, x, y)
     }

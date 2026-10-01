@@ -66,7 +66,7 @@ class GuildDisbandConfirmationMenu(
         pane.addItem(GuiItem(infoItem), 4, 0)
 
         // Confirm button
-        val confirmItem = NexoItemProvider.getItemStackOrFallback("lg_confirm") { ItemStack.of(Material.RED_WOOL) }
+        val confirmItem = NexoItemProvider.getItemStackOrFallback("lg_confirm_danger") { ItemStack.of(Material.RED_WOOL) }
             .name(lang.gui("menu.guild_confirmation.disband.item.confirm.name"))
             .lore(lang.gui("menu.guild_confirmation.disband.item.confirm.lore"))
         pane.addItem(GuiItem(confirmItem) {

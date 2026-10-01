@@ -401,6 +401,32 @@ class MenuFactory(
     }
 
     /**
+     * Creates the Guild Actions menu (party, vault, leave, disband) opened from the Java dashboard.
+     * Bedrock players keep their own control panel form.
+     */
+    fun createGuildActionsMenu(
+        menuNavigator: MenuNavigator,
+        player: Player,
+        guild: net.lumalyte.lg.domain.entities.Guild
+    ): Menu {
+        if (shouldUseBedrockMenus(player)) {
+            return createGuildControlPanelMenu(menuNavigator, player, guild)
+        }
+        val koin = org.koin.core.context.GlobalContext.get()
+        return net.lumalyte.lg.interaction.menus.guild.GuildControlPanelMenu(
+            menuNavigator, player, guild,
+            koin.get<net.lumalyte.lg.application.services.GuildService>(),
+            koin.get<net.lumalyte.lg.application.services.RankService>(),
+            koin.get<net.lumalyte.lg.application.services.MemberService>(),
+            koin.get<net.lumalyte.lg.application.services.GuildVaultService>(),
+            this,
+            koin.get<net.lumalyte.lg.application.services.ConfigService>(),
+            koin.get<net.lumalyte.lg.application.services.ProgressionService>(),
+            koin.get<net.lumalyte.lg.application.persistence.ProgressionRepository>(),
+        )
+    }
+
+    /**
      * Creates a guild settings menu appropriate for the player's platform
      */
     fun createGuildSettingsMenu(

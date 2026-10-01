@@ -443,7 +443,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             .lore(lang.gui("menu.guild_home.back.description"))
 
         val guiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(guiItem, x, y)
     }

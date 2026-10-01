@@ -60,7 +60,7 @@ class GuildLeaveConfirmationMenu(
         pane.addItem(GuiItem(infoItem), 4, 0)
 
         // Confirm leave
-        val confirmItem = NexoItemProvider.getItemStackOrFallback("lg_confirm") { ItemStack.of(Material.RED_WOOL) }
+        val confirmItem = NexoItemProvider.getItemStackOrFallback("lg_confirm_danger") { ItemStack.of(Material.RED_WOOL) }
             .name(lang.gui("menu.guild_confirmation.leave.item.confirm.name"))
             .lore(lang.gui("menu.guild_confirmation.leave.item.confirm.lore"))
         pane.addItem(GuiItem(confirmItem) {

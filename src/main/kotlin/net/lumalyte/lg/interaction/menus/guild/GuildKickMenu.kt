@@ -176,7 +176,7 @@ class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player
             .lore(lang.gui("menu.guild_kick.navigation.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(backGuiItem, x, y)
     }
