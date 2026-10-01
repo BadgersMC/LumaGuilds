@@ -85,7 +85,7 @@ class MenuTitleBuilderTest {
 
     @Test
     fun `prefix is identical across themes and row counts`() {
-        val titles = GuiTheme.entries.flatMap { theme ->
+        val titles = GuiTheme.entries.filter { it.hasBackground }.flatMap { theme ->
             listOf(1, 3, 4, 5, 6).map { rows ->
                 MenuTitleBuilder.build(theme, rows)
                     .substringBefore("<glyph:")
@@ -195,5 +195,31 @@ class MenuTitleBuilderTest {
         assertTrue(title.startsWith("<shift:-9>"), "6-row must start with shift:-9")
         assertTrue(title.contains("<glyph:guild_bg_carved_slate_6_row>"), "6-row must use 6_row glyph")
         assertTrue(title.contains("Member Management"), "Title text must be present")
+    }
+
+    // ---------------------------------------------------------------
+    // Vanilla style: no custom background at all
+    // ---------------------------------------------------------------
+
+    @Test
+    fun `vanilla theme has no background glyph or pixel shifts`() {
+        assertFalse(GuiTheme.VANILLA.hasBackground)
+        for (rows in listOf(1, 3, 4, 5, 6)) {
+            val title = MenuTitleBuilder.build(GuiTheme.VANILLA, rows, "§fGuild Actions")
+            assertFalse(title.contains("<glyph:"), "Vanilla title must not use a glyph: '$title'")
+            assertFalse(title.contains("<shift:"), "Vanilla title must not shift: '$title'")
+        }
+    }
+
+    @Test
+    fun `vanilla theme keeps the title text in the default dark chest colour`() {
+        assertEquals("§rGuild Actions", MenuTitleBuilder.build(GuiTheme.VANILLA, 3, "§fGuild Actions"))
+        assertEquals("§r⚔ War - §cRed", MenuTitleBuilder.build(GuiTheme.VANILLA, 3, "§f⚔ War - §cRed"))
+        assertEquals("", MenuTitleBuilder.build(GuiTheme.VANILLA, 3))
+    }
+
+    @Test
+    fun `every other theme still draws a background`() {
+        GuiTheme.entries.filter { it != GuiTheme.VANILLA }.forEach { assertTrue(it.hasBackground, it.name) }
     }
 }

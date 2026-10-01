@@ -10,9 +10,10 @@ import org.bukkit.persistence.PersistentDataType
 /**
  * Bedrock players (Geyser/Floodgate) cannot see Nexo item models or font-glyph menu
  * backgrounds. Every Nexo menu icon is tagged with the vanilla material its menu would
- * use without Nexo; [net.lumalyte.lg.infrastructure.services.BedrockMenuAdapter] swaps
- * tagged icons for that material in what Bedrock players are sent, and strips the
- * background glyph from themed titles. Java players are never affected.
+ * use without Nexo; [net.lumalyte.lg.infrastructure.services.MenuIconAdapter] swaps
+ * tagged icons for that material in what Bedrock players and members of Vanilla-style
+ * guilds are sent, and strips the background glyph from themed titles for Bedrock players.
+ * Everyone else sees the custom icons.
  */
 object BedrockIcons {
     /** PDC key holding the vanilla fallback material name. Stored as `lumaguilds:bedrock_icon`. */

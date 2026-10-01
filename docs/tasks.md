@@ -813,40 +813,27 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 > PR-17 dependency order: LG-1801 first; LG-1806 before LG-1807; LG-1802..LG-1810 before LG-1811; LG-1812 last. P0 findings (Quests, Prestige, Statistics truthfulness, bank authorization, parity-test gate) block Chapter 2 Bedrock sign-off.
 
-## Guild rank customization (2026-10-03)
+---
 
-- [x] Add legacy/hex rank colors with limits based on visible text and shared Java/Bedrock validation.
-- [x] Persist a guild-wide rank-chat toggle guarded by MANAGE_GUILD_SETTINGS, exposed in rank/settings menus and /g ranks chat on|off.
-- [x] Apply the next-message setting to RoseChat guild formats and direct guild-chat delivery, preserving other channels and guilds.
-- [x] Verify formatted names, duplicate identity, permissions, repository reload persistence, disabled output, failure handling, and schema creation/repair locally. Preserve rank IDs and immutable claim-permission profiles; strip colors from Discord profile text and name-based leader/officer channel matching.
-- Validation: `gradlew.bat check shadowJar '-PreleaseVersion=3.0.15-rank-customization-test.1' --console=plain` passed: 1,462 tests, zero failures/errors, four skipped. Wiki frontmatter validation passed for 42 pages; all 13 help topics remain in parity. `git diff --check` passed.
-- Test artifact: `build/libs/LumaGuilds-3.0.15-rank-customization-test.1.jar`; SHA-256 `8821A1B743D71E0ACE2F60CDFCF84C450C0A97E62E06F731E9DB076DE2EE6DF9`.
-- [ ] Live Paper/RoseChat send-path verification, Java/Bedrock client menu walkthrough, and MariaDB runtime verification remain separate. Production was not changed.
+## Enthusia GUI icons — local branch `enthusia-gui-icons` (operator, Fain)
 
-## Guild chat RC-4 and bare hex rank correction (2026-10-04)
+> Local-only work: no push and no PR until the operator says so. Patches 0001–0019 are exported alongside the branch. None of the tasks below has been compiled or run yet: the session that wrote them could not download the Gradle wrapper or Maven dependencies, so every Evidence block lists the probes that exist and what still has to be run.
 
-- [x] Diagnose production `/gc` failure from `latest.log`: LumaGuilds 3.0.17 calls the nine-argument `ChannelMessageOptions` constructor missing from installed RoseChat RC-4, throwing before delivery.
-- [x] Copy the runtime record while replacing only `format`, retaining all options, including newer bypass flags. Keep the shared channel format unchanged.
-- [x] Accept the reported `#f99801Founder` syntax in shared rank validation/rendering; retain existing `&#RRGGBB`, repeated legacy hex, identity rules, and visible/raw limits.
-- [x] Render nested validation messages before Nexus placeholder interpolation in rank creation and editing.
-- [x] Prove binary compatibility locally: compile against the old nine-component API and run the same channel/record-copy tests with the eleven-component `RoseChat-RC-4-discord-rank-26.2-test.7.jar` using `-ProseChatRuntimeJar=../rosechat-26.2/build/libs/RoseChat-RC-4-discord-rank-26.2-test.7.jar`. Both focused runs pass. This is not the exact production test.5 artifact or a live send test.
-- [x] Full local validation and test artifact finalization: `gradlew.bat check shadowJar '-PreleaseVersion=3.0.18-guild-chat-rc4-test.1' --console=plain` passes, 1,497 tests, zero failures/errors, four skipped. Test artifact: `build/libs/LumaGuilds-3.0.18-guild-chat-rc4-test.1.jar`; SHA-256 `4D15FC67FAA4610C6C0C453658892557FA2503E7689F6E4DAB7A21817108BB37`. `git diff --check` passes.
-- [ ] Live `/gc` delivery and rank rename acceptance. Production inspection was read-only; no upload, restart, or activation occurred. Codacy MCP analysis is unavailable in this session.
-
-### SPEAR refinement and canonical delivery gate (2026-10-04)
-
-- Spec: REQ-063 remains the behavior contract. Fetch and inspect current main before refinement; preserve every runtime option and both supported hex syntaxes.
-- Prove: production stack trace and focused old/new-runtime regressions are existing evidence, not a new historical test-first claim. The GitHub build passed on `2ffde89954e16ea102f29e4c6c42337e934fdd30`; Codacy reported 35 review annotations.
-- Engine: this pass changes documentation/style only; no behavior change is intended. No new behavioral tests are needed for formatting corrections.
-- Arch: keep compatibility copying in infrastructure and shared color validation in its existing utility; retain Java/Bedrock consumers.
-- [x] Implement the annotation corrections and rerun local checks: focused color/feedback/locale/channel tests pass; old-API-compiled channel/copy tests pass with the newer RC-4 runtime; `gradlew.bat clean check --console=plain` passes with 1,497 tests, zero failures/errors, four skipped. Formatting, documentation, visibility, constants, and shared build configuration were corrected. Reflective spread arguments remain intentional at the variable-arity compatibility boundary, with narrow documented suppressions. Hosted results must be checked against the exact updated PR head separately.
-- Unmerged local test artifact, built only after `clean check` passed: `build/libs/LumaGuilds-3.0.18-guild-chat-rc4-test.2.jar`, SHA-256 `696D03E160CE9EA0594939AA7241E6737E5AB7222207102BA4F19854C44E6F84`. This does not authorize production deployment.
-- SPEAR tooling boundary: this checkout has no project-local EARS validator or state helper. Requirements and this task/evidence record provide traceability; no automated SPEAR gate is claimed.
-- [ ] Canonical delivery: merge the reviewed source through the normal process, update/verify the owning monorepo pin, and build/verify the resulting clean merged commit before any production deployment. No merge or production activation is authorized by this workflow update.
-- Verified live owning monorepo: `BadgersMC/enthusia-network`, `plugins/luma-guilds` pins `c427d5dbc4838c95bcde45d57be14a6b6980ff8e`; `plugins/rosechat` pins `cf8a7b040f7194a0bf26d98096493bbb7e53efa9`. The guild pin predates the recent rank feature and this fix. Updating it must include the merged fix and receive combined-build validation; a standalone build is insufficient deployment evidence.
-## Guild emoji safety â€” 2026-10-04
-
-- [x] **Guild emoji safety** â€” block GUI glyphs at persistence and all guild-emoji placeholder renderers.
+- [~] **LG-1900** Bedrock fallback for Java chest menus: vanilla icons and plain titles.
   - Tag: `TDD`
-  - References: `docs/plans/2026-10-04-guild-emoji-safety.md`; REQ-025 public Nexo API
-  - Evidence: main `6c9f5a5`; live TAB suffix uses `guild_emoji`; live gold/crimson GUI glyphs are height 256 and not emojis. `NexoEmojiService.doesEmojiExist` accepts any registered glyph and absent-plugin format fallback; `GuildServiceBukkit.setEmoji` omits existence validation; `LumaGuildsExpansion.convertEmojiToNexoPlaceholder` delegates saved names without validation. RED: unresolved-glyph regression failed on main. GREEN: full check passes 1,502 tests, zero failures/errors, four skips; architecture checks and diff check pass. Checkpoint snapshot shows Vegas uses valid :imp:; generated and published pack SHA-256 match, mapping imp to a 9-pixel purple face. This guard is preventive hardening; screenshot root cause and client acceptance remain open. See linked plan for boundaries.
+  - References: REQ-110..REQ-120 (Bedrock parity); PR-17 global constraint "supported Bedrock flows stay in Cumulus forms"; Paper `InventoryOpenEvent#titleOverride`; PacketEvents 2.11.2 `WrapperPlayServerWindowItems` / `WrapperPlayServerSetSlot`.
+  - Scope: only Java chest menus that still reach a Bedrock player (Cumulus unavailable, Bedrock menus disabled, or a menu without a form). Nexo icons built through `NexoItemProvider.getItemStackOrFallback` carry their vanilla fallback in PDC `lumaguilds:bedrock_icon`; `MenuIconAdapter` swaps tagged icons in window packets and drops the `guild_bg_*` glyph from themed titles. Quest reward items use `getItemStack` and stay untagged so they stack.
+  - Evidence: probes `BedrockIconsTest` (title stripping, PDC key path). **Not yet run.** Still open: `test shadowJar`, `LayerRulesTest`, and a real Bedrock-client walkthrough on staging (Geyser 2.11.3-b1247 / Floodgate 2.2.5-b141 per LG-1812), including whether Nexo rewrites titles before `InventoryOpenEvent` (the title cleanup would not fire).
+
+- [ ] **LG-1901** Show the custom Enthusia icons to Bedrock players through Geyser custom items.
+  - Tag: `INFRA`
+  - References: Geyser custom items v2 (`item_model` mappings, Bedrock resource pack required — https://geysermc.org/wiki/geyser/custom-items/); Nexo Scaffolding add-on (https://docs.nexomc.com/addons/scaffolding, needs Nexo 1.26+ and Geyser 2.11.0-SNAPSHOT+); Rainbow (https://geysermc.org/wiki/other/rainbow/).
+  - Next step (blocked on operator): check production (Bloom.host panel, `plugins/`) for Scaffolding and record the Nexo, Geyser and Floodgate versions. The panel needs the operator signed in on the desktop browser.
+  - Plan: prefer Scaffolding if production meets its requirements; otherwise generate the Geyser v2 mappings + Bedrock pack from `resourcepack/enthusia-icons` (needs one icon's `item_model` value via F3+H). When Bedrock mappings are live, add a config switch so `MenuIconAdapter` stops swapping icons for Bedrock players (the title cleanup stays).
+  - Evidence: none yet.
+
+- [~] **LG-1902** Vanilla menu style for guilds that do not want the custom look.
+  - Tag: `TDD`
+  - References: REQ-096, REQ-099 (GUI themes); LG-S2-THEME; LG-1900 (shared icon swap).
+  - Scope: new `GuiTheme.VANILLA` (`hasBackground = false`), stored by enum name like every other theme (no migration). `MenuTitleBuilder` returns the plain title (white reset to the default chest colour, no glyph or shifts). Settings → GUI Theme offers it as a plain chest swatch; the Bedrock settings form lists it automatically. Members of a Vanilla-style guild are sent vanilla item icons by `MenuIconAdapter`, re-evaluated on every inventory open.
+  - Evidence: probes written first — `MenuTitleBuilderTest` (vanilla: no glyph/shift, colour reset, every other theme still has a background), `GuildSettingsThemeSelectorContractTest` (chest swatch), `MenuIconAdapterTest` (themed Java keeps icons; Vanilla-style and Bedrock get vanilla; switching back restores; guildless keeps icons; quit clears). **Not yet run** (RED then GREEN still to be captured on a machine with Gradle). Without PacketEvents, Vanilla-style guilds lose the background but keep custom icons.

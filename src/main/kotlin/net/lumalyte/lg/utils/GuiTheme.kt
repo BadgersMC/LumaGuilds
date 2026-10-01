@@ -10,7 +10,7 @@ package net.lumalyte.lg.utils
  * The NEUTRAL theme always has textures available; other themes are
  * tiered content that guilds unlock through progression.
  */
-enum class GuiTheme(val displayName: String) {
+enum class GuiTheme(val displayName: String, val hasBackground: Boolean = true) {
     NEUTRAL("Default"),
     EMBERSTONE("Emberstone"),
     CARVED_SLATE("Carved Slate"),
@@ -21,7 +21,10 @@ enum class GuiTheme(val displayName: String) {
     FROSTBOUND("Frostbound"),
     VERDANT("Verdant"),
     VOIDLIGHT("Voidlight"),
-    OBSIDIAN("Obsidian");
+    OBSIDIAN("Obsidian"),
+
+    /** Plain vanilla chest: no background glyph and vanilla item icons, for guilds that prefer it. */
+    VANILLA("Vanilla", hasBackground = false);
 
     companion object {
         /** Maps the database/storage string back to an enum value. */

@@ -45,6 +45,9 @@ object MenuTitleBuilder {
      * @return       Title string for the ChestGui constructor.
      */
     fun build(theme: GuiTheme = GuiTheme.NEUTRAL, rows: Int, title: String = ""): String {
+        // Vanilla style: plain chest title. White text is meant for the dark themed backgrounds,
+        // so it is reset to the default chest colour; other colours are kept.
+        if (!theme.hasBackground) return title.replace("§f", "§r")
         val themeKey = theme.name.lowercase()
         val glyphName = "guild_bg_${themeKey}_${rows}_row"
         val prefix = "${HORIZONTAL_OFFSET}<glyph:${glyphName}>"

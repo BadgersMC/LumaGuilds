@@ -533,9 +533,11 @@ class GuildSettingsMenu(
         net.lumalyte.lg.utils.GuiTheme.entries.forEachIndexed { index, theme ->
             val isCurrent = theme == guild.guiTheme
             val nexoId = "lg_theme_${theme.name.lowercase()}"
-            val item = NexoItemProvider.getItemStackOrFallback(nexoId) {
+            // The vanilla style is shown as what it is: a plain chest.
+            val item = (if (theme == net.lumalyte.lg.utils.GuiTheme.VANILLA) ItemStack.of(Material.CHEST)
+            else NexoItemProvider.getItemStackOrFallback(nexoId) {
                 ItemStack.of(if (isCurrent) Material.LIME_DYE else Material.GRAY_DYE)
-            }.also { stack ->
+            }).also { stack ->
                 stack.editMeta { meta ->
                     meta.displayName(
                         if (isCurrent) {
