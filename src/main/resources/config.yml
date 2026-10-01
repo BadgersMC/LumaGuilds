@@ -529,7 +529,7 @@ chapter:
 # =====================================
 
 # Optional DiscordSRV guild-role integration.
-# Guilds first unlock a managed Discord role at this level. Saved roles remain unlocked after prestige.
+# Missing roles are created at this level. Existing roles are kept; completed prestige remains eligible.
 # Linked Discord accounts are granted/removed automatically with guild membership.
 discord:
   guild_roles:
