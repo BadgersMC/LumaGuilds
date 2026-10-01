@@ -23,4 +23,10 @@ class GuildSettingsThemeSelectorContractTest {
     fun `theme change result is validated before success feedback`() {
         assertTrue(source.contains("if (guildService.setGuiTheme("))
     }
+
+    @Test
+    fun `vanilla style is offered as a plain chest swatch`() {
+        assertTrue(source.contains("GuiTheme.VANILLA"))
+        assertTrue(source.contains("Material.CHEST"))
+    }
 }
