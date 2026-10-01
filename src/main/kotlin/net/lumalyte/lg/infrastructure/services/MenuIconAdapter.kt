@@ -15,6 +15,7 @@ import net.lumalyte.lg.application.services.PlatformDetectionService
 import net.lumalyte.lg.config.BedrockConfig
 import net.lumalyte.lg.utils.BedrockIcons
 import net.lumalyte.lg.utils.GuiTheme
+import net.lumalyte.lg.utils.MenuTitleGlyphs
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -47,6 +48,7 @@ class MenuIconAdapter(
     private val bedrockConfig: () -> BedrockConfig,
     packetEventsReady: (() -> Boolean)? = null,
     hookPacketEvents: ((MenuIconAdapter) -> Unit)? = null,
+    private val glyphLookup: (String) -> net.kyori.adventure.text.Component? = ::nexoGlyph,
 ) : PacketListenerAbstract(PacketListenerPriority.HIGHEST), Listener {
 
     private val bedrockPlayers: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
@@ -121,10 +123,15 @@ class MenuIconAdapter(
     fun onInventoryOpen(event: InventoryOpenEvent) {
         val player = event.player as? Player ?: return
         refresh(player)
-        if (!cleansTitlesFor(player.uniqueId)) return
         val title = event.titleOverride() ?: event.view.title()
-        if (!BedrockIcons.isThemedTitle(PlainTextComponentSerializer.plainText().serialize(title))) return
-        event.titleOverride(BedrockIcons.plainTitle(title))
+        if (!MenuTitleGlyphs.hasBackgroundGlyph(title)) return
+        if (cleansTitlesFor(player.uniqueId)) {
+            event.titleOverride(BedrockIcons.plainTitle(title))
+            return
+        }
+        // Give the background glyph its Nexo font so it draws instead of showing as a box.
+        val fixed = MenuTitleGlyphs.withGlyphFonts(title, glyphLookup)
+        if (fixed != title) event.titleOverride(fixed)
     }
 
     override fun onPacketSend(event: PacketSendEvent) {
@@ -169,3 +176,9 @@ class MenuIconAdapter(
         return runCatching { PacketEvents.getAPI().isLoaded && PacketEvents.getAPI().isInitialized }.getOrDefault(false)
     }
 }
+
+/** Nexo's glyph component (with its font) for a glyph id, or null when Nexo or the glyph is missing. */
+internal fun nexoGlyph(id: String): net.kyori.adventure.text.Component? = runCatching {
+    val fonts = com.nexomc.nexo.NexoPlugin.instance().fontManager()
+    (fonts.glyphFromID(id) ?: fonts.glyphFromName(id))?.glyphComponent()
+}.getOrNull()
