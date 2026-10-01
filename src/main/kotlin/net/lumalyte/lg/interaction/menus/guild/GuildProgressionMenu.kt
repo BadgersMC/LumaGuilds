@@ -270,7 +270,9 @@ class GuildProgressionMenu(
     private fun addPerksInfo(pane: StaticPane, x: Int, y: Int) {
         val chapterTwo = rewardState as? GuildRewardRead.Available
         if (chapterTwo != null) {
-            val item = ItemStack.of(Material.DIAMOND).also { it.editMeta { meta ->
+            val item = NexoItemProvider.getItemStackOrFallback("lg_reward") {
+                ItemStack.of(Material.DIAMOND)
+            }.also { it.editMeta { meta ->
                 meta.displayName(lang.gui("chapter_two_rewards.title"))
                 meta.lore(listOf(lang.gui("chapter_two_rewards.explanation"), lang.gui("chapter_two_rewards.view")))
             } }
