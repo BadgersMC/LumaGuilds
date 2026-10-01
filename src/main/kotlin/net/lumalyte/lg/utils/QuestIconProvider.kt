@@ -13,7 +13,15 @@ import org.bukkit.inventory.ItemStack
  * vanilla material so the menu and toast can never render without an icon.
  */
 object QuestIconProvider {
+    /** Gameplay-skill quests show plain vanilla items; bank and war quests keep their Enthusia art. */
+    private val vanillaOnly = setOf(
+        QuestAction.KILL_PLAYERS, QuestAction.KILL_MOBS, QuestAction.HARVEST_CROPS,
+        QuestAction.MINE_BLOCKS, QuestAction.PLACE_BLOCKS, QuestAction.CRAFT_ITEMS,
+        QuestAction.SMELT_ITEMS, QuestAction.FISH, QuestAction.ENCHANT_ITEMS,
+    )
+
     fun itemFor(quest: QuestDefinition): ItemStack =
+        if (quest.action in vanillaOnly) ItemStack.of(vanillaFallback(quest.action)) else
         NexoItemProvider.getItemStackOrFallback(actionIconId(quest.action)) {
             NexoItemProvider.getItemStackOrFallback(
                 "lg_quest_${quest.tier.name.lowercase()}"
