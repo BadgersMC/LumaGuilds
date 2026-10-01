@@ -104,28 +104,28 @@ class GuildControlPanelMenu(
                 NexoItemProvider.getItemStackOrFallback("lg_vault") { ItemStack.of(Material.CHEST) }
                     .name(lang.gui("menu.control_panel.item.vault.name"))
                     .lore(lang.gui("menu.control_panel.item.vault.lore.available"))
-                    .lore(lang.gui("menu.control_panel.item.vault.lore.open"))
-                    .lore(lang.gui("menu.common.blank"))
                     .lore(lang.gui("menu.control_panel.item.vault.lore.storage_line_1"))
                     .lore(lang.gui("menu.control_panel.item.vault.lore.storage_line_2"))
+                    .lore(lang.gui("menu.common.blank"))
+                    .lore(lang.gui("menu.control_panel.item.vault.lore.open"))
             }
             net.lumalyte.lg.domain.entities.VaultStatus.UNAVAILABLE -> {
                 NexoItemProvider.getItemStackOrFallback("lg_vault_unavailable") { ItemStack.of(Material.BARRIER) }
                     .name(lang.gui("menu.control_panel.item.vault.name"))
                     .lore(lang.gui("menu.control_panel.item.vault.lore.not_placed"))
-                    .lore(lang.gui("menu.control_panel.item.vault.lore.obtain"))
-                    .lore(lang.gui("menu.common.blank"))
                     .lore(lang.gui("menu.control_panel.item.vault.lore.place_line_1"))
                     .lore(lang.gui("menu.control_panel.item.vault.lore.place_line_2"))
+                    .lore(lang.gui("menu.common.blank"))
+                    .lore(lang.gui("menu.control_panel.item.vault.lore.obtain"))
             }
             net.lumalyte.lg.domain.entities.VaultStatus.NEVER_PLACED -> {
                 NexoItemProvider.getItemStackOrFallback("lg_vault_unavailable") { ItemStack.of(Material.BARRIER) }
                     .name(lang.gui("menu.control_panel.item.vault.name"))
                     .lore(lang.gui("menu.control_panel.item.vault.lore.never_placed"))
-                    .lore(lang.gui("menu.control_panel.item.vault.lore.obtain"))
-                    .lore(lang.gui("menu.common.blank"))
                     .lore(lang.gui("menu.control_panel.item.vault.lore.place_line_1"))
                     .lore(lang.gui("menu.control_panel.item.vault.lore.place_line_2"))
+                    .lore(lang.gui("menu.common.blank"))
+                    .lore(lang.gui("menu.control_panel.item.vault.lore.obtain"))
             }
         }
 
