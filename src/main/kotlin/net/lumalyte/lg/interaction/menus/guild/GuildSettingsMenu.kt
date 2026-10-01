@@ -134,8 +134,8 @@ class GuildSettingsMenu(
             .name(lang.gui("menu.guild_settings.item.tag.name"))
             .lore(lang.gui("menu.guild_settings.item.tag.lore.current", "tag" to (guild.tag ?: lang.raw("menu.control_panel.state.not_set"))))
             .lore(lang.gui("menu.common.blank"))
-            .lore(lang.gui("menu.guild_settings.item.tag.lore.action"))
             .lore(lang.gui("menu.guild_settings.item.tag.lore.formatting"))
+            .lore(lang.gui("menu.guild_settings.item.tag.lore.action"))
 
         val tagGuiItem = GuiItem(tagItem) {
             menuNavigator.openMenu(menuFactory.createTagEditorMenu(menuNavigator, player, guild))

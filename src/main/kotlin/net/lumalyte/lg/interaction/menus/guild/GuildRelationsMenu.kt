@@ -79,7 +79,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             .name(lang.gui("menu.guild_relations.overview.allies.name"))
             .lore(lang.gui("menu.guild_relations.overview.allies.description"))
             .lore(lang.gui("menu.guild_relations.count", "count" to allies))
-            .lore(lang.gui("menu.guild_relations.overview.allies.support"))
+            .lore(lang.gui("menu.common.click.open"))
 
         val alliesGuiItem = GuiItem(alliesItem) {
             openAlliesListMenu()
@@ -91,7 +91,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             .name(lang.gui("menu.guild_relations.overview.enemies.name"))
             .lore(lang.gui("menu.guild_relations.overview.enemies.description"))
             .lore(lang.gui("menu.guild_relations.count", "count" to enemies))
-            .lore(lang.gui("menu.guild_relations.overview.enemies.warfare"))
+            .lore(lang.gui("menu.common.click.open"))
 
         val enemiesGuiItem = GuiItem(enemiesItem) {
             openEnemiesListMenu()
@@ -103,7 +103,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             .name(lang.gui("menu.guild_relations.overview.truces.name"))
             .lore(lang.gui("menu.guild_relations.overview.truces.description"))
             .lore(lang.gui("menu.guild_relations.count", "count" to truces))
-            .lore(lang.gui("menu.guild_relations.overview.truces.expiration"))
+            .lore(lang.gui("menu.common.click.open"))
 
         val trucesGuiItem = GuiItem(trucesItem) {
             openTrucesListMenu()
@@ -131,7 +131,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             .name(lang.gui("menu.guild_relations.requests.incoming.name"))
             .lore(lang.gui("menu.guild_relations.requests.incoming.description"))
             .lore(lang.gui("menu.guild_relations.count", "count" to incomingRequests.size))
-            .lore(lang.gui("menu.guild_relations.requests.incoming.proposals"))
+            .lore(lang.gui("menu.common.click.open"))
 
         val incomingGuiItem = GuiItem(incomingItem) {
             openIncomingRequestsMenu()
@@ -143,7 +143,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             .name(lang.gui("menu.guild_relations.requests.outgoing.name"))
             .lore(lang.gui("menu.guild_relations.requests.outgoing.description"))
             .lore(lang.gui("menu.guild_relations.count", "count" to outgoingRequests.size))
-            .lore(lang.gui("menu.guild_relations.requests.outgoing.awaiting"))
+            .lore(lang.gui("menu.common.click.open"))
 
         val outgoingGuiItem = GuiItem(outgoingItem) {
             openOutgoingRequestsMenu()
@@ -157,7 +157,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             .name(lang.gui("menu.guild_relations.action.alliance.name"))
             .lore(lang.gui("menu.guild_relations.action.alliance.description"))
             .lore(lang.gui("menu.guild_relations.action.acceptance"))
-            .lore(lang.gui("menu.guild_relations.action.alliance.support"))
+            .lore(lang.gui("menu.common.click.choose_guild"))
 
         val allianceGuiItem = GuiItem(allianceItem) {
             if (!memberService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RELATIONS)) {
@@ -172,7 +172,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val truceItem = NexoItemProvider.getItemStackOrFallback("lg_truce") { ItemStack.of(Material.WHITE_BANNER) }
             .name(lang.gui("menu.guild_relations.action.truce.name"))
             .lore(lang.gui("menu.guild_relations.action.truce.description"))
-            .lore(lang.gui("menu.guild_relations.action.truce.temporary"))
+            .lore(lang.gui("menu.common.click.choose_guild"))
             .lore(lang.gui("menu.guild_relations.action.acceptance"))
 
         val truceGuiItem = GuiItem(truceItem) {
@@ -189,7 +189,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             .name(lang.gui("menu.guild_relations.action.enemy.name"))
             .lore(lang.gui("menu.guild_relations.action.enemy.description"))
             .lore(lang.gui("menu.guild_relations.action.enemy.no_acceptance"))
-            .lore(lang.gui("menu.guild_relations.action.enemy.hostile"))
+            .lore(lang.gui("menu.common.click.choose_guild"))
 
         val enemyGuiItem = GuiItem(enemyItem) {
             if (!memberService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.DECLARE_WAR)) {
@@ -206,8 +206,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val historyItem = NexoItemProvider.getItemStackOrFallback("lg_relations_history") { ItemStack.of(Material.KNOWLEDGE_BOOK) }
             .name(lang.gui("menu.guild_relations.details.history.name"))
             .lore(lang.gui("menu.guild_relations.details.history.description"))
-            .lore(lang.gui("menu.guild_relations.details.history.track"))
-            .lore(lang.gui("menu.guild_relations.details.history.learn"))
+            .lore(lang.gui("menu.common.click.open"))
 
         val historyGuiItem = GuiItem(historyItem) {
             openDiplomaticHistoryMenu()
@@ -218,8 +217,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val neutralItem = NexoItemProvider.getItemStackOrFallback("lg_peace") { ItemStack.of(Material.BOOKSHELF) }
             .name(lang.gui("menu.guild_relations.details.neutral.name"))
             .lore(lang.gui("menu.guild_relations.details.neutral.description"))
-            .lore(lang.gui("menu.guild_relations.details.neutral.browse"))
-            .lore(lang.gui("menu.guild_relations.details.neutral.partners"))
+            .lore(lang.gui("menu.common.click.open"))
 
         val neutralGuiItem = GuiItem(neutralItem) {
             openNeutralGuildsMenu()
