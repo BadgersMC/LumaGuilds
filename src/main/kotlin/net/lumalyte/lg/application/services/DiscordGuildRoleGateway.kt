@@ -20,7 +20,12 @@ enum class DiscordMemberRoleResult {
 
 interface DiscordGuildRoleGateway {
     fun isAvailable(): Boolean
-    fun ensureRole(existingRoleId: String?, roleName: String): CompletableFuture<DiscordRoleEnsureResult>
+    /** Returns null when the role is missing and creation is not currently allowed. */
+    fun ensureRole(
+        existingRoleId: String?,
+        roleName: String,
+        allowCreate: Boolean = true,
+    ): CompletableFuture<DiscordRoleEnsureResult?>
     fun grantRole(playerId: UUID, roleId: String): CompletableFuture<DiscordMemberRoleResult>
     fun revokeRole(playerId: UUID, roleId: String): CompletableFuture<DiscordMemberRoleResult>
 
