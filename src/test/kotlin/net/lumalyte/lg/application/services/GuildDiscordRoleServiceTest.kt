@@ -25,6 +25,9 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+private const val ROLE_LEVEL = 50
+private const val BELOW_ROLE_LEVEL = 49
+
 class GuildDiscordRoleServiceTest {
     private val now = Instant.parse("2026-09-20T15:00:00Z")
     private val clock = Clock.fixed(now, ZoneOffset.UTC)
@@ -33,9 +36,10 @@ class GuildDiscordRoleServiceTest {
     private val playerTwo = UUID.randomUUID()
     private val rankId = UUID.randomUUID()
 
+    /** Below-threshold guilds cannot create or grant managed roles. */
     @Test
-    fun `role is withheld until configured guild level`() {
-        val fixture = fixture(guild(level = 49), members = setOf(member(playerOne)), minimumLevel = 50)
+    fun roleWithheldBelowLevel() {
+        val fixture = fixture(guild(level = BELOW_ROLE_LEVEL), members = setOf(member(playerOne)), minimumLevel = ROLE_LEVEL)
 
         val reconciled = fixture.service.reconcileGuild(guildId).join()
         val joined = fixture.service.memberJoined(guildId, playerOne).join()
@@ -47,9 +51,10 @@ class GuildDiscordRoleServiceTest {
         assertNull(fixture.repository.get(guildId))
     }
 
+    /** Reaching the configured level unlocks the guild and linked members. */
     @Test
-    fun `role and linked members are created at configured level`() {
-        val fixture = fixture(guild(level = 50), members = setOf(member(playerOne)), minimumLevel = 50)
+    fun roleGrantedAtLevel() {
+        val fixture = fixture(guild(level = ROLE_LEVEL), members = setOf(member(playerOne)), minimumLevel = ROLE_LEVEL)
 
         val result = fixture.service.reconcileGuild(guildId).join()
 
@@ -58,18 +63,20 @@ class GuildDiscordRoleServiceTest {
         assertNotNull(fixture.repository.get(guildId))
     }
 
+    /** Progression wins when the general guild cache still has an older level. */
     @Test
-    fun `persisted progression level overrides a stale guild cache`() {
-        val fixture = fixture(guild(level = 49), minimumLevel = 50, currentLevel = 50)
+    fun progressionBeatsGuildCache() {
+        val fixture = fixture(guild(level = BELOW_ROLE_LEVEL), minimumLevel = ROLE_LEVEL, currentLevel = ROLE_LEVEL)
 
         val result = fixture.service.reconcileGuild(guildId).join()
 
         assertEquals(1, result.rolesCreated)
     }
 
+    /** Startup removes roles that no longer meet the configured minimum. */
     @Test
-    fun `startup reconciliation removes a role below the configured level`() {
-        val fixture = fixture(guild(level = 49), minimumLevel = 50)
+    fun startupRemovesIneligibleRole() {
+        val fixture = fixture(guild(level = BELOW_ROLE_LEVEL), minimumLevel = ROLE_LEVEL)
         fixture.repository.upsert(GuildDiscordRoleLink(guildId, FakeGateway.ROLE_ID, now))
 
         fixture.service.reconcileAll().join()
@@ -78,15 +85,16 @@ class GuildDiscordRoleServiceTest {
         assertNull(fixture.repository.get(guildId))
     }
 
+    /** A level drop during an in-flight create cannot leave an orphan role. */
     @Test
-    fun `level drop during role creation cleans the completed role`() {
-        val liveLevel = AtomicInteger(50)
-        val fixture = fixture(guild(level = 50), minimumLevel = 50, levelProvider = { liveLevel.get() })
+    fun dropDuringCreateCleansRole() {
+        val liveLevel = AtomicInteger(ROLE_LEVEL)
+        val fixture = fixture(guild(level = ROLE_LEVEL), minimumLevel = ROLE_LEVEL, levelProvider = { liveLevel.get() })
         val pendingEnsure = CompletableFuture<DiscordRoleEnsureResult>()
         fixture.gateway.ensureOverride = pendingEnsure
 
         val pending = fixture.service.reconcileGuild(guildId)
-        liveLevel.set(49)
+        liveLevel.set(BELOW_ROLE_LEVEL)
         fixture.service.reconcileGuild(guildId).join()
         pendingEnsure.complete(DiscordRoleEnsureResult(FakeGateway.ROLE_ID, created = true))
         pending.join()
@@ -125,8 +133,9 @@ class GuildDiscordRoleServiceTest {
         assertNotNull(fixture.repository.get(guildId))
     }
 
+    /** Eligible guilds reuse their durable role link. */
     @Test
-    fun `persisted role link is reused for an eligible guild`() {
+    fun reusesEligibleRoleLink() {
         val fixture = fixture(guild(level = 1), members = setOf(member(playerOne)))
         fixture.repository.upsert(
             GuildDiscordRoleLink(guildId, FakeGateway.ROLE_ID, now.minusSeconds(60))

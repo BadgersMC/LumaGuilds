@@ -10,16 +10,19 @@ import org.junit.jupiter.api.Test
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 
+private const val ROLE_LEVEL = 50
+
 /** Verifies level changes reach guild Discord-role reconciliation. */
 internal class GuildDiscordRoleListenerTest {
+    /** A level change asks the service to reconcile the affected guild. */
     @Test
-    fun reconcilesWhenGuildLevelChanges() {
+    fun reconcilesGuildLevelChange() {
         val guildId = UUID.randomUUID()
         val service = mockk<GuildDiscordRoleService>()
         every { service.reconcileGuild(guildId) } returns
             CompletableFuture.completedFuture(DiscordGuildRoleSyncSummary())
 
-        GuildDiscordRoleListener(service).onGuildLevelChanged(GuildLevelChangedEvent(guildId, 50))
+        GuildDiscordRoleListener(service).onGuildLevelChanged(GuildLevelChangedEvent(guildId, ROLE_LEVEL))
 
         verify(exactly = 1) { service.reconcileGuild(guildId) }
     }

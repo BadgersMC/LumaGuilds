@@ -32,6 +32,8 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 
+private const val DISCORD_ROLE_LEVEL = 50
+
 class ProgressionServiceBukkitAwardTest {
 
     @Test
@@ -75,9 +77,10 @@ class ProgressionServiceBukkitAwardTest {
         assertEquals(2, service.awardExperience(UUID.randomUUID(), 2_000, ExperienceSource.MOB_KILL))
     }
 
+    /** A committed level award refreshes progression before publishing its event. */
     @Test
-    fun `successful level award publishes a change for Discord role reconciliation`() {
-        val awards = RecordingRepository().apply { leveledUpTo = 50 }
+    fun awardPublishesLevelChange() {
+        val awards = RecordingRepository().apply { leveledUpTo = DISCORD_ROLE_LEVEL }
         val progressionRepository = mockk<ProgressionRepository>(relaxed = true)
         val service = serviceWith(awards, progressionRepository)
         val guildId = UUID.randomUUID()
@@ -87,10 +90,12 @@ class ProgressionServiceBukkitAwardTest {
             every { Bukkit.isPrimaryThread() } returns true
             every { Bukkit.getPluginManager() } returns pluginManager
 
-            assertEquals(50, service.awardExperience(guildId, 2_000, ExperienceSource.MOB_KILL))
+            assertEquals(DISCORD_ROLE_LEVEL, service.awardExperience(guildId, 2_000, ExperienceSource.MOB_KILL))
 
             verify(exactly = 1) {
-                pluginManager.callEvent(match { it is GuildLevelChangedEvent && it.guildId == guildId && it.newLevel == 50 })
+                pluginManager.callEvent(match {
+                    it is GuildLevelChangedEvent && it.guildId == guildId && it.newLevel == DISCORD_ROLE_LEVEL
+                })
             }
             verify(exactly = 1) { progressionRepository.refreshGuildProgression(guildId) }
         } finally {
@@ -98,12 +103,13 @@ class ProgressionServiceBukkitAwardTest {
         }
     }
 
+    /** A level penalty publishes the decrease for managed-role cleanup. */
     @Test
-    fun `level reduction publishes a change for Discord role cleanup`() {
+    fun reductionPublishesLevelChange() {
         val guildId = UUID.randomUUID()
         val progressionRepository = mockk<ProgressionRepository>(relaxed = true)
         every { progressionRepository.getGuildProgression(guildId) } returns
-            GuildProgression(guildId, currentLevel = 51, totalExperience = 1_000_000)
+            GuildProgression(guildId, currentLevel = DISCORD_ROLE_LEVEL + 1, totalExperience = 1_000_000)
         every { progressionRepository.saveGuildProgression(any()) } returns true
         val service = serviceWith(RecordingRepository(), progressionRepository)
         val pluginManager = mockk<PluginManager>(relaxed = true)
@@ -112,10 +118,12 @@ class ProgressionServiceBukkitAwardTest {
             every { Bukkit.isPrimaryThread() } returns true
             every { Bukkit.getPluginManager() } returns pluginManager
 
-            assertEquals(50, service.reduceLevel(guildId, 1, ExperienceSource.ADMIN_BONUS))
+            assertEquals(DISCORD_ROLE_LEVEL, service.reduceLevel(guildId, 1, ExperienceSource.ADMIN_BONUS))
 
             verify(exactly = 1) {
-                pluginManager.callEvent(match { it is GuildLevelChangedEvent && it.guildId == guildId && it.newLevel == 50 })
+                pluginManager.callEvent(match {
+                    it is GuildLevelChangedEvent && it.guildId == guildId && it.newLevel == DISCORD_ROLE_LEVEL
+                })
             }
         } finally {
             unmockkStatic(Bukkit::class)

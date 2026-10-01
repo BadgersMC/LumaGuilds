@@ -5,17 +5,22 @@ import org.bukkit.event.HandlerList
 import java.util.UUID
 
 /** Fired after a guild's persisted progression level changes. */
-class GuildLevelChangedEvent(
+internal class GuildLevelChangedEvent(
+    /** Guild whose persisted progression level changed. */
     val guildId: UUID,
+    /** New persisted progression level. */
     val newLevel: Int,
 ) : Event() {
+    override fun getHandlers(): HandlerList = HANDLERS
+
+    /** Bukkit's shared handler list for this event. */
     companion object {
+        /** Shared handler list required by Bukkit. */
         @JvmStatic
-        private val handlers = HandlerList()
+        private val HANDLERS = HandlerList()
 
+        /** Returns the shared handler list to Bukkit. */
         @JvmStatic
-        fun getHandlerList(): HandlerList = handlers
+        fun getHandlerList(): HandlerList = HANDLERS
     }
-
-    override fun getHandlers(): HandlerList = Companion.handlers
 }

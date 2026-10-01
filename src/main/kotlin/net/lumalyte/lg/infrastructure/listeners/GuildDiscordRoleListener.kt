@@ -37,11 +37,14 @@ class GuildDiscordRoleListener(
         service.reconcileGuild(event.guild.id),
     )
 
+    /** Reconciles Discord-role eligibility after a guild level change. */
     @EventHandler(priority = EventPriority.MONITOR)
-    fun onGuildLevelChanged(event: GuildLevelChangedEvent) = observe(
-        "guild level ${event.newLevel} guild=${event.guildId}",
-        service.reconcileGuild(event.guildId),
-    )
+    internal fun onGuildLevelChanged(event: GuildLevelChangedEvent) {
+        observe(
+            "guild level ${event.newLevel} guild=${event.guildId}",
+            service.reconcileGuild(event.guildId),
+        )
+    }
 
     @EventHandler(priority = EventPriority.MONITOR)
     fun onGuildRenamed(event: GuildRenamedEvent) = observe(
