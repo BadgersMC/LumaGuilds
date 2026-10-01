@@ -529,7 +529,7 @@ chapter:
 # =====================================
 
 # Optional DiscordSRV guild-role integration.
-# Missing roles are created at this level. Existing roles are kept; completed prestige remains eligible.
+# Roles below this level are removed automatically; completed prestige remains eligible.
 # Linked Discord accounts are granted/removed automatically with guild membership.
 discord:
   guild_roles:
