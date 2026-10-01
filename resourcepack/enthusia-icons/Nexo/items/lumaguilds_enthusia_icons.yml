@@ -842,3 +842,10 @@ lg_party_moderate:  # new
   Pack:
     parent_model: item/generated
     texture: lumaguilds:enthusia/party_moderate
+
+lg_theme_enthusia:  # new
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/theme_enthusia
