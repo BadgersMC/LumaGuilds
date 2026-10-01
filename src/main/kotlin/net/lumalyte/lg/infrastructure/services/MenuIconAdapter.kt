@@ -12,6 +12,7 @@ import io.github.retrooper.packetevents.util.SpigotConversionUtil
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.PlatformDetectionService
+import net.lumalyte.lg.config.BedrockConfig
 import net.lumalyte.lg.utils.BedrockIcons
 import net.lumalyte.lg.utils.GuiTheme
 import org.bukkit.entity.Player
@@ -28,9 +29,10 @@ import com.github.retrooper.packetevents.protocol.item.ItemStack as PacketItemSt
 
 /**
  * Sends vanilla items in place of the custom Nexo menu icons to players who should not see them:
- *  - Bedrock players (Geyser cannot draw Nexo item models), who also get themed titles without
- *    the font-glyph background;
- *  - members of guilds that picked the Vanilla menu style ([GuiTheme.VANILLA]).
+ *  - members of guilds that picked the Vanilla menu style ([GuiTheme.VANILLA]);
+ *  - Bedrock players, only when `bedrock.java_menu_vanilla_icons` is on (off by default, because
+ *    Geyser custom-item mappings can already draw the lg_ icons for them). With
+ *    `bedrock.java_menu_plain_titles` on, their themed titles also drop the font-glyph background.
  *
  * Only what those players are *sent* changes. Server-side items, click handling and what everyone
  * else sees stay exactly as they are. Icons are swapped at packet level so InventoryFramework
@@ -41,10 +43,15 @@ class MenuIconAdapter(
     private val plugin: Plugin,
     private val platform: PlatformDetectionService,
     private val guildService: GuildService,
+    private val bedrockConfig: () -> BedrockConfig,
 ) : PacketListenerAbstract(PacketListenerPriority.HIGHEST), Listener {
 
     private val bedrockPlayers: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
     private val vanillaStylePlayers: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
+
+    // Read on the main thread in refresh(); the packet thread only reads these flags.
+    @Volatile private var bedrockVanillaIcons = false
+    @Volatile private var bedrockPlainTitles = false
 
     fun register() {
         plugin.server.pluginManager.registerEvents(this, plugin)
@@ -59,6 +66,10 @@ class MenuIconAdapter(
 
     /** Re-evaluates whether [player] should be sent vanilla icons. Main thread. */
     fun refresh(player: Player) {
+        runCatching { bedrockConfig() }.getOrNull()?.let {
+            bedrockVanillaIcons = it.javaMenuVanillaIcons
+            bedrockPlainTitles = it.javaMenuPlainTitles
+        }
         val id = player.uniqueId
         if (runCatching { platform.isBedrockPlayer(player) }.getOrDefault(false)) bedrockPlayers.add(id) else bedrockPlayers.remove(id)
         val vanillaStyle = runCatching {
@@ -72,7 +83,10 @@ class MenuIconAdapter(
         vanillaStylePlayers.remove(playerId)
     }
 
-    fun showsVanillaIcons(playerId: UUID): Boolean = playerId in bedrockPlayers || playerId in vanillaStylePlayers
+    fun showsVanillaIcons(playerId: UUID): Boolean =
+        playerId in vanillaStylePlayers || (bedrockVanillaIcons && playerId in bedrockPlayers)
+
+    fun cleansTitlesFor(playerId: UUID): Boolean = bedrockPlainTitles && playerId in bedrockPlayers
 
     @EventHandler(priority = EventPriority.LOWEST)
     fun onJoin(event: PlayerJoinEvent) = refresh(event.player)
@@ -84,7 +98,7 @@ class MenuIconAdapter(
     fun onInventoryOpen(event: InventoryOpenEvent) {
         val player = event.player as? Player ?: return
         refresh(player)
-        if (player.uniqueId !in bedrockPlayers) return
+        if (!cleansTitlesFor(player.uniqueId)) return
         val title = event.titleOverride() ?: event.view.title()
         if (!BedrockIcons.isThemedTitle(PlainTextComponentSerializer.plainText().serialize(title))) return
         event.titleOverride(BedrockIcons.plainTitle(title))

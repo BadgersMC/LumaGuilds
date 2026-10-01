@@ -4,6 +4,7 @@ import io.mockk.every
 import io.mockk.mockk
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.PlatformDetectionService
+import net.lumalyte.lg.config.BedrockConfig
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.utils.GuiTheme
 import org.bukkit.entity.Player
@@ -16,7 +17,8 @@ import java.util.UUID
 class MenuIconAdapterTest {
     private val guildService = mockk<GuildService>()
     private val platform = mockk<PlatformDetectionService>()
-    private val adapter = MenuIconAdapter(mockk<Plugin>(relaxed = true), platform, guildService)
+    private var bedrock = BedrockConfig()
+    private val adapter = MenuIconAdapter(mockk<Plugin>(relaxed = true), platform, guildService) { bedrock }
 
     private fun player(bedrock: Boolean, theme: GuiTheme?): Player {
         val id = UUID.randomUUID()
@@ -52,8 +54,26 @@ class MenuIconAdapterTest {
     }
 
     @Test
-    fun `bedrock players always get vanilla icons`() {
+    fun `bedrock players keep mapped custom icons by default`() {
+        // Geyser custom-item mappings already draw lg_ icons for Bedrock; the swap must be opt-in.
         val p = player(bedrock = true, theme = GuiTheme.ENTHUSIA)
+        adapter.refresh(p)
+        assertFalse(adapter.showsVanillaIcons(p.uniqueId))
+        assertFalse(adapter.cleansTitlesFor(p.uniqueId))
+    }
+
+    @Test
+    fun `bedrock vanilla icons and plain titles are opt-in`() {
+        bedrock = BedrockConfig(javaMenuVanillaIcons = true, javaMenuPlainTitles = true)
+        val p = player(bedrock = true, theme = GuiTheme.ENTHUSIA)
+        adapter.refresh(p)
+        assertTrue(adapter.showsVanillaIcons(p.uniqueId))
+        assertTrue(adapter.cleansTitlesFor(p.uniqueId))
+    }
+
+    @Test
+    fun `vanilla-style guild members get vanilla icons regardless of bedrock settings`() {
+        val p = player(bedrock = true, theme = GuiTheme.VANILLA)
         adapter.refresh(p)
         assertTrue(adapter.showsVanillaIcons(p.uniqueId))
     }
@@ -67,7 +87,7 @@ class MenuIconAdapterTest {
 
     @Test
     fun `forgetting a player clears the decision`() {
-        val p = player(bedrock = true, theme = null)
+        val p = player(bedrock = false, theme = GuiTheme.VANILLA)
         adapter.refresh(p)
         adapter.forget(p.uniqueId)
         assertFalse(adapter.showsVanillaIcons(p.uniqueId))
