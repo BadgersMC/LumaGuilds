@@ -20,6 +20,9 @@ object QuestIconProvider {
         QuestAction.SMELT_ITEMS, QuestAction.FISH, QuestAction.ENCHANT_ITEMS,
     )
 
+    /** Always the plain vanilla item for the quest's action (used by the completion toast). */
+    fun vanillaItemFor(quest: QuestDefinition): ItemStack = ItemStack.of(vanillaFallback(quest.action))
+
     fun itemFor(quest: QuestDefinition): ItemStack =
         if (quest.action in vanillaOnly) ItemStack.of(vanillaFallback(quest.action)) else
         NexoItemProvider.getItemStackOrFallback(actionIconId(quest.action)) {
