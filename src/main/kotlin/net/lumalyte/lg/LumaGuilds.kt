@@ -1156,6 +1156,14 @@ class LumaGuilds : JavaPlugin() {
 
         // Register NexoItemProvider listener — fires on NexoItemsLoadedEvent
         net.lumalyte.lg.utils.NexoItemProvider.register(this)
+
+        // Bedrock players: vanilla icons and plain titles in the Java chest menus
+        runCatching {
+            net.lumalyte.lg.infrastructure.services.BedrockMenuAdapter(
+                this,
+                get().get<net.lumalyte.lg.application.services.PlatformDetectionService>(),
+            ).register()
+        }.onFailure { logger.warning("Bedrock menu adapter not started: ${it.message}") }
     }
 
     /**
