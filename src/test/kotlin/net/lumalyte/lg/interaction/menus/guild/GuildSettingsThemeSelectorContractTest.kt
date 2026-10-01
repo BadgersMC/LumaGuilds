@@ -10,13 +10,13 @@ class GuildSettingsThemeSelectorContractTest {
         .toAbsolutePath().normalize().toFile().readText()
 
     @Test
-    fun `one row selector uses six art swatches fixed slots and dedicated heading`() {
-        assertTrue(Regex("""ChestGui\(\s*1,""").containsMatchIn(source))
+    fun `three row selector uses art swatches wrapped slots and dedicated heading`() {
+        assertTrue(Regex("""ChestGui\(\s*3,""").containsMatchIn(source))
         assertTrue(source.contains("menu.guild_settings.theme_selector.title"))
         assertTrue(source.contains("lg_theme_"))
         assertFalse(source.contains("index * 1 + index"))
-        assertTrue(source.contains("}, index, 0)"))
-        assertTrue(source.contains("}, 8, 0)"))
+        assertTrue(source.contains("}, index % 9, index / 9)"))
+        assertTrue(source.contains("}, 4, 2)"))
     }
 
     @Test
