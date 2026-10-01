@@ -89,9 +89,9 @@ class GuildDiscordRoleServiceTest {
         assertEquals(1, result.rolesCreated)
     }
 
-    /** Roles created before the level gate retain their saved link on startup. */
+    /** Startup removes legacy roles below the configured level and withholds recreation. */
     @Test
-    fun startupKeepsPreviouslyUnlockedRole() {
+    fun startupRemovesBelowLevelRole() {
         val fixture = fixture(
             guild(level = BELOW_ROLE_LEVEL),
             members = setOf(member(playerOne)),
@@ -101,24 +101,43 @@ class GuildDiscordRoleServiceTest {
         fixture.gateway.createOnEnsure = false
 
         fixture.service.reconcileAll().join()
+        fixture.service.reconcileAll().join()
 
-        assertTrue(fixture.gateway.deleted.isEmpty())
-        assertEquals(FakeGateway.ROLE_ID, fixture.repository.get(guildId)?.discordRoleId)
-        assertEquals(listOf(playerOne), fixture.gateway.granted)
+        assertEquals(listOf(FakeGateway.ROLE_ID), fixture.gateway.deleted)
+        assertNull(fixture.repository.get(guildId))
+        assertTrue(fixture.gateway.granted.isEmpty())
+        assertEquals(0, fixture.gateway.ensureCalls)
     }
 
     /** Prestige resets the run level, but the durable unlock and membership remain. */
     @Test
     fun prestigeLevelResetKeepsRoleAndGrantsNewMembers() {
-        val fixture = fixture(guild(level = 1), minimumLevel = ROLE_LEVEL)
+        val fixture = fixture(guild(level = 1), minimumLevel = ROLE_LEVEL, prestigeCount = 1)
         fixture.repository.upsert(GuildDiscordRoleLink(guildId, FakeGateway.ROLE_ID, now))
         fixture.gateway.createOnEnsure = false
 
+        fixture.service.reconcileAll().join()
         val result = fixture.service.memberJoined(guildId, playerOne).join()
 
         assertEquals(1, result.memberRolesApplied)
         assertTrue(fixture.gateway.deleted.isEmpty())
         assertEquals(FakeGateway.ROLE_ID, fixture.repository.get(guildId)?.discordRoleId)
+    }
+
+    /** Failed Discord deletion retains the link so periodic reconciliation can retry. */
+    @Test
+    fun failedDeletionRetriesOnReconciliation() {
+        val fixture = fixture(guild(level = BELOW_ROLE_LEVEL), minimumLevel = ROLE_LEVEL)
+        fixture.repository.upsert(GuildDiscordRoleLink(guildId, FakeGateway.ROLE_ID, now))
+        fixture.gateway.deleteSucceeds = false
+
+        assertEquals(1, fixture.service.reconcileAll().join().failures)
+        assertNotNull(fixture.repository.get(guildId))
+
+        fixture.gateway.deleteSucceeds = true
+        assertEquals(0, fixture.service.reconcileAll().join().failures)
+        assertNull(fixture.repository.get(guildId))
+        assertEquals(listOf(FakeGateway.ROLE_ID, FakeGateway.ROLE_ID), fixture.gateway.deleted)
     }
 
     /** A deleted legacy role stays absent until the configured level is reached. */
@@ -137,8 +156,8 @@ class GuildDiscordRoleServiceTest {
         fixture.service.reconcileAll().join()
         fixture.service.memberJoined(guildId, playerTwo).join()
         assertTrue(fixture.gateway.granted.isEmpty())
-        assertTrue(fixture.gateway.deleted.isEmpty())
-        assertNotNull(fixture.repository.get(guildId))
+        assertEquals(listOf(FakeGateway.ROLE_ID), fixture.gateway.deleted)
+        assertNull(fixture.repository.get(guildId))
 
         liveLevel.set(ROLE_LEVEL)
         val result = fixture.service.reconcileGuild(guildId).join()
@@ -642,6 +661,7 @@ class GuildDiscordRoleServiceTest {
         var available = true
         var createOnEnsure = true
         var roleMissing = false
+        var deleteSucceeds = true
         private val ensureCallCounter = AtomicInteger()
         val ensureCalls: Int get() = ensureCallCounter.get()
         var ensureOverride: CompletableFuture<DiscordRoleEnsureResult?>? = null
@@ -736,7 +756,7 @@ class GuildDiscordRoleServiceTest {
 
         override fun deleteRole(roleId: String): CompletableFuture<Boolean> {
             deleted += roleId
-            return CompletableFuture.completedFuture(true)
+            return CompletableFuture.completedFuture(deleteSucceeds)
         }
     }
 }
