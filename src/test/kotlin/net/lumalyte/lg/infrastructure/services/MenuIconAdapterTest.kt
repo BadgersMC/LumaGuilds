@@ -18,7 +18,13 @@ class MenuIconAdapterTest {
     private val guildService = mockk<GuildService>()
     private val platform = mockk<PlatformDetectionService>()
     private var bedrock = BedrockConfig()
-    private val adapter = MenuIconAdapter(mockk<Plugin>(relaxed = true), platform, guildService) { bedrock }
+    private var packetEventsUp = false
+    private var hooked = 0
+    private val adapter = MenuIconAdapter(
+        mockk<Plugin>(relaxed = true), platform, guildService, { bedrock },
+        packetEventsReady = { packetEventsUp },
+        hookPacketEvents = { hooked++ },
+    )
 
     private fun player(bedrock: Boolean, theme: GuiTheme?): Player {
         val id = UUID.randomUUID()
@@ -91,5 +97,32 @@ class MenuIconAdapterTest {
         adapter.refresh(p)
         adapter.forget(p.uniqueId)
         assertFalse(adapter.showsVanillaIcons(p.uniqueId))
+    }
+
+    @Test
+    fun `packet listener hooks in when packetevents enables after lumaguilds`() {
+        // Seen on SMP Test: packetevents enabled after LumaGuilds despite the softdepend.
+        adapter.register()
+        assertTrue(hooked == 0)
+        packetEventsUp = true
+        adapter.pluginEnabled("packetevents")
+        assertTrue(hooked == 1)
+        adapter.pluginEnabled("packetevents")
+        assertTrue(hooked == 1, "must hook only once")
+    }
+
+    @Test
+    fun `packet listener hooks in immediately when packetevents is already up`() {
+        packetEventsUp = true
+        adapter.register()
+        assertTrue(hooked == 1)
+    }
+
+    @Test
+    fun `other plugins enabling do not hook the listener`() {
+        adapter.register()
+        packetEventsUp = true
+        adapter.pluginEnabled("Nexo")
+        assertTrue(hooked == 0)
     }
 }
