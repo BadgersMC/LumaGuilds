@@ -20,7 +20,8 @@ class GuildDashboardLayoutContractTest {
         assertTrue(source.contains("""addNavButton(pane, 8, 1, "lg_nav_economy""""))
         assertTrue(source.contains("""addNavButton(pane, 8, 2, "lg_nav_statistics""""))
         assertTrue(source.contains("addGuildInfoDisplay(pane, 4, 0)"))
-        assertTrue(source.contains("guild.banner?.deserializeToItemStack()?.clone()"))
+        // Real guild identity: the stored banner via the shared resolver (deserialize + white fallback).
+        assertTrue(source.contains("GuildBannerItemResolver.resolveForDisplay(guild)"))
         assertTrue(source.contains("bankService.getBalance(guild.id)"))
         assertTrue(!source.contains("\"balance\" to guild.bankBalance"))
     }
