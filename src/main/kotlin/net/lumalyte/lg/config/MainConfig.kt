@@ -64,9 +64,11 @@ data class GuildListConfig(
 
 data class DiscordGuildRolesConfig(
     var enabled: Boolean = true,
+    var minimumLevel: Int = 50,
     var roleNameFormat: String = "Guild • <guild>",
 ) {
     init {
+        require(minimumLevel in 1..100) { "discord.guild_roles.minimum_level must be between 1 and 100" }
         require(roleNameFormat.isNotBlank()) { "discord.guild_roles.role_name_format cannot be blank" }
         require("<guild>" in roleNameFormat) {
             "discord.guild_roles.role_name_format must contain <guild>"

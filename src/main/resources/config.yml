@@ -529,11 +529,12 @@ chapter:
 # =====================================
 
 # Optional DiscordSRV guild-role integration.
-# Every guild receives a managed Discord role as soon as the guild is created.
+# Guilds first unlock a managed Discord role at this level. Saved roles remain unlocked after prestige.
 # Linked Discord accounts are granted/removed automatically with guild membership.
 discord:
   guild_roles:
     enabled: true
+    minimum_level: 50
     # <guild> is required and is replaced with the live guild name.
     role_name_format: "Guild • <guild>"
 
