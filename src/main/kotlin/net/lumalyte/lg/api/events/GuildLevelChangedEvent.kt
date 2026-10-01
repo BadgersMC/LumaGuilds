@@ -11,16 +11,15 @@ internal class GuildLevelChangedEvent(
     /** New persisted progression level. */
     val newLevel: Int,
 ) : Event() {
-    override fun getHandlers(): HandlerList = HANDLERS
+    override fun getHandlers(): HandlerList = HANDLER_LIST
 
     /** Bukkit's shared handler list for this event. */
     companion object {
-        /** Shared handler list required by Bukkit. */
         @JvmStatic
-        private val HANDLERS = HandlerList()
+        private val HANDLER_LIST = HandlerList()
 
         /** Returns the shared handler list to Bukkit. */
         @JvmStatic
-        fun getHandlerList(): HandlerList = HANDLERS
+        fun getHandlerList(): HandlerList = HANDLER_LIST
     }
 }

@@ -39,7 +39,11 @@ class GuildDiscordRoleServiceTest {
     /** Below-threshold guilds cannot create or grant managed roles. */
     @Test
     fun roleWithheldBelowLevel() {
-        val fixture = fixture(guild(level = BELOW_ROLE_LEVEL), members = setOf(member(playerOne)), minimumLevel = ROLE_LEVEL)
+        val fixture = fixture(
+            guild(level = BELOW_ROLE_LEVEL),
+            members = setOf(member(playerOne)),
+            minimumLevel = ROLE_LEVEL,
+        )
 
         val reconciled = fixture.service.reconcileGuild(guildId).join()
         val joined = fixture.service.memberJoined(guildId, playerOne).join()
@@ -54,7 +58,11 @@ class GuildDiscordRoleServiceTest {
     /** Reaching the configured level unlocks the guild and linked members. */
     @Test
     fun roleGrantedAtLevel() {
-        val fixture = fixture(guild(level = ROLE_LEVEL), members = setOf(member(playerOne)), minimumLevel = ROLE_LEVEL)
+        val fixture = fixture(
+            guild(level = ROLE_LEVEL),
+            members = setOf(member(playerOne)),
+            minimumLevel = ROLE_LEVEL,
+        )
 
         val result = fixture.service.reconcileGuild(guildId).join()
 
@@ -66,7 +74,11 @@ class GuildDiscordRoleServiceTest {
     /** Progression wins when the general guild cache still has an older level. */
     @Test
     fun progressionBeatsGuildCache() {
-        val fixture = fixture(guild(level = BELOW_ROLE_LEVEL), minimumLevel = ROLE_LEVEL, currentLevel = ROLE_LEVEL)
+        val fixture = fixture(
+            guild(level = BELOW_ROLE_LEVEL),
+            minimumLevel = ROLE_LEVEL,
+            currentLevel = ROLE_LEVEL,
+        )
 
         val result = fixture.service.reconcileGuild(guildId).join()
 
@@ -89,7 +101,11 @@ class GuildDiscordRoleServiceTest {
     @Test
     fun dropDuringCreateCleansRole() {
         val liveLevel = AtomicInteger(ROLE_LEVEL)
-        val fixture = fixture(guild(level = ROLE_LEVEL), minimumLevel = ROLE_LEVEL, levelProvider = { liveLevel.get() })
+        val fixture = fixture(
+            guild(level = ROLE_LEVEL),
+            minimumLevel = ROLE_LEVEL,
+            levelProvider = { liveLevel.get() },
+        )
         val pendingEnsure = CompletableFuture<DiscordRoleEnsureResult>()
         fixture.gateway.ensureOverride = pendingEnsure
 
