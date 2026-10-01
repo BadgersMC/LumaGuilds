@@ -71,15 +71,15 @@ class GuildDiscordRoleService(
         if (!config.enabled || !gateway.isAvailable()) return completed(DiscordGuildRoleSyncSummary())
         val guild = guildService.getGuild(guildId) ?: return completed(DiscordGuildRoleSyncSummary())
         val level = guildLevel(guild) ?: return completed(DiscordGuildRoleSyncSummary(failures = 1))
-        if (level < config.minimumLevel) {
-            val link = repository.get(guildId) ?: return completed(DiscordGuildRoleSyncSummary())
-            return deleteManagedRole(link, "ineligible guild")
+        val previouslyUnlocked = repository.get(guildId) != null
+        if (level < config.minimumLevel && !previouslyUnlocked) {
+            return completed(DiscordGuildRoleSyncSummary())
         }
 
         return ensureRole(guild, config).thenCompose { ensured ->
             val currentLevel = guildLevel(guild)
                 ?: return@thenCompose completed(DiscordGuildRoleSyncSummary(failures = 1))
-            if (currentLevel < config.minimumLevel) {
+            if (currentLevel < config.minimumLevel && !previouslyUnlocked) {
                 val link = repository.get(guild.id)
                     ?: return@thenCompose completed(DiscordGuildRoleSyncSummary())
                 return@thenCompose deleteManagedRole(link, "ineligible guild")
@@ -124,7 +124,8 @@ class GuildDiscordRoleService(
                 ?: return@serializeMemberUpdate completed(DiscordGuildRoleSyncSummary())
             val level = guildLevel(guild)
                 ?: return@serializeMemberUpdate completed(DiscordGuildRoleSyncSummary(failures = 1))
-            if (level < config.minimumLevel) {
+            val previouslyUnlocked = repository.get(guildId) != null
+            if (level < config.minimumLevel && !previouslyUnlocked) {
                 return@serializeMemberUpdate completed(DiscordGuildRoleSyncSummary())
             }
 
@@ -132,7 +133,7 @@ class GuildDiscordRoleService(
                 .thenCompose { ensured ->
                     val currentLevel = guildLevel(guild)
                         ?: return@thenCompose completed(DiscordGuildRoleSyncSummary(failures = 1))
-                    if (currentLevel < config.minimumLevel) {
+                    if (currentLevel < config.minimumLevel && !previouslyUnlocked) {
                         val link = repository.get(guild.id)
                             ?: return@thenCompose completed(DiscordGuildRoleSyncSummary())
                         return@thenCompose deleteManagedRole(link, "ineligible guild")
