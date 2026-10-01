@@ -2835,65 +2835,17 @@ menu:
       vault_failure: '<red>❌ <error>'
       vault_unavailable: '<red>❌ Guild vault is no longer available! The physical chest may have been removed.'
     item:
-      bank:
-        lore:
-          description: '<gray>Manage guild treasury'
-          details: '<gray>View transactions and balance'
-        name: '<gold>Guild Bank'
-      banner:
-        lore:
-          current: '<gray>Current: <white><banner>'
-          description: '<gray>Choose your guild''s banner'
-          error: '<gray>Current: <red>Error loading banner'
-          not_set: '<gray>Current: <red>Not set'
-        name: '<aqua>Guild Banner'
       disband:
         lore:
           description: '<gray>Deletes the guild for every member'
           members: '<yellow>Click to disband'
           warning: '<red>Permanent — cannot be undone'
         name: '<red>Disband Guild'
-      emoji:
-        lore:
-          current: '<gray>Current: <emoji>'
-          description: '<gray>Set your guild''s emoji for chat'
-        name: '<light_purple>Guild Emoji'
-      home:
-        lore:
-          description: '<gray>Teleport point for /guild home'
-          not_set: '<red>Not set'
-          set: '<gray>Home set <green>✓'
-        name: '<green>Guild Home'
-      info:
-        lore: '<gray>Detailed information about your guild'
-        name: '<blue>Guild Info'
-      invite:
-        lore: '<gray>Send guild invitation to a player'
-        name: '<green>Invite Player'
-      kick:
-        lore: '<gray>Remove a player from the guild'
-        name: '<red>Kick Player'
       leave:
         lore:
           description: '<gray>You can rejoin if invited again'
           rejoin: '<yellow>Click to leave'
         name: '<yellow>Leave Guild'
-      member_list:
-        lore:
-          count: '<gray>Total: <white><count> members'
-          description: '<gray>View all guild members'
-        name: '<aqua>Member List'
-      member_management:
-        lore:
-          count: '<gray>Current members: <white><count>'
-          description: '<gray>Manage guild members and ranks'
-        name: '<aqua>Member Management'
-      mode:
-        lore:
-          current: '<gray>Current: <white><mode>'
-          hostile: '<gray>Hostile = Can engage in wars'
-          peaceful: '<gray>Peaceful = Cannot be attacked'
-        name: '<red>Guild Mode'
       party:
         lore:
           description: '<gray>Team up with other guilds for events'
@@ -2904,7 +2856,6 @@ menu:
           better_perks: '<gray>Higher levels = <green>Better perks!'
           earn:
             bank: '<gray>• <white>Bank deposits'
-            brewing: '<gray>• <white>Brewing'
             claims: '<gray>• <white>Claiming land'
             crafting: '<gray>• <white>Crafting & smelting'
             enchanting: '<gray>• <white>✨ Enchanting'
@@ -2915,10 +2866,7 @@ menu:
             wars: '<gray>• <white>⚔ War victories'
           earn_header: '<gold>Earn Experience Points:'
           level: '<gray>Level: <yellow><level>'
-          loading: '<red>⚠ Progression system loading...'
           progress: '<gray>XP Progress: <yellow><current><gray>/<yellow><required> <gray>(<green><percent>%<gray>)'
-          refresh: '<yellow>Click to refresh progression data'
-          retry: '<gray>Try again in a moment'
           rewards:
             balance: '<gray>• <yellow>Higher bank balance limits'
             claim_blocks: '<gray>• <yellow>More claim blocks'
@@ -2933,38 +2881,8 @@ menu:
           starting_level: '<gray>Level: <yellow>1 <gray>(Starting Level)'
           starting_perks: '<gray>Unlocked Perks: <green>2 <gray>(Basic perks)'
           starting_progress: '<gray>XP Progress: <yellow>0<gray>/<yellow>800 <gray>(<green>0%<gray>)'
-          unavailable: '<red>⚠ Progression system unavailable'
           unlocked: '<gray>Unlocked Perks: <green><count>'
         name: '<aqua>⭐ GUILD PROGRESSION'
-      promote:
-        lore: '<gray>Change member ranks'
-        name: '<gold>Promote/Demote'
-      rank_list:
-        lore:
-          count: '<gray>Total: <white><count> ranks'
-          description: '<gray>View all guild ranks'
-        name: '<gold>Rank List'
-      rank_management:
-        lore:
-          count: '<gray>Current ranks: <white><count>'
-          description: '<gray>Manage guild ranks and permissions'
-          locked: '<red>Needs the Manage Ranks permission'
-        name: '<gold>Rank Management'
-      relations:
-        lore:
-          description: '<gray>View alliances and rivalries'
-          details: '<gray>Manage diplomatic relations'
-        name: '<yellow>Relations'
-      settings:
-        lore:
-          description: '<gray>Manage basic guild information'
-          details: '<gray>Name, description, and general settings'
-        name: '<yellow>Guild Settings'
-      statistics:
-        lore:
-          description: '<gray>View guild performance metrics'
-          details: '<gray>Kills, deaths, wins, losses'
-        name: '<green>Statistics'
       vault:
         lore:
           available: '<gray>Status: <green>Ready'
@@ -2977,15 +2895,8 @@ menu:
           storage_line_1: '<gray>Shared item storage for'
           storage_line_2: '<gray>everyone in the guild'
         name: '<yellow>Guild Vault'
-      war:
-        lore:
-          description: '<gray>Declare wars and manage conflicts'
-          details: '<gray>Propose truces and alliances'
-        name: '<dark_red>War Management'
     state:
-      hostile: Hostile
       not_set: '<red>Not set'
-      peaceful: Peaceful
     title: '<white>Guild Actions • <guild>'
   dashboard:
     feedback:
@@ -4187,7 +4098,7 @@ menu:
     objective:
       default_description: '<gray>Kill 10 enemy players'
       icon:
-        claims: 
+        claims: '⛫'
         kills: ⚔
         other: ▪
         time: ⏱
@@ -4368,10 +4279,6 @@ menu:
     item:
       back:
         lore: '<gray>Return to the previous menu'
-        name: '<yellow>⬅ Back'
-      back_control:
-        lore: '<gray>Return to guild management'
-        name: '<red>Back to Control Panel'
       achievements:
         lore:
           count: '<gray>Milestones unlocked: <white><count>'
@@ -6202,7 +6109,6 @@ menu:
     navigation:
       back_fallback: '<yellow>⬅ Back'
       back: '<yellow>⬅ Back'
-      close: "<red>Close"
       previous_fallback: '<white>⬅ Previous Page'
       previous: '<white>⬅ Previous Page'
       next_fallback: '<white>Next Page ➡'
@@ -6279,15 +6185,12 @@ menu:
       allies:
         name: '<green>Allies'
         description: '<gray>Guilds you are allied with'
-        support: '<gray>Can coordinate and support each other'
       enemies:
         name: '<red>Enemies'
         description: '<gray>Guilds you are at war with'
-        warfare: '<gray>Can engage in warfare'
       truces:
         name: '<yellow>Truces'
         description: '<gray>Temporary ceasefires'
-        expiration: '<gray>Peace agreements with expiration'
       status:
         name: '<aqua>Diplomatic Status'
         description: '<gray>Your current standing'
@@ -6296,37 +6199,28 @@ menu:
       incoming:
         name: '<green>Incoming Requests'
         description: '<gray>Alliance and truce proposals'
-        proposals: '<gray>Alliance and truce proposals'
       outgoing:
         name: '<yellow>Outgoing Requests'
         description: '<gray>Proposals you are waiting on'
-        awaiting: '<gray>Awaiting other guild responses'
     action:
       acceptance: '<gray>Must be accepted by the target guild'
       alliance:
         name: '<gold>Request Alliance'
         description: '<gray>Propose an alliance'
-        support: '<gray>Allows coordination and support'
       truce:
         name: '<white>Request Truce'
         description: '<gray>Propose a ceasefire with an enemy'
-        temporary: '<gray>Temporary peace agreement'
       enemy:
         name: '<red>Declare Enemy'
         description: '<gray>Mark a guild as your enemy'
         no_acceptance: '<gray>Takes effect immediately'
-        hostile: '<gray>Creates hostile relations'
     details:
       history:
         name: '<blue>Diplomatic History'
         description: '<gray>Past alliances, truces and wars'
-        track: '<gray>Track diplomatic developments'
-        learn: '<gray>Learn from past interactions'
       neutral:
         name: '<gray>Neutral Guilds'
         description: '<gray>Guilds with no relation to yours'
-        browse: '<gray>Browse available diplomatic partners'
-        partners: '<gray>Potential allies or rivals'
     truces:
       none: '<gray>Your guild has no active truces.'
       header: '<yellow>=== Active Truces ==='
