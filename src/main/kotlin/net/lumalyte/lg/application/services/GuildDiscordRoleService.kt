@@ -1,6 +1,7 @@
 package net.lumalyte.lg.application.services
 
 import net.lumalyte.lg.application.persistence.GuildDiscordRoleRepository
+import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.config.DiscordGuildRolesConfig
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildDiscordRoleLink
@@ -34,6 +35,7 @@ class GuildDiscordRoleService(
     private val memberService: MemberService,
     private val repository: GuildDiscordRoleRepository,
     private val gateway: DiscordGuildRoleGateway,
+    private val progressionRepository: ProgressionRepository,
     private val clock: Clock = Clock.systemUTC(),
 ) {
     private val logger = LoggerFactory.getLogger(GuildDiscordRoleService::class.java)
@@ -68,8 +70,20 @@ class GuildDiscordRoleService(
         val config = config()
         if (!config.enabled || !gateway.isAvailable()) return completed(DiscordGuildRoleSyncSummary())
         val guild = guildService.getGuild(guildId) ?: return completed(DiscordGuildRoleSyncSummary())
+        val level = guildLevel(guild) ?: return completed(DiscordGuildRoleSyncSummary(failures = 1))
+        val previouslyUnlocked = repository.get(guildId) != null
+        if (level < config.minimumLevel && !previouslyUnlocked) {
+            return completed(DiscordGuildRoleSyncSummary())
+        }
 
         return ensureRole(guild, config).thenCompose { ensured ->
+            val currentLevel = guildLevel(guild)
+                ?: return@thenCompose completed(DiscordGuildRoleSyncSummary(failures = 1))
+            if (currentLevel < config.minimumLevel && !previouslyUnlocked) {
+                val link = repository.get(guild.id)
+                    ?: return@thenCompose completed(DiscordGuildRoleSyncSummary())
+                return@thenCompose deleteManagedRole(link, "ineligible guild")
+            }
             val allowedPlayerIds = memberService.getGuildMembers(guild.id)
                 .mapTo(linkedSetOf()) { it.playerId }
             gateway.revokeUnexpectedRoleMembers(ensured.roleId, allowedPlayerIds)
@@ -108,9 +122,22 @@ class GuildDiscordRoleService(
             }
             val guild = guildService.getGuild(guildId)
                 ?: return@serializeMemberUpdate completed(DiscordGuildRoleSyncSummary())
+            val level = guildLevel(guild)
+                ?: return@serializeMemberUpdate completed(DiscordGuildRoleSyncSummary(failures = 1))
+            val previouslyUnlocked = repository.get(guildId) != null
+            if (level < config.minimumLevel && !previouslyUnlocked) {
+                return@serializeMemberUpdate completed(DiscordGuildRoleSyncSummary())
+            }
 
             ensureRole(guild, config)
                 .thenCompose { ensured ->
+                    val currentLevel = guildLevel(guild)
+                        ?: return@thenCompose completed(DiscordGuildRoleSyncSummary(failures = 1))
+                    if (currentLevel < config.minimumLevel && !previouslyUnlocked) {
+                        val link = repository.get(guild.id)
+                            ?: return@thenCompose completed(DiscordGuildRoleSyncSummary())
+                        return@thenCompose deleteManagedRole(link, "ineligible guild")
+                    }
                     gateway.grantRole(playerId, ensured.roleId).thenApply { result ->
                         memberResult(result, null, grant = true)
                             .copy(rolesCreated = if (ensured.created) 1 else 0)
@@ -273,14 +300,27 @@ class GuildDiscordRoleService(
     }
 
     private fun deleteOrphan(link: GuildDiscordRoleLink): CompletableFuture<DiscordGuildRoleSyncSummary> =
+        deleteManagedRole(link, "orphan")
+
+    private fun deleteManagedRole(
+        link: GuildDiscordRoleLink,
+        reason: String,
+    ): CompletableFuture<DiscordGuildRoleSyncSummary> =
         gateway.deleteRole(link.discordRoleId).handle { deleted, error ->
             if (error == null && deleted == true && repository.delete(link.guildId)) {
                 DiscordGuildRoleSyncSummary()
             } else {
-                logger.warn("Failed to remove orphan Discord role link for guild ${link.guildId}", error?.let(::unwrap))
+                logger.warn("Failed to remove $reason Discord role link for guild ${link.guildId}", error?.let(::unwrap))
                 DiscordGuildRoleSyncSummary(failures = 1)
             }
         }
+
+    private fun guildLevel(guild: Guild): Int? = try {
+        progressionRepository.getGuildProgression(guild.id)?.currentLevel ?: guild.level
+    } catch (error: Exception) {
+        logger.warn("Failed to read current level for Discord guild role ${guild.id}", error)
+        null
+    }
 
     internal fun renderRoleName(format: String, guildName: String): String =
         format.replace("<guild>", guildName)

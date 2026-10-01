@@ -35,6 +35,7 @@ class GuildEventApiContractTest {
         GuildDisbandedEvent::class.java,
         GuildHomeSetEvent::class.java,
         GuildLeaderboardRankChangeEvent::class.java,
+        GuildLevelChangedEvent::class.java,
         GuildLevelUpEvent::class.java,
         GuildMemberJoinEvent::class.java,
         GuildMemberRemovedEvent::class.java,
@@ -62,6 +63,7 @@ class GuildEventApiContractTest {
             Int::class.javaPrimitiveType
         ),
         GuildLevelUpEvent::class.java to listOf(UUID::class.java, Int::class.javaPrimitiveType),
+        GuildLevelChangedEvent::class.java to listOf(UUID::class.java, Int::class.javaPrimitiveType),
         GuildMemberJoinEvent::class.java to listOf(UUID::class.java, UUID::class.java),
         GuildMemberRemovedEvent::class.java to listOf(
             UUID::class.java,
@@ -118,6 +120,10 @@ class GuildEventApiContractTest {
             PayloadContract("newRank", typeOf<Int>())
         ),
         GuildLevelUpEvent::class to listOf(
+            PayloadContract("guildId", typeOf<UUID>()),
+            PayloadContract("newLevel", typeOf<Int>())
+        ),
+        GuildLevelChangedEvent::class to listOf(
             PayloadContract("guildId", typeOf<UUID>()),
             PayloadContract("newLevel", typeOf<Int>())
         ),
@@ -245,6 +251,7 @@ class GuildEventApiContractTest {
                 1
             ),
             GuildLevelUpEvent(first, 1),
+            GuildLevelChangedEvent(first, 1),
             GuildMemberJoinEvent(first, second),
             GuildMemberRemovedEvent(first, second, third, true),
             GuildOwnershipTransferEvent(first, second, third),
