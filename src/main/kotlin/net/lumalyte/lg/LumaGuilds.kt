@@ -1163,7 +1163,8 @@ class LumaGuilds : JavaPlugin() {
                 this,
                 get().get<net.lumalyte.lg.application.services.PlatformDetectionService>(),
                 get().get<net.lumalyte.lg.application.services.GuildService>(),
-            ) { get().get<net.lumalyte.lg.application.services.ConfigService>().loadConfig().bedrock }.register()
+                bedrockConfig = { get().get<net.lumalyte.lg.application.services.ConfigService>().loadConfig().bedrock },
+            ).register()
         }.onFailure { logger.warning("Menu icon adapter not started: ${it.message}") }
     }
 

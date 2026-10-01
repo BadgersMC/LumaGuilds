@@ -22,6 +22,7 @@ import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryOpenEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
+import org.bukkit.event.server.PluginEnableEvent
 import org.bukkit.plugin.Plugin
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -44,6 +45,8 @@ class MenuIconAdapter(
     private val platform: PlatformDetectionService,
     private val guildService: GuildService,
     private val bedrockConfig: () -> BedrockConfig,
+    packetEventsReady: (() -> Boolean)? = null,
+    hookPacketEvents: ((MenuIconAdapter) -> Unit)? = null,
 ) : PacketListenerAbstract(PacketListenerPriority.HIGHEST), Listener {
 
     private val bedrockPlayers: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
@@ -53,15 +56,35 @@ class MenuIconAdapter(
     @Volatile private var bedrockVanillaIcons = false
     @Volatile private var bedrockPlainTitles = false
 
+    private val packetEventsUp: () -> Boolean = packetEventsReady ?: ::defaultPacketEventsReady
+    private val hook: (MenuIconAdapter) -> Unit =
+        hookPacketEvents ?: { PacketEvents.getAPI().eventManager.registerListener(it) }
+    @Volatile private var hooked = false
+
     fun register() {
         plugin.server.pluginManager.registerEvents(this, plugin)
         plugin.server.onlinePlayers.forEach(::refresh)
-        if (packetEventsReady()) {
-            PacketEvents.getAPI().eventManager.registerListener(this)
-            plugin.logger.info("Menu icon adapter active (vanilla icons for Bedrock players and Vanilla-style guilds)")
-        } else {
-            plugin.logger.info("PacketEvents not available - Bedrock players and Vanilla-style guilds will still see Nexo icons")
+        // packetevents can enable after LumaGuilds even with the softdepend (seen on SMP Test),
+        // so hook now if it is up, otherwise when it enables (onPluginEnable).
+        if (!tryHook()) {
+            runCatching { plugin.logger.info("Menu icon adapter waiting for packetevents to enable") }
         }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    fun onPluginEnable(event: PluginEnableEvent) = pluginEnabled(event.plugin.name)
+
+    fun pluginEnabled(name: String) {
+        if (name.equals("packetevents", ignoreCase = true)) tryHook()
+    }
+
+    private fun tryHook(): Boolean {
+        if (hooked) return true
+        if (!runCatching { packetEventsUp() }.getOrDefault(false)) return false
+        hook(this)
+        hooked = true
+        runCatching { plugin.logger.info("Menu icon adapter active (vanilla icons for Vanilla-style guilds; Bedrock per bedrock.java_menu_* settings)") }
+        return true
     }
 
     /** Re-evaluates whether [player] should be sent vanilla icons. Main thread. */
@@ -141,7 +164,7 @@ class MenuIconAdapter(
         return data.getCompoundTagOrNull(BedrockIcons.PDC_ROOT)?.getTagOrNull(BedrockIcons.PDC_KEY) != null
     }
 
-    private fun packetEventsReady(): Boolean {
+    private fun defaultPacketEventsReady(): Boolean {
         if (plugin.server.pluginManager.getPlugin("packetevents")?.isEnabled != true) return false
         return runCatching { PacketEvents.getAPI().isLoaded && PacketEvents.getAPI().isInitialized }.getOrDefault(false)
     }
