@@ -85,16 +85,36 @@ class GuildDiscordRoleServiceTest {
         assertEquals(1, result.rolesCreated)
     }
 
-    /** Startup removes roles that no longer meet the configured minimum. */
+    /** Roles created before the level gate retain their saved link on startup. */
     @Test
-    fun startupRemovesIneligibleRole() {
-        val fixture = fixture(guild(level = BELOW_ROLE_LEVEL), minimumLevel = ROLE_LEVEL)
+    fun startupKeepsPreviouslyUnlockedRole() {
+        val fixture = fixture(
+            guild(level = BELOW_ROLE_LEVEL),
+            members = setOf(member(playerOne)),
+            minimumLevel = ROLE_LEVEL,
+        )
         fixture.repository.upsert(GuildDiscordRoleLink(guildId, FakeGateway.ROLE_ID, now))
+        fixture.gateway.createOnEnsure = false
 
         fixture.service.reconcileAll().join()
 
-        assertEquals(listOf(FakeGateway.ROLE_ID), fixture.gateway.deleted)
-        assertNull(fixture.repository.get(guildId))
+        assertTrue(fixture.gateway.deleted.isEmpty())
+        assertEquals(FakeGateway.ROLE_ID, fixture.repository.get(guildId)?.discordRoleId)
+        assertEquals(listOf(playerOne), fixture.gateway.granted)
+    }
+
+    /** Prestige resets the run level, but the durable unlock and membership remain. */
+    @Test
+    fun prestigeLevelResetKeepsRoleAndGrantsNewMembers() {
+        val fixture = fixture(guild(level = 1), minimumLevel = ROLE_LEVEL)
+        fixture.repository.upsert(GuildDiscordRoleLink(guildId, FakeGateway.ROLE_ID, now))
+        fixture.gateway.createOnEnsure = false
+
+        val result = fixture.service.memberJoined(guildId, playerOne).join()
+
+        assertEquals(1, result.memberRolesApplied)
+        assertTrue(fixture.gateway.deleted.isEmpty())
+        assertEquals(FakeGateway.ROLE_ID, fixture.repository.get(guildId)?.discordRoleId)
     }
 
     /** A level drop during an in-flight create cannot leave an orphan role. */
