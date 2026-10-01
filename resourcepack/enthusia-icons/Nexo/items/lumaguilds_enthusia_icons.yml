@@ -849,3 +849,17 @@ lg_theme_enthusia:  # new
   Pack:
     parent_model: item/generated
     texture: lumaguilds:enthusia/theme_enthusia
+
+lg_active:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/war_active
+
+lg_star:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/star

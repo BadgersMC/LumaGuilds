@@ -78,7 +78,7 @@ class GuildListMenu(
         val gui = ChestGui(
             6,
             MenuTitleBuilder.build(
-                GuiTheme.NEUTRAL,
+                GuiTheme.DEFAULT,
                 6,
                 lang.guiTitle("menu.guild_list.title"),
             ),

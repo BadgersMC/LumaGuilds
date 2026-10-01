@@ -43,3 +43,5 @@ lg_prestige: lumaguilds:enthusia/prog_prestige
 lg_gold: lumaguilds:enthusia/bank_gold
 lg_automation: lumaguilds:enthusia/bank_automation
 lg_party_create: lumaguilds:enthusia/party_create
+lg_active: lumaguilds:enthusia/war_active
+lg_star: lumaguilds:enthusia/star

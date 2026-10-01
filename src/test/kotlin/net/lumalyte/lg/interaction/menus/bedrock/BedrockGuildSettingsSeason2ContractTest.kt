@@ -16,7 +16,7 @@ class BedrockGuildSettingsSeason2ContractTest {
             "isOpen",
             "trackingEnabled",
             "guiTheme",
-            "GuiTheme.entries",
+            "GuiTheme.SELECTABLE",
             "setOpen(",
             "setTrackingEnabled(",
             "setGuiTheme("

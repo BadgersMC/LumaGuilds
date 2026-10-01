@@ -26,36 +26,31 @@ class MenuTitleBuilderTest {
 
     @ParameterizedTest
     @CsvSource(
-        "NEUTRAL,   1, guild_bg_neutral_1_row",
-        "NEUTRAL,   3, guild_bg_neutral_3_row",
-        "NEUTRAL,   4, guild_bg_neutral_4_row",
-        "NEUTRAL,   5, guild_bg_neutral_5_row",
-        "NEUTRAL,   6, guild_bg_neutral_6_row",
-        "EMBERSTONE,   1, guild_bg_emberstone_1_row",
-        "EMBERSTONE,   3, guild_bg_emberstone_3_row",
-        "EMBERSTONE,   4, guild_bg_emberstone_4_row",
-        "EMBERSTONE,   5, guild_bg_emberstone_5_row",
-        "EMBERSTONE,   6, guild_bg_emberstone_6_row",
-        "CARVED_SLATE,   1, guild_bg_carved_slate_1_row",
-        "CARVED_SLATE,   3, guild_bg_carved_slate_3_row",
-        "CARVED_SLATE,   4, guild_bg_carved_slate_4_row",
-        "CARVED_SLATE,   5, guild_bg_carved_slate_5_row",
-        "CARVED_SLATE,   6, guild_bg_carved_slate_6_row",
-        "MOSSBOUND,   1, guild_bg_mossbound_1_row",
-        "MOSSBOUND,   3, guild_bg_mossbound_3_row",
-        "MOSSBOUND,   4, guild_bg_mossbound_4_row",
-        "MOSSBOUND,   5, guild_bg_mossbound_5_row",
-        "MOSSBOUND,   6, guild_bg_mossbound_6_row",
-        "LAVENDER_HALL,   1, guild_bg_lavender_hall_1_row",
-        "LAVENDER_HALL,   3, guild_bg_lavender_hall_3_row",
-        "LAVENDER_HALL,   4, guild_bg_lavender_hall_4_row",
-        "LAVENDER_HALL,   5, guild_bg_lavender_hall_5_row",
-        "LAVENDER_HALL,   6, guild_bg_lavender_hall_6_row",
-        "IRON_ROSE,   1, guild_bg_iron_rose_1_row",
-        "IRON_ROSE,   3, guild_bg_iron_rose_3_row",
-        "IRON_ROSE,   4, guild_bg_iron_rose_4_row",
-        "IRON_ROSE,   5, guild_bg_iron_rose_5_row",
-        "IRON_ROSE,   6, guild_bg_iron_rose_6_row"
+        "ENTHUSIA,   1, guild_bg_enthusia_1_row",
+        "ENTHUSIA,   3, guild_bg_enthusia_3_row",
+        "ENTHUSIA,   4, guild_bg_enthusia_4_row",
+        "ENTHUSIA,   5, guild_bg_enthusia_5_row",
+        "ENTHUSIA,   6, guild_bg_enthusia_6_row",
+        "FROSTBOUND,   1, guild_bg_frostbound_1_row",
+        "FROSTBOUND,   3, guild_bg_frostbound_3_row",
+        "FROSTBOUND,   4, guild_bg_frostbound_4_row",
+        "FROSTBOUND,   5, guild_bg_frostbound_5_row",
+        "FROSTBOUND,   6, guild_bg_frostbound_6_row",
+        "VERDANT,   1, guild_bg_verdant_1_row",
+        "VERDANT,   3, guild_bg_verdant_3_row",
+        "VERDANT,   4, guild_bg_verdant_4_row",
+        "VERDANT,   5, guild_bg_verdant_5_row",
+        "VERDANT,   6, guild_bg_verdant_6_row",
+        "VOIDLIGHT,   1, guild_bg_voidlight_1_row",
+        "VOIDLIGHT,   3, guild_bg_voidlight_3_row",
+        "VOIDLIGHT,   4, guild_bg_voidlight_4_row",
+        "VOIDLIGHT,   5, guild_bg_voidlight_5_row",
+        "VOIDLIGHT,   6, guild_bg_voidlight_6_row",
+        "OBSIDIAN,   1, guild_bg_obsidian_1_row",
+        "OBSIDIAN,   3, guild_bg_obsidian_3_row",
+        "OBSIDIAN,   4, guild_bg_obsidian_4_row",
+        "OBSIDIAN,   5, guild_bg_obsidian_5_row",
+        "OBSIDIAN,   6, guild_bg_obsidian_6_row"
     )
     fun `build returns correct glyph name for each theme and row count`(
         themeName: String,
@@ -76,7 +71,7 @@ class MenuTitleBuilderTest {
 
     @Test
     fun `positioning prefix is always shift -9`() {
-        val title = MenuTitleBuilder.build(GuiTheme.NEUTRAL, 3)
+        val title = MenuTitleBuilder.build(GuiTheme.ENTHUSIA, 3)
         assertTrue(
             title.startsWith("<shift:-9>"),
             "Expected title '$title' to start with '<shift:-9>'"
@@ -113,13 +108,13 @@ class MenuTitleBuilderTest {
     }
 
     // ---------------------------------------------------------------
-    // 4. Default parameters use NEUTRAL and the provided row count
+    // 4. Default parameters use ENTHUSIA and the provided row count
     // ---------------------------------------------------------------
 
     @Test
-    fun `default theme is NEUTRAL`() {
+    fun `default theme is ENTHUSIA`() {
         val title = MenuTitleBuilder.build(rows = 3)
-        assertTrue(title.contains("guild_bg_neutral_3_row"))
+        assertTrue(title.contains("guild_bg_enthusia_3_row"))
     }
 
     // ---------------------------------------------------------------
@@ -128,8 +123,8 @@ class MenuTitleBuilderTest {
 
     @Test
     fun `no stray content after the glyph tag when no title`() {
-        val title = MenuTitleBuilder.build(GuiTheme.EMBERSTONE, 6)
-        assertTrue(title.endsWith("<glyph:guild_bg_emberstone_6_row>"),
+        val title = MenuTitleBuilder.build(GuiTheme.FROSTBOUND, 6)
+        assertTrue(title.endsWith("<glyph:guild_bg_frostbound_6_row>"),
             "Expected title to end with glyph tag, got: '$title'")
     }
 
@@ -139,7 +134,7 @@ class MenuTitleBuilderTest {
 
     @Test
     fun `title text appears after rewind shift`() {
-        val title = MenuTitleBuilder.build(GuiTheme.NEUTRAL, 3, "⚔ My Guild")
+        val title = MenuTitleBuilder.build(GuiTheme.ENTHUSIA, 3, "⚔ My Guild")
         val expectedEnd = "<shift:-161>⚔ My Guild"
         assertTrue(
             title.endsWith(expectedEnd),
@@ -158,8 +153,8 @@ class MenuTitleBuilderTest {
 
     @Test
     fun `background glyph appears before rewind and title`() {
-        val title = MenuTitleBuilder.build(GuiTheme.MOSSBOUND, 4, "Info")
-        val glyphIdx = title.indexOf("<glyph:guild_bg_mossbound_4_row>")
+        val title = MenuTitleBuilder.build(GuiTheme.VOIDLIGHT, 4, "Info")
+        val glyphIdx = title.indexOf("<glyph:guild_bg_voidlight_4_row>")
         val rewindIdx = title.indexOf("<shift:-161>")
         val textIdx = title.indexOf("Info")
         assertTrue(glyphIdx >= 0, "Glyph must be present")
@@ -172,7 +167,7 @@ class MenuTitleBuilderTest {
         val guildName = "Enthusia"
         val page = 1
         val total = 3
-        val title = MenuTitleBuilder.build(GuiTheme.EMBERSTONE, 6, "§6Info - ${guildName} §8• Page ${page}/${total}")
+        val title = MenuTitleBuilder.build(GuiTheme.FROSTBOUND, 6, "§6Info - ${guildName} §8• Page ${page}/${total}")
         assertTrue(title.contains("§6Info - Enthusia §8• Page 1/3"),
             "Dynamic title not preserved, got: '$title'")
     }
@@ -183,17 +178,17 @@ class MenuTitleBuilderTest {
 
     @Test
     fun `three row menu with title`() {
-        val title = MenuTitleBuilder.build(GuiTheme.NEUTRAL, 3, "⚔ Dashboard")
+        val title = MenuTitleBuilder.build(GuiTheme.ENTHUSIA, 3, "⚔ Dashboard")
         assertTrue(title.startsWith("<shift:-9>"), "3-row must start with shift:-9")
-        assertTrue(title.contains("<glyph:guild_bg_neutral_3_row>"), "3-row must use 3_row glyph")
+        assertTrue(title.contains("<glyph:guild_bg_enthusia_3_row>"), "3-row must use 3_row glyph")
         assertTrue(title.contains("⚔ Dashboard"), "Title text must be present")
     }
 
     @Test
     fun `six row menu with title`() {
-        val title = MenuTitleBuilder.build(GuiTheme.CARVED_SLATE, 6, "Member Management")
+        val title = MenuTitleBuilder.build(GuiTheme.VERDANT, 6, "Member Management")
         assertTrue(title.startsWith("<shift:-9>"), "6-row must start with shift:-9")
-        assertTrue(title.contains("<glyph:guild_bg_carved_slate_6_row>"), "6-row must use 6_row glyph")
+        assertTrue(title.contains("<glyph:guild_bg_verdant_6_row>"), "6-row must use 6_row glyph")
         assertTrue(title.contains("Member Management"), "Title text must be present")
     }
 
@@ -221,5 +216,28 @@ class MenuTitleBuilderTest {
     @Test
     fun `every other theme still draws a background`() {
         GuiTheme.entries.filter { it != GuiTheme.VANILLA }.forEach { assertTrue(it.hasBackground, it.name) }
+    }
+
+    // ---------------------------------------------------------------
+    // Only the Enthusia-era styles are offered; older stored themes render as Enthusia
+    // ---------------------------------------------------------------
+
+    @Test
+    fun `picker offers only the enthusia styles and vanilla`() {
+        assertEquals(
+            listOf(GuiTheme.ENTHUSIA, GuiTheme.FROSTBOUND, GuiTheme.VERDANT, GuiTheme.VOIDLIGHT, GuiTheme.OBSIDIAN, GuiTheme.VANILLA),
+            GuiTheme.SELECTABLE,
+        )
+        assertEquals(GuiTheme.ENTHUSIA, GuiTheme.DEFAULT)
+    }
+
+    @Test
+    fun `older stored themes render with the enthusia background`() {
+        for (legacy in listOf(GuiTheme.NEUTRAL, GuiTheme.EMBERSTONE, GuiTheme.CARVED_SLATE, GuiTheme.MOSSBOUND, GuiTheme.LAVENDER_HALL, GuiTheme.IRON_ROSE)) {
+            assertEquals(GuiTheme.ENTHUSIA, legacy.resolved(), legacy.name)
+            assertTrue(MenuTitleBuilder.build(legacy, 4, "X").contains("<glyph:guild_bg_enthusia_4_row>"), legacy.name)
+        }
+        assertEquals(GuiTheme.ENTHUSIA, GuiTheme.fromKey("no_such_theme"))
+        assertEquals(GuiTheme.OBSIDIAN, GuiTheme.fromKey("obsidian"))
     }
 }
