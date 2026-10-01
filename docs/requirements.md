@@ -341,7 +341,7 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 **Event-driven.** WHEN a player clicks the Enemy/Ally sections of `/g info` THEN THE SYSTEM SHALL expand to the full guild list (currently only top 3, no way to view the rest).
 
 ### REQ-071
-**Event-driven.** WHEN a guild is created, THEN THE SYSTEM SHALL create/link a Discord role immediately and dynamically grant/remove it for Discord-linked players as they join/leave the guild or link/unlink their Discord account.
+**Event-driven.** WHEN a guild reaches the configured minimum guild level (default 50), THEN THE SYSTEM SHALL create/link a Discord role and dynamically grant/remove it for Discord-linked players as they join/leave the guild or link/unlink their Discord account. Guilds below the minimum SHALL have no managed Discord role; a level reduction or an increased minimum SHALL remove an existing managed role and its durable link. Startup reconciliation SHALL apply the current minimum to existing guilds.
 
 ### REQ-072
 **Event-driven.** WHEN a guild edits its description THEN THE SYSTEM SHALL accept up to 200 characters of safe display MiniMessage formatting and SHALL recognize HTTPS Discord invite URLs from `discord.gg/<code>` and `discord.com/invite/<code>`. Discord invite URLs SHALL be the only external URLs promoted to clickable `OPEN_URL` components; arbitrary URLs SHALL remain inert text. User-authored interactive MiniMessage event tags including `click`, `hover`, and `insertion` SHALL be rejected at every write path. Java guild-info SHALL expose detected Discord invites through a clickable chat component, while Bedrock SHALL preserve the visible invite URL as plain text.

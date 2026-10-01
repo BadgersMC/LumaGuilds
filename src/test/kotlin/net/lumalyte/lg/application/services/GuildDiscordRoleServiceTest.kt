@@ -3,10 +3,12 @@ package net.lumalyte.lg.application.services
 import io.mockk.every
 import io.mockk.mockk
 import net.lumalyte.lg.application.persistence.GuildDiscordRoleRepository
+import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.config.DiscordGuildRolesConfig
 import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildDiscordRoleLink
+import net.lumalyte.lg.domain.entities.GuildProgression
 import net.lumalyte.lg.domain.entities.Member
 import org.junit.jupiter.api.Test
 import java.time.Clock
@@ -30,6 +32,68 @@ class GuildDiscordRoleServiceTest {
     private val playerOne = UUID.randomUUID()
     private val playerTwo = UUID.randomUUID()
     private val rankId = UUID.randomUUID()
+
+    @Test
+    fun `role is withheld until configured guild level`() {
+        val fixture = fixture(guild(level = 49), members = setOf(member(playerOne)), minimumLevel = 50)
+
+        val reconciled = fixture.service.reconcileGuild(guildId).join()
+        val joined = fixture.service.memberJoined(guildId, playerOne).join()
+
+        assertEquals(0, reconciled.rolesCreated)
+        assertEquals(0, joined.memberRolesApplied)
+        assertEquals(0, fixture.gateway.ensureCalls)
+        assertTrue(fixture.gateway.granted.isEmpty())
+        assertNull(fixture.repository.get(guildId))
+    }
+
+    @Test
+    fun `role and linked members are created at configured level`() {
+        val fixture = fixture(guild(level = 50), members = setOf(member(playerOne)), minimumLevel = 50)
+
+        val result = fixture.service.reconcileGuild(guildId).join()
+
+        assertEquals(1, result.rolesCreated)
+        assertEquals(1, result.memberRolesApplied)
+        assertNotNull(fixture.repository.get(guildId))
+    }
+
+    @Test
+    fun `persisted progression level overrides a stale guild cache`() {
+        val fixture = fixture(guild(level = 49), minimumLevel = 50, currentLevel = 50)
+
+        val result = fixture.service.reconcileGuild(guildId).join()
+
+        assertEquals(1, result.rolesCreated)
+    }
+
+    @Test
+    fun `startup reconciliation removes a role below the configured level`() {
+        val fixture = fixture(guild(level = 49), minimumLevel = 50)
+        fixture.repository.upsert(GuildDiscordRoleLink(guildId, FakeGateway.ROLE_ID, now))
+
+        fixture.service.reconcileAll().join()
+
+        assertEquals(listOf(FakeGateway.ROLE_ID), fixture.gateway.deleted)
+        assertNull(fixture.repository.get(guildId))
+    }
+
+    @Test
+    fun `level drop during role creation cleans the completed role`() {
+        val liveLevel = AtomicInteger(50)
+        val fixture = fixture(guild(level = 50), minimumLevel = 50, levelProvider = { liveLevel.get() })
+        val pendingEnsure = CompletableFuture<DiscordRoleEnsureResult>()
+        fixture.gateway.ensureOverride = pendingEnsure
+
+        val pending = fixture.service.reconcileGuild(guildId)
+        liveLevel.set(49)
+        fixture.service.reconcileGuild(guildId).join()
+        pendingEnsure.complete(DiscordRoleEnsureResult(FakeGateway.ROLE_ID, created = true))
+        pending.join()
+
+        assertEquals(listOf(FakeGateway.ROLE_ID), fixture.gateway.deleted)
+        assertNull(fixture.repository.get(guildId))
+    }
 
     @Test
     fun `guild creation creates a durable Discord role immediately`() {
@@ -62,7 +126,7 @@ class GuildDiscordRoleServiceTest {
     }
 
     @Test
-    fun `persisted role link is reused regardless of guild level`() {
+    fun `persisted role link is reused for an eligible guild`() {
         val fixture = fixture(guild(level = 1), members = setOf(member(playerOne)))
         fixture.repository.upsert(
             GuildDiscordRoleLink(guildId, FakeGateway.ROLE_ID, now.minusSeconds(60))
@@ -367,11 +431,15 @@ class GuildDiscordRoleServiceTest {
         members: Set<Member> = emptySet(),
         repository: FakeRepository = FakeRepository(),
         enabled: Boolean = true,
+        minimumLevel: Int = 1,
+        currentLevel: Int? = guild?.level,
+        levelProvider: () -> Int? = { currentLevel },
     ): Fixture {
         val configService = mockk<ConfigService>()
         every { configService.loadConfig() } returns MainConfig(
             discordGuildRoles = DiscordGuildRolesConfig(
                 enabled = enabled,
+                minimumLevel = minimumLevel,
                 roleNameFormat = "Guild • <guild>",
             ),
         )
@@ -395,6 +463,11 @@ class GuildDiscordRoleServiceTest {
                 memberService,
                 repository,
                 gateway,
+                mockk<ProgressionRepository> {
+                    every { getGuildProgression(guildId) } answers {
+                        levelProvider()?.let { GuildProgression(guildId, currentLevel = it) }
+                    }
+                },
                 clock,
             ),
             repository,

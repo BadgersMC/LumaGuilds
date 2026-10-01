@@ -1,6 +1,10 @@
 package net.lumalyte.lg.infrastructure.services
 
 import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
+import io.mockk.verify
+import io.mockk.every
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.ExperienceAwardRepository
 import net.lumalyte.lg.application.persistence.GuildRepository
@@ -13,10 +17,14 @@ import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.domain.entities.ExperienceAwardRequest
 import net.lumalyte.lg.domain.entities.ExperienceAwardResult
 import net.lumalyte.lg.domain.entities.ExperienceTransaction
+import net.lumalyte.lg.domain.entities.GuildProgression
 import net.lumalyte.lg.domain.values.ExperiencePolicy
 import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.domain.values.PeriodWindow
+import net.lumalyte.lg.api.events.GuildLevelChangedEvent
+import org.bukkit.Bukkit
 import org.bukkit.plugin.Plugin
+import org.bukkit.plugin.PluginManager
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -65,6 +73,53 @@ class ProgressionServiceBukkitAwardTest {
         val service = serviceWith(awards)
 
         assertEquals(2, service.awardExperience(UUID.randomUUID(), 2_000, ExperienceSource.MOB_KILL))
+    }
+
+    @Test
+    fun `successful level award publishes a change for Discord role reconciliation`() {
+        val awards = RecordingRepository().apply { leveledUpTo = 50 }
+        val progressionRepository = mockk<ProgressionRepository>(relaxed = true)
+        val service = serviceWith(awards, progressionRepository)
+        val guildId = UUID.randomUUID()
+        val pluginManager = mockk<PluginManager>(relaxed = true)
+        mockkStatic(Bukkit::class)
+        try {
+            every { Bukkit.isPrimaryThread() } returns true
+            every { Bukkit.getPluginManager() } returns pluginManager
+
+            assertEquals(50, service.awardExperience(guildId, 2_000, ExperienceSource.MOB_KILL))
+
+            verify(exactly = 1) {
+                pluginManager.callEvent(match { it is GuildLevelChangedEvent && it.guildId == guildId && it.newLevel == 50 })
+            }
+            verify(exactly = 1) { progressionRepository.refreshGuildProgression(guildId) }
+        } finally {
+            unmockkStatic(Bukkit::class)
+        }
+    }
+
+    @Test
+    fun `level reduction publishes a change for Discord role cleanup`() {
+        val guildId = UUID.randomUUID()
+        val progressionRepository = mockk<ProgressionRepository>(relaxed = true)
+        every { progressionRepository.getGuildProgression(guildId) } returns
+            GuildProgression(guildId, currentLevel = 51, totalExperience = 1_000_000)
+        every { progressionRepository.saveGuildProgression(any()) } returns true
+        val service = serviceWith(RecordingRepository(), progressionRepository)
+        val pluginManager = mockk<PluginManager>(relaxed = true)
+        mockkStatic(Bukkit::class)
+        try {
+            every { Bukkit.isPrimaryThread() } returns true
+            every { Bukkit.getPluginManager() } returns pluginManager
+
+            assertEquals(50, service.reduceLevel(guildId, 1, ExperienceSource.ADMIN_BONUS))
+
+            verify(exactly = 1) {
+                pluginManager.callEvent(match { it is GuildLevelChangedEvent && it.guildId == guildId && it.newLevel == 50 })
+            }
+        } finally {
+            unmockkStatic(Bukkit::class)
+        }
     }
 
     @Test
