@@ -1,0 +1,832 @@
+# LumaGuilds Enthusia GUI icons that are new on this server.
+# CMD range: 733400-733482. item_model nexo:<id> is what the Geyser mappings match.
+
+lg_nav_quests:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733400
+    texture: lumaguilds:enthusia/quests
+  Components:
+    item_model: nexo:lg_nav_quests
+
+lg_nav_statistics:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733401
+    texture: lumaguilds:enthusia/statistics
+  Components:
+    item_model: nexo:lg_nav_statistics
+
+lg_toggle_on:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733402
+    texture: lumaguilds:enthusia/toggle_on
+  Components:
+    item_model: nexo:lg_toggle_on
+
+lg_toggle_off:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733403
+    texture: lumaguilds:enthusia/toggle_off
+  Components:
+    item_model: nexo:lg_toggle_off
+
+lg_leader:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733404
+    texture: lumaguilds:enthusia/leader
+  Components:
+    item_model: nexo:lg_leader
+
+lg_claims:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733405
+    texture: lumaguilds:enthusia/claims
+  Components:
+    item_model: nexo:lg_claims
+
+lg_mode_peaceful:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733406
+    texture: lumaguilds:enthusia/mode_peaceful
+  Components:
+    item_model: nexo:lg_mode_peaceful
+
+lg_mode_hostile:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733407
+    texture: lumaguilds:enthusia/mode_hostile
+  Components:
+    item_model: nexo:lg_mode_hostile
+
+lg_party:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733408
+    texture: lumaguilds:enthusia/party
+  Components:
+    item_model: nexo:lg_party
+
+lg_created:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733409
+    texture: lumaguilds:enthusia/calendar
+  Components:
+    item_model: nexo:lg_created
+
+lg_sort:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733410
+    texture: lumaguilds:enthusia/sort
+  Components:
+    item_model: nexo:lg_sort
+
+lg_confirm_danger:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733411
+    texture: lumaguilds:enthusia/confirm_danger
+  Components:
+    item_model: nexo:lg_confirm_danger
+
+lg_requests_in:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733412
+    texture: lumaguilds:enthusia/requests_in
+  Components:
+    item_model: nexo:lg_requests_in
+
+lg_requests_out:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733413
+    texture: lumaguilds:enthusia/requests_out
+  Components:
+    item_model: nexo:lg_requests_out
+
+lg_requests_in_empty:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733414
+    texture: lumaguilds:enthusia/requests_in_empty
+  Components:
+    item_model: nexo:lg_requests_in_empty
+
+lg_requests_out_empty:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733415
+    texture: lumaguilds:enthusia/requests_out_empty
+  Components:
+    item_model: nexo:lg_requests_out_empty
+
+lg_no_wars:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733416
+    texture: lumaguilds:enthusia/no_wars
+  Components:
+    item_model: nexo:lg_no_wars
+
+lg_no_parties:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733417
+    texture: lumaguilds:enthusia/no_parties
+  Components:
+    item_model: nexo:lg_no_parties
+
+lg_deposit_100:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733418
+    texture: lumaguilds:enthusia/deposit_100
+  Components:
+    item_model: nexo:lg_deposit_100
+
+lg_withdraw_100:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733419
+    texture: lumaguilds:enthusia/withdraw_100
+  Components:
+    item_model: nexo:lg_withdraw_100
+
+lg_deposit_1000:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733420
+    texture: lumaguilds:enthusia/deposit_1000
+  Components:
+    item_model: nexo:lg_deposit_1000
+
+lg_withdraw_1000:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733421
+    texture: lumaguilds:enthusia/withdraw_1000
+  Components:
+    item_model: nexo:lg_withdraw_1000
+
+lg_deposit_10000:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733422
+    texture: lumaguilds:enthusia/deposit_10000
+  Components:
+    item_model: nexo:lg_deposit_10000
+
+lg_withdraw_10000:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733423
+    texture: lumaguilds:enthusia/withdraw_10000
+  Components:
+    item_model: nexo:lg_withdraw_10000
+
+lg_deposit_all:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733424
+    texture: lumaguilds:enthusia/deposit_all
+  Components:
+    item_model: nexo:lg_deposit_all
+
+lg_withdraw_all:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733425
+    texture: lumaguilds:enthusia/withdraw_all
+  Components:
+    item_model: nexo:lg_withdraw_all
+
+lg_nav_actions:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733426
+    texture: lumaguilds:enthusia/actions
+  Components:
+    item_model: nexo:lg_nav_actions
+
+lg_vault_unavailable:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733427
+    texture: lumaguilds:enthusia/vault_unavailable
+  Components:
+    item_model: nexo:lg_vault_unavailable
+
+lg_mining:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733428
+    texture: lumaguilds:enthusia/src_mining
+  Components:
+    item_model: nexo:lg_mining
+
+lg_ore:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733429
+    texture: lumaguilds:enthusia/src_ore
+  Components:
+    item_model: nexo:lg_ore
+
+lg_farming:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733430
+    texture: lumaguilds:enthusia/src_farming
+  Components:
+    item_model: nexo:lg_farming
+
+lg_fishing:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733431
+    texture: lumaguilds:enthusia/src_fishing
+  Components:
+    item_model: nexo:lg_fishing
+
+lg_combat:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733432
+    texture: lumaguilds:enthusia/src_combat
+  Components:
+    item_model: nexo:lg_combat
+
+lg_smelting:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733433
+    texture: lumaguilds:enthusia/src_smelting
+  Components:
+    item_model: nexo:lg_smelting
+
+lg_crafting:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733434
+    texture: lumaguilds:enthusia/src_crafting
+  Components:
+    item_model: nexo:lg_crafting
+
+lg_enchanting:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733435
+    texture: lumaguilds:enthusia/src_enchanting
+  Components:
+    item_model: nexo:lg_enchanting
+
+lg_brewing:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733436
+    texture: lumaguilds:enthusia/src_brewing
+  Components:
+    item_model: nexo:lg_brewing
+
+lg_exploration:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733437
+    texture: lumaguilds:enthusia/src_exploration
+  Components:
+    item_model: nexo:lg_exploration
+
+lg_block_place:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733438
+    texture: lumaguilds:enthusia/src_block_place
+  Components:
+    item_model: nexo:lg_block_place
+
+lg_qualified_recruit:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733439
+    texture: lumaguilds:enthusia/src_recruit
+  Components:
+    item_model: nexo:lg_qualified_recruit
+
+lg_war_victory:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733440
+    texture: lumaguilds:enthusia/src_war_victory
+  Components:
+    item_model: nexo:lg_war_victory
+
+lg_war_defeat:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733441
+    texture: lumaguilds:enthusia/src_war_defeat
+  Components:
+    item_model: nexo:lg_war_defeat
+
+lg_claiming:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733442
+    texture: lumaguilds:enthusia/claims
+  Components:
+    item_model: nexo:lg_claiming
+
+lg_sources:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733443
+    texture: lumaguilds:enthusia/prog_sources
+  Components:
+    item_model: nexo:lg_sources
+
+lg_stats_kills:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733444
+    texture: lumaguilds:enthusia/stats_kills
+  Components:
+    item_model: nexo:lg_stats_kills
+
+lg_stats_wars:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733445
+    texture: lumaguilds:enthusia/stats_wars
+  Components:
+    item_model: nexo:lg_stats_wars
+
+lg_stats_members:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733446
+    texture: lumaguilds:enthusia/stats_members
+  Components:
+    item_model: nexo:lg_stats_members
+
+lg_stats_performance:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733447
+    texture: lumaguilds:enthusia/stats_performance
+  Components:
+    item_model: nexo:lg_stats_performance
+
+lg_stats_top_killers:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733448
+    texture: lumaguilds:enthusia/stats_top_killers
+  Components:
+    item_model: nexo:lg_stats_top_killers
+
+lg_stats_top_contributors:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733449
+    texture: lumaguilds:enthusia/stats_top_contributors
+  Components:
+    item_model: nexo:lg_stats_top_contributors
+
+lg_stats_kd_analysis:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733450
+    texture: lumaguilds:enthusia/stats_kd
+  Components:
+    item_model: nexo:lg_stats_kd_analysis
+
+lg_stats_recent:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733451
+    texture: lumaguilds:enthusia/stats_recent
+  Components:
+    item_model: nexo:lg_stats_recent
+
+lg_stats_top_inviters:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733452
+    texture: lumaguilds:enthusia/stats_top_inviters
+  Components:
+    item_model: nexo:lg_stats_top_inviters
+
+lg_stats_periodic:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733453
+    texture: lumaguilds:enthusia/stats_periodic
+  Components:
+    item_model: nexo:lg_stats_periodic
+
+lg_stats_rivalry:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733454
+    texture: lumaguilds:enthusia/stats_rivalry
+  Components:
+    item_model: nexo:lg_stats_rivalry
+
+lg_stats_achievements:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733455
+    texture: lumaguilds:enthusia/stats_achievements
+  Components:
+    item_model: nexo:lg_stats_achievements
+
+lg_stats_comparison:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733456
+    texture: lumaguilds:enthusia/stats_comparison
+  Components:
+    item_model: nexo:lg_stats_comparison
+
+lg_stats_refresh:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733457
+    texture: lumaguilds:enthusia/stats_refresh
+  Components:
+    item_model: nexo:lg_stats_refresh
+
+lg_bank_member_contributions:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733458
+    texture: lumaguilds:enthusia/bank_contributions
+  Components:
+    item_model: nexo:lg_bank_member_contributions
+
+lg_bank_statistics:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733459
+    texture: lumaguilds:enthusia/bank_statistics
+  Components:
+    item_model: nexo:lg_bank_statistics
+
+lg_home_set:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733460
+    texture: lumaguilds:enthusia/home_set
+  Components:
+    item_model: nexo:lg_home_set
+
+lg_home_add:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733461
+    texture: lumaguilds:enthusia/home_add
+  Components:
+    item_model: nexo:lg_home_add
+
+lg_home_remove:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733462
+    texture: lumaguilds:enthusia/home_remove
+  Components:
+    item_model: nexo:lg_home_remove
+
+lg_home_teleport:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733463
+    texture: lumaguilds:enthusia/home_teleport
+  Components:
+    item_model: nexo:lg_home_teleport
+
+lg_home_list:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733464
+    texture: lumaguilds:enthusia/home_list
+  Components:
+    item_model: nexo:lg_home_list
+
+lg_home_none:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733465
+    texture: lumaguilds:enthusia/home_none
+  Components:
+    item_model: nexo:lg_home_none
+
+lg_home_access:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733466
+    texture: lumaguilds:enthusia/home_access
+  Components:
+    item_model: nexo:lg_home_access
+
+lg_ally_access:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733467
+    texture: lumaguilds:enthusia/ally_access
+  Components:
+    item_model: nexo:lg_ally_access
+
+lg_ally_home:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733468
+    texture: lumaguilds:enthusia/ally_home
+  Components:
+    item_model: nexo:lg_ally_home
+
+lg_ally_home_locked:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733469
+    texture: lumaguilds:enthusia/ally_home_locked
+  Components:
+    item_model: nexo:lg_ally_home_locked
+
+lg_party_send:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733470
+    texture: lumaguilds:enthusia/party_send
+  Components:
+    item_model: nexo:lg_party_send
+
+lg_party_send_locked:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733471
+    texture: lumaguilds:enthusia/party_send_locked
+  Components:
+    item_model: nexo:lg_party_send_locked
+
+lg_party_create_locked:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733472
+    texture: lumaguilds:enthusia/party_create_locked
+  Components:
+    item_model: nexo:lg_party_create_locked
+
+lg_party_access:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733473
+    texture: lumaguilds:enthusia/party_access
+  Components:
+    item_model: nexo:lg_party_access
+
+lg_party_access_locked:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733474
+    texture: lumaguilds:enthusia/party_access_locked
+  Components:
+    item_model: nexo:lg_party_access_locked
+
+lg_party_permissions:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733475
+    texture: lumaguilds:enthusia/party_permissions
+  Components:
+    item_model: nexo:lg_party_permissions
+
+lg_party_info:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733476
+    texture: lumaguilds:enthusia/party_info
+  Components:
+    item_model: nexo:lg_party_info
+
+lg_party_moderate:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733477
+    texture: lumaguilds:enthusia/party_moderate
+  Components:
+    item_model: nexo:lg_party_moderate
+
+lg_theme_enthusia:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733478
+    texture: lumaguilds:enthusia/theme_enthusia
+  Components:
+    item_model: nexo:lg_theme_enthusia
+
+lg_theme_frostbound:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733479
+    texture: lumaguilds:enthusia/theme_frostbound
+  Components:
+    item_model: nexo:lg_theme_frostbound
+
+lg_theme_verdant:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733480
+    texture: lumaguilds:enthusia/theme_verdant
+  Components:
+    item_model: nexo:lg_theme_verdant
+
+lg_theme_voidlight:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733481
+    texture: lumaguilds:enthusia/theme_voidlight
+  Components:
+    item_model: nexo:lg_theme_voidlight
+
+lg_theme_obsidian:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733482
+    texture: lumaguilds:enthusia/theme_obsidian
+  Components:
+    item_model: nexo:lg_theme_obsidian
