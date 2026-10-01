@@ -50,8 +50,8 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
             return
         }
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.party.management.title", "guild" to guild.name)))
-        val pane = StaticPane(0, 0, 9, 6)
+        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, lang.guiTitle("menu.party.management.title", "guild" to guild.name)))
+        val pane = StaticPane(0, 0, 9, 4)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
             if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
@@ -73,7 +73,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         addPartySettingsSection(pane)
 
         // Row 6: Navigation
-        addBackButton(pane, 4, 5)
+        addBackButton(pane, 4, 3)
 
         gui.show(player)
     }
@@ -90,11 +90,11 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
                 .name(lang.gui("menu.party.management.empty.name"))
                 .lore(lang.gui("menu.party.management.empty.lore"))
                 .lore(lang.gui("menu.party.management.empty.hint"))
-            pane.addItem(GuiItem(noPartiesItem), 0, 0)
+            pane.addItem(GuiItem(noPartiesItem), 2, 0)
         } else {
             // Display first active party
             val party = activeParties.first()
-            val partyItem = ItemStack.of(Material.FIREWORK_ROCKET)
+            val partyItem = NexoItemProvider.getItemStackOrFallback("lg_party") { ItemStack.of(Material.FIREWORK_ROCKET) }
                 .name(lang.gui("menu.party.management.active.name", "party" to (party.name ?: lang.gui("menu.party.management.unnamed"))))
                 .lore(lang.gui("menu.party.management.active.members", "count" to party.guildIds.size))
                 .lore(lang.gui("menu.party.management.active.created", "date" to party.createdAt.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("MM/dd/yyyy"))))
@@ -104,22 +104,22 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
                 // Open detailed party management
                 openPartyDetailsMenu(party)
             }
-            pane.addItem(guiItem, 0, 0)
+            pane.addItem(guiItem, 2, 0)
 
             // Show party member count if more than one party
             if (activeParties.size > 1) {
-                val morePartiesItem = ItemStack.of(Material.BOOK)
+                val morePartiesItem = MenuIcons.withCount(NexoItemProvider.getItemStackOrFallback("lg_party") { ItemStack.of(Material.BOOK) }, activeParties.size - 1)
                     .name(lang.gui("menu.party.management.more.name", "count" to activeParties.size - 1))
                     .lore(lang.gui("menu.party.management.more.lore"))
                 pane.addItem(GuiItem(morePartiesItem) {
                     openPartyListMenu()
-                }, 1, 0)
+                }, 3, 0)
             }
 
             // Add moderation button for each party (if player has permission)
             val canModerate = memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS)
             if (canModerate) {
-                val moderateItem = ItemStack.of(Material.ANVIL)
+                val moderateItem = NexoItemProvider.getItemStackOrFallback("lg_party_moderate") { ItemStack.of(Material.ANVIL) }
                     .name(lang.gui("menu.party.management.moderate.name"))
                     .lore(lang.gui("menu.party.management.moderate.lore"))
                     .lore(lang.gui("menu.party.management.moderate.channel", "channel" to (party.name ?: lang.gui("menu.party.management.this_channel"))))
@@ -128,7 +128,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
 
                 pane.addItem(GuiItem(moderateItem) {
                     openModerationMenu(party)
-                }, 8, 0)
+                }, 6, 0)
             }
         }
     }
@@ -146,7 +146,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         val incomingGuiItem = GuiItem(incomingItem) {
             openIncomingRequestsMenu()
         }
-        pane.addItem(incomingGuiItem, 3, 1)
+        pane.addItem(incomingGuiItem, 3, 2)
 
         // Outgoing requests
         val outgoingItem = MenuIcons.requests(incoming = false, count = outgoingRequests.size)
@@ -157,7 +157,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         val outgoingGuiItem = GuiItem(outgoingItem) {
             openOutgoingRequestsMenu()
         }
-        pane.addItem(outgoingGuiItem, 5, 1)
+        pane.addItem(outgoingGuiItem, 5, 2)
     }
 
     private fun addPartyActionsSection(pane: StaticPane) {
@@ -170,7 +170,9 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         } else {
             listOf(lang.gui("menu.party.management.permission.required"), lang.gui("menu.party.management.send.locked_lore"))
         }
-        val sendRequestItem = ItemStack.of(if (canManageParties) Material.FIREWORK_STAR else Material.BARRIER)
+        val sendRequestItem = NexoItemProvider.getItemStackOrFallback(if (canManageParties) "lg_party_send" else "lg_party_send_locked") {
+            ItemStack.of(if (canManageParties) Material.FIREWORK_STAR else Material.BARRIER)
+        }
             .name(sendRequestName)
             .also { item -> sendRequestLore.forEach { item.lore(it) } }
 
@@ -181,7 +183,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
                 player.sendMessage(lang.msg("menu.party.management.feedback.send_permission"))
             }
         }
-        pane.addItem(sendRequestGuiItem, 0, 2)
+        pane.addItem(sendRequestGuiItem, 1, 1)
 
         // Create new party (Admin+ only)
         val createName = if (canManageParties) lang.gui("menu.party.management.create.name") else lang.gui("menu.party.management.create.locked_name")
@@ -190,7 +192,9 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         } else {
             listOf(lang.gui("menu.party.management.permission.required"), lang.gui("menu.party.management.create.locked_lore"))
         }
-        val createPartyItem = ItemStack.of(if (canManageParties) Material.NETHER_STAR else Material.BARRIER)
+        val createPartyItem = NexoItemProvider.getItemStackOrFallback(if (canManageParties) "lg_party_create" else "lg_party_create_locked") {
+            ItemStack.of(if (canManageParties) Material.NETHER_STAR else Material.BARRIER)
+        }
             .name(createName)
             .also { item -> createLore.forEach { item.lore(it) } }
 
@@ -201,7 +205,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
                 player.sendMessage(lang.msg("menu.party.management.feedback.create_permission"))
             }
         }
-        pane.addItem(createPartyGuiItem, 2, 2)
+        pane.addItem(createPartyGuiItem, 3, 1)
     }
 
     private fun addPartySettingsSection(pane: StaticPane) {
@@ -210,7 +214,9 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         // Party access settings (Admin+ only)
         val accessName = if (canManageParties) lang.gui("menu.party.management.access.name") else lang.gui("menu.party.management.access.locked_name")
         val accessAction = if (canManageParties) lang.gui("menu.party.management.access.action") else lang.gui("menu.party.management.permission.required")
-        val accessSettingsItem = ItemStack.of(if (canManageParties) Material.COMMAND_BLOCK else Material.BARRIER)
+        val accessSettingsItem = NexoItemProvider.getItemStackOrFallback(if (canManageParties) "lg_party_access" else "lg_party_access_locked") {
+            ItemStack.of(if (canManageParties) Material.COMMAND_BLOCK else Material.BARRIER)
+        }
             .name(accessName)
             .lore(lang.gui("menu.party.management.access.lore"))
             .lore(lang.gui("menu.party.management.access.default"))
@@ -223,10 +229,10 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
                 player.sendMessage(lang.msg("menu.party.management.feedback.access_permission"))
             }
         }
-        pane.addItem(accessSettingsGuiItem, 0, 3)
+        pane.addItem(accessSettingsGuiItem, 5, 1)
 
         // Party permissions info
-        val permissionsItem = ItemStack.of(Material.BOOK)
+        val permissionsItem = NexoItemProvider.getItemStackOrFallback("lg_party_permissions") { ItemStack.of(Material.BOOK) }
             .name(lang.gui("menu.party.management.permissions.name"))
             .lore(lang.gui("menu.party.management.permissions.view"))
             .lore(lang.gui("menu.party.management.permissions.accept"))
@@ -234,17 +240,17 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
             .lore(lang.gui("menu.party.management.permissions.manage"))
             .lore(lang.gui("menu.party.management.permissions.join"))
 
-        pane.addItem(GuiItem(permissionsItem), 2, 3)
+        pane.addItem(GuiItem(permissionsItem), 7, 1)
 
         // Quick info about invite-only system
-        val infoItem = ItemStack.of(Material.KNOWLEDGE_BOOK)
+        val infoItem = NexoItemProvider.getItemStackOrFallback("lg_party_info") { ItemStack.of(Material.KNOWLEDGE_BOOK) }
             .name(lang.gui("menu.party.management.info.name"))
             .lore(lang.gui("menu.party.management.info.invite_only"))
             .lore(lang.gui("menu.party.management.info.no_browser"))
             .lore(lang.gui("menu.party.management.info.events"))
             .lore(lang.gui("menu.party.management.info.restrictions"))
 
-        pane.addItem(GuiItem(infoItem), 4, 3)
+        pane.addItem(GuiItem(infoItem), 8, 2)
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {

@@ -38,8 +38,8 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
     private val lang: LangService by inject()
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.guild_relations.title", "guild" to guild.name)))
-        val pane = StaticPane(0, 0, 9, 6)
+        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, lang.guiTitle("menu.guild_relations.title", "guild" to guild.name)))
+        val pane = StaticPane(0, 0, 9, 4)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
             if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
@@ -61,7 +61,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         addRelationDetailsSection(pane)
 
         // Row 6: Navigation
-        addBackButton(pane, 4, 5)
+        addBackButton(pane, 4, 3)
 
         gui.show(player)
     }
@@ -84,7 +84,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val alliesGuiItem = GuiItem(alliesItem) {
             openAlliesListMenu()
         }
-        pane.addItem(alliesGuiItem, 0, 0)
+        pane.addItem(alliesGuiItem, 1, 0)
 
         // Enemies
         val enemiesItem = ItemStack.of(if (enemies > 0) Material.REDSTONE else Material.GRAY_DYE)
@@ -96,7 +96,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val enemiesGuiItem = GuiItem(enemiesItem) {
             openEnemiesListMenu()
         }
-        pane.addItem(enemiesGuiItem, 2, 0)
+        pane.addItem(enemiesGuiItem, 3, 0)
 
         // Truces
         val trucesItem = ItemStack.of(if (truces > 0) Material.CLOCK else Material.GRAY_DYE)
@@ -108,7 +108,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val trucesGuiItem = GuiItem(trucesItem) {
             openTrucesListMenu()
         }
-        pane.addItem(trucesGuiItem, 4, 0)
+        pane.addItem(trucesGuiItem, 5, 0)
 
         // Diplomatic Status
         val statusItem = NexoItemProvider.getItemStackOrFallback("lg_nav_diplomacy") { ItemStack.of(Material.BOOK) }
@@ -119,7 +119,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val statusGuiItem = GuiItem(statusItem) {
             openDiplomaticStatusMenu()
         }
-        pane.addItem(statusGuiItem, 6, 0)
+        pane.addItem(statusGuiItem, 7, 0)
     }
 
     private fun addRelationRequestsSection(pane: StaticPane) {
@@ -136,7 +136,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val incomingGuiItem = GuiItem(incomingItem) {
             openIncomingRequestsMenu()
         }
-        pane.addItem(incomingGuiItem, 1, 1)
+        pane.addItem(incomingGuiItem, 2, 2)
 
         // Outgoing requests
         val outgoingItem = MenuIcons.requests(incoming = false, count = outgoingRequests.size)
@@ -148,7 +148,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val outgoingGuiItem = GuiItem(outgoingItem) {
             openOutgoingRequestsMenu()
         }
-        pane.addItem(outgoingGuiItem, 3, 1)
+        pane.addItem(outgoingGuiItem, 6, 2)
     }
 
     private fun addDiplomaticActionsSection(pane: StaticPane) {
@@ -166,7 +166,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             }
             openRequestAllianceMenu()
         }
-        pane.addItem(allianceGuiItem, 0, 2)
+        pane.addItem(allianceGuiItem, 1, 1)
 
         // Request Truce
         val truceItem = NexoItemProvider.getItemStackOrFallback("lg_truce") { ItemStack.of(Material.WHITE_BANNER) }
@@ -182,7 +182,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             }
             openRequestTruceMenu()
         }
-        pane.addItem(truceGuiItem, 2, 2)
+        pane.addItem(truceGuiItem, 3, 1)
 
         // Declare Enemy
         val enemyItem = NexoItemProvider.getItemStackOrFallback("lg_enemy") { ItemStack.of(Material.IRON_SWORD) }
@@ -198,7 +198,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             }
             openDeclareEnemyMenu()
         }
-        pane.addItem(enemyGuiItem, 4, 2)
+        pane.addItem(enemyGuiItem, 5, 1)
     }
 
     private fun addRelationDetailsSection(pane: StaticPane) {
@@ -211,7 +211,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val historyGuiItem = GuiItem(historyItem) {
             openDiplomaticHistoryMenu()
         }
-        pane.addItem(historyGuiItem, 0, 3)
+        pane.addItem(historyGuiItem, 4, 2)
 
         // Neutral Guilds
         val neutralItem = NexoItemProvider.getItemStackOrFallback("lg_peace") { ItemStack.of(Material.BOOKSHELF) }
@@ -222,7 +222,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val neutralGuiItem = GuiItem(neutralItem) {
             openNeutralGuildsMenu()
         }
-        pane.addItem(neutralGuiItem, 2, 3)
+        pane.addItem(neutralGuiItem, 7, 1)
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
