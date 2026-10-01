@@ -200,8 +200,9 @@ class GuildProgressionMenu(
         val usedXp = usage.awardedXp
         val percent = if (cap != null && cap > 0) (usedXp.toDouble() / cap.toDouble() * 100).toInt().coerceAtMost(100) else 0
 
-        val nexoId = sourceToPresentationIconId(source, usage.pool)
-        val material = sourceToMaterial(source)
+        // XP sources deliberately use plain vanilla items (not Nexo art): they read at a glance and
+        // match what players already know from the game.
+        val material = sourceToVanillaMaterial(source, usage.pool)
         val name = sourcePoolDisplayName(usage.pool)
 
         val bars = buildProgressBar(percent, 10)
@@ -212,9 +213,7 @@ class GuildProgressionMenu(
             else -> "available"
         }
 
-        val item = NexoItemProvider.getItemStackOrFallback(nexoId) {
-            ItemStack.of(material)
-        }.also { it.editMeta { meta ->
+        val item = ItemStack.of(material).also { it.editMeta { meta ->
             meta.displayName(lang.gui("menu.guild_progression.source.name", "source" to name))
             val lore = mutableListOf<Component>()
             if (cap != null) {
@@ -511,6 +510,12 @@ class GuildProgressionMenu(
         ExperienceSource.CLAIM_DESTROYED -> "lg_claim_removed"
         ExperienceSource.WEEKLY_ACTIVITY -> "lg_weekly_activity"
         ExperienceSource.ADMIN_BONUS -> "lg_admin_bonus"
+    }
+
+    private fun sourceToVanillaMaterial(source: ExperienceSource, pool: String): Material = when (pool) {
+        "ORE" -> Material.DIAMOND_ORE
+        "CRAFTING" -> Material.CRAFTING_TABLE
+        else -> sourceToMaterial(source)
     }
 
     private fun sourceToMaterial(source: ExperienceSource): Material = when (source) {
