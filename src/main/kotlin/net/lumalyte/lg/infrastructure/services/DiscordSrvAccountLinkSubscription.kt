@@ -33,13 +33,14 @@ class DiscordSrvAccountLinkSubscription(
         }
     }
 
+    /** Reconciles managed guild roles once DiscordSRV has a live JDA session. */
     @Subscribe
     fun onDiscordReady(@Suppress("UNUSED_PARAMETER") event: DiscordReadyEvent) {
         observe(
             "DiscordSRV ready startup reconciliation",
             CompletableFuture
-                .supplyAsync({ Unit }, executor)
-                .thenCompose { service.reconcileAll() },
+                .supplyAsync(service::reconcileAll, executor)
+                .thenCompose { it },
         )
     }
 
