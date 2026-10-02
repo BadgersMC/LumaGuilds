@@ -1093,6 +1093,10 @@ class LumaGuilds : JavaPlugin() {
             }, 20L * 60L, 20L * 60L * 5L)
         }
 
+        // Public Discord guild profiles are independent of Discord role syncing:
+        // every LumaGuilds guild is browseable, even when guild_roles is disabled.
+        get().get<net.lumalyte.lg.application.services.DiscordGuildProfileSubscription>().subscribe()
+
         // Clean up RoseChat channels when guild status changes.
         // LumaGuilds can enable BEFORE RoseChat despite `depend: [RoseChat]`
         // (observed on the Fuji test server: RoseChat enabled ~4 minutes later),
@@ -1402,6 +1406,11 @@ class LumaGuilds : JavaPlugin() {
             get().getOrNull<net.lumalyte.lg.application.services.DiscordAccountLinkSubscription>()?.unsubscribe()
         } catch (e: Exception) {
             logger.warning("Failed to unsubscribe DiscordSRV account-link listener: ${e.message}")
+        }
+        try {
+            get().getOrNull<net.lumalyte.lg.application.services.DiscordGuildProfileSubscription>()?.unsubscribe()
+        } catch (e: Exception) {
+            logger.warning("Failed to unregister DiscordSRV guild profile commands: ${e.message}")
         }
         try {
             get().getOrNull<net.lumalyte.lg.infrastructure.services.WeeklyQuestCoordinator>()?.stop()
