@@ -4,16 +4,19 @@ import github.scarsz.discordsrv.DiscordSRV
 import github.scarsz.discordsrv.api.Subscribe
 import github.scarsz.discordsrv.api.events.AccountLinkedEvent
 import github.scarsz.discordsrv.api.events.AccountUnlinkedEvent
+import github.scarsz.discordsrv.api.events.DiscordReadyEvent
 import net.lumalyte.lg.application.services.DiscordAccountLinkSubscription
 import net.lumalyte.lg.application.services.DiscordAccountReference
 import net.lumalyte.lg.application.services.DiscordGuildRoleSyncSummary
 import net.lumalyte.lg.application.services.GuildDiscordRoleService
 import org.slf4j.LoggerFactory
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.atomic.AtomicBoolean
 
 class DiscordSrvAccountLinkSubscription(
     private val service: GuildDiscordRoleService,
+    private val executor: ExecutorService,
 ) : DiscordAccountLinkSubscription {
     private val logger = LoggerFactory.getLogger(DiscordSrvAccountLinkSubscription::class.java)
     private val subscribed = AtomicBoolean(false)
@@ -28,6 +31,16 @@ class DiscordSrvAccountLinkSubscription(
         if (subscribed.compareAndSet(true, false)) {
             DiscordSRV.api.unsubscribe(this)
         }
+    }
+
+    @Subscribe
+    fun onDiscordReady(@Suppress("UNUSED_PARAMETER") event: DiscordReadyEvent) {
+        observe(
+            "DiscordSRV ready startup reconciliation",
+            CompletableFuture
+                .supplyAsync({ Unit }, executor)
+                .thenCompose { service.reconcileAll() },
+        )
     }
 
     @Subscribe

@@ -1057,7 +1057,7 @@ class LumaGuilds : JavaPlugin() {
             val discordGateway = get().get<net.lumalyte.lg.application.services.DiscordGuildRoleGateway>()
             val discordRoleService = get().get<net.lumalyte.lg.application.services.GuildDiscordRoleService>()
             if (!discordGateway.isAvailable()) {
-                logger.warning("Discord guild roles are enabled, but DiscordSRV/main guild is unavailable")
+                logger.info("DiscordSRV is not ready yet; guild-role reconciliation will run when DiscordReadyEvent fires")
             } else {
                 discordRoleService
                     .reconcileAll()
