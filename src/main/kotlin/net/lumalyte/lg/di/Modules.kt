@@ -566,6 +566,21 @@ fun socialModule() = module {
             net.lumalyte.lg.infrastructure.services.UnavailableDiscordAccountLinkSubscription()
         }
     }
+    single<net.lumalyte.lg.application.services.DiscordGuildProfileSubscription> {
+        if (org.bukkit.Bukkit.getPluginManager().getPlugin("DiscordSRV") != null) {
+            net.lumalyte.lg.infrastructure.services.DiscordSrvGuildProfileSubscription(
+                plugin = get(),
+                profiles = get(),
+                guildListService = get(),
+                killService = get(),
+                warService = get(),
+                seasonalElo = get(),
+                executor = get<java.util.concurrent.ExecutorService>(named("VirtualThreadExecutor")),
+            )
+        } else {
+            net.lumalyte.lg.infrastructure.services.UnavailableDiscordGuildProfileSubscription()
+        }
+    }
 
     single<net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener> {
         net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener(get(), get(), get(), get(), get())
@@ -736,6 +751,19 @@ fun progressionModule() = module {
             get(),
             get(),
             get<java.util.concurrent.ExecutorService>(named("VirtualThreadExecutor")),
+        )
+    }
+    single {
+        net.lumalyte.lg.application.services.GuildDiscordProfileService(
+            guildService = get(),
+            memberService = get(),
+            rankService = get(),
+            progressionRepository = get(),
+            prestigeService = get(),
+            relationService = get(),
+            playerNameResolver = { playerId: java.util.UUID ->
+                org.bukkit.Bukkit.getOfflinePlayer(playerId).name
+            },
         )
     }
     single {
