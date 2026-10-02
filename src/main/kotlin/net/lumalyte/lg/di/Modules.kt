@@ -561,7 +561,10 @@ fun socialModule() = module {
     }
     single<net.lumalyte.lg.application.services.DiscordAccountLinkSubscription> {
         if (org.bukkit.Bukkit.getPluginManager().getPlugin("DiscordSRV") != null) {
-            net.lumalyte.lg.infrastructure.services.DiscordSrvAccountLinkSubscription(get())
+            net.lumalyte.lg.infrastructure.services.DiscordSrvAccountLinkSubscription(
+                get(),
+                get<java.util.concurrent.ExecutorService>(named("VirtualThreadExecutor")),
+            )
         } else {
             net.lumalyte.lg.infrastructure.services.UnavailableDiscordAccountLinkSubscription()
         }

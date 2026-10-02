@@ -106,9 +106,6 @@ class DiscordSrvGuildProfileSubscription(
     }
 
     override fun getSlashCommands(): Set<PluginSlashCommand> {
-        val discordGuild = runCatching { DiscordSRV.getPlugin().mainGuild }.getOrNull()
-            ?: return emptySet()
-
         val info = SubcommandData("info", "View a LumaGuilds guild profile")
             .addOption(OptionType.STRING, "guild", "Guild name", true)
         val list = SubcommandData("list", "Browse all LumaGuilds guilds")
@@ -117,10 +114,11 @@ class DiscordSrvGuildProfileSubscription(
         val command = CommandData("guild", "Browse LumaGuilds guilds")
             .addSubcommands(info, list)
 
-        return setOf(
-            PluginSlashCommand(plugin, command)
-                .addGuildFilter(discordGuild)
-        )
+        // No guild filter: DiscordSRV treats an empty filter as applicable to every
+        // Discord guild the bot is connected to. This deliberately avoids depending
+        // on DiscordSRV#getMainGuild(), which can be null when its main text channel
+        // is unset even though JDA is connected and slash commands can be registered.
+        return setOf(PluginSlashCommand(plugin, command))
     }
 
     @SlashCommand(path = "guild/info", deferReply = true)
