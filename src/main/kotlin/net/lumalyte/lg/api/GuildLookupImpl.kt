@@ -73,5 +73,15 @@ class GuildLookupImpl(
 
     private fun Long.toIntBankAmountOrNull(): Int? = if (this <= 0 || this > Int.MAX_VALUE) null else toInt()
 
+    override fun systemBankWithdraw(guildId: UUID, amount: Long, reason: String): Boolean {
+        val bounded = amount.toIntBankAmountOrNull() ?: return false
+        return banks.deductFromGuildBank(guildId, bounded, reason)
+    }
+
+    override fun systemBankDeposit(guildId: UUID, amount: Long, reason: String): Boolean {
+        val bounded = amount.toIntBankAmountOrNull() ?: return false
+        return banks.creditToGuildBank(guildId, bounded, reason)
+    }
+
     private fun Guild.toSummary() = GuildSummary(id, name, tag, emoji)
 }
