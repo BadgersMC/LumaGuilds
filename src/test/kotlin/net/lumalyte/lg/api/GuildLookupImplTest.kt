@@ -33,6 +33,19 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class GuildLookupImplTest {
+    @Test fun `system bank operations use guild funds without personal actors`() {
+        every { banks.deductFromGuildBank(guildId, 100, "market") } returns true
+        every { banks.creditToGuildBank(guildId, 50, "market") } returns true
+        assertTrue(lookup.systemBankWithdraw(guildId, 100, "market"))
+        assertTrue(lookup.systemBankDeposit(guildId, 50, "market"))
+        io.mockk.verify(exactly = 0) { banks.withdraw(any(), any(), any(), any()) }
+        io.mockk.verify(exactly = 0) { banks.deposit(any(), any(), any(), any()) }
+    }
+
+    @Test fun `system bank rejects unrepresentable amounts`() {
+        assertFalse(lookup.systemBankWithdraw(guildId, 0, "market"))
+        assertFalse(lookup.systemBankDeposit(guildId, Int.MAX_VALUE.toLong() + 1, "market"))
+    }
 
     private val guildId = UUID.randomUUID()
     private val playerId = UUID.randomUUID()
