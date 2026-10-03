@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.commands
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import co.aikar.commands.BaseCommand
 import co.aikar.commands.annotation.*
 import net.badgersmc.nexus.i18n.LangService
@@ -43,6 +45,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val guildService: GuildService by inject()
     private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository by inject()
     private val rankService: RankService by inject()
+    private val chatRankSettings: net.lumalyte.lg.application.services.GuildChatRankSettingsService by inject()
     private val memberService: MemberService by inject()
     private val vaultService: net.lumalyte.lg.application.services.GuildVaultService by inject()
     private val warService: net.lumalyte.lg.application.services.WarService by inject()
@@ -781,11 +784,31 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 rank.permissions.joinToString(", ") { it.name.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() } }
             } else "None"
             
-            player.sendMessage(lang.msg("command.migrated.guild.ranks.priority", "rank" to rank.name, "priority" to rank.priority))
+            player.sendMessage(lang.msg("command.migrated.guild.ranks.priority", "rank" to RankNameContent.miniMessage(rank.name), "priority" to rank.priority))
             player.sendMessage(lang.msg("command.migrated.guild.ranks.members", "member_count" to memberCount))
             player.sendMessage(lang.msg("command.migrated.guild.ranks.permissions", "permissions" to permissions))
             player.sendMessage(lang.msg("command.common.blank_line"))
         }
+    }
+
+    @Subcommand("ranks chat")
+    @CommandPermission("lumaguilds.guild.ranks")
+    @CommandCompletion("on|off")
+    fun onRanksChat(player: Player, state: String) {
+        val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull() ?: run {
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
+            return
+        }
+        val visible = when (state.lowercase()) {
+            "on" -> true
+            "off" -> false
+            else -> {
+                player.sendMessage(lang.msg("guild_rank_customization.toggle.usage"))
+                return
+            }
+        }
+        val success = chatRankSettings.setRanksVisible(guild.id, visible, player.uniqueId)
+        player.sendMessage(if (success) lang.msg("guild_rank_customization.toggle.saved") else lang.msg("guild_rank_customization.toggle.failed"))
     }
     
     @Subcommand("emoji")

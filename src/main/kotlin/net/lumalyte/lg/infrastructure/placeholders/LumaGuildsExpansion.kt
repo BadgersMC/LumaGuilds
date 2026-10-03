@@ -1,5 +1,7 @@
 package net.lumalyte.lg.infrastructure.placeholders
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.application.persistence.LeaderboardRepository
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.*
@@ -222,7 +224,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
                 val rankId = memberService.getPlayerRankId(playerId, guildId)
                 if (rankId != null) {
                     val rank = rankService.getRank(rankId)
-                    rank?.name ?: "Unknown"
+                    rank?.name?.let(RankNameContent::legacy) ?: "Unknown"
                 } else {
                     "Unknown"
                 }

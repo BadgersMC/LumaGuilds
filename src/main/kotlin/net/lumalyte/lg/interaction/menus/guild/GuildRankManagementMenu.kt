@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import net.lumalyte.lg.utils.NexoItemProvider
@@ -37,6 +39,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
     private val configService: ConfigService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val lang: LangService by inject()
+    private val chatRankSettings: net.lumalyte.lg.application.services.GuildChatRankSettingsService by inject()
 
     private var currentPage = 0
     private val ranksPerPage = 12 // 4 columns × 3 rows (rows 0-2)
@@ -95,6 +98,17 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
         }
         pane.addItem(guiCreateItem, 4, 4)
 
+        val ranksVisible = chatRankSettings.ranksVisible(guild.id)
+        val toggle = ItemStack.of(if (ranksVisible) Material.LIME_DYE else Material.GRAY_DYE)
+            .name(lang.gui("guild_rank_customization.toggle.name"))
+            .lore(if (ranksVisible) lang.gui("guild_rank_customization.toggle.shown") else lang.gui("guild_rank_customization.toggle.hidden"))
+            .lore(lang.gui("guild_rank_customization.toggle.help"))
+        pane.addItem(GuiItem(toggle) {
+            val success = chatRankSettings.setRanksVisible(guild.id, !ranksVisible, player.uniqueId)
+            player.sendMessage(if (success) lang.msg("guild_rank_customization.toggle.saved") else lang.msg("guild_rank_customization.toggle.failed"))
+            open()
+        }, 0, 4)
+
         // Back button
         val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.rank_management.item.back.name"))
@@ -151,7 +165,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
         }
 
         val rankItem = ItemStack.of(iconMaterial)
-            .name(lang.gui("menu.rank_management.item.rank.name", "rank" to rank.name))
+            .name(lang.gui("menu.rank_management.item.rank.name", "rank" to RankNameContent.miniMessage(rank.name)))
             .lore(lang.gui("menu.rank_management.item.rank.lore.priority", "priority" to rank.priority))
             .lore(lang.gui("menu.rank_management.item.rank.lore.members", "count" to getMemberCount(rank.id)))
             .lore(lang.gui("menu.common.blank"))

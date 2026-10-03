@@ -1,5 +1,7 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import co.aikar.idb.Database
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.RankRepository
@@ -93,7 +95,10 @@ class RankRepositorySQLite(private val storage: Storage<Database>) : RankReposit
     override fun getByGuild(guildId: UUID): Set<Rank> = ranks.values.filter { it.guildId == guildId }.toSet()
     
     override fun getByName(guildId: UUID, name: String): Rank? = 
-        ranks.values.find { it.guildId == guildId && it.name.equals(name, ignoreCase = true) }
+        ranks.values.find {
+            it.guildId == guildId && RankNameContent.plain(it.name)
+                .equals(RankNameContent.plain(name), ignoreCase = true)
+        }
     
     override fun getDefaultRank(guildId: UUID): Rank? {
         return getByGuild(guildId).maxByOrNull { it.priority }

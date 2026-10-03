@@ -1205,7 +1205,7 @@ bedrock:
       header: Permissions
     feedback:
       empty_name: '<red>Enter a rank name.'
-      name_too_long: '<red>Rank names cannot exceed 20 characters.'
+      name_too_long: '<red>Use 1-24 visible letters, numbers, spaces, hyphens or underscores. Minecraft color codes and hex colors are supported.'
       created: '<green>✅ Created rank <rank>.'
       failed: '<red>Failed to create the guild rank.'
   rank_edit:
@@ -1391,7 +1391,7 @@ bedrock:
     validation:
       section: |-
         <gold><bold>━━━ VALIDATION ━━━
-        <gray>• Rank names must contain 1–24 characters
+        <gray>• Rank names must contain 1–24 visible characters; Minecraft color codes are supported
         • Rank names must be unique within the guild
         • Select the permissions granted to this rank
         • Rank priority is assigned automatically
@@ -6972,8 +6972,8 @@ menu:
         prompt: '<gray>Type the new rank name in chat.'
         current: '<gray>Current name: <white><rank>'
         requirements: '<gray>Requirements:'
-        length: '<gray>• 1-24 characters'
-        characters: '<gray>• No special characters'
+        length: '<gray>• 1-24 visible characters'
+        characters: '<gray>• Minecraft color codes, bold and hex colors supported'
       icon:
         header: '<gold>=== RANK ICON EDIT ==='
         prompt: '<gray>Type the material name in chat.'
@@ -6985,8 +6985,8 @@ menu:
         link_prefix: '📖 Full material list: '
         link_action: '[CLICK HERE]'
     validation:
-      length: 'Name must be 1-24 characters (current: <length>)'
-      characters: 'Name can only contain letters, numbers, and spaces'
+      length: 'Name must be 1-24 visible characters (current: <length>)'
+      characters: 'Use letters, numbers, spaces, hyphens or underscores with valid Minecraft color codes'
       duplicate: 'A rank with this name already exists'
     feedback:
       moved_up: '<green>✅ Rank moved up.'
@@ -7599,3 +7599,13 @@ spawn_banner:
     invalid_category: '<red>Unknown category. Available: <white><categories>'
     given: '<green>Given dynamic banner for <white><category> #<rank><green>.'
     help: '<gray>/lumaguilds spawnbanner \\<rank> \\<category> <dark_gray>- <white>Create a dynamic leaderboard banner'
+
+guild_rank_customization:
+  toggle:
+    name: '<gold>Guild Chat Ranks'
+    shown: '<gray>Current: <green>Shown'
+    hidden: '<gray>Current: <red>Hidden'
+    help: '<gray>Toggle ranks for everyone in this guild. Requires guild-settings permission.'
+    saved: '<green>Guild-chat rank display updated for your guild.'
+    failed: '<red>Could not update rank display. You need guild-settings permission.'
+    usage: '<yellow>Usage: /g ranks chat on|off'

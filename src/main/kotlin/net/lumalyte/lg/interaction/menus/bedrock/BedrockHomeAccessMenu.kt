@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.RankService
@@ -46,9 +48,9 @@ class BedrockHomeAccessMenu(
             val isOwner = rank.id == ownerRankId
             val allowed = isOwner || rank.id in home.allowedRankIds
             val label = if (allowed) {
-                lang.bedrock("menu.home_access.rank.allowed", "rank" to rank.name)
+                lang.bedrock("menu.home_access.rank.allowed", "rank" to RankNameContent.miniMessage(rank.name))
             } else {
-                lang.bedrock("menu.home_access.rank.denied", "rank" to rank.name)
+                lang.bedrock("menu.home_access.rank.denied", "rank" to RankNameContent.miniMessage(rank.name))
             }
             builder = builder.button(label)
             val action: () -> Unit = if (isOwner) {
