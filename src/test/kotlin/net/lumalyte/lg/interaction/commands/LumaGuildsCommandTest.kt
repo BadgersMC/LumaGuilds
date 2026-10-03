@@ -12,6 +12,10 @@ import io.mockk.mockk
 import io.mockk.verify
 import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.GuildRolePermissionResolver
+import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.ProgressionService
+import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.domain.values.ExperienceSource
 import org.bukkit.command.Command
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -23,6 +27,7 @@ import org.koin.core.context.stopKoin
 import org.koin.dsl.module
 import java.io.File
 import java.nio.file.Path
+import java.util.UUID
 
 class LumaGuildsCommandTest {
 
@@ -34,6 +39,8 @@ class LumaGuildsCommandTest {
     private lateinit var command: LumaGuildsCommand
     private lateinit var adminOverrideService: AdminOverrideService
     private lateinit var permissionResolver: GuildRolePermissionResolver
+    private lateinit var guildService: GuildService
+    private lateinit var progressionService: ProgressionService
     private lateinit var mockCommand: Command
     private lateinit var mockPlugin: org.bukkit.plugin.Plugin
 
@@ -49,6 +56,8 @@ class LumaGuildsCommandTest {
         // Create mock services
         adminOverrideService = mockk(relaxed = true)
         permissionResolver = mockk(relaxed = true)
+        guildService = mockk(relaxed = true)
+        progressionService = mockk(relaxed = true)
 
         // Set up Koin with mocked services
         stopKoin() // Stop any existing Koin instance
@@ -66,7 +75,8 @@ class LumaGuildsCommandTest {
                 }
                 single { adminOverrideService }
                 single { permissionResolver }
-                single { mockk<net.lumalyte.lg.application.services.GuildService>(relaxed = true) }
+                single { guildService }
+                single { progressionService }
             })
         }
 
@@ -84,6 +94,36 @@ class LumaGuildsCommandTest {
     fun tearDown() {
         MockBukkit.unmock()
         stopKoin()
+    }
+
+    @Test
+    fun `xp give awards uncapped admin bonus to named guild`() {
+        player.addAttachment(mockPlugin, "lumaguilds.admin.xp", true)
+        val guildId = UUID.randomUUID()
+        val guild = mockk<Guild>()
+        every { guild.id } returns guildId
+        every { guild.name } returns "Vibe"
+        every { guildService.getGuildByName("Vibe") } returns guild
+        every { progressionService.awardUncappedSystemExperienceOnce(
+            guildId, 5, ExperienceSource.ADMIN_BONUS, any()
+        ) } returns true
+
+        val result = command.onCommand(player, mockCommand, "lumaguilds", arrayOf("xp", "give", "Vibe", "5"))
+
+        assertTrue(result)
+        verify(exactly = 1) { progressionService.awardUncappedSystemExperienceOnce(
+            guildId, 5, ExperienceSource.ADMIN_BONUS, any()
+        ) }
+        assertTrue(player.nextMessage()?.contains("Granted") == true)
+    }
+
+    @Test
+    fun `xp give rejects player without xp admin permission`() {
+        val result = command.onCommand(player, mockCommand, "lumaguilds", arrayOf("xp", "give", "Vibe", "5"))
+
+        assertTrue(result)
+        verify(exactly = 0) { progressionService.awardUncappedSystemExperienceOnce(any(), any(), any(), any()) }
+        assertTrue(player.nextMessage()?.contains("permission", ignoreCase = true) == true)
     }
 
     @Test
