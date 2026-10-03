@@ -72,6 +72,12 @@ interface GuildLookup {
      * Same Int-bounded constraint as [bankWithdraw].
      */
     fun bankDeposit(guildId: UUID, actorId: UUID, amount: Long, reason: String): Boolean
+
+    /** System integrations debit guild funds directly; no personal wallet or online actor involved. */
+    fun systemBankWithdraw(guildId: UUID, amount: Long, reason: String): Boolean = false
+
+    /** System integrations credit guild funds directly, with normal frozen-bank safeguards. */
+    fun systemBankDeposit(guildId: UUID, amount: Long, reason: String): Boolean = false
 }
 
 /**
