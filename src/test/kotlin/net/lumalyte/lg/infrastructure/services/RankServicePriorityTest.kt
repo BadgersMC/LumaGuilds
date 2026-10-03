@@ -161,7 +161,7 @@ class RankServicePriorityTest {
         every { memberRepo.getRankId(actorId, guildId) } returns owner.id
         every { rankRepo.getById(owner.id) } returns owner
         every { rankRepo.getById(target.id) } returns target
-        every { rankRepo.isNameTaken(guildId, "Veteran") } returns false
+        every { rankRepo.getByName(guildId, "Veteran") } returns null
         every { profiles.getOrCreate(target.id, "Member") } returns "Member"
         every { rankRepo.update(any()) } returns true
 
@@ -184,12 +184,36 @@ class RankServicePriorityTest {
         every { memberRepo.getRankId(actorId, guildId) } returns owner.id
         every { rankRepo.getById(owner.id) } returns owner
         every { rankRepo.getById(target.id) } returns target
-        every { rankRepo.isNameTaken(guildId, "Veteran") } returns false
+        every { rankRepo.getByName(guildId, "Veteran") } returns null
         every { profiles.getOrCreate(target.id, "Member") } throws IllegalStateException("db unavailable")
 
         val service = makeService(rankRepo, memberRepo, rankClaimPermissionProfiles = profiles)
 
         assertFalse(service.renameRank(target.id, "Veteran", actorId))
         verify(exactly = 0) { rankRepo.update(any()) }
+    }
+
+    @Test
+    fun `recoloring an existing rank preserves its identity permissions and claim profile`() {
+        val owner = mkRank("Owner", 0, setOf(RankPermission.MANAGE_RANKS))
+        val target = mkRank("Member", 5, setOf(RankPermission.ACCESS_VAULT))
+        val rankRepo = mockk<RankRepository>()
+        val memberRepo = mockk<MemberRepository>()
+        val profiles = mockk<RankClaimPermissionProfileRepository>()
+        every { memberRepo.getRankId(actorId, guildId) } returns owner.id
+        every { rankRepo.getById(owner.id) } returns owner
+        every { rankRepo.getById(target.id) } returns target
+        every { rankRepo.getByName(guildId, "&aMember") } returns target
+        every { profiles.getOrCreate(target.id, "Member") } returns "Member"
+        every { rankRepo.update(any()) } returns true
+        val service = makeService(rankRepo, memberRepo, rankClaimPermissionProfiles = profiles)
+
+        assertTrue(service.renameRank(target.id, "&aMember", actorId))
+        verify { rankRepo.update(target.copy(name = "&aMember")) }
+        verify { profiles.getOrCreate(target.id, "Member") }
+
+        every { rankRepo.getByName(guildId, "&bOwner") } returns owner
+        assertFalse(service.renameRank(target.id, "&bOwner", actorId))
+        verify(exactly = 1) { rankRepo.update(any()) }
     }
 }

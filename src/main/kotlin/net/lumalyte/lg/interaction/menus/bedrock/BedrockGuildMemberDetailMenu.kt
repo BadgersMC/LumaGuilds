@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.RankService
@@ -47,7 +49,7 @@ class BedrockGuildMemberDetailMenu(
                 lang.bedrock(
                     "bedrock.member_detail.content",
                     "player" to targetName,
-                    "rank" to rankName,
+                    "rank" to RankNameContent.miniMessage(rankName),
                     "joined" to member.joinedAt
                 )
             )

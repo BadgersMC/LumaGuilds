@@ -1,6 +1,7 @@
 package net.lumalyte.lg.infrastructure.services
 
 import dev.rosewood.rosechat.chat.channel.Channel
+import dev.rosewood.rosechat.chat.channel.ChannelMessageOptions
 import dev.rosewood.rosechat.hook.channel.ChannelProvider
 import dev.rosewood.rosechat.hook.channel.rosechat.RoseChatChannel
 import dev.rosewood.rosechat.message.RosePlayer
@@ -34,6 +35,9 @@ class LumaGuildsChannel(provider: ChannelProvider) : RoseChatChannel(provider), 
     private val guildService: GuildService by inject()
     private val relationService: RelationService by inject()
     private val chatSettingsRepository: ChatSettingsRepository by inject()
+    private val rankSettings: net.lumalyte.lg.application.services.GuildChatRankSettingsService by inject()
+    private val rankService: net.lumalyte.lg.application.services.RankService by inject()
+    private var guildRankFormat: String? = null
 
     /** Resolved from the `channel-type` key in `channels.yml` (default: GUILD). */
     lateinit var channelType: LumaGuildsChannelType
@@ -53,6 +57,7 @@ class LumaGuildsChannel(provider: ChannelProvider) : RoseChatChannel(provider), 
 
         if (channelType == LumaGuildsChannelType.GUILD) {
             val rankFormat = config.getString("guild-rank-format")
+            guildRankFormat = rankFormat
             listOf("chat", "shout").forEach { formatKey ->
                 val current = settings.formats[formatKey]
                 GuildRankChatFormatter.decorate(current, rankFormat)?.let { decorated ->
@@ -77,6 +82,28 @@ class LumaGuildsChannel(provider: ChannelProvider) : RoseChatChannel(provider), 
             }
         }
         return ids.toList()
+    }
+
+    override fun send(options: ChannelMessageOptions) {
+        super.send(prepareOptions(options))
+    }
+
+    internal fun prepareOptions(options: ChannelMessageOptions): ChannelMessageOptions {
+        if (channelType != LumaGuildsChannelType.GUILD || options.sender() == null || options.isJson()) {
+            return options
+        }
+        val senderId = options.sender().uuid
+        val guild = guildService.getPlayerGuilds(senderId).firstOrNull()
+        val rankName = guild?.let { memberService.getPlayerRankId(senderId, it.id) }
+            ?.let(rankService::getRank)?.name
+        val original = options.format() ?: settings.formats["chat"] ?: return options
+        val format = GuildRankChatFormatter.render(
+            original, rankName, guild?.let { rankSettings.ranksVisible(it.id) } ?: true, guildRankFormat,
+        )
+        return ChannelMessageOptions(
+            options.sender(), options.message(), format, options.sendToDiscord(), options.discordId(),
+            options.messageId(), options.isJson(), options.wrapper(), options.bypassSlowmode(),
+        )
     }
 
     override fun getMemberCount(): Int = getMembers().size

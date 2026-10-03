@@ -138,6 +138,19 @@ class LocaleContractTest {
     }
 
     @Test
+    fun `rank legacy conversion utilities have exact file classifications`() {
+        listOf(
+            "net/lumalyte/lg/utils/RankNameContent.kt",
+            "net/lumalyte/lg/infrastructure/services/GuildRankChatFormatter.kt",
+        ).forEach { file ->
+            assertEquals(PlayerTextClassification.COLOR_CODE_UTILITY,
+                LocaleSourceScanner.classificationFor(projectRoot.resolve("src/main/kotlin/$file")))
+        }
+        assertEquals(null, LocaleSourceScanner.classificationFor(
+            projectRoot.resolve("src/main/kotlin/net/lumalyte/lg/utils/OtherRankText.kt")))
+    }
+
+    @Test
     fun `production localization never serializes through lang legacy`() {
         val inventory = LocaleSourceScanner.scan(projectRoot.resolve("src/main/kotlin"))
         val legacyCalls = inventory.calls.filter { it.renderer == "legacy" }

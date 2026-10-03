@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import net.lumalyte.lg.utils.NexoItemProvider
@@ -55,7 +57,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             return
         }
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.permission_category.title", "category" to localizedCategoryName(), "rank" to rank.name)))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.permission_category.title", "category" to localizedCategoryName(), "rank" to RankNameContent.miniMessage(rank.name))))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -91,7 +93,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
 
         val infoItem = ItemStack.of(categoryIcon)
             .name(lang.gui("menu.rank_edit.category.name", "category" to localizedCategoryName()))
-            .lore(lang.gui("menu.permission_category.info.rank", "rank" to rank.name))
+            .lore(lang.gui("menu.permission_category.info.rank", "rank" to RankNameContent.miniMessage(rank.name)))
             .lore(lang.gui("menu.permission_category.info.category", "category" to localizedCategoryName()))
             .lore(lang.gui("menu.permission_category.info.total", "count" to categoryPermissions.size))
             
@@ -193,10 +195,10 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
                 }
                 if (hasPermission) {
                     modifiedPermissions.remove(permission)
-                    player.sendMessage(lang.msg("menu.permission_category.feedback.disabled", "permission" to chatDisplayName, "rank" to rank.name))
+                    player.sendMessage(lang.msg("menu.permission_category.feedback.disabled", "permission" to chatDisplayName, "rank" to RankNameContent.miniMessage(rank.name)))
                 } else {
                     modifiedPermissions.add(permission)
-                    player.sendMessage(lang.msg("menu.permission_category.feedback.enabled", "permission" to chatDisplayName, "rank" to rank.name))
+                    player.sendMessage(lang.msg("menu.permission_category.feedback.enabled", "permission" to chatDisplayName, "rank" to RankNameContent.miniMessage(rank.name)))
                 }
                 open() // Refresh the menu
             }
@@ -218,7 +220,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             val success = rankService.updateRank(updatedRank, player.uniqueId)
             if (success) {
                 rank = updatedRank // Update local reference
-                player.sendMessage(lang.msg("menu.permission_category.feedback.saved", "rank" to rank.name))
+                player.sendMessage(lang.msg("menu.permission_category.feedback.saved", "rank" to RankNameContent.miniMessage(rank.name)))
             } else {
                 player.sendMessage(lang.msg("menu.permission_category.feedback.save_failed"))
             }

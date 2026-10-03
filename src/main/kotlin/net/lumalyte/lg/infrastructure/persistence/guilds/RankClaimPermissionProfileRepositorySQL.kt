@@ -1,5 +1,7 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import co.aikar.idb.Database
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.RankClaimPermissionProfileRepository
@@ -44,7 +46,7 @@ class RankClaimPermissionProfileRepositorySQL(
     override fun getOrCreate(rankId: UUID, legacyProfileName: String): String {
         profiles[rankId]?.let { return it }
 
-        val profileName = legacyProfileName.trim()
+        val profileName = RankNameContent.plain(legacyProfileName).trim()
         require(profileName.isNotEmpty()) { "Claim-permission profile name cannot be blank" }
 
         try {

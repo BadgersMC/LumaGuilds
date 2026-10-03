@@ -511,10 +511,14 @@ fun socialModule() = module {
     single<ChatSettingsRepository> {
         ChatSettingsRepositorySQLite(get(), get<ConfigService>().loadConfig().chat.defaultChannelVisibility)
     }
+    single<net.lumalyte.lg.application.persistence.GuildChatRankSettingsRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildChatRankSettingsRepositorySQL(get())
+    }
+    single { net.lumalyte.lg.application.services.GuildChatRankSettingsService(get(), get()) }
 
     // Services
     single<PartyService> { PartyServiceBukkit(get(), get(), get(), get(), get()) }
-    single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Listeners
     single<ChatInputListener> { ChatInputListener() }
