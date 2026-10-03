@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import net.lumalyte.lg.utils.NexoItemProvider
@@ -135,9 +137,9 @@ class GuildMemberRankMenu(
             val rankItem = ItemStack.of(if (isCurrentRank) Material.LIME_CONCRETE else Material.GRAY_CONCRETE)
                 .name(
                     if (isCurrentRank) {
-                        lang.gui("menu.guild_member_rank.selection.name.current", "rank" to rank.name)
+                        lang.gui("menu.guild_member_rank.selection.name.current", "rank" to RankNameContent.miniMessage(rank.name))
                     } else {
-                        lang.gui("menu.guild_member_rank.selection.name.available", "rank" to rank.name)
+                        lang.gui("menu.guild_member_rank.selection.name.available", "rank" to RankNameContent.miniMessage(rank.name))
                     }
                 )
                 .lore(lang.gui("menu.guild_member_rank.selection.priority", "priority" to rank.priority))

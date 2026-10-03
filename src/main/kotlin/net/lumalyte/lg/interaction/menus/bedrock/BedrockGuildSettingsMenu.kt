@@ -37,6 +37,7 @@ class BedrockGuildSettingsMenu(
     private val authorization by lazy { BedrockGuildAuthorization(guildService) }
     private val configService: ConfigService by inject()
     private val lang: LangService by inject()
+    private val chatRankSettings: net.lumalyte.lg.application.services.GuildChatRankSettingsService by inject()
     private val plugin: Plugin by inject()
 
     override fun getForm(): Form {
@@ -77,6 +78,7 @@ class BedrockGuildSettingsMenu(
             builder
                 .toggle(lang.bedrock("menu.guild_settings.item.access.name"), guild.isOpen)
                 .toggle(lang.bedrock("menu.guild_settings.item.tracking.name"), guild.trackingEnabled)
+                .toggle(lang.bedrock("guild_rank_customization.toggle.name"), chatRankSettings.ranksVisible(guild.id))
                 .dropdown(
                     lang.bedrock("menu.guild_settings.item.theme.name"),
                     GuiTheme.entries.map(GuiTheme::displayName),
@@ -170,6 +172,11 @@ class BedrockGuildSettingsMenu(
             } else {
                 guild.trackingEnabled
             }
+            val submittedChatRanks = if (renderedManagementControls) {
+                response.next() as? Boolean ?: chatRankSettings.ranksVisible(guild.id)
+            } else {
+                chatRankSettings.ranksVisible(guild.id)
+            }
             val submittedTheme = if (renderedManagementControls) {
                 val themeIndex = response.next() as? Int
                     ?: GuiTheme.entries.indexOf(guild.guiTheme).coerceAtLeast(0)
@@ -215,7 +222,8 @@ class BedrockGuildSettingsMenu(
             val managementChanged =
                 submittedOpen != guild.isOpen ||
                     submittedTracking != guild.trackingEnabled ||
-                    submittedTheme != guild.guiTheme
+                    submittedTheme != guild.guiTheme ||
+                    submittedChatRanks != chatRankSettings.ranksVisible(guild.id)
             if (managementChanged && !hasGuildSettingsPermission) {
                 validationErrors.add(lang.bedrock("bedrock.settings.error.no_settings_permission"))
             }
@@ -232,6 +240,7 @@ class BedrockGuildSettingsMenu(
                 newOpen = submittedOpen,
                 newTracking = submittedTracking,
                 newTheme = submittedTheme,
+                newChatRanks = submittedChatRanks,
                 hasGuildSettingsPermission = hasGuildSettingsPermission,
                 hasDescriptionPermission = hasDescriptionPermission,
                 hasModePermission = hasModePermission
@@ -316,12 +325,22 @@ class BedrockGuildSettingsMenu(
         newOpen: Boolean,
         newTracking: Boolean,
         newTheme: GuiTheme,
+        newChatRanks: Boolean,
         hasGuildSettingsPermission: Boolean,
         hasDescriptionPermission: Boolean,
         hasModePermission: Boolean
     ) {
         val changes = mutableListOf<String>()
         var allSuccessful = true
+
+        if (hasGuildSettingsPermission && newChatRanks != chatRankSettings.ranksVisible(guild.id)) {
+            if (chatRankSettings.setRanksVisible(guild.id, newChatRanks, player.uniqueId)) {
+                changes.add(lang.bedrock("guild_rank_customization.toggle.saved"))
+            } else {
+                allSuccessful = false
+                player.sendMessage(lang.msg("guild_rank_customization.toggle.failed"))
+            }
+        }
 
         if (newName != guild.name && hasGuildSettingsPermission) {
             if (guildService.renameGuild(guild.id, newName, player.uniqueId)) {

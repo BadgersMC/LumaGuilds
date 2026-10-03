@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import net.lumalyte.lg.utils.NexoItemProvider
@@ -154,7 +156,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             return
         }
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.rank_edit.title", "rank" to rank.name)))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.rank_edit.title", "rank" to RankNameContent.miniMessage(rank.name))))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -181,7 +183,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         // Rank name and basic info
         val infoItem = ItemStack.of(Material.NAME_TAG)
             .name(lang.gui("menu.rank_edit.info.name"))
-            .lore(lang.gui("menu.rank_edit.info.rank_name", "rank" to rank.name))
+            .lore(lang.gui("menu.rank_edit.info.rank_name", "rank" to RankNameContent.miniMessage(rank.name)))
             .lore(lang.gui("menu.rank_edit.info.priority", "priority" to rank.priority))
             .lore(lang.gui("menu.rank_edit.info.members", "count" to getMemberCount()))
             
@@ -485,7 +487,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
 
             val result = rankService.deleteRank(rank.id, player.uniqueId)
             if (result) {
-                player.sendMessage(lang.msg("menu.rank_edit.feedback.deleted", "rank" to rank.name))
+                player.sendMessage(lang.msg("menu.rank_edit.feedback.deleted", "rank" to RankNameContent.miniMessage(rank.name)))
             } else {
                 player.sendMessage(lang.msg("menu.rank_edit.feedback.delete_failed"))
             }
@@ -529,7 +531,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
 
         player.sendMessage(lang.msg("menu.rank_edit.input.name.header"))
         player.sendMessage(lang.msg("menu.rank_edit.input.name.prompt"))
-        player.sendMessage(lang.msg("menu.rank_edit.input.name.current", "rank" to rank.name))
+        player.sendMessage(lang.msg("menu.rank_edit.input.name.current", "rank" to RankNameContent.miniMessage(rank.name)))
         player.sendMessage(lang.msg("menu.rank_edit.input.name.requirements"))
         player.sendMessage(lang.msg("menu.rank_edit.input.name.length"))
         player.sendMessage(lang.msg("menu.rank_edit.input.name.characters"))
@@ -569,10 +571,10 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
     }
 
     private fun validateRankName(name: String): Component? {
-        if (name.length !in 1..24) {
-            return lang.msg("menu.rank_edit.validation.length", "length" to name.length)
+        if (RankNameContent.plain(name).length !in 1..24) {
+            return lang.msg("menu.rank_edit.validation.length", "length" to RankNameContent.plain(name).length)
         }
-        if (!name.matches(Regex("^[a-zA-Z0-9 ]+$"))) {
+        if (!RankNameContent.valid(name)) {
             return lang.msg("menu.rank_edit.validation.characters")
         }
         // Check if name is unique in guild (excluding current rank)
@@ -605,7 +607,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                     rank = rank.copy(name = input)
                     val success = rankService.updateRank(rank, player.uniqueId)
                     if (success) {
-                        player.sendMessage(lang.msg("menu.rank_edit.feedback.name_updated", "rank" to input))
+                        player.sendMessage(lang.msg("menu.rank_edit.feedback.name_updated", "rank" to RankNameContent.miniMessage(input)))
                     } else {
                         player.sendMessage(lang.msg("menu.rank_edit.feedback.name_update_failed"))
                     }

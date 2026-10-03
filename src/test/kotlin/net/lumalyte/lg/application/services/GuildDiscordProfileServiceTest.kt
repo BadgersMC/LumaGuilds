@@ -27,7 +27,7 @@ class GuildDiscordProfileServiceTest {
         val guildId = UUID.randomUUID()
         val ownerId = UUID.randomUUID()
         val memberId = UUID.randomUUID()
-        val ownerRank = Rank(UUID.randomUUID(), guildId, "Owner", priority = 0)
+        val ownerRank = Rank(UUID.randomUUID(), guildId, "&aOwner", priority = 0)
         val memberRank = Rank(UUID.randomUUID(), guildId, "Members", priority = 10)
         val guild = Guild(
             id = guildId,

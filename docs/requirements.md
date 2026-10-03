@@ -317,7 +317,7 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 **Event-driven.** WHEN a guild member logs into the server THEN THE SYSTEM SHALL notify the guild in-game.
 
 ### REQ-063
-**State-driven.** THE SYSTEM SHALL display each member's current guild rank next to their name in guild chat (restoring the legacy feature).
+**State-driven.** THE SYSTEM SHALL display each member's current guild rank next to their name in guild chat by default. Guild leaders or members with MANAGE_GUILD_SETTINGS SHALL be able to toggle rank display for the entire guild; the setting SHALL persist across restarts and apply to the next guild-chat message without changing other guilds, public, ally, or officer chat. Guild rank names SHALL support legacy color/format codes and hex colors, with a maximum of 24 visible characters and 255 stored characters. Rank creation/editing on Java and Bedrock SHALL use the same validation; color changes SHALL NOT create duplicate visible rank names or change rank IDs, member assignments, permission sets, or claim-permission profiles.
 
 ### REQ-064
 **Conditional.** GIVEN guild leadership, THE SYSTEM SHALL provide a dedicated private chat channel for guild admins/leadership only.

@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
@@ -94,7 +96,7 @@ class BedrockRankCreationMenu(
             open()
             return
         }
-        if (rankName.length > 20) {
+        if (!RankNameContent.valid(rankName)) {
             player.sendMessage(lang.msg("bedrock.rank_creation.feedback.name_too_long"))
             open()
             return
@@ -102,7 +104,7 @@ class BedrockRankCreationMenu(
 
         val rank = rankService.addRank(guild.id, rankName, permissions, player.uniqueId)
         if (rank != null) {
-            player.sendMessage(lang.msg("bedrock.rank_creation.feedback.created", "rank" to rankName))
+            player.sendMessage(lang.msg("bedrock.rank_creation.feedback.created", "rank" to RankNameContent.miniMessage(rankName)))
             bedrockNavigator.goBack()
         } else {
             player.sendMessage(lang.msg("bedrock.rank_creation.feedback.failed"))
