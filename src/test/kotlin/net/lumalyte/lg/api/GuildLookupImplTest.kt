@@ -33,6 +33,14 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class GuildLookupImplTest {
+    private val guildId = UUID.randomUUID()
+    private val playerId = UUID.randomUUID()
+    private val guilds = mockk<GuildService>()
+    private val members = mockk<MemberService>()
+    private val ranks = mockk<RankService>()
+    private val banks = mockk<BankService>()
+    private val lookup = GuildLookupImpl(guilds, members, ranks, banks)
+
     @Test fun `system bank operations use guild funds without personal actors`() {
         every { banks.deductFromGuildBank(guildId, 100, "market") } returns true
         every { banks.creditToGuildBank(guildId, 50, "market") } returns true
@@ -46,14 +54,6 @@ class GuildLookupImplTest {
         assertFalse(lookup.systemBankWithdraw(guildId, 0, "market"))
         assertFalse(lookup.systemBankDeposit(guildId, Int.MAX_VALUE.toLong() + 1, "market"))
     }
-
-    private val guildId = UUID.randomUUID()
-    private val playerId = UUID.randomUUID()
-    private val guilds = mockk<GuildService>()
-    private val members = mockk<MemberService>()
-    private val ranks = mockk<RankService>()
-    private val banks = mockk<BankService>()
-    private val lookup = GuildLookupImpl(guilds, members, ranks, banks)
 
     @Test
     fun `getGuild maps entity to summary`() {
