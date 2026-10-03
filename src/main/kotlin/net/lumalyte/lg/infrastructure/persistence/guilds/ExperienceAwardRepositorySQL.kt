@@ -8,6 +8,7 @@ import net.lumalyte.lg.domain.values.ExperiencePolicy
 import net.lumalyte.lg.domain.values.PeriodWindow
 import net.lumalyte.lg.domain.values.ProgressionCurve
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect
 import java.sql.Connection
 import java.sql.ResultSet
 import java.util.UUID
@@ -19,7 +20,7 @@ class ExperienceAwardRepositorySQL(
 
     constructor(storage: Storage<Database>, curve: ProgressionCurve) : this(storage, { curve })
 
-    private val mariaDb = storage.javaClass.simpleName.contains("MariaDB")
+    private val mariaDb = storage.dialect == SqlDialect.MARIADB
 
     init {
         createTables()
@@ -40,6 +41,15 @@ class ExperienceAwardRepositorySQL(
             val previousAutoCommit = connection.autoCommit
             connection.autoCommit = false
             try {
+            if (!mariaDb) {
+                // Acquire SQLite's writer reservation BEFORE any SELECT establishes
+                // a read snapshot. A deferred read -> write upgrade can fail with
+                // SQLITE_BUSY immediately, bypassing busy_timeout under contention.
+                // This zero-row write changes no data and fires no row triggers.
+                execute(connection,
+                    "UPDATE guild_experience_source_usage SET awarded_xp = awarded_xp WHERE 0",
+                )
+            }
             if (mariaDb) {
                 checkNotNull(query(connection,
                     "SELECT level FROM guilds WHERE id = ? FOR UPDATE",
