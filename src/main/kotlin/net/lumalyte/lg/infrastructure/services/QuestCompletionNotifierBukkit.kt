@@ -27,6 +27,7 @@ class QuestCompletionNotifierBukkit(
     private val nowMillis: () -> Long = System::currentTimeMillis,
     private val playerLookup: (UUID) -> Player? = { Bukkit.getPlayer(it) },
     private val iconFactory: (QuestDefinition) -> ItemStack = QuestIconProvider::itemFor,
+    private val onMainThread: (() -> Boolean) -> Boolean = { it() },
 ) : QuestCompletionNotifier {
     private val logger = LoggerFactory.getLogger(QuestCompletionNotifierBukkit::class.java)
 
@@ -66,7 +67,6 @@ class QuestCompletionNotifierBukkit(
     }
 
     override fun deliverUnread(playerId: UUID) {
-        val player = playerLookup(playerId)?.takeIf { it.isOnline } ?: return
         val pending = runCatching { notifications.getPending(playerId) }
             .onFailure {
                 logger.error(
@@ -77,7 +77,6 @@ class QuestCompletionNotifierBukkit(
             .getOrDefault(emptyList())
 
         pending.forEach { notification ->
-            if (!player.isOnline) return
             val questSet = quests.getQuestSet(notification.weekId)
             val quest = questSet?.quests?.firstOrNull { it.id == notification.questId }
             if (quest == null) {
@@ -89,8 +88,13 @@ class QuestCompletionNotifierBukkit(
             }
 
             val delivered = runCatching {
-                present(player, notification, quest)
-                true
+                onMainThread {
+                    val player = playerLookup(playerId)?.takeIf { it.isOnline }
+                    if (player == null) false else {
+                        present(player, notification, quest)
+                        true
+                    }
+                }
             }.onFailure {
                 logger.error(
                     "Failed to deliver weekly quest completion ${notification.id}",
