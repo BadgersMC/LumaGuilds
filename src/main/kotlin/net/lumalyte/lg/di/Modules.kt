@@ -706,7 +706,8 @@ fun progressionModule() = module {
             get(), get(), get(), get(), get(),
             onMainThread = { action ->
                 if (org.bukkit.Bukkit.isPrimaryThread()) action()
-                else org.bukkit.Bukkit.getScheduler().callSyncMethod(plugin) { action() }.get()
+                else org.bukkit.Bukkit.getScheduler().callSyncMethod(plugin) { action() }
+                    .get(5, java.util.concurrent.TimeUnit.SECONDS)
             },
         )
     }

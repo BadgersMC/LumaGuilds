@@ -82,9 +82,11 @@ class QuestProgressListener(
         val snapshot = context(event.player, event.block)
         // Snapshot Bukkit state before leaving the tick thread. FIFO read precedes
         // ProgressionEventListener's MONITOR cleanup of this same broken block.
-        background("block break") {
+        background {
             val placed = shouldTrackProvenance(target) && provenance.wasPlayerPlaced(position)
-            incrementCaptured(playerId, action, target, 1, snapshot.copy(playerPlacedBlock = placed))
+            progressSafely("block break") {
+                incrementCaptured(playerId, action, target, 1, snapshot.copy(playerPlacedBlock = placed))
+            }
         }
     }
 
@@ -95,9 +97,11 @@ class QuestProgressListener(
         val position = event.block.position()
         val playerId = event.player.uniqueId
         val snapshot = context(event.player, event.block)
-        background("block place") {
+        background {
             if (shouldTrackProvenance(target)) provenance.recordPlayerPlaced(position)
-            incrementCaptured(playerId, QuestAction.PLACE_BLOCKS, target, 1, snapshot)
+            progressSafely("block place") {
+                incrementCaptured(playerId, QuestAction.PLACE_BLOCKS, target, 1, snapshot)
+            }
         }
     }
 
@@ -163,34 +167,40 @@ class QuestProgressListener(
         val guildId = event.guildId
         val playerId = event.playerId
         val amount = event.amount.toLong()
-        background("bank deposit") {
-            questService.incrementProgress(
-                guildId,
-                QuestAction.DEPOSIT_BANK,
-                "lumaguilds:bank/coins",
-                amount,
-                actorId = playerId,
-            )
+        background {
+            progressSafely("bank deposit") {
+                questService.incrementProgress(
+                    guildId,
+                    QuestAction.DEPOSIT_BANK,
+                    "lumaguilds:bank/coins",
+                    amount,
+                    actorId = playerId,
+                )
+            }
         }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     fun onWarEnd(event: GuildWarEndEvent) = safely("war end") {
         event.winnerGuildId?.let {
-            background("war end") { questService.incrementProgress(it, QuestAction.WIN_WARS, "lumaguilds:war/win") }
+            background {
+                progressSafely("war end") {
+                    questService.incrementProgress(it, QuestAction.WIN_WARS, "lumaguilds:war/win")
+                }
+            }
         }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onEntityExplode(event: EntityExplodeEvent) = safely("entity explosion") {
         val positions = event.blockList().map { it.position() }
-        background("entity explosion") { provenance.removeAll(positions) }
+        background { provenance.removeAll(positions) }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onBlockExplode(event: BlockExplodeEvent) = safely("block explosion") {
         val positions = event.blockList().map { it.position() }
-        background("block explosion") { provenance.removeAll(positions) }
+        background { provenance.removeAll(positions) }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -198,7 +208,7 @@ class QuestProgressListener(
         val moves = event.blocks.asReversed().map { block ->
             block.position() to block.getRelative(event.direction).position()
         }
-        if (moves.isNotEmpty()) background("piston extend") { provenance.moveAll(moves) }
+        if (moves.isNotEmpty()) background { provenance.moveAll(moves) }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -206,7 +216,7 @@ class QuestProgressListener(
         val moves = event.blocks.map { block ->
             block.position() to block.getRelative(event.direction).position()
         }
-        if (moves.isNotEmpty()) background("piston retract") { provenance.moveAll(moves) }
+        if (moves.isNotEmpty()) background { provenance.moveAll(moves) }
     }
 
     private fun incrementFor(
@@ -217,7 +227,11 @@ class QuestProgressListener(
         context: QuestProgressContext = QuestProgressContext()
     ) {
         val playerId = player.uniqueId
-        background("quest progress") { incrementCaptured(playerId, action, target, amount, context) }
+        background {
+            progressSafely("quest progress") {
+                incrementCaptured(playerId, action, target, amount, context)
+            }
+        }
     }
 
     private fun incrementCaptured(
@@ -288,10 +302,15 @@ class QuestProgressListener(
     private fun minecraftItemTarget(material: Material) = "minecraft:item/${material.key.key}"
     private fun Block.position() = BlockPosition(world.uid, x, y, z)
 
-    private fun background(operation: String, task: () -> Unit) {
-        provenanceOperations.submit {
-            try { task() }
-            catch (error: Exception) { throw IllegalStateException("Weekly quest $operation failed", error) }
+    private fun background(task: () -> Unit) {
+        provenanceOperations.submit(task)
+    }
+
+    private fun progressSafely(operation: String, block: () -> Unit) {
+        try {
+            block()
+        } catch (error: Exception) {
+            logger.warn("Weekly quest $operation progress failed", error)
         }
     }
 
