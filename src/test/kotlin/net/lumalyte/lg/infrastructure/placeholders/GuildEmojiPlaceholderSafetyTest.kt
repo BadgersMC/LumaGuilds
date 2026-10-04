@@ -18,14 +18,17 @@ import java.time.Instant
 import java.util.UUID
 import kotlin.test.assertEquals
 
-class GuildEmojiPlaceholderSafetyTest {
+/** Regression coverage for guild emoji validation and display. */
+internal class GuildEmojiPlaceholderSafetyTest {
+    /** Releases the test dependency container. */
     @AfterEach
     fun cleanup() {
         stopKoin()
     }
 
+    /** Saved menu glyphs are hidden by each real PAPI emoji field while the guild name survives. */
     @Test
-    fun `saved menu emoji is absent from TAB and MiniMessage placeholders`() {
+    fun omitsSavedMenuGlyphs() {
         stopKoin()
         val guildId = UUID.randomUUID()
         val playerId = UUID.randomUUID()
@@ -34,18 +37,18 @@ class GuildEmojiPlaceholderSafetyTest {
         val memberService = mockk<MemberService>()
         every { memberService.getPlayerGuilds(playerId) } returns setOf(guildId)
         val guildService = mockk<GuildService>()
-        every { guildService.getGuild(guildId) } returns Guild(
-            guildId, "Vegas", emoji = ":guild_bg_enthusia_6_row:", createdAt = Instant.EPOCH,
-        )
-        val emojiService = NexoEmojiService(mockk(), NexoGlyphResolver {
-            ResolvedNexoGlyph("ꐘ", "nexo:default", false)
-        })
+        val guild = Guild(guildId, "Vegas", emoji = ":guild_bg_enthusia_6_row:", createdAt = Instant.EPOCH)
+        every { guildService.getGuild(guildId) } returns guild
+        val menuGlyph = ResolvedNexoGlyph("ꐘ", "nexo:default", false)
+        val emojiService = NexoEmojiService(mockk(), NexoGlyphResolver { menuGlyph })
         startKoin {
-            modules(module {
-                single<GuildService> { guildService }
-                single<MemberService> { memberService }
-                single<NexoEmojiService> { emojiService }
-            })
+            modules(
+                module {
+                    single<GuildService> { guildService }
+                    single<MemberService> { memberService }
+                    single<NexoEmojiService> { emojiService }
+                },
+            )
         }
         val expansion = LumaGuildsExpansion()
         listOf("guild_emoji", "guild_emoji_minimessage", "guild_emoji_font").forEach {

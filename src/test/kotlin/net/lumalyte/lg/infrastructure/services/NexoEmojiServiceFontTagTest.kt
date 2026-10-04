@@ -6,44 +6,50 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 /** Tests optional Nexo resolution and registered emoji font rendering. */
-class NexoEmojiServiceFontTagTest {
+/** Regression coverage for guild emoji validation and display. */
+internal class NexoEmojiServiceFontTagTest {
 
     private val service = NexoEmojiService(mockk<ConfigService>())
 
+    /** Null and blank values render as empty text. */
     @Test
-    fun `returns empty for null or blank`() {
+    fun omitsBlankValues() {
         assertEquals("", service.emojiToFontTag(null))
         assertEquals("", service.emojiToFontTag(""))
         assertEquals("", service.emojiToFontTag("   "))
         assertEquals("", service.emojiToFontTag("\t\n"))
     }
 
+    /** Non-placeholder input is never delegated to a glyph renderer. */
     @Test
-    fun `omits non-discord values`() {
+    fun omitsPlainValues() {
         assertEquals("", service.emojiToFontTag(":weird"))
         assertEquals("", service.emojiToFontTag("plain"))
         assertEquals("", service.emojiToFontTag(":"))
     }
 
+    /** Control characters cannot enter generated MiniMessage tags. */
     @Test
-    fun `rejects emoji names with MiniMessage control characters`() {
+    fun rejectsControlCharacters() {
         assertEquals("", service.emojiToFontTag(":x><reset>:"))
         assertEquals("", service.emojiToFontTag(":<red>evil</red>:"))
         assertEquals("", service.emojiToFontTag(":emoji with spaces:"))
     }
 
+    /** Missing Nexo hides emojis instead of emitting unvalidated glyph tags. */
     @Test
-    fun `omits glyphs when Nexo is unavailable`() {
+    fun handlesAbsentNexo() {
         assertEquals("", service.emojiToFontTag(":catsmileysmile:"))
         assertEquals("", service.emojiToFontTag(":clown:"))
         assertEquals("", service.emojiToFontTag(":fire:"))
     }
 
+    /** Resolved emoji fonts prefix guild names without changing their text. */
     @Test
-    fun `formats guild display name with resolved glyph instead of persisted placeholder`() {
+    fun formatsGuildName() {
         val resolvedService = NexoEmojiService(
             mockk<ConfigService>(),
-            NexoGlyphResolver { ResolvedNexoGlyph("\uE001", "nexo:emoji", true) }
+            NexoGlyphResolver { ResolvedNexoGlyph("\uE001", "nexo:emoji", true) },
         )
 
         assertEquals(
@@ -53,11 +59,12 @@ class NexoEmojiServiceFontTagTest {
         assertEquals("Enthusiast", resolvedService.formatGuildDisplayName("Enthusiast", null))
     }
 
+    /** Registered emoji characters retain their resource-pack font. */
     @Test
-    fun `renders a resolved public API glyph as a font tag`() {
+    fun rendersEmojiFont() {
         val resolvedService = NexoEmojiService(
             mockk<ConfigService>(),
-            NexoGlyphResolver { ResolvedNexoGlyph("\uE001", "nexo:emoji", true) }
+            NexoGlyphResolver { ResolvedNexoGlyph("\uE001", "nexo:emoji", true) },
         )
 
         assertEquals(
