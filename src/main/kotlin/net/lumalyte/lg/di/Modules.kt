@@ -400,6 +400,9 @@ fun claimsModule() = module {
 fun guildsModule() = module {
     // Repositories
     single<GuildRepository> { GuildRepositorySQLite(get()) }
+    single<net.lumalyte.lg.application.persistence.GuildHomeActivationRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildHomeActivationRepositorySQL(get())
+    }
     single<RankRepository> { RankRepositorySQLite(get()) }
     single<net.lumalyte.lg.application.persistence.RankClaimPermissionProfileRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.RankClaimPermissionProfileRepositorySQL(get())
@@ -413,7 +416,7 @@ fun guildsModule() = module {
     single<MembershipHistoryRepository> { MembershipHistoryRepositorySQLite(get()) }
 
     // Services
-    single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<RankService> {
         RankServiceBukkit(
             get(), get(), get(), get(), get(),
@@ -977,6 +980,11 @@ fun economyModule() = module {
             { get<ConfigService>().loadConfig() },
             get<net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter>(),
             get<net.lumalyte.lg.application.services.GuildGoldService>(),
+        )
+    }
+    single {
+        net.lumalyte.lg.application.services.GuildHomeActivationService(
+            get(), get(), { get<ConfigService>().loadConfig() },
         )
     }
     single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }

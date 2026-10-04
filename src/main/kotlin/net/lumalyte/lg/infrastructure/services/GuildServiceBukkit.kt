@@ -8,6 +8,7 @@ import net.lumalyte.lg.application.persistence.RelationRepository
 import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.GuildHomeActivationService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.entities.GuildHomes
@@ -42,6 +43,7 @@ class GuildServiceBukkit(
     private val relationRepository: RelationRepository,
     private val historyRepository: MembershipHistoryRepository,
     private val adminOverrideService: net.lumalyte.lg.application.services.AdminOverrideService,
+    private val homeActivationService: GuildHomeActivationService,
 ) : GuildService, KoinComponent {
 
     // Lazy because BannermanListeners depends on GuildService, which would create a Koin
@@ -460,6 +462,7 @@ class GuildServiceBukkit(
             val updatedGuild = guild.copy(homes = updatedHomes)
             val result = guildRepository.update(updatedGuild)
             if (result) {
+                homeActivationService.removeActivation(guildId, homeName)
                 logger.info("Guild $guildId home '$homeName' removed by $actorId")
             }
             return result
@@ -489,6 +492,7 @@ class GuildServiceBukkit(
             val updatedGuild = guild.copy(homes = GuildHomes.EMPTY)
             val result = guildRepository.update(updatedGuild)
             if (result) {
+                homeActivationService.removeAllActivations(guildId)
                 logger.info("Guild $guildId all homes removed by $actorId")
             }
             return result
@@ -722,6 +726,7 @@ class GuildServiceBukkit(
     override fun canUseHome(playerId: UUID, guildId: UUID, homeName: String): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false
         val home = guild.homes.getHome(homeName) ?: return false
+        if (!homeActivationService.isActive(guildId, homeName)) return false
         val member = memberRepository.getByPlayerAndGuild(playerId, guildId) ?: return false
         val ownerRank = rankRepository.getHighestRank(guildId)
         if (ownerRank != null && member.rankId == ownerRank.id) return true

@@ -37,8 +37,7 @@ and permanent-asset rules in REQ-056/093.
 - Fixed configurable membership capacity, default 50, independent of level
   and prestige. It must not fall when a guild resets its level.
 - Levels 101–200 are seasonal Elo presentation, not XP reward tiers.
-- Purchased home capacity and activated locations are permanent. Capacity
-  and paid home activation are distinct (REQ-054).
+- Purchased home capacity and Chapter 2 paid activations are permanent across prestige/current-run resets. Capacity and paid home activation are distinct (REQ-054). The Chapter 1→2 cutover is a one-time exception: saved legacy locations retain their coordinates/capacity but must be reactivated under Chapter 2 pricing before use.
 - Prestige ships disabled. Defaults: maximum six lifetime prestiges,
   fees 10,000 / 20,000 / 30,000 / 30,000 / 30,000 / 30,000 gold, one purchased eligible non-permanent
   perk retained and one extra permanent home-capacity unit per prestige.
