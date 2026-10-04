@@ -4,15 +4,20 @@ import dev.rosewood.rosechat.chat.channel.ChannelMessageOptions
 
 /** Copies the runtime record so RoseChat additions retain their original values. */
 internal object RoseChatMessageOptions {
-    private val components by lazy { ChannelMessageOptions::class.java.recordComponents }
-    private val constructor by lazy {
-        ChannelMessageOptions::class.java.getConstructor(*components.map { it.type }.toTypedArray())
+    private val COMPONENTS by lazy { ChannelMessageOptions::class.java.recordComponents }
+    private val CONSTRUCTOR by lazy {
+        // Reflection needs the complete runtime parameter array to retain added options.
+        @Suppress("SpreadOperator")
+        ChannelMessageOptions::class.java.getConstructor(*COMPONENTS.map { it.type }.toTypedArray())
     }
 
     fun withFormat(options: ChannelMessageOptions, format: String): ChannelMessageOptions {
-        val values = components.map { component ->
-            if (component.name == "format") format else component.accessor.invoke(options)
-        }.toTypedArray()
-        return constructor.newInstance(*values)
+        val values =
+            COMPONENTS.map { component ->
+                if (component.name == "format") format else component.accessor.invoke(options)
+            }.toTypedArray()
+        // The variable-arity reflective constructor is intentional at this API boundary.
+        @Suppress("SpreadOperator")
+        return CONSTRUCTOR.newInstance(*values)
     }
 }
