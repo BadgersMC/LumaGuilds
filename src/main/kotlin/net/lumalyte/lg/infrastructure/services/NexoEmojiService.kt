@@ -37,8 +37,8 @@ private object NexoPublicGlyphResolver : NexoGlyphResolver {
     }
 }
 
-private fun resolveOptionalGlyph(resolver: NexoGlyphResolver, name: String): ResolvedNexoGlyph? =
-    try {
+private fun resolveOptionalGlyph(resolver: NexoGlyphResolver, name: String): ResolvedNexoGlyph? {
+    val glyph = try {
         resolver.resolve(name)
     } catch (_: IllegalStateException) {
         null
@@ -49,6 +49,8 @@ private fun resolveOptionalGlyph(resolver: NexoGlyphResolver, name: String): Res
     } catch (_: LinkageError) {
         null
     }
+    return glyph
+}
 
 private fun nexoFontManager() = try {
     NexoPlugin.instance().fontManager()
