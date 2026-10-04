@@ -19,11 +19,12 @@ object RankNameContent {
         return name.length <= MAX_RAW_LENGTH && visible.length in 1..MAX_VISIBLE_LENGTH &&
             visible.isNotBlank() && visible.matches(visibleNamePattern)
     }
+
     /** Renders supported rank color codes, normalizing bare hex to legacy hex syntax. */
-    fun component(name: String): Component =
-        serializer.deserialize(
-            BARE_HEX.replace(name.replace('§', '&')) { "&${it.value}" },
-        )
+    fun component(name: String): Component {
+        val normalized = BARE_HEX.replace(name.replace('§', '&')) { "&${it.value}" }
+        return serializer.deserialize(normalized)
+    }
     fun miniMessage(name: String): String = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
         .serialize(component(name))
     fun legacy(name: String): String = LegacyComponentSerializer.builder()

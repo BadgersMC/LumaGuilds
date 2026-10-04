@@ -12,9 +12,10 @@ class RankNameContentTest {
     fun bareHexNames() {
         val hexCode = "#f99801"
         val rankName = "${hexCode}Founder"
+        val visibleName = rankName.removePrefix(hexCode)
         val hexColor = TextColor.fromHexString(hexCode)
         assertTrue(RankNameContent.valid(rankName))
-        assertEquals("Founder", RankNameContent.plain(rankName))
+        assertEquals(visibleName, RankNameContent.plain(rankName))
         assertEquals(hexColor, RankNameContent.component(rankName).color())
         assertEquals(RankNameContent.legacy("&$rankName"), RankNameContent.legacy(rankName))
         assertTrue(RankNameContent.valid(hexCode + "A".repeat(RankNameContent.MAX_VISIBLE_LENGTH)))
