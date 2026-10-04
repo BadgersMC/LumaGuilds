@@ -53,3 +53,8 @@ reported client rendering. No production files or server state are changed.
   while retaining the guild name. Alias/font and resolver failure tests pass.
 - Selection, PAPI, leaderboard and guild-chat integration use the same infrastructure
   validation. GUI backgrounds and persisted guild data remain untouched.
+- Runtime contract: downloaded production `nexo-1.28.jar` and inspected its public
+  bytecode. `Glyph.getId/getFont/getChars/isEmoji` and
+  `FontManager.glyphFromName/glyphFromPlaceholder/emojis` retain the signatures
+  used by this adapter compiled against pinned Nexo 1.21. This is binary API
+  inspection, not a live renderer acceptance test.
