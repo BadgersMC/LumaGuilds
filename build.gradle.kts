@@ -95,9 +95,11 @@ dependencies {
     testImplementation("com.artillexstudios:AxKothAPI:4")
     // RoseChat is required at compile-time for the GuildChatListener channel switch.
     // Drop the built jar into libs/ from the RoseChat project (libs/ is gitignored).
-    compileOnly(files("libs/RoseChat-RC-2.jar"))
+    val roseChatApi = files(findProperty("roseChatJar") ?: "libs/RoseChat-RC-2.jar")
+    compileOnly(roseChatApi)
     compileOnly(files("libs/EnthusiaPlaytime-api.jar"))
-    testImplementation(files("libs/RoseChat-RC-2.jar"))
+    testCompileOnly(roseChatApi)
+    testRuntimeOnly(findProperty("roseChatRuntimeJar")?.let { files(it) } ?: roseChatApi)
     testImplementation(files("libs/EnthusiaPlaytime-api.jar"))
 
     // Nexo API (com.nexomc.nexo.api.NexoItems) for custom item textures/icons.

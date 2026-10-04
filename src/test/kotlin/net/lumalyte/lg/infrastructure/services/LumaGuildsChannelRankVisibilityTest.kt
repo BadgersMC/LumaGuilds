@@ -58,9 +58,11 @@ class LumaGuildsChannelRankVisibilityTest {
         }
         every { settings.ranksVisible(firstGuild.id) } returns false
         every { settings.ranksVisible(secondGuild.id) } returns true
-        fun options(sender: RosePlayer) = ChannelMessageOptions(
-            sender, "Hello", null, false, null, null, false, null, false,
-        )
+        fun options(sender: RosePlayer) = ChannelMessageOptions.Builder()
+            .sender(sender)
+            .message("Hello")
+            .sendToDiscord(false)
+            .build()
         assertEquals("{player}: {message}", channel.prepareOptions(options(first)).format())
         val visible = channel.prepareOptions(options(second))
         assertTrue(visible.format().contains("§aFounder§r"))

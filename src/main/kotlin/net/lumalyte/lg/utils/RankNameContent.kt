@@ -7,7 +7,8 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 object RankNameContent {
     const val MAX_VISIBLE_LENGTH = 24
     const val MAX_RAW_LENGTH = 255
-    private val codes = Regex("(?i)[&§]x(?:[&§][0-9a-f]){6}|[&§]#[0-9a-f]{6}|[&§][0-9a-fk-or]")
+    private val codes = Regex("(?i)[&§]x(?:[&§][0-9a-f]){6}|[&§]?#[0-9a-f]{6}|[&§][0-9a-fk-or]")
+    private val BARE_HEX = Regex("(?i)(?<!&)#[0-9a-f]{6}")
     private val visibleNamePattern = Regex("[a-zA-Z0-9 _-]+")
     private val serializer = LegacyComponentSerializer.builder()
         .character('&').hexColors().useUnusualXRepeatedCharacterHexFormat().build()
@@ -18,7 +19,12 @@ object RankNameContent {
         return name.length <= MAX_RAW_LENGTH && visible.length in 1..MAX_VISIBLE_LENGTH &&
             visible.isNotBlank() && visible.matches(visibleNamePattern)
     }
-    fun component(name: String): Component = serializer.deserialize(name.replace('§', '&'))
+
+    /** Renders supported rank color codes, normalizing bare hex to legacy hex syntax. */
+    fun component(name: String): Component {
+        val normalized = BARE_HEX.replace(name.replace('§', '&')) { "&${it.value}" }
+        return serializer.deserialize(normalized)
+    }
     fun miniMessage(name: String): String = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()
         .serialize(component(name))
     fun legacy(name: String): String = LegacyComponentSerializer.builder()
