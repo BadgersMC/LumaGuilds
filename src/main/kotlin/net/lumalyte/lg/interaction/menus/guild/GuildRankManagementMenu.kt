@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import net.lumalyte.lg.utils.NexoItemProvider
@@ -37,14 +39,15 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
     private val configService: ConfigService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val lang: LangService by inject()
+    private val chatRankSettings: net.lumalyte.lg.application.services.GuildChatRankSettingsService by inject()
 
     private var currentPage = 0
     private val ranksPerPage = 12 // 4 columns × 3 rows (rows 0-2)
 
     override fun open() {
-        // Security check: Only players with MANAGE_RANKS permission can access this menu
-        val hasPermission = rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RANKS)
-        if (!hasPermission) {
+        val canManageRanks = rankService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RANKS)
+        val canManageSettings = rankService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_GUILD_SETTINGS)
+        if (!canManageRanks && !canManageSettings) {
             player.sendMessage(lang.msg("menu.rank_management.feedback.no_permission"))
             player.sendMessage(lang.msg("menu.rank_management.feedback.required_permission"))
             menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
@@ -79,21 +82,34 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
         pageRanks.forEachIndexed { index, rank ->
             val row = index / 4
             val col = index % 4
-            addRankButton(pane, rank, col, row)
+            addRankButton(pane, rank, col, row, canManageRanks)
         }
 
         // Navigation buttons at row 3
         addNavigationButtons(pane, totalPages, ranks.size)
 
-        // Add new rank button
-        val createRankItem = NexoItemProvider.getItemStackOrFallback("lg_rank_create") { ItemStack.of(Material.EMERALD) }
-            .name(lang.gui("menu.rank_management.item.create.name"))
-            .lore(lang.gui("menu.rank_management.item.create.lore.description"))
-            .lore(lang.gui("menu.rank_management.item.create.lore.limit"))
-        val guiCreateItem = GuiItem(createRankItem) {
-            menuNavigator.openMenu(menuFactory.createRankCreationMenu(menuNavigator, player, guild))
+        if (canManageRanks) {
+            val createRankItem = NexoItemProvider.getItemStackOrFallback("lg_rank_create") { ItemStack.of(Material.EMERALD) }
+                .name(lang.gui("menu.rank_management.item.create.name"))
+                .lore(lang.gui("menu.rank_management.item.create.lore.description"))
+                .lore(lang.gui("menu.rank_management.item.create.lore.limit"))
+            pane.addItem(GuiItem(createRankItem) {
+                menuNavigator.openMenu(menuFactory.createRankCreationMenu(menuNavigator, player, guild))
+            }, 4, 4)
         }
-        pane.addItem(guiCreateItem, 4, 4)
+
+        if (canManageSettings) {
+            val ranksVisible = chatRankSettings.ranksVisible(guild.id)
+            val toggle = ItemStack.of(if (ranksVisible) Material.LIME_DYE else Material.GRAY_DYE)
+                .name(lang.gui("guild_rank_customization.toggle.name"))
+                .lore(if (ranksVisible) lang.gui("guild_rank_customization.toggle.shown") else lang.gui("guild_rank_customization.toggle.hidden"))
+                .lore(lang.gui("guild_rank_customization.toggle.help"))
+            pane.addItem(GuiItem(toggle) {
+                val success = chatRankSettings.setRanksVisible(guild.id, !ranksVisible, player.uniqueId)
+                player.sendMessage(if (success) lang.msg("guild_rank_customization.toggle.saved") else lang.msg("guild_rank_customization.toggle.failed"))
+                open()
+            }, 0, 4)
+        }
 
         // Back button
         val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
@@ -141,7 +157,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
         pane.addItem(nextGuiItem, 8, 3)
     }
 
-    private fun addRankButton(pane: StaticPane, rank: Rank, x: Int, y: Int) {
+    private fun addRankButton(pane: StaticPane, rank: Rank, x: Int, y: Int, canManageRanks: Boolean) {
         // Use rank's icon if available, otherwise default to DIAMOND_SWORD
         val iconMaterial = try {
             rank.icon?.let { Material.valueOf(it) } ?: Material.DIAMOND_SWORD
@@ -151,7 +167,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
         }
 
         val rankItem = ItemStack.of(iconMaterial)
-            .name(lang.gui("menu.rank_management.item.rank.name", "rank" to rank.name))
+            .name(lang.gui("menu.rank_management.item.rank.name", "rank" to RankNameContent.miniMessage(rank.name)))
             .lore(lang.gui("menu.rank_management.item.rank.lore.priority", "priority" to rank.priority))
             .lore(lang.gui("menu.rank_management.item.rank.lore.members", "count" to getMemberCount(rank.id)))
             .lore(lang.gui("menu.common.blank"))
@@ -179,8 +195,10 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
         rankItem.lore(lang.gui("menu.common.blank"))
         rankItem.lore(lang.gui("menu.rank_management.item.rank.lore.action"))
 
-        val guiItem = GuiItem(rankItem) {
-            openRankEditMenu(rank)
+        val guiItem = if (canManageRanks) {
+            GuiItem(rankItem) { openRankEditMenu(rank) }
+        } else {
+            GuiItem(rankItem)
         }
         pane.addItem(guiItem, x, y)
     }

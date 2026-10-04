@@ -812,3 +812,13 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Files: tests, `BankInterestScheduler.kt`, `BankRepositorySQLite.kt`, `BankInterestSchedulerThreadingContractTest.kt`, `docs/season2-runtime-validation.json`, validation docs, local staging only.
 
 > PR-17 dependency order: LG-1801 first; LG-1806 before LG-1807; LG-1802..LG-1810 before LG-1811; LG-1812 last. P0 findings (Quests, Prestige, Statistics truthfulness, bank authorization, parity-test gate) block Chapter 2 Bedrock sign-off.
+
+## Guild rank customization (2026-10-03)
+
+- [x] Add legacy/hex rank colors with limits based on visible text and shared Java/Bedrock validation.
+- [x] Persist a guild-wide rank-chat toggle guarded by MANAGE_GUILD_SETTINGS, exposed in rank/settings menus and /g ranks chat on|off.
+- [x] Apply the next-message setting to RoseChat guild formats and direct guild-chat delivery, preserving other channels and guilds.
+- [x] Verify formatted names, duplicate identity, permissions, repository reload persistence, disabled output, failure handling, and schema creation/repair locally. Preserve rank IDs and immutable claim-permission profiles; strip colors from Discord profile text and name-based leader/officer channel matching.
+- Validation: `gradlew.bat check shadowJar '-PreleaseVersion=3.0.15-rank-customization-test.1' --console=plain` passed: 1,462 tests, zero failures/errors, four skipped. Wiki frontmatter validation passed for 42 pages; all 13 help topics remain in parity. `git diff --check` passed.
+- Test artifact: `build/libs/LumaGuilds-3.0.15-rank-customization-test.1.jar`; SHA-256 `8821A1B743D71E0ACE2F60CDFCF84C450C0A97E62E06F731E9DB076DE2EE6DF9`.
+- [ ] Live Paper/RoseChat send-path verification, Java/Bedrock client menu walkthrough, and MariaDB runtime verification remain separate. Production was not changed.

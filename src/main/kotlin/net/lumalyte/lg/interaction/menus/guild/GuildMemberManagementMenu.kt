@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import net.lumalyte.lg.utils.NexoItemProvider
@@ -139,7 +141,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
         return head.name(lang.gui("menu.member_management.item.member.name", "player" to playerName))
             .lore(lang.gui("menu.member_management.item.member.lore.player", "player" to playerName))
-            .lore(lang.gui("menu.member_management.item.member.lore.rank", "rank" to rankName))
+            .lore(lang.gui("menu.member_management.item.member.lore.rank", "rank" to RankNameContent.miniMessage(rankName)))
             .lore(lang.gui("menu.member_management.item.member.lore.joined", "joined" to member.joinedAt))
             .lore(lang.gui("menu.common.blank"))
             .lore(lang.gui("menu.member_management.item.member.lore.action"))

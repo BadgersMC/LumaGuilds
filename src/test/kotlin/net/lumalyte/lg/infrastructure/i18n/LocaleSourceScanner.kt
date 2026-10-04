@@ -56,6 +56,8 @@ object LocaleSourceScanner {
         "net/lumalyte/lg/infrastructure/services/GuildServiceBukkit.kt" to PlayerTextClassification.COLOR_CODE_UTILITY,
         "net/lumalyte/lg/interaction/menus/bedrock/BedrockTagEditorMenu.kt" to PlayerTextClassification.COLOR_CODE_UTILITY,
         "net/lumalyte/lg/utils/ColorCodeUtils.kt" to PlayerTextClassification.COLOR_CODE_UTILITY,
+        "net/lumalyte/lg/utils/RankNameContent.kt" to PlayerTextClassification.COLOR_CODE_UTILITY,
+        "net/lumalyte/lg/infrastructure/services/GuildRankChatFormatter.kt" to PlayerTextClassification.COLOR_CODE_UTILITY,
         "net/lumalyte/lg/utils/GuildDisplayUtils.kt" to PlayerTextClassification.COLOR_CODE_UTILITY,
         "net/lumalyte/lg/utils/GuildResolver.kt" to PlayerTextClassification.COLOR_CODE_UTILITY,
         "net/lumalyte/lg/utils/MenuTitleBuilder.kt" to PlayerTextClassification.GLYPH_MARKUP,

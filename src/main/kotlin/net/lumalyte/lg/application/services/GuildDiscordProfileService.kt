@@ -1,5 +1,7 @@
 package net.lumalyte.lg.application.services
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildMode
@@ -90,7 +92,7 @@ class GuildDiscordProfileService(
             val names = grouped[rank.id].orEmpty()
                 .map { member -> resolvePlayerName(member.playerId) }
                 .sortedWith(String.CASE_INSENSITIVE_ORDER)
-            if (names.isEmpty()) null else GuildDiscordRankGroup(rank.name, rank.priority, names)
+            if (names.isEmpty()) null else GuildDiscordRankGroup(RankNameContent.plain(rank.name), rank.priority, names)
         }.toMutableList()
 
         val unknownMembers = members

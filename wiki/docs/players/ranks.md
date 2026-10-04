@@ -5,7 +5,7 @@ topic: ranks
 summary: Create ranks, set permissions, and manage member rank assignments.
 keywords: [ranks, permissions, priority, promote, demote]
 related: [guilds, homes, lfg]
-updated: 2026-05-13
+updated: 2026-10-03
 ---
 
 # Ranks & Permissions
@@ -17,6 +17,7 @@ Create ranks, set permissions, and manage member rank assignments.
 | Command | Permission | Description |
 |---------|------------|-------------|
 | `/g ranks` | `lumaguilds.guild.ranks` | Open the rank management menu. |
+| `/g ranks chat on\|off` | `lumaguilds.guild.ranks` + guild settings permission | Show or hide rank labels for everyone in your guild chat. |
 | `/g menu` | `lumaguilds.guild.menu` | Open the guild control panel. |
 
 ## How it works
@@ -33,9 +34,15 @@ Use `/g ranks` or `/g menu` → Ranks to access rank management. From there you 
 
 ## Creating a rank
 
-In the rank menu, click "Create". Pick a name, choose a display color, and assign permissions. New ranks default to the lowest priority — use the reorder buttons to lift them up.
+In the rank menu, click "Create". Pick a name and assign permissions. New ranks default to the lowest priority — use the reorder buttons to lift them up.
 
 Example: Create a "Moderator" rank with permission to invite and kick members.
+
+## Rank colors and guild chat
+
+When creating or renaming a rank, put color codes in its name: `&aFounder` for green, `&6&lModerator` for bold gold, or `&#55ff99Member` for a hex color. Names may contain 1–24 visible letters, numbers, spaces, underscores, or hyphens; color codes do not count toward that limit. Changing colors keeps the rank's permissions, member assignments, and claim access.
+
+Guild leaders and ranks with **Manage Guild Settings** can show or hide rank labels for the entire guild with `/g ranks chat on` or `/g ranks chat off`. Java players can also use **Guild Chat Ranks** in rank management; Bedrock players can use the toggle in guild settings. Labels are shown by default, and the setting survives server restarts. It changes guild chat only.
 
 ## Setting permissions on a rank
 

@@ -156,6 +156,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 currentDbVersion = 41
             }
 
+            if (currentDbVersion < 42) {
+                GuildChatRankSettingsSchema.create(connection, mariaDb = true)
+                updateDatabaseVersion(42)
+                currentDbVersion = 42
+            }
             connection.commit()
 
             val finalVersion = getCurrentDatabaseVersion()

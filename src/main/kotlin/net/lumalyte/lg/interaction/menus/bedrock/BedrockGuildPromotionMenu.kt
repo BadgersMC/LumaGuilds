@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.infrastructure.i18n.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
@@ -85,7 +87,7 @@ class BedrockGuildPromotionMenu(
         }
 
         return ranks.map { rank ->
-            lang.bedrock("bedrock.promotion.rank_option", "rank" to rank.name, "priority" to rank.priority)
+            lang.bedrock("bedrock.promotion.rank_option", "rank" to RankNameContent.miniMessage(rank.name), "priority" to rank.priority)
         }
     }
 

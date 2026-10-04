@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.infrastructure.i18n.gui
@@ -90,7 +92,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         // Rank name input
         val nameItem = ItemStack.of(Material.NAME_TAG)
             .name(lang.gui("menu.rank_creation.name.name"))
-            .lore(if (rankName.isNotEmpty()) lang.gui("menu.rank_creation.name.current", "rank" to rankName) else lang.gui("menu.rank_creation.name.not_set"))
+            .lore(if (rankName.isNotEmpty()) lang.gui("menu.rank_creation.name.current", "rank" to RankNameContent.miniMessage(rankName)) else lang.gui("menu.rank_creation.name.not_set"))
             .lore(lang.gui("menu.common.blank"))
             .lore(lang.gui("menu.rank_creation.name.requirements"))
             .lore(lang.gui("menu.rank_edit.input.name.length"))
@@ -294,7 +296,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     private fun addPreviewSection(pane: StaticPane) {
         val previewItem = ItemStack.of(if (rankIcon == Material.AIR) Material.DIAMOND_SWORD else rankIcon)
             .name(lang.gui("menu.rank_creation.preview.name"))
-            .lore(if (rankName.isNotEmpty()) lang.gui("menu.rank_creation.preview.rank_name", "rank" to rankName) else lang.gui("menu.rank_creation.preview.name_not_set"))
+            .lore(if (rankName.isNotEmpty()) lang.gui("menu.rank_creation.preview.rank_name", "rank" to RankNameContent.miniMessage(rankName)) else lang.gui("menu.rank_creation.preview.name_not_set"))
             .lore(lang.gui("menu.rank_creation.preview.icon", "icon" to rankIcon.name))
             .lore(lang.gui("menu.rank_creation.preview.priority", "priority" to rankPriority))
             .lore(lang.gui("menu.rank_creation.preview.permissions", "count" to selectedPermissions.size))
@@ -345,7 +347,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
                         rankService.updateRank(rankWithIcon, player.uniqueId)
                     }
 
-                    player.sendMessage(lang.msg("menu.rank_creation.feedback.created", "rank" to rankName))
+                    player.sendMessage(lang.msg("menu.rank_creation.feedback.created", "rank" to RankNameContent.miniMessage(rankName)))
                     player.sendMessage(lang.msg("menu.rank_creation.feedback.rank_permissions", "count" to selectedPermissions.size))
                     if (iconString != null) {
                         player.sendMessage(lang.msg("menu.rank_creation.feedback.rank_icon", "icon" to iconString))
@@ -539,10 +541,10 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     }
 
     private fun validateRankName(name: String): Component? {
-        if (name.length !in 1..24) {
-            return lang.msg("menu.rank_edit.validation.length", "length" to name.length)
+        if (RankNameContent.plain(name).length !in 1..RankNameContent.MAX_VISIBLE_LENGTH) {
+            return lang.msg("menu.rank_edit.validation.length", "length" to RankNameContent.plain(name).length)
         }
-        if (!name.matches(Regex("^[a-zA-Z0-9 ]+$"))) {
+        if (!RankNameContent.valid(name)) {
             return lang.msg("menu.rank_edit.validation.characters")
         }
         // Check if name is unique in guild
@@ -573,7 +575,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
                 } else {
                     rankName = input
                     inputMode = ""
-                    player.sendMessage(lang.msg("menu.rank_creation.feedback.name_set", "rank" to input))
+                    player.sendMessage(lang.msg("menu.rank_creation.feedback.name_set", "rank" to RankNameContent.miniMessage(input)))
                 }
             }
             "icon" -> {

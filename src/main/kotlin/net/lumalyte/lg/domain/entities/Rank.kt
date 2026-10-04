@@ -1,5 +1,7 @@
 package net.lumalyte.lg.domain.entities
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import java.util.UUID
 
 /**
@@ -21,7 +23,10 @@ data class Rank(
     val icon: String? = null
 ) {
     init {
-        require(name.length in 1..24) { "Rank name must be between 1 and 24 characters." }
+        require(name.length <= RankNameContent.MAX_RAW_LENGTH &&
+            RankNameContent.plain(name).length in 1..RankNameContent.MAX_VISIBLE_LENGTH) {
+            "Rank name must have 1-24 visible characters and valid legacy color codes."
+        }
         require(priority >= 0) { "Rank priority must be non-negative." }
     }
 }

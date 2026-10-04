@@ -1,5 +1,7 @@
 package net.lumalyte.lg.infrastructure.services
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.application.persistence.RankRepository
@@ -45,7 +47,7 @@ class RankServiceBukkit(
         }
         
         // Validate rank name
-        if (name.isBlank() || name.length > 24) {
+        if (!RankNameContent.valid(name)) {
             logger.warn("Invalid rank name: $name")
             return null
         }
@@ -95,13 +97,13 @@ class RankServiceBukkit(
         }
         
         // Validate new name
-        if (newName.isBlank() || newName.length > 24) {
+        if (!RankNameContent.valid(newName)) {
             logger.warn("Invalid rank name: $newName")
             return false
         }
         
         // Check if new name is already taken in this guild
-        if (rankRepository.isNameTaken(rank.guildId, newName)) {
+        if (rankRepository.getByName(rank.guildId, newName)?.id?.let { it != rank.id } == true) {
             logger.warn("Rank name already taken in guild: $newName")
             return false
         }
@@ -293,6 +295,8 @@ class RankServiceBukkit(
         }
 
         if (existingRank.name != rank.name) {
+            if (!RankNameContent.valid(rank.name)) return false
+            if (rankRepository.getByName(rank.guildId, rank.name)?.id?.let { it != rank.id } == true) return false
             try {
                 rankClaimPermissionProfiles.getOrCreate(existingRank.id, existingRank.name)
             } catch (error: Exception) {
