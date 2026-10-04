@@ -31,13 +31,6 @@ import java.util.UUID
 
 class LumaGuildsCommandTest {
 
-    private companion object {
-        const val COMMAND_NAME = "lumaguilds"
-        const val XP_PERMISSION = "lumaguilds.admin.xp"
-        const val GUILD_NAME = "Vibe"
-        const val XP_AMOUNT = 5
-    }
-
     @TempDir
     lateinit var dataFolder: Path
 
@@ -163,17 +156,20 @@ class LumaGuildsCommandTest {
     fun xpConsoleGrant() {
         val guild = mockk<Guild>()
         every { guild.id } returns UUID.randomUUID()
-        every { guild.name } returns "Two Words"
-        every { guildService.getGuildByName("Two Words") } returns guild
+        every { guild.name } returns MULTI_WORD_NAME
+        every { guildService.getGuildByName(MULTI_WORD_NAME) } returns guild
         every {
             progressionService.awardUncappedSystemExperienceOnce(any(), XP_AMOUNT, ADMIN_BONUS, any())
         } returns true
         command.onCommand(
-            server.consoleSender, mockCommand, COMMAND_NAME, arrayOf("xp", "give", "Two", "Words", XP_AMOUNT.toString()),
+            server.consoleSender,
+            mockCommand,
+            COMMAND_NAME,
+            arrayOf("xp", "give", "Two", "Words", XP_AMOUNT.toString()),
         )
         xpTasks.remove().run()
         xpReplies.remove().run()
-        assertTrue(server.consoleSender.nextMessage()?.contains("Two Words") == true)
+        assertTrue(server.consoleSender.nextMessage()?.contains(MULTI_WORD_NAME) == true)
     }
 
     /** Missing guilds do not create a ledger award. */
@@ -218,7 +214,7 @@ class LumaGuildsCommandTest {
     @Test
     fun xpScheduleRejected() {
         prepareXpGuild()
-        command = LumaGuildsCommand({ throw IllegalStateException("disabled") }, { xpReplies.add(it) })
+        command = LumaGuildsCommand({ throw IllegalStateException(SCHEDULER_DISABLED) }, { xpReplies.add(it) })
         submitXp()
         verify(exactly = 0) { progressionService.awardUncappedSystemExperienceOnce(any(), any(), any(), any()) }
         assertTrue(player.nextMessage()?.contains("No award was attempted") == true)
@@ -229,7 +225,7 @@ class LumaGuildsCommandTest {
     fun xpReplyRejected() {
         prepareXpGuild()
         every { progressionService.awardUncappedSystemExperienceOnce(any(), any(), any(), any()) } returns true
-        command = LumaGuildsCommand({ xpTasks.add(it) }, { throw IllegalStateException("disabled") })
+        command = LumaGuildsCommand({ xpTasks.add(it) }, { throw IllegalStateException(SCHEDULER_DISABLED) })
         submitXp()
         xpTasks.remove().run()
         verify(exactly = 1) { progressionService.awardUncappedSystemExperienceOnce(any(), any(), any(), any()) }
@@ -237,9 +233,8 @@ class LumaGuildsCommandTest {
         assertTrue(xpTasks.isEmpty())
     }
 
-    private fun submitXp(): Boolean {
-        return command.onCommand(player, mockCommand, COMMAND_NAME, arrayOf("xp", "give", GUILD_NAME, XP_AMOUNT.toString()))
-    }
+    private fun submitXp(): Boolean =
+        command.onCommand(player, mockCommand, COMMAND_NAME, arrayOf("xp", "give", GUILD_NAME, XP_AMOUNT.toString()))
 
     private fun prepareXpGuild(): UUID {
         player.addAttachment(mockPlugin, XP_PERMISSION, true)
@@ -373,5 +368,14 @@ class LumaGuildsCommandTest {
         listOf("download", "exports", "cancel").forEach { removed ->
             assertFalse(completions.contains(removed), "removed subcommand '$removed' must not be suggested")
         }
+    }
+
+    private companion object {
+        const val COMMAND_NAME = "lumaguilds"
+        const val XP_PERMISSION = "lumaguilds.admin.xp"
+        const val GUILD_NAME = "Vibe"
+        const val MULTI_WORD_NAME = "Two Words"
+        const val SCHEDULER_DISABLED = "disabled"
+        const val XP_AMOUNT = 5
     }
 }
