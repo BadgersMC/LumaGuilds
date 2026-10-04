@@ -31,7 +31,14 @@ import kotlin.io.path.exists
 /**
  * Main LumaGuilds command handler for administrative functions
  */
-class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
+class LumaGuildsCommand(
+    private val xpWorker: (Runnable) -> Unit = { task ->
+        Bukkit.getScheduler().runTaskAsynchronously(org.bukkit.plugin.java.JavaPlugin.getPlugin(LumaGuilds::class.java), task)
+    },
+    private val xpReply: (Runnable) -> Unit = { task ->
+        Bukkit.getScheduler().runTask(org.bukkit.plugin.java.JavaPlugin.getPlugin(LumaGuilds::class.java), task)
+    },
+) : CommandExecutor, TabCompleter, KoinComponent {
 
     private val lang: LangService by inject()
     private val guildService: GuildService by inject()
@@ -83,46 +90,69 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
             return
         }
 
-        if (args.size < 4 || !args[1].equals("give", ignoreCase = true)) {
-            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlexp.usage"))
-            return
-        }
-
-        val amount = args.last().toIntOrNull()
-        if (amount == null || amount <= 0) {
-            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlexp.invalid_amount", "amount" to args.last()))
-            return
-        }
-
+        val amount = parseXpAmount(sender, args) ?: return
         val guildName = args.slice(2 until args.lastIndex).joinToString(" ")
+        prepareXp(sender, guildName, amount)
+    }
+
+    private fun prepareXp(sender: CommandSender, guildName: String, amount: Int) {
+        // The repository's guild-name lookup is an in-memory, main-thread cache.
         val guild = net.lumalyte.lg.utils.GuildResolver.resolveGuildByName(guildName, guildService)
         if (guild == null) {
             sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlexp.guild_not_found", "guild" to guildName))
             return
         }
-
+        val guildId = guild.id
+        val displayName = guild.name
         val transactionId = java.util.UUID.randomUUID()
-        val awarded = progressionService.awardUncappedSystemExperienceOnce(
-            guild.id,
-            amount,
-            ExperienceSource.ADMIN_BONUS,
-            transactionId,
-        )
-
-        if (awarded) {
-            sender.sendMessage(lang.msg(
-                "admin.migrated.luma_guilds.handlexp.success",
-                "amount" to amount,
-                "guild" to guild.name,
-                "transaction" to transactionId.toString(),
-            ))
-        } else {
-            sender.sendMessage(lang.msg(
-                "admin.migrated.luma_guilds.handlexp.failed",
-                "amount" to amount,
-                "guild" to guild.name,
-            ))
+        try {
+            xpWorker(Runnable { grantXp(sender, guildId, displayName, amount, transactionId) })
+        } catch (error: Exception) {
+            reportXpError(error, transactionId)
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlexp.unavailable"))
         }
+    }
+
+    private fun parseXpAmount(sender: CommandSender, args: Array<out String>): Int? {
+        if (args.size < 4 || !args[1].equals("give", ignoreCase = true)) {
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlexp.usage"))
+            return null
+        }
+
+        val amount = args.last().toIntOrNull()
+        if (amount == null || amount <= 0) {
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlexp.invalid_amount", "amount" to args.last()))
+            return null
+        }
+        return amount
+    }
+
+    private fun grantXp(sender: CommandSender, guildId: java.util.UUID, guildName: String, amount: Int, transactionId: java.util.UUID) {
+        try {
+            val awarded = progressionService.awardUncappedSystemExperienceOnce(
+                guildId, amount, ExperienceSource.ADMIN_BONUS, transactionId,
+            )
+            replyXp(
+                sender, if (awarded) "success" else "failed",
+                "amount" to amount, "guild" to guildName, "transaction" to transactionId.toString(),
+            )
+        } catch (error: Exception) {
+            reportXpError(error, transactionId)
+            replyXp(sender, "uncertain", "transaction" to transactionId.toString())
+        }
+    }
+
+    private fun replyXp(sender: CommandSender, key: String, vararg values: Pair<String, Any>) {
+        try {
+            xpReply(Runnable { sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlexp.$key", *values)) })
+        } catch (error: Exception) {
+            // A shutdown can reject the reply after a committed award. Never retry it.
+            Bukkit.getLogger().log(java.util.logging.Level.WARNING, "Could not deliver guild XP result: $key ${values.toList()}", error)
+        }
+    }
+
+    private fun reportXpError(error: Exception, transactionId: java.util.UUID) {
+        Bukkit.getLogger().log(java.util.logging.Level.WARNING, "Guild XP transaction $transactionId failed; check ledger before retrying", error)
     }
 
     /**
