@@ -175,7 +175,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
             "guild_tag_raw" -> guild.tag ?: "§6${guild.name}"
             "guild_tag_plain" -> renderTagAsPlain(guild)
             "guild_emoji" -> convertEmojiToNexoPlaceholder(guild.emoji)
-            "guild_emoji_minimessage" -> ColorCodeUtils.emojiToGlyphTag(guild.emoji)
+            "guild_emoji_minimessage" -> nexoEmojiService.emojiToGlyphTag(guild.emoji)
             "guild_emoji_font" -> nexoEmojiService.emojiToFontTag(guild.emoji)
             "guild_level" -> guild.level.toString()
             "guild_seasonal_elo" -> safeSeasonalElo(guildId)?.rating?.toString() ?: ""
@@ -474,18 +474,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
      * - null or empty -> ""
      */
     private fun convertEmojiToNexoPlaceholder(emoji: String?): String {
-        if (emoji.isNullOrEmpty()) return ""
-
-        // Check if emoji is in Discord format (:emoji:)
-        if (emoji.startsWith(":") && emoji.endsWith(":") && emoji.length > 2) {
-            // Extract emoji name (remove colons)
-            val emojiName = emoji.substring(1, emoji.length - 1)
-            // Return Nexo placeholder format
-            return "%nexo_$emojiName%"
-        }
-
-        // If not in Discord format, return as-is
-        return emoji
+        return nexoEmojiService.emojiToNexoPlaceholder(emoji)
     }
 
     // -----------------------------------------------------------------
@@ -527,7 +516,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         "activity" -> safeWeeklyActivityScore(guild.id).toString()
         "age_days" -> Duration.between(guild.createdAt, Instant.now()).toDays().toString()
         "emoji" -> convertEmojiToNexoPlaceholder(guild.emoji)
-        "emoji_mm" -> ColorCodeUtils.emojiToGlyphTag(guild.emoji)
+        "emoji_mm" -> nexoEmojiService.emojiToGlyphTag(guild.emoji)
         else -> ""
     }
 
