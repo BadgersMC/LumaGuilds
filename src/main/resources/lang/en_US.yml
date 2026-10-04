@@ -6973,7 +6973,7 @@ menu:
         current: '<gray>Current name: <white><rank>'
         requirements: '<gray>Requirements:'
         length: '<gray>• 1-24 visible characters'
-        characters: '<gray>• Minecraft color codes, bold and hex colors supported'
+        characters: '<gray>• Minecraft color codes, bold and hex colors supported (e.g. #f99801Founder)'
       icon:
         header: '<gold>=== RANK ICON EDIT ==='
         prompt: '<gray>Type the material name in chat.'

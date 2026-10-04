@@ -18,6 +18,12 @@ class LangServiceRenderingTest {
     private val plainText = PlainTextComponentSerializer.plainText()
 
     @Test
+    fun `rank validation feedback displays readable nested text`() {
+        val rendered = langService().rankNameError(net.kyori.adventure.text.Component.text("Use valid color codes"))
+        assertEquals("❌ Invalid name: Use valid color codes", plainText.serialize(rendered))
+    }
+
+    @Test
     fun `claim message renders a named claim placeholder`() {
         val rendered = langService().msg(
             "command.claim.remove.success",

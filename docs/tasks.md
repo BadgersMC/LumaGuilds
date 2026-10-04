@@ -822,3 +822,13 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - Validation: `gradlew.bat check shadowJar '-PreleaseVersion=3.0.15-rank-customization-test.1' --console=plain` passed: 1,462 tests, zero failures/errors, four skipped. Wiki frontmatter validation passed for 42 pages; all 13 help topics remain in parity. `git diff --check` passed.
 - Test artifact: `build/libs/LumaGuilds-3.0.15-rank-customization-test.1.jar`; SHA-256 `8821A1B743D71E0ACE2F60CDFCF84C450C0A97E62E06F731E9DB076DE2EE6DF9`.
 - [ ] Live Paper/RoseChat send-path verification, Java/Bedrock client menu walkthrough, and MariaDB runtime verification remain separate. Production was not changed.
+
+## Guild chat RC-4 and bare hex rank correction (2026-10-04)
+
+- [x] Diagnose production `/gc` failure from `latest.log`: LumaGuilds 3.0.17 calls the nine-argument `ChannelMessageOptions` constructor missing from installed RoseChat RC-4, throwing before delivery.
+- [x] Copy the runtime record while replacing only `format`, retaining all options, including newer bypass flags. Keep the shared channel format unchanged.
+- [x] Accept the reported `#f99801Founder` syntax in shared rank validation/rendering; retain existing `&#RRGGBB`, repeated legacy hex, identity rules, and visible/raw limits.
+- [x] Render nested validation messages before Nexus placeholder interpolation in rank creation and editing.
+- [x] Prove binary compatibility locally: compile against the old nine-component API and run the same channel/record-copy tests with the eleven-component `RoseChat-RC-4-discord-rank-26.2-test.7.jar` using `-ProseChatRuntimeJar=../rosechat-26.2/build/libs/RoseChat-RC-4-discord-rank-26.2-test.7.jar`. Both focused runs pass. This is not the exact production test.5 artifact or a live send test.
+- [x] Full local validation and test artifact finalization: `gradlew.bat check shadowJar '-PreleaseVersion=3.0.18-guild-chat-rc4-test.1' --console=plain` passes, 1,497 tests, zero failures/errors, four skipped. Test artifact: `build/libs/LumaGuilds-3.0.18-guild-chat-rc4-test.1.jar`; SHA-256 `4D15FC67FAA4610C6C0C453658892557FA2503E7689F6E4DAB7A21817108BB37`. `git diff --check` passes.
+- [ ] Live `/gc` delivery and rank rename acceptance. Production inspection was read-only; no upload, restart, or activation occurred. Codacy MCP analysis is unavailable in this session.
