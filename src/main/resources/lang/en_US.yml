@@ -719,6 +719,8 @@ bedrock:
         <yellow>Available Slots<gray>: <red><available>
     button:
       teleport: '<home> (Teleport)'
+      activate: '<home> (Activate)'
+      inactive: '<home> (Inactive)'
       no_homes: No homes have been set
       set_new: Set New Home
       remove: Remove Home
@@ -734,6 +736,9 @@ bedrock:
       button: '<home> (Remove)'
     feedback:
       no_permission: '<red>❌ You do not have permission to use the home ''<home>''.'
+      inactive: '<yellow>⚠ Home ''<home>'' is saved but must be activated for Chapter 2 before it can be used.'
+      activation_success: '<green>✅ Home ''<home>'' is now active.'
+      activation_failed: '<red>❌ Failed to activate home ''<home>''.'
       teleport_failed: '<red>❌ Unable to teleport to that guild home.'
       set: '<green>✅ Guild home ''<home>'' has been set.'
       set_failed: '<red>❌ Failed to set the guild home.'
@@ -1956,6 +1961,11 @@ command:
         available_homes: '<gray>Available homes: <white><join_to_string>'
         guild_home_world_is_not_available: '<red>Guild home world is not available.'
         home_has_not_been_set: '<red>Home ''<target_home_name>'' has not been set.'
+        saved_but_inactive: '<yellow>⚠ Home ''<target_home_name>'' is still saved, but it is not active for Chapter 2.'
+        activation_hint: '<gray>A guild manager can reactivate it with <gold>/guild home activate <target_home_name><gray>.'
+        activation_no_permission: '<red>You need MANAGE_HOME to activate saved guild homes.'
+        activation_success: '<green>✅ Home ''<target_home_name>'' is now active for Chapter 2.'
+        activation_failed: '<red>❌ Failed to activate home ''<target_home_name>''.'
         no_guild_homes_have_been_set: '<red>No guild homes have been set.'
         no_pending_unsafe_teleport_to_confirm_or: '<red>No pending unsafe teleport to confirm, or confirmation expired.'
         please_wait_s_before_teleporting_again: '<red>◷ Please wait <remaining_seconds>s before teleporting again.'
@@ -6474,6 +6484,10 @@ menu:
       command: '<gray>Use <gold>/guild home \<name> <gray>to teleport'
       header: '<gold>=== Guild Homes ==='
       footer: '<gold>=================='
+    activation:
+      name: '<gold>Activate: <home>'
+      description: '<gray>This saved Season 1 home is inactive in Chapter 2.'
+      click: '<yellow>Click to pay the guild-gold activation cost'
     access:
       name: '<gold>🔒 Access: <home>'
       description: '<gray>Configure which ranks can use this home'
@@ -6512,6 +6526,10 @@ menu:
       set: '<green>✅ Guild <home> set to your current location!'
       teleport_command: '<gray>Members can now use <gold>/guild home <home><gray>to teleport here.'
       set_failed: '<red>❌ Failed to set guild home. Please try again.'
+      activation_success: '<green>✅ Home ''<home>'' is now active for Chapter 2.'
+      activation_failed: '<red>❌ Failed to activate home ''<home>''.'
+      activation_no_permission: '<red>❌ You need MANAGE_HOME to activate a saved home.'
+      access_denied: '<red>❌ Your rank cannot use home ''<home>''.'
       activation_paid: '<gold>? <gray>Paid <gold><cost> guild gold <gray>to activate this home.'
       activation_rejected: '<red>? Home activation payment was rejected: <reason>'
       activation_config_error: '<red>? Home activation cost is not configured. Contact an administrator.'
