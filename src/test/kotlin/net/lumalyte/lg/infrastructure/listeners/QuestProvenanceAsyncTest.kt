@@ -6,6 +6,7 @@ import io.mockk.verify
 import net.lumalyte.lg.application.persistence.BlockProvenanceRepository
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.QuestService
+import net.lumalyte.lg.api.events.GuildBankDepositEvent
 import net.lumalyte.lg.domain.values.BlockPosition
 import org.bukkit.World
 import org.bukkit.block.Block
@@ -15,8 +16,30 @@ import org.junit.jupiter.api.Test
 import java.util.UUID
 import java.util.concurrent.Executor
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class QuestProvenanceAsyncTest {
+    @Test
+    fun `quest bookkeeping failure does not latch provenance queue`() {
+        val queue = BlockProvenanceOperationQueue(Executor { it.run() })
+        val questService = mockk<QuestService>()
+        every {
+            questService.incrementProgress(any(), any(), any(), any(), any(), any())
+        } throws IllegalStateException("quest persistence failed")
+        val listener = QuestProgressListener(
+            questService,
+            mockk<MemberService>(relaxed = true),
+            mockk<BlockProvenanceRepository>(relaxed = true),
+            queue,
+        )
+
+        listener.onBankDeposit(GuildBankDepositEvent(UUID.randomUUID(), UUID.randomUUID(), 500))
+
+        var provenanceRan = false
+        queue.submit { provenanceRan = true }.join()
+        assertTrue(provenanceRan)
+    }
+
     @Test
     fun `piston captures immutable coordinates and does not call database on event thread`() {
         val workers = mutableListOf<Runnable>()

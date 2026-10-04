@@ -21,6 +21,7 @@ import org.bukkit.inventory.ItemStack
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.TimeoutException
 import kotlin.test.assertEquals
 
 class QuestCompletionNotifierBukkitTest {
@@ -107,6 +108,49 @@ class QuestCompletionNotifierBukkitTest {
         verify(exactly = 1) {
             toastSender.show(offline, any(), any(), any(), icon, ToastFrame.TASK)
         }
+    }
+
+    @Test
+    fun `main thread timeout leaves completion notification pending`() {
+        val memberService = mockk<MemberService>()
+        val notificationRepository = InMemoryQuestCompletionNotifications()
+        val questRepository = mockk<QuestRepository>()
+        val guildId = UUID.randomUUID()
+        val playerId = UUID.randomUUID()
+        val rankId = UUID.randomUUID()
+        val quest = quest()
+        val week = WeeklyQuestSet(
+            "2026-09-21",
+            Instant.parse("2026-09-21T00:00:00Z"),
+            Instant.parse("2026-09-28T00:00:00Z"),
+            listOf(quest),
+        )
+        val progress = GuildQuestProgress(
+            week.weekId,
+            quest.id,
+            guildId,
+            currentCount = quest.targetCount,
+            claimed = true,
+            completedAt = Instant.parse("2026-09-24T12:00:00Z"),
+            rewardDelivered = true,
+        )
+        every { memberService.getGuildMembers(guildId) } returns setOf(
+            Member(playerId, guildId, rankId, Instant.EPOCH)
+        )
+        every { questRepository.getQuestSet(week.weekId) } returns week
+
+        val service = QuestCompletionNotifierBukkit(
+            memberService = memberService,
+            lang = mockk(relaxed = true),
+            toastSender = mockk(relaxed = true),
+            notifications = notificationRepository,
+            quests = questRepository,
+            onMainThread = { throw TimeoutException("main thread did not respond") },
+        )
+
+        service.onCompleted(guildId, quest, progress)
+
+        assertEquals(1, notificationRepository.getPending(playerId).size)
     }
 
     private fun quest() = QuestDefinition(
