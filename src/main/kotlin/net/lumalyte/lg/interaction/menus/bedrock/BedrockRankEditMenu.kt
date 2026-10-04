@@ -93,7 +93,7 @@ class BedrockRankEditMenu(
             return
         }
         if (!RankNameContent.valid(newName)) {
-            player.sendMessage(lang.msg("bedrock.rank_management.error.name_length", "minimum" to 1, "maximum" to 24))
+            player.sendMessage(lang.msg("bedrock.rank_management.error.name_length", "minimum" to 1, "maximum" to RankNameContent.MAX_VISIBLE_LENGTH))
             open()
             return
         }

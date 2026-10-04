@@ -305,13 +305,15 @@ class ChatServiceBukkit(
             }
         val primaryGuild = memberService.getPlayerGuilds(senderId).firstOrNull()?.let(guildService::getGuild)
         val guildTag = primaryGuild?.let { GuildDisplayUtils.createGuildTag(it, brackets = false) }.orEmpty()
-        val guildChatName = guildChatPlayer(senderId, senderName, primaryGuild)
 
         return when (channel) {
-            ChatChannel.GUILD -> if (guildTag.isNotEmpty()) {
-                lang.msg("notification.chat.guild.with_tag", "tag" to guildTag, "player" to guildChatName, "message" to processedMessage)
-            } else {
-                lang.msg("notification.chat.guild.without_tag", "player" to guildChatName, "message" to processedMessage)
+            ChatChannel.GUILD -> {
+                val guildChatName = guildChatPlayer(senderId, senderName, primaryGuild)
+                if (guildTag.isNotEmpty()) {
+                    lang.msg("notification.chat.guild.with_tag", "tag" to guildTag, "player" to guildChatName, "message" to processedMessage)
+                } else {
+                    lang.msg("notification.chat.guild.without_tag", "player" to guildChatName, "message" to processedMessage)
+                }
             }
             ChatChannel.ALLY -> if (guildTag.isNotEmpty()) {
                 lang.msg("notification.chat.ally.with_tag", "tag" to guildTag, "player" to senderName, "message" to processedMessage)

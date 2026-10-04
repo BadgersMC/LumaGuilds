@@ -215,5 +215,6 @@ class RankServicePriorityTest {
         every { rankRepo.getByName(guildId, "&bOwner") } returns owner
         assertFalse(service.renameRank(target.id, "&bOwner", actorId))
         verify(exactly = 1) { rankRepo.update(any()) }
+        verify(exactly = 1) { profiles.getOrCreate(target.id, "Member") }
     }
 }

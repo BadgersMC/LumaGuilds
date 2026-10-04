@@ -24,7 +24,7 @@ data class Rank(
 ) {
     init {
         require(name.length <= RankNameContent.MAX_RAW_LENGTH &&
-            RankNameContent.plain(name).length in 1..24) {
+            RankNameContent.plain(name).length in 1..RankNameContent.MAX_VISIBLE_LENGTH) {
             "Rank name must have 1-24 visible characters and valid legacy color codes."
         }
         require(priority >= 0) { "Rank priority must be non-negative." }
