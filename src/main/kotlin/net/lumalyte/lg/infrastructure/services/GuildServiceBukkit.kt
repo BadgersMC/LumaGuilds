@@ -263,6 +263,10 @@ class GuildServiceBukkit(
                 logger.warn("Invalid emoji format: $emojiValue")
                 return false
             }
+            if (!nexoEmojiService.doesEmojiExist(emojiValue)) {
+                logger.warn("Unknown or non-emoji glyph: $emojiValue")
+                return false
+            }
             
             // Check if player has specific emoji permission
             val player = Bukkit.getPlayer(actorId)

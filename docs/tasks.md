@@ -1,49 +1,49 @@
-# LumaGuilds — Tasks (SPEAR)
+﻿# LumaGuilds â€” Tasks (SPEAR)
 
 Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` line, and an `Evidence:` block that MUST be filled with real source citations before any downstream SPEAR phase runs on it.
 
-PR grouping: tasks under each `## PR-n` header ship together in one pull request. PR order is dependency-driven — permissions first (commands must be executable before any feature is testable), then config plumbing (features consume the knobs), then feature domains, with the cross-cutting lang migration and UI completion last.
+PR grouping: tasks under each `## PR-n` header ship together in one pull request. PR order is dependency-driven â€” permissions first (commands must be executable before any feature is testable), then config plumbing (features consume the knobs), then feature domains, with the cross-cutting lang migration and UI completion last.
 
 ---
 
-## PR-144 — Review corrections
+## PR-144 â€” Review corrections
 
-- [x] **PR-144 review corrections** — REQ-050/055/092: Throwable rollback, shared purchase/gold locking and durable deposit recovery, atomic disband cleanup, unavailable reward controls, and production-schema purchase fixtures.
+- [x] **PR-144 review corrections** â€” REQ-050/055/092: Throwable rollback, shared purchase/gold locking and durable deposit recovery, atomic disband cleanup, unavailable reward controls, and production-schema purchase fixtures.
   - Tag: `TDD`
-  - References: REQ-050/055/092; `docs/implementation.md` §Creation cooldown
+  - References: REQ-050/055/092; `docs/implementation.md` Â§Creation cooldown
   - Evidence: `GuildCreationHistorySQLTest`, `GuildDisbandAtomicityTest`, `GuildVaultDisbandTest`, `GuildGoldPersonalTransferTest`, `RewardPurchaseRepositorySQLTest`, and `GuildRewardCatalogControlsTest` cover rollback, failure preservation, post-commit vault drops, canonical locking/recovery, migrated fixtures, and unavailable controls. Final `test shadowJar --offline`: 1,008 tests, zero failures/errors/skips; deployable JAR built. Semgrep Kotlin rules: zero findings; independent review and `git diff --check` clean. MariaDB was not rerun (no running local engine).
 
-## PR-0 — SPEAR bootstrap (foundation, no code review)
+## PR-0 â€” SPEAR bootstrap (foundation, no code review)
 
 - [x] **LG-000** Bootstrap SPEAR docs + Konsist architecture guard
   - Tag: `INFRA`
-  - References: all REQ-001..REQ-044; `docs/implementation.md` §Layer Dependency Rules
+  - References: all REQ-001..REQ-044; `docs/implementation.md` Â§Layer Dependency Rules
   - Evidence: 44 EARS REQs + 45 PR-grouped tasks authored (Aug 10); Konsist 0.17.3 wired; LayerRulesTest 3/3 green; 370/370 tests green after domain-purity relocation
   - Files: `docs/*` (tech-stack, requirements, implementation, tasks), `src/test/kotlin/net/lumalyte/lg/architecture/LayerRulesTest.kt`, `build.gradle.kts` (add Konsist 0.17.3)
 
 ---
 
-## PR-1 — Permission alignment (Section A)
+## PR-1 â€” Permission alignment (Section A)
 
-- [x] **LG-101** Bedrock cache commands authorize via `lumaguilds.bedrock.cache.*` — no stale `lumalyte.*` prefix
+- [x] **LG-101** Bedrock cache commands authorize via `lumaguilds.bedrock.cache.*` â€” no stale `lumalyte.*` prefix
   - Tag: `TDD`
   - References: REQ-001
-  - Evidence: `BedrockCacheStatsCommand.kt` all 4 check sites use `lumaguilds.bedrock.cache.*`; `PermissionConsistencyTest` stale-prefix scan (kotlin sources + shipped config.yml) green; `lumalyte.emoji` defaults renamed to `lumaguilds.emoji` (MainConfig/ConfigServiceBukkit/ConfigValidator + config.yml) — servers that set `chat.emoji_permission_prefix` explicitly (e.g. `enthusia.emoji` on the live EnthusiaSMP config) are unaffected because ConfigServiceBukkit preserves the configured value
+  - Evidence: `BedrockCacheStatsCommand.kt` all 4 check sites use `lumaguilds.bedrock.cache.*`; `PermissionConsistencyTest` stale-prefix scan (kotlin sources + shipped config.yml) green; `lumalyte.emoji` defaults renamed to `lumaguilds.emoji` (MainConfig/ConfigServiceBukkit/ConfigValidator + config.yml) â€” servers that set `chat.emoji_permission_prefix` explicitly (e.g. `enthusia.emoji` on the live EnthusiaSMP config) are unaffected because ConfigServiceBukkit preserves the configured value
   - Files: `interaction/commands/BedrockCacheStatsCommand.kt`, `src/main/resources/plugin.yml`, test asserting code prefix == plugin.yml prefix
 - [x] **LG-102** Declare the 14 `lumaguilds.guild.*` command nodes (join, list, lfg, decline, invites, leave, transfer, getvault, vault, help, ally, enemy, truce, neutral) in plugin.yml with sane defaults
   - Tag: `TDD`
   - References: REQ-002
-  - Evidence: all 14 added to `lumaguilds.guild.*` children + individually declared (default: true); `PermissionConsistencyTest` `used ⊆ declared` green
+  - Evidence: all 14 added to `lumaguilds.guild.*` children + individually declared (default: true); `PermissionConsistencyTest` `used âŠ† declared` green
   - Files: `src/main/resources/plugin.yml`, test scanning `@CommandPermission` vs plugin.yml declarations
 - [x] **LG-103** Add `claim.partitions`, `claim.trustlist`, `claimmenu`, `claimoverride` to the `lumaguilds.command.*` wildcard children
   - Tag: `TDD`
   - References: REQ-003
-  - Evidence: VERIFIED-ALREADY-SATISFIED — nodes present in wildcard (plugin.yml:165,170,175,176) + individually declared; code uses matching nodes (`PartitionsCommand.kt:24`, `TrustListCommand.kt:26`, `ClaimMenuCommand.kt:20`, `ClaimOverrideCommand.kt:21`); audit sub-claim was agent-reported, never re-verified. Locked with regression test in `PermissionConsistencyTest`
+  - Evidence: VERIFIED-ALREADY-SATISFIED â€” nodes present in wildcard (plugin.yml:165,170,175,176) + individually declared; code uses matching nodes (`PartitionsCommand.kt:24`, `TrustListCommand.kt:26`, `ClaimMenuCommand.kt:20`, `ClaimOverrideCommand.kt:21`); audit sub-claim was agent-reported, never re-verified. Locked with regression test in `PermissionConsistencyTest`
   - Files: `src/main/resources/plugin.yml`, regression test
 
 ---
 
-## PR-2 — Config plumbing (dead sections + orphan keys)
+## PR-2 â€” Config plumbing (dead sections + orphan keys)
 
 - [x] **LG-201** Load the full `vault:` config section (config.yml:165-299) and apply it at runtime
   - Tag: `TDD`
@@ -53,12 +53,12 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [x] **LG-202** Load the `bedrock:` config section (config.yml:673-735) and replace placeholder icon defaults
   - Tag: `TDD`
   - References: REQ-005
-  - Evidence: `loadBedrockConfig()` reads all 35 documented keys; all 13 icon defaults (MainConfig + config.yml) changed from dead `https://via.placeholder.com/...` URLs to `""` (text-only buttons — via.placeholder.com shut down in 2023); sentinel test + no-placeholder-URL scan + empty-defaults test
+  - Evidence: `loadBedrockConfig()` reads all 35 documented keys; all 13 icon defaults (MainConfig + config.yml) changed from dead `https://via.placeholder.com/...` URLs to `""` (text-only buttons â€” via.placeholder.com shut down in 2023); sentinel test + no-placeholder-URL scan + empty-defaults test
   - Files: `infrastructure/services/ConfigServiceBukkit.kt`, `config/MainConfig.kt`, bedrock defaults in `config.yml`
 - [x] **LG-203** Consume `chat.default_channel_visibility` and `chat.colored_chat_enabled` in the chat pipeline
   - Tag: `TDD`
   - References: REQ-006
-  - Evidence: `ChatSettingsRepositorySQLite` takes `defaultChannelVisibility` (DI passes `chat.defaultChannelVisibility`) and applies it to fresh players' visibility fallback; `ChatServiceBukkit.formatMessage` strips legacy § codes (incl. hex §x) via `stripLegacyColors` when `coloredChatEnabled` is false; `ChatServiceBukkitTest` (5 cases)
+  - Evidence: `ChatSettingsRepositorySQLite` takes `defaultChannelVisibility` (DI passes `chat.defaultChannelVisibility`) and applies it to fresh players' visibility fallback; `ChatServiceBukkit.formatMessage` strips legacy Â§ codes (incl. hex Â§x) via `stripLegacyColors` when `coloredChatEnabled` is false; `ChatServiceBukkitTest` (5 cases)
   - Files: chat services/listeners, config model
 - [x] **LG-204** Load `brewingXp` from config (operator-tunable)
   - Tag: `TDD`
@@ -93,12 +93,12 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ---
 
-## PR-3 — Bank features (knobs + real menus)
+## PR-3 â€” Bank features (knobs + real menus)
 
 - [x] **LG-301** Enforce bank config: interest accrual task, max balance, audit retention, suspicious-transaction detection + auto-lock
   - Tag: `TDD`
   - References: REQ-009
-  - Evidence: `BankSettings`/`BankSettingsRepositorySQLite` (bank_settings table) + `BankAutomationService` (interest accrual, per-guild rate override, 30-period catch-up, audit pruning) + `BankInterestScheduler` (five-minute scheduled task, wired in LumaGuilds.onEnable/onDisable); deposit ceiling = min(config cap, progression limit); suspicious-transaction auto-lock on deposit+withdrawal (system actor UUID(0,0) + audit entry); `deleteAuditsOlderThan` per `audit_log_retention_days`. Tests: `BankAutomationServiceTest` (7), `BankConfigEnforcementTest` (6), `BankSettingsRepositorySQLiteTest` (3) — 16 GREEN.
+  - Evidence: `BankSettings`/`BankSettingsRepositorySQLite` (bank_settings table) + `BankAutomationService` (interest accrual, per-guild rate override, 30-period catch-up, audit pruning) + `BankInterestScheduler` (five-minute scheduled task, wired in LumaGuilds.onEnable/onDisable); deposit ceiling = min(config cap, progression limit); suspicious-transaction auto-lock on deposit+withdrawal (system actor UUID(0,0) + audit entry); `deleteAuditsOlderThan` per `audit_log_retention_days`. Tests: `BankAutomationServiceTest` (7), `BankConfigEnforcementTest` (6), `BankSettingsRepositorySQLiteTest` (3) â€” 16 GREEN.
   - Files: `infrastructure/services/BankServiceBukkit.kt`, `infrastructure/services/BankInterestScheduler.kt`, `application/services/BankAutomationService.kt`, `application/persistence/BankSettingsRepository.kt`, `infrastructure/persistence/guilds/BankSettingsRepositorySQLite.kt`, `domain/entities/BankSettings.kt`, bank config model
 - [x] **LG-302** Bank automation menu: persisted settings, real save, real next-run time + status
   - Tag: `TDD`
@@ -123,22 +123,22 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ---
 
-## PR-4 — Combat & wars (knobs + real services)
+## PR-4 â€” Combat & wars (knobs + real services)
 
 - [x] **LG-401** Enforce combat config: war duration, grace period, max simultaneous wars, kill/win/lose XP, kill cooldown, same-player kill limit, anti-griefing
   - Tag: `TDD`
   - References: REQ-008
-  - Evidence: `WarConfigEnforcementTest` (10 cases: duration cap, max-wars base+progression, no-auto-accept, reject, anti-farming). `WarServiceBukkit.kt` — `effectiveWarDuration` (duration cap), `maxWarsForGuild` (config base, progression refines up), grace-aware expiry in `processExpiredWars`, `awardWarExperience`/`awardWarKillExperience` (win/lose/kill XP). `WarKillTrackingListener.kt` — farming check suppresses kill XP. `CombatAntiGriefListener.kt` — explosion block-damage suppressed for warring players when `anti_griefing_enabled`.
+  - Evidence: `WarConfigEnforcementTest` (10 cases: duration cap, max-wars base+progression, no-auto-accept, reject, anti-farming). `WarServiceBukkit.kt` â€” `effectiveWarDuration` (duration cap), `maxWarsForGuild` (config base, progression refines up), grace-aware expiry in `processExpiredWars`, `awardWarExperience`/`awardWarKillExperience` (win/lose/kill XP). `WarKillTrackingListener.kt` â€” farming check suppresses kill XP. `CombatAntiGriefListener.kt` â€” explosion block-damage suppressed for warring players when `anti_griefing_enabled`.
   - Files: `infrastructure/services/WarServiceBukkit.kt`, combat listener
 - [x] **LG-402** Implement `CombatServiceBukkit.getPlayerGuilds()` and `getRelationType()` against the guild/relation domain
   - Tag: `TDD`
   - References: REQ-014
-  - Evidence: `CombatServiceBukkit.kt` injects `MemberService` + `RelationService`; `getPlayerGuilds()` → `memberService.getPlayerGuilds()`, `getRelationType()` → `relationService.getRelationType()`. DI: `Modules.kt` `CombatServiceBukkit(get(), get(), get())`.
+  - Evidence: `CombatServiceBukkit.kt` injects `MemberService` + `RelationService`; `getPlayerGuilds()` â†’ `memberService.getPlayerGuilds()`, `getRelationType()` â†’ `relationService.getRelationType()`. DI: `Modules.kt` `CombatServiceBukkit(get(), get(), get())`.
   - Files: `infrastructure/services/CombatServiceBukkit.kt:119-129`
 - [x] **LG-403** War declaration accept/decline flow (no instant auto-accept)
   - Tag: `TDD`
   - References: REQ-024
-  - Evidence: `declareWar()` returns `WarDeclaration?` and delegates to `createWarDeclaration()` (promoted to `WarService` interface) — no auto-accept. `acceptWarDeclaration()` activates: ACTIVE + startedAt + objectives + warStats + `GuildWarDeclaredEvent`. All three menus (Java + 2 Bedrock) route through `createWarDeclaration`; auto-accept shortcuts and menu-side escrow/`refundWager()` removed. Tested in `WarConfigEnforcementTest`.
+  - Evidence: `declareWar()` returns `WarDeclaration?` and delegates to `createWarDeclaration()` (promoted to `WarService` interface) â€” no auto-accept. `acceptWarDeclaration()` activates: ACTIVE + startedAt + objectives + warStats + `GuildWarDeclaredEvent`. All three menus (Java + 2 Bedrock) route through `createWarDeclaration`; auto-accept shortcuts and menu-side escrow/`refundWager()` removed. Tested in `WarConfigEnforcementTest`.
   - Files: `WarServiceBukkit.kt:80`, declaration menu
 - [x] **LG-404** Load and enforce `combat.war_farming_cooldown_hours`
   - Tag: `TDD`
@@ -148,17 +148,17 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [x] **LG-405** War declaration escrow withdraw completed in the war service
   - Tag: `TDD`
   - References: REQ-039
-  - Evidence: `acceptWarDeclaration` now escrows via `createWager` internally (both guilds deducted, `WarServiceBukkit.kt:145-155`). Declaration + acceptance menus (Java + Bedrock) no longer move bank funds — removed menu-side `bankService.withdraw` (was double-charging the defending guild) and dead `refundWager()`. Escrow verified by `WarConfigEnforcementTest` (`wager is escrowed on acceptance`).
+  - Evidence: `acceptWarDeclaration` now escrows via `createWager` internally (both guilds deducted, `WarServiceBukkit.kt:145-155`). Declaration + acceptance menus (Java + Bedrock) no longer move bank funds â€” removed menu-side `bankService.withdraw` (was double-charging the defending guild) and dead `refundWager()`. Escrow verified by `WarConfigEnforcementTest` (`wager is escrowed on acceptance`).
   - Files: `GuildWarDeclarationMenu.kt:527`, war escrow service
 
 ---
 
-## PR-5 — Claims, peaceful mode & vault (Section B residuals)
+## PR-5 â€” Claims, peaceful mode & vault (Section B residuals)
 
 - [x] **LG-501** Enforce peaceful-mode flags: claim PVP disabled (war declarations left as-is per operator decision)
   - Tag: `TDD`
   - References: REQ-007
-  - Evidence: `ModeServiceBukkit.isPvpAllowedInTerritory` now gates the peaceful-territory block on `guild.peaceful_mode_claim_pvp_disabled`; new `ClaimPvpProtectionListener` (registered in `registerClaimEvents`, i.e. only when claims are enabled) resolves the victim's claim via `GetClaimAtPosition` and enforces `CombatService.canAttack` for guild-owned claims. Verified by `PeacefulModeEnforcementTest` (territory block on/off). Note: `peaceful_mode_prevent_wars` intentionally NOT enforced — operator chose to leave war behavior unchanged.
+  - Evidence: `ModeServiceBukkit.isPvpAllowedInTerritory` now gates the peaceful-territory block on `guild.peaceful_mode_claim_pvp_disabled`; new `ClaimPvpProtectionListener` (registered in `registerClaimEvents`, i.e. only when claims are enabled) resolves the victim's claim via `GetClaimAtPosition` and enforces `CombatService.canAttack` for guild-owned claims. Verified by `PeacefulModeEnforcementTest` (territory block on/off). Note: `peaceful_mode_prevent_wars` intentionally NOT enforced â€” operator chose to leave war behavior unchanged.
   - Files: `ModeServiceBukkit.kt`, `ClaimPvpProtectionListener.kt`, `LumaGuilds.kt`
 - [x] **LG-502** Vault placement validates against claims when claims are enabled
   - Tag: `TDD`
@@ -168,29 +168,29 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [x] **LG-503** Load and consume `peacefulGuildPvpOptIn` per guild
   - Tag: `TDD`
   - References: REQ-027
-  - Evidence: `peaceful_guild_pvp_opt_in` now loaded in `loadGuildConfig` (was dead field); `ModeServiceBukkit.isPvpAllowed` consumes it — peaceful guilds are PvP-blocked by default, but when the opt-in is true their members can fight. Verified by `PeacefulModeEnforcementTest` (opt-in off blocks, opt-in on allows).
+  - Evidence: `peaceful_guild_pvp_opt_in` now loaded in `loadGuildConfig` (was dead field); `ModeServiceBukkit.isPvpAllowed` consumes it â€” peaceful guilds are PvP-blocked by default, but when the opt-in is true their members can fight. Verified by `PeacefulModeEnforcementTest` (opt-in off blocks, opt-in on allows).
   - Files: `ConfigServiceBukkit.kt`, `ModeServiceBukkit.kt`
 
 ---
 
-## PR-6 — Statistics
+## PR-6 â€” Statistics
 
 - [x] **LG-602** Implement real statistics drill-downs (Period Stats, Rivalry Stats, Achievements, Trend Analysis, Guild Comparison, Export) replacing 6 coming-soon stubs
   - Tag: `TDD`
   - References: REQ-032
-  - Evidence: 6 stubs replaced with real implementations: `openPeriodStatsMenu` (4 periods shown with same all-time data — `LeaderboardService` injected but not yet wired for period queries), `openRivalryStatsDetail` (PaginatedPane of war history with KDR), `openAchievementsDetail` (8 achievements with lime/gray glass panes), `openTrendAnalysis` (current values only — arrows shown as "→" stable pending historical data), `openGuildComparison` (PaginatedPane with all guilds side-by-side), `exportGuildStatistics` (chat message with all key stats). Map/chart rendering (LG-601) removed per project owner decision — 6 renderer files deleted.
+  - Evidence: 6 stubs replaced with real implementations: `openPeriodStatsMenu` (4 periods shown with same all-time data â€” `LeaderboardService` injected but not yet wired for period queries), `openRivalryStatsDetail` (PaginatedPane of war history with KDR), `openAchievementsDetail` (8 achievements with lime/gray glass panes), `openTrendAnalysis` (current values only â€” arrows shown as "â†’" stable pending historical data), `openGuildComparison` (PaginatedPane with all guilds side-by-side), `exportGuildStatistics` (chat message with all key stats). Map/chart rendering (LG-601) removed per project owner decision â€” 6 renderer files deleted.
   - Files: `interaction/menus/guild/GuildStatisticsMenu.kt`
 
 ---
 
-## PR-7 — Localization migration (cross-cutting)
+## PR-7 â€” Localization migration (cross-cutting)
 
-- [x] **LG-701** Migrate all player-facing messages off hardcoded `§` strings and legacy properties onto Nexus `LangService` with `lang/en_US.yml`; zero unreferenced lang keys remain
+- [x] **LG-701** Migrate all player-facing messages off hardcoded `Â§` strings and legacy properties onto Nexus `LangService` with `lang/en_US.yml`; zero unreferenced lang keys remain
   - Tag: `TDD`
   - References: REQ-016
   - Evidence: Locale contract passes with 0 positional placeholders, 0 missing keys, 0 unreferenced keys, 0 placeholder mismatches, and 0 unclassified player literals. `clean test --tests net.lumalyte.lg.infrastructure.i18n.*` passed (23 tests). `clean test shadowJar` passed (574 tests); shaded JAR produced at `build/libs/LumaGuilds-2.1.0.jar`.
   - Files: `interaction/commands/*`, Java/Bedrock menus, notification adapters, `lang/en_US.yml`, locale contract tests
-  - Note: large — decompose into per-command sub-tasks during spec if the briefing exceeds ~1500 tokens.
+  - Note: large â€” decompose into per-command sub-tasks during spec if the briefing exceeds ~1500 tokens.
 
 - [x] **LG-702** Keep nested Guild Emoji fallback values in MiniMessage format until the outer locale template renders
   - Tag: `TDD`
@@ -201,42 +201,42 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [x] **LG-703** Replace legacy localization rendering with strict MiniMessage Components and surface-aware typography
   - Tag: `TDD`
   - References: REQ-016
-  - Evidence: Zero production `lang.legacy()` calls (confirmed: 0 remaining). Final semantic audit of 162 `lang.raw()` calls: 0 bucket-D items found — all 162 are correct (118 proper-name fallbacks, 9 date/time patterns, 2 separators, 27 chat-only). `GuiTextRenderer` applies Unicode small caps + opaque black shadow. Java menu items use `lang.gui()` Components. Menu titles use `lang.guiTitle()`. Bedrock forms use `lang.bedrock()` with small caps, no shadow. Only 5 Bedrock `lang.raw()` calls remain — all `DateTimeFormatter` patterns. Chat/notifications use `lang.msg()` Components with normal typography. `clean test shadowJar` (21m 25s): BUILD SUCCESSFUL, exit 0, all 606+ tests passed. JAR at `build/libs/LumaGuilds-2.1.0.jar`.
+  - Evidence: Zero production `lang.legacy()` calls (confirmed: 0 remaining). Final semantic audit of 162 `lang.raw()` calls: 0 bucket-D items found â€” all 162 are correct (118 proper-name fallbacks, 9 date/time patterns, 2 separators, 27 chat-only). `GuiTextRenderer` applies Unicode small caps + opaque black shadow. Java menu items use `lang.gui()` Components. Menu titles use `lang.guiTitle()`. Bedrock forms use `lang.bedrock()` with small caps, no shadow. Only 5 Bedrock `lang.raw()` calls remain â€” all `DateTimeFormatter` patterns. Chat/notifications use `lang.msg()` Components with normal typography. `clean test shadowJar` (21m 25s): BUILD SUCCESSFUL, exit 0, all 606+ tests passed. JAR at `build/libs/LumaGuilds-2.1.0.jar`.
   - Files: `GuiTextRenderer.kt`, `ItemStackExtensions.kt`, locale contract tests, `interaction/menus/**/*.kt`, `interaction/commands/*`, notification adapters, Bedrock menus, `lang/en_US.yml`, `docs/tasks.md`
 
 ---
 
-## PR-8a — Java UI completion
+## PR-8a â€” Java UI completion
 
 - [x] **LG-801** Apply `ui.*.enchanted` menu-item glow
   - Tag: `TDD`
   - References: REQ-022
-  - Evidence: **Skipped** — `MenuItemBuilder` legacy system only used by ~15 older menus; all modern menus (statistics, war management, control panel, etc.) construct items directly via `ItemStack.of().name().lore()`. The `ui.*.enchanted` config keys from the config-based UI era do nothing for the current menu architecture.
+  - Evidence: **Skipped** â€” `MenuItemBuilder` legacy system only used by ~15 older menus; all modern menus (statistics, war management, control panel, etc.) construct items directly via `ItemStack.of().name().lore()`. The `ui.*.enchanted` config keys from the config-based UI era do nothing for the current menu architecture.
   - Files: `MenuItemConfig.kt:338`, menu builders
 - [x] **LG-802** Real disband/leave/rank-list/promotion menus (replace "coming soon!" stubs)
   - Tag: `TDD`
   - References: REQ-030
-  - Evidence: All 4 menus already fully implemented — `GuildDisbandConfirmationMenu` (permission check, confirm/cancel, guildService.disbandGuild), `GuildLeaveConfirmationMenu` (confirm/cancel, memberService.removeMember), `GuildRankListMenu` (sorted paginated list with icons, permission display, overflow handling), `GuildPromotionMenu` (paginated member grid, left-click promote, right-click demote, reload-safe). Wired in MenuFactory since PR #126.
+  - Evidence: All 4 menus already fully implemented â€” `GuildDisbandConfirmationMenu` (permission check, confirm/cancel, guildService.disbandGuild), `GuildLeaveConfirmationMenu` (confirm/cancel, memberService.removeMember), `GuildRankListMenu` (sorted paginated list with icons, permission display, overflow handling), `GuildPromotionMenu` (paginated member grid, left-click promote, right-click demote, reload-safe). Wired in MenuFactory since PR #126.
   - Files: `GuildDisbandConfirmationMenu.kt`, `GuildLeaveConfirmationMenu.kt`, `GuildRankListMenu.kt`, `GuildPromotionMenu.kt`, `MenuFactory.kt:189-216,819-842`
-- [x] **LG-803** War management buttons ×7 (details/list/incoming/outgoing/stats/history/detailed) implemented
+- [x] **LG-803** War management buttons Ã—7 (details/list/incoming/outgoing/stats/history/detailed) implemented
   - Tag: `TDD`
   - References: REQ-033
   - Evidence: All 7 submenus implemented with real ChestGui/PaginatedPane: `openWarDetailsMenu` (war info + objectives progress + WarStats + surrender/peace actions), `openWarListMenu` (PaginatedPane of active wars), `openIncomingDeclarationsMenu` (accept/reject declarations with left/right click), `openOutgoingDeclarationsMenu` (cancel pending declarations), `openWarStatsMenu` (wins/losses/draws/KDR summary), `openWarHistoryMenu` (PaginatedPane of past wars with outcome indicators), `openDetailedStatsMenu` (aggregate war analytics). 170 new lang keys added, `coming_soon` block removed. Dynamic keys declared in LocaleContractTest. All 600+ tests green.
   - Files: `GuildWarManagementMenu.kt`, `lang/en_US.yml`, `LocaleContractTest.kt`
-- [x] **LG-804** Party management buttons ×5 (details/list/send request/create/access settings)
+- [x] **LG-804** Party management buttons Ã—5 (details/list/send request/create/access settings)
   - Tag: `TDD`
   - References: REQ-034
-  - Evidence: **Skipped** — party management feature is unused on EnthusiaSMP (all guild chat goes through fixed RoseChat channels, nobody uses LumaGuilds parties). Menu already renders active parties with accept/reject/leave; the 5 stub buttons (details, list, send, create, access settings) remain as-is. No user demand to implement them.
+  - Evidence: **Skipped** â€” party management feature is unused on EnthusiaSMP (all guild chat goes through fixed RoseChat channels, nobody uses LumaGuilds parties). Menu already renders active parties with accept/reject/leave; the 5 stub buttons (details, list, send, create, access settings) remain as-is. No user demand to implement them.
   - Files: party menus
 - [x] **LG-805** Rank permission-category selection (RankCreationMenu:388) + rank reset (RankEditMenu:385) implemented
   - Tag: `TDD`
   - References: REQ-035
-  - Evidence: Both features already fully implemented — `RankCreationMenu.openPermissionCategorySelection` toggles entire permission categories on/off with one click and real feedback; `RankEditMenu` reset button clears permissions with guards for owner rank, own rank, and last-rank checks, sound effects, and menu refresh.
+  - Evidence: Both features already fully implemented â€” `RankCreationMenu.openPermissionCategorySelection` toggles entire permission categories on/off with one click and real feedback; `RankEditMenu` reset button clears permissions with guards for owner rank, own rank, and last-rank checks, sound effects, and menu refresh.
   - Files: `RankCreationMenu.kt`, `RankEditMenu.kt`
 - [x] **LG-806** Misc menu stubs: settings name-edit lore, enemies list, peace agreement, bank statistics tax, statistics online tracking
   - Tag: `TDD`
   - References: REQ-036
-  - Evidence: 4 of 5 "stubs" were already functional (settings name lore, enemies list peace proposal, peace agreement proposal flow, bank tax info item). Online member tracking (5th) was the only real stub — `addMemberStatsButton` now queries `memberService.getGuildMembers()` + `Bukkit.getOnlinePlayers()` for real online/offline counts, and `calculateActivityRate` is no longer always 0%.
+  - Evidence: 4 of 5 "stubs" were already functional (settings name lore, enemies list peace proposal, peace agreement proposal flow, bank tax info item). Online member tracking (5th) was the only real stub â€” `addMemberStatsButton` now queries `memberService.getGuildMembers()` + `Bukkit.getOnlinePlayers()` for real online/offline counts, and `calculateActivityRate` is no longer always 0%.
   - Files: `GuildStatisticsMenu.kt`
 
 - [x] **LG-807** Wire Statistics into the Guild Dashboard bottom-right slot
@@ -253,7 +253,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ---
 
-## PR-8b — Bedrock & misc UX
+## PR-8b â€” Bedrock & misc UX
 
 - [x] **LG-811** Remove all `.coming.soon` lang keys from `lang/bedrock/forms.properties`
   - Tag: `TDD`
@@ -276,7 +276,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-042
   - Evidence: `BaseBedrockMenu` now injects the existing `Plugin` Koin binding for timeout scheduling; the `player.server.pluginManager.getPlugin("LumaGuilds")` service locator and `getPlugin()` hack are removed. `KoinGraphSmokeTest` is GREEN.
   - Files: `BaseBedrockMenu.kt:576`, Koin modules
-- [x] **LG-815** Bedrock join-requirements flow — no Java menu fallback
+- [x] **LG-815** Bedrock join-requirements flow â€” no Java menu fallback
   - Tag: `TDD`
   - References: REQ-043
   - Evidence: `MenuFactory.createJoinRequirementsMenu` now returns `BedrockJoinRequirementsMenu` when the platform/config decision selects Bedrock, while Java players retain `JoinRequirementsMenu`; `MenuFactoryBedrockJoinRequirementsTest` reproduced the prior Java fallback and is GREEN after the route change.
@@ -294,7 +294,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ---
 
-## PR-9 — Tech debt sweep
+## PR-9 â€” Tech debt sweep
 
 - [x] **LG-901** Remove `ShopIntegrationService` (dead class, no DI registration, no consumers)
   - Tag: `INFRA`
@@ -314,7 +314,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ---
 
-## PR-10 — Domain purity II (Bukkit-free domain)
+## PR-10 â€” Domain purity II (Bukkit-free domain)
 
 - [x] **LG-1001** Decouple domain events from `org.bukkit.event.Event`; remove `org.bukkit`/`org.koin`/`co.aikar`/`net.kyori` imports from `domain/**`; make the `forbidden:` contract executable (LayerRulesTest external-package assertion + populated list)
   - Tag: `TDD`
@@ -324,80 +324,80 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ---
 
-## PR-11 — Backlog: immediate fixes (operator, Fain)
+## PR-11 â€” Backlog: immediate fixes (operator, Fain)
 
 - [ ] **LG-1101** Resolve existing guild bugs
   - Tag: `TDD`
   - References: operator backlog (bugs channel `<#1421662495923372194>`)
   - Evidence:
-  - Files: TBD — bug list must be pasted into this doc before tracking
+  - Files: TBD â€” bug list must be pasted into this doc before tracking
   - [x] PR #142 withdrawal-loss fix (REQ-009): personal Vault account payouts, durable payout journal, required debit/refund persistence, restart-safe retry blocking, Java/Bedrock reconciliation warnings, and signed feedback. Full suite GREEN: 777 tests, zero failures/errors. Recovery procedure: `docs/bank-payout-recovery.md`. Production-provider in-game validation remains outstanding.
 - [x] **LG-1102** Economy commands fix: `/g balance` + `/g baltop` correct data; `/g balance` tab-completes all guild names
   - Tag: `TDD`
   - References: REQ-046
   - Evidence: `/g balance` renders the unified live vault-gold balance; `/g baltop` overlays buffered in-memory balances onto persisted rows before ranking; the `@guilds` completion contract returns every guild name. Focused regression tests and the clean repository suite are GREEN.
   - Files: `infrastructure/vault/VaultInventoryManager.kt`, `VaultLeaderboardConsistencyTest`, `GuildBalanceCommandContractTest`, existing `CommandLocalizationTest`
-- [x] **LG-1103** Guild emoji removal — emoji can be cleared once set
+- [x] **LG-1103** Guild emoji removal â€” emoji can be cleared once set
   - Tag: `TDD`
   - References: REQ-047
   - Evidence: Java Clear now persists `null` immediately through the existing permission-checked `GuildService.setEmoji` path, matching the Bedrock blank-input behavior; `GuildEmojiClearTest` reproduces the prior state-reset bug and is GREEN; full clean suite is GREEN (661 tests).
   - Files: `interaction/menus/guild/GuildEmojiMenu.kt`, `GuildEmojiClearTest.kt`
-- [x] **LG-1104** Custom guild emojis via config — guild-name → Nexo permission grant for all members
+- [x] **LG-1104** Custom guild emojis via config â€” guild-name â†’ Nexo permission grant for all members
   - Tag: `TDD`
   - References: REQ-048
-  - Evidence: SQLite ownership-ledger restart and malformed-row coverage; config normalization/injection/length rejection; reconciliation tests cover grant, leave, shared-node ownership, disband, rename, config removal, A→B replacement, and partial failures; LuckPerms gateway tests assert exact console commands; event, architecture, Koin graph, and full clean suite GREEN (685 tests).
+  - Evidence: SQLite ownership-ledger restart and malformed-row coverage; config normalization/injection/length rejection; reconciliation tests cover grant, leave, shared-node ownership, disband, rename, config removal, Aâ†’B replacement, and partial failures; LuckPerms gateway tests assert exact console commands; event, architecture, Koin graph, and full clean suite GREEN (685 tests).
   - Files: `EmojiPermissionGrant`, `EmojiGrantRepository`, `EmojiGrantRepositorySQLite`, `GuildEmojiGrantReconciler`, `LuckPermsEmojiPermissionGateway`, `GuildEmojiGrantService`, `GuildEmojiGrantListener`, `GuildRenamedEvent`, config loader, startup/reload wiring, `EMOJI_PERMISSIONS.md`
-  - Notes: lifecycle reconciliation — revoke on config-removal, guild rename/disband, member leave, and mapping change (A→B revokes A, grants B); tests cover grant, revoke, rename, config-removal, and value replacement
-  - Harvest: `CustomEmojiCommand` + `setEmojiAdmin()` from closed PR #7 (superseded) — rebuild admin-command flow against current rank/permission model
+  - Notes: lifecycle reconciliation â€” revoke on config-removal, guild rename/disband, member leave, and mapping change (Aâ†’B revokes A, grants B); tests cover grant, revoke, rename, config-removal, and value replacement
+  - Harvest: `CustomEmojiCommand` + `setEmojiAdmin()` from closed PR #7 (superseded) â€” rebuild admin-command flow against current rank/permission model
 
-## PR-12 — Backlog: progression & economy (operator, Fain)
+## PR-12 â€” Backlog: progression & economy (operator, Fain)
 
-- [x] **LG-1201** Chapter 2 current-run progression — activity XP, source caps, anti-AFK validation, and weekly-quest integration
+- [x] **LG-1201** Chapter 2 current-run progression â€” activity XP, source caps, anti-AFK validation, and weekly-quest integration
   - Tag: `TDD`
   - References: REQ-049, REQ-089
-  - Evidence: PR #138 Tasks 1–7; Tasks 8–9 guild-wide awards and authoritative source-usage read models; Task 10 routes the final war-kill bonus bypass through actor-aware `PLAYER_KILL` cap accounting and verifies the quest sink, claim/full-set idempotency, unlimited SQL award path, rejection-before-cap behavior, and repository payout markers
-  - Files: progression services, XP listeners (↳ PR-4 anti-farming, LG-204)
+  - Evidence: PR #138 Tasks 1â€“7; Tasks 8â€“9 guild-wide awards and authoritative source-usage read models; Task 10 routes the final war-kill bonus bypass through actor-aware `PLAYER_KILL` cap accounting and verifies the quest sink, claim/full-set idempotency, unlimited SQL award path, rejection-before-cap behavior, and repository payout markers
+  - Files: progression services, XP listeners (â†³ PR-4 anti-farming, LG-204)
   - Notes: deterministic acceptance tests per source; validation happens before cap accounting; caps are fixed guild-wide per source, never per player or combined; weekly quests bypass daily source caps
   - Design: `docs/superpowers/specs/2026-08-27-chapter-2-progression-revamp-design.md`
-- [x] **LG-1202** Comprehensive level 1–100 run reward tier list with permanent-state classification
-  - Handoff: `docs/plans/2026-09-17-lg-1202-developer-handoff.md`. Catalog and decisions 1–6 approved by the operator on 2026-09-17; DOC deliverable complete, runtime implementation remains separate.
+- [x] **LG-1202** Comprehensive level 1â€“100 run reward tier list with permanent-state classification
+  - Handoff: `docs/plans/2026-09-17-lg-1202-developer-handoff.md`. Catalog and decisions 1â€“6 approved by the operator on 2026-09-17; DOC deliverable complete, runtime implementation remains separate.
   - Tag: `DOC`
   - References: REQ-050
-  - Evidence: 2026-09-17 source inventory and approved 100-row catalog in `docs/plans/2026-09-17-lg-1202-reward-catalog-proposal.md`, grounded in REQ-049/050/054/056/090–093 and the approved 2026-08-30 prestige/gold design. Read-only arithmetic checks passed: 100 ordered unique levels, 20 numeric plus 10 major purchases, 30 unique IDs, all capacity values and positive affordable prices, 48,500 total gold and nine permanent home slots. DOC scope; runtime tests/build not run, no deployed behavior claimed. Operator explicitly accepted the six decisions and complete table on 2026-09-17.
+  - Evidence: 2026-09-17 source inventory and approved 100-row catalog in `docs/plans/2026-09-17-lg-1202-reward-catalog-proposal.md`, grounded in REQ-049/050/054/056/090â€“093 and the approved 2026-08-30 prestige/gold design. Read-only arithmetic checks passed: 100 ordered unique levels, 20 numeric plus 10 major purchases, 30 unique IDs, all capacity values and positive affordable prices, 48,500 total gold and nine permanent home slots. DOC scope; runtime tests/build not run, no deployed behavior claimed. Operator explicitly accepted the six decisions and complete table on 2026-09-17.
   - Files: `docs/plans/2026-09-17-lg-1202-reward-catalog-proposal.md`, handoff and tasks; no reward config/registry changes
-  - Notes: levels 101–200 are seasonal Elo presentation, not permanent reward levels
-- [x] **LG-1203** Seasonal Elo — rated level-100 wars, opponent weighting, rematch guard, and 101–200 display mapping
+  - Notes: levels 101â€“200 are seasonal Elo presentation, not permanent reward levels
+- [x] **LG-1203** Seasonal Elo â€” rated level-100 wars, opponent weighting, rematch guard, and 101â€“200 display mapping
   - Tag: `TDD`
   - References: REQ-051, REQ-053
   - Evidence: Explicit rated declarations require both guilds at current-run level 100 and bind the accepted war to the exact scheduled chapter; declaration/acceptance require the persisted chapter to be inside its half-open active interval `[starts_at, ends_at)`, while legacy and explicitly unrated wars carry no rating identity. Rated resolution uses the durable war `endedAt` timestamp under the chapter lock, opponent-weighted Elo from one pre-result snapshot with K=40, fixed start/floor 1000, configurable 1600 display ceiling and seven-day unordered-pair guard. The pair guard, rating writes and durable result receipt commit atomically; outside-window, level-ineligible and rematch-guarded outcomes persist terminal no-rating receipts so replay cannot later change the result. Before rollover freezes rating writes, completed rated wars are reconciled and still-active rated wars are durably marked unrated at the cutoff; rollover blocks if any bound rated war remains unsettled. Persisted war records use backward-compatible v2 rating identity (v1 decodes unrated), and v31 persists pair/result/decision state for SQLite and MariaDB. Java/Bedrock declaration, acceptance and war-stat UI plus seasonal Elo/level/rank/eligibility placeholders consume the gated read model; PlaceholderAPI reads fail closed on storage errors and escrowed acceptance recovery does not strand already-funded wagers. Current focused Elo/war/rollover/locale contracts and the full `test shadowJar --rerun-tasks --no-daemon` merge-train verification pass; `git diff --check` is clean.
   - Files: `SeasonalElo.kt`, `SeasonalEloRepositorySQL.kt`, `SeasonalEloCoordinator.kt`, war domain/service/persistence, v31 migrations, Java/Bedrock menus, placeholders/config/localization and regression contracts
-- [x] **LG-1204** Dynamic XP rates — operator-hosted "increased XP" days
+- [x] **LG-1204** Dynamic XP rates â€” operator-hosted "increased XP" days
   - Tag: `TDD`
   - References: REQ-052
   - Evidence: `PermanentExperienceService.award` applies immutable scheduled boosts after eligibility/anti-AFK and before cap reservation. UTC boundaries, rounding, source selection, invalid configuration, reload, overflow, fixed-cap partial awards, uncapped quests and durable replay are verified. Final JDK 21 test/shadowJar: 977 passing; disposable MariaDB: 26 passing. See `docs/plans/2026-09-17-xp-boost.md` and `docs/plans/2026-09-17-chapter2-integration-verification.md`. Activation/expiry evaluate the trusted event timestamp, so no mutable timer is needed; defaults disabled.
   - Files: XP multiplier config, scheduler
-- [x] **LG-1205** Chapter lifecycle — timer, standings archive, verified backup, rollover, migration, and admin recovery
+- [x] **LG-1205** Chapter lifecycle â€” timer, standings archive, verified backup, rollover, migration, and admin recovery
   - Tag: `TDD`
   - References: REQ-090, REQ-091
-  - Evidence: Closed through LG-1215–1218 and final v31 integration audit. Schema v30/v31 persists lifecycle state, standings/archive metadata, verified backup evidence, migration receipts, seasonal ratings and rated-war seasonal state. Chapter 1→2 migration is dry-run capable, verified-backup gated, transactional/restart-idempotent, archives Chapter 1 standings, resets live guild run level/XP to 1/0, seeds Elo 1000 and permanent home capacity from canonical saved homes, and preserves identity/roster/ranks/relations/gold/vault/homes. Normal rollover advances persisted `SCHEDULED -> FROZEN -> BACKED_UP -> ARCHIVED -> RESET -> PRUNED -> COMPLETE`; immediately before freezing, it reconciles completed rated wars, records terminal no-rating decisions for unresolved active rated wars at the chapter cutoff, and refuses to freeze while any bound rated war remains unsettled. It then verifies a restorable SQLite snapshot, archives standings, preserves current-run/permanent/non-seasonal state, seeds the next chapter at Elo 1000, prunes old seasonal ratings and v31 unordered-pair rematch guards, retains durable rated-result/no-rating receipts for audit and idempotency, and resumes safely after restart. Operator status/postpone/retry/confirmed-force controls and chapter read-only placeholders are wired; scheduler remains disabled by default until cutover. Closeout focused lifecycle contracts cover actual v31 pair-guard pruning and retained rated-result receipts; current full `test shadowJar --rerun-tasks --no-daemon` merge-train verification passes and `git diff --check` is clean.
-  - Files: chapter lifecycle schema/service/repository, Chapter 1→2 migration, verified backup/recovery, scheduler/rollover, admin commands, placeholders, v31 rollover integration contract
-  - Notes: Chapter 1→2 migration archives standings, resets every guild to run level 1/0 XP, preserves canonical gold/vault/roster/relations and exact saved-home locations, converts actual saved-home count into permanent capacity, and requires those legacy locations to be reactivated for Chapter 2 use; later chapter rollovers preserve Chapter 2-paid activation state and reset seasonal state only
-- [x] **LG-1206** Gold costs — raw gold to create guild + activate homes (`baseCost * scale^(n-1)`); permanent reward tiers grant capacity and seasonal Elo never revokes it
+  - Evidence: Closed through LG-1215â€“1218 and final v31 integration audit. Schema v30/v31 persists lifecycle state, standings/archive metadata, verified backup evidence, migration receipts, seasonal ratings and rated-war seasonal state. Chapter 1â†’2 migration is dry-run capable, verified-backup gated, transactional/restart-idempotent, archives Chapter 1 standings, resets live guild run level/XP to 1/0, seeds Elo 1000 and permanent home capacity from canonical saved homes, and preserves identity/roster/ranks/relations/gold/vault/homes. Normal rollover advances persisted `SCHEDULED -> FROZEN -> BACKED_UP -> ARCHIVED -> RESET -> PRUNED -> COMPLETE`; immediately before freezing, it reconciles completed rated wars, records terminal no-rating decisions for unresolved active rated wars at the chapter cutoff, and refuses to freeze while any bound rated war remains unsettled. It then verifies a restorable SQLite snapshot, archives standings, preserves current-run/permanent/non-seasonal state, seeds the next chapter at Elo 1000, prunes old seasonal ratings and v31 unordered-pair rematch guards, retains durable rated-result/no-rating receipts for audit and idempotency, and resumes safely after restart. Operator status/postpone/retry/confirmed-force controls and chapter read-only placeholders are wired; scheduler remains disabled by default until cutover. Closeout focused lifecycle contracts cover actual v31 pair-guard pruning and retained rated-result receipts; current full `test shadowJar --rerun-tasks --no-daemon` merge-train verification passes and `git diff --check` is clean.
+  - Files: chapter lifecycle schema/service/repository, Chapter 1â†’2 migration, verified backup/recovery, scheduler/rollover, admin commands, placeholders, v31 rollover integration contract
+  - Notes: Chapter 1â†’2 migration archives standings, resets every guild to run level 1/0 XP, preserves canonical gold/vault/roster/relations and exact saved-home locations, converts actual saved-home count into permanent capacity, and requires those legacy locations to be reactivated for Chapter 2 use; later chapter rollovers preserve Chapter 2-paid activation state and reset seasonal state only
+- [x] **LG-1206** Gold costs â€” raw gold to create guild + activate homes (`baseCost * scale^(n-1)`); permanent reward tiers grant capacity and seasonal Elo never revokes it
   - Tag: `TDD`
   - References: REQ-054
   - Evidence: `GuildCostService` implements the Chapter 2 cost boundary without changing Chapter 1 behavior while the independent `chapter_two_gold_costs_enabled` rollout gate is disabled; reward purchasing and gold charges can therefore be enabled/validated separately. Guild creation reserves exact configured physical raw-gold value from the founder before creation, restores the reservation on definitive creation failure, commits after successful creation, and surfaces uncertain finalization instead of claiming/refunding blindly. New home activation debits canonical guild gold via `GuildGoldService.debitSystem`; a persistence failure attempts a deterministic canonical-gold compensation credit. Existing **active** named-home relocation is never charged again. Preserved Chapter 1 locations migrate inactive for Chapter 2 and must be reactivated once; historical uncompensated Chapter 2 activation payments are credited so cutover testing cannot double-charge a guild. Home #1..N uses configurable `baseCost * scale^(n-1)` with ceiling-to-whole-gold arithmetic; because the approved design supplies no numeric prices, non-positive Chapter 2 prices fail closed rather than inventing gameplay values. `GuildServiceBukkit.getAvailableHomeSlots` now consumes `GuildRewardService` entitlement capacity when Chapter 2 is enabled, preserves legacy level slots only while disabled, and returns zero on unavailable Chapter 2 state instead of granting legacy fallback. Command/localization wiring reports insufficient, unavailable, rejected, compensated, and uncertain payment outcomes. Focused cost/command/locale contracts pass; final offline `test shadowJar`: 1,028 tests, zero failures/errors/skips; Shadow JAR built.
   - Files: `GuildCostService.kt`, `GuildServiceBukkit.kt`, `GuildCommand.kt`, DI/config/localization, cost contracts
-- [x] **LG-1207** Guild-creation cooldown — 15-day cooldown when a guild is deleted within 7 days of creation (both windows configurable)
+- [x] **LG-1207** Guild-creation cooldown â€” 15-day cooldown when a guild is deleted within 7 days of creation (both windows configurable)
   - Tag: `TDD`
   - References: REQ-055
   - Evidence: `GuildCreationHistorySQL` and `GuildRepositorySQLite.addCreated/removeWithCreationCooldown` serialize admission/deletion and commit guild rows with immutable creator history. Service, config and localized command preflight are wired. Ten new contracts plus full regression (987) and MariaDB contracts (35) pass. SPEAR specification and environment-qualified verification: `docs/plans/2026-09-17-creation-cooldown.md`, `docs/plans/2026-09-17-creation-cooldown-verification.md`. Legacy guilds without original creator records receive no inferred penalty.
   - Files: `GuildCreationCooldown.kt`, `GuildCreationHistorySQL.kt`, `GuildRepositorySQLite.kt`, `GuildServiceBukkit.kt`, `GuildCommand.kt`, guild config and SQL/config tests
-- [x] **LG-1208** Guild prestige redesign — bounded level-100 current-run reset, permanent perk/home choice, eligibility, and atomicity
+- [x] **LG-1208** Guild prestige redesign â€” bounded level-100 current-run reset, permanent perk/home choice, eligibility, and atomicity
   - Tag: `DOC`
   - References: REQ-049, REQ-050, REQ-051, REQ-054, REQ-056, REQ-093
   - Evidence: operator-approved replacement design in `docs/superpowers/specs/2026-08-30-chapter-2-prestige-gold-design.md`
   - Files: requirements + replacement design; runtime implementation remains disabled by default and follows in a later TDD task
-- [x] **LG-1209** Canonical guild-gold pipeline — unify personal Vault and physical raw-gold routes with capacity, fees, limits, compensation, and audit
+- [x] **LG-1209** Canonical guild-gold pipeline â€” unify personal Vault and physical raw-gold routes with capacity, fees, limits, compensation, and audit
   - Completion: Operator confirmed this task is done on 2026-09-17; supersedes the earlier in-progress checkpoints.
   - Tag: `TDD`
   - References: REQ-009, REQ-054, REQ-092, REQ-093
@@ -406,7 +406,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Notes: `vault_gold.balance` is authoritative; `bank_mode: BOTH` + physical currency is valid; ordinary vault slots remain independent; missing Vault Economy disables personal transfers only.
   - Historical implementation/review details: `docs/superpowers/plans/2026-09-15-pr143-review.md`, `docs/superpowers/plans/2026-09-15-final-gold-recovery-review.md`, and `docs/superpowers/plans/2026-09-14-durable-war-payments.md`.
 
-- [x] **LG-1210** Executable approved level 1–100 reward catalog
+- [x] **LG-1210** Executable approved level 1â€“100 reward catalog
   - Tag: `TDD`
   - References: REQ-050, REQ-054, REQ-093
   - Evidence: Operator-approved `docs/plans/2026-09-17-lg-1202-reward-catalog-proposal.md`; source inventory identifies legacy YAML/hardcoded divergence. SPEAR plan: `docs/plans/2026-09-17-chapter2-reward-implementation.md`. Complete: executable catalog and approved-table parity tests pass. Final JDK 21 `gradlew test shadowJar`: 946 tests, zero failures/errors/skips; Shadow JAR built. See `docs/plans/2026-09-17-reward-verification.md`.
@@ -431,121 +431,121 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-050, REQ-054, REQ-056, REQ-093
   - Evidence: Gold, progression/home/member consumers, Java/Bedrock views and placeholders share the gated consistent read model. Purchase actions use immutable server quotes, separate confirmation screens, live membership/rank checks and the atomic gold/ownership transaction; uncertain retries retain their transaction ID. Migration readiness is now covered end-to-end: actual `ChapterOneToTwoMigrationSQL` output reopens through production pooled SQLite storage and immediately resolves as `GuildRewardRead.Available` with run level 1, migrated permanent home capacity from canonical saved homes, ownership version 0, and no fabricated Chapter 1 purchases/permanent rewards. Missing state still never initializes accounts or falls back to legacy benefits. Rollout defaults disabled. Focused migration/read-model contracts pass; final offline `test shadowJar`: 1,055 tests, zero failures/errors/skips; Shadow JAR built; `git diff --check` clean. Live Paper/Java/Bedrock client validation remains a Sep 28 deployment gate rather than unfinished code.
   - Files: config, gold settings, progression/home/member services, Java/Bedrock menus/placeholders, `ChapterRewardMigrationReadinessTest.kt`
-- [x] **LG-1215** Chapter lifecycle persistence foundation — durable lifecycle state, standings archive metadata, backup evidence, and migration receipts
+- [x] **LG-1215** Chapter lifecycle persistence foundation â€” durable lifecycle state, standings archive metadata, backup evidence, and migration receipts
   - Tag: `TDD`
-  - References: REQ-090, REQ-091; `docs/implementation.md` §Chapter 2 Progression
+  - References: REQ-090, REQ-091; `docs/implementation.md` Â§Chapter 2 Progression
   - Evidence: Schema v30 now creates `chapter_lifecycle`, `chapter_standings_archive`, `chapter_backup_evidence`, `chapter_migrations`, and chapter-scoped `chapter_migration_receipts` through one dialect-aware infrastructure helper used by both `SQLiteMigrations.kt` and `MariaDBMigrations.kt`. `ChapterLifecycleMigrationTest` proved the missing-v30 state red before implementation and green afterward using the established `GuildGoldMigrationTest.kt` pattern (`io.mockk`, `net.kyori.adventure.text.logger.slf4j`, `org.bukkit`, `org.junit.jupiter.api`, `java.nio.file`, `java.sql`). Final offline `test shadowJar`: 1,009 tests, zero failures; Shadow JAR built. REQ-090/091 lifecycle/backup/migration execution remains split into LG-1216..1218.
   - Files: migration v30 schema and SQLite persistence contract
-- [x] **LG-1216** Chapter 1→2 migration transaction — archive standings, initialize Chapter 2 progression/rewards/Elo/home capacity, preserve permanent guild assets
+- [x] **LG-1216** Chapter 1â†’2 migration transaction â€” archive standings, initialize Chapter 2 progression/rewards/Elo/home capacity, preserve permanent guild assets
   - Tag: `TDD`
-  - References: REQ-091; `docs/implementation.md` §Chapter 2 Progression
+  - References: REQ-091; `docs/implementation.md` Â§Chapter 2 Progression
   - Evidence: `ChapterOneToTwoMigrationSQL` now provides read-only preview plus one atomic cutover transaction. It scopes migration to live `guilds`, reports orphan progression/home rows and level drift, archives deterministic Chapter 1 standings, requires a verified restorable backup and BACKED_UP lifecycle state, resets both `guild_progression.current_level` and `guilds.level`, clears legacy perk cache, initializes `guild_reward_accounts` from saved-home count (minimum 1), seeds target-chapter Elo at 1000, persists per-guild receipts, preserves canonical `vault_gold` and unrelated membership/relation rows, replays completed migration IDs idempotently, and rolls back all guild changes on conflicts. The supplied read-only `D:\\lumaguilds(10).db` is schema v25 with 164 live guilds, 350 progression rows (186 orphaned), 260 home rows (47 orphaned), and home counts 0..6. The copied file was taken without its live WAL/cache state, so the observed `database disk image is malformed` result is treated as an artifact of an incomplete SQLite snapshot rather than evidence of production corruption. The migration intentionally never resurrects orphan child rows and still fails closed on genuinely unreadable source state. `ExperienceAwardRepositorySQL` confirms both live level stores; `net.lumalyte.lg.domain.values.ProgressionCurve` supplies the Chapter 2 level-1 threshold. Focused contracts cover dry-run, atomic apply/replay, backup gating, rollback, zero-guild completion replay, replay after later guild population changes, exact `(migrationId, sourceChapterId, targetChapterId)` identity, and BIGINT historical XP preservation. CodeRabbit hardening moved replay authority to a migration-level completion marker while retaining per-guild receipts as audit detail and fixed operator error interpolation. Final offline `test shadowJar`: 1,017 tests, zero failures/errors/skips; Shadow JAR built.
   - Files: `ChapterOneToTwoMigrationSQL.kt`, lifecycle/reward/rating schema, migration contracts
-- [x] **LG-1217** Verified backup and admin recovery — backup adapter, status/postpone/retry/force controls, recovery evidence
+- [x] **LG-1217** Verified backup and admin recovery â€” backup adapter, status/postpone/retry/force controls, recovery evidence
   - Tag: `TDD`
   - References: REQ-090, REQ-091
   - Evidence: `SQLiteChapterBackupService` creates a consistent live SQLite snapshot with `VACUUM INTO` (including committed WAL state), computes SHA-256/size evidence, copies the snapshot to a restore candidate, runs `PRAGMA integrity_check`, verifies required chapter/guild tables, then atomically records `chapter_backup_evidence` and advances only `FROZEN -> BACKED_UP`. Existing verified backup IDs replay only when the recorded file, size, hash, and restore verification still pass. `ChapterAdminRecoverySQL` provides durable status, SCHEDULED-only postpone, retry metadata clearing without state skipping, and literal-`CONFIRM` force-due semantics that never bypass the persisted lifecycle or verified-backup gate. `/lumaguilds chapter status|backup|postpone|retry|force` is available to console/OP/admin; backup runs asynchronously and stores snapshots under the plugin chapter-backups directory. MariaDB deliberately fails closed for in-plugin backup until a separately verified MariaDB backup adapter exists. Focused contracts cover WAL capture, restore verification, phase gating, idempotent evidence, true-forward-only postpone semantics, retry, force confirmation, durable failure metadata, and concurrent same-ID backup serialization across independent service instances. CodeRabbit hardening adds a shared per-backup-path lock, prevents failed requests from deleting another request's valid snapshot, preserves verification exceptions when restore-copy cleanup also fails, and persists backup command failures to lifecycle `last_error`/`transition_token`. Final offline `test shadowJar`: 1,027 tests, zero failures/errors/skips; Shadow JAR built; locale contracts remain green.
   - Files: `SQLiteChapterBackupService.kt`, `ChapterAdminRecoverySQL.kt`, admin command/localization wiring, backup/recovery contracts
-- [x] **LG-1218** Chapter scheduler, rollover, and placeholders — timed transition, seasonal reset/prune, chapter name/time remaining
+- [x] **LG-1218** Chapter scheduler, rollover, and placeholders â€” timed transition, seasonal reset/prune, chapter name/time remaining
   - Tag: `TDD`
   - References: REQ-090
   - Evidence: `ChapterRolloverCoordinatorSQL` advances one persisted lifecycle phase at a time and `catchUp` resumes from the stored phase after restart. Normal rollover archives standings including seasonal Elo, preserves current-run guild level/XP and permanent state, initializes next-chapter Elo at 1000, prunes old seasonal ratings (and pair guards when present), marks the old chapter COMPLETE, and schedules the next chapter without bypassing the verified-backup gate. Failures persist `last_error` and pause in the current phase. `ChapterRolloverScheduler` is config-gated and disabled by default, bootstraps only from explicit valid UTC chapter settings, runs asynchronously, and uses the verified SQLite backup service from LG-1217. `ChapterReadSQL` supplies read-only chapter ID/name/phase/start/end/time-remaining views; PlaceholderAPI exposes `chapter_id`, `chapter_name`, `chapter_phase`, `chapter_start`, `chapter_end`, and `chapter_time_remaining`. Focused contracts cover not-due behavior, restart catch-up through COMPLETE, preserved run progression, seasonal archive/reset/prune, persisted backup failure, and read formatting. Final offline `test shadowJar`: 1,024 tests, zero failures/errors/skips; Shadow JAR built.
   - Files: `ChapterRolloverCoordinatorSQL.kt`, `ChapterRolloverScheduler.kt`, `ChapterReadSQL.kt`, plugin/config/PlaceholderAPI wiring, rollover/read contracts
 
-## PR-13 — Backlog: wars & combat (operator, Fain)
+## PR-13 â€” Backlog: wars & combat (operator, Fain)
 
-- [x] **LG-1301** War system overhaul — accurate kill tracking with measurable gameplay impact: per-guild war kill counter (opposing-guild kills only, persisted, reset on war end) driving resolution at `war_kill_win_target` (default 25), surfaced in `/g info` + war menus
+- [x] **LG-1301** War system overhaul â€” accurate kill tracking with measurable gameplay impact: per-guild war kill counter (opposing-guild kills only, persisted, reset on war end) driving resolution at `war_kill_win_target` (default 25), surfaced in `/g info` + war menus
   - Tag: `TDD`
   - References: REQ-057
-  - Evidence: `WarService.recordOpposingGuildKill` is the synchronized gameplay boundary for kill progress: it accepts only an active war and the exact declaring/defending guild pair, increments the killer-side counter plus opposing deaths with overflow-safe arithmetic, persists the existing durable `WarStats` inside the revision-checked war record, and resolves the war through the normal `endWar` path when the configured global target is reached. `combat.war_kill_win_target` defaults to 25 and nonpositive values fail closed. The Bukkit death listener delegates all kill-state mutation to this service; anti-farming suppresses XP only and does not erase a legitimate opposing-guild kill. Restart coverage records a 4–2 score through the production API, recreates the service, and recovers the counters. End/reset semantics preserve final per-war statistics for history/audit while ended wars reject further kills, disappear from active progress, and a later war between the same guilds starts at 0–0. Java and Bedrock `/g info` expose active per-opponent `kills/target`; Java and Bedrock war details expose both sides' progress, and the Java active-war list includes the target. Focused war/restart/locale contracts pass; final offline `test shadowJar`: 1,060 tests, zero failures/errors/skips; Shadow JAR built; `git diff --check` clean.
+  - Evidence: `WarService.recordOpposingGuildKill` is the synchronized gameplay boundary for kill progress: it accepts only an active war and the exact declaring/defending guild pair, increments the killer-side counter plus opposing deaths with overflow-safe arithmetic, persists the existing durable `WarStats` inside the revision-checked war record, and resolves the war through the normal `endWar` path when the configured global target is reached. `combat.war_kill_win_target` defaults to 25 and nonpositive values fail closed. The Bukkit death listener delegates all kill-state mutation to this service; anti-farming suppresses XP only and does not erase a legitimate opposing-guild kill. Restart coverage records a 4â€“2 score through the production API, recreates the service, and recovers the counters. End/reset semantics preserve final per-war statistics for history/audit while ended wars reject further kills, disappear from active progress, and a later war between the same guilds starts at 0â€“0. Java and Bedrock `/g info` expose active per-opponent `kills/target`; Java and Bedrock war details expose both sides' progress, and the Java active-war list includes the target. Focused war/restart/locale contracts pass; final offline `test shadowJar`: 1,060 tests, zero failures/errors/skips; Shadow JAR built; `git diff --check` clean.
   - Files: `WarService.kt`, `WarServiceBukkit.kt`, `WarKillTrackingListener.kt`, combat config, Java/Bedrock guild-info and war menus, locale and restart/config contracts
-- [~] **LG-1302** World War — DEFERRED / design pending
+- [~] **LG-1302** World War â€” DEFERRED / design pending
   - Tag: `TDD`
   - References: REQ-058
   - Evidence: Tabled by project owner before implementation. The current secret-predicate/all-guild forced-war design does not fit the desired player-driven war loop; retain the requirement for future redesign rather than implementing it as written.
   - Files: none until design is revisited
-- [x] **LG-1303** War banners — deployable tactical teleport banner: 15 min, destructible, raw-gold cost, 1 active/guild, cooldown, rank-permission gated, broadcast on placement
+- [x] **LG-1303** War banners â€” deployable tactical teleport banner: 15 min, destructible, raw-gold cost, 1 active/guild, cooldown, rank-permission gated, broadcast on placement
   - Tag: `TDD`
   - References: REQ-059
   - Evidence: `/g warbanner` issues a guild-bound deployable item only to current members with the new `PLACE_WAR_BANNER` rank permission while their guild has an active war; placement re-validates membership, permission and active-war state so stale/traded items cannot bypass authorization. The item and placed block use the guild's exact persisted banner base color + ordered patterns, with a plain white banner fallback when no design exists, and placement re-reads the current guild design so an old item cannot deploy stale heraldry. Successful placement reserves/commits a configurable physical RAW_GOLD cost (default 64), persists one active banner per guild in schema v32, starts a 15-minute lifetime/cooldown, and globally broadcasts `[Guild Name] has placed down a war banner.`. Render/payment failures compensate both durable state and gold when non-consumption is proven; ambiguous payment keeps the deployed state to prevent duplicate charging. Any player's break overrides prior build-protection cancellation, suppresses drops, deactivates the tactical point, and explosions also destroy it. `/g warbanner tp` is member-gated and goes directly through the existing combat/movement-aware teleport countdown without consuming guild-home slots or a teleport-request path. Active/cooldown state survives restart; expiry is persisted/deactivated and the scheduler removes the matching physical block. Existing ranks are migrated idempotently: every current `DECLARE_WAR` rank plus each guild's highest-priority rank receives `PLACE_WAR_BANNER`; new Owner, Co-Owner and Admin defaults include it. Focused payment/persistence/visual/destruction/config/migration/DI/locale contracts pass. Final offline `test shadowJar`: 1,083 tests, zero failures/errors/skips; Shadow JAR built; `git diff --check` clean.
   - Files: `WarBannerState`, `WarBannerService`, `WarBannerRepositorySQL`, v32 `WarBannerSchema`, Bukkit renderer/teleport adapter, placement/break/explosion listener, `GuildCommand`, rank permission/config/localization/DI wiring, focused contracts
-- [x] **LG-1304** Better war notifications — prominent declaration alert, persisted unread notices replayed on login, victory/loss broadcasts
+- [x] **LG-1304** Better war notifications â€” prominent declaration alert, persisted unread notices replayed on login, victory/loss broadcasts
   - Tag: `TDD`
   - References: REQ-060
   - Evidence: Java and Bedrock/Geyser clients both attempt the same ephemeral PacketEvents advancement toast with the opposing guild banner icon; title + sound is retained only when PacketEvents toast delivery is unavailable. War lifecycle notices persist per-player in schema v33, replay once on login, and resolved wars broadcast the winner/loser globally. Persistence tests prove unread notices survive restart, duplicate deterministic IDs are ignored, and delivered notices cannot replay again.
   - Files: `WarNotificationServiceBukkit`, `PacketEventsToastSender`, `WarNotificationRepositorySQL`, v33 `WarNotificationSchema`, `PlayerSessionListener`, war lifecycle hooks, localization/DI wiring, focused persistence + migration contracts
   - Notes: replay transitions each successfully presented notice to delivered, so subsequent logins do not replay it
-- [~] **LG-1305** Customizable war win conditions — DEFERRED / design pending
+- [~] **LG-1305** Customizable war win conditions â€” DEFERRED / design pending
   - Tag: `TDD`
   - References: REQ-061
   - Evidence: Tabled by project owner before implementation. The bundled custom kill targets, ransom/surrender, Champion duel mode, and high-stakes XP rules do not fit the current guild-war direction cleanly enough to ship as one feature.
   - Files: none until the war-objective design is revisited
 
-## PR-14 — Backlog: chat & communication (operator, Fain)
+## PR-14 â€” Backlog: chat & communication (operator, Fain)
 
-- [x] **LG-1401** Login notifications — in-game alert when a guild member logs in
+- [x] **LG-1401** Login notifications â€” in-game alert when a guild member logs in
   - Tag: `TDD`
   - References: REQ-062
   - Evidence: Online guildmates receive a TASK-style advancement toast with the joining member's player head on Java and Bedrock/Geyser via the shared PacketEvents toast sender. The joining player is never notified about themselves; offline recipients and opted-out recipients are skipped; recipients shared across multiple guild memberships are deduplicated. A 15-second plugin-start grace window suppresses restart reconnect waves and a 60-second per-player reconnect debounce suppresses rapid relog spam. If toast delivery is unavailable, recipients receive a quiet action-bar + chime fallback. `/g notifications on|off|toggle` persists the recipient preference (default on) in schema v34 for SQLite/MariaDB. Login presence itself is transient and is never persisted/replayed. Preferences are batch-loaded for online recipients. Full `test shadowJar`: 1,092 tests, zero failures/errors/skips; Shadow JAR built; `git diff --check` clean.
   - Files: `GuildLoginNotificationServiceBukkit`, `PlayerNotificationPreferenceRepositorySQL`, v34 `PlayerNotificationPreferenceSchema`, generic `PacketEventsToastSender`, `PlayerSessionListener`, `GuildCommand`, localization/DI wiring, focused behavioral/persistence/migration contracts
   - Harvest: historical announcement persistence was reviewed but intentionally not reused because login presence is transient rather than durable announcement data
-- [x] **LG-1402** Rank prefixes in guild chat — member's rank shown next to name (legacy restore)
+- [x] **LG-1402** Rank prefixes in guild chat â€” member's rank shown next to name (legacy restore)
   - Tag: `TDD`
   - References: REQ-063
   - Evidence: LumaGuilds' RoseChat GUILD channel decorates its existing chat/shout format at load time so the live `%lumaguilds_guild_rank%` value appears immediately before RoseChat's player token while preserving any existing global/LuckPerms prefix. The decorator is idempotent (operator formats that already include the guild-rank placeholder are untouched), supports RoseChat `{player}` and direct PlaceholderAPI player-name tokens, and accepts a per-channel `guild-rank-format` override using `<rank>`. ALLY/MODCHAT formats are intentionally unchanged. The existing PAPI rank placeholder resolves membership/rank state on every request, proven by a regression contract that changes the mocked member from Owner to Officer between consecutive resolutions. Full `test shadowJar`: 1,101 tests, zero failures/errors/skips; Shadow JAR built; `git diff --check` clean.
   - Files: `LumaGuildsChannel`, `GuildRankChatFormatter`, live-rank PlaceholderAPI regression contract, RoseChat channel-format integration tests
-- [ ] **LG-1403** Guild admin chat — dedicated private channel for admins/leadership
+- [ ] **LG-1403** Guild admin chat â€” dedicated private channel for admins/leadership
   - Tag: `TDD`
   - References: REQ-064
   - Evidence:
   - Files: chat channel registry, permission gate
-- [ ] **LG-1404** Custom guild channels — guilds create/name own chat channels (pending RoseChat feasibility)
+- [ ] **LG-1404** Custom guild channels â€” guilds create/name own chat channels (pending RoseChat feasibility)
   - Tag: `TDD`
   - References: REQ-065
   - Evidence:
   - Files: channel CRUD, RoseChat integration
 
-## PR-15 — Backlog: QoL, UI & Discord integration (operator, Fain)
+## PR-15 â€” Backlog: QoL, UI & Discord integration (operator, Fain)
 
-- [x] **LG-1501** Guild Statistics node completion — durable internal invitation tracker and all-time most-invites-per-member leaderboard
+- [x] **LG-1501** Guild Statistics node completion â€” durable internal invitation tracker and all-time most-invites-per-member leaderboard
   - Tag: `TDD`
   - References: REQ-066
-  - Evidence: successful pending-invitation creation and immutable history append commit atomically; duplicate/failed writes do not inflate counts and persistence failures no longer produce false success notifications. Schema v37 adds indexed `guild_invitation_history` for SQLite/MariaDB and the SQLite→Maria migration utility. `InvitationStatisticsService` exposes bounded per-guild totals/leaderboards with count-descending + inviter-UUID tie ordering. Java Statistics shows a top-3 card plus a database-backed 10-entry paginated detail view; Bedrock shows total + five inviters per selectable page from the same service, resolving current player names only at render time. Focused repository/migration/service/wiring contracts cover history durability, rollback, duplicate handling, deterministic aggregation, both UI surfaces, and fail-closed invite confirmation.
+  - Evidence: successful pending-invitation creation and immutable history append commit atomically; duplicate/failed writes do not inflate counts and persistence failures no longer produce false success notifications. Schema v37 adds indexed `guild_invitation_history` for SQLite/MariaDB and the SQLiteâ†’Maria migration utility. `InvitationStatisticsService` exposes bounded per-guild totals/leaderboards with count-descending + inviter-UUID tie ordering. Java Statistics shows a top-3 card plus a database-backed 10-entry paginated detail view; Bedrock shows total + five inviters per selectable page from the same service, resolving current player names only at render time. Focused repository/migration/service/wiring contracts cover history durability, rollback, duplicate handling, deterministic aggregation, both UI surfaces, and fail-closed invite confirmation.
   - Files: `GuildInvitationRepository`, `GuildInvitationRepositorySQLite`, `InvitationStatisticsService`, `InvitationStatisticsSchema`, `GuildStatisticsMenu`, `BedrockGuildStatisticsMenu`, Java/Bedrock invite confirmation menus, localization, migrations/tests
   - Harvest: closed PR #7 was reviewed; its pending-invitation entity/repository work was already present in current code, while its `InvitationService` was interface-only and had no durable sent-invite analytics to reuse.
-- [x] **LG-1502** Dynamic spawn banners — placeable persistent physical banners track configured guild leaderboard ranks
+- [x] **LG-1502** Dynamic spawn banners â€” placeable persistent physical banners track configured guild leaderboard ranks
   - Tag: `TDD`
   - References: REQ-067
   - Evidence: `/lumaguilds spawnbanner <rank> <category>` creates a white PDC-bound admin item; placement persists rank/category/location in schema v38 and renders the matching guild's current physical banner while preserving wall/standing orientation. Missing rank/guild/banner data falls back to white. `GuildLeaderboardRankChangeEvent` and `GuildBannerSetEvent` trigger immediate refresh, with a 60-second reconciliation safety pass; breaking a bound banner unregisters it and returns the configured white display item. Admin `refresh` and `list` controls are included. Focused category, repository, migration, wiring, and locale contracts are green; full `test shadowJar` validation passes 1,153 tests with zero failures/errors/skips and `git diff --check` is clean.
   - Files: `SpawnBannerCategory`, `SpawnBannerRepository`, `SpawnBannerRepositorySQL`, `SpawnBannerSchema`, `SpawnBannerServiceBukkit`, `SpawnBannerListener`, `LumaGuildsCommand`, `PluginKeys`, DI/startup/shutdown wiring, localization, migrations/tests
-- [x] **LG-1503** Guild list GUI & leaderboards — all guilds, paged at the service boundary, 4 deterministic sort modes (all-time active, weekly active weighted by unique PvP kills, level low→high, creation old→new, ties → name → creation)
+- [x] **LG-1503** Guild list GUI & leaderboards â€” all guilds, paged at the service boundary, 4 deterministic sort modes (all-time active, weekly active weighted by unique PvP kills, level lowâ†’high, creation oldâ†’new, ties â†’ name â†’ creation)
   - Tag: `TDD`
   - References: REQ-068
-  - Evidence: `/g list` now opens a dedicated Java/Bedrock guild directory backed by `GuildListService`; both surfaces request one bounded page and never call `GuildLookup.getAllGuilds()` or slice an unbounded list. SQL owns `LIMIT/OFFSET`, total count, primary ordering, and stable name→creation→UUID tie-breaking. All-Time Active reuses weighted progression activity across history; Weekly Active uses a trailing seven-day window, excludes raw `PLAYER_KILL` XP, and adds only distinct opposing victims weighted by configured `activity.weights.kills_this_week`. Level and creation sorts default ascending. `guild_list.page_size` defaults to 18 and is clamped to the Java inventory capacity of 36. Focused SQL/service/wiring/locale tests are green; full `test shadowJar` validation passes 1,163 tests with zero failures/errors/skips and `git diff --check` is clean.
+  - Evidence: `/g list` now opens a dedicated Java/Bedrock guild directory backed by `GuildListService`; both surfaces request one bounded page and never call `GuildLookup.getAllGuilds()` or slice an unbounded list. SQL owns `LIMIT/OFFSET`, total count, primary ordering, and stable nameâ†’creationâ†’UUID tie-breaking. All-Time Active reuses weighted progression activity across history; Weekly Active uses a trailing seven-day window, excludes raw `PLAYER_KILL` XP, and adds only distinct opposing victims weighted by configured `activity.weights.kills_this_week`. Level and creation sorts default ascending. `guild_list.page_size` defaults to 18 and is clamped to the Java inventory capacity of 36. Focused SQL/service/wiring/locale tests are green; full `test shadowJar` validation passes 1,163 tests with zero failures/errors/skips and `git diff --check` is clean.
   - Files: `GuildListSortKey`, `GuildListRepository`, `GuildListRepositorySQL`, `GuildListService`, Java/Bedrock `GuildListMenu`, `MenuFactory`, `GuildCommand`, config/localization/tests
   - Notes: LG-1504 remains responsible for replacing the temporary book renderer with each guild's physical banner; LG-1503 intentionally does not consume that scope.
-- [x] **LG-1504** Guild banners in list — physical banner shown per guild, plain white default when unset
+- [x] **LG-1504** Guild banners in list â€” physical banner shown per guild, plain white default when unset
   - Tag: `TDD`
   - References: REQ-069
   - Evidence: Java `/g list` entries now render through shared `GuildBannerItemResolver` instead of the temporary book icon. Valid serialized standing banners retain their physical material/base color and ordered pattern layers; missing, corrupt, non-banner, or wall-banner payloads resolve to `WHITE_BANNER`. The existing Java ally/enemy relation browser now uses the same resolver so list surfaces cannot drift on fallback behavior. Bedrock's SimpleForm directory remains behaviorally unchanged because it has no Minecraft `ItemStack` rendering surface. Focused resolver/wiring/locale contracts are green; full `test shadowJar` validation passes 1,167 tests with zero failures/errors/skips and `git diff --check` is clean.
   - Files: `GuildBannerItemResolver`, `GuildListMenu`, `GuildRelationBrowserMenu`, resolver/wiring tests
-- [x] **LG-1505** Expandable Enemy/Ally lists in `/g info` — full guild list beyond top 3
+- [x] **LG-1505** Expandable Enemy/Ally lists in `/g info` â€” full guild list beyond top 3
   - Tag: `TDD`
   - References: REQ-070
   - Evidence: Java `/g info` keeps the compact three-guild Allies/Enemies preview but the cards now open read-only full browsers with 28 guilds per page, actual guild banner items (plain white fallback), stable case-insensitive name ordering with UUID tie-breaks, member/level/mode details, and click-through into the selected guild's info. Bedrock `/g info` now resolves real active relations instead of the previous hardcoded "None" placeholder and exposes native Allies/Enemies buttons backed by 12-entry paged SimpleForms. A shared resolver filters inactive/pending relations and disbanded guilds, deduplicates stale duplicate rows, and is used by both platforms so counts/order cannot diverge. Focused contracts cover filtering, deterministic ordering, Java/Bedrock menu routing, info-menu wiring, localization, and the 29-guild pagination regression. Full `test shadowJar`: 1,109 tests, zero failures/errors/skips; Shadow JAR built; `git diff --check` clean.
   - Files: `GuildInfoRelationResolver`, `GuildInfoMenu`, `GuildRelationBrowserMenu`, `BedrockGuildInfoMenu`, `BedrockGuildRelationBrowserMenu`, `MenuFactory`, locale keys, resolver/factory/wiring contracts
-- [x] **LG-1506** Dynamic Discord roles — guild creation auto-creates/links a Discord role, grants/removes on membership and Discord link changes
+- [x] **LG-1506** Dynamic Discord roles â€” guild creation auto-creates/links a Discord role, grants/removes on membership and Discord link changes
   - Tag: `TDD`
   - References: REQ-071
-  - Evidence: DiscordSRV is an optional soft dependency, but when available the integration is enabled by default and every guild receives a durable managed Discord role immediately on creation (no progression level/perk gate). Existing guilds reconcile on startup; persisted role IDs prevent duplicate creation and a manually deleted role is recreated/relinked. Discord-linked members receive the role on guild creation/join and lose it on leave/kick; DiscordSRV account link/unlink events also grant/revoke dynamically, with unlink using the event's captured Discord ID so removal still works after the mapping disappears. Guild renames update the role name, disband deletes the Discord role, orphan links are garbage-collected, and failed persistence compensates by deleting newly created untracked roles. Schema v35 stores guild→role links for SQLite/MariaDB. Focused contracts cover creation-time availability, membership sync, late link/unlink, restart persistence, concurrency, compensation, config, and migration repair. Full `test shadowJar`: 1,125 tests, zero failures/errors/skips; Shadow JAR built; `git diff --check` clean.
+  - Evidence: DiscordSRV is an optional soft dependency, but when available the integration is enabled by default and every guild receives a durable managed Discord role immediately on creation (no progression level/perk gate). Existing guilds reconcile on startup; persisted role IDs prevent duplicate creation and a manually deleted role is recreated/relinked. Discord-linked members receive the role on guild creation/join and lose it on leave/kick; DiscordSRV account link/unlink events also grant/revoke dynamically, with unlink using the event's captured Discord ID so removal still works after the mapping disappears. Guild renames update the role name, disband deletes the Discord role, orphan links are garbage-collected, and failed persistence compensates by deleting newly created untracked roles. Schema v35 stores guildâ†’role links for SQLite/MariaDB. Focused contracts cover creation-time availability, membership sync, late link/unlink, restart persistence, concurrency, compensation, config, and migration repair. Full `test shadowJar`: 1,125 tests, zero failures/errors/skips; Shadow JAR built; `git diff --check` clean.
   - Files: DiscordSRV gateway/account-link subscription, `GuildDiscordRoleService`, `GuildDiscordRoleListener`, durable role-link repository/schema, config, migrations, lifecycle tests
   - Follow-up (2026-09-30): Gate the first managed role creation at `discord.guild_roles.minimum_level` (default 50) and reconcile level changes. Existing durable guild-to-role links remain unlocked, including roles from earlier testing and roles held through prestige; membership grants continue below the threshold for those guilds. The original creation-time behavior above is historical evidence.
-- [x] **LG-1507** Enhanced guild descriptions — Discord invite links embeddable in guild description
+- [x] **LG-1507** Enhanced guild descriptions â€” Discord invite links embeddable in guild description
   - Tag: `TDD`
   - References: REQ-072
   - Evidence: Shared `GuildDescriptionContent` now owns the 200-character invariant, restricted MiniMessage parsing, Discord invite detection, and safe rendering. `discord.gg` and `discord.com/invite` HTTPS URLs become `OPEN_URL` components while unrelated URLs remain inert. User-authored `click`, `hover`, and `insertion` tags are rejected by the command, Java editor, both Bedrock description/settings editors, and again at the service boundary. Java guild info and settings render through the shared component policy; guild info sends invite-bearing descriptions into chat on click so the URL is actionable. Bedrock renders formatting-stripped text while preserving the visible invite URL. The service now correctly requires `MANAGE_DESCRIPTION` rather than the legacy `MANAGE_EMOJI` check. Focused content/wiring/locale contracts are green; full `test shadowJar` validation passes 1,176 tests with zero failures/errors/skips and `git diff --check` is clean.
   - Files: `GuildDescriptionContent`, `Guild`, `GuildServiceBukkit`, `GuildCommand`, Java description editor/settings/info, Bedrock description editor/settings/info, localization/tests
-- [x] **LG-1508** Disband announcements — global chat broadcast plus ally/enemy relationship toasts
+- [x] **LG-1508** Disband announcements â€” global chat broadcast plus ally/enemy relationship toasts
   - Tag: `TDD`
   - References: REQ-073
   - Evidence: `GuildServiceBukkit` snapshots active ALLY/ENEMY relations before the committed disband removes relation rows, then attaches that immutable snapshot to the existing three-argument `GuildDisbandedEvent` without breaking its public constructor contract. `GuildDisbandAnnouncementServiceBukkit` broadcasts one localized server-wide chat message and sends relationship-aware advancement toasts to online members of pre-disband allied/enemy guilds. Recipients are deduplicated across memberships, former members are excluded from relationship toasts, and ENEMY wins if an anomalous player is reachable through both relation types. The delivery path is edition-agnostic and therefore reaches Geyser/Bedrock through the same advancement packet; ally/enemy + guild name are kept in the first toast line because Geyser may omit the second line. Failed toast delivery falls back to an action bar while the global chat announcement remains visible. Focused announcement/wiring/event-API/locale contracts are green; full `test shadowJar` validation passes 1,184 tests with zero failures/errors/skips and `git diff --check` is clean.
@@ -554,7 +554,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ---
 
-## PR-16 — Weekly Guild Quests (Chapter 2)
+## PR-16 â€” Weekly Guild Quests (Chapter 2)
 
 > **Future network architecture:** `docs/plans/2026-09-20-network-guild-federation-design.md` records the approved direction for separate per-gamemode LumaGuilds instances, local player membership/progression, optional network-guild federation, namespaced Nexo/AuraSkills-capable quest providers, and explicitly network-scoped quests/events. Federation itself is future scope and is not required to complete PR-16.
 
@@ -570,49 +570,49 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 >
 > **Future network boundary:** PR-16 quests are local to one gamemode/LumaGuilds instance. Network Guild federation may later aggregate explicitly network-scoped objectives, but local weekly quest progress never implicitly crosses gamemodes. See `docs/plans/2026-09-20-network-guild-federation-design.md`.
 
-- [x] **LG-1601** Procedural quest domain and generator — namespaced targets, independent action/target/amount/condition rolls, semantic validation, deterministic bounded generation, history fingerprints, and human-rounded magnitude-aware amounts; domain layer remains Bukkit-free.
+- [x] **LG-1601** Procedural quest domain and generator â€” namespaced targets, independent action/target/amount/condition rolls, semantic validation, deterministic bounded generation, history fingerprints, and human-rounded magnitude-aware amounts; domain layer remains Bukkit-free.
   - Tag: `TDD`
   - References: REQ-074, REQ-075, REQ-081
   - Evidence: `QuestGeneratorTest` / `QuestGenerationValidatorTest` cover deterministic sets, current-set uniqueness, recent action-target rejection, axis corridors, structured failures, rounded amounts, and precious-vs-bulk magnitude bounds. `QuestAction` already maps directly to `ExperienceSource`.
   - Files: `domain/values/QuestAction.kt`, `domain/entities/QuestDefinition.kt`, `domain/services/QuestGenerator.kt`, `QuestGenerationValidator.kt`, `QuestAmountPolicy.kt`, `QuestTargetProvider.kt`
 
-- [x] **LG-1602** Quest persistence and schema ownership — active/history sets plus per-guild progress/claim/bonus/payout state live behind `QuestRepository`; SQLite and MariaDB migration chains own quest schema v36 and repository construction performs no DDL.
+- [x] **LG-1602** Quest persistence and schema ownership â€” active/history sets plus per-guild progress/claim/bonus/payout state live behind `QuestRepository`; SQLite and MariaDB migration chains own quest schema v36 and repository construction performs no DDL.
   - Tag: `TDD`
   - References: REQ-074, REQ-077, REQ-080
   - Evidence: `QuestRepositorySQLiteTest` covers restart persistence, claim-preserving upserts and idempotent markers; `QuestSchemaMigrationTest` proves v36 creates the quest tables and generated-target metadata/order columns. Repository write SQL is backend-aware for SQLite/MariaDB.
   - Files: `application/persistence/QuestRepository.kt`, `infrastructure/persistence/guilds/QuestRepositorySQLite.kt`, `infrastructure/persistence/migrations/QuestSchema.kt`, `SQLiteMigrations.kt`, `MariaDBMigrations.kt`
 
-- [x] **LG-1603** Runtime target discovery and generation-policy config — ordinary operation requires no authored quest definitions. Bukkit/Paper discovers vanilla block/crop/entity/recipe/enchant targets; Nexo contributes custom blocks/items through the same provider contract. Config controls reset/rewards, condition probabilities, repeat cooldowns, and coordinate generation policy.
+- [x] **LG-1603** Runtime target discovery and generation-policy config â€” ordinary operation requires no authored quest definitions. Bukkit/Paper discovers vanilla block/crop/entity/recipe/enchant targets; Nexo contributes custom blocks/items through the same provider contract. Config controls reset/rewards, condition probabilities, repeat cooldowns, and coordinate generation policy.
   - Tag: `TDD`
   - References: REQ-074, REQ-075
   - Evidence: shipped `progression.yml` contains generation policy only and enables weekly quests; `BukkitQuestTargetProvider`, `NexoQuestTargetProvider`, and `QuestTargetCatalog` supply sorted provider-owned targets without a giant whitelist.
   - Files: `config/QuestGenerationConfig.kt`, `infrastructure/services/BukkitQuestTargetProvider.kt`, `NexoQuestTargetProvider.kt`, `ProgressionConfigService.kt`, `progression.yml`
 
-- [x] **LG-1604** Quest progress listener and provider identity bridge — qualifying Bukkit/domain events increment matching active quests using namespaced target IDs and event context including coordinates, dimension/biome, tool/transport, Elytra state, and block provenance. Nexo custom blocks/items retain custom identity instead of collapsing to vanilla backing types.
+- [x] **LG-1604** Quest progress listener and provider identity bridge â€” qualifying Bukkit/domain events increment matching active quests using namespaced target IDs and event context including coordinates, dimension/biome, tool/transport, Elytra state, and block provenance. Nexo custom blocks/items retain custom identity instead of collapsing to vanilla backing types.
   - Tag: `TDD`
   - References: REQ-075, REQ-076
   - Evidence: kill, break/harvest/place, craft, smelt, fish, enchant, guild-bank and war-win paths are wired with cancellation/game-mode gates; X/Z corridor conditions are evaluated by `QuestService`. Ordinary block quest handlers intentionally remain registered when claims are disabled.
   - Files: `infrastructure/listeners/QuestProgressListener.kt`, `application/services/QuestService.kt`
 
-- [x] **LG-1605** Quest lifecycle service — weekly rotation (default Monday 00:00 UTC), deterministic generation from a stable week seed, startup catch-up, active/history persistence, guild aggregation, and recent-history rejection.
+- [x] **LG-1605** Quest lifecycle service â€” weekly rotation (default Monday 00:00 UTC), deterministic generation from a stable week seed, startup catch-up, active/history persistence, guild aggregation, and recent-history rejection.
   - Tag: `TDD`
   - References: REQ-074
   - Evidence: `WeeklyQuestCoordinator` discovers/sorts provider targets, reads recent persisted sets for cooldown enforcement, and retains the active set across restart rather than regenerating it.
   - Files: `application/services/QuestService.kt`, `infrastructure/services/WeeklyQuestCoordinator.kt`
 
-- [x] **LG-1606** Quest reward delivery — claim flow awards Guild EXP via the uncapped `WEEKLY_ACTIVITY` system pipeline plus optional item rewards; claim, full-set bonus, and leaderboard recipient markers remain idempotent.
+- [x] **LG-1606** Quest reward delivery â€” claim flow awards Guild EXP via the uncapped `WEEKLY_ACTIVITY` system pipeline plus optional item rewards; claim, full-set bonus, and leaderboard recipient markers remain idempotent.
   - Tag: `TDD`
   - References: REQ-077
   - Evidence: claim-once persistence, claim-gated full-set bonus, weekly activity XP, namespaced item reward round-trip, stack splitting, inventory overflow drops, and payout-before-cleanup remain covered.
   - Files: reward delivery in `QuestService`, `QuestRewardSinkBukkit`
 
-- [x] **LG-1607** Quest menu UI and dynamic rendering — Java ChestGUI and dedicated Bedrock Cumulus forms display the persisted generated weekly quest set without requiring one language key per generated quest.
+- [x] **LG-1607** Quest menu UI and dynamic rendering â€” Java ChestGUI and dedicated Bedrock Cumulus forms display the persisted generated weekly quest set without requiring one language key per generated quest.
   - Tag: `TDD`
   - References: REQ-078, REQ-111
   - Evidence: `QuestDisplayFormatter` serves both editions. `BedrockGuildQuestsMenu` now renders six quests per page with human objective text, progress, Guild EXP/item rewards, leaderboard rank, claim state, reset timer and full-set bonus state; claims use the existing idempotent `QuestService` on the server thread. MenuFactory no longer returns the unavailable placeholder for Bedrock. Focused routing/wiring/locale tests and the full 1,357-test suite are green.
   - Files: `interaction/menus/guild/GuildQuestsMenu.kt`, `interaction/menus/bedrock/BedrockGuildQuestsMenu.kt`, `utils/QuestDisplayFormatter.kt`, MenuFactory/localization/tests
 
-- [x] **LG-1608** Read-only localization/placeholders — all surrounding player-facing quest UI uses `LangService`; generated components are dynamically formatted, while PlaceholderAPI exposes read-only timer/definition/progress/reward/bonus state.
+- [x] **LG-1608** Read-only localization/placeholders â€” all surrounding player-facing quest UI uses `LangService`; generated components are dynamically formatted, while PlaceholderAPI exposes read-only timer/definition/progress/reward/bonus state.
   - Tag: `INFRA`
   - References: REQ-078, REQ-079
   - Evidence: menu and PAPI adapters consume the persisted active set and never generate/reset/claim/reward from placeholder evaluation.
@@ -621,22 +621,22 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [x] **Claims-disabled vault startup regression (REQ-015):** Vault claim lookup is optional; claims-enabled placement remains fail-closed. Both real startup graphs pass, and the full test suite plus shadowJar build pass.
 - [x] **Withdrawal fee messaging (REQ-015):** Quick withdrawal buttons preview actual capped fees and total deduction; successful physical and personal-account withdrawals report destination, fee and total. Regression test and full suite pass; shadowJar rebuilt.
 
-## Season 2 UI redesign — local staging
+## Season 2 UI redesign â€” local staging
 
 - [~] **LG-S2-UI** Audit all menu presentations, reconcile Nexo definitions and unify navigation/progression artwork.
   - Tag: `INFRA`
-  - References: REQ-087, REQ-094, REQ-095; `docs/implementation.md` §Layer Dependency Rules; user handoff 2026-09-24.
+  - References: REQ-087, REQ-094, REQ-095; `docs/implementation.md` Â§Layer Dependency Rules; user handoff 2026-09-24.
   - Evidence: implementation and staging deployment are complete. Full `test shadowJar` passes 1,310 tests with 0 failures / 0 errors / 3 skips; `git diff --check` is clean; Semgrep `p/kotlin` ran 9 rules over 68 tracked guild-menu files with 0 findings. LumaGuilds 2.1.0 and Nexo 1.22.1 enable cleanly on Leaf 1.21.11 / Java 21. A first human Java-client walkthrough was completed on 2026-09-24 and found the presentation broadly improved, especially Progression, while identifying the follow-up work documented below; the overall Season 2 UI task remains partial until those findings are resolved and rechecked.
   - Follow-up validation 2026-09-25: full test + shadowJar passes 1,342 tests with 0 failures / 0 errors / 3 skips; git diff check is clean; Semgrep p/kotlin ran 9 rules over 69 guild-menu targets with 0 findings. Staging JAR SHA-256 512D5734AD6DDC9E8E7E259DD67B6CEAB535B1C68502AC30A08A709257EAA3C6. SELFHOST pack SHA-256 60814E1CB04812B4395D6928536C23EA5C9A1167DE611D77345AEEEBB4E58A21 (915,141 bytes). Human second-pass visual sign-off remains pending.
 
 - [x] **LG-S2-LAYOUT** Separate progression content from sidebar and navigation.
   - Tag: `TDD`
-  - References: REQ-094; `docs/implementation.md` §Layer Dependency Rules.
-  - Evidence: `GuildProgressionLayoutTest` locks the 24 source slots (11–16, 20–25, 29–34, 38–43) and prevents collisions with header/sidebar/navigation regions. Full suite green.
+  - References: REQ-094; `docs/implementation.md` Â§Layer Dependency Rules.
+  - Evidence: `GuildProgressionLayoutTest` locks the 24 source slots (11â€“16, 20â€“25, 29â€“34, 38â€“43) and prevents collisions with header/sidebar/navigation regions. Full suite green.
 - [x] **LG-S2-THEME** One-row GUI theme selector and six themed glyph backgrounds.
   - Tag: `TDD`
   - References: REQ-096, REQ-099.
-  - Evidence: Settings → GUI Theme is a one-row selector with six theme choices at slots 0–5 and Back at slot 8, permission-gated mutation, current-theme cue, and localized light title. `MenuTitleBuilderTest` covers 1/3/4/5/6-row glyph names for all six themes. Runtime glyphs `guild_bg_<theme>_1_row` use unique U+A018..U+A01D codepoints; all six codepoints are present in the generated pack JSON.
+  - Evidence: Settings â†’ GUI Theme is a one-row selector with six theme choices at slots 0â€“5 and Back at slot 8, permission-gated mutation, current-theme cue, and localized light title. `MenuTitleBuilderTest` covers 1/3/4/5/6-row glyph names for all six themes. Runtime glyphs `guild_bg_<theme>_1_row` use unique U+A018..U+A01D codepoints; all six codepoints are present in the generated pack JSON.
 - [x] **LG-S2-PROGRESSION-ICONS** Exhaustive ExperienceSource and pool-aware progression presentation.
   - Tag: `TDD`
   - References: REQ-097.
@@ -648,7 +648,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - [x] **LG-S2-PACK** Install second-pass backgrounds/icons/swatches into local Nexo, audit identifiers, regenerate SELFHOST pack.
   - Tag: `INFRA`
   - References: REQ-095, REQ-099.
-  - Evidence: staging-only Nexo remains `SELFHOST`. 26 new item CMD values 733213–733238 each occur exactly once; six new glyph chars U+A018–U+A01D each occur exactly once; there are zero duplicate item IDs or glyph IDs. Approved 512×512 art remains the master source, while all 60 Nexo/package GUI runtime copies were downscaled to 256×256 to satisfy Nexo's bitmap validator. Clean restart generated `plugins/Nexo/pack/pack.zip` without oversized/placeholder warnings; SHA-256 `17CED3AFD257F80C7EF2209B3646D2C6543B9D969C426AD264E9F7F5983964CC`.
+  - Evidence: staging-only Nexo remains `SELFHOST`. 26 new item CMD values 733213â€“733238 each occur exactly once; six new glyph chars U+A018â€“U+A01D each occur exactly once; there are zero duplicate item IDs or glyph IDs. Approved 512Ã—512 art remains the master source, while all 60 Nexo/package GUI runtime copies were downscaled to 256Ã—256 to satisfy Nexo's bitmap validator. Clean restart generated `plugins/Nexo/pack/pack.zip` without oversized/placeholder warnings; SHA-256 `17CED3AFD257F80C7EF2209B3646D2C6543B9D969C426AD264E9F7F5983964CC`.
   - Deployment: `plugins/LumaGuilds-Season2.jar` SHA-256 `B695D28BC44DDEEB6C8A54E76876624B1CBDB76257255E862386F86483ADE903`; previous JAR backed up under `_staging_backups/season2-ui-deploy-20260924-194304`. Resource pre-overwrite backup: `_staging_backups/season2-ui-secondpass-20260924-190910`.
 - [x] **LG-S2-MENUS** Apply approved dashboard/economy/settings/diplomacy/warfare/member layout family without behavior loss.
   - Tag: `TDD`
@@ -656,7 +656,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Evidence: dashboard keeps all ten sections with Statistics under Economy and uses the guild's real stored banner when available; Settings is regrouped into identity / appearance / access-location; existing segmented diplomacy/warfare flows and member/rank state/paging are preserved. Layout contracts and full suite are green.
   - Runtime note: a Java client connected successfully after the clean pack rebuild. Bedrock remains explicitly unverified because this staging runtime reports Floodgate/Cumulus classes absent.
 
-## Season 2 Java visual-audit follow-up — 2026-09-24
+## Season 2 Java visual-audit follow-up â€” 2026-09-24
 
 > Source: live Java-client walkthrough on local staging after the second-pass pack/JAR deployment. The walkthrough used an imported guild database, including temporary override/join testing with Vibe and Test. Treat data anomalies as findings to reproduce against authoritative live data before deciding whether they are migration artifacts or runtime defects.
 >
@@ -733,7 +733,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 ---
 
-## PR-17 — Season 2 Bedrock parity
+## PR-17 â€” Season 2 Bedrock parity
 
 > Source: `docs/season2-bedrock-parity-audit-2026-09-25.md` (BPAR-001..BPAR-020).
 > Plan: `docs/superpowers/plans/2026-09-25-season2-bedrock-parity.md`.
@@ -844,3 +844,9 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - SPEAR tooling boundary: this checkout has no project-local EARS validator or state helper. Requirements and this task/evidence record provide traceability; no automated SPEAR gate is claimed.
 - [ ] Canonical delivery: merge the reviewed source through the normal process, update/verify the owning monorepo pin, and build/verify the resulting clean merged commit before any production deployment. No merge or production activation is authorized by this workflow update.
 - Verified live owning monorepo: `BadgersMC/enthusia-network`, `plugins/luma-guilds` pins `c427d5dbc4838c95bcde45d57be14a6b6980ff8e`; `plugins/rosechat` pins `cf8a7b040f7194a0bf26d98096493bbb7e53efa9`. The guild pin predates the recent rank feature and this fix. Updating it must include the merged fix and receive combined-build validation; a standalone build is insufficient deployment evidence.
+## Guild emoji safety â€” 2026-10-04
+
+- [x] **Guild emoji safety** â€” block GUI glyphs at persistence and all guild-emoji placeholder renderers.
+  - Tag: `TDD`
+  - References: `docs/plans/2026-10-04-guild-emoji-safety.md`; REQ-025 public Nexo API
+  - Evidence: main `6c9f5a5`; live TAB suffix uses `guild_emoji`; live gold/crimson GUI glyphs are height 256 and not emojis. `NexoEmojiService.doesEmojiExist` accepts any registered glyph and absent-plugin format fallback; `GuildServiceBukkit.setEmoji` omits existence validation; `LumaGuildsExpansion.convertEmojiToNexoPlaceholder` delegates saved names without validation. RED: unresolved-glyph regression failed on main. GREEN: full check passes 1,502 tests, zero failures/errors, four skips; architecture checks and diff check pass. Checkpoint snapshot shows Vegas uses valid :imp:; generated and published pack SHA-256 match, mapping imp to a 9-pixel purple face. This guard is preventive hardening; screenshot root cause and client acceptance remain open. See linked plan for boundaries.

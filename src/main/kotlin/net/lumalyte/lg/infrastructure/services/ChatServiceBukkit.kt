@@ -93,9 +93,14 @@ class ChatServiceBukkit(
         }
     }
 
+    private fun formatGuildTag(guild: Guild, brackets: Boolean = true): String {
+        val displayedGuild = guild.copy(emoji = nexoEmojiService.getEmojiPlaceholder(guild.emoji))
+        return GuildDisplayUtils.createGuildTag(displayedGuild, brackets)
+    }
+
     private fun formatAnnouncement(guild: Guild, name: String, message: String, colorDigit: Char): Component {
         val headerColor = colorDigit.takeIf { it in '0'..'9' } ?: '6'
-        val guildTag = GuildDisplayUtils.createGuildTag(guild)
+        val guildTag = formatGuildTag(guild)
         return when (headerColor) {
             '0' -> lang.msg("notification.chat.announcement.black", "guild" to guildTag, "player" to name, "message" to message)
             '1' -> lang.msg("notification.chat.announcement.dark_blue", "guild" to guildTag, "player" to name, "message" to message)
@@ -146,7 +151,7 @@ class ChatServiceBukkit(
             }
             
             val pingerName = Bukkit.getPlayer(pingerId)?.name ?: UNKNOWN_PLAYER
-            val guildDisplayName = GuildDisplayUtils.createGuildTag(guild)
+            val guildDisplayName = formatGuildTag(guild)
             
             val formattedMessage = if (message != null) {
                 lang.msg("notification.chat.ping.message", "guild" to guildDisplayName, "player" to pingerName, "message" to message)
@@ -262,7 +267,7 @@ class ChatServiceBukkit(
         val primaryGuild = senderGuilds.firstOrNull()?.let { guildService.getGuild(it) }
         
         val guildTag = if (primaryGuild != null) {
-            GuildDisplayUtils.createGuildTag(primaryGuild, brackets = false)
+            formatGuildTag(primaryGuild, brackets = false)
         } else {
             ""
         }
@@ -304,7 +309,7 @@ class ChatServiceBukkit(
                 if (configService.loadConfig().chat.coloredChatEnabled) value else stripLegacyColors(value)
             }
         val primaryGuild = memberService.getPlayerGuilds(senderId).firstOrNull()?.let(guildService::getGuild)
-        val guildTag = primaryGuild?.let { GuildDisplayUtils.createGuildTag(it, brackets = false) }.orEmpty()
+        val guildTag = primaryGuild?.let { formatGuildTag(it, brackets = false) }.orEmpty()
 
         return when (channel) {
             ChatChannel.GUILD -> {
