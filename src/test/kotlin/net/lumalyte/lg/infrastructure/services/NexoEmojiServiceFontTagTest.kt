@@ -5,59 +5,50 @@ import net.lumalyte.lg.application.services.ConfigService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
-/**
- * Tests for [NexoEmojiService.emojiToFontTag] — the guild-emoji → raw
- * `<font:<glyphfont>><char></font>` converter used by
- * %lumaguilds_guild_emoji_font% (backend MiniMessage consumers: UnlimitedNameTags,
- * IC-DiscordSRV-Addon playerlist image renderer, Velocitab via PapiProxyBridge).
- *
- * Without a running Bukkit server [NexoEmojiService.getFontManager] resolves to null,
- * so these tests exercise the fallback path (Nexo `<glyph:name>` tag, matching
- * [net.lumalyte.lg.utils.ColorCodeUtils.emojiToGlyphTag]). The Nexo char/font
- * extraction itself is integration-only (requires live Nexo classes on a server).
- */
-class NexoEmojiServiceFontTagTest {
+/** Tests optional Nexo resolution and registered emoji font rendering. */
+internal class NexoEmojiServiceFontTagTest {
 
     private val service = NexoEmojiService(mockk<ConfigService>())
 
+    /** Null and blank values render as empty text. */
     @Test
-    fun `returns empty for null or blank`() {
+    fun omitsBlankValues() {
         assertEquals("", service.emojiToFontTag(null))
         assertEquals("", service.emojiToFontTag(""))
         assertEquals("", service.emojiToFontTag("   "))
         assertEquals("", service.emojiToFontTag("\t\n"))
     }
 
+    /** Non-placeholder input is never delegated to a glyph renderer. */
     @Test
-    fun `passes non-discord values through unchanged`() {
-        assertEquals(":weird", service.emojiToFontTag(":weird"))
-        assertEquals("plain", service.emojiToFontTag("plain"))
-        // ":": length 1, doesn't match the :name: guard -> passthrough (same as the glyph-tag converter)
-        assertEquals(":", service.emojiToFontTag(":"))
+    fun omitsPlainValues() {
+        assertEquals("", service.emojiToFontTag(":weird"))
+        assertEquals("", service.emojiToFontTag("plain"))
+        assertEquals("", service.emojiToFontTag(":"))
     }
 
+    /** Control characters cannot enter generated MiniMessage tags. */
     @Test
-    fun `rejects emoji names with MiniMessage control characters`() {
-        // isValidEmojiFormat only checks delimiters; the glyph-id guard must stop
-        // MiniMessage control characters from reaching the generated tag.
-        assertEquals(":x><reset>:", service.emojiToFontTag(":x><reset>:"))
-        assertEquals(":<red>evil</red>:", service.emojiToFontTag(":<red>evil</red>:"))
-        assertEquals(":emoji with spaces:", service.emojiToFontTag(":emoji with spaces:"))
+    fun rejectsControlCharacters() {
+        assertEquals("", service.emojiToFontTag(":x><reset>:"))
+        assertEquals("", service.emojiToFontTag(":<red>evil</red>:"))
+        assertEquals("", service.emojiToFontTag(":emoji with spaces:"))
     }
 
+    /** Missing Nexo hides emojis instead of emitting unvalidated glyph tags. */
     @Test
-    fun `falls back to glyph tag when Nexo is unavailable`() {
-        // No Bukkit server in unit tests -> getFontManager() is null -> <glyph:name>
-        assertEquals("<glyph:catsmileysmile>", service.emojiToFontTag(":catsmileysmile:"))
-        assertEquals("<glyph:clown>", service.emojiToFontTag(":clown:"))
-        assertEquals("<glyph:fire>", service.emojiToFontTag(":fire:"))
+    fun handlesAbsentNexo() {
+        assertEquals("", service.emojiToFontTag(":catsmileysmile:"))
+        assertEquals("", service.emojiToFontTag(":clown:"))
+        assertEquals("", service.emojiToFontTag(":fire:"))
     }
 
+    /** Resolved emoji fonts prefix guild names without changing their text. */
     @Test
-    fun `formats guild display name with resolved glyph instead of persisted placeholder`() {
+    fun formatsGuildName() {
         val resolvedService = NexoEmojiService(
             mockk<ConfigService>(),
-            NexoGlyphResolver { ResolvedNexoGlyph("\uE001", "nexo:emoji") }
+            NexoGlyphResolver { ResolvedNexoGlyph("\uE001", "nexo:emoji", true) },
         )
 
         assertEquals(
@@ -67,11 +58,12 @@ class NexoEmojiServiceFontTagTest {
         assertEquals("Enthusiast", resolvedService.formatGuildDisplayName("Enthusiast", null))
     }
 
+    /** Registered emoji characters retain their resource-pack font. */
     @Test
-    fun `renders a resolved public API glyph as a font tag`() {
+    fun rendersEmojiFont() {
         val resolvedService = NexoEmojiService(
             mockk<ConfigService>(),
-            NexoGlyphResolver { ResolvedNexoGlyph("\uE001", "nexo:emoji") }
+            NexoGlyphResolver { ResolvedNexoGlyph("\uE001", "nexo:emoji", true) },
         )
 
         assertEquals(
