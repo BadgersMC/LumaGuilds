@@ -38,17 +38,18 @@ private object NexoPublicGlyphResolver : NexoGlyphResolver {
 }
 
 private fun resolveOptionalGlyph(resolver: NexoGlyphResolver, name: String): ResolvedNexoGlyph? {
-    val glyph = try {
-        resolver.resolve(name)
-    } catch (_: IllegalStateException) {
-        null
-    } catch (_: IllegalArgumentException) {
-        null
-    } catch (_: NullPointerException) {
-        null
-    } catch (_: LinkageError) {
-        null
-    }
+    val glyph =
+        try {
+            resolver.resolve(name)
+        } catch (_: IllegalStateException) {
+            null
+        } catch (_: IllegalArgumentException) {
+            null
+        } catch (_: NullPointerException) {
+            null
+        } catch (_: LinkageError) {
+            null
+        }
     return glyph
 }
 

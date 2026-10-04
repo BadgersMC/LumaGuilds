@@ -29,19 +29,20 @@ internal class GuildEmojiPersistenceSafetyTest {
     }
 
     private fun guildService(): GuildServiceBukkit {
-        val service = GuildServiceBukkit(
-            guildRepository = repository,
-            rankRepository = mockk(relaxed = true),
-            memberRepository = mockk(relaxed = true),
-            rankService = mockk(relaxed = true),
-            memberService = mockk(relaxed = true),
-            nexoEmojiService = emojiService,
-            vaultService = mockk(relaxed = true),
-            hologramService = mockk(relaxed = true),
-            relationRepository = mockk(relaxed = true),
-            historyRepository = mockk(relaxed = true),
-            adminOverrideService = mockk(relaxed = true),
-        )
+        val service =
+            GuildServiceBukkit(
+                guildRepository = repository,
+                rankRepository = mockk(relaxed = true),
+                memberRepository = mockk(relaxed = true),
+                rankService = mockk(relaxed = true),
+                memberService = mockk(relaxed = true),
+                nexoEmojiService = emojiService,
+                vaultService = mockk(relaxed = true),
+                hologramService = mockk(relaxed = true),
+                relationRepository = mockk(relaxed = true),
+                historyRepository = mockk(relaxed = true),
+                adminOverrideService = mockk(relaxed = true),
+            )
         return service
     }
 
