@@ -37,17 +37,18 @@ private object NexoPublicGlyphResolver : NexoGlyphResolver {
     }
 }
 
-private fun resolveOptionalGlyph(resolver: NexoGlyphResolver, name: String): ResolvedNexoGlyph? = try {
-    resolver.resolve(name)
-} catch (_: IllegalStateException) {
-    null
-} catch (_: IllegalArgumentException) {
-    null
-} catch (_: NullPointerException) {
-    null
-} catch (_: LinkageError) {
-    null
-}
+private fun resolveOptionalGlyph(resolver: NexoGlyphResolver, name: String): ResolvedNexoGlyph? =
+    try {
+        resolver.resolve(name)
+    } catch (_: IllegalStateException) {
+        null
+    } catch (_: IllegalArgumentException) {
+        null
+    } catch (_: NullPointerException) {
+        null
+    } catch (_: LinkageError) {
+        null
+    }
 
 private fun nexoFontManager() = try {
     NexoPlugin.instance().fontManager()
@@ -61,8 +62,8 @@ private fun nexoFontManager() = try {
  * Service for interacting with Nexo emojis.
  * Handles emoji validation and permission checking for guild emoji system.
  * JFS there is some really nasty shit going on here.
+ * Retains the existing public API used by commands, menus and integrations.
  */
-// Retain the existing public service API used by commands, menus and integrations.
 @Suppress("TooManyFunctions")
 class NexoEmojiService internal constructor(
     private val configService: ConfigService,
@@ -145,9 +146,7 @@ class NexoEmojiService internal constructor(
      * @param emoji The emoji placeholder (e.g., ":catsmileysmile:").
      * @return The placeholder string, or empty string if invalid.
      */
-    fun getEmojiPlaceholder(emoji: String?): String {
-        return emoji?.takeIf { resolveEmoji(it) != null }.orEmpty()
-    }
+    fun getEmojiPlaceholder(emoji: String?): String = emoji?.takeIf { resolveEmoji(it) != null }.orEmpty()
 
     /** Returns a validated PAPI glyph placeholder, or empty text for unsafe glyphs. */
     fun emojiToNexoPlaceholder(emoji: String?): String {
