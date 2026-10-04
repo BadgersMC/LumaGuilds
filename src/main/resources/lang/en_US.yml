@@ -7249,6 +7249,8 @@ admin:
         guild_not_found: '<red>Guild not found: <guild>'
         success: '<green>Granted <gold><amount> XP <green>to <gold><guild><green>. <gray>Transaction: <transaction>'
         failed: '<red>Failed to grant <amount> XP to <guild>. Check the server log for the rejected award.'
+        unavailable: '<red>XP grant could not be scheduled. No award was attempted.'
+        uncertain: '<red>XP grant could not be confirmed. Check the ledger before retrying. <gray>Transaction: <transaction>'
       handlemigrate:
         1_mariadb_must_be_configured_in_config: '<gray>  1. MariaDB must be configured in config.yml'
         1_verify_the_data_in_mariadb: '<gray>  1. Verify the data in MariaDB'

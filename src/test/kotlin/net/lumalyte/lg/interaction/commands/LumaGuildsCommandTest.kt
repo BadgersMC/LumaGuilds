@@ -39,8 +39,10 @@ class LumaGuildsCommandTest {
     private lateinit var command: LumaGuildsCommand
     private lateinit var adminOverrideService: AdminOverrideService
     private lateinit var permissionResolver: GuildRolePermissionResolver
-    private lateinit var guildService: GuildService
-    private lateinit var progressionService: ProgressionService
+    private var guildService: GuildService = mockk(relaxed = true)
+    private var progressionService: ProgressionService = mockk(relaxed = true)
+    private val xpTasks = java.util.ArrayDeque<Runnable>()
+    private val xpReplies = java.util.ArrayDeque<Runnable>()
     private lateinit var mockCommand: Command
     private lateinit var mockPlugin: org.bukkit.plugin.Plugin
 
@@ -81,7 +83,7 @@ class LumaGuildsCommandTest {
         }
 
         // Create command
-        command = LumaGuildsCommand()
+        command = LumaGuildsCommand({ xpTasks.add(it) }, { xpReplies.add(it) })
 
         // Create a mock player
         player = server.addPlayer("TestAdmin")
@@ -96,34 +98,144 @@ class LumaGuildsCommandTest {
         stopKoin()
     }
 
+    /** The database award waits for the worker; the Bukkit reply waits for the main thread. */
     @Test
-    fun `xp give awards uncapped admin bonus to named guild`() {
-        player.addAttachment(mockPlugin, "lumaguilds.admin.xp", true)
-        val guildId = UUID.randomUUID()
-        val guild = mockk<Guild>()
-        every { guild.id } returns guildId
-        every { guild.name } returns "Vibe"
-        every { guildService.getGuildByName("Vibe") } returns guild
-        every { progressionService.awardUncappedSystemExperienceOnce(
-            guildId, 5, ExperienceSource.ADMIN_BONUS, any()
-        ) } returns true
+    fun xpGiveIsAsync() {
+        val guildId = prepareXpGuild()
+        every {
+            progressionService.awardUncappedSystemExperienceOnce(guildId, 5, ExperienceSource.ADMIN_BONUS, any())
+        } returns true
 
-        val result = command.onCommand(player, mockCommand, "lumaguilds", arrayOf("xp", "give", "Vibe", "5"))
-
-        assertTrue(result)
-        verify(exactly = 1) { progressionService.awardUncappedSystemExperienceOnce(
-            guildId, 5, ExperienceSource.ADMIN_BONUS, any()
-        ) }
-        assertTrue(player.nextMessage()?.contains("Granted") == true)
-    }
-
-    @Test
-    fun `xp give rejects player without xp admin permission`() {
         val result = command.onCommand(player, mockCommand, "lumaguilds", arrayOf("xp", "give", "Vibe", "5"))
 
         assertTrue(result)
         verify(exactly = 0) { progressionService.awardUncappedSystemExperienceOnce(any(), any(), any(), any()) }
+        xpTasks.remove().run()
+        verify(exactly = 1) {
+            progressionService.awardUncappedSystemExperienceOnce(guildId, 5, ExperienceSource.ADMIN_BONUS, any())
+        }
+        assertNull(player.nextMessage())
+        xpReplies.remove().run()
+        assertTrue(player.nextMessage()?.contains("Granted") == true)
+    }
+
+    /** Unauthorized senders cannot enqueue database work. */
+    @Test
+    fun xpPermissionDenied() {
+        val result = command.onCommand(player, mockCommand, "lumaguilds", arrayOf("xp", "give", "Vibe", "5"))
+
+        assertTrue(result)
+        assertTrue(xpTasks.isEmpty())
+        verify(exactly = 0) { progressionService.awardUncappedSystemExperienceOnce(any(), any(), any(), any()) }
         assertTrue(player.nextMessage()?.contains("permission", ignoreCase = true) == true)
+    }
+
+    /** Invalid and overflowing amounts are rejected before lookup. */
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = ["0", "-1", "1.5", "abc", "2147483648"])
+    fun xpInvalidAmount(amount: String) {
+        player.addAttachment(mockPlugin, "lumaguilds.admin.xp", true)
+        command.onCommand(player, mockCommand, "lumaguilds", arrayOf("xp", "give", "Vibe", amount))
+        assertTrue(xpTasks.isEmpty())
+        verify(exactly = 0) { guildService.getGuildByName(any()) }
+        assertTrue(player.nextMessage()?.contains("positive whole number") == true)
+    }
+
+    /** Missing arguments and unsupported XP verbs never enqueue work. */
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = ["xp", "xp give Vibe", "xp take Vibe 5"])
+    fun xpInvalidUsage(input: String) {
+        player.addAttachment(mockPlugin, "lumaguilds.admin.xp", true)
+        command.onCommand(player, mockCommand, "lumaguilds", input.split(" ").toTypedArray())
+        assertTrue(xpTasks.isEmpty())
+        assertTrue(player.nextMessage()?.contains("Usage:") == true)
+    }
+
+    /** Console grants support names containing spaces without a player permission attachment. */
+    @Test
+    fun xpConsoleGrant() {
+        val guild = mockk<Guild>()
+        every { guild.id } returns UUID.randomUUID()
+        every { guild.name } returns "Two Words"
+        every { guildService.getGuildByName("Two Words") } returns guild
+        every { progressionService.awardUncappedSystemExperienceOnce(any(), 5, ExperienceSource.ADMIN_BONUS, any()) } returns true
+        command.onCommand(server.consoleSender, mockCommand, "lumaguilds", arrayOf("xp", "give", "Two", "Words", "5"))
+        xpTasks.remove().run()
+        xpReplies.remove().run()
+        assertTrue(server.consoleSender.nextMessage()?.contains("Two Words") == true)
+    }
+
+    /** Missing guilds do not create a ledger award. */
+    @Test
+    fun xpMissingGuild() {
+        player.addAttachment(mockPlugin, "lumaguilds.admin.xp", true)
+        every { guildService.getGuildByName(any()) } returns null
+        every { guildService.getAllGuilds() } returns emptySet()
+        submitXp()
+        assertTrue(xpTasks.isEmpty())
+        verify(exactly = 0) { progressionService.awardUncappedSystemExperienceOnce(any(), any(), any(), any()) }
+        assertTrue(player.nextMessage()?.contains("Guild not found") == true)
+    }
+
+    /** Rejected awards report failure, not success. */
+    @Test
+    fun xpRejectedAward() {
+        prepareXpGuild()
+        every { progressionService.awardUncappedSystemExperienceOnce(any(), any(), any(), any()) } returns false
+        submitXp()
+        xpTasks.remove().run()
+        xpReplies.remove().run()
+        assertTrue(player.nextMessage()?.contains("Failed to grant") == true)
+    }
+
+    /** An ambiguous exception exposes the transaction reference and never retries. */
+    @Test
+    fun xpAwardException() {
+        prepareXpGuild()
+        every { progressionService.awardUncappedSystemExperienceOnce(any(), any(), any(), any()) } throws IllegalStateException("DB unavailable")
+        submitXp()
+        xpTasks.remove().run()
+        xpReplies.remove().run()
+        verify(exactly = 1) { progressionService.awardUncappedSystemExperienceOnce(any(), any(), any(), any()) }
+        assertTrue(player.nextMessage()?.contains("Check the ledger before retrying") == true)
+        assertTrue(xpTasks.isEmpty())
+    }
+
+    /** A disabled scheduler cannot attempt an award. */
+    @Test
+    fun xpScheduleRejected() {
+        prepareXpGuild()
+        command = LumaGuildsCommand({ throw IllegalStateException("disabled") }, { xpReplies.add(it) })
+        submitXp()
+        verify(exactly = 0) { progressionService.awardUncappedSystemExperienceOnce(any(), any(), any(), any()) }
+        assertTrue(player.nextMessage()?.contains("No award was attempted") == true)
+    }
+
+    /** Losing a reply after commit must not submit another award. */
+    @Test
+    fun xpReplyRejected() {
+        prepareXpGuild()
+        every { progressionService.awardUncappedSystemExperienceOnce(any(), any(), any(), any()) } returns true
+        command = LumaGuildsCommand({ xpTasks.add(it) }, { throw IllegalStateException("disabled") })
+        submitXp()
+        xpTasks.remove().run()
+        verify(exactly = 1) { progressionService.awardUncappedSystemExperienceOnce(any(), any(), any(), any()) }
+        assertNull(player.nextMessage())
+        assertTrue(xpTasks.isEmpty())
+    }
+
+    private fun submitXp() {
+        command.onCommand(player, mockCommand, "lumaguilds", arrayOf("xp", "give", "Vibe", "5"))
+    }
+
+    private fun prepareXpGuild(): UUID {
+        player.addAttachment(mockPlugin, "lumaguilds.admin.xp", true)
+        val guild = mockk<Guild>()
+        val guildId = UUID.randomUUID()
+        every { guild.id } returns guildId
+        every { guild.name } returns "Vibe"
+        every { guildService.getGuildByName("Vibe") } returns guild
+        return guildId
     }
 
     @Test
