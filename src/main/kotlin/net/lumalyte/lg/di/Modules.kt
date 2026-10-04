@@ -666,6 +666,11 @@ fun progressionModule() = module {
     single<net.lumalyte.lg.application.persistence.BlockProvenanceRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.BlockProvenanceRepositorySQLite(get())
     }
+    single {
+        net.lumalyte.lg.infrastructure.listeners.BlockProvenanceOperationQueue(
+            get<ExecutorService>(named("VirtualThreadExecutor"))
+        )
+    }
 
     // Services
     single<KillService> { KillServiceBukkit(get()) }
@@ -696,8 +701,14 @@ fun progressionModule() = module {
         net.lumalyte.lg.infrastructure.services.PacketEventsToastSender(get<LumaGuilds>())
     }
     single<net.lumalyte.lg.application.services.QuestCompletionNotifier> {
+        val plugin = get<LumaGuilds>()
         net.lumalyte.lg.infrastructure.services.QuestCompletionNotifierBukkit(
             get(), get(), get(), get(), get(),
+            onMainThread = { action ->
+                if (org.bukkit.Bukkit.isPrimaryThread()) action()
+                else org.bukkit.Bukkit.getScheduler().callSyncMethod(plugin) { action() }
+                    .get(5, java.util.concurrent.TimeUnit.SECONDS)
+            },
         )
     }
     single<net.lumalyte.lg.application.services.GuildDisbandAnnouncementService> {
@@ -840,9 +851,10 @@ single {
             blockProvenanceRepository = get(),
             plugin = get(),
             virtualDispatcher = get(named("VirtualDispatcher")),
+            provenanceOperations = get(),
         )
     }
-    single { net.lumalyte.lg.infrastructure.listeners.QuestProgressListener(get(), get(), get()) }
+    single { net.lumalyte.lg.infrastructure.listeners.QuestProgressListener(get(), get(), get(), get()) }
 }
 
 /**
