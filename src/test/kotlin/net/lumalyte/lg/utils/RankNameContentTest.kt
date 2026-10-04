@@ -8,6 +8,18 @@ import kotlin.test.*
 
 class RankNameContentTest {
     @Test
+    fun bareHexRankNamesValidateAndRender() {
+        assertTrue(RankNameContent.valid("#f99801Founder"))
+        assertEquals("Founder", RankNameContent.plain("#f99801Founder"))
+        assertEquals(TextColor.color(0xf99801), RankNameContent.component("#f99801Founder").color())
+        assertEquals(RankNameContent.legacy("&#f99801Founder"), RankNameContent.legacy("#f99801Founder"))
+        assertTrue(RankNameContent.valid("#f99801" + "A".repeat(24)))
+        assertFalse(RankNameContent.valid("#f99801" + "A".repeat(25)))
+        assertFalse(RankNameContent.valid("#f99801"))
+        assertFalse(RankNameContent.valid("#f9980ZFounder"))
+        assertFalse(RankNameContent.valid("#f9980 Founder"))
+    }
+    @Test
     fun colorsDoNotCountTowardsVisibleLimit() {
         assertTrue(RankNameContent.valid("&a&l" + "A".repeat(24)))
         assertTrue(RankNameContent.valid("&#55ff99Founder"))

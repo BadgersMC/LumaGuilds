@@ -100,10 +100,7 @@ class LumaGuildsChannel(provider: ChannelProvider) : RoseChatChannel(provider), 
         val format = GuildRankChatFormatter.render(
             original, rankName, guild?.let { rankSettings.ranksVisible(it.id) } ?: true, guildRankFormat,
         )
-        return ChannelMessageOptions(
-            options.sender(), options.message(), format, options.sendToDiscord(), options.discordId(),
-            options.messageId(), options.isJson(), options.wrapper(), options.bypassSlowmode(),
-        )
+        return RoseChatMessageOptions.withFormat(options, format)
     }
 
     override fun getMemberCount(): Int = getMembers().size

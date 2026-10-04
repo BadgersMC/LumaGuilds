@@ -8,6 +8,7 @@ import net.lumalyte.lg.utils.NexoItemProvider
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.lumalyte.lg.infrastructure.i18n.rankNameError
 import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -599,7 +600,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             "name" -> {
                 val error = validateRankName(input)
                 if (error != null) {
-                    player.sendMessage(lang.msg("menu.rank_edit.feedback.invalid_name", "error" to error))
+                    player.sendMessage(lang.rankNameError(error))
                     player.sendMessage(lang.msg("menu.rank_edit.feedback.try_again"))
                     // Keep input mode active and reopen menu for retry
                 } else {
