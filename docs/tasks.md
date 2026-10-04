@@ -822,3 +822,25 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 - Validation: `gradlew.bat check shadowJar '-PreleaseVersion=3.0.15-rank-customization-test.1' --console=plain` passed: 1,462 tests, zero failures/errors, four skipped. Wiki frontmatter validation passed for 42 pages; all 13 help topics remain in parity. `git diff --check` passed.
 - Test artifact: `build/libs/LumaGuilds-3.0.15-rank-customization-test.1.jar`; SHA-256 `8821A1B743D71E0ACE2F60CDFCF84C450C0A97E62E06F731E9DB076DE2EE6DF9`.
 - [ ] Live Paper/RoseChat send-path verification, Java/Bedrock client menu walkthrough, and MariaDB runtime verification remain separate. Production was not changed.
+
+## Guild chat RC-4 and bare hex rank correction (2026-10-04)
+
+- [x] Diagnose production `/gc` failure from `latest.log`: LumaGuilds 3.0.17 calls the nine-argument `ChannelMessageOptions` constructor missing from installed RoseChat RC-4, throwing before delivery.
+- [x] Copy the runtime record while replacing only `format`, retaining all options, including newer bypass flags. Keep the shared channel format unchanged.
+- [x] Accept the reported `#f99801Founder` syntax in shared rank validation/rendering; retain existing `&#RRGGBB`, repeated legacy hex, identity rules, and visible/raw limits.
+- [x] Render nested validation messages before Nexus placeholder interpolation in rank creation and editing.
+- [x] Prove binary compatibility locally: compile against the old nine-component API and run the same channel/record-copy tests with the eleven-component `RoseChat-RC-4-discord-rank-26.2-test.7.jar` using `-ProseChatRuntimeJar=../rosechat-26.2/build/libs/RoseChat-RC-4-discord-rank-26.2-test.7.jar`. Both focused runs pass. This is not the exact production test.5 artifact or a live send test.
+- [x] Full local validation and test artifact finalization: `gradlew.bat check shadowJar '-PreleaseVersion=3.0.18-guild-chat-rc4-test.1' --console=plain` passes, 1,497 tests, zero failures/errors, four skipped. Test artifact: `build/libs/LumaGuilds-3.0.18-guild-chat-rc4-test.1.jar`; SHA-256 `4D15FC67FAA4610C6C0C453658892557FA2503E7689F6E4DAB7A21817108BB37`. `git diff --check` passes.
+- [ ] Live `/gc` delivery and rank rename acceptance. Production inspection was read-only; no upload, restart, or activation occurred. Codacy MCP analysis is unavailable in this session.
+
+### SPEAR refinement and canonical delivery gate (2026-10-04)
+
+- Spec: REQ-063 remains the behavior contract. Fetch and inspect current main before refinement; preserve every runtime option and both supported hex syntaxes.
+- Prove: production stack trace and focused old/new-runtime regressions are existing evidence, not a new historical test-first claim. The GitHub build passed on `2ffde89954e16ea102f29e4c6c42337e934fdd30`; Codacy reported 35 review annotations.
+- Engine: this pass changes documentation/style only; no behavior change is intended. No new behavioral tests are needed for formatting corrections.
+- Arch: keep compatibility copying in infrastructure and shared color validation in its existing utility; retain Java/Bedrock consumers.
+- [x] Implement the annotation corrections and rerun local checks: focused color/feedback/locale/channel tests pass; old-API-compiled channel/copy tests pass with the newer RC-4 runtime; `gradlew.bat clean check --console=plain` passes with 1,497 tests, zero failures/errors, four skipped. Formatting, documentation, visibility, constants, and shared build configuration were corrected. Reflective spread arguments remain intentional at the variable-arity compatibility boundary, with narrow documented suppressions. Hosted results must be checked against the exact updated PR head separately.
+- Unmerged local test artifact, built only after `clean check` passed: `build/libs/LumaGuilds-3.0.18-guild-chat-rc4-test.2.jar`, SHA-256 `696D03E160CE9EA0594939AA7241E6737E5AB7222207102BA4F19854C44E6F84`. This does not authorize production deployment.
+- SPEAR tooling boundary: this checkout has no project-local EARS validator or state helper. Requirements and this task/evidence record provide traceability; no automated SPEAR gate is claimed.
+- [ ] Canonical delivery: merge the reviewed source through the normal process, update/verify the owning monorepo pin, and build/verify the resulting clean merged commit before any production deployment. No merge or production activation is authorized by this workflow update.
+- Verified live owning monorepo: `BadgersMC/enthusia-network`, `plugins/luma-guilds` pins `c427d5dbc4838c95bcde45d57be14a6b6980ff8e`; `plugins/rosechat` pins `cf8a7b040f7194a0bf26d98096493bbb7e53efa9`. The guild pin predates the recent rank feature and this fix. Updating it must include the merged fix and receive combined-build validation; a standalone build is insufficient deployment evidence.

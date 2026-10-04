@@ -7,6 +7,23 @@ import org.junit.jupiter.api.Test
 import kotlin.test.*
 
 class RankNameContentTest {
+    /** The reported bare hex name shares rendering and limits with legacy hex input. */
+    @Test
+    fun bareHexNames() {
+        val hexCode = "#f99801"
+        val rankName = "${hexCode}Founder"
+        val visibleName = rankName.removePrefix(hexCode)
+        val hexColor = TextColor.fromHexString(hexCode)
+        assertTrue(RankNameContent.valid(rankName))
+        assertEquals(visibleName, RankNameContent.plain(rankName))
+        assertEquals(hexColor, RankNameContent.component(rankName).color())
+        assertEquals(RankNameContent.legacy("&$rankName"), RankNameContent.legacy(rankName))
+        assertTrue(RankNameContent.valid(hexCode + "A".repeat(RankNameContent.MAX_VISIBLE_LENGTH)))
+        assertFalse(RankNameContent.valid(hexCode + "A".repeat(RankNameContent.MAX_VISIBLE_LENGTH + 1)))
+        assertFalse(RankNameContent.valid(hexCode))
+        assertFalse(RankNameContent.valid("#f9980ZFounder"))
+        assertFalse(RankNameContent.valid("#f9980 Founder"))
+    }
     @Test
     fun colorsDoNotCountTowardsVisibleLimit() {
         assertTrue(RankNameContent.valid("&a&l" + "A".repeat(24)))
