@@ -7242,6 +7242,15 @@ admin:
         usage_bellclaims_disband_guild_name: '<red>Usage: /bellclaims disband \<guild_name>'
         warning_you_are_about_to_force_disband: '<yellow>⚠️ WARNING: You are about to force-disband the guild: <gold><guild>'
         you_don_t_have_permission_to_disband: '<red>❌ You don''t have permission to disband guilds!'
+      handlexp:
+        no_permission: '<red>You do not have permission to grant guild XP.'
+        usage: '<yellow>Usage: /lumaguilds xp give \<guild> \<amount>'
+        invalid_amount: '<red>XP amount must be a positive whole number: <amount>'
+        guild_not_found: '<red>Guild not found: <guild>'
+        success: '<green>Granted <gold><amount> XP <green>to <gold><guild><green>. <gray>Transaction: <transaction>'
+        failed: '<red>Failed to grant <amount> XP to <guild>. Check the server log for the rejected award.'
+        unavailable: '<red>XP grant could not be scheduled. No award was attempted.'
+        uncertain: '<red>XP grant could not be confirmed. Check the ledger before retrying. <gray>Transaction: <transaction>'
       handlemigrate:
         1_mariadb_must_be_configured_in_config: '<gray>  1. MariaDB must be configured in config.yml'
         1_verify_the_data_in_mariadb: '<gray>  1. Verify the data in MariaDB'
@@ -7309,6 +7318,7 @@ admin:
         chapter_admin_controls: '<yellow>/lumaguilds chapter ... <gray>- Chapter status, verified backup, postpone, retry, and force-due controls (OP/Admin)'
         bellclaims_override_toggle_admin_override_mode_admin: '<yellow>/bellclaims override <gray>- Toggle admin override mode (Admin only)'
         bellclaims_progressionreload_reload_progression_yml_op_only: '<yellow>/bellclaims progressionreload <gray>- Reload progression.yml (OP only)'
+        xp_give: '<yellow>/lumaguilds xp give \<guild> \<amount> <gray>- Grant permanent guild XP as ADMIN_BONUS (Admin)'
         warcutover: '<yellow>/lumaguilds warcutover CONFIRM <gray>- Safely clear residual war state for Chapter cut-over (Admin)'
         bellclaims_reload_reload_plugin_configuration_op_only: '<yellow>/bellclaims reload <gray>- Reload plugin configuration (OP only)'
         disband_is_for_emergency_use_only_removes: '<gray>⚠️ Disband is for emergency use only - removes all members!'

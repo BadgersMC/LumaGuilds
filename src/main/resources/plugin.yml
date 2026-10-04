@@ -301,9 +301,14 @@ permissions:
     default: op
     children:
       bellclaims.admin: true
+      lumaguilds.admin.xp: true
 
   bellclaims.admin:
     description: Allows access to admin commands including guild override mode
+    default: op
+
+  lumaguilds.admin.xp:
+    description: Grant permanent guild XP with /lumaguilds xp give
     default: op
 
   # Guild Strikes Admin Permissions

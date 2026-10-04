@@ -5,8 +5,10 @@ import net.lumalyte.lg.LumaGuilds
 import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.GuildRolePermissionResolver
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.ProgressionService
 import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.domain.entities.SpawnBannerCategory
+import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.infrastructure.services.SpawnBannerServiceBukkit
 import net.lumalyte.lg.infrastructure.persistence.migrations.ChapterAdminRecoverySQL
 import net.lumalyte.lg.infrastructure.persistence.migrations.DatabaseMigrationUtility
@@ -24,12 +26,22 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.File
 import java.time.Instant
+import java.util.UUID
+import java.util.logging.Level
+import org.bukkit.plugin.java.JavaPlugin
 import kotlin.io.path.exists
 
 /**
  * Main LumaGuilds command handler for administrative functions
  */
-class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
+class LumaGuildsCommand(
+    private val xpWorker: (Runnable) -> Unit = { task ->
+        Bukkit.getScheduler().runTaskAsynchronously(JavaPlugin.getPlugin(LumaGuilds::class.java), task)
+    },
+    private val xpReply: (Runnable) -> Unit = { task ->
+        Bukkit.getScheduler().runTask(JavaPlugin.getPlugin(LumaGuilds::class.java), task)
+    },
+) : CommandExecutor, TabCompleter, KoinComponent {
 
     private val lang: LangService by inject()
     private val guildService: GuildService by inject()
@@ -37,6 +49,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
     private val storage: Storage<Database> by inject()
     private val spawnBannerService: SpawnBannerServiceBukkit by inject()
     private val warService: WarService by inject()
+    private val progressionService: ProgressionService by inject()
 
     // Resolved lazily and nullable: GuildRolePermissionResolver is only registered when
     // claims are enabled. Touching it via `by inject()` would crash the override command
@@ -54,6 +67,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         when (args[0].lowercase()) {
             "reload" -> handleReload(sender)
             "progressionreload" -> handleProgressionReload(sender)
+            "xp" -> handleXp(sender, args)
             "disband" -> handleDisband(sender, args)
             "migrate" -> handleMigrate(sender, args)
             "chapter" -> handleChapter(sender, args)
@@ -68,6 +82,97 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         }
 
         return true
+    }
+
+    /**
+     * Grant permanent guild XP through the authoritative Chapter 2 award path.
+     */
+    private fun handleXp(sender: CommandSender, args: Array<out String>) {
+        if (sender is Player && !sender.hasPermission("lumaguilds.admin.xp")) {
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlexp.no_permission"))
+            return
+        }
+
+        val amount = parseXpAmount(sender, args) ?: return
+        val guildName = args.slice(2 until args.lastIndex).joinToString(" ")
+        prepareXp(sender, guildName, amount)
+    }
+
+    private fun prepareXp(sender: CommandSender, guildName: String, amount: Int) {
+        // The repository's guild-name lookup is an in-memory, main-thread cache.
+        val guild = net.lumalyte.lg.utils.GuildResolver.resolveGuildByName(guildName, guildService)
+        if (guild == null) {
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlexp.guild_not_found", "guild" to guildName))
+            return
+        }
+        val grant = XpGrant(guild.id, guild.name, amount, UUID.randomUUID())
+        try {
+            xpWorker(Runnable { grantXp(sender, grant) })
+        } catch (error: Exception) {
+            reportXpError(error, grant.transactionId)
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlexp.unavailable"))
+        }
+    }
+
+    private fun parseXpAmount(sender: CommandSender, args: Array<out String>): Int? {
+        if (args.size < 4 || !args[1].equals("give", ignoreCase = true)) {
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlexp.usage"))
+            return null
+        }
+
+        val amount = args.last().toIntOrNull()
+        if (amount == null || amount <= 0) {
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlexp.invalid_amount", "amount" to args.last()))
+            return null
+        }
+        return amount
+    }
+
+    private data class XpGrant(val guildId: UUID, val guildName: String, val amount: Int, val transactionId: UUID)
+
+    private fun grantXp(sender: CommandSender, grant: XpGrant) {
+        try {
+            val awarded = progressionService.awardUncappedSystemExperienceOnce(
+                grant.guildId, grant.amount, ExperienceSource.ADMIN_BONUS, grant.transactionId,
+            )
+            replyXpAward(sender, awarded, grant)
+        } catch (error: Exception) {
+            reportXpError(error, grant.transactionId)
+            replyXp(grant.transactionId, Runnable {
+                sender.sendMessage(lang.msg(
+                    "admin.migrated.luma_guilds.handlexp.uncertain", "transaction" to grant.transactionId.toString(),
+                ))
+            })
+        }
+    }
+
+    private fun replyXpAward(sender: CommandSender, awarded: Boolean, grant: XpGrant) {
+        replyXp(grant.transactionId, Runnable {
+            val message = if (awarded) {
+                lang.msg(
+                    "admin.migrated.luma_guilds.handlexp.success", "amount" to grant.amount,
+                    "guild" to grant.guildName, "transaction" to grant.transactionId.toString(),
+                )
+            } else {
+                lang.msg("admin.migrated.luma_guilds.handlexp.failed", "amount" to grant.amount, "guild" to grant.guildName)
+            }
+            sender.sendMessage(message)
+        })
+    }
+
+    private fun replyXp(transactionId: UUID, task: Runnable) {
+        try {
+            xpReply(task)
+        } catch (error: Exception) {
+            // A shutdown can reject the reply after a committed award. Never retry it.
+            Bukkit.getLogger().log(Level.WARNING, "Could not deliver guild XP result for transaction $transactionId", error)
+        }
+    }
+
+    private fun reportXpError(error: Exception, transactionId: UUID) {
+        Bukkit.getLogger().log(
+            Level.WARNING, "Guild XP transaction $transactionId failed; check ledger before retrying", error,
+        )
     }
 
     /**
@@ -609,6 +714,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.lumaguilds_admin_commands"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_reload_reload_plugin_configuration_op_only"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_progressionreload_reload_progression_yml_op_only"))
+        sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.xp_give"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_disband_guild_confirm_force_disband_a"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_migrate_confirm_migrate_sqlite_mariadb_op"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.chapter_admin_controls"))
@@ -627,7 +733,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
 
         return when (args.size) {
             1 -> mutableListOf(
-                "reload", "progressionreload", "disband", "migrate", "chapter", "override", "spawnbanner", "warcutover", "help"
+                "reload", "progressionreload", "xp", "disband", "migrate", "chapter", "override", "spawnbanner", "warcutover", "help"
             ).filter { it.startsWith(args[0]) }.toMutableList()
             2 -> when (args[0].lowercase()) {
                 "disband" -> {
@@ -635,6 +741,7 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
                         .filter { it.contains(args[1], ignoreCase = true) }
                         .toMutableList()
                 }
+                "xp" -> mutableListOf("give").filter { it.startsWith(args[1], ignoreCase = true) }.toMutableList()
                 "migrate" -> mutableListOf("confirm")
                 "warcutover" -> mutableListOf("CONFIRM")
                 "chapter" -> mutableListOf("status", "backup", "postpone", "retry", "force")
@@ -646,6 +753,13 @@ class LumaGuildsCommand : CommandExecutor, TabCompleter, KoinComponent {
                 else -> mutableListOf()
             }
             3 -> when (args[0].lowercase()) {
+                "xp" -> if (args[1].equals("give", ignoreCase = true)) {
+                    net.lumalyte.lg.utils.GuildResolver.suggestions(guildService)
+                        .filter { it.contains(args[2], ignoreCase = true) }
+                        .toMutableList()
+                } else {
+                    mutableListOf()
+                }
                 "disband" -> mutableListOf("confirm")
                 "spawnbanner" -> if (args[1].toIntOrNull() != null) {
                     SpawnBannerCategory.entries
