@@ -37,6 +37,7 @@ internal class GuildEmojiPersistenceSafetyTest {
                 rankService = mockk(relaxed = true),
                 memberService = mockk(relaxed = true),
                 nexoEmojiService = emojiService,
+                homeActivationService = mockk(relaxed = true),
                 vaultService = mockk(relaxed = true),
                 hologramService = mockk(relaxed = true),
                 relationRepository = mockk(relaxed = true),
