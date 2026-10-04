@@ -13,6 +13,8 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.GuildHomeActivationService
+import net.lumalyte.lg.application.services.HomeActivationCostResult
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.VaultBackupService
 import net.lumalyte.lg.domain.entities.Guild
@@ -58,6 +60,7 @@ class CommandLocalizationTest {
     private lateinit var command: Command
     private lateinit var bankService: BankService
     private lateinit var guildService: GuildService
+    private lateinit var homeActivationService: GuildHomeActivationService
     private lateinit var memberService: MemberService
     private lateinit var configService: ConfigService
     private lateinit var lang: LangService
@@ -74,6 +77,14 @@ class CommandLocalizationTest {
         command = mockk(relaxed = true)
         bankService = mockk(relaxed = true)
         guildService = mockk(relaxed = true)
+        homeActivationService = mockk {
+            every { isActive(any(), any()) } returns true
+            every { persistLocation(any(), any(), any(), any(), any(), any()) } answers {
+                val persist = arg<() -> Boolean>(5)
+                if (persist()) HomeActivationCostResult.Applied(0)
+                else HomeActivationCostResult.ActivationFailed(compensated = true)
+            }
+        }
         memberService = mockk(relaxed = true)
         configService = mockk(relaxed = true) {
             every { loadConfig() } returns MainConfig()
@@ -91,6 +102,7 @@ class CommandLocalizationTest {
             modules(module {
                 single { lang }
                 single { guildService }
+                single { homeActivationService }
                 single { memberService }
                 single { bankService }
                 single { configService }

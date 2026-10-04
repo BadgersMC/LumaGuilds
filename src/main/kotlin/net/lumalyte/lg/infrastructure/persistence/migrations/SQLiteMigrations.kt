@@ -230,6 +230,12 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(42)
                 dbVersion = 42
             }
+            if (dbVersion < 43) {
+                GuildHomeActivationSchema.create(connection, mariaDb = false)
+                GuildHomeActivationSchema.backfillLegacyCredits(connection, mariaDb = false)
+                updateDatabaseVersion(43)
+                dbVersion = 43
+            }
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
 
@@ -1422,7 +1428,8 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             "guild_gold_operations", "guild_gold_withdrawal_usage", "guild_gold_security",
             "war_banners", "war_notifications", "player_notification_preferences", "guild_discord_roles",
             "spawn_banners", "rank_claim_permission_profiles",
-            QuestCompletionNotificationSchema.TABLE, GuildChatRankSettingsSchema.TABLE
+            QuestCompletionNotificationSchema.TABLE, GuildChatRankSettingsSchema.TABLE,
+            GuildHomeActivationSchema.ACTIVATIONS_TABLE, GuildHomeActivationSchema.CREDITS_TABLE
         )
 
         // Add claim tables to required list if claims are enabled
@@ -1511,6 +1518,10 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             }
             if (GuildChatRankSettingsSchema.TABLE in missingTables) {
                 GuildChatRankSettingsSchema.create(connection, mariaDb = false)
+            }
+            if (GuildHomeActivationSchema.ACTIVATIONS_TABLE in missingTables ||
+                GuildHomeActivationSchema.CREDITS_TABLE in missingTables) {
+                GuildHomeActivationSchema.create(connection, mariaDb = false)
             }
             // Recreate claim tables if missing (only checked when claims enabled)
             if (claimsEnabled && missingTables.any { it in listOf("claims", "claim_partitions", "claim_flags", "claim_permissions", "player_access") }) {

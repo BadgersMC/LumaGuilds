@@ -11,7 +11,6 @@ import net.badgersmc.nexus.i18n.LangService
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import net.lumalyte.lg.utils.inventoryframework.StaticPane
-import net.lumalyte.lg.application.services.GuildCostService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.HomeActivationCostResult
 import net.lumalyte.lg.application.services.ConfigService
@@ -35,7 +34,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                    private var guild: Guild): Menu, KoinComponent {
 
     private val guildService: GuildService by inject()
-    private val guildCostService: GuildCostService by inject()
+    private val homeActivationService: net.lumalyte.lg.application.services.GuildHomeActivationService by inject()
     private val configService: ConfigService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val progressionService: net.lumalyte.lg.application.services.ProgressionService by inject()
@@ -175,17 +174,22 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             }
             pane.addItem(cancelGuiItem, x, y)
         } else if (allHomes.hasHomes()) {
-            // Show teleport to main home button
-            val mainHome = allHomes.defaultHome
-            if (mainHome != null) {
-                val teleportItem = ItemStack.of(Material.ENDER_PEARL)
-                    .name(lang.gui("menu.guild_home.teleport.main.name"))
-                    .lore(lang.gui("menu.guild_home.teleport.main.description"))
+            // Show teleport/activation for the default home. Saved Season 1 locations remain locked until paid.
+            val mainEntry = allHomes.homes.entries.firstOrNull { it.key == "main" } ?: allHomes.homes.entries.firstOrNull()
+            if (mainEntry != null) {
+                val mainHomeName = mainEntry.key
+                val mainHome = mainEntry.value
+                val active = homeActivationService.isActive(guild.id, mainHomeName)
+                val teleportItem = ItemStack.of(if (active) Material.ENDER_PEARL else Material.GOLD_INGOT)
+                    .name(if (active) lang.gui("menu.guild_home.teleport.main.name") else lang.gui("menu.guild_home.activation.name", "home" to mainHomeName))
+                    .lore(if (active) lang.gui("menu.guild_home.teleport.main.description") else lang.gui("menu.guild_home.activation.description"))
                     .lore(lang.gui("menu.guild_home.world", "world" to (Bukkit.getWorld(mainHome.worldId)?.name ?: lang.raw("general.unknown"))))
-                    .lore(lang.gui("menu.guild_home.teleport.main.countdown"))
+                if (active) teleportItem.lore(lang.gui("menu.guild_home.teleport.main.countdown"))
 
                 val teleportGuiItem = GuiItem(teleportItem) {
-                    startTeleportCountdown(mainHome)
+                    if (!active) activateSavedHome(mainHomeName)
+                    else if (guildService.canUseHome(player.uniqueId, guild.id, mainHomeName)) startTeleportCountdown(mainHome)
+                    else player.sendMessage(lang.msg("menu.guild_home.feedback.access_denied", "home" to mainHomeName))
                 }
                 pane.addItem(teleportGuiItem, x, y)
             }
@@ -216,12 +220,21 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         if (!rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_HOME)) return
         val homes = guildService.getHomes(guild.id).homes.entries.toList()
         homes.take(9).forEachIndexed { idx, (homeName, _) ->
-            val item = ItemStack.of(Material.IRON_DOOR)
-                .name(lang.gui("menu.guild_home.access.name", "home" to homeName))
-                .lore(lang.gui("menu.guild_home.access.description"))
-                .lore(lang.gui("menu.guild_home.access.click"))
+            val active = homeActivationService.isActive(guild.id, homeName)
+            val item = if (active) {
+                ItemStack.of(Material.IRON_DOOR)
+                    .name(lang.gui("menu.guild_home.access.name", "home" to homeName))
+                    .lore(lang.gui("menu.guild_home.access.description"))
+                    .lore(lang.gui("menu.guild_home.access.click"))
+            } else {
+                ItemStack.of(Material.GOLD_INGOT)
+                    .name(lang.gui("menu.guild_home.activation.name", "home" to homeName))
+                    .lore(lang.gui("menu.guild_home.activation.description"))
+                    .lore(lang.gui("menu.guild_home.activation.click"))
+            }
             pane.addItem(GuiItem(item) {
-                menuNavigator.openMenu(menuFactory.createHomeAccessMenu(menuNavigator, player, guild, homeName))
+                if (active) menuNavigator.openMenu(menuFactory.createHomeAccessMenu(menuNavigator, player, guild, homeName))
+                else activateSavedHome(homeName)
             }, idx, 3)
         }
     }
@@ -371,16 +384,9 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         val existing = guildService.getHome(guild.id, homeName) != null
-        val ordinal = (guildService.getHomes(guild.id).size + if (existing) 0 else 1).coerceAtLeast(1)
-        val result = guildCostService.activateHome(
-            UUID.randomUUID(),
-            guild.id,
-            player.uniqueId,
-            ordinal,
-            alreadyActivated = existing,
-        ) {
-            guildService.setHome(guild.id, homeName, home, player.uniqueId)
-        }
+        val result = homeActivationService.persistLocation(
+            UUID.randomUUID(), guild.id, homeName, player.uniqueId, existedBefore = existing,
+        ) { guildService.setHome(guild.id, homeName, home, player.uniqueId) }
 
         when (result) {
             is HomeActivationCostResult.Applied -> {
@@ -408,6 +414,25 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                     player.sendMessage(lang.msg("menu.guild_home.feedback.activation_review_no_transaction"))
                 }
             }
+        }
+        open()
+    }
+
+
+    private fun activateSavedHome(homeName: String) {
+        if (!rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_HOME)) {
+            player.sendMessage(lang.msg("menu.guild_home.feedback.activation_no_permission"))
+            return
+        }
+        when (val result = homeActivationService.activateSavedHome(UUID.randomUUID(), guild.id, homeName, player.uniqueId)) {
+            is HomeActivationCostResult.Applied -> {
+                player.sendMessage(lang.msg("menu.guild_home.feedback.activation_success", "home" to homeName))
+                if (result.cost > 0) player.sendMessage(lang.msg("menu.guild_home.feedback.activation_paid", "cost" to result.cost))
+            }
+            is HomeActivationCostResult.Rejected -> player.sendMessage(lang.msg("menu.guild_home.feedback.activation_rejected", "reason" to result.reason.name))
+            HomeActivationCostResult.ConfigurationError -> player.sendMessage(lang.msg("menu.guild_home.feedback.activation_config_error"))
+            is HomeActivationCostResult.PaymentFailed -> player.sendMessage(lang.msg("menu.guild_home.feedback.activation_review", "transaction" to result.transactionId))
+            is HomeActivationCostResult.ActivationFailed -> player.sendMessage(lang.msg("menu.guild_home.feedback.activation_failed", "home" to homeName))
         }
         open()
     }
