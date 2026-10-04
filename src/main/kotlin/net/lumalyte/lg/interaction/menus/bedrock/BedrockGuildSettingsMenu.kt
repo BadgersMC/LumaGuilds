@@ -26,6 +26,15 @@ import java.util.logging.Logger
  * guarded by MANAGE_GUILD_SETTINGS are read-only when the viewer lacks permission,
  * and authorization is checked again when a submitted response is executed.
  */
+internal enum class RankVisibilityUpdate { NONE, WRITE, ALREADY_APPLIED, CONFLICT }
+
+internal fun rankVisibilityUpdate(rendered: Boolean, submitted: Boolean, persisted: Boolean): RankVisibilityUpdate = when {
+    submitted == rendered -> RankVisibilityUpdate.NONE
+    persisted == submitted -> RankVisibilityUpdate.ALREADY_APPLIED
+    persisted == rendered -> RankVisibilityUpdate.WRITE
+    else -> RankVisibilityUpdate.CONFLICT
+}
+
 class BedrockGuildSettingsMenu(
     menuNavigator: MenuNavigator,
     player: Player,
@@ -50,6 +59,7 @@ class BedrockGuildSettingsMenu(
             config.guildSettingsIconPath
         )
         val canManageSettings = authorization.canManageGuildSettings(player.uniqueId, guild.id)
+        val renderedChatRanksVisible = chatRankSettings.ranksVisible(guild.id)
 
         val builder = CustomForm.builder()
             .title(lang.bedrock("bedrock.settings.title", "guild" to guild.name))
@@ -78,7 +88,7 @@ class BedrockGuildSettingsMenu(
             builder
                 .toggle(lang.bedrock("menu.guild_settings.item.access.name"), guild.isOpen)
                 .toggle(lang.bedrock("menu.guild_settings.item.tracking.name"), guild.trackingEnabled)
-                .toggle(lang.bedrock("guild_rank_customization.toggle.name"), chatRankSettings.ranksVisible(guild.id))
+                .toggle(lang.bedrock("guild_rank_customization.toggle.name"), renderedChatRanksVisible)
                 .dropdown(
                     lang.bedrock("menu.guild_settings.item.theme.name"),
                     GuiTheme.entries.map(GuiTheme::displayName),
@@ -93,7 +103,7 @@ class BedrockGuildSettingsMenu(
             .validResultHandler { response ->
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                     if (player.isOnline) {
-                        handleFormResponse(response, canManageSettings)
+                        handleFormResponse(response, canManageSettings, renderedChatRanksVisible)
                     }
                 })
             }
@@ -153,7 +163,8 @@ class BedrockGuildSettingsMenu(
 
     private fun handleFormResponse(
         response: org.geysermc.cumulus.response.CustomFormResponse,
-        renderedManagementControls: Boolean
+        renderedManagementControls: Boolean,
+        renderedChatRanksVisible: Boolean,
     ) {
         try {
             onFormResponseReceived()
@@ -173,9 +184,9 @@ class BedrockGuildSettingsMenu(
                 guild.trackingEnabled
             }
             val submittedChatRanks = if (renderedManagementControls) {
-                response.next() as? Boolean ?: chatRankSettings.ranksVisible(guild.id)
+                response.next() as? Boolean ?: renderedChatRanksVisible
             } else {
-                chatRankSettings.ranksVisible(guild.id)
+                renderedChatRanksVisible
             }
             val submittedTheme = if (renderedManagementControls) {
                 val themeIndex = response.next() as? Int
@@ -223,7 +234,7 @@ class BedrockGuildSettingsMenu(
                 submittedOpen != guild.isOpen ||
                     submittedTracking != guild.trackingEnabled ||
                     submittedTheme != guild.guiTheme ||
-                    submittedChatRanks != chatRankSettings.ranksVisible(guild.id)
+                    submittedChatRanks != renderedChatRanksVisible
             if (managementChanged && !hasGuildSettingsPermission) {
                 validationErrors.add(lang.bedrock("bedrock.settings.error.no_settings_permission"))
             }
@@ -241,6 +252,7 @@ class BedrockGuildSettingsMenu(
                 newTracking = submittedTracking,
                 newTheme = submittedTheme,
                 newChatRanks = submittedChatRanks,
+                renderedChatRanksVisible = renderedChatRanksVisible,
                 hasGuildSettingsPermission = hasGuildSettingsPermission,
                 hasDescriptionPermission = hasDescriptionPermission,
                 hasModePermission = hasModePermission
@@ -326,6 +338,7 @@ class BedrockGuildSettingsMenu(
         newTracking: Boolean,
         newTheme: GuiTheme,
         newChatRanks: Boolean,
+        renderedChatRanksVisible: Boolean,
         hasGuildSettingsPermission: Boolean,
         hasDescriptionPermission: Boolean,
         hasModePermission: Boolean
@@ -333,12 +346,24 @@ class BedrockGuildSettingsMenu(
         val changes = mutableListOf<String>()
         var allSuccessful = true
 
-        if (hasGuildSettingsPermission && newChatRanks != chatRankSettings.ranksVisible(guild.id)) {
-            if (chatRankSettings.setRanksVisible(guild.id, newChatRanks, player.uniqueId)) {
-                changes.add(lang.bedrock("guild_rank_customization.toggle.saved"))
-            } else {
-                allSuccessful = false
-                player.sendMessage(lang.msg("guild_rank_customization.toggle.failed"))
+        if (hasGuildSettingsPermission) {
+            when (rankVisibilityUpdate(renderedChatRanksVisible, newChatRanks, chatRankSettings.ranksVisible(guild.id))) {
+                RankVisibilityUpdate.NONE -> Unit
+                RankVisibilityUpdate.ALREADY_APPLIED ->
+                    changes.add(lang.bedrock("guild_rank_customization.toggle.saved"))
+                RankVisibilityUpdate.WRITE -> {
+                    if (chatRankSettings.setRanksVisible(guild.id, newChatRanks, player.uniqueId)) {
+                        changes.add(lang.bedrock("guild_rank_customization.toggle.saved"))
+                    } else {
+                        allSuccessful = false
+                        player.sendMessage(lang.msg("guild_rank_customization.toggle.failed"))
+                    }
+                }
+                RankVisibilityUpdate.CONFLICT -> {
+                    allSuccessful = false
+                    logger.warning("Guild chat rank visibility changed concurrently for ${guild.id}; refusing stale overwrite")
+                    player.sendMessage(lang.msg("guild_rank_customization.toggle.failed"))
+                }
             }
         }
 

@@ -20,5 +20,9 @@ class GuildRankChatRenderingTest {
         val format = GuildRankChatFormatter.decorate("{player}{message}", template)!!
         assertEquals("{player}{message}", GuildRankChatFormatter.render(format, "&aFounder", false, template))
         assertEquals("{player}{message}", GuildRankChatFormatter.render("[%lumaguilds_guild_rank%] {player}{message}", "&aFounder", false))
+        assertEquals(
+            "{player}{message}",
+            GuildRankChatFormatter.render("Rank: %lumaguilds_guild_rank% - {player}{message}", "&aFounder", false),
+        )
     }
 }

@@ -198,7 +198,9 @@ class GuildControlPanelMenu(
 
     private fun addRankManagementButton(pane: StaticPane, x: Int, y: Int) {
         val rankCount = rankService.listRanks(guild.id).size
-        val hasPermission = rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RANKS)
+        val hasPermission =
+            rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RANKS) ||
+                rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_GUILD_SETTINGS)
 
         val rankItem = ItemStack.of(Material.IRON_SWORD)
             .name(lang.gui("menu.control_panel.item.rank_management.name"))

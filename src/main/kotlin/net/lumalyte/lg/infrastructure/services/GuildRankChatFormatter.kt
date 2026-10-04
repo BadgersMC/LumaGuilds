@@ -12,6 +12,14 @@ internal object GuildRankChatFormatter {
         "%player_displayname%",
         "%player_name%",
     )
+    private val bracketedRankWrapper = Regex(
+        """\[[^\[\]\r\n]*%lumaguilds_guild_rank%[^\[\]\r\n]*]\s*""",
+        RegexOption.IGNORE_CASE,
+    )
+    private val labeledRankWrapper = Regex(
+        """(?:[\p{L}\p{N}_ -]{1,32}:\s*)?${Regex.escape(RANK_PLACEHOLDER)}(?:\s*[-–—|:]\s*)?""",
+        RegexOption.IGNORE_CASE,
+    )
 
     fun decorate(
         format: String?,
@@ -28,11 +36,10 @@ internal object GuildRankChatFormatter {
     }
     fun render(format: String, rankName: String?, visible: Boolean, template: String? = null): String {
         if (!visible || rankName == null) {
-            val withoutPrefix = format.replace(normalizeRankFormat(template), "")
-            return withoutPrefix.replace(
-                Regex("\\[[^\\[\\]\\r\\n]*%lumaguilds_guild_rank%[^\\[\\]\\r\\n]*]\\s*", RegexOption.IGNORE_CASE),
-                "",
-            ).replace(RANK_PLACEHOLDER, "", ignoreCase = true)
+            val withoutConfiguredPrefix = format.replace(normalizeRankFormat(template), "")
+            return bracketedRankWrapper.replace(withoutConfiguredPrefix, "")
+                .let { labeledRankWrapper.replace(it, "") }
+                .replace(RANK_PLACEHOLDER, "", ignoreCase = true)
         }
         return format.replace(RANK_PLACEHOLDER, RankNameContent.legacy(rankName) + "§r", ignoreCase = true)
     }

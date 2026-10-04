@@ -308,7 +308,8 @@ class PartyCreationMenu(
             val col = 1 + (index % 7)
 
             val isSelected = restrictedRoles.contains(rank.id)
-            val rankName = if (isSelected) lang.gui("menu.party.creation.roles.selected_name", "rank" to RankNameContent.miniMessage(rank.name)) else lang.gui("menu.party.creation.roles.available_name", "rank" to RankNameContent.miniMessage(rank.name))
+            val formattedRankName = RankNameContent.miniMessage(rank.name)
+            val rankName = if (isSelected) lang.gui("menu.party.creation.roles.selected_name", "rank" to formattedRankName) else lang.gui("menu.party.creation.roles.available_name", "rank" to formattedRankName)
             val rankAction = if (isSelected) lang.gui("menu.party.creation.roles.remove") else lang.gui("menu.party.creation.roles.add")
             val rankItem = ItemStack.of(if (isSelected) Material.LIME_CONCRETE else Material.RED_CONCRETE)
                 .name(rankName)

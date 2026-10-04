@@ -541,7 +541,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     }
 
     private fun validateRankName(name: String): Component? {
-        if (RankNameContent.plain(name).length !in 1..24) {
+        if (RankNameContent.plain(name).length !in 1..RankNameContent.MAX_VISIBLE_LENGTH) {
             return lang.msg("menu.rank_edit.validation.length", "length" to RankNameContent.plain(name).length)
         }
         if (!RankNameContent.valid(name)) {
