@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
@@ -46,7 +48,7 @@ class BedrockRankEditMenu(
             config.guildSettingsIconPath
         )
         val builder = CustomForm.builder()
-            .title(lang.bedrock("bedrock.rank_edit.title", "rank" to rank.name))
+            .title(lang.bedrock("bedrock.rank_edit.title", "rank" to RankNameContent.miniMessage(rank.name)))
             .apply { rankIcon?.let { icon(it) } }
             .label(lang.bedrock("bedrock.rank_edit.description"))
             .input(
@@ -90,8 +92,8 @@ class BedrockRankEditMenu(
             bedrockNavigator.goBack()
             return
         }
-        if (newName.isEmpty() || newName.length > 24) {
-            player.sendMessage(lang.msg("bedrock.rank_management.error.name_length", "minimum" to 1, "maximum" to 24))
+        if (!RankNameContent.valid(newName)) {
+            player.sendMessage(lang.msg("bedrock.rank_management.error.name_length", "minimum" to 1, "maximum" to RankNameContent.MAX_VISIBLE_LENGTH))
             open()
             return
         }
@@ -120,7 +122,7 @@ class BedrockRankEditMenu(
         BedrockGuildRankManagementMenu.permissionDisplayName(lang, permission)
 
     private fun noPermissionForm(): Form = SimpleForm.builder()
-        .title(lang.bedrock("bedrock.rank_edit.title", "rank" to rank.name))
+        .title(lang.bedrock("bedrock.rank_edit.title", "rank" to RankNameContent.miniMessage(rank.name)))
         .content(lang.bedrock("bedrock.rank_management.error.no_permission"))
         .button(lang.bedrock("bedrock.rank_management.back"))
         .validResultHandler { bedrockNavigator.goBack() }

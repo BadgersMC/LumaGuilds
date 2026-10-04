@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.infrastructure.i18n.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
@@ -209,7 +211,7 @@ class BedrockGuildRankManagementMenu(
             }
 
             // Validate rank name
-            if (rankName.length !in 1..24) {
+            if (!RankNameContent.valid(rankName)) {
                 player.sendMessage(lang.msg("bedrock.rank_management.error.name_length", "minimum" to 1, "maximum" to 24))
                 reopen()
                 return
@@ -226,7 +228,7 @@ class BedrockGuildRankManagementMenu(
             // Check for duplicate names without rejecting the rank currently being edited.
             val existingRank = rankService.getRankByName(guild.id, rankName)
             if (existingRank != null && existingRank.id != rankToEdit?.id) {
-                player.sendMessage(lang.msg("bedrock.rank_management.error.duplicate", "rank" to rankName))
+                player.sendMessage(lang.msg("bedrock.rank_management.error.duplicate", "rank" to RankNameContent.miniMessage(rankName)))
                 reopen()
                 return
             }
@@ -243,7 +245,7 @@ class BedrockGuildRankManagementMenu(
 
                 if (createdRank != null) {
                     // RankService owns creation-order priority; the Bedrock adapter does not reorder it.
-                    player.sendMessage(lang.msg("bedrock.rank_management.success.created", "rank" to rankName))
+                    player.sendMessage(lang.msg("bedrock.rank_management.success.created", "rank" to RankNameContent.miniMessage(rankName)))
                 } else {
                     player.sendMessage(lang.msg("bedrock.rank_management.error.create_failed"))
                 }
@@ -262,7 +264,7 @@ class BedrockGuildRankManagementMenu(
 
                     val success = rankService.updateRank(updatedRank, player.uniqueId)
                     if (success) {
-                        player.sendMessage(lang.msg("bedrock.rank_management.success.updated", "rank" to rankName))
+                        player.sendMessage(lang.msg("bedrock.rank_management.success.updated", "rank" to RankNameContent.miniMessage(rankName)))
                     } else {
                         player.sendMessage(lang.msg("bedrock.rank_management.error.update_failed"))
                     }

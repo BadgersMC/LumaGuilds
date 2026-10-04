@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import net.lumalyte.lg.utils.NexoItemProvider
@@ -92,7 +94,7 @@ class GuildRankListMenu(
 
             val permCount = rank.permissions.size
             val item = ItemStack.of(displayIcon)
-                .name(lang.gui("menu.rank_list.item.rank.name", "rank" to rank.name))
+                .name(lang.gui("menu.rank_list.item.rank.name", "rank" to RankNameContent.miniMessage(rank.name)))
                 .lore(lang.gui("menu.rank_list.item.rank.lore.priority", "priority" to rank.priority))
                 .lore(lang.gui("menu.rank_list.item.rank.lore.permission_count", "permission_count" to permCount))
                 .lore("")

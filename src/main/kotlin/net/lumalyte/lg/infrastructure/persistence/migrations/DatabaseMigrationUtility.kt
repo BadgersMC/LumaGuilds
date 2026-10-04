@@ -23,6 +23,36 @@ class DatabaseMigrationUtility(
     private var sqliteConnection: Connection? = null
     private var mariadbConnection: Connection? = null
 
+    internal companion object {
+        val MIGRATION_TABLES = listOf(
+            "guilds",
+            GuildChatRankSettingsSchema.TABLE,
+            "ranks",
+            "members",
+            "guild_invitations",
+            "guild_invitation_history",
+            "spawn_banners",
+            "relations",
+            "bank_tx",
+            "kills",
+            "wars",
+            "leaderboards",
+            "parties",
+            "player_party_preferences",
+            "guild_progression",
+            "experience_transactions",
+            "guild_experience_source_usage",
+            "guild_activity_metrics",
+            "guild_vault_items",
+            "audits",
+            "claims",
+            "claim_partitions",
+            "claim_default_permissions",
+            "claim_flags",
+            "claim_player_permissions",
+        )
+    }
+
     /**
      * Migrates all data from SQLite to MariaDB.
      * Returns a migration report with statistics.
@@ -55,35 +85,9 @@ class DatabaseMigrationUtility(
             // Disable foreign key checks during migration
             mariadbConnection?.createStatement()?.execute("SET FOREIGN_KEY_CHECKS=0")
 
-            // Migrate tables in order (respecting foreign key dependencies)
-            val tables = listOf(
-                "guilds",
-                "ranks",
-                "members",
-                "guild_invitations",
-                "guild_invitation_history",
-                "spawn_banners",
-                "relations",
-                "bank_tx",
-                "kills",
-                "wars",
-                "leaderboards",
-                "parties",
-                "player_party_preferences",
-                "guild_progression",
-                "experience_transactions",
-                "guild_experience_source_usage",
-                "guild_activity_metrics",
-                "guild_vault_items",
-                "audits",
-                "claims",
-                "claim_partitions",
-                "claim_default_permissions",
-                "claim_flags",
-                "claim_player_permissions"
-            )
-
-            for (table in tables) {
+            // Migrate tables in order (respecting foreign key dependencies).
+            // Guild-scoped settings follow guilds so visibility survives SQLite -> MariaDB moves.
+            for (table in MIGRATION_TABLES) {
                 if (tableExistsInSQLite(table)) {
                     logger.info("Migrating table: $table")
                     val count = migrateTable(table)
