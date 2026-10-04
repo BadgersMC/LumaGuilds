@@ -30,7 +30,8 @@ class BedrockHomeMemberRankParityContractTest {
         val source = File(bedrockRoot, "BedrockGuildHomeMenu.kt").readText()
         assertTrue(source.contains("createHomeAccessMenu"))
         assertTrue(source.contains("createAllyHomeAccessMenu"))
-        assertTrue(source.contains("guildCostService.activateHome"))
+        assertTrue(source.contains("homeActivationService.persistLocation"))
+        assertTrue(source.contains("homeActivationService.activateSavedHome"))
         assertTrue(source.contains("HomeActivationCostResult.PaymentFailed"))
     }
 

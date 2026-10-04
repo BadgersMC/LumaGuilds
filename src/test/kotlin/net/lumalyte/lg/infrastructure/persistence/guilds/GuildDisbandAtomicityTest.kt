@@ -61,7 +61,7 @@ class GuildDisbandAtomicityTest : RewardSqlTestFixture() {
         every { Bukkit.getPluginManager() } returns mockk(relaxed = true)
         try {
             val service = GuildServiceBukkit(guilds, ranks, members, mockk(), memberService,
-                mockk(), vault, holograms, relations, history, mockk())
+                mockk(), vault, holograms, relations, history, mockk(), mockk(relaxed = true))
             assertEquals(!fail, service.disbandGuild(guild.id, UUID(0, 0)))
             val expected = if (fail) 1 else 0
             for (table in listOf("members", "ranks")) {

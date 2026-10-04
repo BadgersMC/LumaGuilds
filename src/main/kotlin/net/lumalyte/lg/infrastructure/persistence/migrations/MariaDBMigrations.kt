@@ -161,6 +161,12 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(42)
                 currentDbVersion = 42
             }
+            if (currentDbVersion < 43) {
+                GuildHomeActivationSchema.create(connection, mariaDb = true)
+                GuildHomeActivationSchema.backfillLegacyCredits(connection, mariaDb = true)
+                updateDatabaseVersion(43)
+                currentDbVersion = 43
+            }
             connection.commit()
 
             val finalVersion = getCurrentDatabaseVersion()
