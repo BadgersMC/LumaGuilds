@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
 /** Tests optional Nexo resolution and registered emoji font rendering. */
-/** Regression coverage for guild emoji validation and display. */
 internal class NexoEmojiServiceFontTagTest {
 
     private val service = NexoEmojiService(mockk<ConfigService>())

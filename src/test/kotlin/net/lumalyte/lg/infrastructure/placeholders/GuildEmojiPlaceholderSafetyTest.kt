@@ -29,6 +29,15 @@ internal class GuildEmojiPlaceholderSafetyTest {
     /** Saved menu glyphs are hidden by each real PAPI emoji field while the guild name survives. */
     @Test
     fun omitsSavedMenuGlyphs() {
+        val player = configuredPlayer()
+        val expansion = LumaGuildsExpansion()
+        listOf("guild_emoji", "guild_emoji_minimessage", "guild_emoji_font").forEach {
+            assertEquals("", expansion.onPlaceholderRequest(player, it))
+        }
+        assertEquals("Vegas", expansion.onPlaceholderRequest(player, "guild_name"))
+    }
+
+    private fun configuredPlayer(): Player {
         stopKoin()
         val guildId = UUID.randomUUID()
         val playerId = UUID.randomUUID()
@@ -41,6 +50,15 @@ internal class GuildEmojiPlaceholderSafetyTest {
         every { guildService.getGuild(guildId) } returns guild
         val menuGlyph = ResolvedNexoGlyph("ꐘ", "nexo:default", false)
         val emojiService = NexoEmojiService(mockk(), NexoGlyphResolver { menuGlyph })
+        configureServices(guildService, memberService, emojiService)
+        return player
+    }
+
+    private fun configureServices(
+        guildService: GuildService,
+        memberService: MemberService,
+        emojiService: NexoEmojiService,
+    ) {
         startKoin {
             modules(
                 module {
@@ -50,10 +68,5 @@ internal class GuildEmojiPlaceholderSafetyTest {
                 },
             )
         }
-        val expansion = LumaGuildsExpansion()
-        listOf("guild_emoji", "guild_emoji_minimessage", "guild_emoji_font").forEach {
-            assertEquals("", expansion.onPlaceholderRequest(player, it))
-        }
-        assertEquals("Vegas", expansion.onPlaceholderRequest(player, "guild_name"))
     }
 }

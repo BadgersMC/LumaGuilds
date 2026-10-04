@@ -23,24 +23,25 @@ internal class GuildEmojiPersistenceSafetyTest {
     private fun service(): GuildServiceBukkit {
         every { repository.getById(guildId) } returns Guild(guildId, "Vegas", createdAt = Instant.EPOCH)
         every { repository.update(any()) } returns true
-        val service = spyk(
-            GuildServiceBukkit(
-                guildRepository = repository,
-                rankRepository = mockk(relaxed = true),
-                memberRepository = mockk(relaxed = true),
-                rankService = mockk(relaxed = true),
-                memberService = mockk(relaxed = true),
-                nexoEmojiService = emojiService,
-                vaultService = mockk(relaxed = true),
-                hologramService = mockk(relaxed = true),
-                relationRepository = mockk(relaxed = true),
-                historyRepository = mockk(relaxed = true),
-                adminOverrideService = mockk(relaxed = true),
-            ),
-        )
+        val service = spyk(guildService())
         every { service.hasPermission(actorId, guildId, any()) } returns true
         return service
     }
+
+    private fun guildService(): GuildServiceBukkit =
+        GuildServiceBukkit(
+            guildRepository = repository,
+            rankRepository = mockk(relaxed = true),
+            memberRepository = mockk(relaxed = true),
+            rankService = mockk(relaxed = true),
+            memberService = mockk(relaxed = true),
+            nexoEmojiService = emojiService,
+            vaultService = mockk(relaxed = true),
+            hologramService = mockk(relaxed = true),
+            relationRepository = mockk(relaxed = true),
+            historyRepository = mockk(relaxed = true),
+            adminOverrideService = mockk(relaxed = true),
+        )
 
     /** Even an authorized direct caller cannot persist a menu glyph. */
     @Test

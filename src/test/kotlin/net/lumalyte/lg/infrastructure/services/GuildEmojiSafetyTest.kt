@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test
 
 private const val MENU_EMOJI = ":guild_bg_enthusia_6_row:"
 private const val GUILD_NAME = "Vegas"
-private const val IMP_ALIAS = ":enthusia:"
+private const val EMOJI_ALIAS = ":enthusia:"
 private const val GLYPH_FONT = "nexo:default"
 
 /** Verifies validation, rendering, aliases and optional-plugin failure behavior. */
@@ -40,11 +40,11 @@ internal class GuildEmojiSafetyTest {
     @Test
     fun preservesEmojiAliases() {
         val service = service(ResolvedNexoGlyph("뀄", GLYPH_FONT, true, "enthusia_logo"))
-        assertTrue(service.doesEmojiExist(IMP_ALIAS))
-        assertEquals("%nexo_enthusia_logo%", service.emojiToNexoPlaceholder(IMP_ALIAS))
-        assertEquals("<glyph:enthusia_logo>", service.emojiToGlyphTag(IMP_ALIAS))
-        assertEquals("<font:nexo:default>뀄</font>", service.emojiToFontTag(IMP_ALIAS))
-        assertEquals(":enthusia_logo:", service.getEmojiPlaceholder(IMP_ALIAS))
+        assertTrue(service.doesEmojiExist(EMOJI_ALIAS))
+        assertEquals("%nexo_enthusia_logo%", service.emojiToNexoPlaceholder(EMOJI_ALIAS))
+        assertEquals("<glyph:enthusia_logo>", service.emojiToGlyphTag(EMOJI_ALIAS))
+        assertEquals("<font:nexo:default>뀄</font>", service.emojiToFontTag(EMOJI_ALIAS))
+        assertEquals(EMOJI_ALIAS, service.getEmojiPlaceholder(EMOJI_ALIAS))
     }
 
     /** Malformed saved values cannot reach glyph resolution. */

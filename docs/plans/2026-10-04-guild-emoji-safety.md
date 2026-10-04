@@ -58,3 +58,20 @@ reported client rendering. No production files or server state are changed.
   `FontManager.glyphFromName/glyphFromPlaceholder/emojis` retain the signatures
   used by this adapter compiled against pinned Nexo 1.21. This is binary API
   inspection, not a live renderer acceptance test.
+
+## Review refinement and live diagnostics
+
+- Preserved registered colon aliases for guild-chat replacement while canonical
+  glyph IDs remain in Nexo PAPI/MiniMessage output. Focused emoji regressions
+  pass after this refinement and optional-plugin resolver extraction.
+- Split test setup helpers, removed duplicate KDoc, and kept the established
+  public service methods with a narrowly documented TooManyFunctions suppression
+  to preserve integration compatibility. Exact-head GitHub analysis remains a
+  separate delivery check.
+- The three authorized production PAPI queries returned `<glyph:imp>` for
+  `%nexo_imp%`, while both LumaGuilds emoji fields remained unresolved. The
+  expansion requires an online Player; this query attempt cannot establish
+  Vegas's live guild glyph. Repeat with the affected player confirmed online.
+- Multiple players report the panel and reconnecting did not remove it. The
+  generated and served resource-pack ZIPs are byte-identical, with a 9-pixel
+  purple imp at U+B00F. The reported panel's cause remains unconfirmed.
