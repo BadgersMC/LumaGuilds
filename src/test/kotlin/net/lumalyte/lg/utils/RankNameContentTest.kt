@@ -7,15 +7,19 @@ import org.junit.jupiter.api.Test
 import kotlin.test.*
 
 class RankNameContentTest {
+    /** The reported bare hex name shares rendering and limits with legacy hex input. */
     @Test
-    fun bareHexRankNamesValidateAndRender() {
-        assertTrue(RankNameContent.valid("#f99801Founder"))
-        assertEquals("Founder", RankNameContent.plain("#f99801Founder"))
-        assertEquals(TextColor.color(0xf99801), RankNameContent.component("#f99801Founder").color())
-        assertEquals(RankNameContent.legacy("&#f99801Founder"), RankNameContent.legacy("#f99801Founder"))
-        assertTrue(RankNameContent.valid("#f99801" + "A".repeat(24)))
-        assertFalse(RankNameContent.valid("#f99801" + "A".repeat(25)))
-        assertFalse(RankNameContent.valid("#f99801"))
+    fun bareHexNames() {
+        val hexCode = "#f99801"
+        val rankName = "${hexCode}Founder"
+        val hexColor = TextColor.fromHexString(hexCode)
+        assertTrue(RankNameContent.valid(rankName))
+        assertEquals("Founder", RankNameContent.plain(rankName))
+        assertEquals(hexColor, RankNameContent.component(rankName).color())
+        assertEquals(RankNameContent.legacy("&$rankName"), RankNameContent.legacy(rankName))
+        assertTrue(RankNameContent.valid(hexCode + "A".repeat(RankNameContent.MAX_VISIBLE_LENGTH)))
+        assertFalse(RankNameContent.valid(hexCode + "A".repeat(RankNameContent.MAX_VISIBLE_LENGTH + 1)))
+        assertFalse(RankNameContent.valid(hexCode))
         assertFalse(RankNameContent.valid("#f9980ZFounder"))
         assertFalse(RankNameContent.valid("#f9980 Founder"))
     }

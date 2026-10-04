@@ -17,8 +17,9 @@ class LangServiceRenderingTest {
 
     private val plainText = PlainTextComponentSerializer.plainText()
 
+    /** Nested validation components must display text rather than object diagnostics. */
     @Test
-    fun `rank validation feedback displays readable nested text`() {
+    fun rankFeedbackText() {
         val rendered = langService().rankNameError(net.kyori.adventure.text.Component.text("Use valid color codes"))
         assertEquals("❌ Invalid name: Use valid color codes", plainText.serialize(rendered))
     }

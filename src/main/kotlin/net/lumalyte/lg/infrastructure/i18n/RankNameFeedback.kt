@@ -5,7 +5,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.minimessage.MiniMessage
 
 /** Nexus stringifies placeholders, so serialize the nested validation message first. */
-fun LangService.rankNameError(error: Component): Component {
+internal fun LangService.rankNameError(error: Component): Component {
     val lang = this
     return lang.msg(
         "menu.rank_edit.feedback.invalid_name",
