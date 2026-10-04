@@ -11,14 +11,20 @@ private const val DEFAULT_GLYPH_FONT = "nexo:default"
 /** Safe glyph id shape — rejects MiniMessage control characters (e.g. `x><reset>`). */
 private val VALID_GLYPH_ID = Regex("^[a-zA-Z0-9_-]+$")
 
-data class ResolvedNexoGlyph(
+/** Snapshot of public Nexo glyph metadata used only by the infrastructure adapter. */
+internal data class ResolvedNexoGlyph(
+    /** Character sent to the client. */
     val character: String,
+    /** Resource-pack font containing the character. */
     val font: String?,
+    /** Whether Nexo explicitly registers the glyph as an emoji. */
     val isEmoji: Boolean,
+    /** Canonical ID when resolving a placeholder alias. */
     val id: String? = null,
 )
 
-fun interface NexoGlyphResolver {
+/** Optional-plugin resolution seam for infrastructure regression tests. */
+internal fun interface NexoGlyphResolver {
     fun resolve(name: String): ResolvedNexoGlyph?
 }
 
@@ -44,10 +50,13 @@ private fun nexoFontManager() = try {
  * Handles emoji validation and permission checking for guild emoji system.
  * JFS there is some really nasty shit going on here.
  */
-class NexoEmojiService(
+class NexoEmojiService internal constructor(
     private val configService: ConfigService,
-    private val glyphResolver: NexoGlyphResolver = NexoPublicGlyphResolver
+    private val glyphResolver: NexoGlyphResolver = NexoPublicGlyphResolver,
 ) {
+
+    /** Creates the service using the optional installed Nexo plugin. */
+    constructor(configService: ConfigService) : this(configService, NexoPublicGlyphResolver)
 
     private val logger = LoggerFactory.getLogger(NexoEmojiService::class.java)
 
@@ -127,11 +136,13 @@ class NexoEmojiService(
         return ":$name:"
     }
 
+    /** Returns a validated PAPI glyph placeholder, or empty text for unsafe glyphs. */
     fun emojiToNexoPlaceholder(emoji: String?): String {
         val name = validatedEmojiName(emoji) ?: return ""
         return "%nexo_$name%"
     }
 
+    /** Returns a validated MiniMessage glyph tag, or empty text for unsafe glyphs. */
     fun emojiToGlyphTag(emoji: String?): String {
         val name = validatedEmojiName(emoji) ?: return ""
         return "<glyph:$name>"
@@ -141,8 +152,12 @@ class NexoEmojiService(
         val name = emoji?.let(::extractEmojiName) ?: return null
         return try {
             glyphResolver.resolve(name)?.takeIf { it.isEmoji && it.character.isNotBlank() }
-        } catch (exception: RuntimeException) {
+        } catch (exception: IllegalStateException) {
             logger.debug("Could not resolve guild emoji {}", name, exception)
+            null
+        } catch (_: IllegalArgumentException) {
+            null
+        } catch (_: NullPointerException) {
             null
         } catch (_: LinkageError) {
             null
@@ -150,9 +165,9 @@ class NexoEmojiService(
     }
 
     private fun validatedEmojiName(emoji: String?): String? {
-        val glyph = resolveEmoji(emoji) ?: return null
-        val name = glyph.id ?: emoji?.let(::extractEmojiName) ?: return null
-        return name.takeIf(VALID_GLYPH_ID::matches)
+        val glyph = resolveEmoji(emoji)
+        val name = glyph?.let { it.id ?: emoji?.let(::extractEmojiName) }
+        return name?.takeIf(VALID_GLYPH_ID::matches)
     }
     
     /**
@@ -220,9 +235,7 @@ class NexoEmojiService(
      * @param emoji The emoji placeholder to check.
      * @return true if the emoji exists in Nexo, false otherwise.
      */
-    fun doesEmojiExist(emoji: String): Boolean {
-        return resolveEmoji(emoji) != null
-    }
+    fun doesEmojiExist(emoji: String): Boolean = resolveEmoji(emoji) != null
 
     /**
      * Checks if Nexo plugin is available and loaded.
