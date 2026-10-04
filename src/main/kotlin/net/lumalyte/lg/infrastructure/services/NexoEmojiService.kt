@@ -37,6 +37,18 @@ private object NexoPublicGlyphResolver : NexoGlyphResolver {
     }
 }
 
+private fun resolveOptionalGlyph(resolver: NexoGlyphResolver, name: String): ResolvedNexoGlyph? = try {
+    resolver.resolve(name)
+} catch (_: IllegalStateException) {
+    null
+} catch (_: IllegalArgumentException) {
+    null
+} catch (_: NullPointerException) {
+    null
+} catch (_: LinkageError) {
+    null
+}
+
 private fun nexoFontManager() = try {
     NexoPlugin.instance().fontManager()
 } catch (_: Exception) {
@@ -50,6 +62,8 @@ private fun nexoFontManager() = try {
  * Handles emoji validation and permission checking for guild emoji system.
  * JFS there is some really nasty shit going on here.
  */
+// Retain the existing public service API used by commands, menus and integrations.
+@Suppress("TooManyFunctions")
 class NexoEmojiService internal constructor(
     private val configService: ConfigService,
     private val glyphResolver: NexoGlyphResolver = NexoPublicGlyphResolver,
@@ -132,8 +146,7 @@ class NexoEmojiService internal constructor(
      * @return The placeholder string, or empty string if invalid.
      */
     fun getEmojiPlaceholder(emoji: String?): String {
-        val name = validatedEmojiName(emoji) ?: return ""
-        return ":$name:"
+        return emoji?.takeIf { resolveEmoji(it) != null }.orEmpty()
     }
 
     /** Returns a validated PAPI glyph placeholder, or empty text for unsafe glyphs. */
@@ -150,18 +163,7 @@ class NexoEmojiService internal constructor(
 
     private fun resolveEmoji(emoji: String?): ResolvedNexoGlyph? {
         val name = emoji?.let(::extractEmojiName) ?: return null
-        return try {
-            glyphResolver.resolve(name)?.takeIf { it.isEmoji && it.character.isNotBlank() }
-        } catch (exception: IllegalStateException) {
-            logger.debug("Could not resolve guild emoji {}", name, exception)
-            null
-        } catch (_: IllegalArgumentException) {
-            null
-        } catch (_: NullPointerException) {
-            null
-        } catch (_: LinkageError) {
-            null
-        }
+        return resolveOptionalGlyph(glyphResolver, name)?.takeIf { it.isEmoji && it.character.isNotBlank() }
     }
 
     private fun validatedEmojiName(emoji: String?): String? {
