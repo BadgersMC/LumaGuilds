@@ -2,7 +2,6 @@ package net.lumalyte.lg.infrastructure.services
 
 import com.nexomc.nexo.NexoPlugin
 import net.lumalyte.lg.application.services.ConfigService
-import net.lumalyte.lg.utils.ColorCodeUtils
 import org.bukkit.entity.Player
 import org.slf4j.LoggerFactory
 
@@ -12,7 +11,12 @@ private const val DEFAULT_GLYPH_FONT = "nexo:default"
 /** Safe glyph id shape — rejects MiniMessage control characters (e.g. `x><reset>`). */
 private val VALID_GLYPH_ID = Regex("^[a-zA-Z0-9_-]+$")
 
-data class ResolvedNexoGlyph(val character: String, val font: String?)
+data class ResolvedNexoGlyph(
+    val character: String,
+    val font: String?,
+    val isEmoji: Boolean,
+    val id: String? = null,
+)
 
 fun interface NexoGlyphResolver {
     fun resolve(name: String): ResolvedNexoGlyph?
@@ -20,9 +24,10 @@ fun interface NexoGlyphResolver {
 
 private object NexoPublicGlyphResolver : NexoGlyphResolver {
     override fun resolve(name: String): ResolvedNexoGlyph? {
-        val glyph = nexoFontManager()?.glyphFromName(name) ?: return null
+        val manager = nexoFontManager() ?: return null
+        val glyph = manager.glyphFromPlaceholder(":$name:") ?: manager.glyphFromName(name)
         val character = glyph.chars.firstOrNull()?.toString() ?: return null
-        return ResolvedNexoGlyph(character, glyph.font.asString())
+        return ResolvedNexoGlyph(character, glyph.font.asString(), glyph.isEmoji, glyph.id)
     }
 }
 
@@ -61,7 +66,8 @@ class NexoEmojiService(
      * @return true if the emoji format is valid, false otherwise.
      */
     fun isValidEmojiFormat(emoji: String): Boolean {
-        return emoji.startsWith(":") && emoji.endsWith(":") && emoji.length > 2
+        return emoji.startsWith(":") && emoji.endsWith(":") && emoji.length > 2 &&
+            VALID_GLYPH_ID.matches(emoji.substring(1, emoji.length - 1))
     }
     
     /**
@@ -117,11 +123,36 @@ class NexoEmojiService(
      * @return The placeholder string, or empty string if invalid.
      */
     fun getEmojiPlaceholder(emoji: String?): String {
-        return if (emoji != null && isValidEmojiFormat(emoji)) {
-            emoji
-        } else {
-            ""
+        val name = validatedEmojiName(emoji) ?: return ""
+        return ":$name:"
+    }
+
+    fun emojiToNexoPlaceholder(emoji: String?): String {
+        val name = validatedEmojiName(emoji) ?: return ""
+        return "%nexo_$name%"
+    }
+
+    fun emojiToGlyphTag(emoji: String?): String {
+        val name = validatedEmojiName(emoji) ?: return ""
+        return "<glyph:$name>"
+    }
+
+    private fun resolveEmoji(emoji: String?): ResolvedNexoGlyph? {
+        val name = emoji?.let(::extractEmojiName) ?: return null
+        return try {
+            glyphResolver.resolve(name)?.takeIf { it.isEmoji && it.character.isNotBlank() }
+        } catch (exception: RuntimeException) {
+            logger.debug("Could not resolve guild emoji {}", name, exception)
+            null
+        } catch (_: LinkageError) {
+            null
         }
+    }
+
+    private fun validatedEmojiName(emoji: String?): String? {
+        val glyph = resolveEmoji(emoji) ?: return null
+        val name = glyph.id ?: emoji?.let(::extractEmojiName) ?: return null
+        return name.takeIf(VALID_GLYPH_ID::matches)
     }
     
     /**
@@ -157,20 +188,11 @@ class NexoEmojiService(
      * from the glyph's own font in the mandatory resource pack, so no glyph-tag registration
      * is needed. This is the renderable counterpart to `%lumaguilds_guild_emoji_minimessage%`.
      *
-     * Resolves the glyph char + font through Nexo's public FontManager API; falls back to
-     * the `<glyph:name>` tag when Nexo is absent or the
-     * char/font cannot be read (matching [ColorCodeUtils.emojiToGlyphTag] output).
-     *
-     * Non-`:name:` values pass through unchanged; null or blank return `""`.
+     * Resolves only registered emoji glyphs through Nexo's public FontManager API.
+     * Unknown, malformed, non-emoji and unavailable glyphs return an empty string.
      */
     fun emojiToFontTag(emoji: String?): String {
-        if (emoji.isNullOrBlank()) return ""
-        val emojiName = extractEmojiName(emoji) ?: return emoji
-        // Reject glyph ids containing MiniMessage control characters (e.g. ":x><reset>:")
-        // so they can never reach the generated tag — isValidEmojiFormat only checks delimiters.
-        if (!VALID_GLYPH_ID.matches(emojiName)) return emoji
-        val glyph = glyphResolver.resolve(emojiName) ?: return "<glyph:$emojiName>"
-        if (glyph.character.isBlank()) return "<glyph:$emojiName>"
+        val glyph = resolveEmoji(emoji) ?: return ""
         val font = glyph.font?.takeUnless { it.isBlank() || it == "minecraft" } ?: DEFAULT_GLYPH_FONT
         return "<font:$font>${glyph.character}</font>"
     }
@@ -199,27 +221,7 @@ class NexoEmojiService(
      * @return true if the emoji exists in Nexo, false otherwise.
      */
     fun doesEmojiExist(emoji: String): Boolean {
-        // First check format
-        if (!isValidEmojiFormat(emoji)) {
-            logger.debug("Emoji format invalid: '$emoji'")
-            return false
-        }
-
-        // If Nexo is not available, fall back to format validation
-        if (!isNexoAvailable()) {
-            logger.debug("Nexo unavailable, allowing emoji based on format validation only: $emoji")
-            return true
-        }
-
-        return try {
-            val fontManager = nexoFontManager() ?: return false
-            if (fontManager.glyphFromPlaceholder(emoji) != null) return true
-            val emojiName = extractEmojiName(emoji) ?: return false
-            fontManager.glyphFromID(emojiName) != null
-        } catch (e: RuntimeException) {
-            logger.warn("Error validating emoji '$emoji': ${e.message}")
-            false
-        }
+        return resolveEmoji(emoji) != null
     }
 
     /**
@@ -241,7 +243,7 @@ class NexoEmojiService(
         return if (isNexoAvailable()) {
             "Available - Full emoji validation active"
         } else {
-            "Unavailable - Format-only validation active"
+            "Unavailable - Emoji selection and rendering disabled"
         }
     }
 
