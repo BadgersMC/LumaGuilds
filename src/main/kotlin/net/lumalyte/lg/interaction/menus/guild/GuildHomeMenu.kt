@@ -446,8 +446,14 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                 player.sendMessage(lang.msg("menu.guild_home.feedback.teleport_command", "home" to if (homeName == "main") "" else homeName))
                 guild = guildService.getGuild(guild.id) ?: guild
             }
-            is HomeActivationCostResult.Rejected ->
-                player.sendMessage(lang.msg("menu.guild_home.feedback.activation_rejected", "reason" to result.reason.name))
+            is HomeActivationCostResult.Rejected -> {
+                if (result.reason == net.lumalyte.lg.domain.gold.GuildGoldRejection.INSUFFICIENT_FUNDS) {
+                    player.sendMessage(lang.msg("menu.guild_home.feedback.activation_insufficient"))
+                    player.sendMessage(lang.msg("menu.guild_home.feedback.funding_tip"))
+                } else {
+                    player.sendMessage(lang.msg("menu.guild_home.feedback.activation_rejected", "reason" to result.reason.name))
+                }
+            }
             HomeActivationCostResult.ConfigurationError ->
                 player.sendMessage(lang.msg("menu.guild_home.feedback.activation_config_error"))
             is HomeActivationCostResult.PaymentFailed ->
@@ -473,7 +479,14 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                 player.sendMessage(lang.msg("menu.guild_home.feedback.activation_success", "home" to homeName))
                 if (result.cost > 0) player.sendMessage(lang.msg("menu.guild_home.feedback.activation_paid", "cost" to result.cost))
             }
-            is HomeActivationCostResult.Rejected -> player.sendMessage(lang.msg("menu.guild_home.feedback.activation_rejected", "reason" to result.reason.name))
+            is HomeActivationCostResult.Rejected -> {
+                if (result.reason == net.lumalyte.lg.domain.gold.GuildGoldRejection.INSUFFICIENT_FUNDS) {
+                    player.sendMessage(lang.msg("menu.guild_home.feedback.activation_insufficient"))
+                    player.sendMessage(lang.msg("menu.guild_home.feedback.funding_tip"))
+                } else {
+                    player.sendMessage(lang.msg("menu.guild_home.feedback.activation_rejected", "reason" to result.reason.name))
+                }
+            }
             HomeActivationCostResult.ConfigurationError -> player.sendMessage(lang.msg("menu.guild_home.feedback.activation_config_error"))
             is HomeActivationCostResult.PaymentFailed -> player.sendMessage(lang.msg("menu.guild_home.feedback.activation_review", "transaction" to result.transactionId))
             is HomeActivationCostResult.ActivationFailed -> player.sendMessage(lang.msg("menu.guild_home.feedback.activation_failed", "home" to homeName))
