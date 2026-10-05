@@ -19,6 +19,7 @@ import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
+import net.lumalyte.lg.utils.MenuIcons
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
@@ -27,6 +28,8 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.*
 
+// Locale keys stay literal so LocaleContractTest can see them.
+@Suppress("StringLiteralDuplication", "LibraryEntitiesShouldNotBePublic")
 class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                         private var guild: Guild): Menu, KoinComponent {
 
@@ -37,8 +40,9 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
     private val lang: LangService by inject()
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.guild_relations.title", "guild" to guild.name)))
-        val pane = StaticPane(0, 0, 9, 6)
+        val heading = lang.guiTitle("menu.guild_relations.title", "guild" to guild.name)
+        val gui = ChestGui(ROWS, MenuTitleBuilder.build(guild.guiTheme, ROWS, heading))
+        val pane = StaticPane(0, 0, COLUMNS, ROWS)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
             if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
@@ -60,7 +64,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         addRelationDetailsSection(pane)
 
         // Row 6: Navigation
-        addBackButton(pane, 4, 5)
+        addBackButton(pane, BACK_SLOT, ROWS - 1)
 
         gui.show(player)
     }
@@ -78,36 +82,36 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             .name(lang.gui("menu.guild_relations.overview.allies.name"))
             .lore(lang.gui("menu.guild_relations.overview.allies.description"))
             .lore(lang.gui("menu.guild_relations.count", "count" to allies))
-            .lore(lang.gui("menu.guild_relations.overview.allies.support"))
+            .lore(lang.gui("menu.common.click.open"))
 
         val alliesGuiItem = GuiItem(alliesItem) {
             openAlliesListMenu()
         }
-        pane.addItem(alliesGuiItem, 0, 0)
+        pane.addItem(alliesGuiItem, 1, 0)
 
         // Enemies
         val enemiesItem = ItemStack.of(if (enemies > 0) Material.REDSTONE else Material.GRAY_DYE)
             .name(lang.gui("menu.guild_relations.overview.enemies.name"))
             .lore(lang.gui("menu.guild_relations.overview.enemies.description"))
             .lore(lang.gui("menu.guild_relations.count", "count" to enemies))
-            .lore(lang.gui("menu.guild_relations.overview.enemies.warfare"))
+            .lore(lang.gui("menu.common.click.open"))
 
         val enemiesGuiItem = GuiItem(enemiesItem) {
             openEnemiesListMenu()
         }
-        pane.addItem(enemiesGuiItem, 2, 0)
+        pane.addItem(enemiesGuiItem, ENEMIES_SLOT, 0)
 
         // Truces
         val trucesItem = ItemStack.of(if (truces > 0) Material.CLOCK else Material.GRAY_DYE)
             .name(lang.gui("menu.guild_relations.overview.truces.name"))
             .lore(lang.gui("menu.guild_relations.overview.truces.description"))
             .lore(lang.gui("menu.guild_relations.count", "count" to truces))
-            .lore(lang.gui("menu.guild_relations.overview.truces.expiration"))
+            .lore(lang.gui("menu.common.click.open"))
 
         val trucesGuiItem = GuiItem(trucesItem) {
             openTrucesListMenu()
         }
-        pane.addItem(trucesGuiItem, 4, 0)
+        pane.addItem(trucesGuiItem, TRUCES_SLOT, 0)
 
         // Diplomatic Status
         val statusItem = NexoItemProvider.getItemStackOrFallback("lg_nav_diplomacy") { ItemStack.of(Material.BOOK) }
@@ -118,7 +122,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val statusGuiItem = GuiItem(statusItem) {
             openDiplomaticStatusMenu()
         }
-        pane.addItem(statusGuiItem, 6, 0)
+        pane.addItem(statusGuiItem, STATUS_SLOT, 0)
     }
 
     private fun addRelationRequestsSection(pane: StaticPane) {
@@ -126,28 +130,30 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val outgoingRequests = relationService.getOutgoingRequests(guild.id)
 
         // Incoming requests
-        val incomingItem = ItemStack.of(if (incomingRequests.isEmpty()) Material.GRAY_DYE else Material.PAPER)
-            .name(lang.gui("menu.guild_relations.requests.incoming.name"))
-            .lore(lang.gui("menu.guild_relations.requests.incoming.description"))
-            .lore(lang.gui("menu.guild_relations.count", "count" to incomingRequests.size))
-            .lore(lang.gui("menu.guild_relations.requests.incoming.proposals"))
+        val incomingItem =
+            MenuIcons.requests(incoming = true, count = incomingRequests.size)
+                .name(lang.gui("menu.guild_relations.requests.incoming.name"))
+                .lore(lang.gui("menu.guild_relations.requests.incoming.description"))
+                .lore(lang.gui("menu.guild_relations.count", "count" to incomingRequests.size))
+                .lore(lang.gui("menu.common.click.open"))
 
         val incomingGuiItem = GuiItem(incomingItem) {
             openIncomingRequestsMenu()
         }
-        pane.addItem(incomingGuiItem, 1, 1)
+        pane.addItem(incomingGuiItem, 2, 2)
 
         // Outgoing requests
-        val outgoingItem = ItemStack.of(if (outgoingRequests.isEmpty()) Material.GRAY_DYE else Material.WRITABLE_BOOK)
-            .name(lang.gui("menu.guild_relations.requests.outgoing.name"))
-            .lore(lang.gui("menu.guild_relations.requests.outgoing.description"))
-            .lore(lang.gui("menu.guild_relations.count", "count" to outgoingRequests.size))
-            .lore(lang.gui("menu.guild_relations.requests.outgoing.awaiting"))
+        val outgoingItem =
+            MenuIcons.requests(incoming = false, count = outgoingRequests.size)
+                .name(lang.gui("menu.guild_relations.requests.outgoing.name"))
+                .lore(lang.gui("menu.guild_relations.requests.outgoing.description"))
+                .lore(lang.gui("menu.guild_relations.count", "count" to outgoingRequests.size))
+                .lore(lang.gui("menu.common.click.open"))
 
         val outgoingGuiItem = GuiItem(outgoingItem) {
             openOutgoingRequestsMenu()
         }
-        pane.addItem(outgoingGuiItem, 3, 1)
+        pane.addItem(outgoingGuiItem, OUTGOING_SLOT, 2)
     }
 
     private fun addDiplomaticActionsSection(pane: StaticPane) {
@@ -156,7 +162,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             .name(lang.gui("menu.guild_relations.action.alliance.name"))
             .lore(lang.gui("menu.guild_relations.action.alliance.description"))
             .lore(lang.gui("menu.guild_relations.action.acceptance"))
-            .lore(lang.gui("menu.guild_relations.action.alliance.support"))
+            .lore(lang.gui("menu.common.click.choose_guild"))
 
         val allianceGuiItem = GuiItem(allianceItem) {
             if (!memberService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RELATIONS)) {
@@ -165,13 +171,13 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             }
             openRequestAllianceMenu()
         }
-        pane.addItem(allianceGuiItem, 0, 2)
+        pane.addItem(allianceGuiItem, 1, 1)
 
         // Request Truce
         val truceItem = NexoItemProvider.getItemStackOrFallback("lg_truce") { ItemStack.of(Material.WHITE_BANNER) }
             .name(lang.gui("menu.guild_relations.action.truce.name"))
             .lore(lang.gui("menu.guild_relations.action.truce.description"))
-            .lore(lang.gui("menu.guild_relations.action.truce.temporary"))
+            .lore(lang.gui("menu.common.click.choose_guild"))
             .lore(lang.gui("menu.guild_relations.action.acceptance"))
 
         val truceGuiItem = GuiItem(truceItem) {
@@ -181,14 +187,14 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             }
             openRequestTruceMenu()
         }
-        pane.addItem(truceGuiItem, 2, 2)
+        pane.addItem(truceGuiItem, TRUCE_ACTION_SLOT, 1)
 
         // Declare Enemy
         val enemyItem = NexoItemProvider.getItemStackOrFallback("lg_enemy") { ItemStack.of(Material.IRON_SWORD) }
             .name(lang.gui("menu.guild_relations.action.enemy.name"))
             .lore(lang.gui("menu.guild_relations.action.enemy.description"))
             .lore(lang.gui("menu.guild_relations.action.enemy.no_acceptance"))
-            .lore(lang.gui("menu.guild_relations.action.enemy.hostile"))
+            .lore(lang.gui("menu.common.click.choose_guild"))
 
         val enemyGuiItem = GuiItem(enemyItem) {
             if (!memberService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.DECLARE_WAR)) {
@@ -197,7 +203,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             }
             openDeclareEnemyMenu()
         }
-        pane.addItem(enemyGuiItem, 4, 2)
+        pane.addItem(enemyGuiItem, ENEMY_ACTION_SLOT, 1)
     }
 
     private fun addRelationDetailsSection(pane: StaticPane) {
@@ -205,25 +211,23 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val historyItem = NexoItemProvider.getItemStackOrFallback("lg_relations_history") { ItemStack.of(Material.KNOWLEDGE_BOOK) }
             .name(lang.gui("menu.guild_relations.details.history.name"))
             .lore(lang.gui("menu.guild_relations.details.history.description"))
-            .lore(lang.gui("menu.guild_relations.details.history.track"))
-            .lore(lang.gui("menu.guild_relations.details.history.learn"))
+            .lore(lang.gui("menu.common.click.open"))
 
         val historyGuiItem = GuiItem(historyItem) {
             openDiplomaticHistoryMenu()
         }
-        pane.addItem(historyGuiItem, 0, 3)
+        pane.addItem(historyGuiItem, HISTORY_SLOT, 2)
 
         // Neutral Guilds
         val neutralItem = NexoItemProvider.getItemStackOrFallback("lg_peace") { ItemStack.of(Material.BOOKSHELF) }
             .name(lang.gui("menu.guild_relations.details.neutral.name"))
             .lore(lang.gui("menu.guild_relations.details.neutral.description"))
-            .lore(lang.gui("menu.guild_relations.details.neutral.browse"))
-            .lore(lang.gui("menu.guild_relations.details.neutral.partners"))
+            .lore(lang.gui("menu.common.click.open"))
 
         val neutralGuiItem = GuiItem(neutralItem) {
             openNeutralGuildsMenu()
         }
-        pane.addItem(neutralGuiItem, 2, 3)
+        pane.addItem(neutralGuiItem, NEUTRAL_ACTION_SLOT, 1)
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
@@ -232,7 +236,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             .lore(lang.gui("menu.guild_home.back.description"))
 
         val guiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(guiItem, x, y)
     }
@@ -329,5 +333,18 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return
     }
-}
 
+    private companion object {
+        const val ENEMY_ACTION_SLOT = 5
+        const val HISTORY_SLOT = 4
+        const val NEUTRAL_ACTION_SLOT = 7
+        const val ROWS = 4
+        const val COLUMNS = 9
+        const val BACK_SLOT = 4
+        const val ENEMIES_SLOT = 3
+        const val TRUCE_ACTION_SLOT = 3
+        const val TRUCES_SLOT = 5
+        const val STATUS_SLOT = 7
+        const val OUTGOING_SLOT = 6
+    }
+}

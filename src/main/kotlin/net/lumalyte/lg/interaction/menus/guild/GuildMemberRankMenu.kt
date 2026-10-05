@@ -231,7 +231,7 @@ class GuildMemberRankMenu(
             .lore(lang.gui("menu.guild_member_rank.navigation.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(backGuiItem, x, y)
     }

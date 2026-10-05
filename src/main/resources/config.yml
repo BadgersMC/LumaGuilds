@@ -821,6 +821,11 @@ bedrock:
   fallback_on_floodgate_unavailable: true
   fallback_on_cumulus_unavailable: true
 
+  # Java chest menus shown to Bedrock players (only when no Bedrock form exists).
+  # Leave off when Geyser custom-item mappings already draw the lg_ icons for Bedrock.
+  java_menu_vanilla_icons: false   # send vanilla items in place of Nexo menu icons
+  java_menu_plain_titles: false    # remove the font-glyph background from themed menu titles
+
   # Performance tuning
   form_cache_enabled: true
   form_cache_size: 100

@@ -1,0 +1,47 @@
+# Existing lg_ items to repoint at the Enthusia art (keep their id, custom_model_data and item_model).
+# In plugins/Nexo/items/lg_*.yml change only the "texture:" line of each item below.
+
+lg_nav_info: lumaguilds:enthusia/guild_info
+lg_nav_members: lumaguilds:enthusia/members
+lg_nav_ranks: lumaguilds:enthusia/ranks
+lg_nav_economy: lumaguilds:enthusia/bank
+lg_nav_settings: lumaguilds:enthusia/settings
+lg_nav_progression: lumaguilds:enthusia/level
+lg_nav_diplomacy: lumaguilds:enthusia/alliances
+lg_nav_warfare: lumaguilds:enthusia/wars
+lg_back: lumaguilds:enthusia/back
+lg_page_prev: lumaguilds:enthusia/prev
+lg_page_next: lumaguilds:enthusia/next
+lg_close: lumaguilds:enthusia/close
+lg_confirm: lumaguilds:enthusia/confirm
+lg_cancel: lumaguilds:enthusia/cancel
+lg_invite: lumaguilds:enthusia/invite
+lg_kick: lumaguilds:enthusia/kick
+lg_promote: lumaguilds:enthusia/promote
+lg_home: lumaguilds:enthusia/home
+lg_bank: lumaguilds:enthusia/bank
+lg_deposit: lumaguilds:enthusia/deposit
+lg_withdraw: lumaguilds:enthusia/withdraw
+lg_history: lumaguilds:enthusia/history
+lg_level: lumaguilds:enthusia/level
+lg_emoji: lumaguilds:enthusia/emoji
+lg_tag: lumaguilds:enthusia/tag
+lg_description: lumaguilds:enthusia/description
+lg_rank_create: lumaguilds:enthusia/rank_create
+lg_alliance: lumaguilds:enthusia/alliance_rings
+lg_truce: lumaguilds:enthusia/truce
+lg_peace: lumaguilds:enthusia/olive_branch
+lg_enemy: lumaguilds:enthusia/enemy
+lg_declare_war: lumaguilds:enthusia/declare_war
+lg_war_stats: lumaguilds:enthusia/war_stats
+lg_relations_history: lumaguilds:enthusia/book
+lg_leave: lumaguilds:enthusia/leave
+lg_disband: lumaguilds:enthusia/disband
+lg_vault: lumaguilds:enthusia/vault
+lg_reward: lumaguilds:enthusia/prog_reward
+lg_prestige: lumaguilds:enthusia/prog_prestige
+lg_gold: lumaguilds:enthusia/bank_gold
+lg_automation: lumaguilds:enthusia/bank_automation
+lg_party_create: lumaguilds:enthusia/party_create
+lg_active: lumaguilds:enthusia/war_active
+lg_star: lumaguilds:enthusia/star

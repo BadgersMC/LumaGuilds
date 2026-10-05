@@ -91,8 +91,8 @@ class BedrockGuildSettingsMenu(
                 .toggle(lang.bedrock("guild_rank_customization.toggle.name"), renderedChatRanksVisible)
                 .dropdown(
                     lang.bedrock("menu.guild_settings.item.theme.name"),
-                    GuiTheme.entries.map(GuiTheme::displayName),
-                    GuiTheme.entries.indexOf(guild.guiTheme).coerceAtLeast(0)
+                    GuiTheme.SELECTABLE.map(GuiTheme::displayName),
+                    GuiTheme.SELECTABLE.indexOf(guild.guiTheme.resolved()).coerceAtLeast(0)
                 )
         } else {
             builder.label(createSeasonTwoReadOnlySection())
@@ -148,7 +148,7 @@ class BedrockGuildSettingsMenu(
         }
         val theme = lang.bedrock(
             "menu.guild_settings.item.theme.lore.current",
-            "theme" to guild.guiTheme.displayName
+            "theme" to guild.guiTheme.resolved().displayName
         )
         return listOf(
             lang.bedrock("bedrock.settings.error.no_settings_permission"),
@@ -190,8 +190,8 @@ class BedrockGuildSettingsMenu(
             }
             val submittedTheme = if (renderedManagementControls) {
                 val themeIndex = response.next() as? Int
-                    ?: GuiTheme.entries.indexOf(guild.guiTheme).coerceAtLeast(0)
-                GuiTheme.entries.getOrElse(themeIndex) { guild.guiTheme }
+                    ?: GuiTheme.SELECTABLE.indexOf(guild.guiTheme.resolved()).coerceAtLeast(0)
+                GuiTheme.SELECTABLE.getOrElse(themeIndex) { guild.guiTheme.resolved() }
             } else {
                 guild.guiTheme
             }

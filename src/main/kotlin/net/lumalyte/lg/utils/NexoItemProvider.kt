@@ -72,9 +72,14 @@ object NexoItemProvider : Listener {
      * @param itemId  The Nexo item ID (e.g. "lg_nav_info").
      * @param fallback A lambda producing the fallback ItemStack when Nexo is unavailable.
      * @return The Nexo ItemStack if available, otherwise the fallback.
+     *
+     * The Nexo item is tagged with the fallback's material so Bedrock players can be shown the
+     * vanilla item instead (see [BedrockIcons]). Use [getItemStack] for items handed to players.
      */
     fun getItemStackOrFallback(itemId: String, fallback: () -> ItemStack): ItemStack {
-        return getItemStack(itemId) ?: fallback()
+        val nexo = getItemStack(itemId) ?: return fallback()
+        val vanilla = runCatching { fallback().type }.getOrNull() ?: return nexo
+        return BedrockIcons.tag(nexo, vanilla)
     }
 
     // ─── event handler ────────────────────────────────────────────────

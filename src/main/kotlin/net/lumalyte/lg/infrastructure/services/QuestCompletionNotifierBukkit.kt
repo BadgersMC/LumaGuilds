@@ -26,7 +26,7 @@ class QuestCompletionNotifierBukkit(
     private val quests: QuestRepository,
     private val nowMillis: () -> Long = System::currentTimeMillis,
     private val playerLookup: (UUID) -> Player? = { Bukkit.getPlayer(it) },
-    private val iconFactory: (QuestDefinition) -> ItemStack = QuestIconProvider::itemFor,
+    private val iconFactory: (QuestDefinition) -> ItemStack = QuestIconProvider::vanillaItemFor,
     private val onMainThread: (() -> Boolean) -> Boolean = { it() },
 ) : QuestCompletionNotifier {
     private val logger = LoggerFactory.getLogger(QuestCompletionNotifierBukkit::class.java)

@@ -89,9 +89,12 @@ class GuildListWiringTest {
             "src/main/kotlin/net/lumalyte/lg/interaction/menus/GuildBannerItemResolver.kt"
         ).readText()
 
-        assertTrue(java.contains("GuildBannerItemResolver.resolve(guild)"))
+        // Display copy of the stored banner: same resolver, pack item-model overrides stripped.
+        assertTrue(java.contains("GuildBannerItemResolver.resolveForDisplay(guild)"))
+        assertTrue(resolver.contains("fun resolveForDisplay(guild: Guild): ItemStack"))
+        assertTrue(resolver.contains("val item = resolve(guild)"))
         assertFalse(java.contains("ItemStack.of(Material.BOOK)"))
-        assertTrue(relation.contains("GuildBannerItemResolver.resolve(otherGuild)"))
+        assertTrue(relation.contains("GuildBannerItemResolver.resolveForDisplay(otherGuild)"))
         assertTrue(resolver.contains("Material.WHITE_BANNER"))
         assertTrue(resolver.contains("deserializeToItemStack()"))
     }

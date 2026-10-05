@@ -54,7 +54,7 @@ data class Guild(
     val bannermanEnabled: Boolean = false,
     val allyHome: GuildHome? = null,
     val allyHomeAllowedGuilds: Set<UUID> = emptySet(),
-    val guiTheme: GuiTheme = GuiTheme.NEUTRAL
+    val guiTheme: GuiTheme = GuiTheme.DEFAULT
 ) {
     init {
         require(name.length in 1..32) { "Guild name must be between 1 and 32 characters." }

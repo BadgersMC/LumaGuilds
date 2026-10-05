@@ -500,9 +500,9 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
         // Parse gui_theme (default to NEUTRAL for existing guilds)
         val guiTheme = try {
             val themeStr = rs.getString("gui_theme")
-            if (themeStr != null) net.lumalyte.lg.utils.GuiTheme.fromKey(themeStr) else net.lumalyte.lg.utils.GuiTheme.NEUTRAL
+            if (themeStr != null) net.lumalyte.lg.utils.GuiTheme.fromKey(themeStr) else net.lumalyte.lg.utils.GuiTheme.DEFAULT
         } catch (e: Exception) {
-            net.lumalyte.lg.utils.GuiTheme.NEUTRAL
+            net.lumalyte.lg.utils.GuiTheme.DEFAULT
         }
 
         // Debug logging for vault data loading

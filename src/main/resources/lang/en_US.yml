@@ -87,7 +87,7 @@ bedrock:
       request_action_description: 'Choose an action for this request:'
       request_accept: '✅ Accept Request'
       request_reject: '❌ Reject Request'
-      request_cancel: '🚫 Cancel Request'
+      request_cancel: 'Cancel Request'
       request_accepted: 'Party request accepted!'
       request_rejected: 'Party request rejected.'
       request_cancelled: 'Party request cancelled.'
@@ -127,12 +127,12 @@ bedrock:
       back: '« Back'
 
     guild_selection:
-      title: '🏰 Select Guilds - Page <page>/<total_pages>'
+      title: 'Select Guilds - Page <page>/<total_pages>'
       content: |-
         Select guilds to invite to the party.
 
-        📊 Selected: <selected> guilds
-        📄 Showing: <start>-<end> of <total>
+        Selected: <selected> guilds
+        Showing: <start>-<end> of <total>
 
         ✅ Selected guilds will be invited when the party is created.
       status:
@@ -142,36 +142,36 @@ bedrock:
         remove: Remove from selection
         add: Add to selection
       guild_button: |-
-        🏰 <guild>
-        👥 Members: <members>
-        📊 Status: <status>
-        💡 <action>
+        <guild>
+        Members: <members>
+        Status: <status>
+        <action>
       button:
         previous: '⬅ Previous Page'
         next: '➡ Next Page'
-        view_selected: '📋 View Selected (<count>)'
+        view_selected: 'View Selected (<count>)'
         done: '✅ Done - Create Party'
         cancel: '❌ Cancel'
       unknown_guild: Unknown Guild
       summary:
-        title: '📋 Selected Guilds'
+        title: 'Selected Guilds'
         content: |-
           Selected guilds for party invitation:
 
           <guilds>
 
           Total: <total> guilds
-        guild_row: '🏰 <guild>'
+        guild_row: '<guild>'
         continue: '✅ Continue Selecting'
-        create: '🚀 Create Party'
-        clear: '🔄 Clear All'
+        create: 'Create Party'
+        clear: 'Clear All'
       feedback:
         cancelled: '<red>❌ Guild selection cancelled.'
         removed: '<red>❌ Removed <guild> from party invitation'
         added: '<green>✅ Added <guild> to party invitation'
-        none_selected: '<yellow>📋 No guilds selected yet'
+        none_selected: '<yellow>No guilds selected yet'
         selection_hint: '<gray>Use the buttons above to select guilds to invite'
-        cleared: '<red>🗑 Cleared all guild selections'
+        cleared: '<red>Cleared all guild selections'
         no_guilds: '<red>❌ No guilds selected!'
         select_one: '<gray>Please select at least one guild to invite'
   war_management:
@@ -246,7 +246,7 @@ bedrock:
     wager_have_amount: '<gray>Have: <gold><amount> coins'
     wager_info_amount: '<gold>Wager Amount: <amount> coins'
     wager_info_awaiting_match: '<gray>  • Awaiting opponent to match'
-    wager_info_header: '<gold>💰 Wager Information:'
+    wager_info_header: '<gold>Wager Information:'
     wager_info_must_match: '<gray>You must match: <gold><amount> coins'
     wager_info_total_pot: '<gray>Total pot: <gold><amount> coins'
     wager_info_winner_takes_all: '<gray>  • Winner takes all!'
@@ -523,7 +523,7 @@ bedrock:
     value:
       unknown_error: Unknown error
     qr:
-      toggle: '<yellow>📱 Get QR Code Map for Birdflop Text Generator'
+      toggle: '<yellow>Get QR Code Map for Birdflop Text Generator'
       received: '<green>✓ QR Code map added to your inventory!'
       scan: '<gray>Scan it with your phone to open Birdflop!'
       divider: '<yellow>━━━━━━━━━━━━━━━━━━━━━━━━━━'
@@ -760,8 +760,8 @@ bedrock:
     content: |-
       Change member rank for <guild>?
 
-      👤 Player: <player>
-      📊 Current Rank: <current_rank>
+      Player: <player>
+      Current Rank: <current_rank>
       ⬆ New Rank: <new_rank>
 
       <change>
@@ -792,7 +792,7 @@ bedrock:
       sent: '<green>✅ Invitation sent to <player>!'
       failed: '<red>❌ Failed to save the guild invitation. Please try again.'
     notification:
-      title: '<gold><bold>📨 GUILD INVITATION'
+      title: '<gold><bold>GUILD INVITATION'
       invited: '<gray><player> invited you to join <gold><guild><gray>!'
       accept: '<gray>To accept: <green>/guild join <guild>'
       decline: '<gray>To decline: <red>/guild decline <guild>'
@@ -2454,7 +2454,7 @@ item:
     name: "Move Claim '<claim>'"
 menu:
   quests:
-    title: "<white><guild>'s Weekly Quests"
+    title: '<white>Weekly Quests • <guild>'
     feedback:
       not_member: '<red>❌ You must belong to this guild to view its weekly quests.'
       no_quests: '<yellow>No weekly quests are active right now.'
@@ -2465,21 +2465,21 @@ menu:
         reset: '<gray>Resets in: <yellow><time>'
         bonus: '<gray>Full-set bonus: <gold><xp> EXP <status>'
       back:
-        name: '<red>← Back'
+        name: '<yellow>⬅ Back'
       prev_page:
-        name: '<yellow>← Previous Page'
+        name: '<white>⬅ Previous Page'
       next_page:
-        name: '<yellow>Next Page →'
+        name: '<white>Next Page ➡'
       quest:
         name: '<gold><objective>'
         description: '<gray><objective>'
         progress: '<gray>Progress: <white><count>/<target> <dark_gray>(<percent>%)'
         reward: '<gray>Reward: <gold><xp> Guild EXP'
         rank: '<gray>Current rank: <aqua><rank>'
-        completed: '<green>✅ Complete — reward processing'
-        claimed: '<green>✅ Complete — score keeps counting'
-        in_progress: '<yellow>⏳ In progress'
-        view_leaderboard: '<aqua>Click to view quest leaderboard'
+        completed: '<green>✔ Complete — reward on its way'
+        claimed: '<green>✔ Complete — your score still counts'
+        in_progress: '<yellow>In progress'
+        view_leaderboard: '<yellow>Click to see the leaderboard'
     leaderboard:
       title: '<white>Quest Leaderboard'
       header:
@@ -2511,8 +2511,8 @@ menu:
       title: '<white>Create New Party - <guild>'
       unnamed: Unnamed
       type:
-        private_name: '<red>🔒 Party Type'
-        public_name: '<green>🌐 Party Type'
+        private_name: '<red>Party Type'
+        public_name: '<green>Party Type'
         private_status: Private (Guild Only)
         public_status: Public (Multi-Guild)
         current: '<gray>Current: <white><type>'
@@ -2524,7 +2524,7 @@ menu:
         public_invites: '<gray>• Can invite other guilds'
         public_coordination: '<gray>• More complex coordination'
         make_public: '<yellow>Click to make public'
-        make_private: '<green>Click to make private'
+        make_private: '<yellow>Click to make private'
         private: private
         public: public
       private_info:
@@ -2535,7 +2535,7 @@ menu:
         management: '<gray>• Simpler management'
         members: '<gray>• All guild members can join'
       name:
-        name: '<gold>📝 Party Name'
+        name: '<gold>Party Name'
         value: '<white><party>'
         not_set: '<red>Not set'
         current: '<gray>Current: <value>'
@@ -2547,7 +2547,7 @@ menu:
         cancel_hint: '<gray>Or click cancel to stop'
         click: '<yellow>Click to set party name'
       summary:
-        name: '<gold>📊 Party Summary'
+        name: '<gold>Party Summary'
         guilds: '<gray>Guilds: <white><count>'
         restrictions: '<gray>Role restrictions: <white><roles>'
         none: None
@@ -2558,16 +2558,16 @@ menu:
         current_name: '<green>✅ <guild>'
         current_lore: '<gray>Your current guild'
         included: '<gray>Always included'
-        invite_name: '<gold>📋 INVITE GUILDS (<count> selected)'
-        invite_lore: '<gray>Click to select guilds to invite'
+        invite_name: '<gold>INVITE GUILDS (<count> selected)'
+        invite_lore: '<yellow>Click to select guilds to invite'
         invited_first: '<gray>Selected guilds will be invited'
         invited_second: '<gray>when the party is created'
         selected_name: '<green>✅ <guild>'
         selected_lore: '<gray>Will be invited to party'
         more: '<gray>... and <count> more'
-        more_lore: '<gray>Click invite button to see all'
+        more_lore: '<yellow>Click invite button to see all'
       restriction:
-        name: '<gold>🔒 Role Restrictions'
+        name: '<gold>Role Restrictions'
         enabled: Enabled
         disabled: Disabled
         status: '<gray>Status: <white><status>'
@@ -2576,26 +2576,26 @@ menu:
         disable: '<red>Click to disable restrictions'
         enable: '<green>Click to enable restrictions'
       roles:
-        name: '<gold>👥 SELECT ROLES'
+        name: '<gold>SELECT ROLES'
         lore: '<gray>Choose which roles can join'
         requirement: '<gray>Only works when restrictions enabled'
-        action: '<green>Click to select roles'
+        action: '<yellow>Click to select roles'
         enable_first: '<gray>Enable restrictions first'
         selected_name: '<green>✓ <rank>'
         available_name: '<red>✗ <rank>'
         priority: '<gray>Priority: <white><priority>'
         members: '<gray>Members: <white><count>'
         remove: '<red>Click to remove from allowed roles'
-        add: '<green>Click to add to allowed roles'
+        add: '<yellow>Click to add to allowed roles'
       action:
         create: '<green>✅ Create Party'
         cannot_create: '<red>❌ Cannot Create'
         create_lore: '<gray>Create the party with selected settings'
         ready: '<green>Ready to create party!'
-        confirm: '<gray>Click to confirm'
+        confirm: '<yellow>Click to confirm'
         need_one: '<red>• Need at least 1 guild'
         need_two: '<red>• Need at least 2 guilds'
-        clear: '<red>🗑 Clear All'
+        clear: '<red>Clear All'
         clear_lore: '<gray>Reset all selections'
         back: '<gray>⬅ Back'
         back_lore: '<gray>Return to party management'
@@ -2622,7 +2622,7 @@ menu:
         role_added: '<green>✅ Added <rank> to allowed roles'
         need_one: '<red>❌ Cannot create party - need at least 1 guild!'
         need_two: '<red>❌ Cannot create party - need at least 2 guilds!'
-        cleared: '<yellow>🗑 Cleared all selections!'
+        cleared: '<yellow>Cleared all selections!'
         name_spaces: '<red>❌ Party names cannot contain spaces!'
         name_hint: '<gray>Use underscores instead (e.g., My_Party)'
         invite_one: '<red>❌ You must invite at least one other guild!'
@@ -2645,7 +2645,7 @@ menu:
         name_set: '<green>✅ Party name set to: ''<party>'''
         input_cancelled: '<gray>Input cancelled.'
     management:
-      title: '<white>Party Management - <guild>'
+      title: '<white>Parties • <guild>'
       unnamed: Unnamed
       never: Never
       this_channel: this channel
@@ -2655,7 +2655,7 @@ menu:
       empty:
         name: '<red>No Active Parties'
         lore: '<gray>Your guild is not in any parties'
-        hint: '<gray>Create one by sending requests!'
+        hint: '<gray>Send a party request to start one'
       active:
         name: '<aqua>Active Party: <party>'
         members: '<gray>Members: <white><count> guilds'
@@ -2663,12 +2663,12 @@ menu:
         expires: '<gray>Expires: <white><date>'
       more:
         name: '<yellow>+<count> More Parties'
-        lore: '<gray>Click to view all parties'
+        lore: '<yellow>Click to view all parties'
       moderate:
         name: '<gold>Moderate Channel'
         lore: '<gray>Manage mutes, bans, and kicks'
         channel: '<gray>for <channel>'
-        click: '<yellow>Click to open moderation menu'
+        click: '<yellow>Click to moderate'
       incoming:
         name: '<green>Incoming Requests'
         lore: '<gray>Party invitations to join'
@@ -2680,36 +2680,36 @@ menu:
         name: '<green>Send Party Request'
         locked_name: '<red>❌ Send Party Request'
         lore: '<gray>Invite another guild to a party'
-        hint: '<gray>Create new parties or join existing ones'
+        hint: '<yellow>Click to choose a guild'
         locked_lore: '<gray>Only administrators can send party requests'
       create:
         name: '<gold>Create New Party'
         locked_name: '<red>❌ Create New Party'
         lore: '<gray>Start a fresh party'
-        hint: '<gray>Invite guilds to coordinate events'
+        hint: '<yellow>Click to create a party'
         locked_lore: '<gray>Only administrators can create parties'
       access:
         name: '<aqua>Party Access Settings'
         locked_name: '<red>❌ Party Access Settings'
         lore: '<gray>Configure who can join parties'
         default: '<gray>Default: All guild members'
-        action: '<gray>Click to configure rank restrictions'
+        action: '<yellow>Click to set rank restrictions'
       permissions:
         name: '<yellow>Party Permissions'
-        view: '<gray>□ View Invites: <white>All members'
-        accept: '<gray>✓ Accept Invites: <white>Admin+ only'
-        send: '<gray>✉ Send Invites: <white>Admin+ only'
-        manage: '<gray>§ Manage Settings: <white>Admin+ only'
-        join: '<gray>∩ Join Parties: <white>All members (or restricted ranks)'
+        view: '<gray>View invites: <white>Everyone'
+        accept: '<gray>Accept invites: <white>Admin and up'
+        send: '<gray>Send invites: <white>Admin and up'
+        manage: '<gray>Change settings: <white>Admin and up'
+        join: '<gray>Join parties: <white>Everyone (or chosen ranks)'
       info:
-        name: '<gold>ℹ Invite-Only System'
+        name: '<gold>How Parties Work'
         invite_only: '<gray>All parties are invite-only'
         no_browser: '<gray>No public party browser'
         events: '<gray>Parties coordinate guild events'
         restrictions: '<gray>Rank restrictions available'
       back:
-        name: '<yellow>Back to Control Panel'
-        lore: '<gray>Return to guild management'
+        name: '<yellow>⬅ Back'
+        lore: '<gray>Return to the previous menu'
       incoming_request:
         name: '<green>✉ Invitation from <white><guild>'
         accept: '<yellow>Click to accept'
@@ -2719,8 +2719,8 @@ menu:
         cancel: '<red>Shift+Click to cancel'
       request_message: '<gray>Message: <white><message>'
       request_back:
-        name: '<red>⬅ Back'
-        lore: '<gray>Return to party management'
+        name: '<yellow>⬅ Back'
+        lore: '<gray>Return to the previous menu'
       feedback:
         disabled: '<red>❌ Parties are disabled on this server!'
         send_permission: '<red>❌ You need Admin+ permission to send party requests!'
@@ -2790,15 +2790,15 @@ menu:
         restricted: Role-restricted
         open: Open
       previous:
-        name: '<white>Previous Page'
+        name: '<white>⬅ Previous Page'
         lore: '<gray>Go to previous page'
       next:
-        name: '<white>Next Page'
+        name: '<white>Next Page ➡'
         lore: '<gray>Go to next page'
       page: '<white>Page <page>/<total_pages>'
       back:
-        name: '<red>Back'
-        lore: '<gray>Return to party management'
+        name: '<yellow>⬅ Back'
+        lore: '<gray>Return to the previous menu'
       refresh:
         name: '<green>Refresh'
         lore: '<gray>Reload player list and status'
@@ -2811,23 +2811,23 @@ menu:
         selected_status: '<gray>Status: <green>Already invited'
         available_status: '<gray>Status: <gray>Available'
         remove: '<red>Click to remove invitation'
-        invite: '<green>Click to invite'
+        invite: '<yellow>Click to invite'
       previous:
-        name: '<white>⬅ PREVIOUS PAGE'
+        name: '<white>⬅ Previous Page'
         lore: '<gray>Go to previous page'
       next:
-        name: '<white>NEXT PAGE ➡'
+        name: '<white>Next Page ➡'
         lore: '<gray>Go to next page'
       page:
-        name: '<white>📄 PAGE <page>/<total_pages>'
+        name: '<white>PAGE <page>/<total_pages>'
         lore: '<gray>Current page indicator'
       summary:
-        name: '<gold>📋 Selected Guilds: <count>'
+        name: '<gold>Selected Guilds: <count>'
         lore_first: '<gray>Selected guilds will be invited'
         lore_second: '<gray>to the party when created'
       back:
-        name: '<red>⬅ BACK TO CREATION'
-        lore: '<gray>Return to party creation menu'
+        name: '<yellow>⬅ Back'
+        lore: '<gray>Return to the previous menu'
   control_panel:
     feedback:
       guild_missing: '<red>❌ Guild no longer exists.'
@@ -2835,171 +2835,87 @@ menu:
       vault_failure: '<red>❌ <error>'
       vault_unavailable: '<red>❌ Guild vault is no longer available! The physical chest may have been removed.'
     item:
-      bank:
-        lore:
-          description: '<gray>Manage guild treasury'
-          details: '<gray>View transactions and balance'
-        name: '<gold>Guild Bank'
-      banner:
-        lore:
-          current: '<gray>Current: <white><banner>'
-          description: '<gray>Choose your guild''s banner'
-          error: '<gray>Current: <red>Error loading banner'
-          not_set: '<gray>Current: <red>Not set'
-        name: '<aqua>Guild Banner'
       disband:
         lore:
-          description: '<gray>This will delete the guild forever'
-          members: '<gray>All members will be removed'
-          warning: '<red><bold>PERMANENT ACTION'
-        name: '<dark_red><bold>DISBAND GUILD'
-      emoji:
-        lore:
-          current: '<gray>Current: <emoji>'
-          description: '<gray>Set your guild''s emoji for chat'
-        name: '<light_purple>Guild Emoji'
-      home:
-        lore:
-          description: '<gray>Teleport point for /guild home'
-          not_set: '<red>Not set'
-          set: '<gray>Home set <green>✓'
-        name: '<green>Guild Home'
-      info:
-        lore: '<gray>Detailed information about your guild'
-        name: '<blue>Guild Info'
-      invite:
-        lore: '<gray>Send guild invitation to a player'
-        name: '<green>Invite Player'
-      kick:
-        lore: '<gray>Remove a player from the guild'
-        name: '<red>Kick Player'
+          description: '<gray>Deletes the guild for every member'
+          members: '<yellow>Click to disband'
+          warning: '<red>Permanent — cannot be undone'
+        name: '<red>Disband Guild'
       leave:
         lore:
-          description: '<gray>Leave the guild'
-          rejoin: '<gray>You can rejoin later if invited'
+          description: '<gray>You can rejoin if invited again'
+          rejoin: '<yellow>Click to leave'
         name: '<yellow>Leave Guild'
-      member_list:
-        lore:
-          count: '<gray>Total: <white><count> members'
-          description: '<gray>View all guild members'
-        name: '<aqua>Member List'
-      member_management:
-        lore:
-          count: '<gray>Current members: <white><count>'
-          description: '<gray>Manage guild members and ranks'
-        name: '<aqua>Member Management'
-      mode:
-        lore:
-          current: '<gray>Current: <white><mode>'
-          hostile: '<gray>Hostile = Can engage in wars'
-          peaceful: '<gray>Peaceful = Cannot be attacked'
-        name: '<red>Guild Mode'
       party:
         lore:
-          description: '<gray>Start parties and coordinate with allies'
-          details: '<gray>Invite other guilds to events'
-        name: '<light_purple>Party Management'
+          description: '<gray>Team up with other guilds for events'
+          details: '<yellow>Click to manage parties'
+        name: '<light_purple>Parties'
       progression:
         lore:
           better_perks: '<gray>Higher levels = <green>Better perks!'
           earn:
-            bank: '<gray>• <white>💰 Bank deposits'
-            brewing: '<gray>• <white>🧪 Brewing'
-            claims: '<gray>• <white>🏞 Claiming land'
-            crafting: '<gray>• <white>🔨 Crafting & smelting'
+            bank: '<gray>• <white>Bank deposits'
+            claims: '<gray>• <white>Claiming land'
+            crafting: '<gray>• <white>Crafting & smelting'
             enchanting: '<gray>• <white>✨ Enchanting'
-            farming: '<gray>• <white>🌾 Farming & fishing'
-            kills: '<gray>• <white>🗡 Player & mob kills'
-            members: '<gray>• <white>👥 Guild member joins'
+            farming: '<gray>• <white>Farming & fishing'
+            kills: '<gray>• <white>Player & mob kills'
+            members: '<gray>• <white>Guild member joins'
             mining: '<gray>• <white>⛏ Mining & building'
             wars: '<gray>• <white>⚔ War victories'
-          earn_header: '<gold>📈 Earn Experience Points:'
+          earn_header: '<gold>Earn Experience Points:'
           level: '<gray>Level: <yellow><level>'
-          loading: '<red>⚠ Progression system loading...'
           progress: '<gray>XP Progress: <yellow><current><gray>/<yellow><required> <gray>(<green><percent>%<gray>)'
-          refresh: '<yellow>Click to refresh progression data'
-          retry: '<gray>Try again in a moment'
           rewards:
-            balance: '<gray>• <yellow>💰 Higher bank balance limits'
-            claim_blocks: '<gray>• <yellow>📦 More claim blocks'
+            balance: '<gray>• <yellow>Higher bank balance limits'
+            claim_blocks: '<gray>• <yellow>More claim blocks'
             claim_regeneration: '<gray>• <yellow>⚡ Faster claim regeneration'
-            fees: '<gray>• <yellow>💳 Reduced withdrawal fees'
-            homes: '<gray>• <yellow>🏠 Additional home locations'
-            interest: '<gray>• <yellow>💸 Better interest rates'
+            fees: '<gray>• <yellow>Reduced withdrawal fees'
+            homes: '<gray>• <yellow>Additional home locations'
+            interest: '<gray>• <yellow>Better interest rates'
             particles: '<gray>• <yellow>✨ Special particle effects'
-            sounds: '<gray>• <yellow>🔊 Sound effects & announcements'
+            sounds: '<gray>• <yellow>Sound effects & announcements'
             teleport: '<gray>• <yellow>⚡ Faster teleport cooldowns'
-          rewards_header: '<green>🎁 Level Up Rewards:'
+          rewards_header: '<green>Level Up Rewards:'
           starting_level: '<gray>Level: <yellow>1 <gray>(Starting Level)'
           starting_perks: '<gray>Unlocked Perks: <green>2 <gray>(Basic perks)'
           starting_progress: '<gray>XP Progress: <yellow>0<gray>/<yellow>800 <gray>(<green>0%<gray>)'
-          unavailable: '<red>⚠ Progression system unavailable'
           unlocked: '<gray>Unlocked Perks: <green><count>'
         name: '<aqua>⭐ GUILD PROGRESSION'
-      promote:
-        lore: '<gray>Change member ranks'
-        name: '<gold>Promote/Demote'
-      rank_list:
-        lore:
-          count: '<gray>Total: <white><count> ranks'
-          description: '<gray>View all guild ranks'
-        name: '<gold>Rank List'
-      rank_management:
-        lore:
-          count: '<gray>Current ranks: <white><count>'
-          description: '<gray>Manage guild ranks and permissions'
-          locked: '<red>🔒 Requires MANAGE_RANKS permission'
-        name: '<gold>Rank Management'
-      relations:
-        lore:
-          description: '<gray>View alliances and rivalries'
-          details: '<gray>Manage diplomatic relations'
-        name: '<yellow>Relations'
-      settings:
-        lore:
-          description: '<gray>Manage basic guild information'
-          details: '<gray>Name, description, and general settings'
-        name: '<yellow>Guild Settings'
-      statistics:
-        lore:
-          description: '<gray>View guild performance metrics'
-          details: '<gray>Kills, deaths, wins, losses'
-        name: '<green>Statistics'
       vault:
         lore:
-          available: '<gray>Status: <green>✓ Available'
-          never_placed: '<gray>Status: <red>✗ Never Placed'
-          not_placed: '<gray>Status: <red>✗ Not Placed'
-          obtain: '<gray>Use <white>/guild getvault <gray>to get a vault chest'
-          open: '<gray>Click to open vault'
-          place_line_1: '<gray>Place the chest in your guild''s'
-          place_line_2: '<gray>territory to enable the vault'
-          storage_line_1: '<gray>Store items safely in your'
-          storage_line_2: '<gray>guild''s physical vault chest'
+          available: '<gray>Status: <green>Ready'
+          never_placed: '<gray>Status: <red>Not placed yet'
+          not_placed: '<gray>Status: <red>Not placed'
+          obtain: '<gray>Get one with <white>/guild getvault'
+          open: '<yellow>Click to open the vault'
+          place_line_1: '<gray>Place the vault chest inside'
+          place_line_2: '<gray>your claim to unlock it'
+          storage_line_1: '<gray>Shared item storage for'
+          storage_line_2: '<gray>everyone in the guild'
         name: '<yellow>Guild Vault'
-      war:
-        lore:
-          description: '<gray>Declare wars and manage conflicts'
-          details: '<gray>Propose truces and alliances'
-        name: '<dark_red>War Management'
     state:
-      hostile: Hostile
       not_set: '<red>Not set'
-      peaceful: Peaceful
-    title: '<white>Guild Control Panel - <guild>'
+    title: '<white>Guild Actions • <guild>'
   dashboard:
     feedback:
       guild_missing: '<red>❌ Guild no longer exists.'
       not_member: '<red>❌ You cannot access the dashboard for a guild you are not a member of!'
     item:
+      actions:
+        lore:
+          line_1: '<gray>Parties, guild vault,'
+          line_2: '<gray>leave or disband'
+        name: '<red>Guild Actions'
       diplomacy:
         lore:
           line_1: '<gray>Alliances, enemies,'
-          line_2: '<gray>truces, and relations'
+          line_2: '<gray>truces and requests'
         name: '<light_purple>Diplomacy'
       economy:
         lore:
-          line_1: '<gray>Bank, vault, budget,'
+          line_1: '<gray>Guild bank, deposits'
           line_2: '<gray>and transaction history'
         name: '<gold>Economy'
       guild_info:
@@ -3012,13 +2928,13 @@ menu:
         name: '<white>⚔ <gray><display_name>'
       information:
         lore:
-          line_1: '<gray>Guild details, statistics,'
-          line_2: '<gray>and performance metrics'
+          line_1: '<gray>Overview, members,'
+          line_2: '<gray>allies and wars at a glance'
         name: '<blue>Information'
       members:
         lore:
-          line_1: '<gray>Member list, management,'
-          line_2: '<gray>invite, kick, and promote'
+          line_1: '<gray>Member list, invites,'
+          line_2: '<gray>kicks and promotions'
         name: '<aqua>Members'
       progression:
         lore:
@@ -3027,9 +2943,9 @@ menu:
         name: '<green>Progression'
       quests:
         lore:
-          line_1: '<gray>Complete shared weekly challenges'
-          line_2: '<gray>for generous guild rewards'
-        name: '<gold>⏳ Quests'
+          line_1: '<gray>Shared weekly challenges'
+          line_2: '<gray>for guild EXP rewards'
+        name: '<gold>Quests'
       ranks:
         lore:
           line_1: '<gray>Create, edit, and manage'
@@ -3047,15 +2963,15 @@ menu:
         name: '<green>Statistics'
       warfare:
         lore:
-          line_1: '<gray>Declare war, manage'
-          line_2: '<gray>parties, and conflicts'
-        name: '<dark_red>War & Party'
+          line_1: '<gray>Declare war, track'
+          line_2: '<gray>conflicts and make peace'
+        name: '<dark_red>Warfare'
     title: '<white><dark_gray>⚔ <gray><guild>'
   guild_confirmation:
     common:
       cancel:
-        lore: '<gray>Return to guild settings'
-        name: '<green><bold>CANCEL'
+        lore: '<gray>Keep everything as it is'
+        name: '<green>Cancel'
       unknown_player: Unknown Player
     disband:
       feedback:
@@ -3064,15 +2980,15 @@ menu:
         success: '<red>❌ Guild <white><guild> <red>has been disbanded.'
       item:
         confirm:
-          lore: '<gray>Click to disband this guild permanently'
-          name: '<red><bold>CONFIRM DISBAND'
+          lore: '<gray>Delete the guild for everyone'
+          name: '<red>Confirm Disband'
         info:
           lore:
             guild: '<gray>Guild: <white><guild>'
             irreversible: '<red>This action cannot be undone!'
             level: '<gray>Level: <white><level>'
             vault_loss: '<gray>All vault items will be lost.'
-          name: '<red>⚠ Disband Guild'
+          name: '<red>Disband Guild'
       title: '<white><bold>Disband <guild>?'
     leave:
       feedback:
@@ -3080,8 +2996,8 @@ menu:
         success: '<yellow>You have left <white><guild><yellow>.'
       item:
         confirm:
-          lore: '<gray>Leave this guild permanently'
-          name: '<red><bold>CONFIRM LEAVE'
+          lore: '<gray>Leave the guild now'
+          name: '<red>Confirm Leave'
         info:
           lore:
             bank: '<gray>- Guild bank and vault'
@@ -3090,7 +3006,7 @@ menu:
             homes: '<gray>- Guild homes'
             permissions: '<gray>- All rank permissions'
             warning: '<yellow>You will lose access to:'
-          name: '<yellow>🚪 Leave Guild'
+          name: '<yellow>Leave Guild'
       title: '<white><bold>Leave <guild>?'
     invite:
       feedback:
@@ -3098,7 +3014,7 @@ menu:
         already_member: '<red>❌ <player> is already in your guild!'
         decline: '<gray>To decline: <red>/guild decline <guild>'
         received: '<gray><player> invited you to join <gold><guild><gray>!'
-        received_header: '<gold><bold>📨 GUILD INVITATION'
+        received_header: '<gold><bold>GUILD INVITATION'
         sent: '<green>✅ Invitation sent to <player>!'
         failed: '<red>❌ Failed to save the guild invitation. Please try again.'
       item:
@@ -3110,7 +3026,7 @@ menu:
         confirm:
           lore:
             line_1: '<gray>Send invitation to player'
-            line_2: '<gray>Click to proceed'
+            line_2: '<yellow>Click to proceed'
           name: '<green>✅ SEND INVITE'
         info:
           lore:
@@ -3120,13 +3036,13 @@ menu:
             instructions_line_2: '<yellow>with instructions to accept.'
             line_1: '<gray>Send an invitation to join'
             line_2: '<gray>the guild.'
-          name: '<green>📨 SEND INVITATION'
+          name: '<green>SEND INVITATION'
         player:
           lore:
             player: '<gray>Player: <white><player>'
             result: '<yellow>Will receive invitation'
             status: '<gray>Status: <green>Online'
-          name: '<green>👤 <player>'
+          name: '<green><player>'
       title: '<white>Confirm Invite - <guild>'
     kick:
       feedback:
@@ -3142,14 +3058,14 @@ menu:
         confirm:
           lore:
             line_1: '<red>Permanently remove from guild'
-            line_2: '<gray>Click to proceed'
+            line_2: '<yellow>Click to proceed'
           name: '<red>✅ CONFIRM KICK'
         player:
           lore:
             joined: '<gray>Joined: <white><joined>'
             player: '<gray>Player: <white><player>'
             result: '<red>This player will be kicked'
-          name: '<white>👤 <player>'
+          name: '<white><player>'
         warning:
           lore:
             bank: '<yellow>• Guild bank'
@@ -3171,7 +3087,7 @@ menu:
         failure: '<red>❌ Failed to change member rank!'
         new_rank: '<gray>New rank: <white><rank>'
         promoted: '<green>✅ Successfully promoted <player>'
-        target: '<gold>🏆 Your rank in <guild> has been changed!'
+        target: '<gold>Your rank in <guild> has been changed!'
       item:
         cancel:
           lore: '<gray>Return without making changes'
@@ -3188,12 +3104,12 @@ menu:
           lore:
             confirming: '<gray>Confirming rank change'
             player: '<gray>Player: <white><player>'
-          name: '<white>👤 <player>'
+          name: '<white><player>'
         member:
           lore:
             guild: '<gray>Guild: <white><guild>'
             player: '<gray>Player: <white><player>'
-          name: '<white>👤 Member Details'
+          name: '<white>Member Details'
         new:
           name: '<green>⬆ New Rank'
         rank_lore:
@@ -3205,16 +3121,16 @@ menu:
             permissions: '<gray>New permissions: <white><permission_count>'
             priority_change: '<gray>Priority change: <white><change>'
             to: '<gray>To: <white><rank>'
-          name: '<gold>📋 Rank Change Summary'
+          name: '<gold>Rank Change Summary'
       title: '<white>Confirm Rank Change'
   all_players:
     item:
       search:
-        lore: Find Players by Name
+        lore: '<gray>Find Players by Name'
         name: Search
     title: All Players
   bank:
-    title: '<white>Guild Bank - <guild>'
+    title: '<white>Bank • <guild>'
     close: '<red>Close'
     back_to_control_panel: Back to Control Panel
     unavailable:
@@ -3231,9 +3147,9 @@ menu:
     balance:
       title: Current Balance
       current: 'Guild Balance: <balance>'
-      animated: '<balance> coins <arrow>'
+      animated: '<balance> Gold Ore <arrow>'
       player: 'Your Balance: <balance>'
-      player_description: 'Available for deposit'
+      player_description: '<gray>Gold Ore you can deposit'
       trend:
         increasing: '↗ Increasing'
         decreasing: '↘ Decreasing'
@@ -3241,8 +3157,8 @@ menu:
     custom:
       deposit: Custom Deposit
       withdraw: Custom Withdraw
-      deposit_description: Enter custom deposit amount
-      withdraw_description: Enter custom withdrawal amount
+      deposit_description: '<yellow>Click to enter an amount'
+      withdraw_description: '<yellow>Click to enter an amount'
     feedback:
       deposit_success: 'Successfully deposited $<amount> to the guild bank!'
       withdraw_success: '<green>Credited <gold><amount> gold</gold> to your personal account. Fee: <gold><fee> gold</gold>. Total removed from the guild bank: <gold><total> gold</gold>.'
@@ -3269,25 +3185,25 @@ menu:
       title: '<white>Bank Transaction History - <guild>'
       no_transactions: No transactions yet
       recent: '<count> recent transactions'
-      open_action: 'Click to view full history'
+      open_action: '<yellow>Click to view full history'
       date_format: MM/dd/yyyy HH:mm
       navigation:
-        back_description: Return to guild bank
+        back_description: '<gray>Return to the previous menu'
       filter:
         type: Transaction Type
         member: Member
         date: Date Range
         search: Search
         clear: Clear Filters
-        clear_description: Remove all filters
+        clear_description: '<gray>Remove all filters'
         current: 'Current: <value>'
-        cycle: Click to cycle
-        search_description: Click to search by member or description
-        select: Click to select
-      no_transactions_description: Try adjusting your filters
+        cycle: '<yellow>Click to cycle'
+        search_description: '<yellow>Click to search by name or note'
+        select: '<yellow>Click to select'
+      no_transactions_description: '<gray>Try adjusting your filters'
       page:
-        next: Next Page
-        previous: Previous Page
+        next: '<white>Next Page ➡'
+        previous: '<white>⬅ Previous Page'
         total_transactions: '<count> total transactions'
       value:
         all: All
@@ -3309,9 +3225,9 @@ menu:
         last_30_days: Last 30 Days
       member_filter:
         all_name: All Members
-        all_description: Clear member filter
+        all_description: '<gray>Clear member filter'
         select_member: Click to filter by <player>
-        back_description: Back to transaction history
+        back_description: '<gray>Return to the previous menu'
       search:
         prompt: '<yellow>Type a search term (matches member name or description). Type ''cancel'' to abort.'
         empty: '<red>Search term cannot be empty.'
@@ -3326,28 +3242,28 @@ menu:
       title: '<white><guild> - Member Contributions'
       date_format: yyyy-MM-dd HH:mm
       navigation:
-        back_name: Back to Transaction History
-        back_description: Return to transaction history
+        back_name: '<yellow>⬅ Back'
+        back_description: '<gray>Return to the previous menu'
       filter:
         net:
           name: Sort by Net Contribution
-          description: Shows biggest contributors first
-          toggle: Click to toggle ascending/descending
+          description: '<gray>Shows biggest contributors first'
+          toggle: '<yellow>Click to toggle ascending/descending'
         deposits:
           name: Sort by Deposits
-          description: Shows biggest depositors first
+          description: '<gray>Shows biggest depositors first'
         withdrawals:
           name: Sort by Withdrawals
-          description: Shows biggest withdrawers first
+          description: '<gray>Shows biggest withdrawers first'
         freeloaders:
           name: Show Freeloaders Only
-          description: Members who withdraw more than deposit
+          description: '<gray>Members who withdraw more than deposit'
         all:
           name: Show All Members
-          description: Clear filters, show everyone
+          description: '<gray>Clear filters, show everyone'
       empty:
         name: No member contributions found
-        description: Try clearing filters
+        description: '<gray>Try clearing filters'
       status:
         contributor: Contributor
         freeloader: Freeloader
@@ -3368,18 +3284,18 @@ menu:
       page:
         members_shown: '<count> members shown'
     navigation:
-      statistics_description: View detailed bank statistics and analytics
+      statistics_description: '<gray>Balance trends and totals'
       automation_name: Automation & Rewards
-      automation_description: Configure automated bank features
-      automation_features: Scheduled deposits, auto-rewards, alerts
+      automation_description: '<gray>Scheduled deposits, rewards and alerts'
+      automation_features: '<yellow>Click to open'
       contributions_name: Member Contributions
-      contributions_description: See who contributes and who freeloads
-      contributions_detail: Net deposits vs withdrawals
-      back_description: Return to guild control panel
+      contributions_description: '<gray>Who puts in and who takes out'
+      contributions_detail: '<yellow>Click to open'
+      back_description: '<gray>Return to the previous menu'
     processing:
       name: '⏳ Processing...'
       animated: '<frame> Processing...'
-      description: Transaction in progress
+      description: '<gray>Transaction in progress'
       wait: Please wait...
       short: Processing...
       button: '✓ <name>'
@@ -3404,10 +3320,10 @@ menu:
         '10000': 'Withdraw 10,000'
         all: Withdraw All
       description:
-        deposit_all: Click to deposit all available
-        withdraw_all: Click to withdraw all available
-        deposit: Click to deposit <amount> coins
-        withdraw: Click to withdraw <amount> coins
+        deposit_all: '<yellow>Click to deposit all your Gold Ore'
+        withdraw_all: '<yellow>Click to withdraw everything you can'
+        deposit: '<yellow>Click to deposit <amount> Gold Ore'
+        withdraw: '<yellow>Click to withdraw <amount> Gold Ore'
     security:
       risk:
         critical: Critical Risk
@@ -3445,15 +3361,15 @@ menu:
         participation: '<rate>% participation rate'
       navigation:
         history_name: Transaction History
-        history_description: View detailed transaction history
-        refresh_description: Update statistics with latest data
+        history_description: '<gray>View detailed transaction history'
+        refresh_description: '<gray>Update statistics with latest data'
         security_name: 'Security & Audit'
-        security_fraud: Fraud detection and security monitoring
-        security_authorization: Dual authorization settings
-        security_emergency: Emergency transaction controls
-        automation_tasks: Scheduled tasks and automated processes
-        automation_rewards: Auto-reward distribution system
-        automation_alerts: Budget alerts and recurring payments
+        security_fraud: '<gray>Fraud checks and monitoring'
+        security_authorization: '<gray>Dual authorization settings'
+        security_emergency: '<gray>Emergency transaction freeze'
+        automation_tasks: '<gray>Scheduled tasks'
+        automation_rewards: '<gray>Automatic reward payouts'
+        automation_alerts: '<gray>Budget alerts and recurring payments'
       feedback:
         refreshed: '<green>Statistics refreshed!'
       overview:
@@ -3511,8 +3427,11 @@ menu:
         name: Changes permissions for all players
     title: Default Claim Permissions
   common:
+    click:
+      open: '<yellow>Click to open'
+      choose_guild: '<yellow>Click to choose a guild'
     blank: '<gray>'
-    close_description: Close menu
+    close_description: '<gray>Close menu'
     unknown_player: Unknown Player
     page:
       go_to: 'Go to page <page>'
@@ -3522,7 +3441,7 @@ menu:
       no_target_player: '<red>Error: No target player available'
     item:
       back:
-        name: Back
+        name: '<yellow>⬅ Back'
       close:
         name: Close
       confirm:
@@ -3530,14 +3449,14 @@ menu:
       deselect_all:
         name: Deselect All
       error:
-        lore: Contact your local administrator for support.
+        lore: '<gray>Contact your local administrator for support.'
         name: An internal error has occurred
       next:
-        name: Next
+        name: '<white>Next Page ➡'
       page:
         name: 'Page <current_page> of <total_pages>'
       prev:
-        name: Prev
+        name: '<white>⬅ Previous Page'
       select_all:
         name: Select All
   confirm_partition_delete:
@@ -3545,10 +3464,10 @@ menu:
   confirmation:
     item:
       'no':
-        lore: Take me back
+        lore: '<gray>Take me back'
         name: 'No'
       'yes':
-        lore: 'Warning, this is a permanent action!'
+        lore: '<gray>Warning, this is a permanent action!'
         name: 'Yes'
   creation:
     item:
@@ -3556,41 +3475,41 @@ menu:
         name: Cannot Create Claim
       create:
         lore:
-          protected: The area around this bell will be protected from griefing.
-          remaining: 'You have <remaining_claims> claims remaining.'
+          protected: '<gray>The area around this bell will be protected from griefing.'
+          remaining: '<gray>You have <remaining_claims> claims remaining.'
         name: Create Claim
     title: Claim Creation
   edit_tool:
     item:
       cannot_delete:
-        lore: Deleting this would result in your claim being fragmented.
+        lore: '<gray>Deleting this would result in your claim being fragmented.'
         name: Can't Delete Partition
       change_mode:
         lore:
-          edit: Edit Mode
-          edit_active: '> Edit Mode'
-          view: View Mode
-          view_active: '> View Mode'
+          edit: '<gray>Edit Mode'
+          edit_active: '<gray>> Edit Mode'
+          view: '<gray>View Mode'
+          view_active: '<gray>> View Mode'
         name: Change Mode
       claim:
         lore:
-          blocks: 'Claim Blocks: <blocks>'
+          blocks: '<gray>Claim Blocks: <blocks>'
           claim_name: 'Name: <claim>'
-          location: 'Location: <<x>, <y>, <z>>'
-          partitions: 'Partitions: <partition_count>'
+          location: '<gray>Location: <<x>, <y>, <z>>'
+          partitions: '<gray>Partitions: <partition_count>'
         name: Claim
       delete:
         name: Delete Partition
       no_claim:
-        lore: Select an area in a claim to see more options.
+        lore: '<gray>Select an area in a claim to see more options.'
         name: No Claim Here
       no_permission:
-        lore: Select an area in your claim to see more options.
+        lore: '<gray>Select an area in your claim to see more options.'
         name: Not Your Claim
       partition:
         lore:
-          blocks: 'Blocks: <blocks>'
-          location: 'Lower (<lower_x>, <lower_z>) | Upper (<upper_x>, <upper_z>)'
+          blocks: '<gray>Blocks: <blocks>'
+          location: '<gray>Lower (<lower_x>, <lower_z>) | Upper (<upper_x>, <upper_z>)'
         name: Partition
     title: Claim Tool
   flags:
@@ -3598,7 +3517,7 @@ menu:
   icon:
     item:
       info:
-        lore: You will get to keep the item.
+        lore: '<gray>You will get to keep the item.'
         name: Place an item in the top slot to set it as the icon
     title: Set Claim Icon
   leaderboards:
@@ -3614,23 +3533,23 @@ menu:
   management:
     item:
       convert_guild:
-        lore: Make this claim accessible to guild members based on their roles
+        lore: '<gray>Make this claim accessible to guild members based on their roles'
         name: Convert to Guild Claim
       flags:
         name: Claim Flags
       icon:
-        lore: Changes the icon that shows up on the claim list
+        lore: '<gray>Changes the icon that shows up on the claim list'
         name: Edit Claim Icon
       move:
-        lore: Place the provided item where you want to move the claim bell
+        lore: '<gray>Place the provided item where you want to move the claim bell'
         name: Move Claim
       permissions:
         name: 'Trusted Players:'
       rename:
-        lore: Renames this claim
+        lore: '<gray>Renames this claim'
         name: Rename Claim
       tool:
-        lore: Gives you a copy of the claim tool
+        lore: '<gray>Gives you a copy of the claim tool'
         name: Claim Tool
     title: "Claim '<claim>'"
   member_list:
@@ -3638,8 +3557,8 @@ menu:
     default_rank: Member
     item:
       back:
-        lore: '<gray>Return to guild info'
-        name: '<red>⬅ BACK'
+        lore: '<gray>Return to the previous menu'
+        name: '<yellow>⬅ Back'
       member:
         lore:
           joined: '<gray>Joined: <white><joined>'
@@ -3648,9 +3567,9 @@ menu:
           rank: '<gray>Rank: <white><rank>'
         name: '<white><player>'
       next:
-        name: '<yellow>Next Page ➡'
+        name: '<white>Next Page ➡'
       previous:
-        name: '<yellow>⬅ Previous Page'
+        name: '<white>⬅ Previous Page'
       summary:
         lore: '<gray>Guild: <white><guild>'
         name: '<gold>Total Members: <white><member_count>'
@@ -3663,54 +3582,54 @@ menu:
       select_member_for_rank_change: '<green>✅ Click on a member head to promote/demote them'
     item:
       back:
-        lore: '<gray>Return to guild control panel'
-        name: '<red>⬅ BACK'
+        lore: '<gray>Return to the previous menu'
+        name: '<yellow>⬅ Back'
       invite:
         lore:
           description: '<gray>Invite a new player to the guild'
-          requirement: '<gray>Requires INVITE_MEMBERS permission'
-        name: '<green>➕ INVITE PLAYER'
+          requirement: '<gray>Needs the Invite Members permission'
+        name: '<green>Invite Player'
       kick:
         lore:
           description: '<gray>Remove a player from the guild'
-          requirement: '<gray>Requires KICK_MEMBERS permission'
-        name: '<red>➖ KICK PLAYER'
+          requirement: '<gray>Needs the Kick Members permission'
+        name: '<red>Kick Player'
       member:
         lore:
           action: '<yellow>Click to view options'
           joined: '<gray>Joined: <white><joined>'
           player: '<gray>Player: <white><player>'
           rank: '<gray>Rank: <white><rank>'
-        name: '<white>👤 <player>'
+        name: '<white><player>'
       sort:
         name:
           default: '<aqua>⇅ SORT BY RANK'
           rank: '<green>✓ SORTED BY RANK'
         lore:
           default: '<gray>Highest guild rank first'
-          rank: '<gray>Click to restore the default order'
+          rank: '<yellow>Click to restore the default order'
       next:
         lore: '<gray>Go to next page'
-        name: '<white>NEXT PAGE ➡'
+        name: '<white>Next Page ➡'
       page:
-        lore: '<gray>Current page indicator'
-        name: '<white>📄 PAGE <current>/<total>'
+        lore: '<gray>Use the arrows to change page'
+        name: '<white>Page <current>/<total>'
       previous:
         lore: '<gray>Go to previous page'
-        name: '<white>⬅ PREVIOUS PAGE'
+        name: '<white>⬅ Previous Page'
       rank_change:
         lore:
           description: '<gray>Change member ranks'
-          requirement: '<gray>Requires MANAGE_MEMBERS permission'
-        name: '<gold>⬆ PROMOTE/DEMOTE'
-    title: '<white>Member Management - <guild>'
+          requirement: '<gray>Needs the Manage Members permission'
+        name: '<gold>Promote / Demote'
+    title: '<white>Members • <guild>'
   rank_list:
     feedback:
       empty: '<red>This guild has no ranks configured.'
     item:
       back:
-        lore: '<gray>Return to rank management'
-        name: '<yellow>⬅ BACK'
+        lore: '<gray>Return to the previous menu'
+        name: '<yellow>⬅ Back'
       overflow:
         multiple: '<yellow>... and <count> more ranks'
         single: '<yellow>... and 1 more rank'
@@ -3737,42 +3656,42 @@ menu:
       required_permission: '<gray>Required permission: <white>MANAGE_RANKS'
     item:
       back:
-        name: '<gray>← Back to Control Panel'
+        name: '<yellow>⬅ Back'
       create:
         lore:
           description: '<gray>Add a new rank to your guild'
           limit: '<gray>Maximum 10 ranks per guild'
         name: '<green>Create New Rank'
       next:
-        name: '<white>NEXT PAGE ➡'
+        name: '<white>Next Page ➡'
       page:
         lore: '<gray><count> ranks total'
-        name: '<white>📄 PAGE <current>/<total>'
+        name: '<white>Page <current>/<total>'
       pagination:
         lore: '<gray>Page <current> of <total>'
       previous:
-        name: '<white>⬅ PREVIOUS PAGE'
+        name: '<white>⬅ Previous Page'
       rank:
         lore:
           action: '<yellow>Click to edit this rank'
           members: '<gray>Members: <white><count> players'
-          none: '<red>❌ No permissions assigned'
+          none: '<red>No permissions yet'
           none_description: '<gray>This rank cannot perform any actions'
           permission: '<gray>  • <green><permission>'
           priority: '<gray>Priority: <white><priority>'
         name: '<gold><rank>'
-    title: '<white>Rank Management - <guild>'
+    title: '<white>Ranks • <guild>'
   naming:
     title: Naming Claim
   player_permissions:
     item:
       cancel_transfer:
-        lore: This will cancel the transfer request for this player
+        lore: '<gray>This will cancel the transfer request for this player'
         name: Cancel Transfer Request
       cannot_transfer:
         name: Cannot Transfer Claim
       transfer:
-        lore: 'This will transfer the current claim to <player>'
+        lore: '<gray>This will transfer the current claim to <player>'
         name: Transfer Claim
     title: "<player>'s Permissions"
   player_search:
@@ -3780,7 +3699,7 @@ menu:
       player:
         name: Player
       player_unknown:
-        lore: Only players who have logged in to the server at least once will appear.
+        lore: '<gray>Only players who have logged in to the server at least once will appear.'
         name: That player does not exist
     title: Search for Player
   renaming:
@@ -3794,8 +3713,8 @@ menu:
     item:
       mode:
         lore:
-          hostile: 'Current: Hostile'
-          peaceful: 'Current: Peaceful'
+          hostile: '<gray>Current: Hostile'
+          peaceful: '<gray>Current: Peaceful'
   transfer:
     title: 'Accept Claim Transfer?'
   transfer_send:
@@ -3803,13 +3722,13 @@ menu:
   trusted_players:
     item:
       all_players:
-        lore: Find a player from a list of all online players
+        lore: '<gray>Find a player from a list of all online players'
         name: All Players
       default_permissions:
-        lore: Configures the permissions that untrusted players will have
+        lore: '<gray>Configures the permissions that untrusted players will have'
         name: Default Permissions
       has_permission:
-        lore: 'Has <permission_count> permissions'
+        lore: '<gray>Has <permission_count> permissions'
     title: Trusted Players
   guild_settings:
     feedback:
@@ -3832,41 +3751,41 @@ menu:
       access:
         lore:
           action: '<yellow>Click to toggle guild access'
-          closed: '<gray>Closed: Invite-only (default)'
+          closed: '<gray>Closed: invite only (default)'
           current:
             closed: '<gray>Current: <white>CLOSED'
             open: '<gray>Current: <white>OPEN'
-          open: '<gray>Open: Anyone can join freely'
-        name: '<white>🚪 GUILD ACCESS'
+          open: '<gray>Open: anyone can join'
+        name: '<yellow>Guild Access'
       back:
-        lore: '<gray>Return to control panel'
-        name: '<red>⬅ BACK'
+        lore: '<gray>Return to the previous menu'
+        name: '<yellow>⬅ Back'
       banner:
         lore:
-          action: '<gray>Click to manage banner'
+          action: '<yellow>Click to change the banner'
           error: '<gray>Status: <red>Error loading banner'
           not_set: '<gray>Status: <red>Not set'
           set: '<gray>Status: <green>Set'
           type: '<gray>Type: <white><type>'
-        name: '<white>🏴 BANNER'
+        name: '<yellow>Banner'
       created:
         lore:
           date: '<gray>Date: <white><date>'
           time: '<gray>Time: <white><time>'
-        name: '<white>◷ CREATED'
+        name: '<yellow>Founded'
       description:
         lore:
           action: '<yellow>Click to edit description'
           current: '<gray>Current: <white>"<description><reset><white>"'
-          locked: '<red>Requires MANAGE_DESCRIPTION permission'
+          locked: '<red>Needs the Manage Description permission'
           not_set: '<gray>Status: <red>Not set'
           set: '<gray>Status: <green>Set'
-        name: '<white>📝 DESCRIPTION'
+        name: '<yellow>Description'
       emoji:
         lore:
-          action: '<gray>Click to manage guild emoji'
+          action: '<yellow>Click to change the emoji'
           current: '<gray>Current: <white><emoji>'
-        name: '<white>☆ EMOJI'
+        name: '<yellow>Emoji'
       homes:
         lore:
           count: '<gray>Homes Set: <white><count><gray>/<available>'
@@ -3877,12 +3796,12 @@ menu:
           more: '<gray>• <white>... and <count> more'
           none: '<gray>No homes set yet'
           slots: '<green>Available slots: <white><count>'
-        name: '<white>🏠 HOME MANAGEMENT'
+        name: '<yellow>Homes'
       members:
         lore:
-          description: '<gray>Invite and kick guild members'
-          details: '<gray>View member list with pagination'
-        name: '<white>👥 MANAGE MEMBERS'
+          description: '<gray>Invite, kick and promote members'
+          details: '<yellow>Click to manage members'
+        name: '<yellow>Members'
       mode:
         lore:
           action: '<yellow>Click to change mode'
@@ -3891,35 +3810,35 @@ menu:
             peaceful: '<gray>Current: <white>PEACEFUL'
           default_hostile: '<gray>All guilds are hostile by default'
           disabled: '<red>Mode switching disabled'
-          hostile: '<gray>Hostile: PvP enabled, competitive'
+          hostile: '<gray>Hostile: PvP and wars enabled'
           hostile_cooldown: '<red>◷ Cannot switch to Hostile: <days>d <hours>h remaining'
-          peaceful: '<gray>Peaceful: No PvP, safe trading'
+          peaceful: '<gray>Peaceful: no PvP, safe trading'
           peaceful_cooldown: '<red>◷ Cannot switch to Peaceful: <days>d <hours>h remaining'
-        name: '<white>⚔ GUILD MODE'
+        name: '<yellow>Guild Mode'
       name:
         lore:
           chat: '<gray>the guild name from chat'
           current: '<gray>Current: <white><guild>'
           tip: '<yellow>Tip: Use <white>/g rename \<name><yellow> to change'
-        name: '<white>📖 GUILD NAME'
+        name: '<yellow>Guild Name'
       preview:
         lore:
           description: '<gray>Chat appearance:'
           example: '<gray>[<player>] <tag> <gray>Hello!'
-        name: '<green>🔍 PREVIEW'
+        name: '<yellow>Chat Preview'
       tag:
         lore:
-          action: '<gray>Click to edit guild tag'
+          action: '<yellow>Click to edit the tag'
           current: '<gray>Current: <white><tag>'
           formatting: '<gray>Supports MiniMessage formatting'
-        name: '<white>🏷 GUILD TAG'
+        name: '<yellow>Guild Tag'
       theme:
         lore:
           action: '<yellow>Click to change theme'
           current: '<gray>Current: <white><theme>'
-          description: '<gray>Changes the background texture'
-          details: '<gray>of all guild menus.'
-        name: '<white>🎨 GUI THEME'
+          description: '<gray>Changes the background of'
+          details: '<gray>every guild menu'
+        name: '<yellow>Menu Theme'
       theme_option:
         lore:
           apply: '<yellow>Click to apply'
@@ -3934,18 +3853,18 @@ menu:
           current:
             disabled: '<gray>Current: <white>DISABLED'
             enabled: '<gray>Current: <white>ENABLED'
-          disabled: '<gray>Disabled: No location sharing'
-          enabled: '<gray>Enabled: Guild members visible'
-          hud: '<gray>on Lunar Client minimap & HUD'
-        name: '<white>🗺 LUNAR TRACKING'
-    title: '<white>Guild Settings - <guild>'
+          disabled: '<gray>Off: no location sharing'
+          enabled: '<gray>On: members show on the'
+          hud: '<gray>Lunar Client minimap and HUD'
+        name: '<yellow>Lunar Tracking'
+    title: '<white>Settings • <guild>'
     theme_selector:
       title: '<white>GUI Theme'
   war_acceptance:
     title: '<white>⚔ War Declaration - <guild>'
     guild:
       declaring: '<red>⚔ DECLARING WAR'
-      yours: '<green>🛡 YOUR GUILD'
+      yours: '<green>YOUR GUILD'
       name: '<gray>Guild: <white><guild>'
       members: '<gray>Members: <white><count>'
       level: '<gray>Level: <white><level>'
@@ -3954,13 +3873,13 @@ menu:
       name: '<dark_red>⚡ VS ⚡'
       description: '<gray>War Declaration'
     details:
-      name: '<yellow>📋 War Details'
+      name: '<yellow>War Details'
       duration: '<gray>Duration: <white><days> days'
       rated: '<aqua>Seasonal rating: <white>RATED'
       unrated: '<gray>Seasonal rating: UNRATED'
       objectives: '<gray>Objectives: <white><count>'
       objective: '<gray>• <white><objective>'
-      wager: '<gold>💰 Wager: <white><amount> gold'
+      wager: '<gold>Wager: <white><amount> gold'
       match: '<gray>  • You must match: <gold><amount> gold'
       pot: '<gray>  • Total pot: <gold><amount> gold'
       winner: '<gray>  • Winner takes all!'
@@ -3970,7 +3889,7 @@ menu:
       name: '<green>✅ ACCEPT WAR'
       description: '<gray>Accept this war declaration'
       begin: '<gray>and begin the conflict!'
-      withdraw: '<gold>💰 This will withdraw:'
+      withdraw: '<gold>This will withdraw:'
       amount: '<gold>  <amount> gold from guild bank'
       immediate: '<green>⚔ Battle begins immediately'
       target: '<green>First to reach kill target wins!'
@@ -3989,7 +3908,7 @@ menu:
       have: '<gray>Have: <gold><amount> gold'
       no_withdraw_permission: '<red>❌ You don''t have permission to withdraw from guild bank for wagers!'
       accepted: '<green>⚔ War accepted! Battle begins now!'
-      pot: '<gold>💰 War pot: <amount> gold (winner takes all!)'
+      pot: '<gold>War pot: <amount> gold (winner takes all!)'
       escrow_failed: '<yellow>⚠ Warning: Failed to create wager escrow'
       duration: '<gray>Duration: <white><days> days'
       objectives: '<gray>Objectives: <white><count>'
@@ -4033,7 +3952,7 @@ menu:
       send_failed: '<red>❌ Failed to send war declaration!'
       sent: '<gold>⚔ WAR DECLARATION SENT to <guild>!'
       terms_cancelled: '<gray>War terms input cancelled'
-      terms_prompt: '<yellow>💬 Type your war terms in chat (or ''cancel'' to skip):'
+      terms_prompt: '<yellow>Type your war terms in chat (or ''cancel'' to skip):'
       terms_retry: '<gray>Please try again or type ''cancel'' to skip:'
       terms_set: '<green>✅ War terms set: <white>"<terms>"'
       terms_too_long: '<red>❌ War terms too long! Maximum <maximum> characters.'
@@ -4043,12 +3962,12 @@ menu:
       rated_created: '<aqua>Seasonal rating: <white>RATED'
       unrated_created: '<gray>Seasonal rating: UNRATED'
       wager_added: '<green>✅ Added <gold><amount> coins <green>to wager'
-      wager_removed: '<gray>🗑 Removed <gold><amount> coins <gray>from wager'
+      wager_removed: '<gray>Removed <gold><amount> coins <gray>from wager'
       wager_escrow: '<gray>Wager: <gold><amount> coins <gray>(escrowed on acceptance)'
     item:
       back:
-        lore: '<gray>Return to war management'
-        name: '<red>⬅ Back'
+        lore: '<gray>Return to the previous menu'
+        name: '<yellow>⬅ Back'
       cannot_declare:
         lore:
           active_war: '<red>Already at war with this guild'
@@ -4101,11 +4020,11 @@ menu:
           winners: '<gray>• Winners gain progression XP'
         name: '<gold>ℹ War Declaration Info'
       more_guilds:
-        lore: '<gray>Click to see all available guilds'
-        name: '<yellow>📖 More Guilds (<count>)'
+        lore: '<yellow>Click to see all available guilds'
+        name: '<yellow>More Guilds (<count>)'
       match_enemy:
         lore:
-          bank: '<gray>Enemy Bank: <gold><amount> coins'
+          bank: '<gray>Enemy Bank: <gold><amount> Gold Ore'
           description: '<gray>Wager to match enemy bank!'
           wager: '<gray>You would wager: <gold><amount> coins'
           warning: '<red>⚠︎ Must have sufficient funds!'
@@ -4143,7 +4062,7 @@ menu:
           action: '<yellow>Click to change target'
           description: '<gray>Declaring war against this guild'
           members: '<gray>Members: <white><count>'
-        name: '<red>🎯 Target: <guild>'
+        name: '<red>Target: <guild>'
       terms:
         lore:
           action: '<yellow>Click to set terms'
@@ -4155,7 +4074,7 @@ menu:
       wager:
         lore:
           action: '<yellow>Click to adjust wager amount'
-          bank: '<gray>Guild Bank: <gold><amount> coins'
+          bank: '<gray>Guild Bank: <gold><amount> Gold Ore'
           current: '<gray>Current Wager: <gold><amount> coins'
           match: '<gray>The enemy guild must match your wager'
           maximum: '<gray>Max Wager: <gold><amount> coins <red>(ALL IN!)'
@@ -4177,9 +4096,9 @@ menu:
           warning: '<red>⚠︎ HIGH RISK!'
         name: '<red>$ WAGER ALL'
     objective:
-      default_description: Kill 10 enemy players
+      default_description: '<gray>Kill 10 enemy players'
       icon:
-        claims: 🏰
+        claims: '⛫'
         kills: ⚔
         other: ▪
         time: ⏱
@@ -4213,7 +4132,7 @@ menu:
       no_contribution_data: '<gray>No contribution data'
       no_kill_data: '<gray>No kill data available'
       no_period_data: '<gray>No recorded data for this period'
-      no_rivalry_data: '<gray>No completed war history is recorded for this guild'
+      no_rivalry_data: '<gray>No finished wars yet'
       balance_unavailable: '<red>Guild balance unavailable'
       unavailable: '<red>Data unavailable — check server logs'
       no_invitation_data: '<gray>No invitation data available'
@@ -4265,31 +4184,31 @@ menu:
       war_record: '<gray>War Record: <green><wins>W</green> <red><losses>L</red>'
     detail:
       kd:
-        name: '<light_purple>📈 K/D ANALYSIS'
+        name: '<light_purple>K/D ANALYSIS'
       kills:
         name: '<dark_red>⚔ KILL STATISTICS'
       members:
         more: '<yellow>... and <count> more members'
-        name: '<aqua>👥 MEMBER SUMMARY'
+        name: '<aqua>MEMBER SUMMARY'
         player:
           offline: '<gray>Online: <gray>No'
           offline_name: '<gray><player>'
           online: '<gray>Online: <green>Yes'
           online_name: '<green><player>'
       performance:
-        name: '<yellow>📊 PERFORMANCE METRICS'
+        name: '<yellow>PERFORMANCE METRICS'
       recent:
         kill: '<green><killer> <gray>→ <red><victim>'
         kill_with_weapon: '<green><killer> <gray>→ <red><victim> <gray>with <white><weapon>'
-        name: '<white>🕐 RECENT ACTIVITY'
+        name: '<white>RECENT ACTIVITY'
       top_contributors:
-        name: '<gold>💰 TOP CONTRIBUTORS'
+        name: '<gold>TOP CONTRIBUTORS'
       top_killers:
         description: '<gray>Guild''s most lethal members'
-        name: '<red>🏆 TOP KILLERS'
+        name: '<red>TOP KILLERS'
       top_inviters:
-        description: '<gray>Members who have sent the most guild invitations'
-        name: '<aqua>📨 TOP INVITERS'
+        description: '<gray>Who has sent the most invites'
+        name: '<aqua>TOP INVITERS'
       wars:
         active:
           description: '<gray>Currently ongoing conflicts'
@@ -4302,7 +4221,7 @@ menu:
           description: '<gray>Recent completed wars'
           duration: '<gray>   Duration: <days>d <hours>h'
           more: '<gray>... and <count> more wars'
-          name: '<gold>📜 WAR HISTORY'
+          name: '<gold>WAR HISTORY'
           none: '<gray>No war history available'
           result:
             draw: '<yellow>⚖ Draw'
@@ -4319,7 +4238,7 @@ menu:
         summary:
           description: '<gray>Overall Performance'
           loss_streak: '<gray>Current Streak: <red>Loss <white>x<count>'
-          name: '<yellow>📊 WAR STATISTICS'
+          name: '<yellow>WAR STATISTICS'
           win_streak: '<gray>Current Streak: <green>Win <white>x<count>'
       period_item:
         name: '<gold><period>'
@@ -4356,14 +4275,10 @@ menu:
       comparison:
         guild: '<yellow><guild>'
     period:
-      '$key': '<green>📅 $key'
+      '$key': '<green>$key'
     item:
       back:
-        lore: '<gray>Return to guild statistics'
-        name: '<red>Back to Statistics'
-      back_control:
-        lore: '<gray>Return to guild management'
-        name: '<red>Back to Control Panel'
+        lore: '<gray>Return to the previous menu'
       achievements:
         lore:
           count: '<gray>Milestones unlocked: <white><count>'
@@ -4374,7 +4289,7 @@ menu:
         name: '<light_purple>K/D Analysis'
       kills:
         lore:
-          action: '<gray>Click for detailed breakdown'
+          action: '<yellow>Click for the full breakdown'
         name: '<dark_red>Kill Statistics'
       members:
         name: '<aqua>Member Statistics'
@@ -4383,17 +4298,17 @@ menu:
       period:
         lore:
           description: '<gray>View stats by time period'
-          periods: '<gray>Daily, Weekly, Monthly'
+          periods: '<gray>Daily, weekly or monthly'
         name: '<dark_aqua>Period Statistics'
       recent:
         lore:
           kills: '<gray>Recent kills: <white><count>'
-          latest: '<gray>Latest recorded kills (not time-filtered)'
+          latest: '<gray>Most recent kills, any date'
         name: '<white>Recent Activity'
       refresh:
         lore:
           description: '<gray>Update all statistics'
-          details: '<gray>Fetch latest data'
+          details: '<yellow>Click to refresh'
         name: '<green>Refresh Statistics'
       rivalry:
         lore:
@@ -4406,25 +4321,25 @@ menu:
         name: '<gold>Top Contributors'
       top_killers:
         lore:
-          description: '<gray>Guild''s elite warriors'
+          description: '<gray>Your guild''s best fighters'
         name: '<red>Top Killers'
       top_inviters:
         lore:
-          description: '<gray>All-time sent invitation leaderboard'
+          description: '<gray>Who has invited the most players'
         name: '<aqua>Top Inviters'
       wars:
         lore:
           unavailable: '<red>War system not available'
         name: '<dark_red>War Statistics'
       comparison:
-        name: '<gold>📊 Guild Comparison'
+        name: '<gold>Guild Comparison'
         lore:
           description: '<gray>Compare stats across all guilds'
       next_page:
-        name: '<green>Next Page →'
+        name: '<white>Next Page ➡'
       previous_page:
-        name: '<green>← Previous Page'
-    title: '<white><guild> - Statistics'
+        name: '<white>⬅ Previous Page'
+    title: '<white>Statistics • <guild>'
     feedback:
       load_failed:
         kd: '<red>❌ Failed to load K/D analysis. Please try again later.'
@@ -4440,7 +4355,7 @@ menu:
         comparison: '<red>❌ Failed to load comparison data.'
         period: '<red>❌ Failed to load period statistics.'
         rivalry: '<red>❌ Failed to load rivalry data.'
-      refreshing: '<green>🔄 Refreshing statistics...'
+      refreshing: '<green>Refreshing statistics...'
     rating:
       activity:
         active: Active
@@ -4509,7 +4424,7 @@ menu:
       members: "<gray>Members: <white><count>"
       received: "<gray>Received: <white><time>"
       duration: "<gray>Duration: <white><days> days"
-      respond: "<green>Click to respond"
+      respond: '<yellow>Click to respond'
     actions:
       guild: "<white><guild>"
       accept:
@@ -4519,8 +4434,8 @@ menu:
         name: "<red>✗ Reject Request"
         description: "<gray>Reject the request from"
       back:
-        name: "<yellow>Back"
-        description: "<gray>Return to requests list"
+        name: '<yellow>⬅ Back'
+        description: '<gray>Return to the previous menu'
     feedback:
       accepted: "<green>✓ You accepted the <type> with <guild>!"
       accept_failed: "<red>✗ Failed to accept request. It may have expired or been cancelled."
@@ -4531,16 +4446,16 @@ menu:
       rejected: "<red><guild> <gray>has rejected your <type>."
     navigation:
       previous:
-        name: "<white>⬅ PREVIOUS PAGE"
+        name: '<white>⬅ Previous Page'
         description: "<gray>Go to previous page"
       page: "<yellow>Page <page> / <pages>"
       total: "<gray>Total requests: <white><count>"
       next:
-        name: "<white>NEXT PAGE ➡"
+        name: '<white>Next Page ➡'
         description: "<gray>Go to next page"
       back:
-        name: "<yellow>Back to Relations"
-        description: "<gray>Return to relations menu"
+        name: '<yellow>⬅ Back'
+        description: '<gray>Return to the previous menu'
     time:
       just_now: "Just now"
       minutes: "<count>m ago"
@@ -4567,7 +4482,7 @@ menu:
     ally:
       allowed: "<green>✓ <guild>"
       denied: "<red>✗ <guild>"
-      toggle: "<gray>Click to toggle inbound access"
+      toggle: '<yellow>Click to toggle inbound access'
     info:
       name: "<yellow>Outbound access (read-only)"
       description: "<gray>To control which of YOUR ranks can use ally homes,"
@@ -4580,44 +4495,44 @@ menu:
       bank: "Return to guild bank"
       audit:
         name: "View Audit Log"
-        description: "Detailed transaction audit trail"
+        description: '<gray>Detailed transaction audit trail'
       save:
         name: "Save Security Settings"
-        description: "Apply current security configuration"
+        description: '<gray>Apply current security configuration'
       close: "Close menu"
     dual_auth:
       name: "Dual Authorization Threshold"
       current: "Current: <amount> coins"
-      description: "Transactions above this amount"
+      description: '<gray>Transactions above this amount'
       requirement: "require approval from another officer"
     freeze:
       name: "Emergency Freeze"
       status:
         active: "Status: ACTIVE"
         inactive: "Status: Inactive"
-      description: "Blocks all bank transactions"
+      description: '<gray>Blocks all bank transactions'
       warning: "Use only in case of suspected breach"
     alert:
       name: "Security Alert"
       action: "Monitor closely and take action if needed"
-      freeze: "🚨 EMERGENCY FREEZE ACTIVE - All transactions blocked!"
+      freeze: "EMERGENCY FREEZE ACTIVE - All transactions blocked!"
       authentication_failures: "⚠ Multiple authentication failures detected"
       unusual_timing: "⚠ Unusual transaction timing detected"
       large_withdrawal: "⚠ Large withdrawal detected (<amount> coins)"
       multiple_large: "⚠ Multiple large transactions in short time"
       rapid_withdrawal: "⚠ Rapid withdrawal pattern detected"
       identical_withdrawals: "⚠ Identical withdrawal amounts detected"
-      high_authentication_failures: "🚨 High number of authentication failures"
+      high_authentication_failures: "High number of authentication failures"
     status:
       good:
         name: "Security Status: Good"
-        description: "No security alerts detected"
+        description: '<gray>No security alerts detected'
         systems: "All systems operating normally"
         monitoring: "Continue monitoring regularly"
     risk:
       name: "Security Risk Level"
       current: "Current Level: <level>"
-      description: "Based on recent activity patterns"
+      description: '<gray>Based on recent activity patterns'
       monitoring: "Regular monitoring recommended"
       level:
         low: "Low"
@@ -4631,7 +4546,7 @@ menu:
       entry: "<actor>: <action>"
     feedback:
       threshold_prompt: "<yellow>Type the dual-authorization threshold in coins. Type 'cancel' to abort."
-      freeze_activated: "<red>🔒 EMERGENCY FREEZE ACTIVATED — All bank transactions are now blocked!"
+      freeze_activated: "<red>EMERGENCY FREEZE ACTIVATED — All bank transactions are now blocked!"
       freeze_hint: "<yellow>Open the menu again to deactivate once the threat has passed."
       freeze_deactivated: "<green>✅ Emergency freeze deactivated — Bank transactions are now allowed."
       freeze_failed: "<red>❌ Failed to update bank freeze state. You may lack the MANAGE_GUILD_SETTINGS permission."
@@ -4648,21 +4563,21 @@ menu:
       statistics: "Return to statistics"
       save:
         name: "Save Budget Settings"
-        description: "Save current budget limits"
+        description: '<gray>Save current budget limits'
       close: "Close menu"
     period:
       current: "Current: <amount> coins"
       monthly:
         name: "Monthly Budget"
-        action: "Click to set monthly spending limit"
+        action: '<yellow>Click to set monthly spending limit'
         range: "Tracks spending over 30 days"
       weekly:
         name: "Weekly Budget"
-        action: "Click to set weekly spending limit"
+        action: '<yellow>Click to set weekly spending limit'
         range: "Tracks spending over 7 days"
       daily:
         name: "Daily Budget"
-        action: "Click to set daily spending limit"
+        action: '<yellow>Click to set daily spending limit'
         range: "Tracks spending over 24 hours"
     prompt:
       monthly: "<yellow>Type the monthly budget amount in coins. Type 'cancel' to abort."
@@ -4679,7 +4594,7 @@ menu:
       daily_exceeded: "⚠ Daily budget exceeded!"
       empty:
         name: "No Budget Alerts"
-        description: "All budgets are within limits"
+        description: '<gray>All budgets are within limits'
         encouragement: "Keep up the good financial management!"
     status:
       monthly: "Monthly Status"
@@ -4702,23 +4617,23 @@ menu:
     fallback:
       unknown_player: "Unknown Player"
     member:
-      name: "<red>👤 <player>"
+      name: "<red><player>"
       player: "<gray>Player: <white><player>"
       joined: "<gray>Joined: <white><date>"
       action: "<red>Click to kick from guild"
       warning: "<red>⚠ This cannot be undone!"
     navigation:
       previous:
-        name: "<white>⬅ PREVIOUS PAGE"
+        name: '<white>⬅ Previous Page'
         description: "<gray>Go to previous page"
       next:
-        name: "<white>NEXT PAGE ➡"
+        name: '<white>Next Page ➡'
         description: "<gray>Go to next page"
-      page: "<white>📄 PAGE <page>/<pages>"
+      page: "<white>PAGE <page>/<pages>"
       page_description: "<gray>Current page indicator"
       back:
-        name: "<red>⬅ BACK"
-        description: "<gray>Return to guild control panel"
+        name: '<yellow>⬅ Back'
+        description: "<gray>Return to the previous menu"
 
   bank_automation:
     title: "<white>Automation & Rewards - <guild>"
@@ -4732,49 +4647,49 @@ menu:
     navigation:
       bank:
         name: "Back to Bank Control Panel"
-        description: "Return to guild bank"
+        description: '<gray>Return to guild bank'
       statistics:
         name: "Bank Statistics"
-        description: "Return to statistics"
+        description: '<gray>Return to statistics'
       save:
         name: "Save Automation Settings"
-        description: "Apply current automation configuration"
+        description: '<gray>Apply current automation configuration'
       close:
         name: "Close"
-        description: "Close menu"
+        description: '<gray>Close menu'
     scheduled:
       name: "Scheduled Deposits"
-      description: "Automatically deposit funds at set intervals"
+      description: '<gray>Automatically deposit funds at set intervals'
     rewards:
       name: "Auto-Rewards Distribution"
-      description: "Automatically distribute rewards to members"
+      description: '<gray>Automatically distribute rewards to members'
     alerts:
       name: "Budget Alerts"
-      description: "Configure spending limits and alerts"
+      description: '<gray>Configure spending limits and alerts'
       periods: "Set monthly, weekly, and daily budgets"
-      action: "Click to open Budget Management"
+      action: '<yellow>Click to open Budget Management'
     recurring:
       name: "Recurring Payments"
-      description: "Set up automatic recurring transactions"
+      description: '<gray>Set up automatic recurring transactions'
     interest:
       name: "Interest Rate"
       current: "Current: <rate>% monthly"
-      description: "Automatic interest on guild balance"
-      action: "Click to configure"
+      description: '<gray>Automatic interest on guild balance'
+      action: '<yellow>Click to configure'
     setup:
       rewards:
         name: "Reward Distribution Setup"
-        description: "Configure automatic member rewards"
+        description: '<gray>Configure automatic member rewards'
         conditions: "Set reward amounts and conditions"
         basis: "Based on activity and contributions"
       alerts:
         name: "Alert Configuration"
-        description: "Set budget alert thresholds"
+        description: '<gray>Set budget alert thresholds'
         notifications: "Configure notification preferences"
         messages: "Customize alert messages"
       recurring:
         name: "Recurring Payment Setup"
-        description: "Set up automatic payments"
+        description: '<gray>Set up automatic payments'
         schedules: "Configure payment schedules"
         recipients: "Manage payment recipients"
     summary:
@@ -4783,20 +4698,20 @@ menu:
         empty: "No automations active"
       name: "Automation Summary"
       count: "<count> automations active"
-      action: "Click to view all active automations"
+      action: '<yellow>Click to view all active automations'
     status:
       pending_first_accrual: "Pending first accrual"
       next:
         countdown: '<gray>Next accrual in <white><time>'
         name: "Next Interest Accrual"
         period: "Interest accrues every <hours> hours"
-        description: "Per guild balance at the configured rate"
+        description: '<gray>Per guild balance at the configured rate'
       health:
         name: "Automation Status"
         configured: "Status: <count> automation(s) configured"
         interest: "Interest rate: <rate>% per <hours>h"
         empty: "Status: No automations configured"
-        hint: "Toggle settings above to enable"
+        hint: '<gray>Toggle settings above to enable'
       configuration:
         name: "Automation Configuration"
         interest: "Interest accrual: every <hours>h"
@@ -4823,8 +4738,8 @@ menu:
       status:
         online: "<gray>Status: <green>Online"
         offline: "<gray>Status: <gray>Offline"
-      promote: "<gray>Left-click to promote"
-      demote: "<gray>Right-click to demote"
+      promote: '<yellow>Left-click to promote'
+      demote: '<yellow>Right-click to demote'
     feedback:
       no_members: "<red>No members in this guild."
       promoted: "<white><player> <green>promoted to <white><rank><green>."
@@ -4837,12 +4752,12 @@ menu:
       members: "<gold>Total Members: <white><count>"
       guild: "<gray>Guild: <white><guild>"
     navigation:
-      previous: "<yellow>⬅ Previous Page"
-      next: "<yellow>Next Page ➡"
+      previous: '<white>⬅ Previous Page'
+      next: '<white>Next Page ➡'
       page: "<gray>Page <page> of <pages>"
       back:
-        name: "<yellow>⬅ BACK"
-        description: "<gray>Return to guild settings"
+        name: '<yellow>⬅ Back'
+        description: '<gray>Return to the previous menu'
 
   war_guild_selection:
     title: "<white>⚔ Select War Target (<page>/<pages>)"
@@ -4861,7 +4776,7 @@ menu:
         description: "<gray>War will start immediately!"
       action: "<yellow>Click to select as war target"
     info:
-      name: "<yellow>📖 Guild Info"
+      name: "<yellow>Guild Info"
       total: "<gray>Total Available: <white><count> guilds"
       instructions: "<gray>Select a guild to declare war against."
       hostile: "<gray>Hostile guilds auto-accept immediately."
@@ -4870,13 +4785,13 @@ menu:
       selected: "<green>✓ Selected <gold><guild><green> as war target!"
     navigation:
       previous:
-        name: "<yellow>← Previous Page"
+        name: '<white>⬅ Previous Page'
       next:
-        name: "<yellow>Next Page →"
+        name: '<white>Next Page ➡'
       page: "<gray>Go to page <page>"
       back:
-        name: "<red>← Back"
-        description: "<gray>Return to war declaration"
+        name: '<yellow>⬅ Back'
+        description: '<gray>Return to the previous menu'
 
   lfg_browser:
     title: "<white>Guild Browser - Looking For Guild"
@@ -4899,13 +4814,13 @@ menu:
       action: "<gray>their guild for recruitment!"
     navigation:
       previous:
-        name: "<yellow>← Previous Page"
+        name: '<white>⬅ Previous Page'
         description: "<gray>Go to previous page"
       close:
         name: "<red>Close"
         description: "<gray>Close this menu"
       next:
-        name: "<yellow>Next Page →"
+        name: '<white>Next Page ➡'
         description: "<gray>Go to next page"
     feedback:
       closed: "<gray>Closed guild browser"
@@ -4930,12 +4845,12 @@ menu:
       created_at:
         name: "<gold>Creation Date (Old → New)"
       active: "<green>Selected"
-      select: "<gray>Click to sort"
+      select: '<yellow>Click to sort'
     navigation:
       previous:
-        name: "<yellow>← Previous Page"
+        name: '<white>⬅ Previous Page'
       next:
-        name: "<yellow>Next Page →"
+        name: '<white>Next Page ➡'
       page:
         name: "<gold>Page <page>/<pages>"
         lore: "<gray><total> guilds total"
@@ -4956,7 +4871,7 @@ menu:
       penalty: "<gray>Penalty: <white><penalty>"
     confirm:
       name: "<red>✅ CONFIRM <type>"
-      description: "<gray>Click to apply the penalty"
+      description: '<yellow>Click to apply the penalty'
     cancel:
       name: "<green>❌ CANCEL"
       description: "<gray>Return to penalty menu"
@@ -5002,10 +4917,10 @@ menu:
         name: "<aqua>⬇ EXP Reduction"
         description: "<gray>Remove <yellow><amount><gray> XP"
       mute:
-        name: "<light_purple>🔇 Guild Mute"
+        name: "<light_purple>Guild Mute"
         description: "<gray>Mute guild chat for <yellow><hours><gray>"
       disband:
-        name: "<red>💥 Disband Guild"
+        name: "<red>Disband Guild"
         description: "<red>Permanently disbands the guild"
       confirm: "<yellow>Click to confirm"
     recent:
@@ -5025,12 +4940,12 @@ menu:
     fallback:
       unknown_player: "Unknown Player"
     member:
-      name: "<white>👤 Member Info"
+      name: "<white>Member Info"
       player: "<gray>Player: <white><player>"
       joined: "<gray>Joined: <white><date>"
-      instructions: "<gray>Click on a rank below to change"
+      instructions: '<yellow>Click on a rank below to change'
     current:
-      name: "<gold>🏆 Current Rank"
+      name: "<gold>Current Rank"
       rank: "<gray>Rank: <white><rank>"
       priority: "<gray>Priority: <white><priority>"
       permissions: "<gray>Permissions: <white><count>"
@@ -5048,29 +4963,29 @@ menu:
         current: "<green>Current rank"
         available: "<yellow>Click to select"
     head:
-      name: "<white>👤 <player>"
+      name: "<white><player>"
       player: "<gray>Player: <white><player>"
       description: "<gray>Rank Management"
     feedback:
       already_current: "<gray>This is already their current rank!"
     navigation:
       previous:
-        name: "<white>⬅ PREVIOUS PAGE"
+        name: '<white>⬅ Previous Page'
       position: "<gray>Page <page> of <pages>"
-      page: "<white>📄 PAGE <page>/<pages>"
+      page: "<white>PAGE <page>/<pages>"
       total: "<gray><count> ranks total"
       next:
-        name: "<white>NEXT PAGE ➡"
+        name: '<white>Next Page ➡'
       back:
-        name: "<red>⬅ BACK"
-        description: "<gray>Return to guild control panel"
+        name: '<yellow>⬅ Back'
+        description: "<gray>Return to the previous menu"
 
   guild_invite:
     title: "<white>Invite Player - <guild>"
     info:
-      name: "<white>📋 INVITE PLAYERS"
+      name: "<white>INVITE PLAYERS"
       description: "<gray>Invite players to join your guild"
-      instructions: "<gray>Click online players or use manual invite"
+      instructions: '<yellow>Click online players or use manual invite'
       warning: "<yellow>Players must accept the invitation"
     online:
       empty:
@@ -5078,21 +4993,21 @@ menu:
         description: "<gray>No online players to invite"
         alternative: "<gray>Use manual invite instead"
       player:
-        name: "<green>👤 <player>"
-        action: "<gray>Click to invite this player"
+        name: "<green><player>"
+        action: '<yellow>Click to invite this player'
         result: "<gray>They will receive an invitation"
     manual:
       name: "<white>✏ MANUAL INVITE"
       description: "<gray>Type a player name to invite"
       offline: "<gray>Works for offline players too"
-      action: "<gray>Click to enter player name"
+      action: '<yellow>Click to enter player name'
       waiting:
         name: "<yellow>⏳ WAITING FOR INPUT..."
         instructions: "<gray>Type player name in chat"
         cancel: "<gray>Type 'cancel' to stop"
     back:
-      name: "<red>⬅ BACK"
-      description: "<gray>Return to member management"
+      name: '<yellow>⬅ Back'
+      description: '<gray>Return to the previous menu'
     chat:
       header: "<gold>=== MANUAL PLAYER INVITE ==="
       instructions: "<gray>Type the name of the player to invite:"
@@ -5119,7 +5034,7 @@ menu:
       mode:
         peaceful: "<gray>Mode: <green>⚐ Peaceful"
         hostile: "<gray>Mode: <red>⚔ Hostile"
-      action: "<green>Click to request alliance"
+      action: '<yellow>Click to request alliance'
     feedback:
       sent: "<green>✓ Alliance request sent to <guild>!"
       pending: "<gray>They must accept your request for the alliance to become active."
@@ -5129,16 +5044,16 @@ menu:
       received: "<gold><guild> <gray>has requested an alliance with your guild! Use <gold>/guild menu <gray>→ Relations to respond."
     navigation:
       previous:
-        name: "<white>⬅ PREVIOUS PAGE"
+        name: '<white>⬅ Previous Page'
         description: "<gray>Go to previous page"
       page: "<yellow>Page <page> / <pages>"
       total: "<gray>Available guilds: <white><count>"
       next:
-        name: "<white>NEXT PAGE ➡"
+        name: '<white>Next Page ➡'
         description: "<gray>Go to next page"
       back:
-        name: "<yellow>Back to Relations"
-        description: "<gray>Return to relations menu"
+        name: '<yellow>⬅ Back'
+        description: '<gray>Return to the previous menu'
 
   enemy_declaration:
     title: "<white>Declare Enemy"
@@ -5172,16 +5087,16 @@ menu:
       broadcast: "<red>⚔ <gold><guild> <red>has declared <gold><target> <red>as an enemy!"
     navigation:
       previous:
-        name: "<white>⬅ PREVIOUS PAGE"
+        name: '<white>⬅ Previous Page'
         description: "<gray>Go to previous page"
       page: "<yellow>Page <page> / <pages>"
       total: "<gray>Available guilds: <white><count>"
       next:
-        name: "<white>NEXT PAGE ➡"
+        name: '<white>Next Page ➡'
         description: "<gray>Go to next page"
       back:
-        name: "<yellow>Back to Relations"
-        description: "<gray>Return to relations menu"
+        name: '<yellow>⬅ Back'
+        description: '<gray>Return to the previous menu'
 
   outgoing_requests:
     title: "<white>Outgoing Relation Requests"
@@ -5220,8 +5135,8 @@ menu:
         guild: "<white><guild>"
         warning: "<red>This action cannot be undone."
       back:
-        name: "<yellow>Back"
-        description: "<gray>Return to requests list"
+        name: '<yellow>⬅ Back'
+        description: '<gray>Return to the previous menu'
     feedback:
       cancelled: "<red>✗ You cancelled the <type> to <guild>."
       cancel_failed: "<red>✗ Failed to cancel request. It may have already been accepted or rejected."
@@ -5229,16 +5144,16 @@ menu:
       cancelled: "<gray><guild> has cancelled their <type>."
     navigation:
       previous:
-        name: "<white>⬅ PREVIOUS PAGE"
+        name: '<white>⬅ Previous Page'
         description: "<gray>Go to previous page"
       page: "<yellow>Page <page> / <pages>"
       total: "<gray>Total requests: <white><count>"
       next:
-        name: "<white>NEXT PAGE ➡"
+        name: '<white>Next Page ➡'
         description: "<gray>Go to next page"
       back:
-        name: "<yellow>Back to Relations"
-        description: "<gray>Return to relations menu"
+        name: '<yellow>⬅ Back'
+        description: '<gray>Return to the previous menu'
     time:
       just_now: "Just now"
       minutes: "<count>m ago"
@@ -5256,7 +5171,7 @@ menu:
         peaceful: "<gray>Mode: <green>Peaceful"
         hostile: "<gray>Mode: <red>Hostile"
     fee:
-      name: "<yellow>💰 JOIN FEE"
+      name: "<yellow>JOIN FEE"
       description: "<gray>This guild requires a join fee"
       required: "<gray>Required: <white><amount> <currency>"
       balance:
@@ -5271,7 +5186,7 @@ menu:
       confirm: "<green>Click confirm to join for free"
     confirm:
       name: "<green>✅ JOIN GUILD"
-      description: "<gray>Click to join <guild>"
+      description: '<yellow>Click to join <guild>'
       proceed: "<yellow>Click to proceed"
       disabled: "<red>❌ CANNOT JOIN"
       unavailable: "<gray>You cannot join this guild"
@@ -5294,7 +5209,7 @@ menu:
       error: "<red>❌ <message>"
 
   guild_info:
-    title: "<white>Guild Info - <guild>"
+    title: '<white>Guild Info • <guild>'
     feedback:
       guild_missing: "<red>This guild no longer exists."
     fallback:
@@ -5315,15 +5230,15 @@ menu:
     description:
       name: "<gold>Description"
       value: "<reset><description>"
-      invite_hint: "<aqua>Discord invite detected — click to send the clickable link in chat"
+      invite_hint: '<yellow>Click to get the Discord invite in chat'
       chat_prefix: "<gray>Guild description: <reset>"
     members:
       name: "<aqua>Members (<white><count><aqua>)"
-      description: "<gray>Click to view member list"
+      description: '<yellow>Click to see every member'
       player: "<white><player>"
       rank: "<gray>Rank: <white><rank>"
       more: "<gray>... and <count> more"
-      more_hint: "<gray>Click members button above to see all"
+      more_hint: '<gray>Open Members to see everyone'
     relations:
       entry: "<gray>• <white><guild>"
       more: "<gray>... and <count> more"
@@ -5354,17 +5269,17 @@ menu:
         hostile: "<red>Hostile"
       open: "<yellow>Click to view guild info"
       previous:
-        name: "<white>⬅ PREVIOUS PAGE"
+        name: '<white>⬅ Previous Page'
         description: "<gray>View previous guilds"
       next:
-        name: "<white>NEXT PAGE ➡"
+        name: '<white>Next Page ➡'
         description: "<gray>View more guilds"
       page:
         name: "<yellow>Page <page> / <pages>"
         total: "<gray>Total guilds: <white><count>"
       back:
-        name: "<red>⬅ BACK"
-        description: "<gray>Return to guild info"
+        name: '<yellow>⬅ Back'
+        description: '<gray>Return to the previous menu'
     statistics:
       name: "<yellow>Statistics"
       balance: "<gray>Bank Balance: <gold>$<balance>"
@@ -5381,8 +5296,8 @@ menu:
       level: "<gray>Level: <yellow><level>"
       next: "<gray>Next Level: <yellow><level>"
     back:
-      name: "<red>⬅ BACK"
-      description: "<gray>Return to previous menu"
+      name: '<yellow>⬅ Back'
+      description: '<gray>Return to the previous menu'
 
   truce_request:
     title: "<white>Request Truce"
@@ -5424,20 +5339,20 @@ menu:
         description: "<gray>Enter a custom duration"
         range: "<gray>in chat (1-90 days)"
       back:
-        name: "<yellow>Back"
-        description: "<gray>Return to enemy selection"
+        name: '<yellow>⬅ Back'
+        description: '<gray>Return to the previous menu'
     navigation:
       previous:
-        name: "<white>⬅ PREVIOUS PAGE"
+        name: '<white>⬅ Previous Page'
         description: "<gray>Go to previous page"
       page: "<yellow>Page <page> / <pages>"
       total: "<gray>Enemy guilds: <red><count>"
       next:
-        name: "<white>NEXT PAGE ➡"
+        name: '<white>Next Page ➡'
         description: "<gray>Go to next page"
       back:
-        name: "<yellow>Back to Relations"
-        description: "<gray>Return to relations menu"
+        name: '<yellow>⬅ Back'
+        description: '<gray>Return to the previous menu'
 
   allies_list:
     title: "<white>Allied Guilds"
@@ -5475,8 +5390,8 @@ menu:
         permission: "<gray>permission to break alliances"
         warning: "<red>This action cannot be undone."
       back:
-        name: "<yellow>Back"
-        description: "<gray>Return to allies list"
+        name: '<yellow>⬅ Back'
+        description: '<gray>Return to the previous menu'
     confirm:
       title: "<white>Break Alliance?"
       name: "<red>✗ Confirm Break Alliance"
@@ -5494,16 +5409,16 @@ menu:
       broken: "<red><guild> <gray>has broken the alliance with your guild."
     navigation:
       previous:
-        name: "<white>⬅ PREVIOUS PAGE"
+        name: '<white>⬅ Previous Page'
         description: "<gray>Go to previous page"
       page: "<yellow>Page <page> / <pages>"
       total: "<gray>Total allies: <green><count>"
       next:
-        name: "<white>NEXT PAGE ➡"
+        name: '<white>Next Page ➡'
         description: "<gray>Go to next page"
       back:
-        name: "<yellow>Back to Relations"
-        description: "<gray>Return to relations menu"
+        name: '<yellow>⬅ Back'
+        description: '<gray>Return to the previous menu'
     duration:
       less_than_day: "Less than 1 day"
       day: "<count> day"
@@ -5525,7 +5440,7 @@ menu:
       scope: "<gray>is currently displayed for your guild"
     input:
       name: "<aqua>Description Input"
-      description: "<gray>Click to type your new description"
+      description: '<yellow>Click to type your new description'
       current: "<gray>Current input:"
       value: "<white><description>"
       none: "None"
@@ -5543,8 +5458,8 @@ menu:
       invalid_format: "Invalid MiniMessage format: <error>"
       unknown_error: "unknown error"
     save:
-      name: "<green>💾 Save Description"
-      disabled: "<gray>💾 Save Description"
+      name: "<green>Save Description"
+      disabled: "<gray>Save Description"
       description: "<gray>Save your changes"
       effect: "<gray>This will update the guild description"
       scope: "<gray>for all members to see"
@@ -5553,7 +5468,7 @@ menu:
       name: "<red>❌ Cancel"
       description: "<gray>Discard changes and go back"
     preview:
-      name: "<light_purple>🔍 Preview"
+      name: "<light_purple>Preview"
       description: "<gray>How your description will appear:"
       value: '<white>"<description>"'
       discord_invite: "<aqua>Discord invite detected — it will be clickable in Java chat"
@@ -5576,7 +5491,7 @@ menu:
   war_objectives:
     title: "<white>⚔ War Objectives"
     info:
-      name: "<yellow>📖 Objective Info"
+      name: "<yellow>Objective Info"
       description: "<gray>Select at least one objective for the war."
       win_condition: "<gray>The first guild to complete any objective wins!"
       current: "<gray>Current Objectives: <white><count>"
@@ -5595,7 +5510,7 @@ menu:
       target_10: "  <dark_gray>▪ <white>10 kills <gray>- Standard battle"
       target_25: "  <dark_gray>▪ <white>25 kills <gray>- Extended war"
       target_50: "  <dark_gray>▪ <white>50 kills <gray>- Epic campaign"
-      objective_description: "Kill <count> enemy players"
+      objective_description: '<gray>Kill <count> enemy players'
     survival:
       name: "<gray>Time Survival"
       selected: "<green>✓ <yellow>Time Survival"
@@ -5606,7 +5521,7 @@ menu:
       duration_24: "  <dark_gray>▪ <white>24 hours <gray>- One day"
       duration_48: "  <dark_gray>▪ <white>48 hours <gray>- Two days"
       duration_72: "  <dark_gray>▪ <white>72 hours <gray>- Three days"
-      objective_description: "Survive for <count> hours"
+      objective_description: '<gray>Survive for <count> hours'
     claims:
       name: "<gray>Claims Captured"
       selected: "<green>✓ <gold>Claims Captured"
@@ -5616,7 +5531,7 @@ menu:
       target_3: "  <dark_gray>▪ <white>3 claims <gray>- Invasion"
       target_5: "  <dark_gray>▪ <white>5 claims <gray>- Conquest"
       target_10: "  <dark_gray>▪ <white>10 claims <gray>- Domination"
-      objective_description: "Capture <count> enemy claims"
+      objective_description: '<gray>Capture <count> enemy claims'
     save:
       name: "<green>✅ Save Objectives"
       disabled: "<red>❌ No Objectives Selected"
@@ -5628,7 +5543,7 @@ menu:
       name: "<red>✖ Cancel"
       description: "<gray>Discard changes"
     back:
-      name: "<yellow>← Back"
+      name: '<yellow>⬅ Back'
       description: "<gray>Return without saving"
     feedback:
       updated: "<green>✅ War objectives updated!"
@@ -5641,31 +5556,31 @@ menu:
       peaceful: "PEACEFUL"
       hostile: "HOSTILE"
     current:
-      name: "<white>📊 CURRENT MODE"
+      name: '<yellow>Current Mode'
       mode: "<gray>Mode: <white><mode>"
       changed: "<gray>Changed: <white><time>"
     disabled:
-      message: "<red>❌ Mode switching is disabled by server configuration"
+      message: '<red>Mode switching is turned off on this server'
       description: "<gray>Guilds cannot change between Peaceful and Hostile modes"
     peaceful:
-      name: "<green>☮ SWITCH TO PEACEFUL"
-      benefits: "<gray>Peaceful mode benefits:"
+      name: '<green>☮ Switch to Peaceful'
+      benefits: '<gray>In Peaceful mode:'
       no_pvp: "<gray>• No PvP in guild claims"
       safe_trading: "<gray>• Safe trading environment"
       no_wars: "<gray>• Prevents war declarations"
-      cooldown: "<red>⚠ Cooldown: <days> days"
-      active_war: "<red>⚔ Active war in progress"
-      click: "<yellow>✅ Click to switch to Peaceful"
+      cooldown: '<red>Cooldown: <days> days'
+      active_war: '<red>Not available during a war'
+      click: '<yellow>Click to switch to Peaceful'
     hostile:
-      name: "<red>⚔ SWITCH TO HOSTILE"
-      benefits: "<gray>Hostile mode benefits:"
+      name: '<red>⚔ Switch to Hostile'
+      benefits: '<gray>In Hostile mode:'
       pvp: "<gray>• PvP enabled in claims"
       wars: "<gray>• Can declare wars"
       competitive: "<gray>• Competitive gameplay"
-      lock: "<red>⚠ Lock: <days> days"
-      click: "<yellow>✅ Click to switch to Hostile"
+      lock: '<red>Locked for <days> days after switching'
+      click: '<yellow>Click to switch to Hostile'
     switch:
-      unavailable: "<red>❌ Cannot switch yet"
+      unavailable: '<red>You cannot switch yet'
       reason: "<red><reason>"
     feedback:
       peaceful_success: "<green>✅ Guild mode switched to PEACEFUL!"
@@ -5685,18 +5600,18 @@ menu:
       days_ago: "<days>d <hours>h ago"
       hours_ago: "<hours>h ago"
     back:
-      name: "<red>⬅ BACK"
-      description: "<gray>Return to settings"
+      name: '<yellow>⬅ Back'
+      description: '<gray>Return to the previous menu'
 
   guild_war_management:
-    title: "<white>War Management - <guild>"
+    title: '<white>Warfare • <guild>'
     fallback:
       unknown: "Unknown"
     current:
       none:
         name: "<red>No Active Wars"
         description: "<gray>Your guild is not currently at war"
-        hint: "<gray>Declare war to start conflicts!"
+        hint: '<gray>Declare war to start one'
       active:
         name: "<red>Active War: vs <enemy>"
         duration: "<gray>Duration: <white><days> days"
@@ -5704,7 +5619,7 @@ menu:
         status: "<gray>Status: <dark_red>ACTIVE"
       more:
         name: "<yellow>+<count> More Wars"
-        description: "<gray>Click to view all active wars"
+        description: '<yellow>Click to view all active wars'
     declarations:
       incoming:
         name: "<green>Incoming Declarations"
@@ -5717,19 +5632,19 @@ menu:
       declare:
         name: "<dark_red>Declare War"
         description: "<gray>Declare war on another guild"
-        hint: "<gray>Start a conflict with objectives"
+        hint: '<yellow>Click to choose a guild'
       statistics:
         name: "<gold>War Statistics"
         description: "<gray>View your guild's war performance"
-        hint: "<gray>Win/loss ratio and history"
+        hint: '<yellow>Click to open'
       history:
         name: "<yellow>War History"
-        description: "<gray>View past wars and outcomes"
-        hint: "<gray>Learn from previous conflicts"
+        description: '<gray>Past wars and how they ended'
+        hint: '<yellow>Click to open'
       peace:
-        name: "<green>☮ Peace Agreements"
-        description: "<gray>Propose peace to end wars"
-        hint: "<gray>Negotiate terms and offerings"
+        name: '<green>☮ Make Peace'
+        description: '<gray>Offer terms to end a war'
+        hint: '<yellow>Click to propose peace'
     quick_stats:
       name: "<aqua>Quick Stats"
       total: "<gray>Total Wars: <white><count>"
@@ -5739,8 +5654,8 @@ menu:
       seasonal_level: "<aqua>Displayed Level: <white><level>"
       seasonal_rank: "<aqua>Seasonal Rank: <white>#<rank>"
     back:
-      name: "<yellow>Back to Control Panel"
-      description: "<gray>Return to guild management"
+      name: '<yellow>⬅ Back'
+      description: '<gray>Return to the previous menu'
     war_details:
       title: "<white>War Details - vs <enemy>"
       info:
@@ -5772,8 +5687,8 @@ menu:
           name: "<green>☮ Propose Peace"
           lore: "<gray>Negotiate peace terms"
         back:
-          name: "<yellow>Back to War Management"
-          lore: "<gray>Return to war management"
+          name: '<yellow>⬅ Back'
+          lore: '<gray>Return to the previous menu'
     war_list:
       title: "<white>Active Wars"
       item:
@@ -5782,21 +5697,21 @@ menu:
           duration: "<gray>Duration: <white><days> days"
           kills: "<gray>Kills: <yellow><kills><gray>/<yellow><target>"
           deaths: "<red>Deaths: <red><deaths>"
-          click: "<gray>Click for details"
+          click: '<yellow>Click for details'
       empty:
         name: "<green>No Active Wars"
         description: "<gray>Your guild is not at war"
       navigation:
         previous:
-          name: "<white>⬅ Previous"
+          name: '<white>⬅ Previous Page'
           description: "<gray>Go to previous page"
         page: "<gray>Page <page>/<pages>"
         next:
-          name: "<white>Next ➡"
+          name: '<white>Next Page ➡'
           description: "<gray>Go to next page"
         back:
-          name: "<yellow>Back"
-          description: "<gray>Return to war management"
+          name: '<yellow>⬅ Back'
+          description: '<gray>Return to the previous menu'
     incoming_declarations:
       title: "<white>Incoming Declarations"
       item:
@@ -5815,15 +5730,15 @@ menu:
       rejected: "<green>✅ Declaration rejected."
       navigation:
         previous:
-          name: "<white>⬅ Previous"
+          name: '<white>⬅ Previous Page'
           description: "<gray>Go to previous page"
         page: "<gray>Page <page>/<pages>"
         next:
-          name: "<white>Next ➡"
+          name: '<white>Next Page ➡'
           description: "<gray>Go to next page"
         back:
-          name: "<yellow>Back"
-          description: "<gray>Return to war management"
+          name: '<yellow>⬅ Back'
+          description: '<gray>Return to the previous menu'
     outgoing_declarations:
       title: "<white>Outgoing Declarations"
       item:
@@ -5840,15 +5755,15 @@ menu:
       cancelled: "<green>✅ Declaration cancelled."
       navigation:
         previous:
-          name: "<white>⬅ Previous"
+          name: '<white>⬅ Previous Page'
           description: "<gray>Go to previous page"
         page: "<gray>Page <page>/<pages>"
         next:
-          name: "<white>Next ➡"
+          name: '<white>Next Page ➡'
           description: "<gray>Go to next page"
         back:
-          name: "<yellow>Back"
-          description: "<gray>Return to war management"
+          name: '<yellow>⬅ Back'
+          description: '<gray>Return to the previous menu'
     war_stats:
       title: "<white>War Statistics"
       total: "<gray>Total Wars: <white><count>"
@@ -5871,8 +5786,8 @@ menu:
         eligible: "<green>Eligible for rated wars"
         ineligible: "<red>Not currently eligible for rated wars"
       back:
-        name: "<yellow>Back to War Management"
-        lore: "<gray>Return to war management"
+        name: '<yellow>⬅ Back'
+        lore: '<gray>Return to the previous menu'
     war_history:
       title: "<white>War History"
       item:
@@ -5887,15 +5802,15 @@ menu:
         description: "<gray>Your guild has not fought any wars"
       navigation:
         previous:
-          name: "<white>⬅ Previous"
+          name: '<white>⬅ Previous Page'
           description: "<gray>Go to previous page"
         page: "<gray>Page <page>/<pages>"
         next:
-          name: "<white>Next ➡"
+          name: '<white>Next Page ➡'
           description: "<gray>Go to next page"
         back:
-          name: "<yellow>Back"
-          description: "<gray>Return to war management"
+          name: '<yellow>⬅ Back'
+          description: '<gray>Return to the previous menu'
     feedback:
       surrendered: "<green>✅ Your guild has surrendered. The war has ended."
       action_failed: "<red>❌ Action failed. Please try again."
@@ -5946,8 +5861,8 @@ menu:
         description: "<gray>View war statistics and history"
         started: "<gray>War started: <white><duration> ago"
       back:
-        name: "<yellow>Back"
-        description: "<gray>Return to enemies list"
+        name: '<yellow>⬅ Back'
+        description: '<gray>Return to the previous menu'
     feedback:
       truce_intro: "<yellow>To request a truce, use:"
       truce_command: "<gold>/guild truce <guild> <gray>[days]"
@@ -5962,16 +5877,16 @@ menu:
       expires: "<gray>Expires: <duration>"
     navigation:
       previous:
-        name: "<white>⬅ PREVIOUS PAGE"
+        name: '<white>⬅ Previous Page'
         description: "<gray>Go to previous page"
       page: "<yellow>Page <page> / <pages>"
       total: "<gray>Total enemies: <red><count>"
       next:
-        name: "<white>NEXT PAGE ➡"
+        name: '<white>Next Page ➡'
         description: "<gray>Go to next page"
       back:
-        name: "<yellow>Back to Relations"
-        description: "<gray>Return to relations menu"
+        name: '<yellow>⬅ Back'
+        description: '<gray>Return to the previous menu'
     duration:
       less_than_day: "Less than 1 day"
       day: "<count> day"
@@ -6056,8 +5971,8 @@ menu:
       banned: "<red>You have been banned from <channel>"
       unbanned: "<green>You have been unbanned from <channel>"
     back:
-      name: "<red>Back"
-      description: "<gray>Return to channel moderation"
+      name: '<yellow>⬅ Back'
+      description: '<gray>Return to the previous menu'
 
   guild_progression:
     title: "<white>Progression • <page>/<pages>"
@@ -6110,20 +6025,20 @@ menu:
     sources:
       name: "<yellow>XP Sources"
       description: "<gray>How to earn guild XP:"
-      bank: "<gray>• <white>💰 Bank deposits"
+      bank: "<gray>• <white>Bank deposits"
       war: "<gray>• <white>⚔ War victories"
-      invites: "<gray>• <white>👥 Member invites"
-      kills: "<gray>• <white>🗡 Player/mob kills"
-      farming: "<gray>• <white>🌾 Farming & fishing"
+      invites: "<gray>• <white>Member invites"
+      kills: "<gray>• <white>Player/mob kills"
+      farming: "<gray>• <white>Farming & fishing"
       mining: "<gray>• <white>⛏ Mining & building"
-      crafting: "<gray>• <white>🔨 Crafting & smelting"
-      brewing: "<gray>• <white>🧪 Brewing & enchanting"
+      crafting: "<gray>• <white>Crafting & smelting"
+      brewing: "<gray>• <white>Brewing & enchanting"
       enchanting: "<gray>• <white>✨ Enchanting"
-      claiming: "<gray>• <white>🏞 Claiming land"
+      claiming: "<gray>• <white>Claiming land"
     perks:
       name: "<green>Unlocked Perks"
       none: "<gray>No perks unlocked yet"
-      hint: "<gray>Earn XP to level up!"
+      hint: '<gray>Level up to unlock perks'
       entry: "<green>✓ <white><perk>"
       names:
         higher_bank_balance: "Higher Bank Limit"
@@ -6145,7 +6060,7 @@ menu:
       description: "<gray>Reset your guild to Level 1"
       rewards: "<gray>and permanently retain one eligible purchased reward."
       requirement: "<gray>Requires Level <light_purple>100"
-      action: "<green>Click to choose the reward you will retain"
+      action: '<yellow>Click to choose the reward you will retain'
       state:
         unavailable: "<red>Prestige data is unavailable. Try again shortly."
         disabled: "<yellow>Prestige is currently disabled by the server operator."
@@ -6192,18 +6107,17 @@ menu:
           frozen: "<red>The guild bank is frozen. Prestige cannot charge the fee."
           id_conflict: "<red>This prestige transaction ID conflicts with an existing transaction. Reopen Prestige and try again."
     navigation:
-      back_fallback: "<gray>Back"
-      back: "<green>← Back"
-      close: "<red>Close"
-      previous_fallback: "<yellow>← Previous"
-      previous: "<yellow>← Previous Page"
-      next_fallback: "<yellow>Next →"
-      next: "<yellow>Next Page →"
+      back_fallback: '<yellow>⬅ Back'
+      back: '<yellow>⬅ Back'
+      previous_fallback: '<white>⬅ Previous Page'
+      previous: '<white>⬅ Previous Page'
+      next_fallback: '<white>Next Page ➡'
+      next: '<white>Next Page ➡'
 
   guild_banner:
     title: "<white>Guild Banner - <guild>"
     current:
-      name: "<white>🏴 CURRENT BANNER"
+      name: "<white>CURRENT BANNER"
       description: "<gray>This banner represents your guild"
       error: "<red>⚠ BANNER ERROR"
       load_failed: "<red>Failed to load banner data"
@@ -6214,11 +6128,11 @@ menu:
       place: "<gray>Place any banner in the empty slot"
       set: "<gray>to set it as your guild banner"
       supported: "<yellow>Supported: All banner types"
-      name: "<gray>📍 BANNER SLOT"
+      name: "<gray>BANNER SLOT"
       description: "<gray>Place any banner here"
     clear:
-      name: "<red>🗑 CLEAR BANNER"
-      disabled: "<gray>🗑 CLEAR BANNER"
+      name: "<red>CLEAR BANNER"
+      disabled: "<gray>CLEAR BANNER"
       description: "<gray>Remove the current banner"
       fallback: "<gray>Will use default white banner"
       warning: "<gray>This action cannot be undone"
@@ -6228,10 +6142,10 @@ menu:
       place: "<gray>Place a banner in the slot,"
       click: "<gray>then click here to save it"
     back:
-      name: "<red>⬅ BACK"
-      description: "<gray>Return to main menu"
+      name: '<yellow>⬅ Back'
+      description: '<gray>Return to the previous menu'
     copy:
-      name: "<yellow>📋 GET BANNER COPY"
+      name: "<yellow>GET BANNER COPY"
       description: "<gray>Get a copy of your guild banner"
       free: "<gray>Cost: <green>FREE"
       item_cost: "<gray>Cost: <gold><amount> x <material>"
@@ -6247,7 +6161,7 @@ menu:
       clear_failed: "<red>❌ Failed to clear banner. Check permissions."
       no_banner_clear: "<red>❌ No banner to clear."
       set: "<green>✅ Guild banner set to <banner>!"
-      dropped: "<yellow>📦 Banner dropped at your feet (inventory full)"
+      dropped: "<yellow>Banner dropped at your feet (inventory full)"
       set_failed: "<red>❌ Failed to set banner. Check permissions."
       place_first: "<red>❌ Place a banner in the slot first!"
       no_banner: "<red>❌ Your guild doesn't have a banner set!"
@@ -6262,63 +6176,51 @@ menu:
       copy_received: "<green>✅ Banner copy received!"
       copy_purchased: "<green>✅ Banner copy purchased for <gold><amount> <green>coins!"
       purchase_pending: "<yellow>Your banner purchase needs review. Do not pay again. Reference: <reference>"
-      added: "<gray>💡 The banner has been added to your inventory"
+      added: "<gray>The banner has been added to your inventory"
 
   guild_relations:
-    title: '<white>Diplomatic Relations - <guild>'
+    title: '<white>Diplomacy • <guild>'
     count: '<gray>Count: <white><count>'
     overview:
       allies:
         name: '<green>Allies'
         description: '<gray>Guilds you are allied with'
-        support: '<gray>Can coordinate and support each other'
       enemies:
         name: '<red>Enemies'
         description: '<gray>Guilds you are at war with'
-        warfare: '<gray>Can engage in warfare'
       truces:
         name: '<yellow>Truces'
         description: '<gray>Temporary ceasefires'
-        expiration: '<gray>Peace agreements with expiration'
       status:
         name: '<aqua>Diplomatic Status'
-        description: '<gray>Your guild''s diplomatic standing'
+        description: '<gray>Your current standing'
         summary: '<gray>Allies: <green><allies> <gray>| Enemies: <red><enemies> <gray>| Truces: <yellow><truces>'
     requests:
       incoming:
         name: '<green>Incoming Requests'
-        description: '<gray>Diplomatic requests from other guilds'
-        proposals: '<gray>Alliance and truce proposals'
+        description: '<gray>Alliance and truce proposals'
       outgoing:
         name: '<yellow>Outgoing Requests'
-        description: '<gray>Your guild''s pending requests'
-        awaiting: '<gray>Awaiting other guild responses'
+        description: '<gray>Proposals you are waiting on'
     action:
       acceptance: '<gray>Must be accepted by the target guild'
       alliance:
         name: '<gold>Request Alliance'
-        description: '<gray>Propose an alliance with another guild'
-        support: '<gray>Allows coordination and support'
+        description: '<gray>Propose an alliance'
       truce:
         name: '<white>Request Truce'
         description: '<gray>Propose a ceasefire with an enemy'
-        temporary: '<gray>Temporary peace agreement'
       enemy:
         name: '<red>Declare Enemy'
-        description: '<gray>Declare another guild as an enemy'
-        no_acceptance: '<gray>No acceptance required'
-        hostile: '<gray>Creates hostile relations'
+        description: '<gray>Mark a guild as your enemy'
+        no_acceptance: '<gray>Takes effect immediately'
     details:
       history:
         name: '<blue>Diplomatic History'
-        description: '<gray>View past relations and changes'
-        track: '<gray>Track diplomatic developments'
-        learn: '<gray>Learn from past interactions'
+        description: '<gray>Past alliances, truces and wars'
       neutral:
         name: '<gray>Neutral Guilds'
-        description: '<gray>Guilds with no special relations'
-        browse: '<gray>Browse available diplomatic partners'
-        partners: '<gray>Potential allies or rivals'
+        description: '<gray>Guilds with no relation to yours'
     truces:
       none: '<gray>Your guild has no active truces.'
       header: '<yellow>=== Active Truces ==='
@@ -6342,7 +6244,7 @@ menu:
   guild_emoji:
     title: '<white>Guild Emoji - <guild>'
     current:
-      name: '<yellow>🎨 CURRENT EMOJI'
+      name: '<yellow>CURRENT EMOJI'
       value: '<gray><emoji>'
       not_set: '<red>Not set'
       description: '<gray>This emoji appears in guild chat'
@@ -6367,18 +6269,18 @@ menu:
       none: '<red>(none)'
       invalid: '<red>❌ <error>'
       valid: '<green>✅ Format valid'
-      click: '<gray>Click to input emoji'
+      click: '<yellow>Click to input emoji'
     chat:
       prompt: '<yellow>✏ Enter your guild emoji:'
       format: '<gray>Format: <white>:emoji_name: <gray>(e.g., <white>:cat:<gray>)'
       cancel: '<gray>Type <red>''cancel'' <gray>to cancel'
     selector:
-      name: '<light_purple>🎨 SELECT FROM UNLOCKED'
+      name: '<light_purple>SELECT FROM UNLOCKED'
       description: '<gray>Browse emojis you have access to'
       count: '<gray>Unlocked emojis: <white><count>'
-      click: '<gray>Click to open emoji selector'
+      click: '<yellow>Click to open emoji selector'
     preview:
-      name: '<green>🔍 PREVIEW'
+      name: '<green>PREVIEW'
       description: '<gray>Guild Chat:'
       invalid_message: '<gray>[<player>] <red><emoji> <gray>Hello!'
       message: '<gray>[<player>] <emoji> <gray>Hello!'
@@ -6391,30 +6293,30 @@ menu:
         description: '<gray>Apply the new emoji'
         cannot: '<red>❌ CANNOT SAVE'
         fix: '<red>Fix validation errors first'
-        no_changes: '<gray>📝 NO CHANGES'
+        no_changes: '<gray>NO CHANGES'
         unchanged: '<gray>Emoji unchanged'
-        click: '<gray>Click to save changes'
+        click: '<yellow>Click to save changes'
       clear:
-        name: '<gold>🗑 CLEAR EMOJI'
+        name: '<gold>CLEAR EMOJI'
         description: '<gray>Remove guild emoji'
         fallback: '<gray>Will use no emoji in chat'
       back:
-        name: '<yellow>⬅ BACK'
-        description: '<gray>Return to guild settings'
+        name: '<yellow>⬅ Back'
+        description: '<gray>Return to the previous menu'
     selection:
       title: '<white>Select Emoji - Page <page>/<total>'
       emoji: '<yellow><emoji>'
-      select: '<gray>Click to select this emoji'
+      select: '<yellow>Click to select this emoji'
       description: '<gray>This will become your guild emoji'
       previous:
-        name: '<yellow>⬅ Previous Page'
+        name: '<white>⬅ Previous Page'
         description: '<gray>Go to previous page'
       next:
-        name: '<yellow>Next Page ➡'
+        name: '<white>Next Page ➡'
         description: '<gray>Go to next page'
       back:
-        name: '<red>⬅ Back to Emoji Menu'
-        description: '<gray>Return to emoji settings'
+        name: '<yellow>⬅ Back'
+        description: '<gray>Return to the previous menu'
     validation:
       format: 'Must be in format :emoji_name:'
       empty: 'Emoji name cannot be empty'
@@ -6433,19 +6335,19 @@ menu:
       cleared: '<gray>Emoji cleared. Will use no emoji in chat.'
       invalid_format: '<red>❌ Invalid format! Emoji must be in format :emoji_name:'
       set: '<green>✅ Emoji set to: <emoji>'
-      save_hint: '<gray>Click save to apply the changes.'
+      save_hint: '<yellow>Click save to apply the changes.'
       input_cancelled: '<gray>Emoji input cancelled.'
       selected: '<green>Selected emoji: <emoji>'
   guild_home:
-    title: '<white>Guild Homes - <guild>'
+    title: '<white>Homes • <guild>'
     world: '<gray>World: <white><world>'
     slots:
-      name: '<yellow>🏠 Guild Home Slots'
+      name: '<yellow>Home Slots'
       count: '<gray>Homes Set: <white><count><gray>/<total>'
       main: '<yellow>[MAIN]'
       row: '<gray>• <white><home> <marker> <gray>- <white><world>'
       none: '<gray>No homes set yet'
-      additional: '<green>Click to set additional homes'
+      additional: '<yellow>Click to set additional homes'
       maximum: '<red>Maximum slots reached'
     set:
       main:
@@ -6464,8 +6366,8 @@ menu:
       home: '<red>Remove ''<home>'''
       click: '<yellow>Click to remove this home'
       back:
-        name: '<yellow>Back to Home Menu'
-        description: '<gray>Return to home management'
+        name: '<yellow>⬅ Back'
+        description: '<gray>Return to the previous menu'
     teleport:
       cancel:
         name: '<yellow>Cancel Teleport'
@@ -6473,8 +6375,8 @@ menu:
         remaining: '<gray>Remaining: <white><seconds> seconds'
       main:
         name: '<aqua>Teleport to Main Home'
-        description: '<gray>Click to start teleportation countdown'
-        countdown: '<gray>Countdown: <white>5 seconds <gray>(don''t move!)'
+        description: '<yellow>Click to start the countdown'
+        countdown: '<gray>5 seconds — stand still'
       none:
         name: '<gray>No Homes Set'
         description: '<gray>Set a home location first'
@@ -6489,12 +6391,12 @@ menu:
       description: '<gray>This saved Season 1 home is inactive in Chapter 2.'
       click: '<yellow>Click to pay the guild-gold activation cost'
     access:
-      name: '<gold>🔒 Access: <home>'
-      description: '<gray>Configure which ranks can use this home'
+      name: '<gold>Access: <home>'
+      description: '<gray>Choose which ranks can use it'
       click: '<yellow>Click to manage'
     ally_access:
-      name: '<gold>🔒 Ally-home Access'
-      description: '<gray>Configure which allied guilds can use your ally-home'
+      name: '<gold>Ally Home Access'
+      description: '<gray>Choose which allies can use your ally home'
     ally:
       none:
         name: '<gray>No Ally Homes Available'
@@ -6504,10 +6406,10 @@ menu:
       locked: '<gray>⚔ <guild> (locked)'
       description: '<gray>Ally guild home'
       teleport: '<yellow>Click to teleport'
-      denied: '<red>Your rank lacks USE_ALLY_HOMES, or this guild has not allowed yours.'
+      denied: '<red>Your rank or this guild does not allow it'
     back:
-      name: '<yellow>Back to Control Panel'
-      description: '<gray>Return to guild management'
+      name: '<yellow>⬅ Back'
+      description: '<gray>Return to the previous menu'
     feedback:
       sethome_command: '<gold>Use <yellow>/guild sethome \<name> <gold>to set additional homes'
       sethome_example: '<gray>Example: <yellow>/guild sethome shop'
@@ -6539,14 +6441,14 @@ menu:
   tag_editor:
     title: '<white>Tag Editor - <guild>'
     current:
-      name: '<white>🎯 CURRENT TAG'
+      name: '<white>CURRENT TAG'
       guild: '<gray>Guild: <white><guild>'
       tag: '<gray>Tag: <tag>'
       description: '<gray>This tag appears in chat'
       not_set: '<gray>Tag: <red>(Not set - using guild name)'
-      create: '<gray>Click edit to create a custom tag'
+      create: '<yellow>Click edit to create a custom tag'
     status:
-      name: '<green>📊 TAG STATUS'
+      name: '<green>TAG STATUS'
       characters: '<gray>Characters: <white><count><gray>/32'
       characters_error: '<red>Characters: <white><count><red>/32'
       too_long: '<red>❌ TAG TOO LONG'
@@ -6567,9 +6469,9 @@ menu:
       valid: '<green>✅ Format valid'
       waiting: '<yellow>⏳ WAITING FOR CHAT INPUT...'
       prompt: '<gray>Type your tag in chat'
-      click: '<gray>Click to enter tag in chat'
+      click: '<yellow>Click to enter tag in chat'
     preview:
-      name: '<green>🔍 PREVIEW'
+      name: '<green>PREVIEW'
       description: '<gray>Chat message:'
       invalid_message: '<gray>[<player>] <red><tag> <gray>Hello!'
       message: '<gray>[<player>] <tag> <gray>Hello!'
@@ -6583,11 +6485,11 @@ menu:
         description: '<gray>Apply the new tag'
         cannot: '<red>❌ CANNOT SAVE'
         fix: '<red>Fix validation errors first'
-        no_changes: '<gray>📝 NO CHANGES'
+        no_changes: '<gray>NO CHANGES'
         unchanged: '<gray>Tag unchanged'
-        click: '<gray>Click to save changes'
+        click: '<yellow>Click to save changes'
       clear:
-        name: '<red>🗑 CLEAR TAG'
+        name: '<red>CLEAR TAG'
         description: '<gray>Remove custom tag'
         fallback: '<gray>Will use guild name instead'
       cancel:
@@ -6626,7 +6528,7 @@ menu:
       input_cancelled: '<gray>Tag input cancelled.'
       invalid: '<red>❌ Invalid tag: <error>'
       set: '<green>✅ Tag set to: <tag>'
-      save_hint: '<gray>Click save to apply the changes.'
+      save_hint: '<yellow>Click save to apply the changes.'
   peace_agreement:
     title: '<white>Peace Agreements - <guild>'
     war:
@@ -6653,7 +6555,7 @@ menu:
         description: '<gray>Propose peace terms to end a war'
         offerings: '<gray>Can include offerings to sweeten the deal'
       history:
-        name: '<yellow>📚 Peace History'
+        name: '<yellow>Peace History'
         description: '<gray>View past peace agreements'
         outcomes: '<gray>and war outcomes'
     proposal:
@@ -6741,9 +6643,9 @@ menu:
       rank: '<gray>from this rank'
       click: '<red>Click to disable all'
     status:
-      name: '<gold>📊 Permission Status'
+      name: '<gold>Permission Status'
       count: '<gray>Enabled: <green><enabled><gray>/<white><total>'
-      hint: '<gray>Click individual permissions below'
+      hint: '<yellow>Click individual permissions below'
     permission:
       identifier: '<gray>Permission: <white><permission>'
       enabled: '<gray>Status: <green>Enabled'
@@ -6754,13 +6656,13 @@ menu:
       return: '<gray>Return to rank editing'
       save:
         description: '<gray>Apply permission changes'
-        click: '<green>Click to save and return'
+        click: '<yellow>Click to save and return'
       cancel:
         name: '<red>❌ Cancel Changes'
         description: '<gray>Discard all changes'
         click: '<red>Click to cancel'
       reset:
-        name: '<yellow>🔄 Reset to Original'
+        name: '<yellow>Reset to Original'
         description: '<gray>Restore original permissions'
         category: '<gray>for this category'
         click: '<yellow>Click to reset'
@@ -6776,7 +6678,7 @@ menu:
       saved: '<green>✅ Permission changes saved for <rank>!'
       save_failed: '<red>❌ Failed to save permission changes'
       discarded: '<yellow>⚠︎ Permission changes discarded!'
-      reset: '<yellow>🔄 Reset <category> permissions to original state!'
+      reset: '<yellow>Reset <category> permissions to original state!'
     description:
       manage_ranks: '<gray>Create, edit, and delete guild ranks'
       manage_members: '<gray>Invite, kick, and promote members'
@@ -6822,7 +6724,7 @@ menu:
   rank_creation:
     title: '<white>Create New Rank - <guild>'
     name:
-      name: '<gold>📝 Rank Name'
+      name: '<gold>Rank Name'
       current: '<gray>Current: <white><rank>'
       not_set: '<gray>Current: <red>Not set'
       requirements: '<gray>Requirements:'
@@ -6836,7 +6738,7 @@ menu:
       example_emerald: '<gray>• emerald_block (Emerald Block)'
       click: '<yellow>Click to set rank icon'
     summary:
-      name: '<gold>📊 Selected Permissions'
+      name: '<gold>Selected Permissions'
       count: '<gray>Count: <white><count>'
       select_below: '<gray>Select permissions below'
     template:
@@ -6844,7 +6746,7 @@ menu:
       envoy: Envoy
       builder: Builder
       moderator: Moderator
-      name: '<green>🎯 <template> Template'
+      name: '<green><template> Template'
       description: '<gray>Quick setup for <template> role'
       includes: '<gray>Includes permissions:'
       permission: '<gray>• <green><permission>'
@@ -6855,7 +6757,7 @@ menu:
       none_selected: '<red>✗ No permissions selected'
       toggle: '<yellow>Click to toggle all <white><category> <yellow>permissions'
     preview:
-      name: '<gold>🔍 Rank Preview'
+      name: '<gold>Rank Preview'
       rank_name: '<gray>Name: <white><rank>'
       name_not_set: '<gray>Name: <red>Not set'
       icon: '<gray>Icon: <white><icon>'
@@ -6869,11 +6771,11 @@ menu:
         cannot: '<red>❌ Cannot Create'
         description: '<gray>Create the new rank'
         ready: '<green>Ready to create!'
-        click: '<gray>Click to confirm'
+        click: '<yellow>Click to confirm'
         missing_name: '<red>• Missing rank name'
         missing_permissions: '<red>• No permissions selected'
       clear:
-        name: '<red>🗑 Clear All'
+        name: '<red>Clear All'
         description: '<gray>Reset all selections'
         click: '<red>Click to clear'
       cancel:
@@ -6897,7 +6799,7 @@ menu:
       rank_icon: '<gray>Rank icon: <white><icon>'
       create_failed: '<red>❌ Failed to create rank!'
       missing_requirements: '<red>❌ Cannot create rank - missing requirements!'
-      cleared: '<yellow>🗑 Cleared all selections!'
+      cleared: '<yellow>Cleared all selections!'
       cancelled: '<yellow>⚠ Rank creation cancelled.'
       permission_removed: '<gray>Removed <white><permission><gray>.'
       category_removed: '<gray>All <white><category> <gray>permissions removed.'
@@ -6921,7 +6823,7 @@ menu:
       lower: '<yellow>Click to lower rank'
       cannot_reorder: '<red>Cannot reorder'
     info:
-      name: '<gold>📝 Rank Information'
+      name: '<gold>Rank Information'
       rank_name: '<gray>Name: <white><rank>'
       priority: '<gray>Priority: <white><priority>'
       members: '<gray>Members: <white><count> players'
@@ -6933,19 +6835,19 @@ menu:
       cancel_hint: '<gray>Or click cancel to stop'
       rename: '<yellow>Click to rename rank'
     icon:
-      name: '<gold>🎨 Rank Icon'
+      name: '<gold>Rank Icon'
       current: '<gray>Current: <white><material>'
       not_set: 'Not set'
       examples: '<gray>Examples:'
       example_basic: '<gray>• diamond, gold_ingot, emerald'
       example_tools: '<gray>• diamond_sword, golden_apple'
       example_short: '<gray>Examples: diamond, gold_ingot, etc.'
-      link_hint: '<yellow>📖 Clickable link in chat'
+      link_hint: '<yellow>Clickable link in chat'
       waiting: '<yellow>⏳ WAITING FOR ICON INPUT...'
       type_material: '<gray>Type the material name in chat'
       change: '<yellow>Click to change rank icon'
     summary:
-      name: '<gold>📊 Permission Summary'
+      name: '<gold>Permission Summary'
       total: '<gray>Total Permissions: <white><count>'
       manage_below: '<gray>Manage permissions below'
     category:
@@ -6955,7 +6857,7 @@ menu:
       communication: 'Communication'
       administrative: 'Administrative'
       claims: 'Claims'
-      name: '<gold>🔧 <category>'
+      name: '<gold><category>'
       permissions: '<gray>Permissions in this category:'
       permission_enabled: '<gray>• <green>✓ <white><permission>'
       permission_disabled: '<gray>• <red>✗ <white><permission>'
@@ -6966,22 +6868,22 @@ menu:
     action:
       irreversible: '<gray>This action is irreversible'
       save:
-        name: '<green>💾 Save Changes'
+        name: '<green>Save Changes'
         description: '<gray>Apply all permission changes'
-        click: '<green>Click to save'
+        click: '<yellow>Click to save'
       reset:
-        name: '<red>🔄 Reset Permissions'
+        name: '<red>Reset Permissions'
         description: '<gray>Clear all permissions'
         click: '<red>Click to reset'
       delete:
-        name: '<dark_red>🗑 Delete Rank'
+        name: '<dark_red>Delete Rank'
         description: '<gray>Permanently remove this rank'
         members: '<gray>Members will be unassigned'
         warning: '<dark_red>⚠ DESTRUCTIVE ACTION'
         click: '<red>Click to delete'
       back:
-        name: '<gray>⬅ Back'
-        description: '<gray>Return to rank management'
+        name: '<yellow>⬅ Back'
+        description: '<gray>Return to the previous menu'
     input:
       cancel: '<gray>Type ''cancel'' to stop input mode'
       footer: '<gold>======================='
@@ -7000,7 +6902,7 @@ menu:
         example_tools: '<gray>  diamond_sword, golden_apple'
         example_blocks: '<gray>  iron_block, netherite_ingot'
         valid_material: '<gray>Must be a valid Bukkit Material enum'
-        link_prefix: '📖 Full material list: '
+        link_prefix: 'Full material list: '
         link_action: '[CLICK HERE]'
     validation:
       length: 'Name must be 1-24 visible characters (current: <length>)'

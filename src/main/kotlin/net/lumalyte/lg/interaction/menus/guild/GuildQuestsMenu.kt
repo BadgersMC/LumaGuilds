@@ -88,7 +88,7 @@ class GuildQuestsMenu(
         }
 
         val back = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }.also { it.editMeta { meta -> meta.displayName(lang.gui("menu.quests.item.back.name")) } }
-        pane.addItem(GuiItem(back) { menuNavigator.goBack() }, 8, 0)
+        pane.addItem(GuiItem(back) { menuNavigator.goBack() }, 4, 5)
         if (page > 0) {
             val previous = NexoItemProvider.getItemStackOrFallback("lg_page_prev") { ItemStack.of(Material.ARROW) }.also { it.editMeta { meta -> meta.displayName(lang.gui("menu.quests.item.prev_page.name")) } }
             pane.addItem(GuiItem(previous) { page--; open() }, 0, 5)

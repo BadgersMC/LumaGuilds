@@ -336,13 +336,13 @@ class GuildBankMenu(
         // Back button
         val backItem = createMenuItem(
             Material.ARROW,
-            lang.gui("menu.bank.back_to_control_panel"),
+            lang.gui("menu.common.item.back.name"),
             listOf(lang.gui("menu.bank.navigation.back_description")), nexoId = "lg_back")
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
-        mainPane.addItem(backGuiItem, 8, 3)
+        mainPane.addItem(backGuiItem, 4, 3)
     }
 
     /**
@@ -368,7 +368,11 @@ class GuildBankMenu(
             listOf(lang.gui("menu.bank.feedback.withdraw_preview", "amount" to payout,
                 "fee" to fee, "total" to (payout.toLong() + fee)))
         }
-        val itemStack = createMenuItem(material, displayName, lore + preview, nexoId = if (isDeposit) "lg_deposit" else "lg_withdraw")
+        // Coin piles grow with the amount (lg_deposit_100 … lg_deposit_all); the generic icon is the fallback.
+        val amountKey = if (amount == -1) "all" else amount.toString()
+        val sizedIcon = "lg_${if (isDeposit) "deposit" else "withdraw"}_$amountKey"
+        val nexoId = if (NexoItemProvider.getItemStack(sizedIcon) != null) sizedIcon else if (isDeposit) "lg_deposit" else "lg_withdraw"
+        val itemStack = createMenuItem(material, displayName, lore + preview, nexoId = nexoId)
         return GuiItem(itemStack) { event ->
             event.isCancelled = true
             handleQuickAction(amount, isDeposit)
