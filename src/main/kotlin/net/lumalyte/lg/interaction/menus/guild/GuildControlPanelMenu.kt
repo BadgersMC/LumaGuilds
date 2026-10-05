@@ -28,7 +28,8 @@ import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
-@Suppress("StringLiteralDuplication") // Locale keys stay literal so LocaleContractTest can see them.
+// Locale keys stay literal so LocaleContractTest can see them.
+@Suppress("StringLiteralDuplication", "LibraryEntitiesShouldNotBePublic")
 class GuildControlPanelMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,

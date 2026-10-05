@@ -32,7 +32,8 @@ import org.koin.core.component.inject
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-@Suppress("StringLiteralDuplication") // Locale keys stay literal so LocaleContractTest can see them.
+// Locale keys stay literal so LocaleContractTest can see them.
+@Suppress("StringLiteralDuplication", "LibraryEntitiesShouldNotBePublic")
 class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                               private var guild: Guild): Menu, KoinComponent {
 
@@ -97,11 +98,18 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         } else {
             // Display first active party
             val party = activeParties.first()
-            val partyItem = NexoItemProvider.getItemStackOrFallback("lg_party") { ItemStack.of(Material.FIREWORK_ROCKET) }
-                .name(lang.gui("menu.party.management.active.name", "party" to (party.name ?: lang.gui("menu.party.management.unnamed"))))
-                .lore(lang.gui("menu.party.management.active.members", "count" to party.guildIds.size))
-                .lore(lang.gui("menu.party.management.active.created", "date" to party.createdAt.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("MM/dd/yyyy"))))
-                .lore(lang.gui("menu.party.management.active.expires", "date" to (party.expiresAt?.atZone(ZoneId.systemDefault())?.format(DateTimeFormatter.ofPattern("MM/dd/yyyy")) ?: lang.gui("menu.party.management.never"))))
+            val partyName = party.name ?: lang.gui("menu.party.management.unnamed")
+            val dateFormat = DateTimeFormatter.ofPattern("MM/dd/yyyy")
+            val created = party.createdAt.atZone(ZoneId.systemDefault()).format(dateFormat)
+            val expires =
+                party.expiresAt?.atZone(ZoneId.systemDefault())?.format(dateFormat)
+                    ?: lang.gui("menu.party.management.never")
+            val partyItem =
+                NexoItemProvider.getItemStackOrFallback("lg_party") { ItemStack.of(Material.FIREWORK_ROCKET) }
+                    .name(lang.gui("menu.party.management.active.name", "party" to partyName))
+                    .lore(lang.gui("menu.party.management.active.members", "count" to party.guildIds.size))
+                    .lore(lang.gui("menu.party.management.active.created", "date" to created))
+                    .lore(lang.gui("menu.party.management.active.expires", "date" to expires))
 
             val guiItem = GuiItem(partyItem) {
                 // Open detailed party management
@@ -111,9 +119,11 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
 
             // Show party member count if more than one party
             if (activeParties.size > 1) {
-                val morePartiesItem = MenuIcons.withCount(NexoItemProvider.getItemStackOrFallback("lg_party") { ItemStack.of(Material.BOOK) }, activeParties.size - 1)
-                    .name(lang.gui("menu.party.management.more.name", "count" to activeParties.size - 1))
-                    .lore(lang.gui("menu.party.management.more.lore"))
+                val moreIcon = NexoItemProvider.getItemStackOrFallback("lg_party") { ItemStack.of(Material.BOOK) }
+                val morePartiesItem =
+                    MenuIcons.withCount(moreIcon, activeParties.size - 1)
+                        .name(lang.gui("menu.party.management.more.name", "count" to activeParties.size - 1))
+                        .lore(lang.gui("menu.party.management.more.lore"))
                 pane.addItem(GuiItem(morePartiesItem) {
                     openPartyListMenu()
                 }, 3, 0)

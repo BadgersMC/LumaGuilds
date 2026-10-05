@@ -172,7 +172,7 @@ class MenuTitleBuilderTest {
         val guildName = "Enthusia"
         val page = 1
         val total = 3
-        val title = MenuTitleBuilder.build(GuiTheme.FROSTBOUND, 6, "§6Info - ${guildName} §8• Page ${page}/${total}")
+        val title = MenuTitleBuilder.build(GuiTheme.FROSTBOUND, 6, "§6Info - $guildName §8• Page $page/$total")
         assertTrue(title.contains("§6Info - Enthusia §8• Page 1/3"),
             "Dynamic title not preserved, got: '$title'")
     }
@@ -201,8 +201,9 @@ class MenuTitleBuilderTest {
     // Vanilla style: no custom background at all
     // ---------------------------------------------------------------
 
+    /** Vanilla theme has no background glyph or pixel shifts. */
     @Test
-    fun `vanilla theme has no background glyph or pixel shifts`() {
+    fun vanillaHasNoGlyphOrShifts() {
         assertFalse(GuiTheme.VANILLA.hasBackground)
         for (rows in listOf(1, 3, 4, 5, 6)) {
             val title = MenuTitleBuilder.build(GuiTheme.VANILLA, rows, "§fGuild Actions")
