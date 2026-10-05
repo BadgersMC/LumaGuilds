@@ -176,7 +176,8 @@ class BedrockGuildBankMenu(
             val withdrawAmount = parseAmount(withdrawInputValue, withdrawSliderValue, guildBalance, false)
 
             // Validate permissions - only check permissions for actions being performed
-            if (depositAmount > 0 && !bankService.canDeposit(player.uniqueId, guild.id)) {
+            if (depositAmount > 0 && !physicalCurrencyService.isPhysicalCurrencyEnabled() &&
+                !bankService.canDeposit(player.uniqueId, guild.id)) {
                 player.sendMessage(lang.msg("bedrock.bank.error.no_deposit_permission"))
                 navigateBack()
                 return
@@ -363,8 +364,20 @@ class BedrockGuildBankMenu(
 
         // Execute deposit
         if (depositAmount > 0) {
-            val transaction = bankService.deposit(guild.id, player.uniqueId, depositAmount)
-            if (transaction != null) {
+            val deposited = if (physicalCurrencyService.isPhysicalCurrencyEnabled()) {
+                bankService.depositPhysical(
+                    net.lumalyte.lg.application.services.PhysicalGoldRequest(
+                        java.util.UUID.randomUUID(),
+                        guild.id,
+                        player.uniqueId,
+                        depositAmount.toLong(),
+                        "Bedrock guild bank physical deposit",
+                    )
+                ) is net.lumalyte.lg.domain.gold.GuildGoldResult.Applied
+            } else {
+                bankService.deposit(guild.id, player.uniqueId, depositAmount) != null
+            }
+            if (deposited) {
                 changes.add(lang.bedrock("bedrock.bank.success.deposit", "amount" to depositAmount))
             } else {
                 allSuccessful = false

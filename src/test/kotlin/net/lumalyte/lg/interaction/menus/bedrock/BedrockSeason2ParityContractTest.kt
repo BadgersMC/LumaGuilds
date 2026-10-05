@@ -51,6 +51,14 @@ class BedrockSeason2ParityContractTest {
     }
 
     @Test
+    fun `physical bank deposits use the canonical physical route`() {
+        val source = File(bedrockRoot, "BedrockGuildBankMenu.kt").readText()
+        assertTrue(source.contains("physicalCurrencyService.isPhysicalCurrencyEnabled()"))
+        assertTrue(source.contains("bankService.depositPhysical("))
+        assertTrue(source.contains("bankService.deposit(guild.id, player.uniqueId, depositAmount)"))
+    }
+
+    @Test
     fun `mutable bank settings and rank forms use shared Bedrock authorization`() {
         listOf(
             "BedrockGuildBankMenu.kt",

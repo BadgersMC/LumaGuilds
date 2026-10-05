@@ -453,14 +453,6 @@ class GuildBankMenu(
      * Handle deposit operation with physical gold items
      */
     private fun handleDeposit(amount: Int): Boolean {
-        // Check DEPOSIT_TO_BANK permission
-        if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.DEPOSIT_TO_BANK)) {
-            val message = lang.gui("menu.bank.feedback.deposit_permission_denied")
-            player.sendMessage(lang.msg("menu.bank.feedback.deposit_permission_denied"))
-            showErrorFeedback(message)
-            return false
-        }
-
         return try {
             val outcome = bankService.depositPhysical(net.lumalyte.lg.application.services.PhysicalGoldRequest(
                 java.util.UUID.randomUUID(), guild.id, player.uniqueId, amount.toLong(), "Guild bank menu deposit"))
