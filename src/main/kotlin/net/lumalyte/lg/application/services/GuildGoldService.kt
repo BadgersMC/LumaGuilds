@@ -394,7 +394,7 @@ class GuildGoldService(
     }
 
     fun depositPhysical(request: PhysicalGoldRequest): GuildGoldResult {
-        if (!authorization.canDeposit(request.playerId, request.guildId)) {
+        if (!authorization.canDepositPhysical(request.playerId, request.guildId)) {
             return GuildGoldResult.Rejected(GuildGoldRejection.UNAUTHORIZED)
         }
         val settings = settingsProvider.settingsFor(request.guildId)

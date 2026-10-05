@@ -436,8 +436,14 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 player.sendMessage(lang.msg("command.migrated.guild.home.activation_success", "target_home_name" to homeName))
                 if (result.cost > 0) player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.activation_paid", "cost" to result.cost))
             }
-            is net.lumalyte.lg.application.services.HomeActivationCostResult.Rejected ->
-                player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.payment_rejected", "reason" to result.reason.name))
+            is net.lumalyte.lg.application.services.HomeActivationCostResult.Rejected -> {
+                if (result.reason == net.lumalyte.lg.domain.gold.GuildGoldRejection.INSUFFICIENT_FUNDS) {
+                    player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.insufficient_guild_gold"))
+                    player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.funding_tip"))
+                } else {
+                    player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.payment_rejected", "reason" to result.reason.name))
+                }
+            }
             net.lumalyte.lg.application.services.HomeActivationCostResult.ConfigurationError ->
                 player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.activation_cost_misconfigured"))
             is net.lumalyte.lg.application.services.HomeActivationCostResult.PaymentFailed ->
@@ -2223,6 +2229,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             is net.lumalyte.lg.application.services.HomeActivationCostResult.Rejected -> {
                 if (result.reason == net.lumalyte.lg.domain.gold.GuildGoldRejection.INSUFFICIENT_FUNDS) {
                     player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.insufficient_guild_gold"))
+                    player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.funding_tip"))
                 } else {
                     player.sendMessage(lang.msg(
                         "command.migrated.guild.setguildhomecommand.payment_rejected",
