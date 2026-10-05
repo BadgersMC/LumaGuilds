@@ -246,7 +246,6 @@ class BedrockGuildProgressionInfoMenu(
                 lang.bedrock(
                     "bedrock.progression.sources.unlimited",
                     "source" to source,
-                    "used" to view.awardedXp,
                 )
             } else {
                 lang.bedrock(

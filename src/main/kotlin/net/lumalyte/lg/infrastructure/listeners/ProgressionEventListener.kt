@@ -23,6 +23,7 @@ import net.lumalyte.lg.application.persistence.BlockProvenanceRepository
 import net.lumalyte.lg.config.ProgressionConfig
 import net.lumalyte.lg.api.events.GuildBankDepositEvent
 import net.lumalyte.lg.api.events.GuildDisbandedEvent
+import net.lumalyte.lg.api.events.GuildExplorationMilestoneEvent
 import net.lumalyte.lg.api.events.GuildMemberJoinEvent
 import net.lumalyte.lg.api.events.GuildMemberRemovedEvent
 import net.lumalyte.lg.infrastructure.services.AsyncTaskService
@@ -528,6 +529,13 @@ class ProgressionEventListener(
         if (classifier.isExplorationMilestone(key.namespace, key.key)) {
             requestPlayerActivity(event.player, units = 1, source = ExperienceSource.EXPLORATION_MILESTONE)
         }
+    }
+
+    /** External advancement providers publish only newly-completed milestones through the public API event. */
+    @EventHandler(priority = EventPriority.MONITOR)
+    fun onExternalExplorationMilestone(event: GuildExplorationMilestoneEvent) {
+        if (!eligible(event.player)) return
+        requestPlayerActivity(event.player, units = 1, source = ExperienceSource.EXPLORATION_MILESTONE)
     }
 
     private fun lunarMultiplier(player: Player): Int {

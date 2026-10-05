@@ -16,13 +16,19 @@ class ProgressionSourceConfigTest {
     fun `default policies match chapter two balance model`() {
         val policies = ConfigServiceBukkit(YamlConfiguration()).loadConfig().progression.sourcePolicies
 
+        assertPolicy(policies, ExperienceSource.BANK_DEPOSIT, 1, 500, CapPeriod.DAILY, "BANK_DEPOSIT")
         assertPolicy(policies, ExperienceSource.MOB_KILL, 2, 6_000, CapPeriod.DAILY, "MOB_KILL")
         assertPolicy(policies, ExperienceSource.PLAYER_KILL, 100, 6_000, CapPeriod.DAILY, "PLAYER_KILL")
         assertPolicy(policies, ExperienceSource.BLOCK_BREAK, 2, 12_000, CapPeriod.DAILY, "BLOCK_BREAK")
+        assertPolicy(policies, ExperienceSource.BREWING, 30, 9_000, CapPeriod.DAILY, "BREWING")
+        assertPolicy(policies, ExperienceSource.EXPLORATION_MILESTONE, 50, 11_250, CapPeriod.DAILY, "EXPLORATION_MILESTONE")
         assertPolicy(policies, ExperienceSource.DIAMOND_ORE, 20, 18_000, CapPeriod.DAILY, "ORE")
         assertPolicy(policies, ExperienceSource.ANCIENT_DEBRIS, 40, 18_000, CapPeriod.DAILY, "ORE")
         assertPolicy(policies, ExperienceSource.CRAFT_RARE, 20, 12_000, CapPeriod.DAILY, "CRAFTING")
         assertPolicy(policies, ExperienceSource.ENDER_DRAGON_KILL, 1_200, 12_000, CapPeriod.WEEKLY, "ENDER_DRAGON_KILL")
+        assertPolicy(policies, ExperienceSource.WITHER_KILL, 700, 10_500, CapPeriod.WEEKLY, "WITHER_KILL")
+        assertPolicy(policies, ExperienceSource.ELDER_GUARDIAN_KILL, 500, 7_500, CapPeriod.WEEKLY, "ELDER_GUARDIAN_KILL")
+        assertPolicy(policies, ExperienceSource.WARDEN_KILL, 600, 6_000, CapPeriod.WEEKLY, "WARDEN_KILL")
         assertPolicy(policies, ExperienceSource.QUALIFIED_RECRUIT, 1_000, 5_000, CapPeriod.WEEKLY, "QUALIFIED_RECRUIT")
         assertPolicy(policies, ExperienceSource.PRE_CAP_WAR_WIN, 10_000, 20_000, CapPeriod.WEEKLY, "PRE_CAP_WAR_WIN")
         assertEquals(CapPeriod.UNLIMITED, policies.getValue(ExperienceSource.WEEKLY_ACTIVITY).period)
