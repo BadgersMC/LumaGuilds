@@ -31,11 +31,11 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 /**
- * Guild Progression Menu — shows guild level, daily XP caps per source, and rewards.
+ * Guild Progression Menu — shows guild level, period-aware XP caps per source, and rewards.
  *
  * 6-row layout with a dedicated sidebar and a row-major source grid.
  *
- * Row 0: [     Guild Level + XP bar + today's total     ][Back][Close]
+ * Row 0: [ Guild Level + XP bar + daily/weekly totals ][Back]
  * Row 1: [Rank] ─── 24-slot paginated source grid ───────
  * Row 2: [Srcs]
  * Row 3: [Perks]
@@ -154,8 +154,15 @@ class GuildProgressionMenu(
 
     private fun addGuildLevelHeader(pane: StaticPane, prog: GuildProgressionDisplay, sourceUsage: List<SourceUsageView>) {
         val (_, totalXp, currentXp, neededXp, perksCount) = prog
-        val percent = if (neededXp > 0) (currentXp.toDouble() / neededXp.toDouble() * 100).toInt() else 0
+        val maxLevel = neededXp <= 0
+        val percent = if (maxLevel) 100 else (currentXp.toDouble() / neededXp.toDouble() * 100).toInt()
         val totalToday = sourceUsage.filter { it.period == CapPeriod.DAILY }.sumOf { it.awardedXp }
+        val totalThisWeek = sourceUsage.filter { it.period == CapPeriod.WEEKLY }.sumOf { it.awardedXp }
+        val progressLine = if (maxLevel) {
+            lang.gui("menu.guild_progression.level.maxed")
+        } else {
+            lang.gui("menu.guild_progression.level.progress", "current" to currentXp, "needed" to neededXp, "percent" to percent)
+        }
 
         val bars = buildProgressBar(percent, 20)
         val item = NexoItemProvider.getItemStackOrFallback("lg_level") {
@@ -163,9 +170,10 @@ class GuildProgressionMenu(
         }.also { it.editMeta { meta ->
             meta.displayName(lang.gui("menu.guild_progression.level.name", "level" to prog.level))
             val lore = mutableListOf(
-                lang.gui("menu.guild_progression.level.progress", "current" to currentXp, "needed" to neededXp, "percent" to percent),
+                progressLine,
                 lang.gui("menu.guild_progression.level.bar", "bar" to bars),
-                lang.gui("menu.guild_progression.level.today", "xp" to totalToday),
+                lang.gui("menu.guild_progression.level.daily_pools", "xp" to totalToday),
+                lang.gui("menu.guild_progression.level.weekly_pools", "xp" to totalThisWeek),
                 Component.empty(),
                 lang.gui("menu.guild_progression.level.perks", "count" to perksCount),
                 lang.gui("menu.guild_progression.level.total", "xp" to totalXp)
@@ -224,9 +232,14 @@ class GuildProgressionMenu(
                     else -> lang.gui("menu.guild_progression.source.progress.available", "bar" to bars, "percent" to percent)
                 }
                 lore.add(progress)
-                lore.add(lang.gui("menu.guild_progression.source.today", "today" to usedXp, "cap" to cap))
+                val usageLine = when (usage.period) {
+                    CapPeriod.DAILY -> lang.gui("menu.guild_progression.source.daily_period", "used" to usedXp, "cap" to cap)
+                    CapPeriod.WEEKLY -> lang.gui("menu.guild_progression.source.weekly_period", "used" to usedXp, "cap" to cap)
+                    CapPeriod.UNLIMITED -> lang.gui("menu.guild_progression.source.unlimited")
+                }
+                lore.add(usageLine)
             } else {
-                lore.add(lang.gui("menu.guild_progression.source.tracked", "xp" to usedXp))
+                lore.add(lang.gui("menu.guild_progression.source.unlimited"))
             }
             meta.lore(lore)
         }}

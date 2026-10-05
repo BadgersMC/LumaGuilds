@@ -6,6 +6,7 @@ import net.lumalyte.lg.domain.entities.Relation
 import net.lumalyte.lg.domain.entities.RelationType
 import net.lumalyte.lg.domain.entities.ExtendedLeaderboardType
 import net.lumalyte.lg.domain.entities.LeaderboardPeriod
+import org.bukkit.entity.Player
 import org.bukkit.event.Cancellable
 import org.bukkit.event.Event
 import org.bukkit.event.HandlerList
@@ -33,6 +34,7 @@ class GuildEventApiContractTest {
         GuildBannerSetEvent::class.java,
         GuildCreatedEvent::class.java,
         GuildDisbandedEvent::class.java,
+        GuildExplorationMilestoneEvent::class.java,
         GuildHomeSetEvent::class.java,
         GuildLeaderboardRankChangeEvent::class.java,
         GuildLevelChangedEvent::class.java,
@@ -54,6 +56,7 @@ class GuildEventApiContractTest {
         GuildBannerSetEvent::class.java to listOf(UUID::class.java, UUID::class.java),
         GuildCreatedEvent::class.java to listOf(Guild::class.java, UUID::class.java),
         GuildDisbandedEvent::class.java to listOf(Guild::class.java, Set::class.java, UUID::class.java),
+        GuildExplorationMilestoneEvent::class.java to listOf(Player::class.java, String::class.java, String::class.java),
         GuildHomeSetEvent::class.java to listOf(UUID::class.java, UUID::class.java),
         GuildLeaderboardRankChangeEvent::class.java to listOf(
             UUID::class.java,
@@ -107,6 +110,11 @@ class GuildEventApiContractTest {
             PayloadContract("guild", typeOf<Guild>()),
             PayloadContract("memberIds", typeOf<Set<UUID>>()),
             PayloadContract("actorId", typeOf<UUID>())
+        ),
+        GuildExplorationMilestoneEvent::class to listOf(
+            PayloadContract("player", typeOf<Player>()),
+            PayloadContract("provider", typeOf<String>()),
+            PayloadContract("milestoneId", typeOf<String>())
         ),
         GuildHomeSetEvent::class to listOf(
             PayloadContract("guildId", typeOf<UUID>()),
@@ -242,6 +250,7 @@ class GuildEventApiContractTest {
             GuildBannerSetEvent(first, second),
             GuildCreatedEvent(guild, first),
             GuildDisbandedEvent(guild, setOf(first), second),
+            GuildExplorationMilestoneEvent(mockk<Player>(), "EnthusiaAdvancements", "exploration:first_steps"),
             GuildHomeSetEvent(first, second),
             GuildLeaderboardRankChangeEvent(
                 first,
