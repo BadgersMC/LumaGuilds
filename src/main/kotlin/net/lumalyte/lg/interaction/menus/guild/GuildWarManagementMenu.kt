@@ -36,6 +36,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
 
+// Locale keys stay literal so LocaleContractTest can see them.
+@Suppress("StringLiteralDuplication")
 class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                            private var guild: Guild): Menu, KoinComponent {
 
@@ -111,9 +113,8 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
                     MenuIcons.withCount(moreIcon, activeWars.size - 1)
                         .name(lang.gui("menu.guild_war_management.current.more.name", "count" to activeWars.size - 1))
                         .lore(lang.gui("menu.guild_war_management.current.more.description"))
-                pane.addItem(GuiItem(moreWarsItem) {
-                    openWarListMenu()
-                }, 3, 0)
+                val moreGuiItem = GuiItem(moreWarsItem) { openWarListMenu() }
+                pane.addItem(moreGuiItem, MORE_SLOT, 0)
             }
         }
     }
@@ -123,26 +124,28 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         val outgoingDeclarations = warService.getDeclarationsByGuild(guild.id).filter { it.isValid }
 
         // Incoming declarations
-        val incomingItem = MenuIcons.requests(incoming = true, count = incomingDeclarations.size)
-            .name(lang.gui("menu.guild_war_management.declarations.incoming.name"))
-            .lore(lang.gui("menu.guild_war_management.declarations.incoming.description"))
-            .lore(lang.gui("menu.guild_war_management.declarations.count", "count" to incomingDeclarations.size))
+        val incomingItem =
+            MenuIcons.requests(incoming = true, count = incomingDeclarations.size)
+                .name(lang.gui("menu.guild_war_management.declarations.incoming.name"))
+                .lore(lang.gui("menu.guild_war_management.declarations.incoming.description"))
+                .lore(lang.gui("menu.guild_war_management.declarations.count", "count" to incomingDeclarations.size))
 
         val incomingGuiItem = GuiItem(incomingItem) {
             openIncomingDeclarationsMenu()
         }
-        pane.addItem(incomingGuiItem, 3, 2)
+        pane.addItem(incomingGuiItem, INCOMING_SLOT, 2)
 
         // Outgoing declarations
-        val outgoingItem = MenuIcons.requests(incoming = false, count = outgoingDeclarations.size)
-            .name(lang.gui("menu.guild_war_management.declarations.outgoing.name"))
-            .lore(lang.gui("menu.guild_war_management.declarations.outgoing.description"))
-            .lore(lang.gui("menu.guild_war_management.declarations.count", "count" to outgoingDeclarations.size))
+        val outgoingItem =
+            MenuIcons.requests(incoming = false, count = outgoingDeclarations.size)
+                .name(lang.gui("menu.guild_war_management.declarations.outgoing.name"))
+                .lore(lang.gui("menu.guild_war_management.declarations.outgoing.description"))
+                .lore(lang.gui("menu.guild_war_management.declarations.count", "count" to outgoingDeclarations.size))
 
         val outgoingGuiItem = GuiItem(outgoingItem) {
             openOutgoingDeclarationsMenu()
         }
-        pane.addItem(outgoingGuiItem, 5, 2)
+        pane.addItem(outgoingGuiItem, OUTGOING_SLOT, 2)
     }
 
     private fun addWarActionsSection(pane: StaticPane) {
@@ -950,6 +953,9 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
     }
 
     private companion object {
+        const val MORE_SLOT = 3
+        const val INCOMING_SLOT = 3
+        const val OUTGOING_SLOT = 5
         const val ROWS = 4
         const val COLUMNS = 9
         const val BACK_SLOT = 4

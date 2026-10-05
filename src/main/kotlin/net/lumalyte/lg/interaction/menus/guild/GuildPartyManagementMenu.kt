@@ -124,24 +124,24 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
                     MenuIcons.withCount(moreIcon, activeParties.size - 1)
                         .name(lang.gui("menu.party.management.more.name", "count" to activeParties.size - 1))
                         .lore(lang.gui("menu.party.management.more.lore"))
-                pane.addItem(GuiItem(morePartiesItem) {
-                    openPartyListMenu()
-                }, 3, 0)
+                val moreGuiItem = GuiItem(morePartiesItem) { openPartyListMenu() }
+                pane.addItem(moreGuiItem, MORE_SLOT, 0)
             }
 
             // Add moderation button for each party (if player has permission)
             val canModerate = memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS)
             if (canModerate) {
-                val moderateItem = NexoItemProvider.getItemStackOrFallback("lg_party_moderate") { ItemStack.of(Material.ANVIL) }
-                    .name(lang.gui("menu.party.management.moderate.name"))
-                    .lore(lang.gui("menu.party.management.moderate.lore"))
-                    .lore(lang.gui("menu.party.management.moderate.channel", "channel" to (party.name ?: lang.gui("menu.party.management.this_channel"))))
-                    .lore(lang.gui("menu.common.blank"))
-                    .lore(lang.gui("menu.party.management.moderate.click"))
+                val channel = party.name ?: lang.gui("menu.party.management.this_channel")
+                val moderateItem =
+                    NexoItemProvider.getItemStackOrFallback("lg_party_moderate") { ItemStack.of(Material.ANVIL) }
+                        .name(lang.gui("menu.party.management.moderate.name"))
+                        .lore(lang.gui("menu.party.management.moderate.lore"))
+                        .lore(lang.gui("menu.party.management.moderate.channel", "channel" to channel))
+                        .lore(lang.gui("menu.common.blank"))
+                        .lore(lang.gui("menu.party.management.moderate.click"))
 
-                pane.addItem(GuiItem(moderateItem) {
-                    openModerationMenu(party)
-                }, 6, 0)
+                val moderateGuiItem = GuiItem(moderateItem) { openModerationMenu(party) }
+                pane.addItem(moderateGuiItem, MODERATE_SLOT, 0)
             }
         }
     }
@@ -151,26 +151,28 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         val outgoingRequests = partyService.getPendingRequestsFromGuild(guild.id)
 
         // Incoming requests
-        val incomingItem = MenuIcons.requests(incoming = true, count = incomingRequests.size)
-            .name(lang.gui("menu.party.management.incoming.name"))
-            .lore(lang.gui("menu.party.management.incoming.lore"))
-            .lore(lang.gui("menu.party.management.request_count", "count" to incomingRequests.size))
+        val incomingItem =
+            MenuIcons.requests(incoming = true, count = incomingRequests.size)
+                .name(lang.gui("menu.party.management.incoming.name"))
+                .lore(lang.gui("menu.party.management.incoming.lore"))
+                .lore(lang.gui("menu.party.management.request_count", "count" to incomingRequests.size))
 
         val incomingGuiItem = GuiItem(incomingItem) {
             openIncomingRequestsMenu()
         }
-        pane.addItem(incomingGuiItem, 3, 2)
+        pane.addItem(incomingGuiItem, INCOMING_SLOT, 2)
 
         // Outgoing requests
-        val outgoingItem = MenuIcons.requests(incoming = false, count = outgoingRequests.size)
-            .name(lang.gui("menu.party.management.outgoing.name"))
-            .lore(lang.gui("menu.party.management.outgoing.lore"))
-            .lore(lang.gui("menu.party.management.request_count", "count" to outgoingRequests.size))
+        val outgoingItem =
+            MenuIcons.requests(incoming = false, count = outgoingRequests.size)
+                .name(lang.gui("menu.party.management.outgoing.name"))
+                .lore(lang.gui("menu.party.management.outgoing.lore"))
+                .lore(lang.gui("menu.party.management.request_count", "count" to outgoingRequests.size))
 
         val outgoingGuiItem = GuiItem(outgoingItem) {
             openOutgoingRequestsMenu()
         }
-        pane.addItem(outgoingGuiItem, 5, 2)
+        pane.addItem(outgoingGuiItem, OUTGOING_SLOT, 2)
     }
 
     private fun addPartyActionsSection(pane: StaticPane) {
@@ -466,6 +468,10 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
     }
 
     private companion object {
+        const val MORE_SLOT = 3
+        const val MODERATE_SLOT = 6
+        const val INCOMING_SLOT = 3
+        const val OUTGOING_SLOT = 5
         const val ROWS = 4
         const val COLUMNS = 9
         const val BACK_SLOT = 4

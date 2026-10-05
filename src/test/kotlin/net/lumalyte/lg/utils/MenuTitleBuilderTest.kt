@@ -212,15 +212,17 @@ class MenuTitleBuilderTest {
         }
     }
 
+    /** Vanilla theme keeps the title text in the default dark chest colour. */
     @Test
-    fun `vanilla theme keeps the title text in the default dark chest colour`() {
+    fun vanillaKeepsDefaultTitleColour() {
         assertEquals("§rGuild Actions", MenuTitleBuilder.build(GuiTheme.VANILLA, 3, "§fGuild Actions"))
         assertEquals("§r⚔ War - §cRed", MenuTitleBuilder.build(GuiTheme.VANILLA, 3, "§f⚔ War - §cRed"))
         assertEquals("", MenuTitleBuilder.build(GuiTheme.VANILLA, 3))
     }
 
+    /** Every other theme still draws a background. */
     @Test
-    fun `every other theme still draws a background`() {
+    fun otherThemesDrawBackground() {
         GuiTheme.entries.filter { it != GuiTheme.VANILLA }.forEach { assertTrue(it.hasBackground, it.name) }
     }
 
