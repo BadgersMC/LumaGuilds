@@ -14,17 +14,23 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.util.UUID
 
-class MenuIconAdapterTest {
+/** Which players are sent vanilla icons or plain titles, and when the packet listener hooks in. */
+@Suppress("TooManyFunctions")
+internal class MenuIconAdapterTest {
     private val guildService = mockk<GuildService>()
     private val platform = mockk<PlatformDetectionService>()
     private var bedrock = BedrockConfig()
     private var packetEventsUp = false
     private var hooked = 0
-    private val adapter = MenuIconAdapter(
-        mockk<Plugin>(relaxed = true), platform, guildService, { bedrock },
-        packetEventsReady = { packetEventsUp },
-        hookPacketEvents = { hooked++ },
-    )
+    private val adapter =
+        MenuIconAdapter(
+            plugin = mockk<Plugin>(relaxed = true),
+            platform = platform,
+            guildService = guildService,
+            bedrockConfig = { bedrock },
+            packetEventsReady = { packetEventsUp },
+            hookPacketEvents = { hooked++ },
+        )
 
     private fun player(bedrock: Boolean, theme: GuiTheme?): Player {
         val id = UUID.randomUUID()
@@ -36,31 +42,36 @@ class MenuIconAdapterTest {
         return p
     }
 
+    /** Java player in a themed guild keeps custom icons. */
     @Test
-    fun `java player in a themed guild keeps custom icons`() {
+    fun themedJavaKeepsIcons() {
         val p = player(bedrock = false, theme = GuiTheme.ENTHUSIA)
         adapter.refresh(p)
         assertFalse(adapter.showsVanillaIcons(p.uniqueId))
     }
 
+    /** Java player in a vanilla-style guild gets vanilla icons. */
     @Test
-    fun `java player in a vanilla-style guild gets vanilla icons`() {
+    fun vanillaStyleJavaGetsVanilla() {
         val p = player(bedrock = false, theme = GuiTheme.VANILLA)
         adapter.refresh(p)
         assertTrue(adapter.showsVanillaIcons(p.uniqueId))
     }
 
+    /** Switching the guild back to a theme restores custom icons. */
     @Test
-    fun `switching the guild back to a theme restores custom icons`() {
+    fun themeSwitchRestoresIcons() {
         val p = player(bedrock = false, theme = GuiTheme.VANILLA)
         adapter.refresh(p)
-        every { guildService.getPlayerGuilds(p.uniqueId) } returns setOf(mockk<Guild> { every { guiTheme } returns GuiTheme.OBSIDIAN })
+        val themed = mockk<Guild> { every { guiTheme } returns GuiTheme.OBSIDIAN }
+        every { guildService.getPlayerGuilds(p.uniqueId) } returns setOf(themed)
         adapter.refresh(p)
         assertFalse(adapter.showsVanillaIcons(p.uniqueId))
     }
 
+    /** Bedrock players keep mapped custom icons by default. */
     @Test
-    fun `bedrock players keep mapped custom icons by default`() {
+    fun bedrockKeepsIconsByDefault() {
         // Geyser custom-item mappings already draw lg_ icons for Bedrock; the swap must be opt-in.
         val p = player(bedrock = true, theme = GuiTheme.ENTHUSIA)
         adapter.refresh(p)
@@ -68,8 +79,9 @@ class MenuIconAdapterTest {
         assertFalse(adapter.cleansTitlesFor(p.uniqueId))
     }
 
+    /** Bedrock vanilla icons and plain titles are opt-in. */
     @Test
-    fun `bedrock vanilla icons and plain titles are opt-in`() {
+    fun bedrockFallbacksAreOptIn() {
         bedrock = BedrockConfig(javaMenuVanillaIcons = true, javaMenuPlainTitles = true)
         val p = player(bedrock = true, theme = GuiTheme.ENTHUSIA)
         adapter.refresh(p)
@@ -77,30 +89,34 @@ class MenuIconAdapterTest {
         assertTrue(adapter.cleansTitlesFor(p.uniqueId))
     }
 
+    /** Vanilla-style guild members get vanilla icons regardless of bedrock settings. */
     @Test
-    fun `vanilla-style guild members get vanilla icons regardless of bedrock settings`() {
+    fun vanillaStyleBedrockGetsVanilla() {
         val p = player(bedrock = true, theme = GuiTheme.VANILLA)
         adapter.refresh(p)
         assertTrue(adapter.showsVanillaIcons(p.uniqueId))
     }
 
+    /** Players without a guild keep custom icons. */
     @Test
-    fun `players without a guild keep custom icons`() {
+    fun guildlessPlayerKeepsIcons() {
         val p = player(bedrock = false, theme = null)
         adapter.refresh(p)
         assertFalse(adapter.showsVanillaIcons(p.uniqueId))
     }
 
+    /** Forgetting a player clears the decision. */
     @Test
-    fun `forgetting a player clears the decision`() {
+    fun forgetClearsDecision() {
         val p = player(bedrock = false, theme = GuiTheme.VANILLA)
         adapter.refresh(p)
         adapter.forget(p.uniqueId)
         assertFalse(adapter.showsVanillaIcons(p.uniqueId))
     }
 
+    /** Packet listener hooks in when packetevents enables after lumaguilds. */
     @Test
-    fun `packet listener hooks in when packetevents enables after lumaguilds`() {
+    fun hooksWhenPacketEventsEnables() {
         // Seen on SMP Test: packetevents enabled after LumaGuilds despite the softdepend.
         adapter.register()
         assertTrue(hooked == 0)
@@ -111,15 +127,17 @@ class MenuIconAdapterTest {
         assertTrue(hooked == 1, "must hook only once")
     }
 
+    /** Packet listener hooks in immediately when packetevents is already up. */
     @Test
-    fun `packet listener hooks in immediately when packetevents is already up`() {
+    fun hooksImmediatelyWhenUp() {
         packetEventsUp = true
         adapter.register()
         assertTrue(hooked == 1)
     }
 
+    /** Other plugins enabling do not hook the listener. */
     @Test
-    fun `other plugins enabling do not hook the listener`() {
+    fun otherPluginsDoNotHook() {
         adapter.register()
         packetEventsUp = true
         adapter.pluginEnabled("Nexo")

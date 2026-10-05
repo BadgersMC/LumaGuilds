@@ -17,14 +17,25 @@ enum class GuiTheme(val displayName: String, val hasBackground: Boolean = true) 
     MOSSBOUND("Mossbound"),
     LAVENDER_HALL("Lavender Hall"),
     IRON_ROSE("Iron Rose"),
+
+    /** Enthusia guild menu style; the default. */
     ENTHUSIA("Enthusia"),
+
+    /** Enthusia layout in the Frostbound palette. */
     FROSTBOUND("Frostbound"),
+
+    /** Enthusia layout in the Verdant palette. */
     VERDANT("Verdant"),
+
+    /** Enthusia layout in the Voidlight palette. */
     VOIDLIGHT("Voidlight"),
+
+    /** Enthusia layout in the Obsidian palette. */
     OBSIDIAN("Obsidian"),
 
     /** Plain vanilla chest: no background glyph and vanilla item icons, for guilds that prefer it. */
-    VANILLA("Vanilla", hasBackground = false);
+    VANILLA("Vanilla", hasBackground = false),
+    ;
 
     /**
      * The style actually drawn. The six pre-Enthusia themes stay in the enum so stored values still

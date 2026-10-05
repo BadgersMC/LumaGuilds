@@ -82,7 +82,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Current mode display
         val currentModeItem = NexoItemProvider.getItemStackOrFallback(
-            if (guild.mode == GuildMode.PEACEFUL) "lg_mode_peaceful" else "lg_mode_hostile"
+            if (guild.mode == GuildMode.PEACEFUL) PEACEFUL_ICON else HOSTILE_ICON
         ) {
             ItemStack.of(if (guild.mode == GuildMode.PEACEFUL) Material.GREEN_WOOL else Material.RED_WOOL)
         }
@@ -110,9 +110,10 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Peaceful Mode Option
         if (guild.mode != GuildMode.PEACEFUL) {
-            val peacefulItem = NexoItemProvider.getItemStackOrFallback("lg_mode_peaceful") { ItemStack.of(Material.GREEN_WOOL) }
-                .name(lang.gui("menu.guild_mode.peaceful.name"))
-                .lore(lang.gui("menu.guild_mode.peaceful.benefits"))
+            val peacefulItem =
+                NexoItemProvider.getItemStackOrFallback(PEACEFUL_ICON) { ItemStack.of(Material.GREEN_WOOL) }
+                    .name(lang.gui("menu.guild_mode.peaceful.name"))
+                    .lore(lang.gui("menu.guild_mode.peaceful.benefits"))
 
             // Only show claim-related PvP benefit if claims are enabled
             if (claimsEnabled) {
@@ -165,9 +166,10 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Hostile Mode Option
         if (guild.mode != GuildMode.HOSTILE) {
-            val hostileItem = NexoItemProvider.getItemStackOrFallback("lg_mode_hostile") { ItemStack.of(Material.RED_WOOL) }
-                .name(lang.gui("menu.guild_mode.hostile.name"))
-                .lore(lang.gui("menu.guild_mode.hostile.benefits"))
+            val hostileItem =
+                NexoItemProvider.getItemStackOrFallback(HOSTILE_ICON) { ItemStack.of(Material.RED_WOOL) }
+                    .name(lang.gui("menu.guild_mode.hostile.name"))
+                    .lore(lang.gui("menu.guild_mode.hostile.benefits"))
 
             // Only show claim-related PvP benefit if claims are enabled
             if (claimsEnabled) {
@@ -208,7 +210,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Current Mode Display
         val currentModeItem = NexoItemProvider.getItemStackOrFallback(
-            if (guild.mode == GuildMode.PEACEFUL) "lg_mode_peaceful" else "lg_mode_hostile"
+            if (guild.mode == GuildMode.PEACEFUL) PEACEFUL_ICON else HOSTILE_ICON
         ) {
             ItemStack.of(if (guild.mode == GuildMode.PEACEFUL) Material.GREEN_WOOL else Material.RED_WOOL)
         }
@@ -303,5 +305,9 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return
     }
-}
 
+    private companion object {
+        const val PEACEFUL_ICON = "lg_mode_peaceful"
+        const val HOSTILE_ICON = "lg_mode_hostile"
+    }
+}

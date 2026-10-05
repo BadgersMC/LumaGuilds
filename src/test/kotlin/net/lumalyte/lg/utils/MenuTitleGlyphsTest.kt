@@ -9,7 +9,9 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
-class MenuTitleGlyphsTest {
+/** Background glyph font handling for themed menu titles. */
+@Suppress("MagicNumber")
+internal class MenuTitleGlyphsTest {
     private val nexoFont = Key.key("nexo", "default")
     private val lookup: (String) -> Component? = { id ->
         if (id == "guild_bg_enthusia_6_row") Component.text("ꁅ").font(nexoFont) else null
@@ -26,8 +28,9 @@ class MenuTitleGlyphsTest {
         return out
     }
 
+    /** Background glyph tag becomes the glyph with its nexo font. */
     @Test
-    fun `background glyph tag becomes the glyph with its nexo font`() {
+    fun backgroundTagGetsNexoFont() {
         val raw = Component.text(MenuTitleBuilder.build(GuiTheme.ENTHUSIA, 6, "Guild Settings"))
         val fixed = MenuTitleGlyphs.withGlyphFonts(raw, lookup)
         assertTrue(fonts(fixed).any { it.first == "ꁅ" && it.second == nexoFont }, fonts(fixed).toString())
@@ -36,14 +39,16 @@ class MenuTitleGlyphsTest {
         assertTrue(plain.contains("<shift:-9>") && plain.contains("<shift:-161>Guild Settings"), plain)
     }
 
+    /** Unknown glyphs keep their tag so nexo can still try. */
     @Test
-    fun `unknown glyphs keep their tag so nexo can still try`() {
+    fun unknownGlyphKeepsTag() {
         val raw = Component.text(MenuTitleBuilder.build(GuiTheme.VOIDLIGHT, 3, "X"))
         assertEquals(raw, MenuTitleGlyphs.withGlyphFonts(raw, lookup))
     }
 
+    /** Titles without a guild background are untouched. */
     @Test
-    fun `titles without a guild background are untouched`() {
+    fun plainTitlesUntouched() {
         val raw = Component.text("Crate Rewards")
         assertFalse(MenuTitleGlyphs.hasBackgroundGlyph(raw))
         assertEquals(raw, MenuTitleGlyphs.withGlyphFonts(raw, lookup))

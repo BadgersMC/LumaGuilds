@@ -48,8 +48,9 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault())
 
     override fun open() {
-        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, lang.guiTitle("menu.guild_war_management.title", "guild" to guild.name)))
-        val pane = StaticPane(0, 0, 9, 4)
+        val heading = lang.guiTitle("menu.guild_war_management.title", "guild" to guild.name)
+        val gui = ChestGui(ROWS, MenuTitleBuilder.build(guild.guiTheme, ROWS, heading))
+        val pane = StaticPane(0, 0, COLUMNS, ROWS)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
             if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
@@ -71,7 +72,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         addWarStatsSection(pane)
 
         // Row 6: Navigation
-        addBackButton(pane, 4, 3)
+        addBackButton(pane, BACK_SLOT, ROWS - 1)
 
         gui.show(player)
     }
@@ -80,10 +81,11 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         val activeWars = warService.getWarsForGuild(guild.id).filter { it.isActive }
 
         if (activeWars.isEmpty()) {
-            val noWarsItem = NexoItemProvider.getItemStackOrFallback("lg_no_wars") { ItemStack.of(Material.BARRIER) }
-                .name(lang.gui("menu.guild_war_management.current.none.name"))
-                .lore(lang.gui("menu.guild_war_management.current.none.description"))
-                .lore(lang.gui("menu.guild_war_management.current.none.hint"))
+            val noWarsItem =
+                NexoItemProvider.getItemStackOrFallback("lg_no_wars") { ItemStack.of(Material.BARRIER) }
+                    .name(lang.gui("menu.guild_war_management.current.none.name"))
+                    .lore(lang.gui("menu.guild_war_management.current.none.description"))
+                    .lore(lang.gui("menu.guild_war_management.current.none.hint"))
             pane.addItem(GuiItem(noWarsItem), 2, 0)
         } else {
             // Display first active war
@@ -943,5 +945,11 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return
+    }
+
+    private companion object {
+        const val ROWS = 4
+        const val COLUMNS = 9
+        const val BACK_SLOT = 4
     }
 }

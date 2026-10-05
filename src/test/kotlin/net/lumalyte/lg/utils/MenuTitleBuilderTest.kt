@@ -18,6 +18,7 @@ import org.junit.jupiter.params.provider.CsvSource
  * - Visible title text appears after the rewind shift when supplied
  * - No-title path still produces a clean background-only string
  */
+@Suppress("MagicNumber")
 class MenuTitleBuilderTest {
 
     // ---------------------------------------------------------------
@@ -50,7 +51,7 @@ class MenuTitleBuilderTest {
         "OBSIDIAN,   3, guild_bg_obsidian_3_row",
         "OBSIDIAN,   4, guild_bg_obsidian_4_row",
         "OBSIDIAN,   5, guild_bg_obsidian_5_row",
-        "OBSIDIAN,   6, guild_bg_obsidian_6_row"
+        "OBSIDIAN,   6, guild_bg_obsidian_6_row",
     )
     fun `build returns correct glyph name for each theme and row count`(
         themeName: String,
@@ -80,12 +81,13 @@ class MenuTitleBuilderTest {
 
     @Test
     fun `prefix is identical across themes and row counts`() {
-        val titles = GuiTheme.entries.filter { it.hasBackground }.flatMap { theme ->
-            listOf(1, 3, 4, 5, 6).map { rows ->
-                MenuTitleBuilder.build(theme, rows)
-                    .substringBefore("<glyph:")
+        val titles =
+            GuiTheme.entries.filter { it.hasBackground }.flatMap { theme ->
+                listOf(1, 3, 4, 5, 6).map { rows ->
+                    MenuTitleBuilder.build(theme, rows)
+                        .substringBefore("<glyph:")
+                }
             }
-        }
         val first = titles.first()
         titles.forEachIndexed { i, prefix ->
             assertEquals(first, prefix, "Prefix mismatch at index $i: '$prefix' != '$first'")
@@ -111,8 +113,9 @@ class MenuTitleBuilderTest {
     // 4. Default parameters use ENTHUSIA and the provided row count
     // ---------------------------------------------------------------
 
+    /** Default theme is ENTHUSIA. */
     @Test
-    fun `default theme is ENTHUSIA`() {
+    fun defaultThemeIsEnthusia() {
         val title = MenuTitleBuilder.build(rows = 3)
         assertTrue(title.contains("guild_bg_enthusia_3_row"))
     }
@@ -124,8 +127,10 @@ class MenuTitleBuilderTest {
     @Test
     fun `no stray content after the glyph tag when no title`() {
         val title = MenuTitleBuilder.build(GuiTheme.FROSTBOUND, 6)
-        assertTrue(title.endsWith("<glyph:guild_bg_frostbound_6_row>"),
-            "Expected title to end with glyph tag, got: '$title'")
+        assertTrue(
+            title.endsWith("<glyph:guild_bg_frostbound_6_row>"),
+            "Expected title to end with glyph tag, got: '$title'",
+        )
     }
 
     // ---------------------------------------------------------------

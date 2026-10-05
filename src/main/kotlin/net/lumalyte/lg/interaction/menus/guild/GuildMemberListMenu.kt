@@ -104,9 +104,16 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
         // Navigation buttons
         if (paginatedPane.pages > 1) {
             // Previous page button
-            val prevButton = NexoItemProvider.getItemStackOrFallback("lg_page_prev") { ItemStack.of(Material.ARROW) }
-                .name(lang.gui("menu.member_list.item.previous.name"))
-                .lore(lang.gui("menu.common.item.page.name", "current_page" to (paginatedPane.page + 1), "total_pages" to paginatedPane.pages))
+            val prevButton =
+                NexoItemProvider.getItemStackOrFallback("lg_page_prev") { ItemStack.of(Material.ARROW) }
+                    .name(lang.gui("menu.member_list.item.previous.name"))
+                    .lore(
+                        lang.gui(
+                            "menu.common.item.page.name",
+                            "current_page" to (paginatedPane.page + 1),
+                            "total_pages" to paginatedPane.pages,
+                        ),
+                    )
 
             val prevGuiItem = GuiItem(prevButton) {
                 if (paginatedPane.page > 0) {
@@ -117,9 +124,16 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
             staticPane.addItem(prevGuiItem, 0, 0)
 
             // Next page button
-            val nextButton = NexoItemProvider.getItemStackOrFallback("lg_page_next") { ItemStack.of(Material.ARROW) }
-                .name(lang.gui("menu.member_list.item.next.name"))
-                .lore(lang.gui("menu.common.item.page.name", "current_page" to (paginatedPane.page + 1), "total_pages" to paginatedPane.pages))
+            val nextButton =
+                NexoItemProvider.getItemStackOrFallback("lg_page_next") { ItemStack.of(Material.ARROW) }
+                    .name(lang.gui("menu.member_list.item.next.name"))
+                    .lore(
+                        lang.gui(
+                            "menu.common.item.page.name",
+                            "current_page" to (paginatedPane.page + 1),
+                            "total_pages" to paginatedPane.pages,
+                        ),
+                    )
 
             val nextGuiItem = GuiItem(nextButton) {
                 if (paginatedPane.page < paginatedPane.pages - 1) {
@@ -134,17 +148,18 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
         val infoItem = ItemStack.of(Material.PLAYER_HEAD)
             .name(lang.gui("menu.member_list.item.summary.name", "member_count" to members.size))
             .lore(lang.gui("menu.member_list.item.summary.lore", "guild" to guild.name))
-        staticPane.addItem(GuiItem(infoItem), 7, 0)
+        staticPane.addItem(GuiItem(infoItem), INFO_SLOT, 0)
 
         // Back button
-        val backButton = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
-            .name(lang.gui("menu.member_list.item.back.name"))
-            .lore(lang.gui("menu.member_list.item.back.lore"))
+        val backButton =
+            NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
+                .name(lang.gui("menu.member_list.item.back.name"))
+                .lore(lang.gui("menu.member_list.item.back.lore"))
 
         val backGuiItem = GuiItem(backButton) {
             menuNavigator.goBack()
         }
-        staticPane.addItem(backGuiItem, 4, 0)
+        staticPane.addItem(backGuiItem, BACK_SLOT, 0)
 
         gui.addPane(paginatedPane)
         gui.addPane(staticPane)
@@ -153,5 +168,10 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
 
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return
+    }
+
+    private companion object {
+        const val BACK_SLOT = 4
+        const val INFO_SLOT = 7
     }
 }

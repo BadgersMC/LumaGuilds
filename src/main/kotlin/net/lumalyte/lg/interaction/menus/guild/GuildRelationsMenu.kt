@@ -28,6 +28,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.*
 
+@Suppress("StringLiteralDuplication") // Locale keys stay literal so LocaleContractTest can see them.
 class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                         private var guild: Guild): Menu, KoinComponent {
 
@@ -38,8 +39,9 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
     private val lang: LangService by inject()
 
     override fun open() {
-        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, lang.guiTitle("menu.guild_relations.title", "guild" to guild.name)))
-        val pane = StaticPane(0, 0, 9, 4)
+        val heading = lang.guiTitle("menu.guild_relations.title", "guild" to guild.name)
+        val gui = ChestGui(ROWS, MenuTitleBuilder.build(guild.guiTheme, ROWS, heading))
+        val pane = StaticPane(0, 0, COLUMNS, ROWS)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
             if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
@@ -61,7 +63,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         addRelationDetailsSection(pane)
 
         // Row 6: Navigation
-        addBackButton(pane, 4, 3)
+        addBackButton(pane, BACK_SLOT, ROWS - 1)
 
         gui.show(player)
     }
@@ -96,7 +98,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val enemiesGuiItem = GuiItem(enemiesItem) {
             openEnemiesListMenu()
         }
-        pane.addItem(enemiesGuiItem, 3, 0)
+        pane.addItem(enemiesGuiItem, ENEMIES_SLOT, 0)
 
         // Truces
         val trucesItem = ItemStack.of(if (truces > 0) Material.CLOCK else Material.GRAY_DYE)
@@ -108,7 +110,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val trucesGuiItem = GuiItem(trucesItem) {
             openTrucesListMenu()
         }
-        pane.addItem(trucesGuiItem, 5, 0)
+        pane.addItem(trucesGuiItem, TRUCES_SLOT, 0)
 
         // Diplomatic Status
         val statusItem = NexoItemProvider.getItemStackOrFallback("lg_nav_diplomacy") { ItemStack.of(Material.BOOK) }
@@ -328,5 +330,12 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return
     }
-}
 
+    private companion object {
+        const val ROWS = 4
+        const val COLUMNS = 9
+        const val BACK_SLOT = 4
+        const val ENEMIES_SLOT = 3
+        const val TRUCES_SLOT = 5
+    }
+}
