@@ -37,7 +37,7 @@ import java.time.format.DateTimeFormatter
 import java.util.*
 
 // Locale keys stay literal so LocaleContractTest can see them.
-@Suppress("StringLiteralDuplication")
+@Suppress("StringLiteralDuplication", "LibraryEntitiesShouldNotBePublic")
 class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                            private var guild: Guild): Menu, KoinComponent {
 
@@ -169,7 +169,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         val warStatsGuiItem = GuiItem(warStatsItem) {
             openWarStatsMenu()
         }
-        pane.addItem(warStatsGuiItem, 3, 1)
+        pane.addItem(warStatsGuiItem, WAR_STATS_SLOT, 1)
 
         // War history
         val warHistoryItem = NexoItemProvider.getItemStackOrFallback("lg_relations_history") { ItemStack.of(Material.BOOKSHELF) }
@@ -180,7 +180,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         val warHistoryGuiItem = GuiItem(warHistoryItem) {
             openWarHistoryMenu()
         }
-        pane.addItem(warHistoryGuiItem, 5, 1)
+        pane.addItem(warHistoryGuiItem, WAR_HISTORY_SLOT, 1)
 
         // Peace agreements
         val peaceItem = NexoItemProvider.getItemStackOrFallback("lg_peace") { ItemStack.of(Material.WHITE_WOOL) }
@@ -191,7 +191,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         val peaceGuiItem = GuiItem(peaceItem) {
             openPeaceAgreementsMenu()
         }
-        pane.addItem(peaceGuiItem, 7, 1)
+        pane.addItem(peaceGuiItem, PEACE_SLOT, 1)
     }
 
     private fun addWarStatsSection(pane: StaticPane) {
@@ -216,7 +216,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         val statsGuiItem = GuiItem(statsItem) {
             openDetailedStatsMenu()
         }
-        pane.addItem(statsGuiItem, 6, 0)
+        pane.addItem(statsGuiItem, STATS_SLOT, 0)
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
@@ -953,6 +953,10 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
     }
 
     private companion object {
+        const val PEACE_SLOT = 7
+        const val WAR_STATS_SLOT = 3
+        const val WAR_HISTORY_SLOT = 5
+        const val STATS_SLOT = 6
         const val MORE_SLOT = 3
         const val INCOMING_SLOT = 3
         const val OUTGOING_SLOT = 5

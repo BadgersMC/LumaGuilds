@@ -203,7 +203,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             }
             openDeclareEnemyMenu()
         }
-        pane.addItem(enemyGuiItem, 5, 1)
+        pane.addItem(enemyGuiItem, ENEMY_ACTION_SLOT, 1)
     }
 
     private fun addRelationDetailsSection(pane: StaticPane) {
@@ -216,7 +216,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val historyGuiItem = GuiItem(historyItem) {
             openDiplomaticHistoryMenu()
         }
-        pane.addItem(historyGuiItem, 4, 2)
+        pane.addItem(historyGuiItem, HISTORY_SLOT, 2)
 
         // Neutral Guilds
         val neutralItem = NexoItemProvider.getItemStackOrFallback("lg_peace") { ItemStack.of(Material.BOOKSHELF) }
@@ -227,7 +227,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val neutralGuiItem = GuiItem(neutralItem) {
             openNeutralGuildsMenu()
         }
-        pane.addItem(neutralGuiItem, 7, 1)
+        pane.addItem(neutralGuiItem, NEUTRAL_ACTION_SLOT, 1)
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
@@ -335,6 +335,9 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
     }
 
     private companion object {
+        const val ENEMY_ACTION_SLOT = 5
+        const val HISTORY_SLOT = 4
+        const val NEUTRAL_ACTION_SLOT = 7
         const val ROWS = 4
         const val COLUMNS = 9
         const val BACK_SLOT = 4
