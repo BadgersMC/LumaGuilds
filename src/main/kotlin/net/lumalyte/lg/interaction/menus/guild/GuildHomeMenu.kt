@@ -74,7 +74,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         // Back button: bottom centre, same as every guild menu (ally homes skip this slot)
-        addBackButton(pane, 4, 5)
+        addBackButton(pane, BACK_SLOT, BOTTOM_ROW)
 
         gui.show(player)
     }
@@ -132,11 +132,13 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Set Additional Home button (if slots available)
         if (allHomes.size < availableSlots) {
-            val setAdditionalItem = NexoItemProvider.getItemStackOrFallback("lg_home_add") { ItemStack.of(Material.LIME_WOOL) }
-                .name(lang.gui("menu.guild_home.set.additional.name"))
-                .lore(lang.gui("menu.guild_home.set.additional.description"))
-                .lore(lang.gui("menu.guild_home.set.additional.command"))
-                .lore(lang.gui("menu.guild_home.set.additional.available", "count" to availableSlots - allHomes.size))
+            val freeSlots = availableSlots - allHomes.size
+            val setAdditionalItem =
+                NexoItemProvider.getItemStackOrFallback("lg_home_add") { ItemStack.of(Material.LIME_WOOL) }
+                    .name(lang.gui("menu.guild_home.set.additional.name"))
+                    .lore(lang.gui("menu.guild_home.set.additional.description"))
+                    .lore(lang.gui("menu.guild_home.set.additional.command"))
+                    .lore(lang.gui("menu.guild_home.set.additional.available", "count" to freeSlots))
 
             val additionalGuiItem = GuiItem(setAdditionalItem) {
                 // This would open a menu to input home name, but for now let's use a simple approach
@@ -148,9 +150,10 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Remove Homes button
         if (allHomes.hasHomes()) {
-            val removeItem = NexoItemProvider.getItemStackOrFallback("lg_home_remove") { ItemStack.of(Material.RED_WOOL) }
-                .name(lang.gui("menu.guild_home.remove.name"))
-                .lore(lang.gui("menu.guild_home.remove.description"))
+            val removeItem =
+                NexoItemProvider.getItemStackOrFallback("lg_home_remove") { ItemStack.of(Material.RED_WOOL) }
+                    .name(lang.gui("menu.guild_home.remove.name"))
+                    .lore(lang.gui("menu.guild_home.remove.description"))
 
             val removeGuiItem = GuiItem(removeItem) {
                 showRemoveHomesMenu()
@@ -523,5 +526,9 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return
     }
-}
 
+    private companion object {
+        const val BACK_SLOT = 4
+        const val BOTTOM_ROW = 5
+    }
+}

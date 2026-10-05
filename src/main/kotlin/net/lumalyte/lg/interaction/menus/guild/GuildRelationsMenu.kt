@@ -187,7 +187,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
             }
             openRequestTruceMenu()
         }
-        pane.addItem(truceGuiItem, 3, 1)
+        pane.addItem(truceGuiItem, TRUCE_ACTION_SLOT, 1)
 
         // Declare Enemy
         val enemyItem = NexoItemProvider.getItemStackOrFallback("lg_enemy") { ItemStack.of(Material.IRON_SWORD) }
@@ -339,6 +339,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         const val COLUMNS = 9
         const val BACK_SLOT = 4
         const val ENEMIES_SLOT = 3
+        const val TRUCE_ACTION_SLOT = 3
         const val TRUCES_SLOT = 5
         const val STATUS_SLOT = 7
         const val OUTGOING_SLOT = 6
