@@ -902,6 +902,8 @@ fun economyModule() = module {
                 }
                 override fun canDeposit(playerId: java.util.UUID, guildId: java.util.UUID) =
                     allowed(playerId, guildId, net.lumalyte.lg.domain.entities.RankPermission.DEPOSIT_TO_BANK)
+                override fun canDepositPhysical(playerId: java.util.UUID, guildId: java.util.UUID) =
+                    members.getByPlayerAndGuild(playerId, guildId) != null
                 override fun canWithdraw(playerId: java.util.UUID, guildId: java.util.UUID) =
                     allowed(playerId, guildId, net.lumalyte.lg.domain.entities.RankPermission.WITHDRAW_FROM_BANK)
             },

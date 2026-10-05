@@ -197,6 +197,16 @@ class BankServiceBukkit(
                 recordCanonicalHistory(canonicalTransaction(result, request.guildId, request.playerId,
                     request.amount.toInt(), request.description,
                     if (withdrawal) TransactionType.WITHDRAWAL else TransactionType.DEPOSIT))
+                if (!withdrawal) {
+                    postDepositApplied(
+                        request.transactionId,
+                        request.guildId,
+                        request.playerId,
+                        request.amount.toInt(),
+                        result.oldBalance,
+                        result.newBalance,
+                    )
+                }
             }
             result
         } catch (error: Exception) {
@@ -215,15 +225,26 @@ class BankServiceBukkit(
             if (result !is net.lumalyte.lg.domain.gold.GuildGoldResult.Applied) return null
             val transaction = canonicalTransaction(result, guildId, playerId, amount, description, TransactionType.DEPOSIT)
             recordCanonicalHistory(transaction)
-            runCatching {
-                chapterTwoGuildAwardService?.awardBankGrowth(guildId, playerId, result.oldBalance, result.newBalance)
-                Bukkit.getPluginManager().callEvent(GuildBankDepositEvent(guildId, playerId, amount))
-            }.onFailure { logger.warn("Post-deposit notification failed for $transactionId", it) }
+            postDepositApplied(transactionId, guildId, playerId, amount, result.oldBalance, result.newBalance)
             transaction
         } catch (error: Exception) {
             logger.error("Canonical deposit $transactionId requires inspection", error)
             null
         }
+    }
+
+    private fun postDepositApplied(
+        transactionId: UUID,
+        guildId: UUID,
+        playerId: UUID,
+        amount: Int,
+        oldBalance: Long,
+        newBalance: Long,
+    ) {
+        runCatching {
+            chapterTwoGuildAwardService?.awardBankGrowth(guildId, playerId, oldBalance, newBalance)
+            Bukkit.getPluginManager().callEvent(GuildBankDepositEvent(guildId, playerId, amount))
+        }.onFailure { logger.warn("Post-deposit notification failed for $transactionId", it) }
     }
 
     override fun withdraw(guildId: UUID, playerId: UUID, amount: Int, description: String?): BankTransaction? =

@@ -27,6 +27,8 @@ sealed interface ExternalTransferResult {
 
 interface GuildGoldAuthorizationPort {
     fun canDeposit(playerId: UUID, guildId: UUID): Boolean
+    /** Physical guild-bank contributions are intentionally broader than virtual-account deposits. */
+    fun canDepositPhysical(playerId: UUID, guildId: UUID): Boolean = canDeposit(playerId, guildId)
     fun canWithdraw(playerId: UUID, guildId: UUID): Boolean
 
     data object AllowAll : GuildGoldAuthorizationPort {

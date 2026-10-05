@@ -3,6 +3,7 @@ package net.lumalyte.lg.infrastructure.services
 import io.mockk.mockk
 import io.mockk.every
 import io.mockk.spyk
+import io.mockk.verify
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.gold.*
 import net.lumalyte.lg.infrastructure.persistence.guilds.GuildGoldRepositorySQL
@@ -32,6 +33,7 @@ class BankServiceBukkitDelegationTest {
     private var depositFee = 0.0
     private var memberBankPermission = true
     private var throwAfterPersonalDebit = false
+    private lateinit var chapterAwards: ChapterTwoGuildAwardService
 
     @BeforeEach fun setup() {
         MockBukkit.mock()
@@ -73,9 +75,11 @@ class BankServiceBukkitDelegationTest {
                 override fun deliver(playerId: UUID, value: Long, transactionId: UUID) = ExternalTransferResult.Unavailable
             },
         )
+        chapterAwards = mockk(relaxed = true)
         bank = BankServiceBukkit(mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
             mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
-            mockk(relaxed = true), mockk(relaxed = true), goldService = gold)
+            mockk(relaxed = true), mockk(relaxed = true), chapterTwoGuildAwardService = chapterAwards,
+            goldService = gold)
     }
 
     @AfterEach fun cleanup() {
@@ -110,6 +114,16 @@ class BankServiceBukkitDelegationTest {
             mockk { every { loadConfig() } returns config }, mockk(relaxed = true), bankFacade,
             mockk { every { getDefaultRank(guildId) } returns if (rankAvailable) rank else null })
         return service to guild
+    }
+
+    @Test fun `physical guild bank deposit awards Chapter 2 bank growth`() {
+        val result = bank.depositPhysical(PhysicalGoldRequest(
+            UUID.randomUUID(), guildId, actorId, 100, "raw gold contribution"))
+
+        assertTrue(result is GuildGoldResult.Applied)
+        verify(exactly = 1) {
+            chapterAwards.awardBankGrowth(guildId, actorId, 0L, 100L, any())
+        }
     }
 
     @Test fun `paid physical join removes currency and credits canonical bank exactly once`() {
