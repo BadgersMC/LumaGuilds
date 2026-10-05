@@ -95,7 +95,7 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
                 .lore(lang.gui("menu.rank_management.item.create.lore.limit"))
             pane.addItem(GuiItem(createRankItem) {
                 menuNavigator.openMenu(menuFactory.createRankCreationMenu(menuNavigator, player, guild))
-            }, 4, 4)
+            }, 8, 4) // right corner: Back keeps the standard bottom-centre slot
         }
 
         if (canManageSettings) {
@@ -110,7 +110,6 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
                 open()
             }, 0, 4)
         }
-        pane.addItem(guiCreateItem, 4, 3)
 
         // Back button
         val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }

@@ -173,12 +173,18 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             }
             pane.addItem(cancelGuiItem, x, y)
         } else if (allHomes.hasHomes()) {
-            // Show teleport to main home button
-            val mainHome = allHomes.defaultHome
-            if (mainHome != null) {
-                val teleportItem = NexoItemProvider.getItemStackOrFallback("lg_home_teleport") { ItemStack.of(Material.ENDER_PEARL) }
-                    .name(lang.gui("menu.guild_home.teleport.main.name"))
-                    .lore(lang.gui("menu.guild_home.teleport.main.description"))
+            // Show teleport/activation for the default home. Saved Season 1 locations remain locked until paid.
+            val mainEntry = allHomes.homes.entries.firstOrNull { it.key == "main" } ?: allHomes.homes.entries.firstOrNull()
+            if (mainEntry != null) {
+                val mainHomeName = mainEntry.key
+                val mainHome = mainEntry.value
+                val active = homeActivationService.isActive(guild.id, mainHomeName)
+                val teleportItem = (
+                    if (active) NexoItemProvider.getItemStackOrFallback("lg_home_teleport") { ItemStack.of(Material.ENDER_PEARL) }
+                    else ItemStack.of(Material.GOLD_INGOT)
+                    )
+                    .name(if (active) lang.gui("menu.guild_home.teleport.main.name") else lang.gui("menu.guild_home.activation.name", "home" to mainHomeName))
+                    .lore(if (active) lang.gui("menu.guild_home.teleport.main.description") else lang.gui("menu.guild_home.activation.description"))
                     .lore(lang.gui("menu.guild_home.world", "world" to (Bukkit.getWorld(mainHome.worldId)?.name ?: lang.raw("general.unknown"))))
                 if (active) teleportItem.lore(lang.gui("menu.guild_home.teleport.main.countdown"))
 
@@ -216,10 +222,18 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         if (!rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_HOME)) return
         val homes = guildService.getHomes(guild.id).homes.entries.toList()
         homes.take(9).forEachIndexed { idx, (homeName, _) ->
-            val item = NexoItemProvider.getItemStackOrFallback("lg_home_access") { ItemStack.of(Material.IRON_DOOR) }
-                .name(lang.gui("menu.guild_home.access.name", "home" to homeName))
-                .lore(lang.gui("menu.guild_home.access.description"))
-                .lore(lang.gui("menu.guild_home.access.click"))
+            val active = homeActivationService.isActive(guild.id, homeName)
+            val item = if (active) {
+                NexoItemProvider.getItemStackOrFallback("lg_home_access") { ItemStack.of(Material.IRON_DOOR) }
+                    .name(lang.gui("menu.guild_home.access.name", "home" to homeName))
+                    .lore(lang.gui("menu.guild_home.access.description"))
+                    .lore(lang.gui("menu.guild_home.access.click"))
+            } else {
+                ItemStack.of(Material.GOLD_INGOT)
+                    .name(lang.gui("menu.guild_home.activation.name", "home" to homeName))
+                    .lore(lang.gui("menu.guild_home.activation.description"))
+                    .lore(lang.gui("menu.guild_home.activation.click"))
+            }
             pane.addItem(GuiItem(item) {
                 if (active) menuNavigator.openMenu(menuFactory.createHomeAccessMenu(menuNavigator, player, guild, homeName))
                 else activateSavedHome(homeName)
