@@ -106,9 +106,11 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
             // Show war count if more than one
             if (activeWars.size > 1) {
-                val moreWarsItem = MenuIcons.withCount(NexoItemProvider.getItemStackOrFallback("lg_nav_warfare") { ItemStack.of(Material.BOOK) }, activeWars.size - 1)
-                    .name(lang.gui("menu.guild_war_management.current.more.name", "count" to activeWars.size - 1))
-                    .lore(lang.gui("menu.guild_war_management.current.more.description"))
+                val moreIcon = NexoItemProvider.getItemStackOrFallback("lg_nav_warfare") { ItemStack.of(Material.BOOK) }
+                val moreWarsItem =
+                    MenuIcons.withCount(moreIcon, activeWars.size - 1)
+                        .name(lang.gui("menu.guild_war_management.current.more.name", "count" to activeWars.size - 1))
+                        .lore(lang.gui("menu.guild_war_management.current.more.description"))
                 pane.addItem(GuiItem(moreWarsItem) {
                     openWarListMenu()
                 }, 3, 0)

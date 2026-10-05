@@ -28,7 +28,8 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.*
 
-@Suppress("StringLiteralDuplication") // Locale keys stay literal so LocaleContractTest can see them.
+// Locale keys stay literal so LocaleContractTest can see them.
+@Suppress("StringLiteralDuplication", "LibraryEntitiesShouldNotBePublic")
 class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                         private var guild: Guild): Menu, KoinComponent {
 
@@ -121,7 +122,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val statusGuiItem = GuiItem(statusItem) {
             openDiplomaticStatusMenu()
         }
-        pane.addItem(statusGuiItem, 7, 0)
+        pane.addItem(statusGuiItem, STATUS_SLOT, 0)
     }
 
     private fun addRelationRequestsSection(pane: StaticPane) {
@@ -129,11 +130,12 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         val outgoingRequests = relationService.getOutgoingRequests(guild.id)
 
         // Incoming requests
-        val incomingItem = MenuIcons.requests(incoming = true, count = incomingRequests.size)
-            .name(lang.gui("menu.guild_relations.requests.incoming.name"))
-            .lore(lang.gui("menu.guild_relations.requests.incoming.description"))
-            .lore(lang.gui("menu.guild_relations.count", "count" to incomingRequests.size))
-            .lore(lang.gui("menu.common.click.open"))
+        val incomingItem =
+            MenuIcons.requests(incoming = true, count = incomingRequests.size)
+                .name(lang.gui("menu.guild_relations.requests.incoming.name"))
+                .lore(lang.gui("menu.guild_relations.requests.incoming.description"))
+                .lore(lang.gui("menu.guild_relations.count", "count" to incomingRequests.size))
+                .lore(lang.gui("menu.common.click.open"))
 
         val incomingGuiItem = GuiItem(incomingItem) {
             openIncomingRequestsMenu()
@@ -141,16 +143,17 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         pane.addItem(incomingGuiItem, 2, 2)
 
         // Outgoing requests
-        val outgoingItem = MenuIcons.requests(incoming = false, count = outgoingRequests.size)
-            .name(lang.gui("menu.guild_relations.requests.outgoing.name"))
-            .lore(lang.gui("menu.guild_relations.requests.outgoing.description"))
-            .lore(lang.gui("menu.guild_relations.count", "count" to outgoingRequests.size))
-            .lore(lang.gui("menu.common.click.open"))
+        val outgoingItem =
+            MenuIcons.requests(incoming = false, count = outgoingRequests.size)
+                .name(lang.gui("menu.guild_relations.requests.outgoing.name"))
+                .lore(lang.gui("menu.guild_relations.requests.outgoing.description"))
+                .lore(lang.gui("menu.guild_relations.count", "count" to outgoingRequests.size))
+                .lore(lang.gui("menu.common.click.open"))
 
         val outgoingGuiItem = GuiItem(outgoingItem) {
             openOutgoingRequestsMenu()
         }
-        pane.addItem(outgoingGuiItem, 6, 2)
+        pane.addItem(outgoingGuiItem, OUTGOING_SLOT, 2)
     }
 
     private fun addDiplomaticActionsSection(pane: StaticPane) {
@@ -337,5 +340,7 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
         const val BACK_SLOT = 4
         const val ENEMIES_SLOT = 3
         const val TRUCES_SLOT = 5
+        const val STATUS_SLOT = 7
+        const val OUTGOING_SLOT = 6
     }
 }

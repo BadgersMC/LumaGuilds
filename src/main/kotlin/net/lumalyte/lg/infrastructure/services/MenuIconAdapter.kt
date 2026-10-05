@@ -145,20 +145,23 @@ internal class MenuIconAdapter(
         replacementTitle(player.uniqueId, title)?.let(event::titleOverride)
     }
 
-    private fun replacementTitle(playerId: UUID, title: Component): Component? =
-        when {
-            !MenuTitleGlyphs.hasBackgroundGlyph(title) -> null
-            cleansTitlesFor(playerId) -> BedrockIcons.plainTitle(title)
-            // Give the background glyph its Nexo font so it draws instead of showing as a box.
-            else -> MenuTitleGlyphs.withGlyphFonts(title, glyphLookup).takeIf { it != title }
-        }
+    private fun replacementTitle(playerId: UUID, title: Component): Component? = when {
+        !MenuTitleGlyphs.hasBackgroundGlyph(title) -> null
+        cleansTitlesFor(playerId) -> BedrockIcons.plainTitle(title)
+        // Give the background glyph its Nexo font so it draws instead of showing as a box.
+        else -> MenuTitleGlyphs.withGlyphFonts(title, glyphLookup).takeIf { it != title }
+    }
 
     override fun onPacketSend(event: PacketSendEvent) {
-        val type = event.packetType
-        val windowItems = type == PacketType.Play.Server.WINDOW_ITEMS
-        val uuid = if (windowItems || type == PacketType.Play.Server.SET_SLOT) event.user?.uuid else null
-        if (uuid == null || !showsVanillaIcons(uuid)) return
-        if (windowItems) swapWindowItems(event) else swapSetSlot(event)
+        val swap = iconSwapFor(event) ?: return
+        val uuid = event.user?.uuid
+        if (uuid != null && showsVanillaIcons(uuid)) swap(event)
+    }
+
+    private fun iconSwapFor(event: PacketSendEvent): ((PacketSendEvent) -> Unit)? = when (event.packetType) {
+        PacketType.Play.Server.WINDOW_ITEMS -> ::swapWindowItems
+        PacketType.Play.Server.SET_SLOT -> ::swapSetSlot
+        else -> null
     }
 
     private fun swapWindowItems(event: PacketSendEvent) {
@@ -200,8 +203,7 @@ internal class MenuIconAdapter(
 }
 
 /** Nexo's glyph component (with its font) for a glyph id, or null when Nexo or the glyph is missing. */
-internal fun nexoGlyph(id: String): Component? =
-    runCatching {
-        val fonts = com.nexomc.nexo.NexoPlugin.instance().fontManager()
-        (fonts.glyphFromID(id) ?: fonts.glyphFromName(id))?.glyphComponent()
-    }.getOrNull()
+internal fun nexoGlyph(id: String): Component? = runCatching {
+    val fonts = com.nexomc.nexo.NexoPlugin.instance().fontManager()
+    (fonts.glyphFromID(id) ?: fonts.glyphFromName(id))?.glyphComponent()
+}.getOrNull()

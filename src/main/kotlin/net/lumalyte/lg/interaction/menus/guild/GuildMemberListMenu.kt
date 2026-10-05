@@ -110,7 +110,7 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
                     .lore(
                         lang.gui(
                             "menu.common.item.page.name",
-                            "current_page" to (paginatedPane.page + 1),
+                            "current_page" to paginatedPane.page + 1,
                             "total_pages" to paginatedPane.pages,
                         ),
                     )
@@ -130,7 +130,7 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
                     .lore(
                         lang.gui(
                             "menu.common.item.page.name",
-                            "current_page" to (paginatedPane.page + 1),
+                            "current_page" to paginatedPane.page + 1,
                             "total_pages" to paginatedPane.pages,
                         ),
                     )

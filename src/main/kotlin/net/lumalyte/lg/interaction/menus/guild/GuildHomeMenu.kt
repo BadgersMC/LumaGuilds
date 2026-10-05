@@ -30,6 +30,8 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.*
 
+// Locale keys stay literal so LocaleContractTest can see them.
+@Suppress("StringLiteralDuplication", "LibraryEntitiesShouldNotBePublic")
 class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                    private var guild: Guild): Menu, KoinComponent {
 
@@ -116,10 +118,11 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Set Main Home button
         if (!allHomes.homes.containsKey("main")) {
-            val setMainItem = NexoItemProvider.getItemStackOrFallback("lg_home_set") { ItemStack.of(Material.GREEN_WOOL) }
-                .name(lang.gui("menu.guild_home.set.main.name"))
-                .lore(lang.gui("menu.guild_home.set.main.description"))
-                .lore(lang.gui("menu.guild_home.set.main.command"))
+            val setMainItem =
+                NexoItemProvider.getItemStackOrFallback("lg_home_set") { ItemStack.of(Material.GREEN_WOOL) }
+                    .name(lang.gui("menu.guild_home.set.main.name"))
+                    .lore(lang.gui("menu.guild_home.set.main.description"))
+                    .lore(lang.gui("menu.guild_home.set.main.command"))
 
             val mainGuiItem = GuiItem(setMainItem) {
                 setGuildHome("main")
