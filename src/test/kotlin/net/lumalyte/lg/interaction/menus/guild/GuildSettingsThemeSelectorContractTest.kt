@@ -24,14 +24,16 @@ class GuildSettingsThemeSelectorContractTest {
         assertTrue(source.contains("if (guildService.setGuiTheme("))
     }
 
+    /** Vanilla style is offered as a plain chest swatch. */
     @Test
-    fun `vanilla style is offered as a plain chest swatch`() {
+    fun vanillaSwatchIsPlainChest() {
         assertTrue(source.contains("GuiTheme.VANILLA"))
         assertTrue(source.contains("Material.CHEST"))
     }
 
+    /** Selector lists only the selectable styles. */
     @Test
-    fun `selector lists only the selectable styles`() {
+    fun listsOnlySelectableStyles() {
         assertTrue(source.contains("GuiTheme.SELECTABLE.forEachIndexed"))
         assertFalse(source.contains("GuiTheme.entries.forEachIndexed"))
     }

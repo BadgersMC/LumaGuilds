@@ -32,6 +32,7 @@ import org.koin.core.component.inject
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+@Suppress("StringLiteralDuplication") // Locale keys stay literal so LocaleContractTest can see them.
 class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                               private var guild: Guild): Menu, KoinComponent {
 
@@ -50,8 +51,9 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
             return
         }
 
-        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, lang.guiTitle("menu.party.management.title", "guild" to guild.name)))
-        val pane = StaticPane(0, 0, 9, 4)
+        val heading = lang.guiTitle("menu.party.management.title", "guild" to guild.name)
+        val gui = ChestGui(ROWS, MenuTitleBuilder.build(guild.guiTheme, ROWS, heading))
+        val pane = StaticPane(0, 0, COLUMNS, ROWS)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
             if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
@@ -73,7 +75,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         addPartySettingsSection(pane)
 
         // Row 6: Navigation
-        addBackButton(pane, 4, 3)
+        addBackButton(pane, BACK_SLOT, ROWS - 1)
 
         gui.show(player)
     }
@@ -86,10 +88,11 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
         }.toSet()
 
         if (activeParties.isEmpty()) {
-            val noPartiesItem = NexoItemProvider.getItemStackOrFallback("lg_no_parties") { ItemStack.of(Material.BARRIER) }
-                .name(lang.gui("menu.party.management.empty.name"))
-                .lore(lang.gui("menu.party.management.empty.lore"))
-                .lore(lang.gui("menu.party.management.empty.hint"))
+            val noPartiesItem =
+                NexoItemProvider.getItemStackOrFallback("lg_no_parties") { ItemStack.of(Material.BARRIER) }
+                    .name(lang.gui("menu.party.management.empty.name"))
+                    .lore(lang.gui("menu.party.management.empty.lore"))
+                    .lore(lang.gui("menu.party.management.empty.hint"))
             pane.addItem(GuiItem(noPartiesItem), 2, 0)
         } else {
             // Display first active party
@@ -451,5 +454,10 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return
     }
-}
 
+    private companion object {
+        const val ROWS = 4
+        const val COLUMNS = 9
+        const val BACK_SLOT = 4
+    }
+}

@@ -18,7 +18,11 @@ import org.bukkit.persistence.PersistentDataType
 object BedrockIcons {
     /** PDC key holding the vanilla fallback material name. Stored as `lumaguilds:bedrock_icon`. */
     val FALLBACK_KEY = NamespacedKey("lumaguilds", "bedrock_icon")
+
+    /** Raw item `custom_data` compound that Bukkit stores plugin PDC values under. */
     const val PDC_ROOT = "PublicBukkitValues"
+
+    /** [FALLBACK_KEY] as it appears inside [PDC_ROOT] in raw item data. */
     const val PDC_KEY = "lumaguilds:bedrock_icon"
 
     private val TITLE_TAGS = Regex("<(?:shift|glyph):[^>]*>")
@@ -32,9 +36,12 @@ object BedrockIcons {
 
     /** The Bedrock-safe copy of a tagged icon (same name, lore and count), or null when untagged. */
     fun toBedrock(item: ItemStack): ItemStack? {
-        if (!item.hasItemMeta()) return null
-        val name = item.itemMeta.persistentDataContainer.get(FALLBACK_KEY, PersistentDataType.STRING) ?: return null
-        val material = Material.getMaterial(name)?.takeIf { it.isItem && !it.isAir } ?: return null
+        val name =
+            item.takeIf { it.hasItemMeta() }
+                ?.itemMeta
+                ?.persistentDataContainer
+                ?.get(FALLBACK_KEY, PersistentDataType.STRING)
+        val material = name?.let { Material.getMaterial(it) }?.takeIf { it.isItem && !it.isAir } ?: return null
         return item.withType(material).also { copy ->
             copy.editMeta { meta ->
                 meta.setItemModel(null)

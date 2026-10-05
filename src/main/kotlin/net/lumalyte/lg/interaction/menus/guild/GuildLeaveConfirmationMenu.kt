@@ -48,21 +48,23 @@ class GuildLeaveConfirmationMenu(
         gui.addPane(pane)
 
         // Info item
-        val infoItem = NexoItemProvider.getItemStackOrFallback("lg_leave") { ItemStack.of(Material.OAK_DOOR) }
-            .name(lang.gui("menu.guild_confirmation.leave.item.info.name"))
-            .lore(lang.gui("menu.guild_confirmation.leave.item.info.lore.guild", "guild" to guild.name))
-            .lore("")
-            .lore(lang.gui("menu.guild_confirmation.leave.item.info.lore.warning"))
-            .lore(lang.gui("menu.guild_confirmation.leave.item.info.lore.bank"))
-            .lore(lang.gui("menu.guild_confirmation.leave.item.info.lore.homes"))
-            .lore(lang.gui("menu.guild_confirmation.leave.item.info.lore.chat"))
-            .lore(lang.gui("menu.guild_confirmation.leave.item.info.lore.permissions"))
+        val infoItem =
+            NexoItemProvider.getItemStackOrFallback("lg_leave") { ItemStack.of(Material.OAK_DOOR) }
+                .name(lang.gui("menu.guild_confirmation.leave.item.info.name"))
+                .lore(lang.gui("menu.guild_confirmation.leave.item.info.lore.guild", "guild" to guild.name))
+                .lore("")
+                .lore(lang.gui("menu.guild_confirmation.leave.item.info.lore.warning"))
+                .lore(lang.gui("menu.guild_confirmation.leave.item.info.lore.bank"))
+                .lore(lang.gui("menu.guild_confirmation.leave.item.info.lore.homes"))
+                .lore(lang.gui("menu.guild_confirmation.leave.item.info.lore.chat"))
+                .lore(lang.gui("menu.guild_confirmation.leave.item.info.lore.permissions"))
         pane.addItem(GuiItem(infoItem), 4, 0)
 
         // Confirm leave
-        val confirmItem = NexoItemProvider.getItemStackOrFallback("lg_confirm_danger") { ItemStack.of(Material.RED_WOOL) }
-            .name(lang.gui("menu.guild_confirmation.leave.item.confirm.name"))
-            .lore(lang.gui("menu.guild_confirmation.leave.item.confirm.lore"))
+        val confirmItem =
+            NexoItemProvider.getItemStackOrFallback("lg_confirm_danger") { ItemStack.of(Material.RED_WOOL) }
+                .name(lang.gui("menu.guild_confirmation.leave.item.confirm.name"))
+                .lore(lang.gui("menu.guild_confirmation.leave.item.confirm.lore"))
         pane.addItem(GuiItem(confirmItem) {
             val success = memberService.removeMember(player.uniqueId, guild.id, player.uniqueId)
             if (success) {
@@ -76,9 +78,10 @@ class GuildLeaveConfirmationMenu(
         }, 3, 2)
 
         // Cancel
-        val cancelItem = NexoItemProvider.getItemStackOrFallback("lg_cancel") { ItemStack.of(Material.GREEN_WOOL) }
-            .name(lang.gui("menu.guild_confirmation.common.cancel.name"))
-            .lore(lang.gui("menu.guild_confirmation.common.cancel.lore"))
+        val cancelItem =
+            NexoItemProvider.getItemStackOrFallback("lg_cancel") { ItemStack.of(Material.GREEN_WOOL) }
+                .name(lang.gui("menu.guild_confirmation.common.cancel.name"))
+                .lore(lang.gui("menu.guild_confirmation.common.cancel.lore"))
         pane.addItem(GuiItem(cancelItem) {
             menuNavigator.goBack()
         }, 5, 2)

@@ -28,6 +28,7 @@ import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
+@Suppress("StringLiteralDuplication") // Locale keys stay literal so LocaleContractTest can see them.
 class GuildControlPanelMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
@@ -58,40 +59,39 @@ class GuildControlPanelMenu(
         // Guild Actions: the things that are not already a Dashboard section.
         // Everything else (settings, members, ranks, bank, wars, ...) lives on the Dashboard,
         // so it is not repeated here.
-        val gui = ChestGui(3, MenuTitleBuilder.build(
-            guild.guiTheme,
-            3,
-            lang.guiTitle("menu.control_panel.title", "guild" to guild.name),
-        ))
-        val pane = StaticPane(0, 0, 9, 3)
+        val heading = lang.guiTitle("menu.control_panel.title", "guild" to guild.name)
+        val gui = ChestGui(ROWS, MenuTitleBuilder.build(guild.guiTheme, ROWS, heading))
+        val pane = StaticPane(0, 0, COLUMNS, ROWS)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent -> if (guiEvent.click == ClickType.SHIFT_LEFT ||
             guiEvent.click == ClickType.SHIFT_RIGHT) guiEvent.isCancelled = true }
         gui.addPane(pane)
 
         // Row 0: guild features
-        addPartyManagementButton(pane, 3, 0)
-        addVaultButton(pane, 5, 0)
+        addPartyManagementButton(pane, PARTY_SLOT, 0)
+        addVaultButton(pane, VAULT_SLOT, 0)
 
         // Row 2: danger actions in the corners, Back in the standard centre slot
         addLeaveGuildButton(pane, 0, 2)
-        addBackButton(pane, 4, 2)
-        addDisbandGuildButton(pane, 8, 2)
+        addBackButton(pane, BACK_SLOT, 2)
+        addDisbandGuildButton(pane, DISBAND_SLOT, 2)
 
         gui.show(player)
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
-            .name(lang.gui("menu.common.item.back.name"))
+        val backItem =
+            NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
+                .name(lang.gui("menu.common.item.back.name"))
         pane.addItem(GuiItem(backItem) { menuNavigator.goBack() }, x, y)
     }
 
     private fun addPartyManagementButton(pane: StaticPane, x: Int, y: Int) {
-        val partyItem = NexoItemProvider.getItemStackOrFallback("lg_party") { ItemStack.of(Material.FIREWORK_ROCKET) }
-            .name(lang.gui("menu.control_panel.item.party.name"))
-            .lore(lang.gui("menu.control_panel.item.party.lore.description"))
-            .lore(lang.gui("menu.control_panel.item.party.lore.details"))
+        val partyItem =
+            NexoItemProvider.getItemStackOrFallback("lg_party") { ItemStack.of(Material.FIREWORK_ROCKET) }
+                .name(lang.gui("menu.control_panel.item.party.name"))
+                .lore(lang.gui("menu.control_panel.item.party.lore.description"))
+                .lore(lang.gui("menu.control_panel.item.party.lore.details"))
         val guiItem = GuiItem(partyItem) {
             menuNavigator.openMenu(menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild))
         }
@@ -157,11 +157,12 @@ class GuildControlPanelMenu(
     }
 
     private fun addDisbandGuildButton(pane: StaticPane, x: Int, y: Int) {
-        val disbandItem = NexoItemProvider.getItemStackOrFallback("lg_disband") { ItemStack.of(Material.TNT) }
-            .name(lang.gui("menu.control_panel.item.disband.name"))
-            .lore(lang.gui("menu.control_panel.item.disband.lore.warning"))
-            .lore(lang.gui("menu.control_panel.item.disband.lore.description"))
-            .lore(lang.gui("menu.control_panel.item.disband.lore.members"))
+        val disbandItem =
+            NexoItemProvider.getItemStackOrFallback("lg_disband") { ItemStack.of(Material.TNT) }
+                .name(lang.gui("menu.control_panel.item.disband.name"))
+                .lore(lang.gui("menu.control_panel.item.disband.lore.warning"))
+                .lore(lang.gui("menu.control_panel.item.disband.lore.description"))
+                .lore(lang.gui("menu.control_panel.item.disband.lore.members"))
         val guiItem = GuiItem(disbandItem) {
             menuNavigator.openMenu(menuFactory.createGuildDisbandConfirmationMenu(menuNavigator, player, guild))
         }
@@ -169,10 +170,11 @@ class GuildControlPanelMenu(
     }
 
     private fun addLeaveGuildButton(pane: StaticPane, x: Int, y: Int) {
-        val leaveItem = NexoItemProvider.getItemStackOrFallback("lg_leave") { ItemStack.of(Material.DARK_OAK_DOOR) }
-            .name(lang.gui("menu.control_panel.item.leave.name"))
-            .lore(lang.gui("menu.control_panel.item.leave.lore.description"))
-            .lore(lang.gui("menu.control_panel.item.leave.lore.rejoin"))
+        val leaveItem =
+            NexoItemProvider.getItemStackOrFallback("lg_leave") { ItemStack.of(Material.DARK_OAK_DOOR) }
+                .name(lang.gui("menu.control_panel.item.leave.name"))
+                .lore(lang.gui("menu.control_panel.item.leave.lore.description"))
+                .lore(lang.gui("menu.control_panel.item.leave.lore.rejoin"))
         val guiItem = GuiItem(leaveItem) {
             menuNavigator.openMenu(menuFactory.createGuildLeaveConfirmationMenu(menuNavigator, player, guild))
         }
@@ -181,5 +183,14 @@ class GuildControlPanelMenu(
 
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return
+    }
+
+    private companion object {
+        const val ROWS = 3
+        const val COLUMNS = 9
+        const val PARTY_SLOT = 3
+        const val VAULT_SLOT = 5
+        const val BACK_SLOT = 4
+        const val DISBAND_SLOT = 8
     }
 }

@@ -81,10 +81,11 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         val allHomes = guildService.getHomes(guild.id)
         val availableSlots = guildService.getAvailableHomeSlots(guild.id)
 
-        val slotsItem = NexoItemProvider.getItemStackOrFallback("lg_home") { ItemStack.of(Material.BOOK) }
-            .name(lang.gui("menu.guild_home.slots.name"))
-            .lore(lang.gui("menu.guild_home.slots.count", "count" to allHomes.size, "total" to availableSlots))
-            .lore(lang.gui("menu.common.blank"))
+        val slotsItem =
+            NexoItemProvider.getItemStackOrFallback("lg_home") { ItemStack.of(Material.BOOK) }
+                .name(lang.gui("menu.guild_home.slots.name"))
+                .lore(lang.gui("menu.guild_home.slots.count", "count" to allHomes.size, "total" to availableSlots))
+                .lore(lang.gui("menu.common.blank"))
 
         if (allHomes.hasHomes()) {
             allHomes.homes.forEach { entry ->
