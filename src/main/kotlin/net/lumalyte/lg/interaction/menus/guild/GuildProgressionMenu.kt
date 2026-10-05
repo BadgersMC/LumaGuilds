@@ -118,12 +118,11 @@ class GuildProgressionMenu(
         addPerksInfo(pane, 0, 3)
         addPrestigeInfo(pane, 0, 4)
 
-        // ---- Back / Close (top right) ----
-        addBackButton(pane, 8, 0)
-        addCloseButton(pane, 8, 1)
+        // ---- Back (bottom centre, same spot as every guild menu) ----
+        addBackButton(pane, 4, 5)
 
         // ---- Page navigation (row 5) ----
-        if (currentPage > 0) addPreviousPageButton(pane, 7, 5)
+        if (currentPage > 0) addPreviousPageButton(pane, 0, 5)
         if (currentPage + 1 < totalPages) addNextPageButton(pane, 8, 5)
 
         // ---- Source grid (paginated) ----
@@ -201,8 +200,9 @@ class GuildProgressionMenu(
         val usedXp = usage.awardedXp
         val percent = if (cap != null && cap > 0) (usedXp.toDouble() / cap.toDouble() * 100).toInt().coerceAtMost(100) else 0
 
-        val nexoId = sourceToPresentationIconId(source, usage.pool)
-        val material = sourceToMaterial(source)
+        // XP sources deliberately use plain vanilla items (not Nexo art): they read at a glance and
+        // match what players already know from the game.
+        val material = sourceToVanillaMaterial(source, usage.pool)
         val name = sourcePoolDisplayName(usage.pool)
 
         val bars = buildProgressBar(percent, 10)
@@ -213,9 +213,7 @@ class GuildProgressionMenu(
             else -> "available"
         }
 
-        val item = NexoItemProvider.getItemStackOrFallback(nexoId) {
-            ItemStack.of(material)
-        }.also { it.editMeta { meta ->
+        val item = ItemStack.of(material).also { it.editMeta { meta ->
             meta.displayName(lang.gui("menu.guild_progression.source.name", "source" to name))
             val lore = mutableListOf<Component>()
             if (cap != null) {
@@ -455,13 +453,6 @@ class GuildProgressionMenu(
         pane.addItem(GuiItem(item) { menuNavigator.goBack() }, x, y)
     }
 
-    private fun addCloseButton(pane: StaticPane, x: Int, y: Int) {
-        val item = NexoItemProvider.getItemStackOrFallback("lg_close") {
-            ItemStack.of(Material.BARRIER).name(lang.gui("menu.guild_progression.navigation.close"))
-        }.also { it.editMeta { meta -> meta.displayName(lang.gui("menu.guild_progression.navigation.close")) }}
-        pane.addItem(GuiItem(item) { menuNavigator.clearMenuStack(); player.closeInventory() }, x, y)
-    }
-
     private fun addPreviousPageButton(pane: StaticPane, x: Int, y: Int) {
         val item = NexoItemProvider.getItemStackOrFallback("lg_page_prev") {
             ItemStack.of(Material.ARROW).name(lang.gui("menu.guild_progression.navigation.previous_fallback"))
@@ -519,6 +510,12 @@ class GuildProgressionMenu(
         ExperienceSource.CLAIM_DESTROYED -> "lg_claim_removed"
         ExperienceSource.WEEKLY_ACTIVITY -> "lg_weekly_activity"
         ExperienceSource.ADMIN_BONUS -> "lg_admin_bonus"
+    }
+
+    private fun sourceToVanillaMaterial(source: ExperienceSource, pool: String): Material = when (pool) {
+        "ORE" -> Material.DIAMOND_ORE
+        "CRAFTING" -> Material.CRAFTING_TABLE
+        else -> sourceToMaterial(source)
     }
 
     private fun sourceToMaterial(source: ExperienceSource): Material = when (source) {

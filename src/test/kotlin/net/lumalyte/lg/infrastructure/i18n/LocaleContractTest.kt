@@ -82,6 +82,8 @@ class LocaleContractTest {
         )
     }.toSet()
     private val localizedHelperKeys = setOf(
+        // Bank sub-menus (budget, history, security, statistics) read it through getLocalizedString().
+        "menu.bank.back_to_control_panel",
         "menu.guild_mode.cooldown.expired",
         "menu.guild_mode.cooldown.hostile",
         "menu.guild_mode.cooldown.lock_expired",

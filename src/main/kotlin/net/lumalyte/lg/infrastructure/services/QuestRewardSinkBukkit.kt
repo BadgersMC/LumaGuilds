@@ -53,9 +53,8 @@ class QuestRewardSinkBukkit(
             )
             if (missing <= 0) continue
 
-            val template = NexoItemProvider.getItemStackOrFallback(itemId) {
-                ItemStack.of(Material.CHEST)
-            }
+            // Untagged on purpose: reward items go into inventories and must stack normally.
+            val template = NexoItemProvider.getItemStack(itemId) ?: ItemStack.of(Material.CHEST)
             while (missing > 0) {
                 val item = template.clone().apply {
                     amount = missing.coerceAtMost(maxStackSize)

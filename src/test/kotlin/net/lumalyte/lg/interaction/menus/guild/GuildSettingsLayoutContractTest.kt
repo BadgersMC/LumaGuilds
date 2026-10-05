@@ -23,7 +23,7 @@ class GuildSettingsLayoutContractTest {
         assertTrue(appearance.contains("menu.guild_settings.item.emoji.name"))
         assertTrue(appearance.contains("menu.guild_settings.item.theme.name"))
         assertFalse(appearance.contains("menu.guild_settings.item.tag.name"))
-        assertTrue(appearance.contains("lg_theme_" + "$" + "{guild.guiTheme.name.lowercase()}"))
+        assertTrue(appearance.contains("lg_theme_" + "$" + "{guild.guiTheme.resolved().name.lowercase()}"))
 
         listOf(
             "menu.guild_settings.item.homes.name",

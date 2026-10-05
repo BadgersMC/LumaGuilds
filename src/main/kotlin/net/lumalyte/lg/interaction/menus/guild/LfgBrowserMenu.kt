@@ -44,7 +44,7 @@ class LfgBrowserMenu(
     private val lang: LangService by inject()
 
     override fun open() {
-        val gui = ChestGui(6, MenuTitleBuilder.build(GuiTheme.NEUTRAL, 6, lang.guiTitle("menu.lfg_browser.title")))
+        val gui = ChestGui(6, MenuTitleBuilder.build(GuiTheme.DEFAULT, 6, lang.guiTitle("menu.lfg_browser.title")))
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
             if (guiEvent.click == org.bukkit.event.inventory.ClickType.SHIFT_LEFT ||

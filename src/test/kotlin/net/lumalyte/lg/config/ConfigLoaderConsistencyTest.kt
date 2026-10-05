@@ -48,6 +48,20 @@ class ConfigLoaderConsistencyTest {
     }
 
     @Test
+    fun `bedrock java-menu fallbacks are opt-in and loaded`() {
+        val defaults = load(YamlConfiguration()).bedrock
+        assertFalse(defaults.javaMenuVanillaIcons)
+        assertFalse(defaults.javaMenuPlainTitles)
+        val cfg = YamlConfiguration().apply {
+            set("bedrock.java_menu_vanilla_icons", true)
+            set("bedrock.java_menu_plain_titles", true)
+        }
+        val bedrock = load(cfg).bedrock
+        assertTrue(bedrock.javaMenuVanillaIcons)
+        assertTrue(bedrock.javaMenuPlainTitles)
+    }
+
+    @Test
     fun `brewing xp is loaded`() {
         val cfg = YamlConfiguration().apply { set("progression.brewing_xp", 42) }
         assertEquals(42, load(cfg).progression.brewingXp)

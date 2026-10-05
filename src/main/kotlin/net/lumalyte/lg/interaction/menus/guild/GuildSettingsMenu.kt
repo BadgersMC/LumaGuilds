@@ -134,8 +134,8 @@ class GuildSettingsMenu(
             .name(lang.gui("menu.guild_settings.item.tag.name"))
             .lore(lang.gui("menu.guild_settings.item.tag.lore.current", "tag" to (guild.tag ?: lang.raw("menu.control_panel.state.not_set"))))
             .lore(lang.gui("menu.common.blank"))
-            .lore(lang.gui("menu.guild_settings.item.tag.lore.action"))
             .lore(lang.gui("menu.guild_settings.item.tag.lore.formatting"))
+            .lore(lang.gui("menu.guild_settings.item.tag.lore.action"))
 
         val tagGuiItem = GuiItem(tagItem) {
             menuNavigator.openMenu(menuFactory.createTagEditorMenu(menuNavigator, player, guild))
@@ -147,7 +147,7 @@ class GuildSettingsMenu(
         val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
 
-        val createdItem = NexoItemProvider.getItemStackOrFallback("lg_history") { ItemStack.of(Material.CLOCK) }
+        val createdItem = NexoItemProvider.getItemStackOrFallback("lg_created") { ItemStack.of(Material.CLOCK) }
             .name(lang.gui("menu.guild_settings.item.created.name"))
             .lore(lang.gui("menu.guild_settings.item.created.lore.date", "date" to localDateTime.format(dateFormatter)))
             .lore(lang.gui("menu.guild_settings.item.created.lore.time", "time" to localDateTime.format(timeFormatter)))
@@ -287,10 +287,10 @@ class GuildSettingsMenu(
 
         // GUI Theme Selector
         val themeItem = NexoItemProvider.getItemStackOrFallback(
-            "lg_theme_${guild.guiTheme.name.lowercase()}"
+            "lg_theme_${guild.guiTheme.resolved().name.lowercase()}"
         ) { ItemStack.of(Material.PAINTING) }
             .name(lang.gui("menu.guild_settings.item.theme.name"))
-            .lore(lang.gui("menu.guild_settings.item.theme.lore.current", "theme" to guild.guiTheme.displayName))
+            .lore(lang.gui("menu.guild_settings.item.theme.lore.current", "theme" to guild.guiTheme.resolved().displayName))
             .lore(lang.gui("menu.common.blank"))
             .lore(lang.gui("menu.guild_settings.item.theme.lore.description"))
             .lore(lang.gui("menu.guild_settings.item.theme.lore.details"))
@@ -435,10 +435,14 @@ class GuildSettingsMenu(
         // Guild Mode
         val config = configService.loadConfig()
         if (config.guild.peacefulModeEnabled) {
-            val modeItem = ItemStack.of(
-                if (guild.mode == GuildMode.PEACEFUL)
-                    Material.GREEN_WOOL else Material.RED_WOOL
-            )
+            val modeItem = NexoItemProvider.getItemStackOrFallback(
+                if (guild.mode == GuildMode.PEACEFUL) "lg_mode_peaceful" else "lg_mode_hostile"
+            ) {
+                ItemStack.of(
+                    if (guild.mode == GuildMode.PEACEFUL)
+                        Material.GREEN_WOOL else Material.RED_WOOL
+                )
+            }
                 .name(lang.gui("menu.guild_settings.item.mode.name"))
                 .lore(if (guild.mode == GuildMode.PEACEFUL) lang.gui("menu.guild_settings.item.mode.lore.current.peaceful") else lang.gui("menu.guild_settings.item.mode.lore.current.hostile"))
                 .lore(lang.gui("menu.common.blank"))
@@ -496,7 +500,7 @@ class GuildSettingsMenu(
             .lore(lang.gui("menu.guild_settings.item.back.lore"))
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(backGuiItem, 4, 5)
     }
@@ -507,15 +511,16 @@ class GuildSettingsMenu(
      * with the new theme applied.
      */
     private fun openThemeSelector() {
+        // Three rows (every theme ships a 3-row background): up to 18 styles, Back in the standard bottom-centre slot.
         val gui = ChestGui(
-            1,
+            3,
             MenuTitleBuilder.build(
                 guild.guiTheme,
-                1,
+                3,
                 lang.guiTitle("menu.guild_settings.theme_selector.title")
             )
         )
-        val pane = StaticPane(0, 0, 9, 1)
+        val pane = StaticPane(0, 0, 9, 3)
         gui.setOnGlobalClick { it.isCancelled = true }
         gui.addPane(pane)
 
@@ -525,12 +530,14 @@ class GuildSettingsMenu(
             RankPermission.MANAGE_GUILD_SETTINGS
         )
 
-        net.lumalyte.lg.utils.GuiTheme.entries.forEachIndexed { index, theme ->
-            val isCurrent = theme == guild.guiTheme
+        net.lumalyte.lg.utils.GuiTheme.SELECTABLE.forEachIndexed { index, theme ->
+            val isCurrent = theme == guild.guiTheme.resolved()
             val nexoId = "lg_theme_${theme.name.lowercase()}"
-            val item = NexoItemProvider.getItemStackOrFallback(nexoId) {
+            // The vanilla style is shown as what it is: a plain chest.
+            val item = (if (theme == net.lumalyte.lg.utils.GuiTheme.VANILLA) ItemStack.of(Material.CHEST)
+            else NexoItemProvider.getItemStackOrFallback(nexoId) {
                 ItemStack.of(if (isCurrent) Material.LIME_DYE else Material.GRAY_DYE)
-            }.also { stack ->
+            }).also { stack ->
                 stack.editMeta { meta ->
                     meta.displayName(
                         if (isCurrent) {
@@ -568,12 +575,12 @@ class GuildSettingsMenu(
                 } else {
                     player.sendMessage(lang.msg("menu.guild_settings.feedback.theme_change_failed"))
                 }
-            }, index, 0)
+            }, index % 9, index / 9)
         }
 
         val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
             .name(lang.gui("menu.guild_settings.item.back.name"))
-        pane.addItem(GuiItem(backItem) { open() }, 8, 0)
+        pane.addItem(GuiItem(backItem) { open() }, 4, 2)
 
         gui.show(player)
     }

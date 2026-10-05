@@ -45,7 +45,7 @@ class WarGuildSelectionMenu(
         val totalPages = (availableGuilds.size + GUILDS_PER_PAGE - 1) / GUILDS_PER_PAGE
         val actualPage = currentPage.coerceIn(0, (totalPages - 1).coerceAtLeast(0))
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(GuiTheme.NEUTRAL, 6, lang.guiTitle("menu.war_guild_selection.title", "page" to actualPage + 1, "pages" to totalPages)))
+        val gui = ChestGui(6, MenuTitleBuilder.build(GuiTheme.DEFAULT, 6, lang.guiTitle("menu.war_guild_selection.title", "page" to actualPage + 1, "pages" to totalPages)))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick { if (it.click == ClickType.SHIFT_LEFT || it.click == ClickType.SHIFT_RIGHT) it.isCancelled = true }

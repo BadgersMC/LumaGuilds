@@ -15,6 +15,7 @@ import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
+import net.lumalyte.lg.utils.NexoItemProvider
 import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.entity.Player
@@ -55,19 +56,21 @@ class GuildDisbandConfirmationMenu(
         gui.addPane(pane)
 
         // Info item
-        val infoItem = ItemStack.of(Material.BARRIER)
-            .name(lang.gui("menu.guild_confirmation.disband.item.info.name"))
-            .lore(lang.gui("menu.guild_confirmation.disband.item.info.lore.guild", "guild" to guild.name))
-            .lore(lang.gui("menu.guild_confirmation.disband.item.info.lore.level", "level" to guild.level))
-            .lore("")
-            .lore(lang.gui("menu.guild_confirmation.disband.item.info.lore.irreversible"))
-            .lore(lang.gui("menu.guild_confirmation.disband.item.info.lore.vault_loss"))
+        val infoItem =
+            NexoItemProvider.getItemStackOrFallback("lg_disband") { ItemStack.of(Material.BARRIER) }
+                .name(lang.gui("menu.guild_confirmation.disband.item.info.name"))
+                .lore(lang.gui("menu.guild_confirmation.disband.item.info.lore.guild", "guild" to guild.name))
+                .lore(lang.gui("menu.guild_confirmation.disband.item.info.lore.level", "level" to guild.level))
+                .lore("")
+                .lore(lang.gui("menu.guild_confirmation.disband.item.info.lore.irreversible"))
+                .lore(lang.gui("menu.guild_confirmation.disband.item.info.lore.vault_loss"))
         pane.addItem(GuiItem(infoItem), 4, 0)
 
         // Confirm button
-        val confirmItem = ItemStack.of(Material.RED_WOOL)
-            .name(lang.gui("menu.guild_confirmation.disband.item.confirm.name"))
-            .lore(lang.gui("menu.guild_confirmation.disband.item.confirm.lore"))
+        val confirmItem =
+            NexoItemProvider.getItemStackOrFallback("lg_confirm_danger") { ItemStack.of(Material.RED_WOOL) }
+                .name(lang.gui("menu.guild_confirmation.disband.item.confirm.name"))
+                .lore(lang.gui("menu.guild_confirmation.disband.item.confirm.lore"))
         pane.addItem(GuiItem(confirmItem) {
             val success = guildService.disbandGuild(guild.id, player.uniqueId)
             if (success) {
@@ -82,9 +85,10 @@ class GuildDisbandConfirmationMenu(
         }, 3, 2)
 
         // Cancel button
-        val cancelItem = ItemStack.of(Material.GREEN_WOOL)
-            .name(lang.gui("menu.guild_confirmation.common.cancel.name"))
-            .lore(lang.gui("menu.guild_confirmation.common.cancel.lore"))
+        val cancelItem =
+            NexoItemProvider.getItemStackOrFallback("lg_cancel") { ItemStack.of(Material.GREEN_WOOL) }
+                .name(lang.gui("menu.guild_confirmation.common.cancel.name"))
+                .lore(lang.gui("menu.guild_confirmation.common.cancel.lore"))
         pane.addItem(GuiItem(cancelItem) {
             menuNavigator.goBack()
         }, 5, 2)
