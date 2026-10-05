@@ -188,12 +188,25 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                 val mainHomeName = mainEntry.key
                 val mainHome = mainEntry.value
                 val active = homeActivationService.isActive(guild.id, mainHomeName)
-                val teleportItem = (
-                    if (active) teleportIcon() else ItemStack.of(Material.GOLD_INGOT)
-                    )
-                    .name(if (active) lang.gui("menu.guild_home.teleport.main.name") else lang.gui("menu.guild_home.activation.name", "home" to mainHomeName))
-                    .lore(if (active) lang.gui("menu.guild_home.teleport.main.description") else lang.gui("menu.guild_home.activation.description"))
-                    .lore(lang.gui("menu.guild_home.world", "world" to (Bukkit.getWorld(mainHome.worldId)?.name ?: lang.raw("general.unknown"))))
+                val mainIcon = if (active) teleportIcon() else ItemStack.of(Material.GOLD_INGOT)
+                val mainName =
+                    if (active) {
+                        lang.gui("menu.guild_home.teleport.main.name")
+                    } else {
+                        lang.gui("menu.guild_home.activation.name", "home" to mainHomeName)
+                    }
+                val mainDescription =
+                    if (active) {
+                        lang.gui("menu.guild_home.teleport.main.description")
+                    } else {
+                        lang.gui("menu.guild_home.activation.description")
+                    }
+                val mainWorld = Bukkit.getWorld(mainHome.worldId)?.name ?: lang.raw("general.unknown")
+                val teleportItem =
+                    mainIcon
+                        .name(mainName)
+                        .lore(mainDescription)
+                        .lore(lang.gui("menu.guild_home.world", "world" to mainWorld))
                 if (active) teleportItem.lore(lang.gui("menu.guild_home.teleport.main.countdown"))
 
                 val teleportGuiItem = GuiItem(teleportItem) {
