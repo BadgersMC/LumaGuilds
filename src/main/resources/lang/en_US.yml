@@ -1274,7 +1274,7 @@ bedrock:
         <gold>Progress<gray>: <red><progress>%
     sources:
       none: '<gray>No experience sources are enabled.'
-      unlimited: '<aqua><source><gray>: <white><used> XP <green>(Unlimited)'
+      unlimited: '<aqua><source><gray>: <green>Unlimited <gray>(no cap)'
       capped: '<aqua><source><gray>: <white><used>/<cap> XP <gray>(<remaining> remaining)'
     perks:
       none: '<gray>No perks have been unlocked yet.'
@@ -5984,8 +5984,10 @@ menu:
     level:
       name: "<gold><bold>⭐ Guild Level <level>"
       progress: "<gray>XP: <yellow><current> <gray>/ <yellow><needed>  <dark_gray>(<percent>%)"
+      maxed: "<gold>Permanent level cap reached"
       bar: "<gray><bar>"
-      today: "<gray>Today: <yellow>+<xp> XP"
+      daily_pools: "<gray>Daily pools: <yellow>+<xp> XP"
+      weekly_pools: "<gray>Weekly pools: <yellow>+<xp> XP"
       perks: "<gray>Unlocked Perks: <green><count>"
       total: "<gray>Total XP: <yellow><xp>"
     bar:
@@ -6000,8 +6002,9 @@ menu:
         near_cap: "<yellow><bar> <gray><percent>%"
         moderate: "<gold><bar> <gray><percent>%"
         available: "<green><bar> <gray><percent>%"
-      today: "<gray>Today: <yellow><today> <gray>/ <yellow><cap> <gray>max"
-      tracked: "<gray>Tracked: <yellow><xp> XP"
+      daily_period: "<gray>Current daily period: <yellow><used> <gray>/ <yellow><cap> <gray>max"
+      weekly_period: "<gray>Current weekly period: <yellow><used> <gray>/ <yellow><cap> <gray>max"
+      unlimited: "<green>Unlimited <gray>· no cap"
       names:
         bank_deposit: "Bank Deposits"
         member_joined: "Member Invites"
