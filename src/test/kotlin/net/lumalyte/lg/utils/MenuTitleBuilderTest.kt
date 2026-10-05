@@ -230,18 +230,35 @@ class MenuTitleBuilderTest {
     // Only the Enthusia-era styles are offered; older stored themes render as Enthusia
     // ---------------------------------------------------------------
 
+    /** Picker offers only the Enthusia styles and Vanilla. */
     @Test
-    fun `picker offers only the enthusia styles and vanilla`() {
-        assertEquals(
-            listOf(GuiTheme.ENTHUSIA, GuiTheme.FROSTBOUND, GuiTheme.VERDANT, GuiTheme.VOIDLIGHT, GuiTheme.OBSIDIAN, GuiTheme.VANILLA),
-            GuiTheme.SELECTABLE,
-        )
+    fun pickerOffersEnthusiaStyles() {
+        val expected =
+            listOf(
+                GuiTheme.ENTHUSIA,
+                GuiTheme.FROSTBOUND,
+                GuiTheme.VERDANT,
+                GuiTheme.VOIDLIGHT,
+                GuiTheme.OBSIDIAN,
+                GuiTheme.VANILLA,
+            )
+        assertEquals(expected, GuiTheme.SELECTABLE)
         assertEquals(GuiTheme.ENTHUSIA, GuiTheme.DEFAULT)
     }
 
+    /** Older stored themes render with the Enthusia background. */
     @Test
-    fun `older stored themes render with the enthusia background`() {
-        for (legacy in listOf(GuiTheme.NEUTRAL, GuiTheme.EMBERSTONE, GuiTheme.CARVED_SLATE, GuiTheme.MOSSBOUND, GuiTheme.LAVENDER_HALL, GuiTheme.IRON_ROSE)) {
+    fun legacyThemesRenderAsEnthusia() {
+        val legacyThemes =
+            listOf(
+                GuiTheme.NEUTRAL,
+                GuiTheme.EMBERSTONE,
+                GuiTheme.CARVED_SLATE,
+                GuiTheme.MOSSBOUND,
+                GuiTheme.LAVENDER_HALL,
+                GuiTheme.IRON_ROSE,
+            )
+        for (legacy in legacyThemes) {
             assertEquals(GuiTheme.ENTHUSIA, legacy.resolved(), legacy.name)
             assertTrue(MenuTitleBuilder.build(legacy, 4, "X").contains("<glyph:guild_bg_enthusia_4_row>"), legacy.name)
         }
