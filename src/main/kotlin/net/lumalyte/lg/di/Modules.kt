@@ -416,7 +416,11 @@ fun guildsModule() = module {
     single<MembershipHistoryRepository> { MembershipHistoryRepositorySQLite(get()) }
 
     // Services
-    single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<net.lumalyte.lg.application.persistence.GuildCosmeticUnlockRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildCosmeticUnlockRepositorySQLite(get())
+    }
+    single { net.lumalyte.lg.application.services.GuildCosmeticUnlockService(get(), get()) }
+    single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<RankService> {
         RankServiceBukkit(
             get(), get(), get(), get(), get(),
