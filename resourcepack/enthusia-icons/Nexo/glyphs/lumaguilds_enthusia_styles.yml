@@ -3,180 +3,180 @@
 
 guild_bg_enthusia_1_row:
   texture: gui/enthusia/guild_menu_enthusia_1_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁀ
 
 guild_bg_enthusia_2_row:
   texture: gui/enthusia/guild_menu_enthusia_2_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁁ
 
 guild_bg_enthusia_3_row:
   texture: gui/enthusia/guild_menu_enthusia_3_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁂ
 
 guild_bg_enthusia_4_row:
   texture: gui/enthusia/guild_menu_enthusia_4_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁃ
 
 guild_bg_enthusia_5_row:
   texture: gui/enthusia/guild_menu_enthusia_5_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁄ
 
 guild_bg_enthusia_6_row:
   texture: gui/enthusia/guild_menu_enthusia_6_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁅ
 
 guild_bg_frostbound_1_row:
   texture: gui/frostbound/guild_menu_frostbound_1_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁆ
 
 guild_bg_frostbound_2_row:
   texture: gui/frostbound/guild_menu_frostbound_2_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁇ
 
 guild_bg_frostbound_3_row:
   texture: gui/frostbound/guild_menu_frostbound_3_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁈ
 
 guild_bg_frostbound_4_row:
   texture: gui/frostbound/guild_menu_frostbound_4_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁉ
 
 guild_bg_frostbound_5_row:
   texture: gui/frostbound/guild_menu_frostbound_5_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁊ
 
 guild_bg_frostbound_6_row:
   texture: gui/frostbound/guild_menu_frostbound_6_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁋ
 
 guild_bg_verdant_1_row:
   texture: gui/verdant/guild_menu_verdant_1_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁌ
 
 guild_bg_verdant_2_row:
   texture: gui/verdant/guild_menu_verdant_2_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁍ
 
 guild_bg_verdant_3_row:
   texture: gui/verdant/guild_menu_verdant_3_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁎ
 
 guild_bg_verdant_4_row:
   texture: gui/verdant/guild_menu_verdant_4_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁏ
 
 guild_bg_verdant_5_row:
   texture: gui/verdant/guild_menu_verdant_5_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁐ
 
 guild_bg_verdant_6_row:
   texture: gui/verdant/guild_menu_verdant_6_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁑ
 
 guild_bg_voidlight_1_row:
   texture: gui/voidlight/guild_menu_voidlight_1_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁒ
 
 guild_bg_voidlight_2_row:
   texture: gui/voidlight/guild_menu_voidlight_2_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁓ
 
 guild_bg_voidlight_3_row:
   texture: gui/voidlight/guild_menu_voidlight_3_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁔ
 
 guild_bg_voidlight_4_row:
   texture: gui/voidlight/guild_menu_voidlight_4_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁕ
 
 guild_bg_voidlight_5_row:
   texture: gui/voidlight/guild_menu_voidlight_5_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁖ
 
 guild_bg_voidlight_6_row:
   texture: gui/voidlight/guild_menu_voidlight_6_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁗ
 
 guild_bg_obsidian_1_row:
   texture: gui/obsidian/guild_menu_obsidian_1_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁘ
 
 guild_bg_obsidian_2_row:
   texture: gui/obsidian/guild_menu_obsidian_2_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁙ
 
 guild_bg_obsidian_3_row:
   texture: gui/obsidian/guild_menu_obsidian_3_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁚ
 
 guild_bg_obsidian_4_row:
   texture: gui/obsidian/guild_menu_obsidian_4_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁛ
 
 guild_bg_obsidian_5_row:
   texture: gui/obsidian/guild_menu_obsidian_5_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁜ
 
 guild_bg_obsidian_6_row:
   texture: gui/obsidian/guild_menu_obsidian_6_row
-  ascent: 14
+  ascent: 13
   height: 256
   char: ꁝ
