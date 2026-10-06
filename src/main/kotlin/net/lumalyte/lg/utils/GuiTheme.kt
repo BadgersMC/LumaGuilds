@@ -9,8 +9,18 @@ package net.lumalyte.lg.utils
  *
  * Only [SELECTABLE] styles are offered; the older themes are kept for stored-value
  * compatibility and resolve to [DEFAULT] (see [resolved]).
+ *
+ * Themes with [requiresUnlock] are holiday styles earned through EnthusiaHolidays guild goals
+ * (REQ-121); a guild can only apply one after it has been unlocked through the
+ * GuildCosmeticUnlocks API. Themes with [seasonalIcons] also swap the menu icons for their
+ * `<icon>_<theme>` Nexo variants (see MenuIconAdapter).
  */
-enum class GuiTheme(val displayName: String, val hasBackground: Boolean = true) {
+enum class GuiTheme(
+    val displayName: String,
+    val hasBackground: Boolean = true,
+    val requiresUnlock: Boolean = false,
+    val seasonalIcons: Boolean = false,
+) {
     NEUTRAL("Default"),
     EMBERSTONE("Emberstone"),
     CARVED_SLATE("Carved Slate"),
@@ -30,6 +40,12 @@ enum class GuiTheme(val displayName: String, val hasBackground: Boolean = true) 
     /** Enthusia layout in the Voidlight palette. */
     VOIDLIGHT("Voidlight"),
 
+    /** Halloween: sculk corruption over a pumpkin-orange frame. Earned in EnthusiaHolidays. */
+    HALLOWEEN("Halloween", requiresUnlock = true, seasonalIcons = true),
+
+    /** Christmas: snow, candy-cane bars and holly. Earned in EnthusiaHolidays. */
+    CHRISTMAS("Christmas", requiresUnlock = true, seasonalIcons = true),
+
     /** Enthusia layout in the Obsidian palette. */
     OBSIDIAN("Obsidian"),
 
@@ -44,8 +60,9 @@ enum class GuiTheme(val displayName: String, val hasBackground: Boolean = true) 
     fun resolved(): GuiTheme = if (this in SELECTABLE) this else DEFAULT
 
     companion object {
-        /** Styles offered in the theme picker (Java and Bedrock), in display order. */
-        val SELECTABLE: List<GuiTheme> = listOf(ENTHUSIA, FROSTBOUND, VERDANT, VOIDLIGHT, OBSIDIAN, VANILLA)
+        /** Styles offered in the theme picker (Java and Bedrock), in display order. Locked ones show as locked. */
+        val SELECTABLE: List<GuiTheme> =
+            listOf(ENTHUSIA, FROSTBOUND, VERDANT, VOIDLIGHT, HALLOWEEN, CHRISTMAS, OBSIDIAN, VANILLA)
 
         /** Style for new guilds and for unknown or retired stored values. */
         val DEFAULT: GuiTheme get() = ENTHUSIA
