@@ -226,18 +226,27 @@ class GuildDiscordRoleService(
 
         try {
             doEnsureRole(guild, config, allowCreate).whenComplete { ensured, error ->
-                if (error == null) {
-                    claimed.complete(ensured)
-                } else {
-                    claimed.completeExceptionally(unwrap(error))
-                }
-                ensureInFlight.remove(guild.id, claimed)
+                completeRoleEnsure(guild.id, claimed, ensured, error)
             }
         } catch (error: Throwable) {
             claimed.completeExceptionally(error)
             ensureInFlight.remove(guild.id, claimed)
         }
         return claimed
+    }
+
+    private fun completeRoleEnsure(
+        guildId: UUID,
+        claimed: CompletableFuture<EnsuredRole?>,
+        ensured: EnsuredRole?,
+        error: Throwable?,
+    ) {
+        if (error == null) {
+            claimed.complete(ensured)
+        } else {
+            claimed.completeExceptionally(unwrap(error))
+        }
+        ensureInFlight.remove(guildId, claimed)
     }
 
     private fun doEnsureRole(
@@ -330,17 +339,21 @@ class GuildDiscordRoleService(
     private fun canCreateRole(guild: Guild, config: DiscordGuildRolesConfig): Boolean? {
         val level = guildLevel(guild) ?: return null
         if (level >= config.minimumLevel) return true
+        return hasCompletedPrestige(guild.id)
+    }
+
+    private fun hasCompletedPrestige(guildId: UUID): Boolean? {
         return try {
-            when (val ownership = rewardOwnershipRepository.read(guild.id)) {
+            when (val ownership = rewardOwnershipRepository.read(guildId)) {
                 is RewardOwnershipRead.Found -> ownership.snapshot.ownership.prestigeCount > 0
                 RewardOwnershipRead.Missing -> false
                 is RewardOwnershipRead.Failed -> {
-                    logger.warn("Failed to read prestige for Discord guild role ${guild.id}: ${ownership.reason}")
+                    logger.warn("Failed to read prestige for Discord guild role $guildId: ${ownership.reason}")
                     null
                 }
             }
         } catch (error: Exception) {
-            logger.warn("Failed to read prestige for Discord guild role ${guild.id}", error)
+            logger.warn("Failed to read prestige for Discord guild role $guildId", error)
             null
         }
     }
