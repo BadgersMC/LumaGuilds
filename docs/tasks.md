@@ -890,3 +890,30 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Boot 1 (13:30, `3.0.4-enthusia-gui.2`): clean enable, schema v41, Nexo loaded every item and regenerated the pack with no errors for the new files — but `PacketEvents not available`: packetevents enabled after LumaGuilds despite the softdepend. Fixed (adapter now hooks on `PluginEnableEvent` for packetevents; 3 new probes), suite 1,463 / 0 / 4.
   - Boot 2 (13:54, `3.0.4-enthusia-gui.3`, SHA-256 `f103f90adce1a005a84cb4028e80d23ea99c32976b140a7c3d7fae13f4143733`): `Menu icon adapter waiting for packetevents to enable` → `Menu icon adapter active` one second later; `Done (38.634s)`. Remaining LumaGuilds warnings are pre-existing (SMP Test config still lists removed perks `CUSTOM_BANNER_COLORS`/`ANIMATED_EMOJIS`; DiscordSRV not connected on test). The `.2` jar is kept as `.superseded.disabled`.
   - Still open: human Java walkthrough on SMP Test (dashboard, Guild Actions, theme picker incl. Vanilla, Declare Enemy, progression sources, quests and toast); Bedrock go-live stays with LG-1901 (proxy untouched apart from the mapping backup).
+
+## Holiday menu styles (EnthusiaHolidays) — 2026-10-06
+
+Ported from FainNeito/LumaGuilds#2/#3 onto the Enthusia redesign: the holiday styles are the Halloween and Christmas styles from the Guild Menus design (`LumaGuilds_Guild_Menus_3`), not separate themes.
+
+- [x] **LG-1904** Cosmetic unlock ledger and public API — `GuildCosmeticUnlock`, `GuildCosmeticUnlockRepository` (SQLite/MariaDB, preload cache), `GuildCosmeticUnlockService`, `net.lumalyte.lg.api.GuildCosmeticUnlocks` registered in ServicesManager.
+  - Tag: `TDD`
+  - References: REQ-121
+  - Evidence: `GuildCosmeticUnlockRepositorySQLiteTest` (4), `GuildCosmeticUnlockServiceTest` (8), `GuildCosmeticUnlocksImplTest` (2), `GuildThemeUpdateSQLTest` (2). Revoking the equipped style resets only `gui_theme` with a compare-and-set (`updateGuiTheme`), never a stale full-guild write. MariaDB DDL mirrors the existing ledgers but was not run against MariaDB.
+- [x] **LG-1905** `HALLOWEEN` and `CHRISTMAS` styles — `requiresUnlock` + `seasonalIcons`, offered in Settings → GUI Theme (Java and Bedrock) after Voidlight; locked until earned (Java: locked name and unlock hint; Bedrock: "(locked)" in the dropdown and a locked message). `setGuiTheme` rejects a locked style and fails closed without the ledger.
+  - Tag: `TDD`
+  - References: REQ-121, REQ-096
+  - Evidence: `GuildServiceThemeUnlockTest` (3), `MenuTitleBuilderTest` picker order, `LocaleContractTest`.
+- [x] **LG-1906** Seasonal icon sets — menu icons carry their base id in PDC `lumaguilds:icon`; `MenuIconAdapter` sends members of a Halloween/Christmas guild each icon drawn with its `<id>_<style>` Nexo variant (model and custom model data copied; name, lore, count and click handling unchanged). Vanilla icons win over seasonal ones; icons without a variant are unchanged; variants are cached until Nexo reloads.
+  - Tag: `TDD`
+  - References: REQ-121, LG-1900
+  - Evidence: `SeasonalIconsTest` (5), `MenuIconAdapterTest` +4 (holiday style, other styles, vanilla precedence, switch/quit). Probes failed to compile before `seasonalStyleFor` existed. The packet swap itself needs a live client (not verified).
+- [x] **LG-1907** Holiday pack assets from the Guild Menus design — 12 backgrounds (`gui/{halloween,christmas}/guild_menu_<style>_<1-6>_row.png`, artwork at origin on 256×256; the design's Enthusia art matches the shipped texture pixel for pixel), glyphs U+A060–U+A06B, `lg_theme_halloween`/`lg_theme_christmas` swatches and 2 × 122 seasonal icons (`Nexo/items/lumaguilds_holiday_styles.yml`; server-kit copy with CMD 733500–733745 and `item_model nexo:<id>`).
+  - Tag: `ASSET`
+  - References: REQ-121, REQ-099
+  - Evidence: `HolidayStylePackTest` (4): every row has a 256×256 background glyph, glyph chars unique across the pack, every holiday item has a 16×16 texture, every seasonal item varies an existing icon. In-game rendering not verified.
+- [x] **LG-1908** Fix shifted `gui_theme` / ally-home columns on guild insert (from FainNeito/LumaGuilds#3) — the bound theme now follows the column order in all five insert variants; startup repairs rows written in the shifted layout.
+  - Tag: `TDD`
+  - References: REQ-121 (GUI themes), ally homes
+  - Evidence: `GuildInsertColumnOrderTest` (3) on the migrated schema.
+- Full suite on this branch: **1,573 tests, 0 failures, 0 errors, 4 skipped**.
+- Still open: Java and Bedrock client walkthrough on SMP Test after installing the pack files; Geyser mappings for the seasonal icons (LG-1901).

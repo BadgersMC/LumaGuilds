@@ -239,6 +239,8 @@ class MenuTitleBuilderTest {
                 GuiTheme.FROSTBOUND,
                 GuiTheme.VERDANT,
                 GuiTheme.VOIDLIGHT,
+                GuiTheme.HALLOWEEN,
+                GuiTheme.CHRISTMAS,
                 GuiTheme.OBSIDIAN,
                 GuiTheme.VANILLA,
             )

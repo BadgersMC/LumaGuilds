@@ -9,7 +9,9 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.utils.GuiTheme
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.util.UUID
@@ -103,6 +105,49 @@ internal class MenuIconAdapterTest {
         val p = player(bedrock = false, theme = null)
         adapter.refresh(p)
         assertFalse(adapter.showsVanillaIcons(p.uniqueId))
+    }
+
+    /** Members of a holiday-style guild are sent that style's icons (REQ-121). */
+    @Test
+    fun holidayStyleGetsSeasonalIcons() {
+        val p = player(bedrock = false, theme = GuiTheme.HALLOWEEN)
+        adapter.refresh(p)
+        assertFalse(adapter.showsVanillaIcons(p.uniqueId))
+        assertEquals(GuiTheme.HALLOWEEN, adapter.seasonalStyleFor(p.uniqueId))
+    }
+
+    /** Other styles keep the normal icons. */
+    @Test
+    fun otherStylesGetNoSeasonalIcons() {
+        val p = player(bedrock = false, theme = GuiTheme.FROSTBOUND)
+        adapter.refresh(p)
+        assertNull(adapter.seasonalStyleFor(p.uniqueId))
+    }
+
+    /** Vanilla icons win over seasonal ones (Bedrock opt-in). */
+    @Test
+    fun vanillaIconsWinOverSeasonal() {
+        bedrock = BedrockConfig(javaMenuVanillaIcons = true)
+        val p = player(bedrock = true, theme = GuiTheme.CHRISTMAS)
+        adapter.refresh(p)
+        assertTrue(adapter.showsVanillaIcons(p.uniqueId))
+        assertNull(adapter.seasonalStyleFor(p.uniqueId))
+    }
+
+    /** Switching away from a holiday style, or leaving, restores the normal icons. */
+    @Test
+    fun seasonalStyleClearsOnSwitchAndQuit() {
+        val p = player(bedrock = false, theme = GuiTheme.CHRISTMAS)
+        adapter.refresh(p)
+        val themed = mockk<Guild> { every { guiTheme } returns GuiTheme.ENTHUSIA }
+        every { guildService.getPlayerGuilds(p.uniqueId) } returns setOf(themed)
+        adapter.refresh(p)
+        assertNull(adapter.seasonalStyleFor(p.uniqueId))
+        val festive = mockk<Guild> { every { guiTheme } returns GuiTheme.CHRISTMAS }
+        every { guildService.getPlayerGuilds(p.uniqueId) } returns setOf(festive)
+        adapter.refresh(p)
+        adapter.forget(p.uniqueId)
+        assertNull(adapter.seasonalStyleFor(p.uniqueId))
     }
 
     /** Forgetting a player clears the decision. */

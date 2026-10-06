@@ -43,6 +43,7 @@ class GuildServiceThemeUnlockTest {
         relationRepository = mockk(relaxed = true),
         historyRepository = mockk(relaxed = true),
         adminOverrideService = mockk<AdminOverrideService>(relaxed = true).also { every { it.hasOverride(any()) } returns false },
+        homeActivationService = mockk(relaxed = true),
         themeAccess = access,
     )
 
