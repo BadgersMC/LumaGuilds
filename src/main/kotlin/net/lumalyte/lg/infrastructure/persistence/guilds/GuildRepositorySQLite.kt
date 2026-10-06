@@ -804,6 +804,20 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
         }
     }
 
+    override fun updateGuiTheme(guildId: UUID, expected: net.lumalyte.lg.utils.GuiTheme, theme: net.lumalyte.lg.utils.GuiTheme): Boolean {
+        if (!hasGuiThemeColumn) return false
+        return try {
+            val changed = storage.connection.executeUpdate(
+                "UPDATE guilds SET gui_theme = ? WHERE id = ? AND gui_theme = ?",
+                theme.name, guildId.toString(), expected.name,
+            ) > 0
+            if (changed) guilds.computeIfPresent(guildId) { _, guild -> guild.copy(guiTheme = theme) }
+            changed
+        } catch (e: SQLException) {
+            throw DatabaseOperationException("Failed to update GUI theme for guild $guildId", e)
+        }
+    }
+
     override fun update(guild: Guild): Boolean {
         // Use cached column existence check
         val sql = if (hasLfgColumns && hasTrackingColumn && hasBankFrozenColumn) {

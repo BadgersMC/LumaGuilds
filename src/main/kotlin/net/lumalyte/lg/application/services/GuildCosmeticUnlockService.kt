@@ -44,7 +44,9 @@ class GuildCosmeticUnlockService(
         val guild = guilds.getById(guildId) ?: return false
         if (!unlocks.delete(guildId, normalType, normalKey)) return false
         if (normalType == MENU_THEME_COSMETIC && guild.guiTheme.name == normalKey && guild.guiTheme.requiresUnlock) {
-            return guilds.update(guild.copy(guiTheme = GuiTheme.DEFAULT))
+            // Theme-only compare-and-set: never write back a stale copy of the guild. False just means
+            // the guild already switched away from this theme, which is the outcome we want.
+            guilds.updateGuiTheme(guildId, guild.guiTheme, GuiTheme.DEFAULT)
         }
         return true
     }
