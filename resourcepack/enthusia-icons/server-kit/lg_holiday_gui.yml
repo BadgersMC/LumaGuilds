@@ -1,0 +1,2462 @@
+# LumaGuilds holiday menu styles (REQ-121) for servers on the Enthusia GUI kit.
+# CMD range: 733500-733745. item_model nexo:<id> is what Geyser mappings would match.
+
+lg_theme_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733500
+    texture: lumaguilds:enthusia/theme_halloween
+  Components:
+    item_model: nexo:lg_theme_halloween
+
+lg_theme_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733501
+    texture: lumaguilds:enthusia/theme_christmas
+  Components:
+    item_model: nexo:lg_theme_christmas
+
+lg_nav_info_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733502
+    texture: lumaguilds:enthusia/halloween/guild_info
+  Components:
+    item_model: nexo:lg_nav_info_halloween
+
+lg_nav_members_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733503
+    texture: lumaguilds:enthusia/halloween/members
+  Components:
+    item_model: nexo:lg_nav_members_halloween
+
+lg_nav_ranks_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733504
+    texture: lumaguilds:enthusia/halloween/ranks
+  Components:
+    item_model: nexo:lg_nav_ranks_halloween
+
+lg_nav_quests_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733505
+    texture: lumaguilds:enthusia/halloween/quests
+  Components:
+    item_model: nexo:lg_nav_quests_halloween
+
+lg_nav_economy_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733506
+    texture: lumaguilds:enthusia/halloween/bank
+  Components:
+    item_model: nexo:lg_nav_economy_halloween
+
+lg_nav_settings_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733507
+    texture: lumaguilds:enthusia/halloween/settings
+  Components:
+    item_model: nexo:lg_nav_settings_halloween
+
+lg_nav_progression_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733508
+    texture: lumaguilds:enthusia/halloween/level
+  Components:
+    item_model: nexo:lg_nav_progression_halloween
+
+lg_nav_diplomacy_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733509
+    texture: lumaguilds:enthusia/halloween/alliances
+  Components:
+    item_model: nexo:lg_nav_diplomacy_halloween
+
+lg_nav_warfare_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733510
+    texture: lumaguilds:enthusia/halloween/wars
+  Components:
+    item_model: nexo:lg_nav_warfare_halloween
+
+lg_nav_statistics_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733511
+    texture: lumaguilds:enthusia/halloween/statistics
+  Components:
+    item_model: nexo:lg_nav_statistics_halloween
+
+lg_back_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733512
+    texture: lumaguilds:enthusia/halloween/back
+  Components:
+    item_model: nexo:lg_back_halloween
+
+lg_page_prev_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733513
+    texture: lumaguilds:enthusia/halloween/prev
+  Components:
+    item_model: nexo:lg_page_prev_halloween
+
+lg_page_next_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733514
+    texture: lumaguilds:enthusia/halloween/next
+  Components:
+    item_model: nexo:lg_page_next_halloween
+
+lg_close_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733515
+    texture: lumaguilds:enthusia/halloween/close
+  Components:
+    item_model: nexo:lg_close_halloween
+
+lg_confirm_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733516
+    texture: lumaguilds:enthusia/halloween/confirm
+  Components:
+    item_model: nexo:lg_confirm_halloween
+
+lg_cancel_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733517
+    texture: lumaguilds:enthusia/halloween/cancel
+  Components:
+    item_model: nexo:lg_cancel_halloween
+
+lg_toggle_on_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733518
+    texture: lumaguilds:enthusia/halloween/toggle_on
+  Components:
+    item_model: nexo:lg_toggle_on_halloween
+
+lg_toggle_off_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733519
+    texture: lumaguilds:enthusia/halloween/toggle_off
+  Components:
+    item_model: nexo:lg_toggle_off_halloween
+
+lg_invite_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733520
+    texture: lumaguilds:enthusia/halloween/invite
+  Components:
+    item_model: nexo:lg_invite_halloween
+
+lg_kick_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733521
+    texture: lumaguilds:enthusia/halloween/kick
+  Components:
+    item_model: nexo:lg_kick_halloween
+
+lg_promote_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733522
+    texture: lumaguilds:enthusia/halloween/promote
+  Components:
+    item_model: nexo:lg_promote_halloween
+
+lg_home_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733523
+    texture: lumaguilds:enthusia/halloween/home
+  Components:
+    item_model: nexo:lg_home_halloween
+
+lg_bank_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733524
+    texture: lumaguilds:enthusia/halloween/bank
+  Components:
+    item_model: nexo:lg_bank_halloween
+
+lg_deposit_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733525
+    texture: lumaguilds:enthusia/halloween/deposit
+  Components:
+    item_model: nexo:lg_deposit_halloween
+
+lg_withdraw_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733526
+    texture: lumaguilds:enthusia/halloween/withdraw
+  Components:
+    item_model: nexo:lg_withdraw_halloween
+
+lg_history_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733527
+    texture: lumaguilds:enthusia/halloween/history
+  Components:
+    item_model: nexo:lg_history_halloween
+
+lg_level_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733528
+    texture: lumaguilds:enthusia/halloween/level
+  Components:
+    item_model: nexo:lg_level_halloween
+
+lg_emoji_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733529
+    texture: lumaguilds:enthusia/halloween/emoji
+  Components:
+    item_model: nexo:lg_emoji_halloween
+
+lg_tag_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733530
+    texture: lumaguilds:enthusia/halloween/tag
+  Components:
+    item_model: nexo:lg_tag_halloween
+
+lg_description_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733531
+    texture: lumaguilds:enthusia/halloween/description
+  Components:
+    item_model: nexo:lg_description_halloween
+
+lg_rank_create_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733532
+    texture: lumaguilds:enthusia/halloween/rank_create
+  Components:
+    item_model: nexo:lg_rank_create_halloween
+
+lg_alliance_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733533
+    texture: lumaguilds:enthusia/halloween/alliance_rings
+  Components:
+    item_model: nexo:lg_alliance_halloween
+
+lg_truce_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733534
+    texture: lumaguilds:enthusia/halloween/truce
+  Components:
+    item_model: nexo:lg_truce_halloween
+
+lg_peace_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733535
+    texture: lumaguilds:enthusia/halloween/olive_branch
+  Components:
+    item_model: nexo:lg_peace_halloween
+
+lg_enemy_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733536
+    texture: lumaguilds:enthusia/halloween/enemy
+  Components:
+    item_model: nexo:lg_enemy_halloween
+
+lg_declare_war_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733537
+    texture: lumaguilds:enthusia/halloween/declare_war
+  Components:
+    item_model: nexo:lg_declare_war_halloween
+
+lg_war_stats_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733538
+    texture: lumaguilds:enthusia/halloween/war_stats
+  Components:
+    item_model: nexo:lg_war_stats_halloween
+
+lg_relations_history_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733539
+    texture: lumaguilds:enthusia/halloween/book
+  Components:
+    item_model: nexo:lg_relations_history_halloween
+
+lg_leader_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733540
+    texture: lumaguilds:enthusia/halloween/leader
+  Components:
+    item_model: nexo:lg_leader_halloween
+
+lg_leave_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733541
+    texture: lumaguilds:enthusia/halloween/leave
+  Components:
+    item_model: nexo:lg_leave_halloween
+
+lg_disband_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733542
+    texture: lumaguilds:enthusia/halloween/disband
+  Components:
+    item_model: nexo:lg_disband_halloween
+
+lg_claims_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733543
+    texture: lumaguilds:enthusia/halloween/claims
+  Components:
+    item_model: nexo:lg_claims_halloween
+
+lg_mode_peaceful_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733544
+    texture: lumaguilds:enthusia/halloween/mode_peaceful
+  Components:
+    item_model: nexo:lg_mode_peaceful_halloween
+
+lg_mode_hostile_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733545
+    texture: lumaguilds:enthusia/halloween/mode_hostile
+  Components:
+    item_model: nexo:lg_mode_hostile_halloween
+
+lg_party_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733546
+    texture: lumaguilds:enthusia/halloween/party
+  Components:
+    item_model: nexo:lg_party_halloween
+
+lg_vault_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733547
+    texture: lumaguilds:enthusia/halloween/vault
+  Components:
+    item_model: nexo:lg_vault_halloween
+
+lg_created_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733548
+    texture: lumaguilds:enthusia/halloween/calendar
+  Components:
+    item_model: nexo:lg_created_halloween
+
+lg_sort_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733549
+    texture: lumaguilds:enthusia/halloween/sort
+  Components:
+    item_model: nexo:lg_sort_halloween
+
+lg_confirm_danger_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733550
+    texture: lumaguilds:enthusia/halloween/confirm_danger
+  Components:
+    item_model: nexo:lg_confirm_danger_halloween
+
+lg_requests_in_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733551
+    texture: lumaguilds:enthusia/halloween/requests_in
+  Components:
+    item_model: nexo:lg_requests_in_halloween
+
+lg_requests_out_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733552
+    texture: lumaguilds:enthusia/halloween/requests_out
+  Components:
+    item_model: nexo:lg_requests_out_halloween
+
+lg_requests_in_empty_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733553
+    texture: lumaguilds:enthusia/halloween/requests_in_empty
+  Components:
+    item_model: nexo:lg_requests_in_empty_halloween
+
+lg_requests_out_empty_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733554
+    texture: lumaguilds:enthusia/halloween/requests_out_empty
+  Components:
+    item_model: nexo:lg_requests_out_empty_halloween
+
+lg_no_wars_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733555
+    texture: lumaguilds:enthusia/halloween/no_wars
+  Components:
+    item_model: nexo:lg_no_wars_halloween
+
+lg_no_parties_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733556
+    texture: lumaguilds:enthusia/halloween/no_parties
+  Components:
+    item_model: nexo:lg_no_parties_halloween
+
+lg_deposit_100_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733557
+    texture: lumaguilds:enthusia/halloween/deposit_100
+  Components:
+    item_model: nexo:lg_deposit_100_halloween
+
+lg_withdraw_100_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733558
+    texture: lumaguilds:enthusia/halloween/withdraw_100
+  Components:
+    item_model: nexo:lg_withdraw_100_halloween
+
+lg_deposit_1000_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733559
+    texture: lumaguilds:enthusia/halloween/deposit_1000
+  Components:
+    item_model: nexo:lg_deposit_1000_halloween
+
+lg_withdraw_1000_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733560
+    texture: lumaguilds:enthusia/halloween/withdraw_1000
+  Components:
+    item_model: nexo:lg_withdraw_1000_halloween
+
+lg_deposit_10000_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733561
+    texture: lumaguilds:enthusia/halloween/deposit_10000
+  Components:
+    item_model: nexo:lg_deposit_10000_halloween
+
+lg_withdraw_10000_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733562
+    texture: lumaguilds:enthusia/halloween/withdraw_10000
+  Components:
+    item_model: nexo:lg_withdraw_10000_halloween
+
+lg_deposit_all_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733563
+    texture: lumaguilds:enthusia/halloween/deposit_all
+  Components:
+    item_model: nexo:lg_deposit_all_halloween
+
+lg_withdraw_all_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733564
+    texture: lumaguilds:enthusia/halloween/withdraw_all
+  Components:
+    item_model: nexo:lg_withdraw_all_halloween
+
+lg_nav_actions_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733565
+    texture: lumaguilds:enthusia/halloween/actions
+  Components:
+    item_model: nexo:lg_nav_actions_halloween
+
+lg_vault_unavailable_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733566
+    texture: lumaguilds:enthusia/halloween/vault_unavailable
+  Components:
+    item_model: nexo:lg_vault_unavailable_halloween
+
+lg_mining_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733567
+    texture: lumaguilds:enthusia/halloween/src_mining
+  Components:
+    item_model: nexo:lg_mining_halloween
+
+lg_ore_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733568
+    texture: lumaguilds:enthusia/halloween/src_ore
+  Components:
+    item_model: nexo:lg_ore_halloween
+
+lg_farming_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733569
+    texture: lumaguilds:enthusia/halloween/src_farming
+  Components:
+    item_model: nexo:lg_farming_halloween
+
+lg_fishing_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733570
+    texture: lumaguilds:enthusia/halloween/src_fishing
+  Components:
+    item_model: nexo:lg_fishing_halloween
+
+lg_combat_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733571
+    texture: lumaguilds:enthusia/halloween/src_combat
+  Components:
+    item_model: nexo:lg_combat_halloween
+
+lg_smelting_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733572
+    texture: lumaguilds:enthusia/halloween/src_smelting
+  Components:
+    item_model: nexo:lg_smelting_halloween
+
+lg_crafting_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733573
+    texture: lumaguilds:enthusia/halloween/src_crafting
+  Components:
+    item_model: nexo:lg_crafting_halloween
+
+lg_enchanting_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733574
+    texture: lumaguilds:enthusia/halloween/src_enchanting
+  Components:
+    item_model: nexo:lg_enchanting_halloween
+
+lg_brewing_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733575
+    texture: lumaguilds:enthusia/halloween/src_brewing
+  Components:
+    item_model: nexo:lg_brewing_halloween
+
+lg_exploration_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733576
+    texture: lumaguilds:enthusia/halloween/src_exploration
+  Components:
+    item_model: nexo:lg_exploration_halloween
+
+lg_block_place_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733577
+    texture: lumaguilds:enthusia/halloween/src_block_place
+  Components:
+    item_model: nexo:lg_block_place_halloween
+
+lg_qualified_recruit_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733578
+    texture: lumaguilds:enthusia/halloween/src_recruit
+  Components:
+    item_model: nexo:lg_qualified_recruit_halloween
+
+lg_war_victory_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733579
+    texture: lumaguilds:enthusia/halloween/src_war_victory
+  Components:
+    item_model: nexo:lg_war_victory_halloween
+
+lg_war_defeat_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733580
+    texture: lumaguilds:enthusia/halloween/src_war_defeat
+  Components:
+    item_model: nexo:lg_war_defeat_halloween
+
+lg_claiming_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733581
+    texture: lumaguilds:enthusia/halloween/claims
+  Components:
+    item_model: nexo:lg_claiming_halloween
+
+lg_sources_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733582
+    texture: lumaguilds:enthusia/halloween/prog_sources
+  Components:
+    item_model: nexo:lg_sources_halloween
+
+lg_reward_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733583
+    texture: lumaguilds:enthusia/halloween/prog_reward
+  Components:
+    item_model: nexo:lg_reward_halloween
+
+lg_prestige_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733584
+    texture: lumaguilds:enthusia/halloween/prog_prestige
+  Components:
+    item_model: nexo:lg_prestige_halloween
+
+lg_stats_kills_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733585
+    texture: lumaguilds:enthusia/halloween/stats_kills
+  Components:
+    item_model: nexo:lg_stats_kills_halloween
+
+lg_stats_wars_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733586
+    texture: lumaguilds:enthusia/halloween/stats_wars
+  Components:
+    item_model: nexo:lg_stats_wars_halloween
+
+lg_stats_members_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733587
+    texture: lumaguilds:enthusia/halloween/stats_members
+  Components:
+    item_model: nexo:lg_stats_members_halloween
+
+lg_stats_performance_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733588
+    texture: lumaguilds:enthusia/halloween/stats_performance
+  Components:
+    item_model: nexo:lg_stats_performance_halloween
+
+lg_stats_top_killers_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733589
+    texture: lumaguilds:enthusia/halloween/stats_top_killers
+  Components:
+    item_model: nexo:lg_stats_top_killers_halloween
+
+lg_stats_top_contributors_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733590
+    texture: lumaguilds:enthusia/halloween/stats_top_contributors
+  Components:
+    item_model: nexo:lg_stats_top_contributors_halloween
+
+lg_stats_kd_analysis_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733591
+    texture: lumaguilds:enthusia/halloween/stats_kd
+  Components:
+    item_model: nexo:lg_stats_kd_analysis_halloween
+
+lg_stats_recent_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733592
+    texture: lumaguilds:enthusia/halloween/stats_recent
+  Components:
+    item_model: nexo:lg_stats_recent_halloween
+
+lg_stats_top_inviters_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733593
+    texture: lumaguilds:enthusia/halloween/stats_top_inviters
+  Components:
+    item_model: nexo:lg_stats_top_inviters_halloween
+
+lg_stats_periodic_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733594
+    texture: lumaguilds:enthusia/halloween/stats_periodic
+  Components:
+    item_model: nexo:lg_stats_periodic_halloween
+
+lg_stats_rivalry_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733595
+    texture: lumaguilds:enthusia/halloween/stats_rivalry
+  Components:
+    item_model: nexo:lg_stats_rivalry_halloween
+
+lg_stats_achievements_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733596
+    texture: lumaguilds:enthusia/halloween/stats_achievements
+  Components:
+    item_model: nexo:lg_stats_achievements_halloween
+
+lg_stats_comparison_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733597
+    texture: lumaguilds:enthusia/halloween/stats_comparison
+  Components:
+    item_model: nexo:lg_stats_comparison_halloween
+
+lg_stats_refresh_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733598
+    texture: lumaguilds:enthusia/halloween/stats_refresh
+  Components:
+    item_model: nexo:lg_stats_refresh_halloween
+
+lg_gold_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733599
+    texture: lumaguilds:enthusia/halloween/bank_gold
+  Components:
+    item_model: nexo:lg_gold_halloween
+
+lg_automation_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733600
+    texture: lumaguilds:enthusia/halloween/bank_automation
+  Components:
+    item_model: nexo:lg_automation_halloween
+
+lg_bank_member_contributions_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733601
+    texture: lumaguilds:enthusia/halloween/bank_contributions
+  Components:
+    item_model: nexo:lg_bank_member_contributions_halloween
+
+lg_bank_statistics_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733602
+    texture: lumaguilds:enthusia/halloween/bank_statistics
+  Components:
+    item_model: nexo:lg_bank_statistics_halloween
+
+lg_home_set_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733603
+    texture: lumaguilds:enthusia/halloween/home_set
+  Components:
+    item_model: nexo:lg_home_set_halloween
+
+lg_home_add_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733604
+    texture: lumaguilds:enthusia/halloween/home_add
+  Components:
+    item_model: nexo:lg_home_add_halloween
+
+lg_home_remove_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733605
+    texture: lumaguilds:enthusia/halloween/home_remove
+  Components:
+    item_model: nexo:lg_home_remove_halloween
+
+lg_home_teleport_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733606
+    texture: lumaguilds:enthusia/halloween/home_teleport
+  Components:
+    item_model: nexo:lg_home_teleport_halloween
+
+lg_home_list_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733607
+    texture: lumaguilds:enthusia/halloween/home_list
+  Components:
+    item_model: nexo:lg_home_list_halloween
+
+lg_home_none_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733608
+    texture: lumaguilds:enthusia/halloween/home_none
+  Components:
+    item_model: nexo:lg_home_none_halloween
+
+lg_home_access_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733609
+    texture: lumaguilds:enthusia/halloween/home_access
+  Components:
+    item_model: nexo:lg_home_access_halloween
+
+lg_ally_access_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733610
+    texture: lumaguilds:enthusia/halloween/ally_access
+  Components:
+    item_model: nexo:lg_ally_access_halloween
+
+lg_ally_home_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733611
+    texture: lumaguilds:enthusia/halloween/ally_home
+  Components:
+    item_model: nexo:lg_ally_home_halloween
+
+lg_ally_home_locked_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733612
+    texture: lumaguilds:enthusia/halloween/ally_home_locked
+  Components:
+    item_model: nexo:lg_ally_home_locked_halloween
+
+lg_party_send_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733613
+    texture: lumaguilds:enthusia/halloween/party_send
+  Components:
+    item_model: nexo:lg_party_send_halloween
+
+lg_party_create_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733614
+    texture: lumaguilds:enthusia/halloween/party_create
+  Components:
+    item_model: nexo:lg_party_create_halloween
+
+lg_party_send_locked_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733615
+    texture: lumaguilds:enthusia/halloween/party_send_locked
+  Components:
+    item_model: nexo:lg_party_send_locked_halloween
+
+lg_party_create_locked_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733616
+    texture: lumaguilds:enthusia/halloween/party_create_locked
+  Components:
+    item_model: nexo:lg_party_create_locked_halloween
+
+lg_party_access_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733617
+    texture: lumaguilds:enthusia/halloween/party_access
+  Components:
+    item_model: nexo:lg_party_access_halloween
+
+lg_party_access_locked_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733618
+    texture: lumaguilds:enthusia/halloween/party_access_locked
+  Components:
+    item_model: nexo:lg_party_access_locked_halloween
+
+lg_party_permissions_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733619
+    texture: lumaguilds:enthusia/halloween/party_permissions
+  Components:
+    item_model: nexo:lg_party_permissions_halloween
+
+lg_party_info_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733620
+    texture: lumaguilds:enthusia/halloween/party_info
+  Components:
+    item_model: nexo:lg_party_info_halloween
+
+lg_party_moderate_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733621
+    texture: lumaguilds:enthusia/halloween/party_moderate
+  Components:
+    item_model: nexo:lg_party_moderate_halloween
+
+lg_active_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733622
+    texture: lumaguilds:enthusia/halloween/war_active
+  Components:
+    item_model: nexo:lg_active_halloween
+
+lg_star_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733623
+    texture: lumaguilds:enthusia/halloween/star
+  Components:
+    item_model: nexo:lg_star_halloween
+
+lg_nav_info_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733624
+    texture: lumaguilds:enthusia/christmas/guild_info
+  Components:
+    item_model: nexo:lg_nav_info_christmas
+
+lg_nav_members_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733625
+    texture: lumaguilds:enthusia/christmas/members
+  Components:
+    item_model: nexo:lg_nav_members_christmas
+
+lg_nav_ranks_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733626
+    texture: lumaguilds:enthusia/christmas/ranks
+  Components:
+    item_model: nexo:lg_nav_ranks_christmas
+
+lg_nav_quests_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733627
+    texture: lumaguilds:enthusia/christmas/quests
+  Components:
+    item_model: nexo:lg_nav_quests_christmas
+
+lg_nav_economy_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733628
+    texture: lumaguilds:enthusia/christmas/bank
+  Components:
+    item_model: nexo:lg_nav_economy_christmas
+
+lg_nav_settings_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733629
+    texture: lumaguilds:enthusia/christmas/settings
+  Components:
+    item_model: nexo:lg_nav_settings_christmas
+
+lg_nav_progression_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733630
+    texture: lumaguilds:enthusia/christmas/level
+  Components:
+    item_model: nexo:lg_nav_progression_christmas
+
+lg_nav_diplomacy_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733631
+    texture: lumaguilds:enthusia/christmas/alliances
+  Components:
+    item_model: nexo:lg_nav_diplomacy_christmas
+
+lg_nav_warfare_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733632
+    texture: lumaguilds:enthusia/christmas/wars
+  Components:
+    item_model: nexo:lg_nav_warfare_christmas
+
+lg_nav_statistics_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733633
+    texture: lumaguilds:enthusia/christmas/statistics
+  Components:
+    item_model: nexo:lg_nav_statistics_christmas
+
+lg_back_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733634
+    texture: lumaguilds:enthusia/christmas/back
+  Components:
+    item_model: nexo:lg_back_christmas
+
+lg_page_prev_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733635
+    texture: lumaguilds:enthusia/christmas/prev
+  Components:
+    item_model: nexo:lg_page_prev_christmas
+
+lg_page_next_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733636
+    texture: lumaguilds:enthusia/christmas/next
+  Components:
+    item_model: nexo:lg_page_next_christmas
+
+lg_close_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733637
+    texture: lumaguilds:enthusia/christmas/close
+  Components:
+    item_model: nexo:lg_close_christmas
+
+lg_confirm_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733638
+    texture: lumaguilds:enthusia/christmas/confirm
+  Components:
+    item_model: nexo:lg_confirm_christmas
+
+lg_cancel_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733639
+    texture: lumaguilds:enthusia/christmas/cancel
+  Components:
+    item_model: nexo:lg_cancel_christmas
+
+lg_toggle_on_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733640
+    texture: lumaguilds:enthusia/christmas/toggle_on
+  Components:
+    item_model: nexo:lg_toggle_on_christmas
+
+lg_toggle_off_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733641
+    texture: lumaguilds:enthusia/christmas/toggle_off
+  Components:
+    item_model: nexo:lg_toggle_off_christmas
+
+lg_invite_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733642
+    texture: lumaguilds:enthusia/christmas/invite
+  Components:
+    item_model: nexo:lg_invite_christmas
+
+lg_kick_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733643
+    texture: lumaguilds:enthusia/christmas/kick
+  Components:
+    item_model: nexo:lg_kick_christmas
+
+lg_promote_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733644
+    texture: lumaguilds:enthusia/christmas/promote
+  Components:
+    item_model: nexo:lg_promote_christmas
+
+lg_home_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733645
+    texture: lumaguilds:enthusia/christmas/home
+  Components:
+    item_model: nexo:lg_home_christmas
+
+lg_bank_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733646
+    texture: lumaguilds:enthusia/christmas/bank
+  Components:
+    item_model: nexo:lg_bank_christmas
+
+lg_deposit_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733647
+    texture: lumaguilds:enthusia/christmas/deposit
+  Components:
+    item_model: nexo:lg_deposit_christmas
+
+lg_withdraw_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733648
+    texture: lumaguilds:enthusia/christmas/withdraw
+  Components:
+    item_model: nexo:lg_withdraw_christmas
+
+lg_history_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733649
+    texture: lumaguilds:enthusia/christmas/history
+  Components:
+    item_model: nexo:lg_history_christmas
+
+lg_level_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733650
+    texture: lumaguilds:enthusia/christmas/level
+  Components:
+    item_model: nexo:lg_level_christmas
+
+lg_emoji_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733651
+    texture: lumaguilds:enthusia/christmas/emoji
+  Components:
+    item_model: nexo:lg_emoji_christmas
+
+lg_tag_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733652
+    texture: lumaguilds:enthusia/christmas/tag
+  Components:
+    item_model: nexo:lg_tag_christmas
+
+lg_description_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733653
+    texture: lumaguilds:enthusia/christmas/description
+  Components:
+    item_model: nexo:lg_description_christmas
+
+lg_rank_create_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733654
+    texture: lumaguilds:enthusia/christmas/rank_create
+  Components:
+    item_model: nexo:lg_rank_create_christmas
+
+lg_alliance_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733655
+    texture: lumaguilds:enthusia/christmas/alliance_rings
+  Components:
+    item_model: nexo:lg_alliance_christmas
+
+lg_truce_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733656
+    texture: lumaguilds:enthusia/christmas/truce
+  Components:
+    item_model: nexo:lg_truce_christmas
+
+lg_peace_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733657
+    texture: lumaguilds:enthusia/christmas/olive_branch
+  Components:
+    item_model: nexo:lg_peace_christmas
+
+lg_enemy_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733658
+    texture: lumaguilds:enthusia/christmas/enemy
+  Components:
+    item_model: nexo:lg_enemy_christmas
+
+lg_declare_war_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733659
+    texture: lumaguilds:enthusia/christmas/declare_war
+  Components:
+    item_model: nexo:lg_declare_war_christmas
+
+lg_war_stats_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733660
+    texture: lumaguilds:enthusia/christmas/war_stats
+  Components:
+    item_model: nexo:lg_war_stats_christmas
+
+lg_relations_history_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733661
+    texture: lumaguilds:enthusia/christmas/book
+  Components:
+    item_model: nexo:lg_relations_history_christmas
+
+lg_leader_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733662
+    texture: lumaguilds:enthusia/christmas/leader
+  Components:
+    item_model: nexo:lg_leader_christmas
+
+lg_leave_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733663
+    texture: lumaguilds:enthusia/christmas/leave
+  Components:
+    item_model: nexo:lg_leave_christmas
+
+lg_disband_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733664
+    texture: lumaguilds:enthusia/christmas/disband
+  Components:
+    item_model: nexo:lg_disband_christmas
+
+lg_claims_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733665
+    texture: lumaguilds:enthusia/christmas/claims
+  Components:
+    item_model: nexo:lg_claims_christmas
+
+lg_mode_peaceful_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733666
+    texture: lumaguilds:enthusia/christmas/mode_peaceful
+  Components:
+    item_model: nexo:lg_mode_peaceful_christmas
+
+lg_mode_hostile_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733667
+    texture: lumaguilds:enthusia/christmas/mode_hostile
+  Components:
+    item_model: nexo:lg_mode_hostile_christmas
+
+lg_party_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733668
+    texture: lumaguilds:enthusia/christmas/party
+  Components:
+    item_model: nexo:lg_party_christmas
+
+lg_vault_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733669
+    texture: lumaguilds:enthusia/christmas/vault
+  Components:
+    item_model: nexo:lg_vault_christmas
+
+lg_created_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733670
+    texture: lumaguilds:enthusia/christmas/calendar
+  Components:
+    item_model: nexo:lg_created_christmas
+
+lg_sort_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733671
+    texture: lumaguilds:enthusia/christmas/sort
+  Components:
+    item_model: nexo:lg_sort_christmas
+
+lg_confirm_danger_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733672
+    texture: lumaguilds:enthusia/christmas/confirm_danger
+  Components:
+    item_model: nexo:lg_confirm_danger_christmas
+
+lg_requests_in_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733673
+    texture: lumaguilds:enthusia/christmas/requests_in
+  Components:
+    item_model: nexo:lg_requests_in_christmas
+
+lg_requests_out_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733674
+    texture: lumaguilds:enthusia/christmas/requests_out
+  Components:
+    item_model: nexo:lg_requests_out_christmas
+
+lg_requests_in_empty_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733675
+    texture: lumaguilds:enthusia/christmas/requests_in_empty
+  Components:
+    item_model: nexo:lg_requests_in_empty_christmas
+
+lg_requests_out_empty_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733676
+    texture: lumaguilds:enthusia/christmas/requests_out_empty
+  Components:
+    item_model: nexo:lg_requests_out_empty_christmas
+
+lg_no_wars_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733677
+    texture: lumaguilds:enthusia/christmas/no_wars
+  Components:
+    item_model: nexo:lg_no_wars_christmas
+
+lg_no_parties_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733678
+    texture: lumaguilds:enthusia/christmas/no_parties
+  Components:
+    item_model: nexo:lg_no_parties_christmas
+
+lg_deposit_100_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733679
+    texture: lumaguilds:enthusia/christmas/deposit_100
+  Components:
+    item_model: nexo:lg_deposit_100_christmas
+
+lg_withdraw_100_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733680
+    texture: lumaguilds:enthusia/christmas/withdraw_100
+  Components:
+    item_model: nexo:lg_withdraw_100_christmas
+
+lg_deposit_1000_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733681
+    texture: lumaguilds:enthusia/christmas/deposit_1000
+  Components:
+    item_model: nexo:lg_deposit_1000_christmas
+
+lg_withdraw_1000_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733682
+    texture: lumaguilds:enthusia/christmas/withdraw_1000
+  Components:
+    item_model: nexo:lg_withdraw_1000_christmas
+
+lg_deposit_10000_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733683
+    texture: lumaguilds:enthusia/christmas/deposit_10000
+  Components:
+    item_model: nexo:lg_deposit_10000_christmas
+
+lg_withdraw_10000_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733684
+    texture: lumaguilds:enthusia/christmas/withdraw_10000
+  Components:
+    item_model: nexo:lg_withdraw_10000_christmas
+
+lg_deposit_all_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733685
+    texture: lumaguilds:enthusia/christmas/deposit_all
+  Components:
+    item_model: nexo:lg_deposit_all_christmas
+
+lg_withdraw_all_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733686
+    texture: lumaguilds:enthusia/christmas/withdraw_all
+  Components:
+    item_model: nexo:lg_withdraw_all_christmas
+
+lg_nav_actions_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733687
+    texture: lumaguilds:enthusia/christmas/actions
+  Components:
+    item_model: nexo:lg_nav_actions_christmas
+
+lg_vault_unavailable_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733688
+    texture: lumaguilds:enthusia/christmas/vault_unavailable
+  Components:
+    item_model: nexo:lg_vault_unavailable_christmas
+
+lg_mining_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733689
+    texture: lumaguilds:enthusia/christmas/src_mining
+  Components:
+    item_model: nexo:lg_mining_christmas
+
+lg_ore_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733690
+    texture: lumaguilds:enthusia/christmas/src_ore
+  Components:
+    item_model: nexo:lg_ore_christmas
+
+lg_farming_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733691
+    texture: lumaguilds:enthusia/christmas/src_farming
+  Components:
+    item_model: nexo:lg_farming_christmas
+
+lg_fishing_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733692
+    texture: lumaguilds:enthusia/christmas/src_fishing
+  Components:
+    item_model: nexo:lg_fishing_christmas
+
+lg_combat_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733693
+    texture: lumaguilds:enthusia/christmas/src_combat
+  Components:
+    item_model: nexo:lg_combat_christmas
+
+lg_smelting_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733694
+    texture: lumaguilds:enthusia/christmas/src_smelting
+  Components:
+    item_model: nexo:lg_smelting_christmas
+
+lg_crafting_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733695
+    texture: lumaguilds:enthusia/christmas/src_crafting
+  Components:
+    item_model: nexo:lg_crafting_christmas
+
+lg_enchanting_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733696
+    texture: lumaguilds:enthusia/christmas/src_enchanting
+  Components:
+    item_model: nexo:lg_enchanting_christmas
+
+lg_brewing_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733697
+    texture: lumaguilds:enthusia/christmas/src_brewing
+  Components:
+    item_model: nexo:lg_brewing_christmas
+
+lg_exploration_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733698
+    texture: lumaguilds:enthusia/christmas/src_exploration
+  Components:
+    item_model: nexo:lg_exploration_christmas
+
+lg_block_place_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733699
+    texture: lumaguilds:enthusia/christmas/src_block_place
+  Components:
+    item_model: nexo:lg_block_place_christmas
+
+lg_qualified_recruit_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733700
+    texture: lumaguilds:enthusia/christmas/src_recruit
+  Components:
+    item_model: nexo:lg_qualified_recruit_christmas
+
+lg_war_victory_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733701
+    texture: lumaguilds:enthusia/christmas/src_war_victory
+  Components:
+    item_model: nexo:lg_war_victory_christmas
+
+lg_war_defeat_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733702
+    texture: lumaguilds:enthusia/christmas/src_war_defeat
+  Components:
+    item_model: nexo:lg_war_defeat_christmas
+
+lg_claiming_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733703
+    texture: lumaguilds:enthusia/christmas/claims
+  Components:
+    item_model: nexo:lg_claiming_christmas
+
+lg_sources_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733704
+    texture: lumaguilds:enthusia/christmas/prog_sources
+  Components:
+    item_model: nexo:lg_sources_christmas
+
+lg_reward_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733705
+    texture: lumaguilds:enthusia/christmas/prog_reward
+  Components:
+    item_model: nexo:lg_reward_christmas
+
+lg_prestige_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733706
+    texture: lumaguilds:enthusia/christmas/prog_prestige
+  Components:
+    item_model: nexo:lg_prestige_christmas
+
+lg_stats_kills_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733707
+    texture: lumaguilds:enthusia/christmas/stats_kills
+  Components:
+    item_model: nexo:lg_stats_kills_christmas
+
+lg_stats_wars_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733708
+    texture: lumaguilds:enthusia/christmas/stats_wars
+  Components:
+    item_model: nexo:lg_stats_wars_christmas
+
+lg_stats_members_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733709
+    texture: lumaguilds:enthusia/christmas/stats_members
+  Components:
+    item_model: nexo:lg_stats_members_christmas
+
+lg_stats_performance_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733710
+    texture: lumaguilds:enthusia/christmas/stats_performance
+  Components:
+    item_model: nexo:lg_stats_performance_christmas
+
+lg_stats_top_killers_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733711
+    texture: lumaguilds:enthusia/christmas/stats_top_killers
+  Components:
+    item_model: nexo:lg_stats_top_killers_christmas
+
+lg_stats_top_contributors_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733712
+    texture: lumaguilds:enthusia/christmas/stats_top_contributors
+  Components:
+    item_model: nexo:lg_stats_top_contributors_christmas
+
+lg_stats_kd_analysis_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733713
+    texture: lumaguilds:enthusia/christmas/stats_kd
+  Components:
+    item_model: nexo:lg_stats_kd_analysis_christmas
+
+lg_stats_recent_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733714
+    texture: lumaguilds:enthusia/christmas/stats_recent
+  Components:
+    item_model: nexo:lg_stats_recent_christmas
+
+lg_stats_top_inviters_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733715
+    texture: lumaguilds:enthusia/christmas/stats_top_inviters
+  Components:
+    item_model: nexo:lg_stats_top_inviters_christmas
+
+lg_stats_periodic_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733716
+    texture: lumaguilds:enthusia/christmas/stats_periodic
+  Components:
+    item_model: nexo:lg_stats_periodic_christmas
+
+lg_stats_rivalry_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733717
+    texture: lumaguilds:enthusia/christmas/stats_rivalry
+  Components:
+    item_model: nexo:lg_stats_rivalry_christmas
+
+lg_stats_achievements_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733718
+    texture: lumaguilds:enthusia/christmas/stats_achievements
+  Components:
+    item_model: nexo:lg_stats_achievements_christmas
+
+lg_stats_comparison_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733719
+    texture: lumaguilds:enthusia/christmas/stats_comparison
+  Components:
+    item_model: nexo:lg_stats_comparison_christmas
+
+lg_stats_refresh_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733720
+    texture: lumaguilds:enthusia/christmas/stats_refresh
+  Components:
+    item_model: nexo:lg_stats_refresh_christmas
+
+lg_gold_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733721
+    texture: lumaguilds:enthusia/christmas/bank_gold
+  Components:
+    item_model: nexo:lg_gold_christmas
+
+lg_automation_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733722
+    texture: lumaguilds:enthusia/christmas/bank_automation
+  Components:
+    item_model: nexo:lg_automation_christmas
+
+lg_bank_member_contributions_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733723
+    texture: lumaguilds:enthusia/christmas/bank_contributions
+  Components:
+    item_model: nexo:lg_bank_member_contributions_christmas
+
+lg_bank_statistics_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733724
+    texture: lumaguilds:enthusia/christmas/bank_statistics
+  Components:
+    item_model: nexo:lg_bank_statistics_christmas
+
+lg_home_set_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733725
+    texture: lumaguilds:enthusia/christmas/home_set
+  Components:
+    item_model: nexo:lg_home_set_christmas
+
+lg_home_add_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733726
+    texture: lumaguilds:enthusia/christmas/home_add
+  Components:
+    item_model: nexo:lg_home_add_christmas
+
+lg_home_remove_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733727
+    texture: lumaguilds:enthusia/christmas/home_remove
+  Components:
+    item_model: nexo:lg_home_remove_christmas
+
+lg_home_teleport_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733728
+    texture: lumaguilds:enthusia/christmas/home_teleport
+  Components:
+    item_model: nexo:lg_home_teleport_christmas
+
+lg_home_list_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733729
+    texture: lumaguilds:enthusia/christmas/home_list
+  Components:
+    item_model: nexo:lg_home_list_christmas
+
+lg_home_none_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733730
+    texture: lumaguilds:enthusia/christmas/home_none
+  Components:
+    item_model: nexo:lg_home_none_christmas
+
+lg_home_access_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733731
+    texture: lumaguilds:enthusia/christmas/home_access
+  Components:
+    item_model: nexo:lg_home_access_christmas
+
+lg_ally_access_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733732
+    texture: lumaguilds:enthusia/christmas/ally_access
+  Components:
+    item_model: nexo:lg_ally_access_christmas
+
+lg_ally_home_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733733
+    texture: lumaguilds:enthusia/christmas/ally_home
+  Components:
+    item_model: nexo:lg_ally_home_christmas
+
+lg_ally_home_locked_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733734
+    texture: lumaguilds:enthusia/christmas/ally_home_locked
+  Components:
+    item_model: nexo:lg_ally_home_locked_christmas
+
+lg_party_send_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733735
+    texture: lumaguilds:enthusia/christmas/party_send
+  Components:
+    item_model: nexo:lg_party_send_christmas
+
+lg_party_create_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733736
+    texture: lumaguilds:enthusia/christmas/party_create
+  Components:
+    item_model: nexo:lg_party_create_christmas
+
+lg_party_send_locked_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733737
+    texture: lumaguilds:enthusia/christmas/party_send_locked
+  Components:
+    item_model: nexo:lg_party_send_locked_christmas
+
+lg_party_create_locked_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733738
+    texture: lumaguilds:enthusia/christmas/party_create_locked
+  Components:
+    item_model: nexo:lg_party_create_locked_christmas
+
+lg_party_access_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733739
+    texture: lumaguilds:enthusia/christmas/party_access
+  Components:
+    item_model: nexo:lg_party_access_christmas
+
+lg_party_access_locked_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733740
+    texture: lumaguilds:enthusia/christmas/party_access_locked
+  Components:
+    item_model: nexo:lg_party_access_locked_christmas
+
+lg_party_permissions_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733741
+    texture: lumaguilds:enthusia/christmas/party_permissions
+  Components:
+    item_model: nexo:lg_party_permissions_christmas
+
+lg_party_info_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733742
+    texture: lumaguilds:enthusia/christmas/party_info
+  Components:
+    item_model: nexo:lg_party_info_christmas
+
+lg_party_moderate_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733743
+    texture: lumaguilds:enthusia/christmas/party_moderate
+  Components:
+    item_model: nexo:lg_party_moderate_christmas
+
+lg_active_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733744
+    texture: lumaguilds:enthusia/christmas/war_active
+  Components:
+    item_model: nexo:lg_active_christmas
+
+lg_star_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  excludeFromCommands: true
+  Pack:
+    custom_model_data: 733745
+    texture: lumaguilds:enthusia/christmas/star
+  Components:
+    item_model: nexo:lg_star_christmas

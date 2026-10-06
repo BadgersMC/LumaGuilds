@@ -20,7 +20,7 @@ EnthusiaHolidays `docs/lumaguilds-integration.md`.
   and types are stored (forward compatibility). Type and key are normalised to
   upper case; blank or over-long values are rejected.
 - `setGuiTheme` rejects a locked theme even when called outside the menu.
-- Revoking an equipped `MENU_THEME` resets the guild to `NEUTRAL`.
+- Revoking an equipped `MENU_THEME` resets only its `gui_theme` to the default style (`GuiTheme.DEFAULT`).
 - The selector lists every theme; locked ones show a lock and "earned through
   holiday guild goals (/holidays)" lore and cannot be applied. A failed change
   reports failure instead of claiming success.

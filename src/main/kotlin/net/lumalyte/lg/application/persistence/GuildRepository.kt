@@ -61,7 +61,7 @@ interface GuildRepository {
     fun update(guild: Guild): Boolean
 
     /**
-     * Sets only the GUI theme, and only while [expected] is still equipped (REQ-094).
+     * Sets only the GUI theme, and only while [expected] is still equipped (REQ-121).
      * Unlike [update] it never writes a stale copy of the rest of the guild.
      *
      * @return true if the theme was changed.

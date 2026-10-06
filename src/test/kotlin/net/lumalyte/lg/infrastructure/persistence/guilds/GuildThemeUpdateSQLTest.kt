@@ -14,17 +14,17 @@ import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.util.UUID
 
-/** REQ-094: resetting a revoked theme touches only gui_theme, never a stale copy of the guild. */
+/** REQ-121: resetting a revoked theme touches only gui_theme, never a stale copy of the guild. */
 class GuildThemeUpdateSQLTest : RewardSqlTestFixture() {
     @Test fun `theme reset keeps concurrent guild changes`() {
         val storage = openStorage()
         val repository = migratedRepository(storage)
-        val guild = Guild(UUID.randomUUID(), "Haunted", createdAt = Instant.now(), guiTheme = GuiTheme.HAUNTED_HALL)
+        val guild = Guild(UUID.randomUUID(), "Haunted", createdAt = Instant.now(), guiTheme = GuiTheme.HALLOWEEN)
         assertTrue(repository.add(guild))
         // Another writer renames the guild after a revoke read its snapshot.
         assertTrue(repository.update(guild.copy(name = "Renamed")))
 
-        assertTrue(repository.updateGuiTheme(guild.id, GuiTheme.HAUNTED_HALL, GuiTheme.NEUTRAL))
+        assertTrue(repository.updateGuiTheme(guild.id, GuiTheme.HALLOWEEN, GuiTheme.NEUTRAL))
 
         assertEquals("Renamed", repository.getById(guild.id)!!.name)
         assertEquals(GuiTheme.NEUTRAL, repository.getById(guild.id)!!.guiTheme)
@@ -41,7 +41,7 @@ class GuildThemeUpdateSQLTest : RewardSqlTestFixture() {
         // Themes are only ever changed through update(); add() always creates NEUTRAL guilds in production.
         assertTrue(repository.update(guild))
 
-        assertFalse(repository.updateGuiTheme(guild.id, GuiTheme.HAUNTED_HALL, GuiTheme.NEUTRAL))
+        assertFalse(repository.updateGuiTheme(guild.id, GuiTheme.HALLOWEEN, GuiTheme.NEUTRAL))
 
         assertEquals(GuiTheme.EMBERSTONE, repository.getById(guild.id)!!.guiTheme)
         assertEquals(GuiTheme.EMBERSTONE, GuildRepositorySQLite(storage).getById(guild.id)!!.guiTheme)
