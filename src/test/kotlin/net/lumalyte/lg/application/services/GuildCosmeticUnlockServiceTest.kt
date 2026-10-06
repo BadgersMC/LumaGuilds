@@ -2,7 +2,6 @@ package net.lumalyte.lg.application.services
 
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.slot
 import io.mockk.verify
 import net.lumalyte.lg.application.persistence.GuildCosmeticUnlockRepository
 import net.lumalyte.lg.application.persistence.GuildRepository
@@ -24,7 +23,7 @@ class GuildCosmeticUnlockServiceTest {
     private val unlocks = InMemoryUnlocks()
     private val service = GuildCosmeticUnlockService(guilds, unlocks) { now }
 
-    private fun guild(theme: GuiTheme = GuiTheme.NEUTRAL) = Guild(id = guildId, name = "Enthusiasts", createdAt = now, guiTheme = theme)
+    private fun guild(theme: GuiTheme = GuiTheme.DEFAULT) = Guild(id = guildId, name = "Enthusiasts", createdAt = now, guiTheme = theme)
 
     @Test
     fun `holiday themes are locked until unlocked and progression themes never are`() {
@@ -82,16 +81,17 @@ class GuildCosmeticUnlockServiceTest {
     }
 
     @Test
-    fun `revoking the equipped holiday theme resets the guild to neutral`() {
+    fun `revoking the equipped holiday theme resets only the theme`() {
         every { guilds.getById(guildId) } returns guild(GuiTheme.HALLOWEEN)
-        val saved = slot<Guild>()
-        every { guilds.update(capture(saved)) } returns true
+        every { guilds.updateGuiTheme(guildId, GuiTheme.HALLOWEEN, GuiTheme.DEFAULT) } returns true
         service.unlock(guildId, "MENU_THEME", "HALLOWEEN", "Halloween '26", "src")
 
         assertTrue(service.revoke(guildId, "menu_theme", "halloween"))
         assertTrue(service.revoke(guildId, "MENU_THEME", "HALLOWEEN"))
 
-        assertEquals(GuiTheme.DEFAULT, saved.captured.guiTheme)
+        verify(atLeast = 1) { guilds.updateGuiTheme(guildId, GuiTheme.HALLOWEEN, GuiTheme.DEFAULT) }
+        // A full-record write would overwrite concurrent changes to the guild.
+        verify(exactly = 0) { guilds.update(any()) }
         assertFalse(service.isThemeAvailable(guildId, GuiTheme.HALLOWEEN))
     }
 
