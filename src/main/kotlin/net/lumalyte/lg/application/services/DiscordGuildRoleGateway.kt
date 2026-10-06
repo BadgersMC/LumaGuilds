@@ -20,6 +20,7 @@ enum class DiscordMemberRoleResult {
 
 interface DiscordGuildRoleGateway {
     fun isAvailable(): Boolean
+
     /** Returns null when the role is missing and creation is not currently allowed. */
     fun ensureRole(
         existingRoleId: String?,
