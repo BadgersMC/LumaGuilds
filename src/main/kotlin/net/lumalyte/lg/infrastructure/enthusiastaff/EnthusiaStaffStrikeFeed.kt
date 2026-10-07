@@ -34,6 +34,7 @@ internal class EnthusiaStaffStrikeFeed(
     private val configProvider: () -> StrikesConfig,
 ) : AutoCloseable {
     private val inFlight = AtomicBoolean(false)
+    @Volatile
     private var closed = false
     private var task: BukkitTask? = null
     private var platform: PunishmentLifecyclePlatform? = null
@@ -87,7 +88,10 @@ internal class EnthusiaStaffStrikeFeed(
                 return@whenComplete
             }
             try {
-                Bukkit.getScheduler().runTask(plugin, Runnable { applyPage(page) })
+                // Snapshot reconciliation performs synchronous Luma persistence/history work.
+                // Run it on Luma's async scheduler just like the legacy backfill so a large
+                // moderation history can never become a main-thread tick loop.
+                Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable { applyPage(page) })
             } catch (scheduleError: RuntimeException) {
                 inFlight.set(false)
                 reportFailure("Could not schedule Guild Strikes snapshot application", scheduleError)
