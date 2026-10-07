@@ -55,6 +55,28 @@ class StrikeServiceTest {
     }
 
     @Test
+    fun `external strikes preserve provider identity and expiration`() {
+        val repo = mockk<StrikeRepository>(relaxed = true)
+        val service = serviceWith(StrikesConfig(enabled = true), repo)
+        val expiration = now.plusSeconds(3600)
+
+        service.recordExternalStrike(
+            guildId, playerUuid, "Steve", "MUTE", "spam", "Mod", now,
+            "ENTHUSIA_STAFF", "sanction-1", expiration, active = true,
+        )
+
+        verify(exactly = 1) {
+            repo.recordExternalStrike(
+                match {
+                    it.sourceProvider == "ENTHUSIA_STAFF" &&
+                        it.sourcePunishmentId == "sanction-1" &&
+                        it.expiresAt == expiration && it.active
+                },
+            )
+        }
+    }
+
+    @Test
     fun `isUpForPenalty respects threshold on ACTIVE strikes only`() {
         val repo = mockk<StrikeRepository>()
         every { repo.countActiveByGuild(guildId) } returns 5
