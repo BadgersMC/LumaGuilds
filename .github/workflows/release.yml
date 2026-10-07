@@ -20,7 +20,7 @@ jobs:
     env:
       ROSECHAT_UPSTREAM_REF: 179483128fa2020f3ad8b0e4192ada3d0a251c49
       COMBATLOGX_API_REF: 4812e85af1264ebb27da481b9d9cbf8de0956e53
-      ENTHUSIASTAFF_API_REF: b3d8de2d4b094594359ed80512b17371d7da8e63 # Staff PR #408 lifecycle API
+      ENTHUSIASTAFF_API_REF: a9f2ad6e12bdf32c707c6336b869c45e781ce0f9 # Staff PR #408 lifecycle API
 
     steps:
       - uses: actions/checkout@v4
