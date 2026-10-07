@@ -167,10 +167,13 @@ internal class EnthusiaStaffStrikeFeed(
             return
         }
 
-        // Existing LiteBans backfill rows keep their original numeric identity. If an older
-        // backfill missed one, repair the gap from Staff's imported projection instead of
-        // requiring LiteBans to be reinstalled.
+        // Existing LiteBans backfill rows keep their original numeric identity. Always reconcile
+        // rows that already exist, even if historical backfill is currently disabled.
         if (strikeService.reconcileLegacyStrike(type, entryId, active)) return
+
+        // Repairing a missing historical row is itself backfill, so preserve the operator's
+        // existing backfill.enabled switch instead of silently importing old history.
+        if (!configProvider().backfill.enabled) return
 
         val guildId = resolveGuildAtTime(
             event.subjectId(),
