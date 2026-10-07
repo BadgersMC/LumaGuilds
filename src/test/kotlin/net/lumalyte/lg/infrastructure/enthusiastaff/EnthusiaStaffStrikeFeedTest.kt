@@ -74,6 +74,30 @@ class EnthusiaStaffStrikeFeedTest {
     }
 
     @Test
+    fun `snapshot expiration is recomputed when applied`() {
+        val strikes = mockk<StrikeService>(relaxed = true)
+        every { strikes.reconcileExternalStrike(any(), any(), any(), any()) } returns true
+        val feed = feed(strikes, mockk(relaxed = true))
+
+        feed.applyEvent(
+            event(
+                PunishmentLifecycleSource.ENTHUSIA_STAFF,
+                active = true,
+                expiresAt = Instant.now().minusSeconds(1),
+            ),
+        )
+
+        verify(exactly = 1) {
+            strikes.reconcileExternalStrike(
+                "ENTHUSIA_STAFF",
+                SANCTION_ID,
+                false,
+                any(),
+            )
+        }
+    }
+
+    @Test
     fun `native snapshot reconciles existing strike without guild lookup`() {
         val strikes = mockk<StrikeService>(relaxed = true)
         every { strikes.reconcileExternalStrike(any(), any(), any(), any()) } returns true
@@ -171,6 +195,7 @@ class EnthusiaStaffStrikeFeedTest {
         source: PunishmentLifecycleSource,
         sourceId: String = SANCTION_ID,
         active: Boolean = true,
+        expiresAt: Instant = issuedAt.plusSeconds(3600),
     ) = PunishmentLifecycleEvent(
         UUID.fromString(SANCTION_ID),
         "CASE000000000001",
@@ -180,7 +205,7 @@ class EnthusiaStaffStrikeFeedTest {
         source,
         sourceId,
         issuedAt,
-        Optional.of(issuedAt.plusSeconds(3600)),
+        Optional.of(expiresAt),
         "Reason",
         Optional.of("Moderator"),
         active,
