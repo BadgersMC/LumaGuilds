@@ -62,7 +62,7 @@ class EnthusiaStaffStrikeFeedTest {
         val history = mockk<MembershipHistoryRepository>()
         every { history.getByPlayer(player) } returns emptyList()
         val guildService = mockk<GuildService>()
-        every { guildService.getPlayerGuilds(player) } returns listOf(mockk(relaxed = true))
+        every { guildService.getPlayerGuilds(player) } returns setOf(mockk<net.lumalyte.lg.domain.entities.Guild>(relaxed = true))
         val feed = feed(strikes, history, guildService)
 
         feed.applyEvent(event(PunishmentLifecycleSource.ENTHUSIA_STAFF))
