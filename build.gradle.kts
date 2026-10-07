@@ -60,6 +60,9 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:26.2.build.129-stable")
     compileOnly("com.github.retrooper:packetevents-spigot:2.11.2")
     compileOnly("com.discordsrv:discordsrv:1.28.0")
+    // Provider-neutral EnthusiaStaff lifecycle API; runtime classes are supplied by EnthusiaStaff.
+    compileOnly("com.github.wsg138.EnthusiaStaff:moderation-platform-api:92c478db3612ae05e1f6f70b49ffa1ec03a5440e")
+    testImplementation("com.github.wsg138.EnthusiaStaff:moderation-platform-api:92c478db3612ae05e1f6f70b49ffa1ec03a5440e")
     shadow("org.jetbrains.kotlin:kotlin-stdlib")
 
     implementation("org.slf4j:slf4j-nop:2.0.13")
