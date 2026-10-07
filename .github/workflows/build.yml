@@ -17,6 +17,7 @@ jobs:
       ROSECHAT_UPSTREAM_REF: 179483128fa2020f3ad8b0e4192ada3d0a251c49 # official Rosewood 26.2 support commit
       PLAYTIME_API_REF: 2a5b57d       # wsg138/PlayTimePlugin commit the API jar is built from
       COMBATLOGX_API_REF: 4812e85af1264ebb27da481b9d9cbf8de0956e53 # last complete 11.6 API source tree
+      ENTHUSIASTAFF_API_REF: 92c478db3612ae05e1f6f70b49ffa1ec03a5440e # Staff PR #408 lifecycle API
 
     permissions:
       contents: read
@@ -101,6 +102,27 @@ jobs:
           ! -name '*-sources.jar' ! -name '*-javadoc.jar' | head -1)
         test -n "$COMBATLOGX_JAR"
         cp "$COMBATLOGX_JAR" "$GITHUB_WORKSPACE/libs/CombatLogX-api.jar"
+
+    - name: Cache EnthusiaStaff moderation API jar
+      id: enthusiastaff-api-cache
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: libs/EnthusiaStaff-moderation-api.jar
+        key: enthusiastaff-moderation-api-${{ env.ENTHUSIASTAFF_API_REF }}
+
+    - name: Build EnthusiaStaff moderation API jar
+      if: steps.enthusiastaff-api-cache.outputs.cache-hit != 'true'
+      run: |
+        git clone https://github.com/wsg138/EnthusiaStaff.git /tmp/enthusiastaff
+        cd /tmp/enthusiastaff
+        git checkout "$ENTHUSIASTAFF_API_REF"
+        chmod +x gradlew
+        ./gradlew :moderation-platform-api:jar --no-daemon
+        mkdir -p "$GITHUB_WORKSPACE/libs"
+        STAFF_API_JAR=$(find moderation-platform-api/build/libs -maxdepth 1 -name '*.jar' \
+          ! -name '*-sources.jar' ! -name '*-javadoc.jar' | head -1)
+        test -n "$STAFF_API_JAR"
+        cp "$STAFF_API_JAR" "$GITHUB_WORKSPACE/libs/EnthusiaStaff-moderation-api.jar"
 
     - name: Test with Gradle
       env:
