@@ -17,7 +17,7 @@ jobs:
       ROSECHAT_UPSTREAM_REF: 179483128fa2020f3ad8b0e4192ada3d0a251c49 # official Rosewood 26.2 support commit
       PLAYTIME_API_REF: 2a5b57d       # wsg138/PlayTimePlugin commit the API jar is built from
       COMBATLOGX_API_REF: 4812e85af1264ebb27da481b9d9cbf8de0956e53 # last complete 11.6 API source tree
-      ENTHUSIASTAFF_API_REF: 92c478db3612ae05e1f6f70b49ffa1ec03a5440e # Staff PR #408 lifecycle API
+      ENTHUSIASTAFF_API_REF: b3d8de2d4b094594359ed80512b17371d7da8e63 # Staff PR #408 lifecycle API
 
     permissions:
       contents: read

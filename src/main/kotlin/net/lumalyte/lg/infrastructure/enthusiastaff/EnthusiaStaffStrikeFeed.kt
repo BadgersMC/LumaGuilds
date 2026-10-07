@@ -3,7 +3,6 @@ package net.lumalyte.lg.infrastructure.enthusiastaff
 import net.enthusia.staff.moderation.api.PunishmentCategory
 import net.enthusia.staff.moderation.api.PunishmentLifecycleCursor
 import net.enthusia.staff.moderation.api.PunishmentLifecycleEvent
-import net.enthusia.staff.moderation.api.PunishmentLifecycleEventKind
 import net.enthusia.staff.moderation.api.PunishmentLifecyclePage
 import net.enthusia.staff.moderation.api.PunishmentLifecyclePlatform
 import net.enthusia.staff.moderation.api.PunishmentLifecycleSource
@@ -11,7 +10,6 @@ import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.StrikeService
 import net.lumalyte.lg.config.StrikesConfig
-import net.lumalyte.lg.domain.entities.StrikeFeedCursor
 import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
@@ -20,10 +18,12 @@ import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Durable EnthusiaStaff -> Guild Strikes adapter.
+ * Convergent EnthusiaStaff -> Guild Strikes adapter.
  *
- * Staff owns lifecycle persistence/replay. Luma owns guild attribution and its strike ledger.
- * The local cursor advances only after a page has been applied or intentionally skipped.
+ * Each reconciliation pass scans the authoritative current Staff sanction projection from the
+ * beginning. Provider-owned punishment ids make repeated passes idempotent. Restarting the scan
+ * after every completed pass also guarantees eventual discovery of sanctions committed while an
+ * earlier scan is already in progress.
  */
 internal class EnthusiaStaffStrikeFeed(
     private val plugin: JavaPlugin,
@@ -36,10 +36,8 @@ internal class EnthusiaStaffStrikeFeed(
     private var closed = false
     private var task: BukkitTask? = null
     private var platform: PunishmentLifecyclePlatform? = null
+    private var cursor = PunishmentLifecycleCursor.beginning()
     private var lastFailure: String? = null
-    private var cursor = strikeService.feedCursor(PROVIDER)?.let {
-        PunishmentLifecycleCursor(it.occurredAt, it.eventId)
-    } ?: PunishmentLifecycleCursor.beginning()
 
     fun start(): Boolean {
         val service = Bukkit.getServicesManager().load(PunishmentLifecyclePlatform::class.java) ?: return false
@@ -51,17 +49,13 @@ internal class EnthusiaStaffStrikeFeed(
             return false
         }
         platform = service
-        task = Bukkit.getScheduler().runTaskTimer(plugin, Runnable { poll() }, 20L, 100L)
+        task = Bukkit.getScheduler().runTaskTimer(plugin, Runnable { beginSweep() }, INITIAL_DELAY_TICKS, SWEEP_TICKS)
         return true
     }
 
-    private fun poll() {
+    private fun beginSweep() {
         if (closed || !configProvider().enabled || !inFlight.compareAndSet(false, true)) return
-        val service = platform
-        if (service == null || !service.available()) {
-            inFlight.set(false)
-            return
-        }
+        cursor = PunishmentLifecycleCursor.beginning()
         try {
             strikeService.deactivateExpiredExternal(Instant.now())
         } catch (error: Exception) {
@@ -69,11 +63,19 @@ internal class EnthusiaStaffStrikeFeed(
             reportFailure("Failed to expire Guild Strikes", error)
             return
         }
+        readPage()
+    }
 
+    private fun readPage() {
+        val service = platform
+        if (closed || service == null || !service.available()) {
+            inFlight.set(false)
+            return
+        }
         service.readAfter(cursor, PAGE_SIZE).whenComplete { page, error ->
             if (error != null) {
                 inFlight.set(false)
-                reportFailure("EnthusiaStaff Guild Strikes feed read failed", error)
+                reportFailure("EnthusiaStaff Guild Strikes snapshot read failed", error)
                 return@whenComplete
             }
             if (closed || !plugin.isEnabled) {
@@ -84,30 +86,26 @@ internal class EnthusiaStaffStrikeFeed(
                 Bukkit.getScheduler().runTask(plugin, Runnable { applyPage(page) })
             } catch (scheduleError: RuntimeException) {
                 inFlight.set(false)
-                reportFailure("Could not schedule Guild Strikes feed application", scheduleError)
+                reportFailure("Could not schedule Guild Strikes snapshot application", scheduleError)
             }
         }
     }
 
-    private fun applyPage(page: PunishmentLifecyclePage) {
-        var scheduleNext = false
+    internal fun applyPage(page: PunishmentLifecyclePage) {
         try {
             if (closed || !configProvider().enabled) return
             page.events().forEach(::applyEvent)
-            if (page.events().isNotEmpty()) {
-                val next = page.nextCursor()
-                strikeService.saveFeedCursor(PROVIDER, StrikeFeedCursor(next.occurredAt(), next.eventId()))
-                cursor = next
-            }
             lastFailure = null
-            scheduleNext = page.hasMore()
+            if (page.hasMore()) {
+                cursor = page.nextCursor()
+                readPage()
+            } else {
+                cursor = PunishmentLifecycleCursor.beginning()
+                inFlight.set(false)
+            }
         } catch (error: Exception) {
-            reportFailure("Failed to apply EnthusiaStaff Guild Strikes page; cursor was not advanced", error)
-        } finally {
             inFlight.set(false)
-        }
-        if (scheduleNext && !closed) {
-            Bukkit.getScheduler().runTask(plugin, Runnable { poll() })
+            reportFailure("Failed to apply EnthusiaStaff Guild Strikes snapshot page", error)
         }
     }
 
@@ -117,46 +115,54 @@ internal class EnthusiaStaffStrikeFeed(
         if (event.category() == PunishmentCategory.OTHER || type !in counted) return
 
         if (event.source() == PunishmentLifecycleSource.LITEBANS) {
-            if (event.kind() == PunishmentLifecycleEventKind.CREATED) return
-            val entryId = event.sourcePunishmentId().toLongOrNull()
-            if (entryId == null) {
-                plugin.logger.warning(
-                    "Skipping malformed LiteBans strike lifecycle id '${event.sourcePunishmentId()}'",
-                )
-                return
-            }
-            strikeService.reconcileLegacyStrike(type, entryId, event.active())
+            reconcileImportedLiteBans(type, event)
             return
         }
 
-        val expiresAt = when (event.category()) {
-            PunishmentCategory.MUTE, PunishmentCategory.BAN -> event.expiresAt().orElse(null)
-            else -> null
-        }
-        if (event.kind() == PunishmentLifecycleEventKind.CREATED) {
-            val guildId = resolveGuildAtTime(event.subjectId(), event.issuedAt()) ?: return
-            strikeService.recordExternalStrike(
-                guildId = guildId,
-                playerUuid = event.subjectId(),
-                playerName = event.subjectName().orElse(null),
-                punishmentType = type,
-                reason = event.publicReason(),
-                executorName = event.actorName().orElse(null),
-                issuedAt = event.issuedAt(),
-                sourceProvider = PROVIDER,
-                sourcePunishmentId = event.sourcePunishmentId(),
-                expiresAt = expiresAt,
-                active = event.active(),
-            )
-        } else {
-            strikeService.reconcileExternalStrike(
+        val expiresAt = expirationFor(event)
+        if (strikeService.reconcileExternalStrike(
                 PROVIDER,
                 event.sourcePunishmentId(),
                 event.active(),
                 expiresAt,
-            )
+            )) {
+            return
         }
+
+        val guildId = resolveGuildAtTime(event.subjectId(), event.issuedAt()) ?: return
+        strikeService.recordExternalStrike(
+            guildId = guildId,
+            playerUuid = event.subjectId(),
+            playerName = event.subjectName().orElse(null),
+            punishmentType = type,
+            reason = event.publicReason(),
+            executorName = event.actorName().orElse(null),
+            issuedAt = event.issuedAt(),
+            sourceProvider = PROVIDER,
+            sourcePunishmentId = event.sourcePunishmentId(),
+            expiresAt = expiresAt,
+            active = event.active(),
+        )
     }
+
+    private fun reconcileImportedLiteBans(type: String, event: PunishmentLifecycleEvent) {
+        // LiteBans imports predate this adapter and already have their historical strike rows.
+        // Never recreate those rows from Staff; only reconcile current lifecycle state.
+        val entryId = event.sourcePunishmentId().toLongOrNull()
+        if (entryId == null) {
+            plugin.logger.warning(
+                "Skipping malformed LiteBans strike lifecycle id '${event.sourcePunishmentId()}'",
+            )
+            return
+        }
+        strikeService.reconcileLegacyStrike(type, entryId, event.active())
+    }
+
+    private fun expirationFor(event: PunishmentLifecycleEvent): Instant? =
+        when (event.category()) {
+            PunishmentCategory.MUTE, PunishmentCategory.BAN -> event.expiresAt().orElse(null)
+            else -> null
+        }
 
     private fun resolveGuildAtTime(playerId: UUID, at: Instant): UUID? {
         val stints = runCatching { membershipHistoryRepository.getByPlayer(playerId) }.getOrElse { emptyList() }
@@ -188,5 +194,7 @@ internal class EnthusiaStaffStrikeFeed(
     companion object {
         private const val PROVIDER = "ENTHUSIA_STAFF"
         private const val PAGE_SIZE = 50
+        private const val INITIAL_DELAY_TICKS = 20L
+        private const val SWEEP_TICKS = 1_200L
     }
 }

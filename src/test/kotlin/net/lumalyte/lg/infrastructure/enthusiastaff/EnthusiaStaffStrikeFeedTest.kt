@@ -4,9 +4,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import net.enthusia.staff.moderation.api.PunishmentCategory
-import net.enthusia.staff.moderation.api.PunishmentLifecycleCursor
 import net.enthusia.staff.moderation.api.PunishmentLifecycleEvent
-import net.enthusia.staff.moderation.api.PunishmentLifecycleEventKind
 import net.enthusia.staff.moderation.api.PunishmentLifecycleSource
 import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.application.services.GuildService
@@ -25,9 +23,9 @@ class EnthusiaStaffStrikeFeedTest {
     private val guild = UUID.randomUUID()
 
     @Test
-    fun `native creation records provider-neutral strike against historical guild`() {
+    fun `native snapshot creates provider strike when none exists`() {
         val strikes = mockk<StrikeService>(relaxed = true)
-        every { strikes.feedCursor(any()) } returns null
+        every { strikes.reconcileExternalStrike(any(), any(), any(), any()) } returns false
         val history = mockk<MembershipHistoryRepository>()
         every { history.getByPlayer(player) } returns listOf(
             mockk<MembershipHistory> {
@@ -38,7 +36,7 @@ class EnthusiaStaffStrikeFeedTest {
         )
         val feed = feed(strikes, history)
 
-        feed.applyEvent(event(PunishmentLifecycleSource.ENTHUSIA_STAFF, PunishmentLifecycleEventKind.CREATED))
+        feed.applyEvent(event(PunishmentLifecycleSource.ENTHUSIA_STAFF))
 
         verify(exactly = 1) {
             strikes.recordExternalStrike(
@@ -50,7 +48,7 @@ class EnthusiaStaffStrikeFeedTest {
                 "Moderator",
                 issuedAt,
                 "ENTHUSIA_STAFF",
-                "90000000-0000-0000-0000-000000000001",
+                SANCTION_ID,
                 issuedAt.plusSeconds(3600),
                 true,
             )
@@ -58,54 +56,44 @@ class EnthusiaStaffStrikeFeedTest {
     }
 
     @Test
-    fun `imported LiteBans creation is skipped but later change reconciles legacy row`() {
+    fun `native snapshot reconciles existing strike without guild lookup`() {
         val strikes = mockk<StrikeService>(relaxed = true)
-        every { strikes.feedCursor(any()) } returns null
+        every { strikes.reconcileExternalStrike(any(), any(), any(), any()) } returns true
         val history = mockk<MembershipHistoryRepository>(relaxed = true)
         val feed = feed(strikes, history)
 
-        feed.applyEvent(
-            event(
-                PunishmentLifecycleSource.LITEBANS,
-                PunishmentLifecycleEventKind.CREATED,
-                sourceId = "42",
-            ),
-        )
-        verify(exactly = 0) { strikes.recordExternalStrike(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) }
-        verify(exactly = 0) { strikes.reconcileLegacyStrike(any(), any(), any()) }
-
-        feed.applyEvent(
-            event(
-                PunishmentLifecycleSource.LITEBANS,
-                PunishmentLifecycleEventKind.CHANGED,
-                sourceId = "42",
-                active = false,
-            ),
-        )
-        verify(exactly = 1) { strikes.reconcileLegacyStrike("BAN", 42L, false) }
-    }
-
-    @Test
-    fun `native lifecycle change reconciles existing provider strike`() {
-        val strikes = mockk<StrikeService>(relaxed = true)
-        every { strikes.feedCursor(any()) } returns null
-        val feed = feed(strikes, mockk(relaxed = true))
-
-        feed.applyEvent(
-            event(
-                PunishmentLifecycleSource.ENTHUSIA_STAFF,
-                PunishmentLifecycleEventKind.CHANGED,
-                active = false,
-            ),
-        )
+        feed.applyEvent(event(PunishmentLifecycleSource.ENTHUSIA_STAFF, active = false))
 
         verify(exactly = 1) {
             strikes.reconcileExternalStrike(
                 "ENTHUSIA_STAFF",
-                "90000000-0000-0000-0000-000000000001",
+                SANCTION_ID,
                 false,
                 issuedAt.plusSeconds(3600),
             )
+        }
+        verify(exactly = 0) { history.getByPlayer(any()) }
+        verify(exactly = 0) {
+            strikes.recordExternalStrike(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+        }
+    }
+
+    @Test
+    fun `imported LiteBans snapshot only reconciles legacy row`() {
+        val strikes = mockk<StrikeService>(relaxed = true)
+        val feed = feed(strikes, mockk(relaxed = true))
+
+        feed.applyEvent(
+            event(
+                PunishmentLifecycleSource.LITEBANS,
+                sourceId = "42",
+                active = false,
+            ),
+        )
+
+        verify(exactly = 1) { strikes.reconcileLegacyStrike("BAN", 42L, false) }
+        verify(exactly = 0) {
+            strikes.recordExternalStrike(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
         }
     }
 
@@ -128,17 +116,14 @@ class EnthusiaStaffStrikeFeedTest {
 
     private fun event(
         source: PunishmentLifecycleSource,
-        kind: PunishmentLifecycleEventKind,
-        sourceId: String = "90000000-0000-0000-0000-000000000001",
+        sourceId: String = SANCTION_ID,
         active: Boolean = true,
     ) = PunishmentLifecycleEvent(
-        PunishmentLifecycleCursor(issuedAt, UUID.randomUUID()),
-        UUID.fromString("90000000-0000-0000-0000-000000000001"),
+        UUID.fromString(SANCTION_ID),
         "CASE000000000001",
         player,
         Optional.of("Player"),
         PunishmentCategory.BAN,
-        kind,
         source,
         sourceId,
         issuedAt,
@@ -147,4 +132,8 @@ class EnthusiaStaffStrikeFeedTest {
         Optional.of("Moderator"),
         active,
     )
+
+    companion object {
+        private const val SANCTION_ID = "90000000-0000-0000-0000-000000000001"
+    }
 }
