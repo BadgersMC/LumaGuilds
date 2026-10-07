@@ -56,6 +56,24 @@ class EnthusiaStaffStrikeFeedTest {
     }
 
     @Test
+    fun `native unattributable punishment stays skipped even if player later has a current guild`() {
+        val strikes = mockk<StrikeService>(relaxed = true)
+        every { strikes.reconcileExternalStrike(any(), any(), any(), any()) } returns false
+        val history = mockk<MembershipHistoryRepository>()
+        every { history.getByPlayer(player) } returns emptyList()
+        val guildService = mockk<GuildService>()
+        every { guildService.getPlayerGuilds(player) } returns listOf(mockk(relaxed = true))
+        val feed = feed(strikes, history, guildService)
+
+        feed.applyEvent(event(PunishmentLifecycleSource.ENTHUSIA_STAFF))
+
+        verify(exactly = 0) { guildService.getPlayerGuilds(any()) }
+        verify(exactly = 0) {
+            strikes.recordExternalStrike(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+        }
+    }
+
+    @Test
     fun `native snapshot reconciles existing strike without guild lookup`() {
         val strikes = mockk<StrikeService>(relaxed = true)
         every { strikes.reconcileExternalStrike(any(), any(), any(), any()) } returns true
@@ -134,10 +152,11 @@ class EnthusiaStaffStrikeFeedTest {
     private fun feed(
         strikes: StrikeService,
         history: MembershipHistoryRepository,
+        guildService: GuildService = mockk(relaxed = true),
     ): EnthusiaStaffStrikeFeed =
         EnthusiaStaffStrikeFeed(
             plugin = mockk<JavaPlugin>(relaxed = true),
-            guildService = mockk<GuildService>(relaxed = true),
+            guildService = guildService,
             strikeService = strikes,
             membershipHistoryRepository = history,
             configProvider = {

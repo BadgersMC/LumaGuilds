@@ -129,7 +129,7 @@ internal class EnthusiaStaffStrikeFeed(
             return
         }
 
-        val guildId = resolveGuildAtTime(event.subjectId(), event.issuedAt()) ?: return
+        val guildId = resolveGuildAtTime(event.subjectId(), event.issuedAt(), allowCurrentFallback = false) ?: return
         strikeService.recordExternalStrike(
             guildId = guildId,
             playerUuid = event.subjectId(),
@@ -159,7 +159,11 @@ internal class EnthusiaStaffStrikeFeed(
         // requiring LiteBans to be reinstalled.
         if (strikeService.reconcileLegacyStrike(type, entryId, event.active())) return
 
-        val guildId = resolveGuildAtTime(event.subjectId(), event.issuedAt()) ?: return
+        val guildId = resolveGuildAtTime(
+            event.subjectId(),
+            event.issuedAt(),
+            allowCurrentFallback = configProvider().backfill.fallbackToCurrentGuild,
+        ) ?: return
         strikeService.recordStrike(
             guildId = guildId,
             playerUuid = event.subjectId(),
@@ -179,13 +183,17 @@ internal class EnthusiaStaffStrikeFeed(
             else -> null
         }
 
-    private fun resolveGuildAtTime(playerId: UUID, at: Instant): UUID? {
+    private fun resolveGuildAtTime(
+        playerId: UUID,
+        at: Instant,
+        allowCurrentFallback: Boolean,
+    ): UUID? {
         val stints = runCatching { membershipHistoryRepository.getByPlayer(playerId) }.getOrElse { emptyList() }
         stints.firstOrNull { stint ->
             !stint.joinedAt.isAfter(at) && stint.departedAt?.isAfter(at) != false
         }?.let { return it.guildId }
 
-        if (!configProvider().backfill.fallbackToCurrentGuild) return null
+        if (!allowCurrentFallback) return null
         return runCatching {
             guildService.getPlayerGuilds(playerId).sortedBy { it.id }.firstOrNull()?.id
         }.getOrNull()
