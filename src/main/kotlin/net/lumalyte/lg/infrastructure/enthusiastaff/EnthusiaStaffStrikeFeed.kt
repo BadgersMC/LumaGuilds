@@ -94,9 +94,11 @@ internal class EnthusiaStaffStrikeFeed(
         try {
             if (closed || !configProvider().enabled) return
             page.events().forEach(::applyEvent)
-            val next = page.nextCursor()
-            strikeService.saveFeedCursor(PROVIDER, StrikeFeedCursor(next.occurredAt(), next.eventId()))
-            cursor = next
+            if (page.events().isNotEmpty()) {
+                val next = page.nextCursor()
+                strikeService.saveFeedCursor(PROVIDER, StrikeFeedCursor(next.occurredAt(), next.eventId()))
+                cursor = next
+            }
             lastFailure = null
             scheduleNext = page.hasMore()
         } catch (error: Exception) {
