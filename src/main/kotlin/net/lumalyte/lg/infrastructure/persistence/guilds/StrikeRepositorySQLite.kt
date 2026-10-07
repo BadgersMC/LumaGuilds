@@ -79,12 +79,13 @@ class StrikeRepositorySQLite(
         active: Boolean,
     ): Boolean {
         try {
-            return storage.connection.executeUpdate(
+            val updated = storage.connection.executeUpdate(
                 "UPDATE guild_strikes SET active = ? WHERE punishment_type = ? AND litebans_entry_id = ?",
                 if (active) 1 else 0,
                 punishmentType,
                 litebansEntryId,
-            ) > 0
+            )
+            return updated > 0 || existsByTypeAndEntryId(punishmentType, litebansEntryId)
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to reconcile legacy guild strike", e)
         }
