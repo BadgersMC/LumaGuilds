@@ -54,7 +54,7 @@ class LumaGuilds : JavaPlugin() {
     private var experienceTransactionCleanupScheduler: net.lumalyte.lg.infrastructure.services.ExperienceTransactionCleanupScheduler? = null
     private var chapterRolloverScheduler: net.lumalyte.lg.infrastructure.services.ChapterRolloverScheduler? = null
     private var liteBansStrikeHookRegistered = false
-    private var enthusiaStaffStrikeFeed: net.lumalyte.lg.infrastructure.enthusiastaff.EnthusiaStaffStrikeFeed? = null
+    private var enthusiaStaffStrikeFeed: AutoCloseable? = null
     internal lateinit var vaultProtectionListener: net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener
     internal var enabledAtMillis: Long = 0L
         private set
