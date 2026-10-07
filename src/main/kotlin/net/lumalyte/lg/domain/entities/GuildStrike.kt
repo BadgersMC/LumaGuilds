@@ -4,7 +4,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * A single recorded strike against a guild, derived from a LiteBans punishment
+ * A single recorded strike against a guild, derived from a moderation punishment
  * that was issued to one of the guild's members at the time of the punishment.
  *
  * The strike is attributed to the guild the player belonged to when the
@@ -20,8 +20,14 @@ data class GuildStrike(
     val reason: String? = null,
     val executorName: String? = null,
     val issuedAt: Instant,
-    /** LiteBans punishment id — used to dedupe sync/re-fire events. */
+    /** Legacy LiteBans punishment id retained for historical compatibility. */
     val litebansEntryId: Long? = null,
-    /** False once the punishment is removed/expired (appealed, unmuted, pardoned...). */
-    val active: Boolean = true
+    /** Provider-neutral source for current first-party punishment feeds. */
+    val sourceProvider: String? = null,
+    /** Stable provider-owned punishment id used for replay dedupe. */
+    val sourcePunishmentId: String? = null,
+    /** Natural expiration for active mute/ban strikes. */
+    val expiresAt: Instant? = null,
+    /** False once the punishment is removed/expired. */
+    val active: Boolean = true,
 )
