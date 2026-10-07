@@ -146,8 +146,6 @@ internal class EnthusiaStaffStrikeFeed(
     }
 
     private fun reconcileImportedLiteBans(type: String, event: PunishmentLifecycleEvent) {
-        // LiteBans imports predate this adapter and already have their historical strike rows.
-        // Never recreate those rows from Staff; only reconcile current lifecycle state.
         val entryId = event.sourcePunishmentId().toLongOrNull()
         if (entryId == null) {
             plugin.logger.warning(
@@ -155,7 +153,24 @@ internal class EnthusiaStaffStrikeFeed(
             )
             return
         }
-        strikeService.reconcileLegacyStrike(type, entryId, event.active())
+
+        // Existing LiteBans backfill rows keep their original numeric identity. If an older
+        // backfill missed one, repair the gap from Staff's imported projection instead of
+        // requiring LiteBans to be reinstalled.
+        if (strikeService.reconcileLegacyStrike(type, entryId, event.active())) return
+
+        val guildId = resolveGuildAtTime(event.subjectId(), event.issuedAt()) ?: return
+        strikeService.recordStrike(
+            guildId = guildId,
+            playerUuid = event.subjectId(),
+            playerName = event.subjectName().orElse(null),
+            punishmentType = type,
+            reason = event.publicReason(),
+            executorName = event.actorName().orElse(null),
+            issuedAt = event.issuedAt(),
+            litebansEntryId = entryId,
+            active = event.active(),
+        )
     }
 
     private fun expirationFor(event: PunishmentLifecycleEvent): Instant? =

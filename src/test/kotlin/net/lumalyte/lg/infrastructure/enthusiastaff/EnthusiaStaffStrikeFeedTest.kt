@@ -79,9 +79,11 @@ class EnthusiaStaffStrikeFeedTest {
     }
 
     @Test
-    fun `imported LiteBans snapshot only reconciles legacy row`() {
+    fun `imported LiteBans snapshot reconciles existing legacy row without recreating it`() {
         val strikes = mockk<StrikeService>(relaxed = true)
-        val feed = feed(strikes, mockk(relaxed = true))
+        every { strikes.reconcileLegacyStrike("BAN", 42L, false) } returns true
+        val history = mockk<MembershipHistoryRepository>(relaxed = true)
+        val feed = feed(strikes, history)
 
         feed.applyEvent(
             event(
@@ -92,8 +94,40 @@ class EnthusiaStaffStrikeFeedTest {
         )
 
         verify(exactly = 1) { strikes.reconcileLegacyStrike("BAN", 42L, false) }
+        verify(exactly = 0) { history.getByPlayer(any()) }
         verify(exactly = 0) {
-            strikes.recordExternalStrike(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+            strikes.recordStrike(any(), any(), any(), any(), any(), any(), any(), any(), any())
+        }
+    }
+
+    @Test
+    fun `imported LiteBans snapshot repairs a missing historical row without LiteBans runtime`() {
+        val strikes = mockk<StrikeService>(relaxed = true)
+        every { strikes.reconcileLegacyStrike("BAN", 42L, true) } returns false
+        val history = mockk<MembershipHistoryRepository>()
+        every { history.getByPlayer(player) } returns listOf(
+            mockk<MembershipHistory> {
+                every { guildId } returns guild
+                every { joinedAt } returns issuedAt.minusSeconds(60)
+                every { departedAt } returns null
+            },
+        )
+        val feed = feed(strikes, history)
+
+        feed.applyEvent(event(PunishmentLifecycleSource.LITEBANS, sourceId = "42"))
+
+        verify(exactly = 1) {
+            strikes.recordStrike(
+                guild,
+                player,
+                "Player",
+                "BAN",
+                "Reason",
+                "Moderator",
+                issuedAt,
+                42L,
+                true,
+            )
         }
     }
 
