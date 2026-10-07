@@ -143,6 +143,30 @@ class EnthusiaStaffStrikeFeedTest {
     }
 
     @Test
+    fun `imported LiteBans snapshot does not repair missing history when backfill is disabled`() {
+        val strikes = mockk<StrikeService>(relaxed = true)
+        every { strikes.reconcileLegacyStrike("BAN", 42L, true) } returns false
+        val history = mockk<MembershipHistoryRepository>(relaxed = true)
+        val feed = feed(
+            strikes,
+            history,
+            config = StrikesConfig(
+                enabled = true,
+                countedTypes = listOf("WARN", "KICK", "MUTE", "BAN"),
+                backfill = net.lumalyte.lg.config.StrikesBackfillConfig(enabled = false),
+            ),
+        )
+
+        feed.applyEvent(event(PunishmentLifecycleSource.LITEBANS, sourceId = "42"))
+
+        verify(exactly = 1) { strikes.reconcileLegacyStrike("BAN", 42L, true) }
+        verify(exactly = 0) { history.getByPlayer(any()) }
+        verify(exactly = 0) {
+            strikes.recordStrike(any(), any(), any(), any(), any(), any(), any(), any(), any())
+        }
+    }
+
+    @Test
     fun `imported LiteBans snapshot repairs a missing historical row without LiteBans runtime`() {
         val strikes = mockk<StrikeService>(relaxed = true)
         every { strikes.reconcileLegacyStrike("BAN", 42L, true) } returns false
@@ -177,18 +201,17 @@ class EnthusiaStaffStrikeFeedTest {
         strikes: StrikeService,
         history: MembershipHistoryRepository,
         guildService: GuildService = mockk(relaxed = true),
+        config: StrikesConfig = StrikesConfig(
+            enabled = true,
+            countedTypes = listOf("WARN", "KICK", "MUTE", "BAN"),
+        ),
     ): EnthusiaStaffStrikeFeed =
         EnthusiaStaffStrikeFeed(
             plugin = mockk<JavaPlugin>(relaxed = true),
             guildService = guildService,
             strikeService = strikes,
             membershipHistoryRepository = history,
-            configProvider = {
-                StrikesConfig(
-                    enabled = true,
-                    countedTypes = listOf("WARN", "KICK", "MUTE", "BAN"),
-                )
-            },
+            configProvider = { config },
         )
 
     private fun event(
