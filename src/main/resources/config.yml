@@ -854,6 +854,9 @@ bedrock:
   guild_settings_icon_path: "textures/ui/settings.png"
   guild_bank_icon_url: ""
   guild_bank_icon_path: "textures/ui/bank.png"
+  # Stall art is separate from the bank. RESOURCE_PACK needs the supplied Bedrock overlay.
+  guild_stalls_icon_url: ""
+  guild_stalls_icon_path: "textures/ui/stall.png"
   guild_wars_icon_url: ""
   guild_wars_icon_path: "textures/ui/wars.png"
   guild_home_icon_url: ""

@@ -45,6 +45,9 @@ def main():
     image = Image.new('RGBA', (16, 16))
     image.putdata([PALETTE[pixel] for row in PIXELS for pixel in row])
     image.save(TEXTURE)
+    bedrock = ROOT / 'resourcepack/enthusia-icons/Bedrock/textures/ui/stall.png'
+    bedrock.parent.mkdir(parents=True, exist_ok=True)
+    image.save(bedrock)
     print(TEXTURE)
 
 

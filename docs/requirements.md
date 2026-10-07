@@ -486,3 +486,6 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 
 ### REQ-126
 **Ubiquitous.** THE Java Guild Stalls dashboard button SHALL use a dedicated transparent 16-by-16 stall icon with a striped canopy and counter in the existing Enthusia icon palette, SHALL retain its oak-sign fallback, and SHALL keep the Economy button's existing bank icon.
+
+### REQ-127
+**Ubiquitous.** THE Bedrock Guild Stalls button SHALL use independent configurable URL/resource-pack icons, SHALL preserve existing bank icon settings, and SHALL ship the matching stall texture as an additive Bedrock pack asset. THE Gradle test task SHALL track the configured Market API artifact path and contents so enabling or replacing the artifact invalidates cached compatibility results.

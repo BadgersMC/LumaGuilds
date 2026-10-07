@@ -221,4 +221,22 @@ class ConfigLoaderConsistencyTest {
         assertEquals("", bedrock.guildMembersIconUrl)
         assertEquals("", bedrock.confirmIconUrl)
     }
+
+    @Test
+    fun `stall icons load independently of existing bank icons`() {
+        val defaults = load(YamlConfiguration()).bedrock
+        assertEquals("", defaults.guildStallsIconUrl)
+        assertEquals("textures/ui/stall.png", defaults.guildStallsIconPath)
+        val cfg = YamlConfiguration().apply {
+            set("bedrock.guild_stalls_icon_url", "https://cdn.example.com/stall.png")
+            set("bedrock.guild_stalls_icon_path", "textures/custom/stall.png")
+            set("bedrock.guild_bank_icon_url", "https://cdn.example.com/bank.png")
+            set("bedrock.guild_bank_icon_path", "textures/custom/bank.png")
+        }
+        val icons = load(cfg).bedrock
+        assertEquals("https://cdn.example.com/stall.png", icons.guildStallsIconUrl)
+        assertEquals("textures/custom/stall.png", icons.guildStallsIconPath)
+        assertEquals("https://cdn.example.com/bank.png", icons.guildBankIconUrl)
+        assertEquals("textures/custom/bank.png", icons.guildBankIconPath)
+    }
 }

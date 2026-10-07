@@ -12,6 +12,11 @@ Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` li
   - References: REQ-126; LG-2010.
   - Evidence: dashboard currently reuses `lg_nav_economy` for stalls. Replace only that item ID and supply matching Nexo item/texture definitions; validate native dimensions, transparency, existing palette and ID/CMD uniqueness. No business behavior changes or historical red/green test claim apply to this asset change. Local asset/layout checks, hosted checks and client rendering remain distinct.
 
+- [~] **LG-2012** Stall review follow-up: Bedrock art and Market test cache.
+  - Tag: `TDD`
+  - References: REQ-127; LG-2010/2011.
+  - Evidence: new independent-icon config test initially failed compilation for missing fields; fields/loader/menu now agree. An absent Market artifact test run, then enabling a real artifact, executed tests; unchanged input was UP-TO-DATE; changing a local JAR copy at the same path executed tests again without --rerun. Java and Bedrock textures are byte-identical. See docs/guild-stall-menu.md for final checks; hosted results and live client acceptance remain separate.
+
 PR grouping: tasks under each `## PR-n` header ship together in one pull request. PR order is dependency-driven â€” permissions first (commands must be executable before any feature is testable), then config plumbing (features consume the knobs), then feature domains, with the cross-cutting lang migration and UI completion last.
 
 ---
