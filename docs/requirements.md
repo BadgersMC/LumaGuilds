@@ -483,3 +483,6 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 
 ### REQ-125
 **Ubiquitous.** THE SYSTEM SHALL ignore stale asynchronous stall results after navigation, disconnection or membership loss, SHALL tolerate absent or incompatible Market read providers, and SHALL requery ownership and permissions on refresh rather than cache access across membership or rank changes.
+
+### REQ-126
+**Ubiquitous.** THE Java Guild Stalls dashboard button SHALL use a dedicated transparent 16-by-16 stall icon with a striped canopy and counter in the existing Enthusia icon palette, SHALL retain its oak-sign fallback, and SHALL keep the Economy button's existing bank icon.

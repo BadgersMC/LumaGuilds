@@ -14,6 +14,14 @@ Local checks: initial clean full test/shadowJar passed 1,548 tests; the full sui
 
 Project-local EARS/state helpers are absent; requirement/task/evidence records are maintained manually. Market's API depends on its PR #197 authority fixes. Both source PRs must reach canonical main, and the owning network pins and combined clean build must be reviewed before a future deployment. No production change, merge, upload or client acceptance is claimed here.
 
+## Dedicated dashboard icon (REQ-126, LG-2011)
+
+The Guild Stalls button uses the new `lg_nav_stalls` item and `lumaguilds:enthusia/stall` texture instead of the bank icon. Its native transparent 16x16 sprite depicts a striped red/gold canopy, wooden counter and goods; all opaque colors come directly from existing bank/home/actions/member textures. `tools/art/guild_stall_icon.py` reproduces the texture without smoothing. Economy retains `lg_nav_economy`; the stall button retains its oak-sign fallback and Nexo's fallback tagging for Vanilla-style views.
+
+Both the general Nexo items bundle and additive server kit include the new item. The server kit reserves previously unused CMD 733483 and `nexo:lg_nav_stalls`. Install the corresponding item definition and texture through the normal pack release after source review; a JAR alone cannot provide this texture. Existing Geyser mappings require a separate reviewed addition if this custom Java inventory item is to be rendered on Bedrock; the dedicated Bedrock stall form is unchanged.
+
+Local validation: asset dimensions/RGBA/transparency, exact existing palette, YAML texture linkage, server-kit CMD uniqueness and stall/Economy wiring passed. Focused existing dashboard/stall tests passed: 12 tests, zero failures/errors, one optional Market runtime test skipped without MARKET_API_JAR. The interactive preview's dashboard/stall/member/back flow and 320px layout passed browser checks. There is no gameplay/persistence change, so no new behavioral red/green test is invented. Hosted checks for the new head and real client/Nexo rendering remain separate. No production files were changed.
+
 ## Separate shop XP policy
 
 The owner approved configurable defaults on 7 October 2026: 5 XP per eligible outside sale, 500 XP/guild/UTC day, 50 XP/buyer-to-guild/UTC day and a five-minute pair cooldown across the guild's shops. Own-guild purchases must earn zero XP. Quantity/price do not multiply sale XP. These numbers are policy acceptance, not active XP behavior.

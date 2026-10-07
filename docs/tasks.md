@@ -7,6 +7,11 @@ Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` li
   - References: REQ-124/125; Market REQ-340/341.
   - Evidence: main a15b244 has no stall menu/read provider. Contract introduction failed compilation before implementation; inventory and separate-navigator regressions failed before their guards. Full local suite passed 1,549 tests, zero failures/errors, four skips. Adapter, actual inventory/Cumulus responses, locales and a separate-classloader companion JAR are covered. See docs/guild-stall-menu.md and PR #211 for checks and boundaries. Hosted exact-head results and live Java/Bedrock client acceptance remain separate; no project-local EARS/state helpers exist and production is unchanged.
 
+- [~] **LG-2011** Dedicated guild stall navigation icon.
+  - Tag: `INFRA`
+  - References: REQ-126; LG-2010.
+  - Evidence: dashboard currently reuses `lg_nav_economy` for stalls. Replace only that item ID and supply matching Nexo item/texture definitions; validate native dimensions, transparency, existing palette and ID/CMD uniqueness. No business behavior changes or historical red/green test claim apply to this asset change. Local asset/layout checks, hosted checks and client rendering remain distinct.
+
 PR grouping: tasks under each `## PR-n` header ship together in one pull request. PR order is dependency-driven â€” permissions first (commands must be executable before any feature is testable), then config plumbing (features consume the knobs), then feature domains, with the cross-cutting lang migration and UI completion last.
 
 ---
