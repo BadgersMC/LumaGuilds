@@ -460,8 +460,8 @@ war_banner:
 
 chat:
   # Rate Limiting
-  announce_cooldown_minutes: 30  # Cooldown for guild announcements
-  ping_cooldown_minutes: 5       # Cooldown for @everyone pings
+  announce_cooldown_minutes: 30  # Guild announcement cooldown; <= 0 disables it, not the hourly cap
+  ping_cooldown_minutes: 5       # @everyone ping cooldown; <= 0 disables it, not the hourly cap
   max_message_length: 256
   
   # Channels

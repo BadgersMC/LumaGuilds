@@ -890,3 +890,23 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Boot 1 (13:30, `3.0.4-enthusia-gui.2`): clean enable, schema v41, Nexo loaded every item and regenerated the pack with no errors for the new files — but `PacketEvents not available`: packetevents enabled after LumaGuilds despite the softdepend. Fixed (adapter now hooks on `PluginEnableEvent` for packetevents; 3 new probes), suite 1,463 / 0 / 4.
   - Boot 2 (13:54, `3.0.4-enthusia-gui.3`, SHA-256 `f103f90adce1a005a84cb4028e80d23ea99c32976b140a7c3d7fae13f4143733`): `Menu icon adapter waiting for packetevents to enable` → `Menu icon adapter active` one second later; `Done (38.634s)`. Remaining LumaGuilds warnings are pre-existing (SMP Test config still lists removed perks `CUSTOM_BANNER_COLORS`/`ANIMATED_EMOJIS`; DiscordSRV not connected on test). The `.2` jar is kept as `.superseded.disabled`.
   - Still open: human Java walkthrough on SMP Test (dashboard, Guild Actions, theme picker incl. Vanilla, Declare Enemy, progression sources, quests and toast); Bedrock go-live stays with LG-1901 (proxy untouched apart from the mapping backup).
+
+## Unresolved guild investigations — 2026-10-07
+
+- [x] **LG-2001** Direct bank entry for guild members.
+  - Tag: `TDD`
+  - References: REQ-122; operations audit G03.
+  - Spec: reuse MenuFactory Java/Bedrock routing and existing menu command permission; retain all bank mutation guards.
+  - Evidence: main a15b244 has no bank subcommand; `/guild menu` gates on unrelated management permissions. New test initially could not compile because onBank was absent; all three bank regressions passed after the adapter was added. Java/Bedrock live acceptance remains separate.
+- [x] **LG-2002** Apply configured chat cooldowns.
+  - Tag: `TDD`
+  - References: REQ-123; spam-control investigation.
+  - Evidence: ChatConfig defaults 30/5 minutes, but ChatServiceBukkit used hardcoded 5/1 minutes. Four of five service tests failed before the engine change; all five passed afterwards. Hourly limits preserved, nonpositive cooldowns covered.
+- [ ] **LG-2003** Reconcile remaining integration/client gaps.
+  - Tag: `DOC`
+  - References: G17/G22/G31 and 2026-10-07 fork audit.
+  - Evidence: home selectors use Java inventories/Bedrock forms, not a reproduced chat selector; guild-shop XP requires Market-side transaction evidence; menu textures and insert/alignment fixes have separate asset/upstream PR ownership. No production writes or unapproved feature policies authorized.
+
+SPEAR tooling boundary: no project-local EARS validator/state helper exists. Requirements, tasks and the investigation evidence record provide traceability; no automated EARS/state pass is claimed. Production stays read-only. User-confirmed bugs and denied home proposals remain closed.
+
+Local validation (2026-10-07): Java 25 / pinned Paper 26.2, `gradlew clean test shadowJar` passed: 1,546 tests, zero failures/errors, four skips. This includes layer/locale contracts and existing bank, rank, home and leaderboard regressions. Unmerged local test artifact only: `LumaGuilds-3.0.0.jar`, 24,982,673 bytes, SHA-256 `9e8079faea2da9d3f34c24705bc1046cbd2e222a35f428cc2e79d5d3a2cdd120`. No production upload or activation.

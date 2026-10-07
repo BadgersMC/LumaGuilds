@@ -1427,6 +1427,19 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
     }
 
+    @Subcommand("bank")
+    @CommandPermission("lumaguilds.guild.menu")
+    fun onBank(player: Player) {
+        val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
+        if (guild == null) {
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
+            return
+        }
+
+        val menuNavigator = MenuNavigator(player)
+        menuNavigator.openMenu(menuFactory.createGuildBankMenu(menuNavigator, player, guild))
+    }
+
     @Subcommand("menu")
     @CommandPermission("lumaguilds.guild.menu")
     fun onMenu(player: Player) {

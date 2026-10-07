@@ -2325,7 +2325,7 @@ command:
       default:
         add_a_color_code_ga_4_message: '<gray>Add a color name: <white>/ga red \<message> <gray>for custom colors.'
         colors_0_1_2_3_4_5: '<gray>Colors: <black>black <dark_blue>dark blue <dark_green>dark green <dark_aqua>dark aqua <dark_red>dark red <dark_purple>dark purple <gold>gold <gray>gray <dark_gray>dark gray <blue>blue'
-        default_is_6_gold_cooldown_5_minutes: '<gray>Default is <gold>gold<gray>. Cooldown: 5 minutes.'
+        default_is_6_gold_cooldown_5_minutes: '<gray>Default is <gold>gold<gray>. Cooldown follows the server configuration.'
         guild_announcements: '<gold>=== Guild Announcements ==='
         use_ga_message_to_announce_to_all: '<gray>Use <white>/ga \<message> <gray>to announce to all guild members.'
       resolveguildforannounce:

@@ -39,9 +39,7 @@ class ChatServiceBukkit(
 
     private val logger = LoggerFactory.getLogger(ChatServiceBukkit::class.java)
     
-    // Rate limiting configuration (in milliseconds)
-    private val announceRateLimit = 300000L // 5 minutes
-    private val pingRateLimit = 60000L // 1 minute
+    // Hourly safeguards remain independent of the configurable cooldowns.
     private val maxAnnouncementsPerHour = 3
     private val maxPingsPerHour = 10
     
@@ -424,7 +422,8 @@ class ChatServiceBukkit(
         val currentTime = System.currentTimeMillis()
         
         // Check time-based rate limit
-        if (currentTime - rateLimit.lastAnnounceTime < announceRateLimit) {
+        val cooldown = configService.loadConfig().chat.announceCooldownMinutes.coerceAtLeast(0).toLong() * 60_000L
+        if (cooldown > 0 && currentTime - rateLimit.lastAnnounceTime < cooldown) {
             return true
         }
         
@@ -442,7 +441,8 @@ class ChatServiceBukkit(
         val currentTime = System.currentTimeMillis()
         
         // Check time-based rate limit
-        if (currentTime - rateLimit.lastPingTime < pingRateLimit) {
+        val cooldown = configService.loadConfig().chat.pingCooldownMinutes.coerceAtLeast(0).toLong() * 60_000L
+        if (cooldown > 0 && currentTime - rateLimit.lastPingTime < cooldown) {
             return true
         }
         

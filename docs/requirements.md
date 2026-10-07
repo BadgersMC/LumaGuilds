@@ -477,3 +477,9 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 
 ### REQ-120
 **Event-driven.** BEFORE Chapter 2 Bedrock release sign-off, automated parity contracts SHALL cover primary routing, authorization denials, data truthfulness and the new Quests/Prestige/Settings/Bank/Statistics flows; all visible Bedrock text in those flows SHALL be localized. A compatible staging environment with Geyser/Floodgate/Cumulus SHALL then complete a real Bedrock-client walkthrough of dashboard navigation, quests/claim, reward purchase/prestige, settings, bank, homes/access, members/ranks, party/LFG, diplomacy/warfare, statistics and close/back/timeout/reconnect behavior. Java or static-source validation SHALL NOT be reported as Bedrock runtime validation.
+
+### REQ-122
+**Event-driven.** WHEN a current guild member uses `/guild bank` or `/g bank` with the existing guild-menu command permission THEN THE SYSTEM SHALL open that member's platform-appropriate Guild Bank without requiring unrelated management permissions. Non-members SHALL receive the existing localized membership denial. Bank operation authorization and currency semantics SHALL remain unchanged.
+
+### REQ-123
+**Ubiquitous.** THE SYSTEM SHALL enforce `chat.announce_cooldown_minutes` and `chat.ping_cooldown_minutes` from current configuration when checking announcement and ping cooldowns, SHALL retain existing hourly limits, and SHALL treat non-positive cooldowns as disabling only the time-based limit.
