@@ -24,7 +24,7 @@ class OptionalLiteBansWiringTest {
         val end = source.indexOf("private fun registerRoseChatChannels()", start)
         val hook = source.substring(start, end)
 
-        assertTrue(hook.contains("if (liteBansStrikeHookRegistered) return"))
+        assertTrue(hook.contains("liteBansStrikeHookRegistered || enthusiaStaffStrikeFeed != null"))
         assertTrue(hook.contains("LiteBansStrikeListener("))
         assertTrue(hook.contains("StrikeBackfillService("))
         assertTrue(hook.contains("catch (e: LinkageError)"))
