@@ -1214,9 +1214,7 @@ class LumaGuilds : JavaPlugin() {
     }
 
     private fun registerLiteBansStrikeHook() {
-        if (liteBansStrikeHookRegistered || enthusiaStaffStrikeFeed != null ||
-            server.pluginManager.getPlugin("EnthusiaStaff") != null
-        ) return
+        if (liteBansStrikeHookRegistered || enthusiaStaffStrikeFeed != null) return
 
         try {
             val strikeService = get().get<net.lumalyte.lg.application.services.StrikeService>()

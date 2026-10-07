@@ -109,9 +109,9 @@ internal class EnthusiaStaffStrikeFeed(
         }
     }
 
-    private fun applyEvent(event: PunishmentLifecycleEvent) {
+    internal fun applyEvent(event: PunishmentLifecycleEvent) {
         val type = event.category().name
-        val counted = configProvider().countedTypes.asSequence().map(String::uppercase).toSet()
+        val counted = configProvider().countedTypes.asSequence().map { it.uppercase() }.toSet()
         if (event.category() == PunishmentCategory.OTHER || type !in counted) return
 
         if (event.source() == PunishmentLifecycleSource.LITEBANS) {
