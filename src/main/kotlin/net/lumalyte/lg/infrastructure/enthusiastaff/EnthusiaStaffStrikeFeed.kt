@@ -59,6 +59,19 @@ internal class EnthusiaStaffStrikeFeed(
         if (closed || !configProvider().enabled || !inFlight.compareAndSet(false, true)) return
         cursor = PunishmentLifecycleCursor.beginning()
         try {
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable { prepareSweep() })
+        } catch (scheduleError: RuntimeException) {
+            inFlight.set(false)
+            reportFailure("Could not schedule Guild Strikes sweep preparation", scheduleError)
+        }
+    }
+
+    private fun prepareSweep() {
+        if (closed || !configProvider().enabled) {
+            inFlight.set(false)
+            return
+        }
+        try {
             strikeService.deactivateExpiredExternal(Instant.now())
         } catch (error: Exception) {
             inFlight.set(false)
