@@ -236,6 +236,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(43)
                 dbVersion = 43
             }
+            if (dbVersion < 44) {
+                GuildStrikeFeedSchema.migrate(connection)
+                updateDatabaseVersion(44)
+                dbVersion = 44
+            }
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
 
