@@ -4,7 +4,6 @@ import co.aikar.idb.Database
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.StrikeRepository
 import net.lumalyte.lg.domain.entities.GuildStrike
-import net.lumalyte.lg.domain.entities.StrikeFeedCursor
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.slf4j.LoggerFactory
 import java.sql.SQLException
@@ -98,16 +97,21 @@ class StrikeRepositorySQLite(
         expiresAt: Instant?,
     ): Boolean {
         try {
-            return storage.connection.executeUpdate(
+            val updated = storage.connection.executeUpdate(
                 """
                 UPDATE guild_strikes SET active = ?, expires_at = ?
                 WHERE source_provider = ? AND source_punishment_id = ?
+                  AND (active <> ? OR expires_at <> ? OR (expires_at IS NULL) <> (? IS NULL))
                 """.trimIndent(),
                 if (active) 1 else 0,
                 expiresAt?.toEpochMilli(),
                 sourceProvider,
                 sourcePunishmentId,
-            ) > 0
+                if (active) 1 else 0,
+                expiresAt?.toEpochMilli(),
+                expiresAt?.toEpochMilli(),
+            )
+            return updated > 0 || existsBySource(sourceProvider, sourcePunishmentId)
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to reconcile external guild strike", e)
         }
@@ -127,45 +131,6 @@ class StrikeRepositorySQLite(
             )
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to expire external guild strikes", e)
-        }
-    }
-
-    override fun feedCursor(provider: String): StrikeFeedCursor? {
-        try {
-            return storage.connection.getResults(
-                "SELECT occurred_at, event_id FROM guild_strike_feed_cursors WHERE provider = ?",
-                provider,
-            ).firstOrNull()?.let { row ->
-                StrikeFeedCursor(
-                    Instant.parse(row.getString("occurred_at")),
-                    UUID.fromString(row.getString("event_id")),
-                )
-            }
-        } catch (e: Exception) {
-            throw DatabaseOperationException("Failed to read guild strike feed cursor", e)
-        }
-    }
-
-    override fun saveFeedCursor(provider: String, cursor: StrikeFeedCursor) {
-        val update = "UPDATE guild_strike_feed_cursors SET occurred_at = ?, event_id = ? WHERE provider = ?"
-        try {
-            val updated = storage.connection.executeUpdate(
-                update, cursor.occurredAt.toString(), cursor.eventId.toString(), provider,
-            )
-            if (updated > 0) return
-            try {
-                storage.connection.executeUpdate(
-                    "INSERT INTO guild_strike_feed_cursors(provider, occurred_at, event_id) VALUES (?, ?, ?)",
-                    provider, cursor.occurredAt.toString(), cursor.eventId.toString(),
-                )
-            } catch (e: SQLException) {
-                if (!isDuplicate(e)) throw e
-                storage.connection.executeUpdate(
-                    update, cursor.occurredAt.toString(), cursor.eventId.toString(), provider,
-                )
-            }
-        } catch (e: SQLException) {
-            throw DatabaseOperationException("Failed to save guild strike feed cursor", e)
         }
     }
 

@@ -1,7 +1,6 @@
 package net.lumalyte.lg.application.persistence
 
 import net.lumalyte.lg.domain.entities.GuildStrike
-import net.lumalyte.lg.domain.entities.StrikeFeedCursor
 import java.time.Instant
 import java.util.UUID
 
@@ -22,9 +21,6 @@ interface StrikeRepository {
     ): Boolean
 
     fun deactivateExpiredExternal(now: Instant): Int
-
-    fun feedCursor(provider: String): StrikeFeedCursor?
-    fun saveFeedCursor(provider: String, cursor: StrikeFeedCursor)
 
     fun countByGuild(guildId: UUID): Int
     fun countActiveByGuild(guildId: UUID): Int

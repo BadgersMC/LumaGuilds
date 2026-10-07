@@ -16,17 +16,6 @@ internal object GuildStrikeFeedSchema {
                 )
             }
         }
-        connection.createStatement().use {
-            it.execute(
-                """
-                CREATE TABLE IF NOT EXISTS guild_strike_feed_cursors (
-                    provider VARCHAR(32) NOT NULL PRIMARY KEY,
-                    occurred_at VARCHAR(64) NOT NULL,
-                    event_id VARCHAR(36) NOT NULL
-                )
-                """.trimIndent(),
-            )
-        }
     }
 
     private fun addColumnIfMissing(connection: Connection, table: String, column: String, definition: String) {
