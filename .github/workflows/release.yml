@@ -26,6 +26,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # need tags for version bump
+          persist-credentials: false
 
       - name: Set up Java 21 for CombatLogX API build
         uses: actions/setup-java@v4

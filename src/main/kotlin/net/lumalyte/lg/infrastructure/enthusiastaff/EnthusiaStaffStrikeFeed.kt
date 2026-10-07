@@ -15,6 +15,7 @@ import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -72,7 +73,10 @@ internal class EnthusiaStaffStrikeFeed(
             inFlight.set(false)
             return
         }
-        service.readAfter(cursor, PAGE_SIZE).whenComplete { page, error ->
+        service.readAfter(cursor, PAGE_SIZE)
+            .toCompletableFuture()
+            .orTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .whenComplete { page, error ->
             if (error != null) {
                 inFlight.set(false)
                 reportFailure("EnthusiaStaff Guild Strikes snapshot read failed", error)
@@ -117,16 +121,18 @@ internal class EnthusiaStaffStrikeFeed(
         val counted = configProvider().countedTypes.asSequence().map { it.uppercase() }.toSet()
         if (event.category() == PunishmentCategory.OTHER || type !in counted) return
 
+        val expiresAt = expirationFor(event)
+        val active = effectiveActive(event, expiresAt)
+
         if (event.source() == PunishmentLifecycleSource.LITEBANS) {
-            reconcileImportedLiteBans(type, event)
+            reconcileImportedLiteBans(type, event, active)
             return
         }
 
-        val expiresAt = expirationFor(event)
         if (strikeService.reconcileExternalStrike(
                 PROVIDER,
                 event.sourcePunishmentId(),
-                event.active(),
+                active,
                 expiresAt,
             )) {
             return
@@ -144,11 +150,15 @@ internal class EnthusiaStaffStrikeFeed(
             sourceProvider = PROVIDER,
             sourcePunishmentId = event.sourcePunishmentId(),
             expiresAt = expiresAt,
-            active = event.active(),
+            active = active,
         )
     }
 
-    private fun reconcileImportedLiteBans(type: String, event: PunishmentLifecycleEvent) {
+    private fun reconcileImportedLiteBans(
+        type: String,
+        event: PunishmentLifecycleEvent,
+        active: Boolean,
+    ) {
         val entryId = event.sourcePunishmentId().toLongOrNull()
         if (entryId == null) {
             plugin.logger.warning(
@@ -160,7 +170,7 @@ internal class EnthusiaStaffStrikeFeed(
         // Existing LiteBans backfill rows keep their original numeric identity. If an older
         // backfill missed one, repair the gap from Staff's imported projection instead of
         // requiring LiteBans to be reinstalled.
-        if (strikeService.reconcileLegacyStrike(type, entryId, event.active())) return
+        if (strikeService.reconcileLegacyStrike(type, entryId, active)) return
 
         val guildId = resolveGuildAtTime(
             event.subjectId(),
@@ -176,9 +186,12 @@ internal class EnthusiaStaffStrikeFeed(
             executorName = event.actorName().orElse(null),
             issuedAt = event.issuedAt(),
             litebansEntryId = entryId,
-            active = event.active(),
+            active = active,
         )
     }
+
+    private fun effectiveActive(event: PunishmentLifecycleEvent, expiresAt: Instant?): Boolean =
+        event.active() && (expiresAt == null || expiresAt.isAfter(Instant.now()))
 
     private fun expirationFor(event: PunishmentLifecycleEvent): Instant? =
         when (event.category()) {
@@ -220,6 +233,7 @@ internal class EnthusiaStaffStrikeFeed(
     companion object {
         private const val PROVIDER = "ENTHUSIA_STAFF"
         private const val PAGE_SIZE = 50
+        private const val READ_TIMEOUT_SECONDS = 60L
         private const val INITIAL_DELAY_TICKS = 20L
         private const val SWEEP_TICKS = 1_200L
     }
