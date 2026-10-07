@@ -31,14 +31,13 @@ class GuildStrikeFeedSchemaTest {
     }
 
     @Test
-    fun `migration adds provider identity expiration and durable cursor schema idempotently`() {
+    fun `migration adds provider identity and expiration schema idempotently`() {
         GuildStrikeFeedSchema.migrate(connection)
         GuildStrikeFeedSchema.migrate(connection)
 
         assertTrue(columnExists("guild_strikes", "source_provider"))
         assertTrue(columnExists("guild_strikes", "source_punishment_id"))
         assertTrue(columnExists("guild_strikes", "expires_at"))
-        assertTrue(tableExists("guild_strike_feed_cursors"))
         assertTrue(indexExists("guild_strikes", "idx_guild_strikes_source"))
     }
 
@@ -48,12 +47,6 @@ class GuildStrikeFeedSchemaTest {
                 generateSequence { if (rows.next()) rows.getString("name") else null }
                     .any { it == column }
             }
-        }
-
-    private fun tableExists(table: String): Boolean =
-        connection.prepareStatement("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").use { statement ->
-            statement.setString(1, table)
-            statement.executeQuery().use { it.next() }
         }
 
     private fun indexExists(table: String, index: String): Boolean =

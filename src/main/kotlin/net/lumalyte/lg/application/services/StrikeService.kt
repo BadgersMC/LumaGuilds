@@ -3,7 +3,6 @@ package net.lumalyte.lg.application.services
 import net.lumalyte.lg.application.persistence.StrikeRepository
 import net.lumalyte.lg.config.StrikesConfig
 import net.lumalyte.lg.domain.entities.GuildStrike
-import net.lumalyte.lg.domain.entities.StrikeFeedCursor
 import java.time.Instant
 import java.util.UUID
 
@@ -91,9 +90,6 @@ class StrikeService(
 
     fun deactivateExpiredExternal(now: Instant): Int =
         if (configProvider().enabled) repository.deactivateExpiredExternal(now) else 0
-
-    fun feedCursor(provider: String): StrikeFeedCursor? = repository.feedCursor(provider)
-    fun saveFeedCursor(provider: String, cursor: StrikeFeedCursor) = repository.saveFeedCursor(provider, cursor)
 
     fun countByGuild(guildId: UUID): Int = repository.countByGuild(guildId)
     fun countActiveByGuild(guildId: UUID): Int = repository.countActiveByGuild(guildId)
