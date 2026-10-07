@@ -49,7 +49,7 @@ class EnthusiaStaffStrikeFeedTest {
                 issuedAt,
                 "ENTHUSIA_STAFF",
                 SANCTION_ID,
-                issuedAt.plusSeconds(3600),
+                FUTURE_EXPIRY,
                 true,
             )
         }
@@ -111,7 +111,7 @@ class EnthusiaStaffStrikeFeedTest {
                 "ENTHUSIA_STAFF",
                 SANCTION_ID,
                 false,
-                issuedAt.plusSeconds(3600),
+                FUTURE_EXPIRY,
             )
         }
         verify(exactly = 0) { history.getByPlayer(any()) }
@@ -195,7 +195,7 @@ class EnthusiaStaffStrikeFeedTest {
         source: PunishmentLifecycleSource,
         sourceId: String = SANCTION_ID,
         active: Boolean = true,
-        expiresAt: Instant = issuedAt.plusSeconds(3600),
+        expiresAt: Instant = FUTURE_EXPIRY,
     ) = PunishmentLifecycleEvent(
         UUID.fromString(SANCTION_ID),
         "CASE000000000001",
@@ -213,5 +213,6 @@ class EnthusiaStaffStrikeFeedTest {
 
     companion object {
         private const val SANCTION_ID = "90000000-0000-0000-0000-000000000001"
+        private val FUTURE_EXPIRY = Instant.parse("2099-01-01T00:00:00Z")
     }
 }
