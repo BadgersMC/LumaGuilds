@@ -54,6 +54,7 @@ class LumaGuilds : JavaPlugin() {
     private var experienceTransactionCleanupScheduler: net.lumalyte.lg.infrastructure.services.ExperienceTransactionCleanupScheduler? = null
     private var chapterRolloverScheduler: net.lumalyte.lg.infrastructure.services.ChapterRolloverScheduler? = null
     private var liteBansStrikeHookRegistered = false
+    private var enthusiaStaffStrikeFeed: net.lumalyte.lg.infrastructure.enthusiastaff.EnthusiaStaffStrikeFeed? = null
     internal lateinit var vaultProtectionListener: net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener
     internal var enabledAtMillis: Long = 0L
         private set
@@ -1137,6 +1138,19 @@ class LumaGuilds : JavaPlugin() {
             server.pluginManager.registerEvents(adminOverrideListener, this)
         }
 
+        // Guild Strikes — prefer the provider-neutral EnthusiaStaff lifecycle feed.
+        server.pluginManager.registerEvents(
+            net.lumalyte.lg.infrastructure.enthusiastaff.EnthusiaStaffEnableListener {
+                registerEnthusiaStaffStrikeFeed()
+            },
+            this,
+        )
+        if (server.pluginManager.isPluginEnabled("EnthusiaStaff")) {
+            registerEnthusiaStaffStrikeFeed()
+        } else {
+            logger.info("EnthusiaStaff not yet enabled - Guild Strikes feed will wire when it enables")
+        }
+
         // Guild Strikes — LiteBans hook (softdepend; only registers when LiteBans is present).
         // LumaGuilds can enable BEFORE LiteBans (observed on Fuji: +22s), so we also
         // listen for LiteBans' PluginEnableEvent and wire the hook when it arrives.
@@ -1176,8 +1190,33 @@ class LumaGuilds : JavaPlugin() {
      * Bukkit can throw on class-load of a plugin dependency) so a LiteBans API
      * hiccup can never take down LumaGuilds.
      */
+    private fun registerEnthusiaStaffStrikeFeed() {
+        if (enthusiaStaffStrikeFeed != null || liteBansStrikeHookRegistered) return
+        try {
+            val feed = net.lumalyte.lg.infrastructure.enthusiastaff.EnthusiaStaffStrikeFeed(
+                plugin = this,
+                guildService = get().get(),
+                strikeService = get().get(),
+                membershipHistoryRepository = get().get(),
+                configProvider = { get().get() },
+            )
+            if (!feed.start()) {
+                logger.info("EnthusiaStaff lifecycle API is not available yet; Guild Strikes feed remains unwired")
+                return
+            }
+            enthusiaStaffStrikeFeed = feed
+            logColored("✓ Guild Strikes hooked into EnthusiaStaff punishment lifecycle")
+        } catch (e: LinkageError) {
+            logger.warning("Failed to load EnthusiaStaff Guild Strikes API: ${e.message}")
+        } catch (e: Exception) {
+            logger.warning("Failed to register EnthusiaStaff Guild Strikes feed: ${e.message}")
+        }
+    }
+
     private fun registerLiteBansStrikeHook() {
-        if (liteBansStrikeHookRegistered) return
+        if (liteBansStrikeHookRegistered || enthusiaStaffStrikeFeed != null ||
+            server.pluginManager.getPlugin("EnthusiaStaff") != null
+        ) return
 
         try {
             val strikeService = get().get<net.lumalyte.lg.application.services.StrikeService>()
@@ -1412,6 +1451,8 @@ class LumaGuilds : JavaPlugin() {
     }
 
     override fun onDisable() {
+        enthusiaStaffStrikeFeed?.close()
+        enthusiaStaffStrikeFeed = null
         try {
             get().getOrNull<net.lumalyte.lg.application.services.DiscordAccountLinkSubscription>()?.unsubscribe()
         } catch (e: Exception) {

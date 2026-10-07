@@ -39,6 +39,17 @@ class OptionalLiteBansWiringTest {
     }
 
     @Test
+    fun `EnthusiaStaff lifecycle feed is optional and preferred over LiteBans`() {
+        val pluginYml = File("src/main/resources/plugin.yml").readText()
+        val source = File("src/main/kotlin/net/lumalyte/lg/LumaGuilds.kt").readText()
+
+        assertTrue(pluginYml.contains("EnthusiaStaff"))
+        assertFalse(Regex("""(?m)^depend:.*EnthusiaStaff""").containsMatchIn(pluginYml))
+        assertTrue(source.contains("registerEnthusiaStaffStrikeFeed()"))
+        assertTrue(source.contains("""getPlugin("EnthusiaStaff") != null"""))
+    }
+
+    @Test
     fun `partial startup shutdown does not hard resolve vault services`() {
         val source = File("src/main/kotlin/net/lumalyte/lg/LumaGuilds.kt").readText()
         val start = source.indexOf("override fun onDisable()")
