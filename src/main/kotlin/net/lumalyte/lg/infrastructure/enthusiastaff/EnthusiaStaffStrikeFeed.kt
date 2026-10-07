@@ -92,8 +92,11 @@ internal class EnthusiaStaffStrikeFeed(
     }
 
     internal fun applyPage(page: PunishmentLifecyclePage) {
+        if (closed || !configProvider().enabled) {
+            inFlight.set(false)
+            return
+        }
         try {
-            if (closed || !configProvider().enabled) return
             page.events().forEach(::applyEvent)
             lastFailure = null
             if (page.hasMore()) {
