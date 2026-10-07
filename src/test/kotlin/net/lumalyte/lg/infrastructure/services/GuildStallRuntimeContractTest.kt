@@ -22,26 +22,33 @@ internal class GuildStallRuntimeContractTest {
         assumeTrue(artifact?.isFile == true, "Set MARKET_API_JAR to the built companion artifact")
         URLClassLoader(arrayOf(artifact!!.toURI().toURL()), ClassLoader.getPlatformClassLoader()).use { loader ->
             val memberId = UUID.randomUUID()
-            val memberClass = loader.loadClass("net.enthusia.market.api.guild.GuildStallMember")
-            val member = memberClass.constructors.single().newInstance(memberId, setOf("ACCESS_SHOP_CHESTS"))
-            val rowClass = loader.loadClass("net.enthusia.market.api.guild.GuildStallSnapshot")
-            val row = rowClass.constructors.single().newInstance(
-                "stall1", "stall1", "world", "OWNED", RENT, INTERVAL, Instant.EPOCH, null, "1, 2, 3", listOf(member),
-            )
-            val api = loader.loadClass("net.enthusia.market.api.guild.GuildStallReadApi")
-            val provider = Proxy.newProxyInstance(loader, arrayOf(api)) { _, method, _ ->
-                when (method.name) {
-                    "apiVersion" -> 1
-                    "guildStalls" -> CompletableFuture.completedFuture(listOf(row))
-                    else -> error("Unexpected API method ${method.name}")
-                }
-            }
+            val provider = provider(loader, row(loader, memberId))
             val result = GuildStallReadClient { provider }.read(UUID.randomUUID(), memberId).join()
             val stall = assertIs<StallReadResult.Available>(result).stalls.single()
             assertEquals(RENT, stall.rent)
             assertEquals("1, 2, 3", stall.coordinates)
             assertEquals(memberId, stall.members.single().playerId)
             assertEquals(setOf(GuildStallPermission.ACCESS_SHOP_CHESTS), stall.members.single().permissions)
+        }
+    }
+
+    private fun row(loader: ClassLoader, memberId: UUID): Any {
+        val memberClass = loader.loadClass("net.enthusia.market.api.guild.GuildStallMember")
+        val member = memberClass.constructors.single().newInstance(memberId, setOf("ACCESS_SHOP_CHESTS"))
+        val rowClass = loader.loadClass("net.enthusia.market.api.guild.GuildStallSnapshot")
+        return rowClass.constructors.single().newInstance(
+            "stall1", "stall1", "world", "OWNED", RENT, INTERVAL, Instant.EPOCH, null, "1, 2, 3", listOf(member),
+        )
+    }
+
+    private fun provider(loader: ClassLoader, row: Any): Any {
+        val api = loader.loadClass("net.enthusia.market.api.guild.GuildStallReadApi")
+        return Proxy.newProxyInstance(loader, arrayOf(api)) { _, method, _ ->
+            when (method.name) {
+                "apiVersion" -> 1
+                "guildStalls" -> CompletableFuture.completedFuture(listOf(row))
+                else -> error("Unexpected API method ${method.name}")
+            }
         }
     }
 

@@ -1,11 +1,20 @@
 package net.lumalyte.lg.interaction.menus
 
 import org.bukkit.entity.Player
+import java.util.WeakHashMap
 import java.util.concurrent.atomic.AtomicLong
 
 class MenuNavigator(private val player: Player) {
     private val menuStack = ArrayDeque<Menu>()
-    private val navigationGeneration = AtomicLong()
+    private val navigationGeneration = synchronized(generations) {
+        generations.getOrPut(player) { AtomicLong() }
+    }
+
+    private companion object {
+        // Commands may create separate navigators for the same live player.
+        // Weak keys avoid retaining disconnected players after their menus are released.
+        val generations = WeakHashMap<Player, AtomicLong>()
+    }
 
     /**
      * Opens the provided menu for the target player.

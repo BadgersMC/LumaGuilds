@@ -187,20 +187,24 @@ class GuildStallMenu(
                 builder.button(plain.serialize(row.name) + row.lore.joinToString("") { "\n" + plain.serialize(it) })
             }
             return builder.validResultHandler { response ->
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                    if (navigator.isNavigationCurrent(token) && player.isOnline && isMember()) {
-                        onFormResponseReceived()
-                        rows.getOrNull(response.clickedButtonId())?.action?.invoke()
-                    }
-                })
+                Bukkit.getScheduler().runTask(plugin, Runnable { acceptClick(response.clickedButtonId()) })
             }.closedOrInvalidResultHandler(Runnable {
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                    if (navigator.isNavigationCurrent(token)) {
-                        onFormResponseReceived()
-                        navigator.goBack()
-                    }
-                })
+                Bukkit.getScheduler().runTask(plugin, Runnable { acceptClose() })
             }).build()
+        }
+
+        private fun acceptClick(index: Int) {
+            if (navigator.isNavigationCurrent(token) && player.isOnline && isMember()) {
+                onFormResponseReceived()
+                rows.getOrNull(index)?.action?.invoke()
+            }
+        }
+
+        private fun acceptClose() {
+            if (navigator.isNavigationCurrent(token)) {
+                onFormResponseReceived()
+                navigator.goBack()
+            }
         }
 
         override fun handleResponse(player: Player, response: Any?) = Unit

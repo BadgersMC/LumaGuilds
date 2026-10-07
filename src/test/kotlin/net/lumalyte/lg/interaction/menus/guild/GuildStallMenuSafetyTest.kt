@@ -61,18 +61,26 @@ internal class GuildStallMenuSafetyTest {
         every { JavaPlugin.getProvidingPlugin(any()) } returns plugin
         members = mockk()
         every { members.getMember(player.uniqueId, guild.id) } returns mockk()
-        val lang = LangService(object : LangHost {
-            override val dataFolder: File = directory.toFile()
-            override val resourceClassLoader: ClassLoader = LumaGuildsLang::class.java.classLoader
-        }, Locale("en_US"), LumaGuildsLang::class.java)
-        stopKoin()
-        startKoin { modules(module { single<Plugin> { plugin }; single { members }; single { lang } }) }
+        initializeServices(plugin)
         pending = CompletableFuture()
         val client = mockk<GuildStallReadService>()
         every { client.read(guild.id, player.uniqueId) } returns pending
         navigator = MenuNavigator(player)
         menu = GuildStallMenu(navigator, player, guild, false, client)
         navigator.openMenu(menu)
+    }
+
+    private fun initializeServices(plugin: Plugin) {
+        val lang = LangService(object : LangHost {
+            override val dataFolder: File = directory.toFile()
+            override val resourceClassLoader: ClassLoader = LumaGuildsLang::class.java.classLoader
+        }, Locale("en_US"), LumaGuildsLang::class.java)
+        stopKoin()
+        startKoin { modules(module {
+            single<Plugin> { plugin }
+            single { members }
+            single { lang }
+        }) }
     }
 
     /** Restore global test resources. */
@@ -103,6 +111,16 @@ internal class GuildStallMenuSafetyTest {
         assertSame(replacement, player.openInventory.topInventory)
     }
 
+    /** Forms opened by a separate command invalidate the original navigator too. */
+    @Test
+    fun separateNavigatorDiscardsLateData() {
+        val loading = player.openInventory.topInventory
+        MenuNavigator(player).openMenu(mockk(relaxed = true))
+        pending.complete(StallReadResult.Available(emptyList()))
+        server.scheduler.performOneTick()
+        assertSame(loading, player.openInventory.topInventory)
+    }
+
     /** Leaving the guild before completion makes the read unusable. */
     @Test
     fun departureDiscardsLateData() {
@@ -117,14 +135,7 @@ internal class GuildStallMenuSafetyTest {
     @Test
     fun bedrockResponseRechecksMembership() {
         var clicks = 0
-        val rowType = GuildStallMenu::class.java.declaredClasses.single { it.simpleName == "Row" }
-        val row = rowType.declaredConstructors.single().apply { isAccessible = true }
-            .newInstance(Component.text("Member"), emptyList<Component>(), { clicks++ })
-        val formType = GuildStallMenu::class.java.declaredClasses.single { it.simpleName == "StallForm" }
-        val view = formType.declaredConstructors.single().apply { isAccessible = true }
-            .newInstance(menu, navigator, player, navigator.currentNavigationToken(), Component.text("Stall"), listOf(row))
-            as BaseBedrockMenu
-        val form = view.getForm() as SimpleForm
+        val form = form { clicks++ }
         val definition: FormDefinition<SimpleForm, *, *> = FormDefinitions.instance().definitionFor(form)
         definition.handleFormResponse(form, "0")
         assertEquals(0, clicks)
@@ -134,6 +145,17 @@ internal class GuildStallMenuSafetyTest {
         definition.handleFormResponse(form, "0")
         server.scheduler.performOneTick()
         assertEquals(1, clicks)
+    }
+
+    private fun form(action: () -> Unit): SimpleForm {
+        val rowType = GuildStallMenu::class.java.declaredClasses.single { it.simpleName == "Row" }
+        val row = rowType.declaredConstructors.single().apply { isAccessible = true }
+            .newInstance(Component.text("Member"), emptyList<Component>(), action)
+        val formType = GuildStallMenu::class.java.declaredClasses.single { it.simpleName == "StallForm" }
+        val view = formType.declaredConstructors.single().apply { isAccessible = true }
+            .newInstance(menu, navigator, player, navigator.currentNavigationToken(), Component.text("Stall"), listOf(row))
+            as BaseBedrockMenu
+        return view.getForm() as SimpleForm
     }
 
     /** A current viewer receives a proper no-stall response. */

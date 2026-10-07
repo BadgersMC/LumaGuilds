@@ -2,10 +2,10 @@
 
 Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` line, and an `Evidence:` block that MUST be filled with real source citations before any downstream SPEAR phase runs on it.
 
-- [ ] **LG-2010** Guild stall menus and optional read adapter.
+- [~] **LG-2010** Guild stall menus and optional read adapter.
   - Tag: `TDD`
   - References: REQ-124/125; Market REQ-340/341.
-  - Evidence: main a15b244 has no stall menu/read provider. Contract introduction failed compilation before implementation; actual inventory regression identified late completion after close. Adapter, actual inventory/Cumulus responses, locales and a separate-classloader companion JAR are covered. See docs/guild-stall-menu.md for checks and boundaries. Hosted exact-head results and live Java/Bedrock client acceptance remain separate; no project-local EARS/state helpers exist and production is unchanged.
+  - Evidence: main a15b244 has no stall menu/read provider. Contract introduction failed compilation before implementation; inventory and separate-navigator regressions failed before their guards. Full local suite passed 1,549 tests, zero failures/errors, four skips. Adapter, actual inventory/Cumulus responses, locales and a separate-classloader companion JAR are covered. See docs/guild-stall-menu.md and PR #211 for checks and boundaries. Hosted exact-head results and live Java/Bedrock client acceptance remain separate; no project-local EARS/state helpers exist and production is unchanged.
 
 PR grouping: tasks under each `## PR-n` header ship together in one pull request. PR order is dependency-driven â€” permissions first (commands must be executable before any feature is testable), then config plumbing (features consume the knobs), then feature domains, with the cross-cutting lang migration and UI completion last.
 
