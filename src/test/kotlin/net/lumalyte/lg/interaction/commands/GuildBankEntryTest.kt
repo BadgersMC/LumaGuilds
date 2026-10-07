@@ -40,10 +40,12 @@ internal class GuildBankEntryTest {
         every { factory.createGuildBankMenu(any(), player, guild) } returns menu
         stopKoin()
         startKoin {
-            modules(module {
-                single { guildService }
-                single { factory }
-            })
+            modules(
+                module {
+                    single { guildService }
+                    single { factory }
+                },
+            )
         }
         GuildCommand().onBank(player)
         verify(exactly = 1) { menu.open() }
@@ -59,11 +61,13 @@ internal class GuildBankEntryTest {
         every { guildService.getPlayerGuilds(player.uniqueId) } returns emptySet()
         stopKoin()
         startKoin {
-            modules(module {
-                single { guildService }
-                single { factory }
-                single { lang }
-            })
+            modules(
+                module {
+                    single { guildService }
+                    single { factory }
+                    single { lang }
+                },
+            )
         }
         GuildCommand().onBank(player)
         verify(exactly = 0) { factory.createGuildBankMenu(any(), any(), any()) }

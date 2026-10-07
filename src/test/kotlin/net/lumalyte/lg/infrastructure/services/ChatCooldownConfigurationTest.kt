@@ -63,7 +63,10 @@ internal class ChatCooldownConfigurationTest {
         every { repository.getRateLimit(playerId) } returns recent(0)
         assertFalse(service.isAnnouncementRateLimited(playerId))
         assertFalse(service.isPingRateLimited(playerId))
-        every { repository.getRateLimit(playerId) } returns recent(0).copy(announceCount = ANNOUNCEMENTS_PER_HOUR, pingCount = PINGS_PER_HOUR)
+        every { repository.getRateLimit(playerId) } returns recent(0).copy(
+            announceCount = ANNOUNCEMENTS_PER_HOUR,
+            pingCount = PINGS_PER_HOUR,
+        )
         assertTrue(service.isAnnouncementRateLimited(playerId))
         assertTrue(service.isPingRateLimited(playerId))
     }
@@ -71,9 +74,17 @@ internal class ChatCooldownConfigurationTest {
     /** Expired counters do not block subsequent messages. */
     @Test
     fun expiredWindowsAllowSending() {
-        every { repository.getRateLimit(playerId) } returns recent(TWO_HOURS).copy(announceCount = ANNOUNCEMENTS_PER_HOUR, pingCount = PINGS_PER_HOUR)
+        every { repository.getRateLimit(playerId) } returns recent(TWO_HOURS).copy(
+            announceCount = ANNOUNCEMENTS_PER_HOUR,
+            pingCount = PINGS_PER_HOUR,
+        )
         assertFalse(service.isAnnouncementRateLimited(playerId))
         assertFalse(service.isPingRateLimited(playerId))
+    }
+
+    private fun recent(minutes: Long): ChatRateLimit {
+        val timestamp = System.currentTimeMillis() - minutes * MILLIS_PER_MINUTE
+        return ChatRateLimit(playerId, lastAnnounceTime = timestamp, lastPingTime = timestamp)
     }
 
     private companion object {
@@ -83,10 +94,5 @@ internal class ChatCooldownConfigurationTest {
         const val MILLIS_PER_MINUTE = 60_000L
         const val ANNOUNCEMENTS_PER_HOUR = 3
         const val PINGS_PER_HOUR = 10
-    }
-
-    private fun recent(minutes: Long): ChatRateLimit {
-        val timestamp = System.currentTimeMillis() - minutes * MILLIS_PER_MINUTE
-        return ChatRateLimit(playerId, lastAnnounceTime = timestamp, lastPingTime = timestamp)
     }
 }
