@@ -46,6 +46,7 @@ class OptionalLiteBansWiringTest {
         assertTrue(pluginYml.contains("EnthusiaStaff"))
         assertFalse(Regex("""(?m)^depend:.*EnthusiaStaff""").containsMatchIn(pluginYml))
         assertTrue(source.contains("registerEnthusiaStaffStrikeFeed()"))
+        assertTrue(source.contains("private var enthusiaStaffStrikeFeed: AutoCloseable? = null"))
         assertTrue(source.contains("liteBansStrikeHookRegistered || enthusiaStaffStrikeFeed != null"))
     }
 

@@ -167,7 +167,7 @@ internal class EnthusiaStaffStrikeFeed(
     private fun resolveGuildAtTime(playerId: UUID, at: Instant): UUID? {
         val stints = runCatching { membershipHistoryRepository.getByPlayer(playerId) }.getOrElse { emptyList() }
         stints.firstOrNull { stint ->
-            !stint.joinedAt.isAfter(at) && (stint.departedAt == null || stint.departedAt!!.isAfter(at))
+            !stint.joinedAt.isAfter(at) && stint.departedAt?.isAfter(at) != false
         }?.let { return it.guildId }
 
         if (!configProvider().backfill.fallbackToCurrentGuild) return null
