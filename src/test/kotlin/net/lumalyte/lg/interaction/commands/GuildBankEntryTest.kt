@@ -12,6 +12,7 @@ import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import org.bukkit.entity.Player
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
@@ -22,6 +23,10 @@ import kotlin.test.assertEquals
 
 /** Covers direct bank entry without unrelated guild management services. */
 internal class GuildBankEntryTest {
+    /** Starts each case without an existing dependency container. */
+    @BeforeEach
+    fun setup() { stopKoin() }
+
     /** Removes the test dependency container between cases. */
     @AfterEach
     fun cleanup() { stopKoin() }
@@ -33,12 +38,10 @@ internal class GuildBankEntryTest {
         val guildService = mockk<GuildService>()
         val factory = mockk<MenuFactory>()
         val menu = mockk<Menu>(relaxed = true)
-        val playerId = UUID.randomUUID()
         val guild = Guild(UUID.randomUUID(), "Bank guild", createdAt = Instant.EPOCH)
-        every { player.uniqueId } returns playerId
-        every { guildService.getPlayerGuilds(playerId) } returns setOf(guild)
+        every { player.uniqueId } returns UUID.randomUUID()
+        every { guildService.getPlayerGuilds(player.uniqueId) } returns setOf(guild)
         every { factory.createGuildBankMenu(any(), player, guild) } returns menu
-        stopKoin()
         startKoin {
             modules(
                 module {
@@ -59,7 +62,6 @@ internal class GuildBankEntryTest {
         val factory = mockk<MenuFactory>(relaxed = true)
         val lang = mockk<LangService>(relaxed = true)
         every { guildService.getPlayerGuilds(player.uniqueId) } returns emptySet()
-        stopKoin()
         startKoin {
             modules(
                 module {

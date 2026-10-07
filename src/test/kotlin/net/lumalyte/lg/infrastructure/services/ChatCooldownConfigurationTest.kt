@@ -63,10 +63,11 @@ internal class ChatCooldownConfigurationTest {
         every { repository.getRateLimit(playerId) } returns recent(0)
         assertFalse(service.isAnnouncementRateLimited(playerId))
         assertFalse(service.isPingRateLimited(playerId))
-        every { repository.getRateLimit(playerId) } returns recent(0).copy(
-            announceCount = ANNOUNCEMENTS_PER_HOUR,
-            pingCount = PINGS_PER_HOUR,
-        )
+        every { repository.getRateLimit(playerId) } returns
+            recent(0).copy(
+                announceCount = ANNOUNCEMENTS_PER_HOUR,
+                pingCount = PINGS_PER_HOUR,
+            )
         assertTrue(service.isAnnouncementRateLimited(playerId))
         assertTrue(service.isPingRateLimited(playerId))
     }
@@ -74,10 +75,11 @@ internal class ChatCooldownConfigurationTest {
     /** Expired counters do not block subsequent messages. */
     @Test
     fun expiredWindowsAllowSending() {
-        every { repository.getRateLimit(playerId) } returns recent(TWO_HOURS).copy(
-            announceCount = ANNOUNCEMENTS_PER_HOUR,
-            pingCount = PINGS_PER_HOUR,
-        )
+        every { repository.getRateLimit(playerId) } returns
+            recent(TWO_HOURS).copy(
+                announceCount = ANNOUNCEMENTS_PER_HOUR,
+                pingCount = PINGS_PER_HOUR,
+            )
         assertFalse(service.isAnnouncementRateLimited(playerId))
         assertFalse(service.isPingRateLimited(playerId))
     }
