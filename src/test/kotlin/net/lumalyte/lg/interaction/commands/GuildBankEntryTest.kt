@@ -20,12 +20,15 @@ import java.time.Instant
 import java.util.UUID
 import kotlin.test.assertEquals
 
-class GuildBankEntryTest {
+/** Covers direct bank entry without unrelated guild management services. */
+internal class GuildBankEntryTest {
+    /** Removes the test dependency container between cases. */
     @AfterEach
     fun cleanup() { stopKoin() }
 
+    /** Membership permits entry without management dependencies. */
     @Test
-    fun `bank-only member can open platform bank without management services`() {
+    fun memberCanOpenBank() {
         val player = mockk<Player>()
         val guildService = mockk<GuildService>()
         val factory = mockk<MenuFactory>()
@@ -36,27 +39,40 @@ class GuildBankEntryTest {
         every { guildService.getPlayerGuilds(playerId) } returns setOf(guild)
         every { factory.createGuildBankMenu(any(), player, guild) } returns menu
         stopKoin()
-        startKoin { modules(module { single { guildService }; single { factory } }) }
+        startKoin {
+            modules(module {
+                single { guildService }
+                single { factory }
+            })
+        }
         GuildCommand().onBank(player)
         verify(exactly = 1) { menu.open() }
     }
 
+    /** Non-members cannot create a bank menu and receive feedback. */
     @Test
-    fun `guildless player cannot open bank`() {
+    fun guildlessCannotOpenBank() {
         val player = mockk<Player>(relaxed = true)
         val guildService = mockk<GuildService>()
         val factory = mockk<MenuFactory>(relaxed = true)
         val lang = mockk<LangService>(relaxed = true)
         every { guildService.getPlayerGuilds(player.uniqueId) } returns emptySet()
         stopKoin()
-        startKoin { modules(module { single { guildService }; single { factory }; single { lang } }) }
+        startKoin {
+            modules(module {
+                single { guildService }
+                single { factory }
+                single { lang }
+            })
+        }
         GuildCommand().onBank(player)
         verify(exactly = 0) { factory.createGuildBankMenu(any(), any(), any()) }
         verify(exactly = 1) { player.sendMessage(any<net.kyori.adventure.text.Component>()) }
     }
 
+    /** The shortcut retains the existing command permission. */
     @Test
-    fun `bank shortcut uses existing menu command permission`() {
+    fun bankUsesMenuPermission() {
         val method = GuildCommand::class.java.declaredMethods.single { it.name == "onBank" }
         assertEquals("bank", method.getAnnotation(Subcommand::class.java).value)
         assertEquals("lumaguilds.guild.menu", method.getAnnotation(CommandPermission::class.java).value)
