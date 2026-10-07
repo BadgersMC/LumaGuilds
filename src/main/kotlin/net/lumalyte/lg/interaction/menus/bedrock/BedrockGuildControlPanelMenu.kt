@@ -39,6 +39,10 @@ class BedrockGuildControlPanelMenu(
         // Build button list conditionally
         val buttons = mutableListOf<MenuButton>()
 
+        buttons.add(MenuButton(lang.bedrock("guild_stall.title"), config.guildBankIconUrl, config.guildBankIconPath) {
+            bedrockNavigator.openMenu(menuFactory.createGuildStallMenu(menuNavigator, player, guild))
+        })
+
         // Always present buttons
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.members"), config.guildMembersIconUrl, config.guildMembersIconPath) {
             bedrockNavigator.openMenu(BedrockGuildMemberListMenu(menuNavigator, player, guild, logger))

@@ -80,6 +80,11 @@ class GuildDashboard(
         // Guild info display at top center
         addGuildInfoDisplay(pane, 4, 0)
 
+        addNavButton(pane, 0, 0, "lg_nav_economy", Material.OAK_SIGN,
+            lang.gui("guild_stall.title"), lang.gui("guild_stall.choose")) {
+            menuNavigator.openMenu(menuFactory.createGuildStallMenu(menuNavigator, player, guild))
+        }
+
         // Top-right corner: Guild Actions (parties, vault, leave, disband) — kept apart from
         // the everyday sections so the destructive options are never a misclick away.
         addNavButton(pane, 8, 0, "lg_nav_actions", Material.ANVIL,

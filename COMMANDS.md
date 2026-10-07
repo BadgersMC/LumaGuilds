@@ -25,6 +25,7 @@ LumaGuilds is a comprehensive guild management plugin with party chat, claim man
 | `/guild rename <name>` | `lumaguilds.guild.rename` | Rename your guild | `/guild rename NewName` |
 | `/guild disband` | `lumaguilds.guild.disband` | Disband your guild | `/guild disband` |
 | `/guild menu` | `lumaguilds.guild.menu` | Open guild management menu | `/guild menu` |
+| `/guild stall` | `lumaguilds.guild.menu` | View guild stalls, rent and guild-granted member shop permissions | `/g stall` or `/g stalls` |
 | `/guild info [guild]` | `lumaguilds.guild.info` | View guild information | `/guild info` or `/guild info OtherGuild` |
 | `/guild list` | `lumaguilds.guild.list` | List all open/public guilds | `/guild list` |
 | `/guild lfg` | `lumaguilds.guild.lfg` | Browse guilds looking for members (LFG system) | `/guild lfg` |
