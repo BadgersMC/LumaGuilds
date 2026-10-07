@@ -170,6 +170,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
             // Additive post-version schemas are idempotently ensured on every startup.
             GuildCosmeticSchema.create(connection, mariaDb = true)
             if (currentDbVersion < 44) {
+                // Keep v44 safe for partial/damaged schemas: recreate the historical v24
+                // strike table before adding provider-neutral identity and expiration columns.
+                if (!tableExists("guild_strikes")) {
+                    migrateToVersion24()
+                }
                 GuildStrikeFeedSchema.migrate(connection)
                 updateDatabaseVersion(44)
                 currentDbVersion = 44
