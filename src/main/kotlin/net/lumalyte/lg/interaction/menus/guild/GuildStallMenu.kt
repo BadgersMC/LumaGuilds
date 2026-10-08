@@ -31,9 +31,10 @@ import org.geysermc.cumulus.form.SimpleForm
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
-/** Read-only, paginated guild stall inventory shared by Java and Bedrock. */
 // Literal title keys keep the existing locale source-contract scanner authoritative.
-@Suppress("DuplicateStringLiteral")
+
+/** Read-only, paginated guild stall inventory shared by Java and Bedrock. */
+@Suppress("StringLiteralDuplication")
 internal class GuildStallMenu(
     private val navigator: MenuNavigator,
     private val player: Player,
