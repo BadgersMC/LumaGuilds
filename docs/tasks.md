@@ -920,4 +920,4 @@ Ported from FainNeito/LumaGuilds#2/#3 onto the Enthusia redesign: the holiday st
 
 
 - [x] LG-1909: Review #208 ownership/theme contracts against actual companion APIs and prove native MariaDB insert/theme/vault schema compatibility (8 October).
-  - Evidence: three native guild-update assertions failed on missing vault columns, then all native ownership/insert/theme contracts passed after additive schema repair. Hosted quality and full-suite release gates remain in the verification record.
+  - Evidence: three native guild-update assertions failed on missing vault columns, then all native ownership/insert/theme contracts passed after additive schema repair. Final full local suite: 1,574 tests, zero failures/errors, four unrelated skips; ten native MariaDB cases, zero skips. Final hosted checks and client/pack acceptance remain distinct gates.
