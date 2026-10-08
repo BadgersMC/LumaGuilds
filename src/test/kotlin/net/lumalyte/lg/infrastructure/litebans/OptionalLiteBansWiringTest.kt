@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.litebans
 
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import java.io.File
 
@@ -24,7 +25,7 @@ class OptionalLiteBansWiringTest {
         val end = source.indexOf("private fun registerRoseChatChannels()", start)
         val hook = source.substring(start, end)
 
-        assertTrue(hook.contains("if (liteBansStrikeHookRegistered) return"))
+        assertTrue(hook.contains("liteBansStrikeHookRegistered || enthusiaStaffStrikeFeed != null"))
         assertTrue(hook.contains("LiteBansStrikeListener("))
         assertTrue(hook.contains("StrikeBackfillService("))
         assertTrue(hook.contains("catch (e: LinkageError)"))
@@ -36,6 +37,20 @@ class OptionalLiteBansWiringTest {
         assertTrue(pluginYml.contains("softdepend:"))
         assertTrue(pluginYml.contains("LiteBans"))
         assertFalse(Regex("""(?m)^depend:.*LiteBans""").containsMatchIn(pluginYml))
+    }
+
+    /** Staff remains optional and takes precedence over legacy LiteBans wiring. */
+    @DisplayName("EnthusiaStaff lifecycle feed is optional and preferred over LiteBans")
+    @Test
+    fun optionalStaffPreferred() {
+        val pluginYml = File("src/main/resources/plugin.yml").readText()
+        val source = File("src/main/kotlin/net/lumalyte/lg/LumaGuilds.kt").readText()
+
+        assertTrue(pluginYml.contains("EnthusiaStaff"))
+        assertFalse(Regex("""(?m)^depend:.*EnthusiaStaff""").containsMatchIn(pluginYml))
+        assertTrue(source.contains("registerEnthusiaStaffStrikeFeed()"))
+        assertTrue(source.contains("private var enthusiaStaffStrikeFeed: AutoCloseable? = null"))
+        assertTrue(source.contains("liteBansStrikeHookRegistered || enthusiaStaffStrikeFeed != null"))
     }
 
     @Test

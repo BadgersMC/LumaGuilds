@@ -7,6 +7,9 @@ import java.util.UUID
  * A repository that handles the persistence of Guilds.
  */
 interface GuildRepository {
+    /** Read the SQL level mirror into the cache after a committed external award; never write it. */
+    fun refreshCachedLevel(guildId: UUID) {}
+
     /** New guild admission with durable creator attribution; adapters must opt in. */
     fun addCreated(guild: Guild, creatorId: UUID): Boolean = false
     fun creationCooldownUntil(playerId: UUID): java.time.Instant? = null
@@ -59,6 +62,21 @@ interface GuildRepository {
      * @return true if successful, false otherwise.
      */
     fun update(guild: Guild): Boolean
+
+    /**
+     * Sets only the GUI theme, and only while [expected] is still equipped (REQ-121).
+     * Unlike [update] it never writes a stale copy of the rest of the guild.
+     *
+     * @return true if the theme was changed.
+     */
+    fun updateGuiTheme(
+        guildId: UUID,
+        expected: net.lumalyte.lg.utils.GuiTheme,
+        theme: net.lumalyte.lg.utils.GuiTheme,
+    ): Boolean {
+        val current = getById(guildId) ?: return false
+        return current.guiTheme == expected && update(current.copy(guiTheme = theme))
+    }
 
     /**
      * Removes an existing guild.

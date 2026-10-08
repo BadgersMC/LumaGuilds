@@ -16,6 +16,8 @@ import net.lumalyte.lg.config.BedrockConfig
 import net.lumalyte.lg.utils.BedrockIcons
 import net.lumalyte.lg.utils.GuiTheme
 import net.lumalyte.lg.utils.MenuTitleGlyphs
+import net.lumalyte.lg.utils.NexoItemProvider
+import net.lumalyte.lg.utils.SeasonalIcons
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -24,7 +26,9 @@ import org.bukkit.event.inventory.InventoryOpenEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.event.server.PluginEnableEvent
+import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.Plugin
+import java.util.Optional
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import com.github.retrooper.packetevents.protocol.item.ItemStack as PacketItemStack
@@ -35,6 +39,9 @@ import com.github.retrooper.packetevents.protocol.item.ItemStack as PacketItemSt
  *  - Bedrock players, only when `bedrock.java_menu_vanilla_icons` is on (off by default, because
  *    Geyser custom-item mappings can already draw the lg_ icons for them). With
  *    `bedrock.java_menu_plain_titles` on, their themed titles also drop the font-glyph background.
+ *
+ * Members of a guild using a holiday style ([GuiTheme.seasonalIcons]) are instead sent each icon
+ * drawn with its `<id>_<style>` Nexo variant where one exists (REQ-121, [SeasonalIcons]).
  *
  * Only what those players are *sent* changes. Server-side items, click handling and what everyone
  * else sees stay exactly as they are. Icons are swapped at packet level so InventoryFramework
@@ -50,9 +57,16 @@ internal class MenuIconAdapter(
     packetEventsReady: (() -> Boolean)? = null,
     hookPacketEvents: ((MenuIconAdapter) -> Unit)? = null,
     private val glyphLookup: (String) -> Component? = ::nexoGlyph,
+    private val variantLookup: (String) -> ItemStack? = NexoItemProvider::getItemStack,
 ) : PacketListenerAbstract(PacketListenerPriority.HIGHEST), Listener {
     private val bedrockPlayers: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
     private val vanillaStylePlayers: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
+    private val seasonalStylePlayers = ConcurrentHashMap<UUID, GuiTheme>()
+
+    // Built Nexo variants by id (Optional.empty() = no such variant), dropped when Nexo reloads.
+    private val variants = ConcurrentHashMap<String, Optional<ItemStack>>()
+
+    @Volatile private var variantsLoadCount = -1
 
     // Read on the main thread in refresh(); the packet thread only reads these flags.
     @Volatile private var bedrockVanillaIcons = false
@@ -108,22 +122,27 @@ internal class MenuIconAdapter(
         val id = player.uniqueId
         val bedrock = runCatching { platform.isBedrockPlayer(player) }.getOrDefault(false)
         if (bedrock) bedrockPlayers.add(id) else bedrockPlayers.remove(id)
-        val vanillaStyle =
-            runCatching {
-                guildService.getPlayerGuilds(id).any { it.guiTheme == GuiTheme.VANILLA }
-            }.getOrDefault(false)
+        val themes = runCatching { guildService.getPlayerGuilds(id).map { it.guiTheme } }.getOrDefault(emptyList())
+        val vanillaStyle = themes.any { it == GuiTheme.VANILLA }
         if (vanillaStyle) vanillaStylePlayers.add(id) else vanillaStylePlayers.remove(id)
+        val seasonal = SeasonalIcons.styleFor(themes)
+        if (seasonal != null) seasonalStylePlayers[id] = seasonal else seasonalStylePlayers.remove(id)
     }
 
     /** Drops what is remembered about [playerId]. */
     fun forget(playerId: UUID) {
         bedrockPlayers.remove(playerId)
         vanillaStylePlayers.remove(playerId)
+        seasonalStylePlayers.remove(playerId)
     }
 
     /** Whether [playerId] is sent vanilla items in place of LumaGuilds menu icons. */
     fun showsVanillaIcons(playerId: UUID): Boolean =
         playerId in vanillaStylePlayers || bedrockVanillaIcons && playerId in bedrockPlayers
+
+    /** The holiday style whose icons [playerId] is sent, or null for the normal icons. */
+    fun seasonalStyleFor(playerId: UUID): GuiTheme? =
+        if (showsVanillaIcons(playerId)) null else seasonalStylePlayers[playerId]
 
     /** Whether themed menu titles lose their background glyph for [playerId]. */
     fun cleansTitlesFor(playerId: UUID): Boolean = bedrockPlainTitles && playerId in bedrockPlayers
@@ -155,35 +174,60 @@ internal class MenuIconAdapter(
     }
 
     override fun onPacketSend(event: PacketSendEvent) {
-        val swap = iconSwapFor(event) ?: return
-        val uuid = event.user?.uuid
-        if (uuid != null && showsVanillaIcons(uuid)) swap(event)
-    }
-
-    private fun iconSwapFor(event: PacketSendEvent): ((PacketSendEvent) -> Unit)? {
-        return when (event.packetType) {
-            PacketType.Play.Server.WINDOW_ITEMS -> ::swapWindowItems
-            PacketType.Play.Server.SET_SLOT -> ::swapSetSlot
-            else -> null
+        val type = event.packetType
+        if (type != PacketType.Play.Server.WINDOW_ITEMS && type != PacketType.Play.Server.SET_SLOT) return
+        val uuid = event.user?.uuid ?: return
+        val standIn: (PacketItemStack?) -> PacketItemStack? =
+            if (showsVanillaIcons(uuid)) {
+                ::vanillaStandIn
+            } else {
+                seasonalStyleFor(uuid)?.let { style -> { item -> seasonalStandIn(item, style) } } ?: return
+            }
+        if (type == PacketType.Play.Server.WINDOW_ITEMS) {
+            swapWindowItems(event, standIn)
+        } else {
+            swapSetSlot(event, standIn)
         }
     }
 
-    private fun swapWindowItems(event: PacketSendEvent) {
+    private fun swapWindowItems(event: PacketSendEvent, standIn: (PacketItemStack?) -> PacketItemStack?) {
         val wrapper = WrapperPlayServerWindowItems(event)
         var changed = false
-        val items = wrapper.items.map { item -> vanillaStandIn(item)?.also { changed = true } ?: item }
+        val items = wrapper.items.map { item -> standIn(item)?.also { changed = true } ?: item }
         if (changed) {
             wrapper.items = items
             event.markForReEncode(true)
         }
     }
 
-    private fun swapSetSlot(event: PacketSendEvent) {
+    private fun swapSetSlot(event: PacketSendEvent, standIn: (PacketItemStack?) -> PacketItemStack?) {
         val wrapper = WrapperPlayServerSetSlot(event)
-        vanillaStandIn(wrapper.item)?.let {
+        standIn(wrapper.item)?.let {
             wrapper.item = it
             event.markForReEncode(true)
         }
+    }
+
+    private fun seasonalStandIn(item: PacketItemStack?, style: GuiTheme): PacketItemStack? {
+        if (item == null || item.isEmpty || !hasPdcKey(item, SeasonalIcons.PDC_KEY)) return null
+        return runCatching { restyledPacket(item, style) }.getOrNull()
+    }
+
+    private fun restyledPacket(item: PacketItemStack, style: GuiTheme): PacketItemStack? {
+        val bukkit = SpigotConversionUtil.toBukkitItemStack(item)
+        val variantId = SeasonalIcons.iconId(bukkit)?.let { SeasonalIcons.variantId(it, style) } ?: return null
+        return variant(variantId)?.let { replacement ->
+            SpigotConversionUtil.fromBukkitItemStack(SeasonalIcons.restyle(bukkit, replacement))
+        }
+    }
+
+    private fun variant(id: String): ItemStack? {
+        val loads = NexoItemProvider.loadCount
+        if (loads != variantsLoadCount) {
+            variants.clear()
+            variantsLoadCount = loads
+        }
+        return variants.computeIfAbsent(id) { Optional.ofNullable(variantLookup(it)) }.orElse(null)
     }
 
     private fun vanillaStandIn(item: PacketItemStack?): PacketItemStack? {
@@ -195,9 +239,11 @@ internal class MenuIconAdapter(
     }
 
     // Cheap NBT check so only our icons pay for a Bukkit conversion.
-    private fun isLumaGuildsIcon(item: PacketItemStack): Boolean {
+    private fun isLumaGuildsIcon(item: PacketItemStack): Boolean = hasPdcKey(item, BedrockIcons.PDC_KEY)
+
+    private fun hasPdcKey(item: PacketItemStack, key: String): Boolean {
         val data = item.getComponent(ComponentTypes.CUSTOM_DATA).orElse(null) ?: return false
-        return data.getCompoundTagOrNull(BedrockIcons.PDC_ROOT)?.getTagOrNull(BedrockIcons.PDC_KEY) != null
+        return data.getCompoundTagOrNull(BedrockIcons.PDC_ROOT)?.getTagOrNull(key) != null
     }
 
     private fun defaultPacketEventsReady(): Boolean {

@@ -9,6 +9,9 @@ import java.util.UUID
  * Service interface for guild progression and leveling.
  */
 interface ProgressionService {
+    /** Refresh committed SQL progression and publish a level change without awarding again. */
+    fun onCommittedExperience(guildId: UUID, leveledUpTo: Int?) {}
+
     fun getRewardState(guildId: UUID): net.lumalyte.lg.domain.rewards.GuildRewardRead =
         net.lumalyte.lg.domain.rewards.GuildRewardRead.Disabled
 

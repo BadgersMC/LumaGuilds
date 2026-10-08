@@ -52,6 +52,10 @@ class GuildSettingsMenu(
 
     private val lang: LangService by inject()
     private val nexoEmojiService: NexoEmojiService by inject()
+    // Holiday styles (REQ-121) are locked until earned; without the ledger they stay locked.
+    private val themeAccess by lazy {
+        getKoin().getOrNull<net.lumalyte.lg.application.services.GuildCosmeticUnlockService>()
+    }
 
     override fun open() {
         // Refresh guild data from database to ensure we have latest changes
@@ -506,9 +510,9 @@ class GuildSettingsMenu(
     }
 
     /**
-     * Opens a small sub-menu showing all available GUI themes.
-     * The player clicks one to apply it; the settings menu then reopens
-     * with the new theme applied.
+     * Opens a sub-menu listing every GUI theme. Holiday themes the guild has not
+     * earned (REQ-121) are shown locked with an unlock hint and cannot be applied.
+     * The settings menu reopens with the new theme applied.
      */
     private fun openThemeSelector() {
         // Three rows (every theme ships a 3-row background): up to 18 styles, Back in the standard bottom-centre slot.
@@ -532,6 +536,8 @@ class GuildSettingsMenu(
 
         net.lumalyte.lg.utils.GuiTheme.SELECTABLE.forEachIndexed { index, theme ->
             val isCurrent = theme == guild.guiTheme.resolved()
+            // Holiday styles (REQ-121) stay locked until the guild earns them in EnthusiaHolidays.
+            val unlocked = !theme.requiresUnlock || themeAccess?.isThemeAvailable(guild.id, theme) == true
             val nexoId = "lg_theme_${theme.name.lowercase()}"
             // The vanilla style is shown as what it is: a plain chest.
             val item = (if (theme == net.lumalyte.lg.utils.GuiTheme.VANILLA) ItemStack.of(Material.CHEST)
@@ -540,27 +546,37 @@ class GuildSettingsMenu(
             }).also { stack ->
                 stack.editMeta { meta ->
                     meta.displayName(
-                        if (isCurrent) {
-                            lang.gui("menu.guild_settings.item.theme_option.name.current", "theme" to theme.displayName)
-                        } else {
-                            lang.gui("menu.guild_settings.item.theme_option.name.available", "theme" to theme.displayName)
+                        when {
+                            isCurrent -> lang.gui("menu.guild_settings.item.theme_option.name.current", "theme" to theme.displayName)
+                            !unlocked -> lang.gui("menu.guild_settings.item.theme_option.name.unearned", "theme" to theme.displayName)
+                            else -> lang.gui("menu.guild_settings.item.theme_option.name.available", "theme" to theme.displayName)
                         }
                     )
-                    meta.lore(
-                        listOf(
-                            when {
-                                isCurrent -> lang.gui("menu.guild_settings.item.theme_option.lore.current")
-                                canManageThemes -> lang.gui("menu.guild_settings.item.theme_option.lore.apply")
-                                else -> lang.gui("menu.guild_settings.item.theme_option.lore.locked")
-                            }
+                    val status = when {
+                        isCurrent -> listOf(lang.gui("menu.guild_settings.item.theme_option.lore.current"))
+                        !unlocked -> listOf(
+                            lang.gui("menu.guild_settings.item.theme_option.lore.unearned"),
+                            lang.gui("menu.guild_settings.item.theme_option.lore.unearned_hint"),
                         )
-                    )
+                        canManageThemes -> listOf(lang.gui("menu.guild_settings.item.theme_option.lore.apply"))
+                        else -> listOf(lang.gui("menu.guild_settings.item.theme_option.lore.locked"))
+                    }
+                    val holiday = if (theme.requiresUnlock) {
+                        listOf(lang.gui("menu.guild_settings.item.theme_option.lore.holiday"))
+                    } else {
+                        emptyList()
+                    }
+                    meta.lore(holiday + status)
                     if (isCurrent) meta.setEnchantmentGlintOverride(true)
                 }
             }
 
             pane.addItem(GuiItem(item) {
                 if (isCurrent) return@GuiItem
+                if (!unlocked) {
+                    player.sendMessage(lang.msg("menu.guild_settings.feedback.theme_locked", "theme" to theme.displayName))
+                    return@GuiItem
+                }
                 if (!canManageThemes) {
                     player.sendMessage(lang.msg("menu.guild_settings.feedback.no_settings_permission"))
                     return@GuiItem
