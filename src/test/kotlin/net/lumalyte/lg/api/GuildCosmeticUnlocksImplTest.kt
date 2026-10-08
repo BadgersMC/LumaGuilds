@@ -41,9 +41,9 @@ internal class GuildCosmeticUnlocksImplTest {
     @DisplayName("unexpected failures become false or empty")
     @Test
     fun scenario2() {
-        every { service.unlock(any(), any(), any(), any(), any()) } throws IllegalStateException("db down")
-        every { service.revoke(any(), any(), any()) } throws IllegalStateException("db down")
-        every { service.unlockedKeys(any(), any()) } throws IllegalStateException("db down")
+        every { service.unlock(any(), any(), any(), any(), any()) } throws IllegalStateException(TEST_DATABASE_FAILURE)
+        every { service.revoke(any(), any(), any()) } throws IllegalStateException(TEST_DATABASE_FAILURE)
+        every { service.unlockedKeys(any(), any()) } throws IllegalStateException(TEST_DATABASE_FAILURE)
 
         assertFalse(api.unlockCosmetic(guildId, TEST_MENU_THEME, TEST_HALLOWEEN, "x", TEST_GRANT_SOURCE))
         assertFalse(api.revokeCosmetic(guildId, TEST_MENU_THEME, TEST_HALLOWEEN))
@@ -58,3 +58,5 @@ private const val TEST_HALLOWEEN = "HALLOWEEN"
 private const val TEST_HOLIDAY_NAME = "Halloween '26"
 
 private const val TEST_GRANT_SOURCE = "src"
+
+private const val TEST_DATABASE_FAILURE = "db down"

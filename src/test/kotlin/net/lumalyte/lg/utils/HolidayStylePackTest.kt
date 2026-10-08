@@ -6,7 +6,6 @@ package net.lumalyte.lg.utils
 import org.bukkit.configuration.file.YamlConfiguration
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import java.io.File
 import javax.imageio.ImageIO
@@ -28,7 +27,7 @@ internal class HolidayStylePackTest {
     fun backgroundsForEveryRow() {
         val glyphs = yaml("glyphs/lumaguilds_holiday_styles.yml")
         holidayStyles.forEach { style ->
-            (1..6).forEach { rows ->
+            for (rows in 1..6) {
                 val id = "guild_bg_${style.name.lowercase()}_${rows}_row"
                 val texture = glyphs.getString("$id.texture")
                 assertTrue(texture != null, "missing glyph $id")
@@ -64,13 +63,7 @@ internal class HolidayStylePackTest {
     /** Each seasonal icon is the `<id>_<style>` variant of an existing icon. */
     @Test
     fun seasonalIconsVaryExistingIcons() {
-        val base = yaml("items/lumaguilds_enthusia_icons.yml").getKeys(false) +
-            YamlConfiguration.loadConfiguration(
-                File("resourcepack/enthusia-icons/server-kit/lg_enthusia_gui.yml"),
-            ).getKeys(false) +
-            YamlConfiguration.loadConfiguration(
-                File("resourcepack/enthusia-icons/server-kit/repoint-textures.yml"),
-            ).getKeys(false)
+        val base = existingIconIds()
         val seasonal = yaml("items/lumaguilds_holiday_styles.yml").getKeys(false).filterNot {
             it.startsWith("lg_theme_")
         }
@@ -81,5 +74,15 @@ internal class HolidayStylePackTest {
             assertTrue(iconId in base, id)
             assertEquals(id, SeasonalIcons.variantId(iconId, style))
         }
+    }
+    private fun existingIconIds(): Set<String> {
+        val base = yaml("items/lumaguilds_enthusia_icons.yml").getKeys(false) +
+            YamlConfiguration.loadConfiguration(
+                File("resourcepack/enthusia-icons/server-kit/lg_enthusia_gui.yml"),
+            ).getKeys(false) +
+            YamlConfiguration.loadConfiguration(
+                File("resourcepack/enthusia-icons/server-kit/repoint-textures.yml"),
+            ).getKeys(false)
+        return base
     }
 }

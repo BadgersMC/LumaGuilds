@@ -57,7 +57,6 @@ internal class GuildThemeUpdateSQLTest : RewardSqlTestFixture() {
         assertEquals(GuiTheme.EMBERSTONE, GuildRepositorySQLite(storage).getById(guild.id)!!.guiTheme)
     }
 
-    /** Production schema via the real migration chain, as at plugin enable. */
     private fun migratedRepository(storage: Storage<Database>): GuildRepositorySQLite {
         val plugin = io.mockk.mockk<org.bukkit.plugin.java.JavaPlugin>(relaxed = true)
         io.mockk.every { plugin.getComponentLogger() } returns

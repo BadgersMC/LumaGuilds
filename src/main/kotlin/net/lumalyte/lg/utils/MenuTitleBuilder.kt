@@ -22,18 +22,15 @@ package net.lumalyte.lg.utils
  * DO NOT use the neutral theme as a positioning reference — its
  * assets are oversized and are being corrected separately.
  *
+ * Horizontal shift -8 is paired with glyph ascent 13; the prior -9/ascent 14 drew
+ * the art one GUI pixel left and up. The -162 rewind retains the title offset.
+ *
  * Glyph naming: guild_bg_<theme>_<rows>_row
  */
 object MenuTitleBuilder {
 
-    /**
-     * Calibrated horizontal offset placing the glyph at the window origin. Paired with glyph `ascent: 13`,
-     * texel (x, y) lands on GUI pixel (x, y). The earlier -9 with ascent 14 drew the art 1 GUI pixel left and up,
-     * so items sat off-centre in the painted slots (measured in game at GUI scale 3).
-     */
     private const val HORIZONTAL_OFFSET: String = "<shift:-8>"
 
-    /** Rewind past the 256-pixel glyph advance, landing title ~86px from default start. */
     private const val REWIND_TO_TITLE: String = "<shift:-162>"
 
     /**
