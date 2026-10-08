@@ -5,7 +5,6 @@ package net.lumalyte.lg.utils
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 
 /** Seasonal icon naming and which style a player sees (REQ-121). */

@@ -64,9 +64,10 @@ internal class HolidayStylePackTest {
     @Test
     fun seasonalIconsVaryExistingIcons() {
         val base = existingIconIds()
-        val seasonal = yaml("items/lumaguilds_holiday_styles.yml").getKeys(false).filterNot {
-            it.startsWith("lg_theme_")
-        }
+        val seasonal =
+            yaml("items/lumaguilds_holiday_styles.yml").getKeys(false).filterNot {
+                it.startsWith("lg_theme_")
+            }
         assertTrue(seasonal.isNotEmpty())
         seasonal.forEach { id ->
             val style = holidayStyles.first { id.endsWith("_" + it.name.lowercase()) }
@@ -76,13 +77,14 @@ internal class HolidayStylePackTest {
         }
     }
     private fun existingIconIds(): Set<String> {
-        val base = yaml("items/lumaguilds_enthusia_icons.yml").getKeys(false) +
-            YamlConfiguration.loadConfiguration(
-                File("resourcepack/enthusia-icons/server-kit/lg_enthusia_gui.yml"),
-            ).getKeys(false) +
-            YamlConfiguration.loadConfiguration(
-                File("resourcepack/enthusia-icons/server-kit/repoint-textures.yml"),
-            ).getKeys(false)
-        return base
-    }
+        val base =
+            yaml("items/lumaguilds_enthusia_icons.yml").getKeys(false) +
+                YamlConfiguration.loadConfiguration(
+                    File("resourcepack/enthusia-icons/server-kit/lg_enthusia_gui.yml"),
+                ).getKeys(false) +
+                YamlConfiguration.loadConfiguration(
+                    File("resourcepack/enthusia-icons/server-kit/repoint-textures.yml"),
+                ).getKeys(false)
+            return base
+        }
 }
