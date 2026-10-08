@@ -299,6 +299,8 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             guildSettingsIconPath = string("bedrock.guild_settings_icon_path", "textures/ui/settings.png"),
             guildBankIconUrl = string("bedrock.guild_bank_icon_url", ""),
             guildBankIconPath = string("bedrock.guild_bank_icon_path", "textures/ui/bank.png"),
+            guildStallsIconUrl = string("bedrock.guild_stalls_icon_url", ""),
+            guildStallsIconPath = string("bedrock.guild_stalls_icon_path", "textures/ui/stall.png"),
             guildWarsIconUrl = string("bedrock.guild_wars_icon_url", ""),
             guildWarsIconPath = string("bedrock.guild_wars_icon_path", "textures/ui/wars.png"),
             guildHomeIconUrl = string("bedrock.guild_home_icon_url", ""),

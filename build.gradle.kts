@@ -64,6 +64,11 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:26.2.build.129-stable")
     compileOnly("com.github.retrooper:packetevents-spigot:2.11.2")
     compileOnly("com.discordsrv:discordsrv:1.28.0")
+    // Provider-neutral EnthusiaStaff lifecycle API; CI builds the exact pinned source into libs/.
+    // Runtime classes are supplied by the EnthusiaStaff plugin through the soft dependency.
+    val enthusiaStaffModerationApi = files("libs/EnthusiaStaff-moderation-api.jar")
+    compileOnly(enthusiaStaffModerationApi)
+    testImplementation(enthusiaStaffModerationApi)
     shadow("org.jetbrains.kotlin:kotlin-stdlib")
 
     implementation("org.slf4j:slf4j-nop:2.0.13")
@@ -155,6 +160,13 @@ tasks.test {
     inputs.property("guildShopXpTestMariaPort", testMariaPort.orElse(""))
     testMariaPort.orNull?.let { environment("GUILD_SHOP_XP_TEST_MARIA_PORT", it) }
     outputs.upToDateWhen { !testMariaPort.isPresent }
+    // This optional integration profile must not reuse a skipped/stale result when
+    // the companion path or the JAR's contents change.
+    val marketApiJar = providers.environmentVariable("MARKET_API_JAR").orElse("")
+    inputs.property("marketApiJarPath", marketApiJar)
+    inputs.files(marketApiJar.map { path -> if (path.isBlank()) files() else files(path) })
+        .withPropertyName("marketApiJarContents")
+    environment("MARKET_API_JAR", marketApiJar.get())
 }
 
 // Explicit opt-in: the same ownership contract runs against a disposable loopback
@@ -169,6 +181,9 @@ tasks.register<Test>("mariaDbRewardTest") {
         includeTestsMatching("*Reward*RepositorySQLTest")
         includeTestsMatching("*ExperienceBoostRepositorySQLTest")
         includeTestsMatching("*GuildCreation*SQLTest")
+        includeTestsMatching("*GuildCosmeticUnlockRepositorySQLiteTest")
+        includeTestsMatching("*GuildInsertColumnOrderTest")
+        includeTestsMatching("*GuildThemeUpdateSQLTest")
     }
     doFirst {
         val port = providers.gradleProperty("mariaDbTestPort").orNull

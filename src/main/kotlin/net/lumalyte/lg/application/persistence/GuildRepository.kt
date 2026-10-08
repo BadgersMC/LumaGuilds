@@ -64,6 +64,21 @@ interface GuildRepository {
     fun update(guild: Guild): Boolean
 
     /**
+     * Sets only the GUI theme, and only while [expected] is still equipped (REQ-121).
+     * Unlike [update] it never writes a stale copy of the rest of the guild.
+     *
+     * @return true if the theme was changed.
+     */
+    fun updateGuiTheme(
+        guildId: UUID,
+        expected: net.lumalyte.lg.utils.GuiTheme,
+        theme: net.lumalyte.lg.utils.GuiTheme,
+    ): Boolean {
+        val current = getById(guildId) ?: return false
+        return current.guiTheme == expected && update(current.copy(guiTheme = theme))
+    }
+
+    /**
      * Removes an existing guild.
      *
      * @param guildId The id of the guild to remove.
