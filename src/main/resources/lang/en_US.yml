@@ -7627,3 +7627,4 @@ community:
 
   stall:
     sales: "View stall sales accounting"
+    access: "Stall flags and access"

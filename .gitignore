@@ -278,3 +278,11 @@ VIRTUAL_THREADS.md
 
 # MkDocs build output
 site/
+
+# Local dependency-preparation checks
+ci/axkoth/__pycache__/
+
+# Proprietary Enthusia assets - stored outside this public repository
+/resourcepack/
+/docs/previews/*.png
+

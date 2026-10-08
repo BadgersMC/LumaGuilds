@@ -671,3 +671,10 @@ WHEN a player opens or interacts with a guild vault THE SYSTEM SHALL recheck cur
 
 ### REQ-142
 WHEN hosted build, test or release workflows prepare AxKothAPI 4 and its axapi 1.4.8 dependency THE SYSTEM SHALL verify their original published JARs and POMs against recorded SHA-256 digests before Gradle consumes them. Incomplete downloads SHALL be retried only during artifact preparation with a finite limit; cached files SHALL also be verified. Failed preparation SHALL prevent Gradle execution. Dependency coordinates, transitive metadata, compile-only runtime semantics and required test gates SHALL remain unchanged; source and test failures SHALL NOT be retried.
+
+
+### REQ-143
+WHEN a companion checks guild alliance access THE public GuildAllianceLookup SHALL return true only for an active ALLY relation between distinct guilds; pending, ended, absent and enemy relations SHALL return false. The repository SHALL be warmed at registration so event reads use its existing cache.
+
+### REQ-144
+WHEN a currently authorized shop manager opens guild stall details THE Java and Bedrock controls SHALL offer the Market stall flags/access command. Market SHALL revalidate stall ownership and authority on each mutation; the shortcut SHALL NOT grant permissions.

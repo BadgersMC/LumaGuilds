@@ -1012,6 +1012,7 @@ Ported from FainNeito/LumaGuilds#2/#3 onto the Enthusia redesign: the holiday st
 
 - [ ] AXKOTH-ARTIFACT-PREPARATION
   - Tag: INFRA; References: REQ-142
+  - Latest recovery evidence: `docs/axkoth-ci-recovery.md`. Eight bounded transport/cache regressions pass locally and on hosted repair 68506a4. Clean Guilds companion test/shadowJar passes 1714 cases, zero failures/errors, 19 external skips; four private artwork checks pass separately. Reciprocal Market suite passes 915 cases, zero failures/errors, eight skips. Hosted run 37842408052 still exhausts 32 truncated official AxKothAPI transfers before Gradle; this task remains open for that upstream build gate. Repair uses sanitized branch history and canonical main e11fb16, preserving proprietary assets privately.
   - Spec: Preserve official AxKothAPI 4/axapi 1.4.8 and their original transitive POMs. Verify all cached/downloaded bytes before use; never retry Gradle tests or source errors.
   - Prove: Final #218 hosted job 113460383318 fails before compilation on truncated JAR bodies. Direct curl reproduced error 18; range resume failed with error 33. Artifact-only retry recovered the full AxKothAPI JAR matching publisher SHA-1 8f6bc658e9f18b1e544ede91e61234f1b46e7281 and the previously validated cache SHA-256. Original axapi JAR matches the publisher SHA-256. No historical behavioral red/green claim applies to this infrastructure change.
   - Engine / arch: Shared composite action prepares only these two Maven coordinates in the existing mavenLocal repository, retaining official POMs and unchanged Gradle invocation. The hosted preparation probe reproduced HTTP/2 INTERNAL_ERROR on all six attempts; artifact requests now explicitly use the locally validated HTTP/1.1 transport. Five curl retries bound each transfer; SHA-256 verification fails closed. No plugin behavior, API version, shading or production changes.
@@ -1023,3 +1024,10 @@ Ported from FainNeito/LumaGuilds#2/#3 onto the Enthusia redesign: the holiday st
   - References: REQ-141
   - Evidence: Integrated the reviewed #215/#217 stack with requirement/task conflicts resolved. Added a genuine failing seventh action case for lost current listing/perk eligibility; fixed using current GuildService.getAllyHomes and existing access policy. Final combined test/shadowJar passes 1,713 tests, zero failures/errors and 15 external skips; actual Market artifact contract runs with zero skips. Interactive behavioral preview accompanies the change; in-game acceptance deferred. No production changes, merge or activation. Hosted/manual review remains separate.
   - Files: GuildHomeMenu, AllyHomeMenuAuthorizationTest, docs/ally-home-menu-authorization.md
+
+
+- [x] STALL-REVIEW-RECONCILIATION
+  - Tag: INFRA; References: REQ-143/REQ-144 and existing REQ-136/REQ-139.
+  - Prove: Read-only merge-tree probe of #216 and #218 reproduces conflicts in GuildStallMenu and RankCreationSelectionTest. Standalone stall documentation also duplicated REQ-140/REQ-141.
+  - Engine / arch: Retained the current shared permission-rechecking sales/access controls and reviewed rank setup, incorporated the existing vault/ally-home corrections and verified artifact preparation, reconciled unique requirement IDs. Existing player-facing behavior is unchanged; no historical red/green runtime claim is made for this merge.
+  - Refine: Combined Java 25 offline test/shadowJar passes 1,714 cases, zero failures/errors and 15 external skips, including the actual Market artifact contract. Both previous merge conflicts are resolved; final-head hosted checks and maintainer review remain separate gates. Manual SPEAR records maintained; no EARS/state helpers found. In-game acceptance deferred; production untouched.
