@@ -38,6 +38,12 @@ internal class RankCreationSelectionTest {
         val player = server.addPlayer()
         configureServices()
         val menu = createMenu(player)
+        openBankingCategory(menu)
+        val field = menu.javaClass.getDeclaredField("selectedPermissions").apply { isAccessible = true }
+        assertTrue((field.get(menu) as Set<*>).isEmpty(), "Opening a category must not grant permissions")
+    }
+
+    private fun openBankingCategory(menu: RankCreationMenu) {
         val method =
             menu.javaClass.getDeclaredMethod(
                 "openPermissionCategorySelection",
@@ -46,8 +52,6 @@ internal class RankCreationSelectionTest {
             )
         method.isAccessible = true
         method.invoke(menu, "Banking", listOf(RankPermission.DEPOSIT_TO_BANK, RankPermission.WITHDRAW_FROM_BANK))
-        val field = menu.javaClass.getDeclaredField("selectedPermissions").apply { isAccessible = true }
-        assertTrue((field.get(menu) as Set<*>).isEmpty(), "Opening a category must not grant permissions")
     }
 
     private fun createMenu(player: Player): RankCreationMenu {
