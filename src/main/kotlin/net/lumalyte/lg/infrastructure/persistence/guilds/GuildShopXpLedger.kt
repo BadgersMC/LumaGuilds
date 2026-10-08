@@ -69,17 +69,14 @@ internal class GuildShopXpLedger(private val storage: Storage<Database>) {
 
     fun capture(c: Connection, sale: GuildShopXpSale, policy: GuildShopXpPolicy, chapterAllowed: Boolean) {
         val prestige = prestige(c, sale.guild) ?: error("Guild progression identity unavailable")
-        val own = c.selectOne(
-            "SELECT 1 FROM members WHERE guild_id = ? AND player_id = ?",
-            sale.guild.toString(),
-            sale.buyer.toString(),
-        ) { true } ?: false
-        val status = when {
-            own -> "OWN_GUILD"
-            policy.disabled() -> "DISABLED"
-            !chapterAllowed -> "CHAPTER_FROZEN"
-            else -> "PREPARED"
-        }
+        val own = c.isGuildMember(sale)
+        val status =
+            when {
+                own -> "OWN_GUILD"
+                policy.disabled() -> "DISABLED"
+                !chapterAllowed -> "CHAPTER_FROZEN"
+                else -> "PREPARED"
+            }
         insert(c, sale, policy, Capture(status, own, prestige))
     }
 
@@ -122,22 +119,7 @@ internal class GuildShopXpLedger(private val storage: Storage<Database>) {
             reservation.window.endExclusive.toEpochMilli(),
             reservation.xp,
         )
-        reservePair(c, sale)
-    }
-
-    private fun reservePair(c: Connection, sale: GuildShopXpReceipt) {
-        val pairUpsert =
-            if (maria) {
-                "ON DUPLICATE KEY UPDATE last_award = VALUES(last_award)"
-            } else {
-                "ON CONFLICT(guild_id, buyer_id) DO UPDATE SET last_award = excluded.last_award"
-            }
-        c.updateStatement(
-            "INSERT INTO guild_shop_xp_pairs VALUES (?, ?, ?) $pairUpsert",
-            sale.guild.toString(),
-            sale.buyer.toString(),
-            sale.at,
-        )
+        c.reservePair(sale, maria)
     }
 
     fun finish(c: Connection, id: UUID, sale: GuildShopXpReceipt, status: String): GuildShopXpCompletion {
@@ -165,7 +147,7 @@ internal class GuildShopXpLedger(private val storage: Storage<Database>) {
     }
 }
 
-internal class GuildShopXpReceipt(
+internal data class GuildShopXpReceipt(
     val guild: UUID,
     val buyer: UUID,
     val at: Long,
@@ -175,23 +157,24 @@ internal class GuildShopXpReceipt(
     val buyerCap: Int,
     val cooldown: Long,
     val status: String,
-) {
-    fun experiencePolicy(): ExperiencePolicy =
-        ExperiencePolicy(ExperienceSource.SHOP_SALE, "SHOP_SALE", xp, guildCap, CapPeriod.DAILY, true)
+)
 
-    fun awardRequest(id: UUID): ExperienceAwardRequest {
-        return ExperienceAwardRequest(
-            guild,
-            buyer,
-            ExperienceSource.SHOP_SALE,
-            1,
-            Instant.ofEpochMilli(at),
-            transactionId = id,
-        )
-    }
+internal fun GuildShopXpReceipt.experiencePolicy(): ExperiencePolicy =
+    ExperiencePolicy(ExperienceSource.SHOP_SALE, "SHOP_SALE", xp, guildCap, CapPeriod.DAILY, true)
 
-    fun isCoolingDown(last: Long?): Boolean = last != null && (at < last || at - last < cooldown)
+internal fun GuildShopXpReceipt.awardRequest(id: UUID): ExperienceAwardRequest {
+    return ExperienceAwardRequest(
+        guild,
+        buyer,
+        ExperienceSource.SHOP_SALE,
+        1,
+        Instant.ofEpochMilli(at),
+        transactionId = id,
+    )
 }
+
+internal fun GuildShopXpReceipt.isCoolingDown(last: Long?): Boolean =
+    last != null && (at < last || at - last < cooldown)
 
 private fun readReceipt(r: ResultSet): GuildShopXpReceipt {
     return GuildShopXpReceipt(
@@ -208,3 +191,26 @@ private fun readReceipt(r: ResultSet): GuildShopXpReceipt {
 }
 
 private fun GuildShopXpPolicy.disabled(): Boolean = !enabled || xpPerSale == 0
+
+private fun Connection.reservePair(sale: GuildShopXpReceipt, maria: Boolean) {
+    val pairUpsert =
+        if (maria) {
+            "ON DUPLICATE KEY UPDATE last_award = VALUES(last_award)"
+        } else {
+            "ON CONFLICT(guild_id, buyer_id) DO UPDATE SET last_award = excluded.last_award"
+        }
+    updateStatement(
+        "INSERT INTO guild_shop_xp_pairs VALUES (?, ?, ?) $pairUpsert",
+        sale.guild.toString(),
+        sale.buyer.toString(),
+        sale.at,
+    )
+}
+
+private fun Connection.isGuildMember(sale: GuildShopXpSale): Boolean {
+    return selectOne(
+        "SELECT 1 FROM members WHERE guild_id = ? AND player_id = ?",
+        sale.guild.toString(),
+        sale.buyer.toString(),
+    ) { true } ?: false
+}

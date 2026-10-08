@@ -16,22 +16,28 @@ internal fun progressionUpsertSql(mariaDb: Boolean): String {
     }
 }
 
-private val MARIADB_USAGE_SEED_SQL = """
+private val MARIADB_USAGE_SEED_SQL =
+
+    """
     INSERT INTO guild_experience_source_usage
         (guild_id, source_pool, period_start, period_end, awarded_xp)
     VALUES (?, ?, ?, ?, 0)
     ON DUPLICATE KEY UPDATE period_end = VALUES(period_end)
-""".trimIndent()
+    """.trimIndent()
 
-private val SQLITE_USAGE_SEED_SQL = """
+private val SQLITE_USAGE_SEED_SQL =
+
+    """
     INSERT INTO guild_experience_source_usage
         (guild_id, source_pool, period_start, period_end, awarded_xp)
     VALUES (?, ?, ?, ?, 0)
     ON CONFLICT(guild_id, source_pool, period_start)
     DO UPDATE SET period_end = excluded.period_end
-""".trimIndent()
+    """.trimIndent()
 
-private val MARIADB_PROGRESSION_UPSERT_SQL = """
+private val MARIADB_PROGRESSION_UPSERT_SQL =
+
+    """
     INSERT INTO guild_progression
         (guild_id, total_experience, current_level, experience_this_level,
          experience_for_next_level, last_level_up, total_level_ups,
@@ -45,9 +51,11 @@ private val MARIADB_PROGRESSION_UPSERT_SQL = """
         last_level_up = COALESCE(VALUES(last_level_up), last_level_up),
         total_level_ups = VALUES(total_level_ups),
         last_updated = VALUES(last_updated)
-""".trimIndent()
+    """.trimIndent()
 
-private val SQLITE_PROGRESSION_UPSERT_SQL = """
+private val SQLITE_PROGRESSION_UPSERT_SQL =
+
+    """
     INSERT INTO guild_progression
         (guild_id, total_experience, current_level, experience_this_level,
          experience_for_next_level, last_level_up, total_level_ups,
@@ -61,4 +69,8 @@ private val SQLITE_PROGRESSION_UPSERT_SQL = """
         last_level_up = COALESCE(excluded.last_level_up, guild_progression.last_level_up),
         total_level_ups = excluded.total_level_ups,
         last_updated = excluded.last_updated
-""".trimIndent()
+    """.trimIndent()
+
+internal const val RESERVE_EXPERIENCE_SQL =
+    "UPDATE guild_experience_source_usage SET period_end = ?, awarded_xp = awarded_xp + ? " +
+        "WHERE guild_id = ? AND source_pool = ? AND period_start = ? AND awarded_xp + ? <= ?"

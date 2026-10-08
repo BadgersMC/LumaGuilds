@@ -41,20 +41,7 @@ internal class GuildShopXpMariaDbTest {
     }
 
     private fun resetSchema(db: MariaDBStorage) {
-        listOf(
-            "guild_shop_xp_chapters",
-            "chapter_lifecycle",
-            "guild_shop_xp_sales",
-            "guild_shop_xp_pairs",
-            "guild_experience_source_usage",
-            "experience_transactions",
-            "guild_progression",
-            "guild_reward_accounts",
-            "members",
-            "guilds",
-        ).forEach {
-            db.connection.executeUpdate("DROP TABLE IF EXISTS $it")
-        }
+        dropTables(db)
         db.connection.executeUpdate("CREATE TABLE guilds (id VARCHAR(36) PRIMARY KEY, level INT) ENGINE=InnoDB")
         db.connection.executeUpdate("INSERT INTO guilds VALUES (?, 1)", guild.toString())
         db.connection.executeUpdate("CREATE TABLE members (player_id VARCHAR(36), guild_id VARCHAR(36)) ENGINE=InnoDB")
@@ -70,6 +57,23 @@ internal class GuildShopXpMariaDbTest {
             "INSERT INTO chapter_lifecycle VALUES ('chapter-2', 'SCHEDULED', 0, ?)",
             Long.MAX_VALUE,
         )
+    }
+
+    private fun dropTables(db: MariaDBStorage) {
+        listOf(
+            "guild_shop_xp_chapters",
+            "chapter_lifecycle",
+            "guild_shop_xp_sales",
+            "guild_shop_xp_pairs",
+            "guild_experience_source_usage",
+            "experience_transactions",
+            "guild_progression",
+            "guild_reward_accounts",
+            "members",
+            "guilds",
+        ).forEach {
+            db.connection.executeUpdate("DROP TABLE IF EXISTS $it")
+        }
     }
 
     @AfterEach fun close() {
@@ -145,7 +149,8 @@ internal class GuildShopXpMariaDbTest {
         val db = checkNotNull(storage)
         val id = prepare()
         db.connection.executeUpdate(
-            "CREATE TRIGGER reject_shop_xp BEFORE INSERT ON experience_transactions FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'test fault'",
+            "CREATE TRIGGER reject_shop_xp BEFORE INSERT ON experience_transactions FOR " +
+                "EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'test fault'",
         )
         assertFails { repository.complete(id) }
         assertEquals(0, currentXp())

@@ -72,8 +72,11 @@ class ExperienceAwardRepositorySQL(
         ExperienceAwardTransaction(connection, mariaDb, curveProvider()).award(request, policy, requestedXp, window)
 
     override fun getAwardedXpByPool(guildId: UUID, at: java.time.Instant): Map<String, Int> {
+        val sql =
+            "SELECT source_pool, awarded_xp FROM guild_experience_source_usage " +
+            "WHERE guild_id = ? AND period_start <= ? AND period_end > ?"
         return storage.connection.getResults(
-            "SELECT source_pool, awarded_xp FROM guild_experience_source_usage WHERE guild_id = ? AND period_start <= ? AND period_end > ?",
+            sql,
             guildId.toString(),
             at.toEpochMilli(),
             at.toEpochMilli(),

@@ -39,7 +39,8 @@ internal class GuildShopXpRepositorySQLTest {
         )
         storage.connection.executeUpdate("INSERT INTO guild_reward_accounts VALUES (?, 0)", guild.toString())
         storage.connection.executeUpdate(
-            "CREATE TABLE chapter_lifecycle (chapter_id VARCHAR(64) PRIMARY KEY, phase VARCHAR(32), starts_at BIGINT, ends_at BIGINT)",
+            "CREATE TABLE chapter_lifecycle (chapter_id VARCHAR(64) PRIMARY KEY, phase " +
+                "VARCHAR(32), starts_at BIGINT, ends_at BIGINT)",
         )
         storage.connection.executeUpdate(
             "INSERT INTO chapter_lifecycle VALUES ('chapter-2', 'SCHEDULED', 0, ?)",
@@ -115,7 +116,8 @@ internal class GuildShopXpRepositorySQLTest {
     fun rollbackIsRetryable() {
         val id = prepare()
         storage.connection.executeUpdate(
-            "CREATE TRIGGER reject_xp BEFORE INSERT ON experience_transactions BEGIN SELECT RAISE(ABORT, 'test fault'); END",
+            "CREATE TRIGGER reject_xp BEFORE INSERT ON experience_transactions BEGIN " +
+                "SELECT RAISE(ABORT, 'test fault'); END",
         )
         assertFails { repository.complete(id) }
         assertEquals(0, currentXp())

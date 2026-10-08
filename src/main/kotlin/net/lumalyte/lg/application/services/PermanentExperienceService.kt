@@ -18,18 +18,22 @@ class PermanentExperienceService(
         return if (rejection == null) awardEligible(request, policy) else ExperienceAwardResult.Rejected(rejection)
     }
 
-    private fun sourceRejection(request: ExperienceAwardRequest, policy: ExperiencePolicy): AwardRejection? = when {
-        request.source == ExperienceSource.SHOP_SALE -> AwardRejection.INELIGIBLE
-        request.source != policy.source -> AwardRejection.POLICY_MISMATCH
-        !policy.enabled -> AwardRejection.SOURCE_DISABLED
-        else -> null
+    private fun sourceRejection(request: ExperienceAwardRequest, policy: ExperiencePolicy): AwardRejection? {
+        return when {
+            request.source == ExperienceSource.SHOP_SALE -> AwardRejection.INELIGIBLE
+            request.source != policy.source -> AwardRejection.POLICY_MISMATCH
+            !policy.enabled -> AwardRejection.SOURCE_DISABLED
+            else -> null
+        }
     }
 
-    private fun actorRejection(request: ExperienceAwardRequest): AwardRejection? = when {
-        !request.eligible -> AwardRejection.INELIGIBLE
-        request.units <= 0 -> AwardRejection.INVALID_UNITS
-        request.actorId?.let(activityService::isXpBlocked) == true -> AwardRejection.SUSPICIOUS_OR_AFK
-        else -> null
+    private fun actorRejection(request: ExperienceAwardRequest): AwardRejection? {
+        return when {
+            !request.eligible -> AwardRejection.INELIGIBLE
+            request.units <= 0 -> AwardRejection.INVALID_UNITS
+            request.actorId?.let(activityService::isXpBlocked) == true -> AwardRejection.SUSPICIOUS_OR_AFK
+            else -> null
+        }
     }
 
     private fun awardEligible(request: ExperienceAwardRequest, policy: ExperiencePolicy): ExperienceAwardResult {
@@ -38,10 +42,12 @@ class PermanentExperienceService(
         return repository.awardAtomically(request, policy, requestedXp, policy.windowContaining(request.occurredAt))
     }
 
-    private fun requestedXp(request: ExperienceAwardRequest, policy: ExperiencePolicy): Int? = try {
-        val base = Math.multiplyExact(policy.awardXp, request.units)
-        boostProvider()?.apply(base, request.source, request.occurredAt) ?: base
-    } catch (_: ArithmeticException) {
-        null
+    private fun requestedXp(request: ExperienceAwardRequest, policy: ExperiencePolicy): Int? {
+        return try {
+            val base = Math.multiplyExact(policy.awardXp, request.units)
+            boostProvider()?.apply(base, request.source, request.occurredAt) ?: base
+        } catch (_: ArithmeticException) {
+            null
+        }
     }
 }

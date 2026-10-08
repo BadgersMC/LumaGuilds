@@ -19,10 +19,11 @@ internal class ExperienceAwardTransaction(
         requestedXp: Int,
         window: PeriodWindow?,
     ): ExperienceAwardResult {
-        val duplicate = connection.selectOne(
-            "SELECT 1 FROM experience_transactions WHERE id = ?",
-            request.transactionId.toString(),
-        ) { true } ?: false
+        val duplicate =
+            connection.selectOne(
+                "SELECT 1 FROM experience_transactions WHERE id = ?",
+                request.transactionId.toString(),
+            ) { true } ?: false
         return if (duplicate) ExperienceAwardResult.Duplicate else awardNew(request, policy, requestedXp, window)
     }
 
@@ -33,13 +34,7 @@ internal class ExperienceAwardTransaction(
         window: PeriodWindow?,
     ): ExperienceAwardResult {
         val used = usage(request, policy, window)
-        val accepted = if (window ==
-            null
-        ) {
-            requestedXp
-        } else {
-            requestedXp.coerceAtMost((policy.capXp - used).coerceAtLeast(0))
-        }
+        val accepted = acceptedXp(window, requestedXp, policy.capXp, used)
         return if (accepted == 0) {
             ExperienceAwardResult.NoAllowance(policy.capXp, used)
         } else {
@@ -48,6 +43,10 @@ internal class ExperienceAwardTransaction(
             record(request, accepted)
             ExperienceAwardResult.Awarded(accepted, used + accepted, policy.isCapped, leveledUpTo = level)
         }
+    }
+
+    private fun acceptedXp(window: PeriodWindow?, requested: Int, cap: Int, used: Int): Int {
+        return if (window == null) requested else requested.coerceAtMost((cap - used).coerceAtLeast(0))
     }
 
     private fun usage(request: ExperienceAwardRequest, policy: ExperiencePolicy, window: PeriodWindow?): Int {
@@ -59,9 +58,14 @@ internal class ExperienceAwardTransaction(
             window.startInclusive.toEpochMilli(),
             window.endExclusive.toEpochMilli(),
         )
+        return readUsage(request, policy, window)
+    }
+
+    private fun readUsage(request: ExperienceAwardRequest, policy: ExperiencePolicy, window: PeriodWindow): Int {
         val locking = if (mariaDb) " FOR UPDATE" else ""
-        val sql = "SELECT awarded_xp FROM guild_experience_source_usage " +
-            "WHERE guild_id = ? AND source_pool = ? AND period_start = ?$locking"
+        val sql =
+            "SELECT awarded_xp FROM guild_experience_source_usage " +
+                "WHERE guild_id = ? AND source_pool = ? AND period_start = ?$locking"
         return connection.selectOne(
             sql,
             request.guildId.toString(),
@@ -79,18 +83,17 @@ internal class ExperienceAwardTransaction(
         accepted: Int,
     ) {
         if (window == null) return
-        val sql = "UPDATE guild_experience_source_usage SET period_end = ?, awarded_xp = awarded_xp + ? " +
-            "WHERE guild_id = ? AND source_pool = ? AND period_start = ? AND awarded_xp + ? <= ?"
-        val updated = connection.updateStatement(
-            sql,
-            window.endExclusive.toEpochMilli(),
-            accepted,
-            request.guildId.toString(),
-            policy.pool,
-            window.startInclusive.toEpochMilli(),
-            accepted,
-            policy.capXp,
-        )
+        val updated =
+            connection.updateStatement(
+                RESERVE_EXPERIENCE_SQL,
+                window.endExclusive.toEpochMilli(),
+                accepted,
+                request.guildId.toString(),
+                policy.pool,
+                window.startInclusive.toEpochMilli(),
+                accepted,
+                policy.capXp,
+            )
         check(updated == 1) { "Source cap reservation lost its row lock" }
     }
 
@@ -111,21 +114,26 @@ internal class ExperienceAwardTransaction(
     }
 
     private fun readProgression(request: ExperienceAwardRequest): ExistingProgression {
-        val sql = "SELECT total_experience, current_level, total_level_ups, created_at " +
-            "FROM guild_progression WHERE guild_id = ?"
-        return connection.selectOne(sql, request.guildId.toString()) { row ->
-            ExistingProgression(
-                row.getInt("total_experience"),
-                row.getInt("current_level"),
-                row.getInt("total_level_ups"),
-                row.getLong("created_at"),
-            )
-        } ?: ExistingProgression(0, 1, 0, request.occurredAt.toEpochMilli())
+        val sql =
+            "SELECT total_experience, current_level, total_level_ups, created_at " +
+                "FROM guild_progression WHERE guild_id = ?"
+        return connection.selectOne(sql, request.guildId.toString(), mapper = ::mapProgression)
+            ?: ExistingProgression(0, 1, 0, request.occurredAt.toEpochMilli())
+    }
+
+    private fun mapProgression(row: java.sql.ResultSet): ExistingProgression {
+        return ExistingProgression(
+            row.getInt("total_experience"),
+            row.getInt("current_level"),
+            row.getInt("total_level_ups"),
+            row.getLong("created_at"),
+        )
     }
 
     private fun record(request: ExperienceAwardRequest, accepted: Int) {
-        val sql = "INSERT INTO experience_transactions " +
-            "(id, guild_id, amount, source, description, actor_id, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)"
+        val sql =
+            "INSERT INTO experience_transactions " +
+                "(id, guild_id, amount, source, description, actor_id, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?)"
         connection.updateStatement(
             sql,
             request.transactionId.toString(),
