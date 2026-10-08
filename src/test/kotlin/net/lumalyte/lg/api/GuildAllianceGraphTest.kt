@@ -42,18 +42,16 @@ internal class GuildAllianceGraphTest {
         assertEquals(mapOf(a to setOf(b), b to setOf(a), c to emptySet()), api.getActiveAllianceGraph())
     }
 
-    private fun guildSet(vararg ids: UUID): Set<Guild> =
-        ids
-            .mapIndexed { index, id ->
-                Guild(id = id, name = "guild$index", createdAt = Instant.now())
-            }
-            .toSet()
+    private fun guildSet(vararg ids: UUID): Set<Guild> = ids
+        .mapIndexed { index, id ->
+            Guild(id = id, name = "guild$index", createdAt = Instant.now())
+        }
+        .toSet()
 
-    private fun ally(a: UUID, b: UUID, status: RelationStatus): Relation =
-        Relation.create(
-            guildA = a,
-            guildB = b,
-            type = RelationType.ALLY,
-            status = status,
-        )
+    private fun ally(a: UUID, b: UUID, status: RelationStatus): Relation = Relation.create(
+        guildA = a,
+        guildB = b,
+        type = RelationType.ALLY,
+        status = status,
+    )
 }
