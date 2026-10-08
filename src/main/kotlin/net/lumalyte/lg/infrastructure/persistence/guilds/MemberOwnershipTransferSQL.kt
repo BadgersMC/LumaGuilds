@@ -10,12 +10,8 @@ import java.util.UUID
 internal class MemberOwnershipTransferSQL(
     private val storage: Storage<Database>,
 ) {
-    fun transfer(
-        current: Member,
-        next: Member,
-        demotedRank: UUID,
-    ): Boolean =
-        try {
+    fun transfer(current: Member, next: Member, demotedRank: UUID): Boolean {
+        return try {
             storage.connection.connection.use { connection ->
                 connection.committingTransaction {
                     if (!updatePair(connection, current, next, demotedRank)) throw TransferRejected()
@@ -25,21 +21,14 @@ internal class MemberOwnershipTransferSQL(
         } catch (_: TransferRejected) {
             false
         }
+    }
 
-    private fun updatePair(
-        c: Connection,
-        current: Member,
-        next: Member,
-        demotedRank: UUID,
-    ): Boolean {
+    private fun updatePair(c: Connection, current: Member, next: Member, demotedRank: UUID): Boolean {
         val ranks = RankPair(current.rankId, demotedRank)
         return replace(c, Change(current, demotedRank, ranks)) && replace(c, Change(next, current.rankId, ranks))
     }
 
-    private fun replace(
-        c: Connection,
-        change: Change,
-    ): Boolean {
+    private fun replace(c: Connection, change: Change): Boolean {
         val sql =
             "UPDATE members SET rank_id = ? WHERE player_id = ? AND guild_id = ? AND rank_id = ? " +
                 "AND EXISTS (SELECT 1 FROM ranks WHERE id = ? AND guild_id = ? AND priority = 0) " +

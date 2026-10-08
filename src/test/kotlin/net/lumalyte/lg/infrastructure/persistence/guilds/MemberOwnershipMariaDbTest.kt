@@ -26,7 +26,7 @@ internal class MemberOwnershipMariaDbTest {
         }
     }
 
-    @Test fun failedSecondWriteRollsBackAndRetries() {
+    @Test fun secondWriteRollsBack() {
         fixture { f ->
             f.storage.connection.executeUpdate(
                 "CREATE TRIGGER reject_transfer BEFORE UPDATE ON members FOR EACH ROW " +
@@ -48,7 +48,7 @@ internal class MemberOwnershipMariaDbTest {
         try {
             block(Fixture(storage))
         } finally {
-            storage.connection.close(5, TimeUnit.SECONDS)
+            storage.connection.close(CLOSE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         }
     }
 
@@ -77,31 +77,30 @@ internal class MemberOwnershipMariaDbTest {
                     "joined_at VARCHAR(64), PRIMARY KEY (player_id, guild_id)) ENGINE=InnoDB",
             )
             listOf(ownerRank, lowerRank).forEachIndexed { priority, id ->
-                storage.connection.executeUpdate("INSERT INTO ranks VALUES (?, ?, ?)", id.toString(), guild.toString(), priority)
+                storage.connection.executeUpdate(
+                    "INSERT INTO ranks VALUES (?, ?, ?)", id.toString(), guild.toString(), priority
+                )
             }
             repo = MemberRepositorySQLite(storage)
             check(repo.add(owner))
             check(repo.add(next))
         }
 
-        fun assertRanks(
-            current: UUID,
-            successor: UUID,
-        ) {
+        fun assertRanks(current: UUID, successor: UUID) {
             assertEquals(current, repo.getRankId(owner.playerId, guild))
             assertEquals(successor, repo.getRankId(next.playerId, guild))
-            storage.connection.connection.use { connection ->
-                connection.prepareStatement("SELECT rank_id FROM members WHERE player_id = ? AND guild_id = ?").use { statement ->
-                    listOf(owner to current, next to successor).forEach { (member, expected) ->
-                        statement.setString(1, member.playerId.toString())
-                        statement.setString(2, guild.toString())
-                        statement.executeQuery().use { rows ->
-                            check(rows.next())
-                            assertEquals(expected.toString(), rows.getString(1))
-                        }
-                    }
-                }
-            }
+            assertEquals(current.toString(), persisted(owner))
+            assertEquals(successor.toString(), persisted(next))
         }
+
+        private fun persisted(member: Member): String {
+            val sql = "SELECT rank_id FROM members WHERE player_id = ? AND guild_id = ?"
+            return storage.connection.getResults(sql, member.playerId.toString(), guild.toString())
+                .single().getString("rank_id")
+        }
+    }
+
+    private companion object {
+        const val CLOSE_TIMEOUT_SECONDS = 5L
     }
 }

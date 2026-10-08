@@ -111,7 +111,9 @@ class MemberRepositorySQLite(private val storage: Storage<Database>) : MemberRep
     override fun transferOwnership(current: Member, next: Member, demotedRankId: UUID): Boolean {
         if (current.guildId != next.guildId || current.playerId == next.playerId ||
             current.rankId == next.rankId
-        ) return false
+        ) {
+            return false
+        }
         val committed = MemberOwnershipTransferSQL(storage).transfer(current, next, demotedRankId)
         if (committed) {
             members[Pair(current.playerId, current.guildId)] = current.copy(rankId = demotedRankId)

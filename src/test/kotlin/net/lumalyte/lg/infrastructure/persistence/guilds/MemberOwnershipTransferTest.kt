@@ -26,7 +26,7 @@ internal class MemberOwnershipTransferTest {
         }
     }
 
-    @Test fun commitsBothRanks() =
+    @Test fun commitsBothRanks() {
         fixture { f ->
             assertTrue(f.repo.transferOwnership(f.owner, f.next, f.lowerRank))
             f.assertRanks(f.lowerRank, f.ownerRank)
@@ -35,8 +35,9 @@ internal class MemberOwnershipTransferTest {
             assertFalse(f.repo.transferOwnership(f.owner, f.next, f.lowerRank))
             f.assertRanks(f.lowerRank, f.ownerRank)
         }
+    }
 
-    @Test fun secondWriteRollsBack() =
+    @Test fun secondWriteRollsBack() {
         fixture { f ->
             f.storage.connection.executeUpdate(
                 "CREATE TRIGGER reject_transfer BEFORE UPDATE ON members " +
@@ -48,8 +49,9 @@ internal class MemberOwnershipTransferTest {
             assertTrue(f.repo.transferOwnership(f.owner, f.next, f.lowerRank))
             f.assertRanks(f.lowerRank, f.ownerRank)
         }
+    }
 
-    @Test fun staleTargetRollsBack() =
+    @Test fun staleTargetRollsBack() {
         fixture { f ->
             f.storage.connection.executeUpdate(
                 "UPDATE members SET rank_id = ? WHERE player_id = ?",
@@ -61,13 +63,15 @@ internal class MemberOwnershipTransferTest {
             assertEquals(f.ownerRank.toString(), f.persisted(f.owner))
             assertEquals(f.thirdRank.toString(), f.persisted(f.next))
         }
+    }
 
-    @Test fun foreignRankRejected() =
+    @Test fun foreignRankRejected() {
         fixture { f ->
             assertFalse(f.repo.transferOwnership(f.owner, f.next, UUID.randomUUID()))
             f.assertRanks(f.ownerRank, f.lowerRank)
             assertFalse(f.repo.transferOwnership(f.owner, f.owner, f.lowerRank))
         }
+    }
 
     private class Fixture(
         val storage: VirtualThreadSQLiteStorage,
@@ -81,30 +85,34 @@ internal class MemberOwnershipTransferTest {
         val repo: MemberRepositorySQLite
 
         init {
-            storage.connection.executeUpdate("CREATE TABLE guilds (id TEXT PRIMARY KEY)")
-            storage.connection.executeUpdate("INSERT INTO guilds VALUES (?)", guild.toString())
-            storage.connection.executeUpdate("CREATE TABLE ranks (id TEXT PRIMARY KEY, guild_id TEXT, priority INT)")
-            listOf(ownerRank, lowerRank, thirdRank).forEachIndexed { priority, id ->
-                storage.connection.executeUpdate("INSERT INTO ranks VALUES (?, ?, ?)", id.toString(), guild.toString(), priority)
-            }
+            createSchema()
             repo = MemberRepositorySQLite(storage)
             check(repo.add(owner))
             check(repo.add(next))
         }
 
-        fun persisted(member: Member): String =
-            storage.connection
+        private fun createSchema() {
+            storage.connection.executeUpdate("CREATE TABLE guilds (id TEXT PRIMARY KEY)")
+            storage.connection.executeUpdate("INSERT INTO guilds VALUES (?)", guild.toString())
+            storage.connection.executeUpdate("CREATE TABLE ranks (id TEXT PRIMARY KEY, guild_id TEXT, priority INT)")
+            listOf(ownerRank, lowerRank, thirdRank).forEachIndexed { priority, id ->
+                storage.connection.executeUpdate(
+                    "INSERT INTO ranks VALUES (?, ?, ?)", id.toString(), guild.toString(), priority
+                )
+            }
+        }
+
+        fun persisted(member: Member): String {
+            return storage.connection
                 .getResults(
                     "SELECT rank_id FROM members WHERE player_id = ? AND guild_id = ?",
                     member.playerId.toString(),
                     guild.toString(),
                 ).single()
                 .getString("rank_id")
+        }
 
-        fun assertRanks(
-            current: UUID,
-            successor: UUID,
-        ) {
+        fun assertRanks(current: UUID, successor: UUID) {
             assertEquals(current, repo.getRankId(owner.playerId, guild))
             assertEquals(successor, repo.getRankId(next.playerId, guild))
             assertEquals(current.toString(), persisted(owner))

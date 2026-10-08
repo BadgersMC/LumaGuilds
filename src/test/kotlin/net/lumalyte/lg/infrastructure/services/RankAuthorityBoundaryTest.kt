@@ -42,10 +42,7 @@ internal class RankAuthorityBoundaryTest {
         )
     private val management = setOf(RankPermission.MANAGE_RANKS, RankPermission.MANAGE_MEMBERS)
 
-    private fun rank(
-        priority: Int,
-        permissions: Set<RankPermission> = management,
-    ): Rank =
+    private fun rank(priority: Int, permissions: Set<RankPermission> = management): Rank =
         Rank(UUID.randomUUID(), guild, "Rank$priority", priority, permissions).also {
             every { ranks.getById(it.id) } returns it
         }
@@ -55,10 +52,7 @@ internal class RankAuthorityBoundaryTest {
             every { members.getRankId(actor, guild) } returns it.id
         }
 
-    private fun member(
-        player: UUID,
-        rank: Rank,
-    ) {
+    private fun member(player: UUID, rank: Rank) {
         every { members.getByPlayerAndGuild(player, guild) } returns Member(player, guild, rank.id, Instant.EPOCH)
     }
 
