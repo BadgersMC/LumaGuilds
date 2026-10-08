@@ -9,6 +9,7 @@ import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.StrikeService
 import net.lumalyte.lg.config.StrikesConfig
 import org.bukkit.Bukkit
+import org.bukkit.plugin.IllegalPluginAccessException
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 import java.time.Instant
@@ -62,12 +63,14 @@ internal class EnthusiaStaffStrikeFeed(
         cursor = PunishmentLifecycleCursor.beginning()
         try {
             Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable { prepareSweep() })
-        } catch (scheduleError: RuntimeException) {
+        } catch (scheduleError: IllegalPluginAccessException) {
             inFlight.set(false)
             reportFailure("Could not schedule Guild Strikes sweep preparation", scheduleError)
         }
     }
 
+    // A provider/repository failure must clear in-flight state and preserve retry; Errors still propagate.
+    @Suppress("TooGenericExceptionCaught")
     private fun prepareSweep() {
         if (closed || !configProvider().enabled) {
             inFlight.set(false)
@@ -104,13 +107,15 @@ internal class EnthusiaStaffStrikeFeed(
             try {
                 // Persistence/history work remains async; never make moderation scans a tick loop.
                 Bukkit.getScheduler().runTaskAsynchronously(plugin, Runnable { applyPage(checkNotNull(page)) })
-            } catch (scheduleError: RuntimeException) {
+            } catch (scheduleError: IllegalPluginAccessException) {
                 inFlight.set(false)
                 reportFailure("Could not schedule Guild Strikes snapshot application", scheduleError)
             }
         }
     }
 
+    // This async integration boundary must retry any failed event without advancing its page cursor.
+    @Suppress("TooGenericExceptionCaught")
     internal fun applyPage(page: PunishmentLifecyclePage) {
         if (closed || !configProvider().enabled) {
             inFlight.set(false)

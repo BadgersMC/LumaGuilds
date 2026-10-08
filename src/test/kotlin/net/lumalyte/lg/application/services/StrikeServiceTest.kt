@@ -9,6 +9,7 @@ import net.lumalyte.lg.domain.entities.GuildStrike
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.util.UUID
@@ -54,11 +55,13 @@ class StrikeServiceTest {
         verify(exactly = 0) { repo.recordStrike(any()) }
     }
 
+    /** Persist native provider identity and the exact expiration timestamp. */
+    @DisplayName("external strikes preserve provider identity and expiration")
     @Test
-    fun `external strikes preserve provider identity and expiration`() {
+    fun externalIdentityAndExpiry() {
         val repo = mockk<StrikeRepository>(relaxed = true)
         val service = serviceWith(StrikesConfig(enabled = true), repo)
-        val expiration = now.plusSeconds(3600)
+        val expiration = now.plus(java.time.Duration.ofHours(1))
 
         service.recordExternalStrike(
             GuildStrike(
