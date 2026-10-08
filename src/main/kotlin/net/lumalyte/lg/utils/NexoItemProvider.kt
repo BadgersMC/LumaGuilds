@@ -37,6 +37,11 @@ object NexoItemProvider : Listener {
     var itemsLoaded: Boolean = false
         private set
 
+    /** How many times Nexo has (re)loaded its items; caches of built items compare against it. */
+    @Volatile
+    var loadCount: Int = 0
+        private set
+
     /**
      * Registers the [NexoItemsLoadedEvent] listener. Call once from the plugin's [onEnable].
      */
@@ -74,10 +79,11 @@ object NexoItemProvider : Listener {
      * @return The Nexo ItemStack if available, otherwise the fallback.
      *
      * The Nexo item is tagged with the fallback's material so Bedrock players can be shown the
-     * vanilla item instead (see [BedrockIcons]). Use [getItemStack] for items handed to players.
+     * vanilla item instead (see [BedrockIcons]), and with [itemId] so holiday styles can send its
+     * seasonal variant (see [SeasonalIcons]). Use [getItemStack] for items handed to players.
      */
     fun getItemStackOrFallback(itemId: String, fallback: () -> ItemStack): ItemStack {
-        val nexo = getItemStack(itemId) ?: return fallback()
+        val nexo = getItemStack(itemId)?.let { SeasonalIcons.tag(it, itemId) } ?: return fallback()
         val vanilla = runCatching { fallback().type }.getOrNull() ?: return nexo
         return BedrockIcons.tag(nexo, vanilla)
     }
@@ -87,6 +93,7 @@ object NexoItemProvider : Listener {
     @EventHandler
     fun onNexoItemsLoaded(event: NexoItemsLoadedEvent) {
         itemsLoaded = true
+        loadCount++
         logger.info("Nexo items loaded — NexoItemProvider is ready")
     }
 }
