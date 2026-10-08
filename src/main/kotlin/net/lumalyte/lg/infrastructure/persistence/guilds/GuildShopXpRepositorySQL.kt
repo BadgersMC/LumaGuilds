@@ -87,7 +87,7 @@ internal class GuildShopXpRepositorySQL(
         val allowed = ledger.buyerAllowance(c, sale, buyerPool, window)
         if (allowed == 0) return ledger.finish(c, id, sale, CAPPED)
         val request = sale.awardRequest(id)
-        val result = awards.awardInTransaction(c, request, policy, allowed, window)
+        val result = awards.awardInTransaction(c, request, policy, allowed)
         return if (result is ExperienceAwardResult.Awarded) {
             ledger.reserveBuyer(c, sale, GuildShopXpLedger.BuyerReservation(buyerPool, window, result.acceptedXp))
             ledger.finish(

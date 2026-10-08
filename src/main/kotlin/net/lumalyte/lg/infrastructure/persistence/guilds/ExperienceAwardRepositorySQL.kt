@@ -39,26 +39,20 @@ class ExperienceAwardRepositorySQL(
 
         return storage.connection.connection.use { connection ->
             connection.committingTransaction {
-                if (!mariaDb) {
-                    // Reserve the SQLite writer before opening a SELECT snapshot.
-                    connection.updateStatement(
-                        "UPDATE guild_experience_source_usage SET awarded_xp = awarded_xp WHERE 0",
-                    )
-                }
-                if (mariaDb) {
-                    checkNotNull(
-                        connection.selectOne(
-                            "SELECT level FROM guilds WHERE id = ? FOR UPDATE",
-                            request.guildId.toString(),
-                        ) {
-                            it.getInt("level")
-                        },
-                    ) {
-                        "Guild ${request.guildId} does not exist"
-                    }
-                }
+                reserveWriter(connection, request.guildId)
                 ExperienceAwardTransaction(connection, mariaDb, curve).award(request, policy, requestedXp, window)
             }
+        }
+    }
+
+    private fun reserveWriter(connection: Connection, guildId: UUID) {
+        if (mariaDb) {
+            checkNotNull(connection.selectOne("SELECT level FROM guilds WHERE id = ? FOR UPDATE", guildId.toString()) {
+                it.getInt("level")
+            }) { "Guild $guildId does not exist" }
+        } else {
+            // Reserve the SQLite writer before opening a SELECT snapshot.
+            connection.updateStatement("UPDATE guild_experience_source_usage SET awarded_xp = awarded_xp WHERE 0")
         }
     }
 
@@ -68,9 +62,10 @@ class ExperienceAwardRepositorySQL(
         request: ExperienceAwardRequest,
         policy: ExperiencePolicy,
         requestedXp: Int,
-        window: PeriodWindow?,
-    ): ExperienceAwardResult =
-        ExperienceAwardTransaction(connection, mariaDb, curveProvider()).award(request, policy, requestedXp, window)
+    ): ExperienceAwardResult {
+        val transaction = ExperienceAwardTransaction(connection, mariaDb, curveProvider())
+        return transaction.award(request, policy, requestedXp, policy.windowContaining(request.occurredAt))
+    }
 
     override fun getAwardedXpByPool(guildId: UUID, at: java.time.Instant): Map<String, Int> {
         val sql =
