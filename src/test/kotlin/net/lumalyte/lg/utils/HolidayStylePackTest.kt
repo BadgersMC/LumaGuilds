@@ -41,10 +41,11 @@ internal class HolidayStylePackTest {
     /** Glyph chars never collide across the pack. */
     @Test
     fun glyphCharsAreUnique() {
-        val chars = File(pack, "glyphs").listFiles { f -> f.extension == "yml" }!!.flatMap { file ->
-            val yaml = YamlConfiguration.loadConfiguration(file)
-            yaml.getKeys(false).mapNotNull { yaml.getString("$it.char") }
-        }
+        val chars =
+            File(pack, "glyphs").listFiles { f -> f.extension == "yml" }!!.flatMap { file ->
+                val yaml = YamlConfiguration.loadConfiguration(file)
+                yaml.getKeys(false).mapNotNull { yaml.getString("$it.char") }
+            }
         assertEquals(chars.size, chars.toSet().size)
     }
 
@@ -76,6 +77,7 @@ internal class HolidayStylePackTest {
             assertEquals(id, SeasonalIcons.variantId(iconId, style))
         }
     }
+
     private fun existingIconIds(): Set<String> {
         val base =
             yaml("items/lumaguilds_enthusia_icons.yml").getKeys(false) +
@@ -85,6 +87,6 @@ internal class HolidayStylePackTest {
                 YamlConfiguration.loadConfiguration(
                     File("resourcepack/enthusia-icons/server-kit/repoint-textures.yml"),
                 ).getKeys(false)
-            return base
-        }
+        return base
+    }
 }

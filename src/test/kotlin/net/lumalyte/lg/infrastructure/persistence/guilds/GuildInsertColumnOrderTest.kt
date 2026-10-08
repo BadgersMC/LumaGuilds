@@ -73,13 +73,7 @@ internal class GuildInsertColumnOrderTest : RewardSqlTestFixture() {
         val repository = migratedRepository(storage)
         val guild = Guild(UUID.randomUUID(), "Legacy", createdAt = Instant.now())
         assertTrue(repository.add(guild))
-        // Reproduce what the shifted insert used to store for a new guild.
-        storage.connection.executeUpdate(
-            "UPDATE guilds SET ally_home_world = 'NEUTRAL', ally_home_x = NULL, " +
-                "ally_home_y = NULL, ally_home_z = NULL, " +
-                "ally_home_allowed_guilds = NULL, gui_theme = '' WHERE id = ?",
-            guild.id.toString(),
-        )
+        writeShiftedInsert(storage, guild)
 
         GuildRepositorySQLite(storage)
 
@@ -91,6 +85,16 @@ internal class GuildInsertColumnOrderTest : RewardSqlTestFixture() {
         assertEquals("NEUTRAL", row.getString("gui_theme"))
         assertNull(row.getString("ally_home_world"))
         assertEquals("", row.getString("ally_home_allowed_guilds").orEmpty())
+    }
+
+    private fun writeShiftedInsert(storage: Storage<Database>, guild: Guild) {
+        // Reproduce what the shifted insert used to store for a new guild.
+        storage.connection.executeUpdate(
+            "UPDATE guilds SET ally_home_world = 'NEUTRAL', ally_home_x = NULL, " +
+                "ally_home_y = NULL, ally_home_z = NULL, " +
+                "ally_home_allowed_guilds = NULL, gui_theme = '' WHERE id = ?",
+            guild.id.toString(),
+        )
     }
 
     /** Repair leaves real ally homes alone. */
@@ -111,6 +115,37 @@ internal class GuildInsertColumnOrderTest : RewardSqlTestFixture() {
 
         val reloaded = GuildRepositorySQLite(storage).getById(guild.id)!!
         assertEquals(guild.allyHome, reloaded.allyHome)
+    }
+
+    /** Repeated initialization preserves an existing physical vault and guild identity. */
+    @DisplayName("repeated schema repair preserves physical vault data")
+    @Test
+    fun vaultRepairPreservesData() {
+        val storage = openStorage()
+        val repository = migratedRepository(storage)
+        val guild = createVaultOwner(storage, repository)
+        repeat(2) { GuildRepositorySQLite(storage) }
+        val row =
+            storage.connection.getFirstRow(
+                "SELECT name, vault_status, vault_chest_world, vault_chest_x FROM guilds WHERE id = ?",
+                guild.id.toString(),
+            )
+        assertEquals(guild.name, row.getString("name"))
+        assertEquals("AVAILABLE", row.getString("vault_status"))
+        assertEquals(world.toString(), row.getString("vault_chest_world"))
+        assertEquals(10, row.getInt("vault_chest_x"))
+    }
+
+    private fun createVaultOwner(storage: Storage<Database>, repository: GuildRepositorySQLite): Guild {
+        val guild = Guild(UUID.randomUUID(), "VaultOwner", createdAt = Instant.now())
+        assertTrue(repository.add(guild))
+        storage.connection.executeUpdate(
+            "UPDATE guilds SET vault_status = 'AVAILABLE', vault_chest_world = ?, vault_chest_x = ? WHERE id = ?",
+            world.toString(),
+            10,
+            guild.id.toString(),
+        )
+        return guild
     }
 
     private fun migratedRepository(storage: Storage<Database>): GuildRepositorySQLite {
