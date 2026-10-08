@@ -81,9 +81,12 @@ class GuildCosmeticUnlockService(
 
     /** Read owned keys in the normalized category. */
     fun unlockedKeys(guildId: UUID, type: String): Set<String> {
-        if (guilds.getById(guildId) == null) return emptySet()
-        val normalType = normalise(type, MAX_COSMETIC_TYPE_LENGTH) ?: return emptySet()
-        return unlocks.getForGuild(guildId).filter { it.type == normalType }.map { it.key }.toSet()
+        val normalType = normalise(type, MAX_COSMETIC_TYPE_LENGTH)
+        return if (guilds.getById(guildId) == null || normalType == null) {
+            emptySet()
+        } else {
+            unlocks.getForGuild(guildId).filter { it.type == normalType }.map { it.key }.toSet()
+        }
     }
 
     /** Progression themes stay available; holiday themes require ownership. */

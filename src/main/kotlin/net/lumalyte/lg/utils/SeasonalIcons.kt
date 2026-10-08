@@ -23,9 +23,8 @@ object SeasonalIcons {
         if (theme.seasonalIcons) "${iconId}_${theme.name.lowercase()}" else null
 
     /** The seasonal style a member of guilds using [themes] sees, or null for the normal icons. */
-    fun styleFor(themes: Collection<GuiTheme>): GuiTheme? =
-        themes.asSequence()
-            .map(GuiTheme::resolved)
+    fun styleFor(themes: Collection<GuiTheme>): GuiTheme? = themes.asSequence()
+        .map(GuiTheme::resolved)
             .filter(GuiTheme::seasonalIcons)
             .minByOrNull { it.ordinal }
 
