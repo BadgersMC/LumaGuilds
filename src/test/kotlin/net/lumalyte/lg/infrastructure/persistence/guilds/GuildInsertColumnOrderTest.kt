@@ -31,14 +31,15 @@ internal class GuildInsertColumnOrderTest : RewardSqlTestFixture() {
     fun scenario1() {
         val storage = openStorage()
         val repository = migratedRepository(storage)
-        val guild = Guild(
-            UUID.randomUUID(),
-            "Columns",
-            createdAt = Instant.now(),
-            guiTheme = GuiTheme.EMBERSTONE,
-            allyHome = GuildHome(world, Position3D(10, 64, -20)),
-            allyHomeAllowedGuilds = setOf(ally),
-        )
+        val guild =
+            Guild(
+                UUID.randomUUID(),
+                "Columns",
+                createdAt = Instant.now(),
+                guiTheme = GuiTheme.EMBERSTONE,
+                allyHome = GuildHome(world, Position3D(10, 64, -20)),
+                allyHomeAllowedGuilds = setOf(ally),
+            )
         assertTrue(repository.add(guild))
 
         assertStoredColumns(storage, guild)
@@ -50,16 +51,17 @@ internal class GuildInsertColumnOrderTest : RewardSqlTestFixture() {
     }
 
     private fun assertStoredColumns(storage: Storage<Database>, guild: Guild) {
-        val row = storage.connection.getFirstRow(
-            "SELECT gui_theme, ally_home_world, ally_home_x, ally_home_y, ally_home_z, " +
-                "ally_home_allowed_guilds FROM guilds WHERE id = ?",
-            guild.id.toString(),
-        )
+        val row =
+            storage.connection.getFirstRow(
+                "SELECT gui_theme, ally_home_world, ally_home_x, ally_home_y, ally_home_z, " +
+                    "ally_home_allowed_guilds FROM guilds WHERE id = ?",
+                guild.id.toString(),
+            )
         assertEquals("EMBERSTONE", row.getString("gui_theme"))
         assertEquals(world.toString(), row.getString("ally_home_world"))
-        assertEquals(10, (row.get<Any>("ally_home_x") as Number).toInt())
-        assertEquals(64, (row.get<Any>("ally_home_y") as Number).toInt())
-        assertEquals(-20, (row.get<Any>("ally_home_z") as Number).toInt())
+        assertEquals(10, row.getInt("ally_home_x"))
+        assertEquals(64, row.getInt("ally_home_y"))
+        assertEquals(-20, row.getInt("ally_home_z"))
         assertEquals(ally.toString(), row.getString("ally_home_allowed_guilds"))
     }
 
@@ -81,10 +83,11 @@ internal class GuildInsertColumnOrderTest : RewardSqlTestFixture() {
 
         GuildRepositorySQLite(storage)
 
-        val row = storage.connection.getFirstRow(
-            "SELECT gui_theme, ally_home_world, ally_home_allowed_guilds FROM guilds WHERE id = ?",
-            guild.id.toString(),
-        )
+        val row =
+            storage.connection.getFirstRow(
+                "SELECT gui_theme, ally_home_world, ally_home_allowed_guilds FROM guilds WHERE id = ?",
+                guild.id.toString(),
+            )
         assertEquals("NEUTRAL", row.getString("gui_theme"))
         assertNull(row.getString("ally_home_world"))
         assertEquals("", row.getString("ally_home_allowed_guilds").orEmpty())
