@@ -36,7 +36,7 @@ internal class MenuTitleGlyphsTest {
         assertTrue(fonts(fixed).any { it.first == "ꁅ" && it.second == nexoFont }, fonts(fixed).toString())
         val plain = PlainTextComponentSerializer.plainText().serialize(fixed)
         assertFalse(plain.contains("<glyph:"))
-        assertTrue(plain.contains("<shift:-9>") && plain.contains("<shift:-161>Guild Settings"), plain)
+        assertTrue(plain.contains("<shift:-8>") && plain.contains("<shift:-162>Guild Settings"), plain)
     }
 
     /** Unknown glyphs keep their tag so nexo can still try. */

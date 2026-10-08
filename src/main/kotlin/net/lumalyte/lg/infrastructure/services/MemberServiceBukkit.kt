@@ -427,19 +427,9 @@ class MemberServiceBukkit(
 
         // Atomically update both members
         try {
-            // Demote current owner to second-highest rank
-            val demotedOwner = currentOwner.copy(rankId = secondHighestRank.id)
-            if (!memberRepository.update(demotedOwner)) {
-                logger.error("Failed to demote current owner")
-                return false
-            }
-
-            // Promote new owner to owner rank
-            val promotedNewOwner = newOwner.copy(rankId = ownerRank.id)
-            if (!memberRepository.update(promotedNewOwner)) {
-                logger.error("Failed to promote new owner - rolling back current owner demotion")
-                // Rollback: restore current owner's rank
-                memberRepository.update(currentOwner)
+            if (ownerRank.id != currentOwner.rankId || secondHighestRank.priority == 0) return false
+            if (!memberRepository.transferOwnership(currentOwner, newOwner, secondHighestRank.id)) {
+                logger.error("Ownership transfer was not committed; both previous ranks were preserved")
                 return false
             }
 
