@@ -178,16 +178,13 @@ Current-run progression is keyed by `guild_id`; permanent perks by `(guild_id, r
 
 The XP/Elo/chapter contract lives in `docs/superpowers/specs/2026-08-27-chapter-2-progression-revamp-design.md`. The canonical guild-gold, Chapter 1 migration, reward cadence, and bounded-prestige contract lives in `docs/superpowers/specs/2026-08-30-chapter-2-prestige-gold-design.md`.
 
-
 ## Guild-shop XP (REQ-121)
 
 See [guild-shop-xp.md](guild-shop-xp.md) for approved policy, durable delivery, SPEAR state and acceptance boundaries.
 
-
 ### Guild-wide reconnect chat preference (REQ-135)
 
 `GuildChatReconnectSettingsService` owns membership/permission policy through `GuildChatReconnectSettingsRepository`; the SQL adapter stores a default-off guild preference with atomic expected-state writes. Both menu clients submit a rendered snapshot without replacing newer unchanged fields. `GuildChatReconnectListener` is wired with RoseChat startup, runs one tick after join, and rechecks the current session/channel before switching only guild/ally chat to the configured default. Additive schema migration and transactional disband cleanup cover both supported databases. See `docs/chat-reconnect.md` for verification and release boundaries.
-
 
 ## Community chat, ranks and directory (REQ-136 through REQ-139)
 

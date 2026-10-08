@@ -18,7 +18,7 @@ internal class GuildStallRuntimeContractTest {
     /** Public records and service calls must decode across the plugin classloader boundary. */
     @Test
     fun decodesCompanionRuntime() {
-        val artifact = System.getenv("MARKET_API_JAR")?.let(::File)
+        val artifact = System.getenv("MARKET_API_JAR")?.takeIf(String::isNotBlank)?.let(::File)
         assumeTrue(artifact != null, "Set MARKET_API_JAR to the built companion artifact")
         require(artifact!!.isFile) { "Configured MARKET_API_JAR does not exist: $artifact" }
         URLClassLoader(arrayOf(artifact.toURI().toURL()), ClassLoader.getPlatformClassLoader()).use { loader ->
