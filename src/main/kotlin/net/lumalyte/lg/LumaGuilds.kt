@@ -113,7 +113,8 @@ class LumaGuilds : JavaPlugin() {
             get().get<net.lumalyte.lg.application.services.GuildService>(),
             get().get<net.lumalyte.lg.application.services.MemberService>(),
             get().get<net.lumalyte.lg.application.services.RankService>(),
-            get().get<net.lumalyte.lg.application.services.BankService>()
+            get().get<net.lumalyte.lg.application.services.BankService>(),
+            get().get<net.lumalyte.lg.application.services.RelationService>()
         )
         Bukkit.getServicesManager().register(
             net.lumalyte.lg.api.GuildLookup::class.java,
