@@ -127,22 +127,28 @@ internal class GuildInsertColumnOrderTest : RewardSqlTestFixture() {
         repeat(2) { GuildRepositorySQLite(storage) }
         val row =
             storage.connection.getFirstRow(
-                "SELECT name, vault_status, vault_chest_world, vault_chest_x FROM guilds WHERE id = ?",
+                "SELECT name, vault_status, vault_chest_world, vault_chest_x, vault_chest_y, vault_chest_z " +
+                    "FROM guilds WHERE id = ?",
                 guild.id.toString(),
             )
         assertEquals(guild.name, row.getString("name"))
         assertEquals("AVAILABLE", row.getString("vault_status"))
         assertEquals(world.toString(), row.getString("vault_chest_world"))
         assertEquals(10, row.getInt("vault_chest_x"))
+        assertEquals(64, row.getInt("vault_chest_y"))
+        assertEquals(-20, row.getInt("vault_chest_z"))
     }
 
     private fun createVaultOwner(storage: Storage<Database>, repository: GuildRepositorySQLite): Guild {
         val guild = Guild(UUID.randomUUID(), "VaultOwner", createdAt = Instant.now())
         assertTrue(repository.add(guild))
         storage.connection.executeUpdate(
-            "UPDATE guilds SET vault_status = 'AVAILABLE', vault_chest_world = ?, vault_chest_x = ? WHERE id = ?",
+            "UPDATE guilds SET vault_status = 'AVAILABLE', vault_chest_world = ?, " +
+                "vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ? WHERE id = ?",
             world.toString(),
             10,
+            64,
+            -20,
             guild.id.toString(),
         )
         return guild
