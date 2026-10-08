@@ -488,7 +488,7 @@ WHEN a guild owner transfers ownership, THE SYSTEM SHALL commit both rank update
 
 WHEN a member completes `/guild home` THE SYSTEM SHALL suggest only homes accepted by the same current home-access decision as teleportation, retaining owner access and full-name completion for home management commands.
 
-## Guild-shop XP (REQ-121)
+## Guild-shop XP (REQ-134)
 
 See [guild-shop-xp.md](guild-shop-xp.md) for approved policy, durable delivery, SPEAR state and acceptance boundaries.
 
