@@ -195,13 +195,6 @@ internal class GuildStallMenu(
         )
     }
 
-    private fun summaryLines(text: Component): List<Component> =
-        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-            .plainText()
-            .serialize(text)
-            .lines()
-            .map(Component::text)
-
     private inner class StallForm(
         menuNavigator: MenuNavigator,
         actor: Player,
@@ -259,4 +252,9 @@ internal class GuildStallMenu(
         const val PAGE_SIZE = 45
         const val STATUS_SLOT = 53
     }
+}
+
+private fun summaryLines(text: Component): List<Component> {
+    return net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
+        .serialize(text).lines().map(Component::text)
 }

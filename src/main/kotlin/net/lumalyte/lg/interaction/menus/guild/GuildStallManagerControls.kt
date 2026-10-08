@@ -16,14 +16,18 @@ internal class GuildStallManagerControls(
     private val members: MemberService,
     private val lang: LangService,
 ) {
+    /** Presentation and an authority-rechecking click callback for either client menu. */
     internal data class Control(val name: Component, val action: () -> Unit)
 
-    fun rows(stall: String): List<Control> = buildList {
-        if (available("guildsales", stall)) {
-            add(Control(lang.gui("community.stall.sales")) { run("guildsales", stall) })
-        }
-        if (available("stallaccess", stall)) {
-            add(Control(Component.text("Stall flags and access")) { run("stallaccess", stall) })
+    /** Current permitted companion commands, omitted when unavailable. */
+    fun rows(stall: String): List<Control> {
+        return buildList {
+            if (available(SALES, stall)) {
+                add(Control(lang.gui("community.stall.sales")) { run(SALES, stall) })
+            }
+            if (available(ACCESS, stall)) {
+                add(Control(lang.gui("community.stall.access")) { run(ACCESS, stall) })
+            }
         }
     }
 
@@ -34,8 +38,13 @@ internal class GuildStallManagerControls(
     private fun run(command: String, stall: String) {
         if (available(command, stall)) {
             player.closeInventory()
-            val arguments = if (command == "stallaccess") "settings $stall" else stall
+            val arguments = if (command == ACCESS) "settings $stall" else stall
             player.performCommand("$command $arguments")
         }
+    }
+
+    private companion object {
+        const val SALES = "guildsales"
+        const val ACCESS = "stallaccess"
     }
 }
