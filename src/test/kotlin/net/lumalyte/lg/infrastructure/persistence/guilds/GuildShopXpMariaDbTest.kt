@@ -173,9 +173,9 @@ internal class GuildShopXpMariaDbTest {
             val started = CountDownLatch(1)
             val result =
                 CompletableFuture.supplyAsync {
-                    started.countDown()
-                    repository.complete(id)
-                }
+                        started.countDown()
+                        repository.complete(id)
+                    }
             check(started.await(5, TimeUnit.SECONDS))
             c.createStatement().use { s ->
                 s.executeUpdate(
@@ -199,10 +199,11 @@ internal class GuildShopXpMariaDbTest {
             try {
                 c.updateStatement("UPDATE chapter_lifecycle SET phase = 'FROZEN'")
                 val started = CountDownLatch(1)
-                val delivery = CompletableFuture.supplyAsync {
-                    started.countDown()
-                    repository.complete(id)
-                }
+                val delivery =
+                    CompletableFuture.supplyAsync {
+                        started.countDown()
+                        repository.complete(id)
+                    }
                 check(started.await(5, TimeUnit.SECONDS))
                 assertFailsWith<java.util.concurrent.TimeoutException> { delivery.get(100, TimeUnit.MILLISECONDS) }
                 c.commit()

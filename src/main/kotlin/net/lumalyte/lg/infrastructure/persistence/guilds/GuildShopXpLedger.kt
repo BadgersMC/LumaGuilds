@@ -22,22 +22,18 @@ internal class GuildShopXpLedger(private val storage: Storage<Database>) {
     private val lock = if (maria) " FOR UPDATE" else ""
     init {
         storage.connection.executeUpdate(
-            """
-            CREATE TABLE IF NOT EXISTS guild_shop_xp_sales (
-                id VARCHAR(36) PRIMARY KEY, guild_id VARCHAR(36) NOT NULL, buyer_id VARCHAR(36) NOT NULL,
-                occurred_at BIGINT NOT NULL, prestige_count INT NOT NULL, eligible INT NOT NULL,
-                award_xp INT NOT NULL, guild_cap INT NOT NULL, buyer_cap INT NOT NULL,
-                cooldown_ms BIGINT NOT NULL, status VARCHAR(32) NOT NULL
-            )
-            """.trimIndent(),
+            "CREATE TABLE IF NOT EXISTS guild_shop_xp_sales ( " +
+                "id VARCHAR(36) PRIMARY KEY, guild_id VARCHAR(36) NOT NULL, buyer_id VARCHAR(36) NOT NULL, " +
+                "occurred_at BIGINT NOT NULL, prestige_count INT NOT NULL, eligible INT NOT NULL, " +
+                "award_xp INT NOT NULL, guild_cap INT NOT NULL, buyer_cap INT NOT NULL, " +
+                "cooldown_ms BIGINT NOT NULL, status VARCHAR(32) NOT NULL " +
+                ") ",
         )
         storage.connection.executeUpdate(
-            """
-            CREATE TABLE IF NOT EXISTS guild_shop_xp_pairs (
-                guild_id VARCHAR(36) NOT NULL, buyer_id VARCHAR(36) NOT NULL, last_award BIGINT NOT NULL,
-                PRIMARY KEY (guild_id, buyer_id)
-            )
-            """.trimIndent(),
+            "CREATE TABLE IF NOT EXISTS guild_shop_xp_pairs ( " +
+                "guild_id VARCHAR(36) NOT NULL, buyer_id VARCHAR(36) NOT NULL, last_award BIGINT NOT NULL, " +
+                "PRIMARY KEY (guild_id, buyer_id) " +
+                ") ",
         )
     }
 
@@ -101,16 +97,7 @@ internal class GuildShopXpLedger(private val storage: Storage<Database>) {
     }
 
     fun reserveBuyer(c: Connection, sale: GuildShopXpReceipt, reservation: BuyerReservation) {
-        val usageSeed =
-            if (maria) {
-                "ON DUPLICATE KEY UPDATE awarded_xp = awarded_xp + VALUES(awarded_xp)"
-            } else {
-                "ON CONFLICT(guild_id, source_pool, period_start) " +
-                    "DO UPDATE SET awarded_xp = awarded_xp + excluded.awarded_xp"
-            }
-        val sql =
-            "INSERT INTO guild_experience_source_usage " +
-                "(guild_id, source_pool, period_start, period_end, awarded_xp) VALUES (?, ?, ?, ?, ?) $usageSeed"
+        val sql = buyerReservationSql(maria)
         c.updateStatement(
             sql,
             sale.guild.toString(),
@@ -213,4 +200,16 @@ private fun Connection.isGuildMember(sale: GuildShopXpSale): Boolean {
         sale.guild.toString(),
         sale.buyer.toString(),
     ) { true } ?: false
+}
+
+private fun buyerReservationSql(maria: Boolean): String {
+    val suffix =
+        if (maria) {
+            "ON DUPLICATE KEY UPDATE awarded_xp = awarded_xp + VALUES(awarded_xp)"
+        } else {
+            "ON CONFLICT(guild_id, source_pool, period_start) " +
+                "DO UPDATE SET awarded_xp = awarded_xp + excluded.awarded_xp"
+        }
+    return "INSERT INTO guild_experience_source_usage " +
+        "(guild_id, source_pool, period_start, period_end, awarded_xp) VALUES (?, ?, ?, ?, ?) $suffix"
 }

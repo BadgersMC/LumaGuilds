@@ -58,6 +58,7 @@ enum class ExperienceSource(private val poolOverride: String? = null) {
 
     // System
     WEEKLY_ACTIVITY,
+
     /** Explicit administrator-issued experience bonus. */
     ADMIN_BONUS,
     ;

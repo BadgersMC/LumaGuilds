@@ -45,9 +45,8 @@ internal class ExperienceAwardTransaction(
         }
     }
 
-    private fun acceptedXp(window: PeriodWindow?, requested: Int, cap: Int, used: Int): Int {
-        return if (window == null) requested else requested.coerceAtMost((cap - used).coerceAtLeast(0))
-    }
+    private fun acceptedXp(window: PeriodWindow?, requested: Int, cap: Int, used: Int): Int =
+        if (window == null) requested else requested.coerceAtMost((cap - used).coerceAtLeast(0))
 
     private fun usage(request: ExperienceAwardRequest, policy: ExperiencePolicy, window: PeriodWindow?): Int {
         if (window == null) return 0

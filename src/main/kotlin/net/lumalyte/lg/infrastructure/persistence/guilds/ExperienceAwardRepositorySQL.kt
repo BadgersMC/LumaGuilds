@@ -74,13 +74,15 @@ class ExperienceAwardRepositorySQL(
     override fun getAwardedXpByPool(guildId: UUID, at: java.time.Instant): Map<String, Int> {
         val sql =
             "SELECT source_pool, awarded_xp FROM guild_experience_source_usage " +
-            "WHERE guild_id = ? AND period_start <= ? AND period_end > ?"
-        return storage.connection.getResults(
-            sql,
-            guildId.toString(),
-            at.toEpochMilli(),
-            at.toEpochMilli(),
-        ).associate { it.getString("source_pool") to it.getInt("awarded_xp") }
+                "WHERE guild_id = ? AND period_start <= ? AND period_end > ?"
+        return storage.connection.connection.use { connection ->
+            connection.prepareStatement(sql).use { statement ->
+                statement.setString(1, guildId.toString())
+                statement.setLong(2, at.toEpochMilli())
+                statement.setLong(3, at.toEpochMilli())
+                statement.executeQuery().use { it.experiencePools() }
+            }
+        }
     }
 
     private fun execute(connection: Connection, sql: String, vararg parameters: Any?): Int {
@@ -152,4 +154,10 @@ class ExperienceAwardRepositorySQL(
             """.trimIndent(),
         )
     }
+}
+
+private fun ResultSet.experiencePools(): Map<String, Int> {
+    val pools = mutableMapOf<String, Int>()
+    while (next()) pools[getString("source_pool")] = getInt("awarded_xp")
+    return pools
 }
