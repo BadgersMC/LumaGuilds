@@ -477,3 +477,6 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 
 ### REQ-120
 **Event-driven.** BEFORE Chapter 2 Bedrock release sign-off, automated parity contracts SHALL cover primary routing, authorization denials, data truthfulness and the new Quests/Prestige/Settings/Bank/Statistics flows; all visible Bedrock text in those flows SHALL be localized. A compatible staging environment with Geyser/Floodgate/Cumulus SHALL then complete a real Bedrock-client walkthrough of dashboard navigation, quests/claim, reward purchase/prestige, settings, bank, homes/access, members/ranks, party/LFG, diplomacy/warfare, statistics and close/back/timeout/reconnect behavior. Java or static-source validation SHALL NOT be reported as Bedrock runtime validation.
+
+### REQ-130
+WHEN the staff strike feed cannot read historical guild membership, THE SYSTEM SHALL fail the page for retry and SHALL NOT treat the failed read as an empty history or attribute the punishment to the player's current guild. Configured current-guild fallback SHALL apply only after a successful historical read.

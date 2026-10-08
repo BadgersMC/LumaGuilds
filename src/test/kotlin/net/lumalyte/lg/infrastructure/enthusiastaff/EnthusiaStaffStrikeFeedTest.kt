@@ -16,11 +16,29 @@ import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.util.Optional
 import java.util.UUID
+import kotlin.test.assertFailsWith
 
 class EnthusiaStaffStrikeFeedTest {
     private val issuedAt = Instant.parse("2026-10-07T05:00:00Z")
     private val player = UUID.randomUUID()
     private val guild = UUID.randomUUID()
+
+    @Test
+    fun failedHistoryDoesNotFallback() {
+        val strikes = mockk<StrikeService>(relaxed = true)
+        every { strikes.reconcileLegacyStrike("BAN", 42L, true) } returns false
+        val history = mockk<MembershipHistoryRepository>()
+        every { history.getByPlayer(player) } throws IllegalStateException("storage unavailable")
+        val guildService = mockk<GuildService>(relaxed = true)
+        val config = StrikesConfig(enabled = true).apply { backfill.fallbackToCurrentGuild = true }
+        val adapter = feed(strikes, history, guildService, config)
+
+        assertFailsWith<IllegalStateException> {
+            adapter.applyEvent(event(PunishmentLifecycleSource.LITEBANS, sourceId = "42"))
+        }
+        verify(exactly = 0) { guildService.getPlayerGuilds(any()) }
+        verify(exactly = 0) { strikes.recordStrike(any(), any(), any(), any(), any(), any(), any(), any(), any()) }
+    }
 
     @Test
     fun `native snapshot creates provider strike when none exists`() {
