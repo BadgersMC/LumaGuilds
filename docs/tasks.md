@@ -891,6 +891,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Boot 2 (13:54, `3.0.4-enthusia-gui.3`, SHA-256 `f103f90adce1a005a84cb4028e80d23ea99c32976b140a7c3d7fae13f4143733`): `Menu icon adapter waiting for packetevents to enable` → `Menu icon adapter active` one second later; `Done (38.634s)`. Remaining LumaGuilds warnings are pre-existing (SMP Test config still lists removed perks `CUSTOM_BANNER_COLORS`/`ANIMATED_EMOJIS`; DiscordSRV not connected on test). The `.2` jar is kept as `.superseded.disabled`.
   - Still open: human Java walkthrough on SMP Test (dashboard, Guild Actions, theme picker incl. Vanilla, Declare Enemy, progression sources, quests and toast); Bedrock go-live stays with LG-1901 (proxy untouched apart from the mapping backup).
 
+- [x] RETIRE-AXKOTH-147 implementation/local proof: remove unused team hook, API dependencies, repository and soft dependency; preserve guild state/war services. Evidence: docs/retired-axkoth.md. Clean build: 1,538 cases, zero failures/errors, four existing skips; compile/test runtime graphs contain no AxKoth/axapi. Hosted checks and maintainer review remain separate gates; production unchanged.
 ## Discord role cleanup delivery (2026-10-06)
 
 - [ ] **LG-1506-CLEANUP** Remove legacy managed roles below the configured minimum while preserving completed prestige.
@@ -903,4 +904,3 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Refine: Focused role service, listener, SQL repository, architecture and Koin tests: 36 tests, zero failures. Full `test shadowJar` on Java 25 / Paper 26.2: 1542 tests, 0 failures, 0 errors, 4 skipped; build passed. Exact PR-head GitHub checks are pending.
   - Tooling: This checkout has no project-local EARS validator or SPEAR state helper. REQ-071 and this evidence/task record are maintained directly; no helper validation is claimed.
   - Acceptance boundary: No Discord roles have been deleted in this run. Merge, canonical network pin/build, deployment/activation and live role verification remain required.
-- [x] RETIRE-AXKOTH-147 implementation/local proof: remove unused team hook, API dependencies, repository and soft dependency; preserve guild state/war services. Evidence: docs/retired-axkoth.md. Clean build: 1,538 cases, zero failures/errors, four existing skips; compile/test runtime graphs contain no AxKoth/axapi. Hosted checks and maintainer review remain separate gates; production unchanged.
