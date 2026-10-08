@@ -63,11 +63,12 @@ class StrikeServiceTest {
         val service = serviceWith(StrikesConfig(enabled = true), repo)
         val expiration = now.plus(java.time.Duration.ofHours(1))
 
-        val expected = GuildStrike(
-            guildId = guildId, playerUuid = playerUuid, playerName = "Steve", punishmentType = "MUTE",
-            reason = "spam", executorName = "Mod", issuedAt = now, sourceProvider = "ENTHUSIA_STAFF",
-            sourcePunishmentId = "sanction-1", expiresAt = expiration, active = true,
-        )
+        val expected =
+            GuildStrike(
+                guildId = guildId, playerUuid = playerUuid, playerName = "Steve", punishmentType = "MUTE",
+                reason = "spam", executorName = "Mod", issuedAt = now, sourceProvider = "ENTHUSIA_STAFF",
+                sourcePunishmentId = "sanction-1", expiresAt = expiration, active = true,
+            )
         service.recordExternalStrike(expected)
         verify(exactly = 1) { repo.recordExternalStrike(expected) }
     }

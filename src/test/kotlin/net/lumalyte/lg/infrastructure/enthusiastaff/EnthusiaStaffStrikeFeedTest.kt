@@ -21,7 +21,10 @@ import java.util.Optional
 import java.util.UUID
 import kotlin.test.assertFailsWith
 
+// Independent feed scenarios share a deterministic attribution fixture.
+
 /** Covers attribution, source identity, expiration and replay-safe historical failures. */
+@Suppress("TooManyFunctions")
 internal class EnthusiaStaffStrikeFeedTest {
     private val issuedAt = Instant.parse("2026-10-07T05:00:00Z")
     private val player = UUID.randomUUID()
@@ -164,10 +167,12 @@ internal class EnthusiaStaffStrikeFeedTest {
         val strikes = mockk<StrikeService>(relaxed = true)
         every { strikes.reconcileLegacyStrike(BAN_TYPE, LEGACY_ID, true) } returns false
         val history = mockk<MembershipHistoryRepository>(relaxed = true)
-        val config = StrikesConfig(
-            enabled = true, countedTypes = listOf("WARN", "KICK", "MUTE", BAN_TYPE),
-            backfill = StrikesBackfillConfig(enabled = false),
-        )
+        val config =
+            StrikesConfig(
+                enabled = true,
+                countedTypes = listOf("WARN", "KICK", "MUTE", BAN_TYPE),
+                backfill = StrikesBackfillConfig(enabled = false),
+            )
         val feed = feed(strikes, history, config = config)
 
         feed.applyEvent(event(PunishmentLifecycleSource.LITEBANS, sourceId = LEGACY_ID.toString()))
@@ -229,13 +234,15 @@ internal class EnthusiaStaffStrikeFeedTest {
         strikes: StrikeService,
         history: MembershipHistoryRepository,
         guildService: GuildService = mockk(relaxed = true),
-        config: StrikesConfig = StrikesConfig(enabled = true, countedTypes = listOf("WARN", "KICK", "MUTE", BAN_TYPE)),
+        config: StrikesConfig = defaultFeedConfig(),
     ): EnthusiaStaffStrikeFeed {
         return EnthusiaStaffStrikeFeed(mockk<JavaPlugin>(relaxed = true), guildService, strikes, history) {
             config
         }
     }
 
+    // The wrapper maps all twelve fields of the actual companion API constructor explicitly.
+    @Suppress("LongMethod")
     private fun event(
         source: PunishmentLifecycleSource,
         sourceId: String = SANCTION_ID,
@@ -269,4 +276,8 @@ internal class EnthusiaStaffStrikeFeedTest {
         private const val SANCTION_ID = "90000000-0000-0000-0000-000000000001"
         private val FUTURE_EXPIRY = Instant.parse("2099-01-01T00:00:00Z")
     }
+}
+
+private fun defaultFeedConfig(): StrikesConfig {
+    return StrikesConfig(enabled = true, countedTypes = listOf("WARN", "KICK", "MUTE", "BAN"))
 }
