@@ -5,13 +5,13 @@ import org.bukkit.event.inventory.InventoryAction
 
 /** Maps inventory packet actions to the existing vault item permissions. */
 internal object VaultItemPermissions {
-    private val deposit = setOf(RankPermission.DEPOSIT_TO_VAULT)
-    private val withdraw = setOf(RankPermission.WITHDRAW_FROM_VAULT)
-    private val swaps = deposit + withdraw
-    private val vaultActions =
+    private val DEPOSIT = setOf(RankPermission.DEPOSIT_TO_VAULT)
+    private val WITHDRAW = setOf(RankPermission.WITHDRAW_FROM_VAULT)
+    private val SWAPS = DEPOSIT + WITHDRAW
+    private val VAULT_ACTIONS =
         buildMap {
             listOf(InventoryAction.PLACE_ALL, InventoryAction.PLACE_SOME, InventoryAction.PLACE_ONE)
-                .forEach { put(it, deposit) }
+                .forEach { put(it, DEPOSIT) }
             listOf(
                 InventoryAction.PICKUP_ALL,
                 InventoryAction.PICKUP_SOME,
@@ -22,14 +22,14 @@ internal object VaultItemPermissions {
                 InventoryAction.MOVE_TO_OTHER_INVENTORY,
                 InventoryAction.COLLECT_TO_CURSOR,
                 InventoryAction.CLONE_STACK,
-            ).forEach { put(it, withdraw) }
+            ).forEach { put(it, WITHDRAW) }
             listOf(InventoryAction.SWAP_WITH_CURSOR, InventoryAction.HOTBAR_SWAP, InventoryAction.HOTBAR_MOVE_AND_READD)
-                .forEach { put(it, swaps) }
+                .forEach { put(it, SWAPS) }
         }
-    private val playerActions =
+    private val PLAYER_ACTIONS =
         mapOf(
-            InventoryAction.MOVE_TO_OTHER_INVENTORY to deposit,
-            InventoryAction.COLLECT_TO_CURSOR to withdraw,
+            InventoryAction.MOVE_TO_OTHER_INVENTORY to DEPOSIT,
+            InventoryAction.COLLECT_TO_CURSOR to WITHDRAW,
         )
 
     fun required(
@@ -38,11 +38,11 @@ internal object VaultItemPermissions {
         vaultSize: Int,
     ): Set<RankPermission> =
         when {
+            // Gold button checks its own requested operation.
             rawSlot == 0 -> emptySet()
 
-            // Gold button checks its own requested operation.
-            rawSlot in 1 until vaultSize -> vaultActions[action].orEmpty()
+            rawSlot in 1 until vaultSize -> VAULT_ACTIONS[action].orEmpty()
 
-            else -> playerActions[action].orEmpty()
+            else -> PLAYER_ACTIONS[action].orEmpty()
         }
 }
