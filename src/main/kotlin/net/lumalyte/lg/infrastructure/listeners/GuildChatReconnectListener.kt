@@ -1,5 +1,6 @@
 package net.lumalyte.lg.infrastructure.listeners
 
+import dev.rosewood.rosechat.chat.channel.Channel
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildChatReconnectSettingsService
 import net.lumalyte.lg.infrastructure.services.RealRoseChatAdapter
@@ -27,13 +28,24 @@ internal class GuildChatReconnectListener(
 
     /** Rechecks the live session, membership, preference and channel at execution time. */
     internal fun reset(player: Player) {
-        if (!player.isOnline || Bukkit.getPlayer(player.uniqueId) !== player) return
-        val current = chat.getCurrentChannel(player) ?: return
-        if (current.id != "guild" && current.id != "guild-ally") return
-        if (!settings.shouldReset(player.uniqueId)) return
-        val global = chat.getDefaultChannel() ?: return
-        if (global.id == current.id) return
+        if (!isCurrentSession(player)) return
+        val global = resetDestination(player) ?: return
         chat.switchChannel(player, global)
         player.sendMessage(lang.msg("notification.guild_chat.moved_to_global"))
     }
+
+    private fun isCurrentSession(player: Player): Boolean =
+        player.isOnline && Bukkit.getPlayer(player.uniqueId) === player
+
+    private fun resetDestination(player: Player): Channel? {
+        val current = chat.getCurrentChannel(player)
+        return if (current != null && shouldReset(player, current)) {
+            chat.getDefaultChannel()?.takeIf { it.id != current.id }
+        } else {
+            null
+        }
+    }
+
+    private fun shouldReset(player: Player, channel: Channel): Boolean =
+        (channel.id == "guild" || channel.id == "guild-ally") && settings.shouldReset(player.uniqueId)
 }
