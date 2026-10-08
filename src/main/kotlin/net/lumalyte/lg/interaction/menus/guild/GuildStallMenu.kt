@@ -164,13 +164,11 @@ internal class GuildStallMenu(
                 player.performCommand("guildsales $stall")
             }
         }
-
     }
 
     private fun canShowSales(stall: String): Boolean {
         return stall.matches(Regex("[A-Za-z0-9_.:-]+")) &&
             Bukkit.getCommandMap().getCommand("guildsales") != null && canManageStock()
-
     }
 
     private fun canManageStock(): Boolean =
