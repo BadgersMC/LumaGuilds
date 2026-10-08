@@ -39,7 +39,7 @@ class StrikeServiceTest {
                         it.executorName == "Mod" &&
                         it.litebansEntryId == 42L &&
                         it.active
-                }
+                },
             )
         }
     }
@@ -61,8 +61,11 @@ class StrikeServiceTest {
         val expiration = now.plusSeconds(3600)
 
         service.recordExternalStrike(
-            guildId, playerUuid, "Steve", "MUTE", "spam", "Mod", now,
-            "ENTHUSIA_STAFF", "sanction-1", expiration, active = true,
+            GuildStrike(
+                guildId = guildId, playerUuid = playerUuid, playerName = "Steve", punishmentType = "MUTE",
+                reason = "spam", executorName = "Mod", issuedAt = now, sourceProvider = "ENTHUSIA_STAFF",
+                sourcePunishmentId = "sanction-1", expiresAt = expiration, active = true,
+            ),
         )
 
         verify(exactly = 1) {
@@ -138,7 +141,7 @@ class StrikeServiceTest {
             guildId = guildId,
             playerUuid = playerUuid,
             punishmentType = "KICK",
-            issuedAt = now
+            issuedAt = now,
         )
         assertTrue(strike.active)
     }

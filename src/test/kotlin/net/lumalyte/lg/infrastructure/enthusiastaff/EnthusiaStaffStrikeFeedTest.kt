@@ -10,6 +10,7 @@ import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.StrikeService
 import net.lumalyte.lg.config.StrikesConfig
+import net.lumalyte.lg.domain.entities.GuildStrike
 import net.lumalyte.lg.domain.entities.MembershipHistory
 import org.bukkit.plugin.java.JavaPlugin
 import org.junit.jupiter.api.Test
@@ -58,17 +59,12 @@ class EnthusiaStaffStrikeFeedTest {
 
         verify(exactly = 1) {
             strikes.recordExternalStrike(
-                guild,
-                player,
-                "Player",
-                "BAN",
-                "Reason",
-                "Moderator",
-                issuedAt,
-                "ENTHUSIA_STAFF",
-                SANCTION_ID,
-                FUTURE_EXPIRY,
-                true,
+                match {
+                    it.guildId == guild && it.playerUuid == player && it.playerName == "Player" &&
+                        it.punishmentType == "BAN" && it.reason == "Reason" && it.executorName == "Moderator" &&
+                        it.issuedAt == issuedAt && it.sourceProvider == "ENTHUSIA_STAFF" &&
+                        it.sourcePunishmentId == SANCTION_ID && it.expiresAt == FUTURE_EXPIRY && it.active
+                },
             )
         }
     }
@@ -80,14 +76,15 @@ class EnthusiaStaffStrikeFeedTest {
         val history = mockk<MembershipHistoryRepository>()
         every { history.getByPlayer(player) } returns emptyList()
         val guildService = mockk<GuildService>()
-        every { guildService.getPlayerGuilds(player) } returns setOf(mockk<net.lumalyte.lg.domain.entities.Guild>(relaxed = true))
+        every { guildService.getPlayerGuilds(player) } returns
+            setOf(mockk<net.lumalyte.lg.domain.entities.Guild>(relaxed = true))
         val feed = feed(strikes, history, guildService)
 
         feed.applyEvent(event(PunishmentLifecycleSource.ENTHUSIA_STAFF))
 
         verify(exactly = 0) { guildService.getPlayerGuilds(any()) }
         verify(exactly = 0) {
-            strikes.recordExternalStrike(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+            strikes.recordExternalStrike(any())
         }
     }
 
@@ -134,7 +131,7 @@ class EnthusiaStaffStrikeFeedTest {
         }
         verify(exactly = 0) { history.getByPlayer(any()) }
         verify(exactly = 0) {
-            strikes.recordExternalStrike(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+            strikes.recordExternalStrike(any())
         }
     }
 
@@ -223,14 +220,13 @@ class EnthusiaStaffStrikeFeedTest {
             enabled = true,
             countedTypes = listOf("WARN", "KICK", "MUTE", "BAN"),
         ),
-    ): EnthusiaStaffStrikeFeed =
-        EnthusiaStaffStrikeFeed(
-            plugin = mockk<JavaPlugin>(relaxed = true),
-            guildService = guildService,
-            strikeService = strikes,
-            membershipHistoryRepository = history,
-            configProvider = { config },
-        )
+    ): EnthusiaStaffStrikeFeed = EnthusiaStaffStrikeFeed(
+        plugin = mockk<JavaPlugin>(relaxed = true),
+        guildService = guildService,
+        strikeService = strikes,
+        membershipHistoryRepository = history,
+        configProvider = { config },
+    )
 
     private fun event(
         source: PunishmentLifecycleSource,
