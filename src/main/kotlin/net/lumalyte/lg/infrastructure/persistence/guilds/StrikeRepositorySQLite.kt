@@ -72,7 +72,7 @@ class StrikeRepositorySQLite(private val storage: Storage<Database>) : StrikeRep
         try {
             val sql =
                 "UPDATE guild_strikes SET active = 0 WHERE source_provider IS NOT NULL " +
-                "AND active = 1 AND expires_at IS NOT NULL AND expires_at <= ?"
+                    "AND active = 1 AND expires_at IS NOT NULL AND expires_at <= ?"
             return storage.connection.executeUpdate(
                 sql,
                 now.toEpochMilli(),
@@ -140,7 +140,7 @@ private fun Storage<Database>.insertStrike(strike: GuildStrike, strict: Boolean)
 private fun Storage<Database>.count(sql: String, guildId: UUID): Int {
     return try {
         connection.getResults(sql, guildId.toString()).firstOrNull()?.getInt("cnt")
-                ?: 0
+            ?: 0
     } catch (e: SQLException) {
         STRIKE_LOGGER.error("Failed to count strikes for guild {}", guildId, e)
         0
