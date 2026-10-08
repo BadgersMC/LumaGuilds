@@ -55,48 +55,76 @@ class VaultInventoryListener(
 
     private val logger = LoggerFactory.getLogger(VaultInventoryListener::class.java)
 
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     fun onInventoryClick(event: InventoryClickEvent) {
-        val holder = event.inventory.holder
-
-        // Only handle vault inventories
-        if (holder !is VaultInventoryHolder) {
-            return
-        }
-
+        val holder = event.inventory.holder as? VaultInventoryHolder ?: return
         val player = event.whoClicked as? Player ?: return
-        val guildId = holder.guildId
-        val clickedSlot = event.rawSlot
+        if (event.isCancelled || !authorizeClick(event, holder, player)) return
+        handleVaultClick(event, holder, player)
+    }
 
-        // Check if clicking in the vault inventory (not player inventory)
-        if (clickedSlot < 0 || clickedSlot >= holder.getCapacity()) {
-            return // Clicking in player inventory, allow normal behavior
-        }
-
-        // CRITICAL: Validate and repair inventory sync BEFORE processing click
-        // This ensures the player is viewing the current state from cache
-        vaultInventoryManager.validateAndRepairVault(guildId, holder.inventory)
-
-        // Handle slot 0 (Gold Balance Button) clicks
-        if (clickedSlot == 0) {
+    private fun authorizeClick(event: InventoryClickEvent, holder: VaultInventoryHolder, player: Player): Boolean {
+        if (!hasCurrentAccess(player, holder)) {
             event.isCancelled = true
-            handleGoldButtonClick(player, guildId, holder.guildName, event.click, event.isShiftClick)
-            return
+            return false
         }
-
-        // Prevent moving items into slot 0
-        if (event.action == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
-            val item = event.currentItem
-            if (item != null && holder.inventory.getItem(0) == null) {
-                // Would move to slot 0, cancel it
-                event.isCancelled = true
-                player.sendMessage(Component.text("Slot 0 is reserved for the Gold Balance Button", NamedTextColor.RED))
-                return
-            }
+        val required = VaultItemPermissions.required(event.action, event.rawSlot, event.inventory.size)
+        val allowed = event.action != InventoryAction.UNKNOWN &&
+            required.all { memberService.hasPermission(player.uniqueId, holder.guildId, it) }
+        if (!allowed) {
+            event.isCancelled = true
+            player.sendMessage(lang.msg("notification.vault.inventory.action_denied"))
         }
+        return allowed
+    }
 
-        // Handle normal slot clicks (1-53)
-        handleNormalSlotClick(event, holder, player, guildId, clickedSlot)
+    private fun hasCurrentAccess(player: Player, holder: VaultInventoryHolder): Boolean {
+        val allowed = memberService.hasPermission(player.uniqueId, holder.guildId, RankPermission.ACCESS_VAULT)
+        if (!allowed) {
+            player.sendMessage(lang.msg("notification.vault.inventory.access_denied"))
+            closeRevokedView(player, holder)
+        }
+        return allowed
+    }
+
+    private fun closeRevokedView(player: Player, holder: VaultInventoryHolder) {
+        org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
+            val stillViewing = player.openInventory.topInventory === holder.inventory
+            val restored = memberService.hasPermission(player.uniqueId, holder.guildId, RankPermission.ACCESS_VAULT)
+            if (player.isOnline && stillViewing && !restored) player.closeInventory()
+        })
+    }
+
+    private fun handleVaultClick(event: InventoryClickEvent, holder: VaultInventoryHolder, player: Player) {
+        if (!affectsVault(event)) return
+        vaultInventoryManager.validateAndRepairVault(holder.guildId, holder.inventory)
+        if (protectBalanceButton(event, holder, player)) return
+        if (event.rawSlot == 0) {
+            event.isCancelled = true
+            handleGoldButtonClick(player, holder.guildId, holder.guildName, event.click, event.isShiftClick)
+        } else {
+            handleNormalSlotClick(event, holder, player, holder.guildId, event.rawSlot)
+        }
+    }
+
+    private fun affectsVault(event: InventoryClickEvent): Boolean =
+        event.rawSlot in 0 until event.inventory.size ||
+            event.action == InventoryAction.MOVE_TO_OTHER_INVENTORY || event.action == InventoryAction.COLLECT_TO_CURSOR
+
+    private fun protectBalanceButton(event: InventoryClickEvent, holder: VaultInventoryHolder, player: Player): Boolean {
+        val transferIntoEmptyButton = event.action == InventoryAction.MOVE_TO_OTHER_INVENTORY &&
+            event.currentItem != null && holder.inventory.getItem(0) == null
+        val collection = collectsBalanceButton(event, holder)
+        if (transferIntoEmptyButton || collection) {
+            event.isCancelled = true
+            player.sendMessage(lang.msg("notification.vault.inventory.reserved_button"))
+        }
+        return transferIntoEmptyButton || collection
+    }
+
+    private fun collectsBalanceButton(event: InventoryClickEvent, holder: VaultInventoryHolder): Boolean {
+        val button = holder.inventory.getItem(0)
+        return event.action == InventoryAction.COLLECT_TO_CURSOR && button != null && event.cursor?.isSimilar(button) == true
     }
 
     /**
@@ -277,6 +305,10 @@ class VaultInventoryListener(
         }
 
         val player = event.whoClicked as? Player ?: return
+        if (!hasCurrentAccess(player, holder)) {
+            event.isCancelled = true
+            return
+        }
 
         // SAFETY: Completely prevent drag-clicking in vaults.
         // Drag operations create race conditions and can cause item deletion.
@@ -301,8 +333,16 @@ class VaultInventoryListener(
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    fun authorizeVaultOpen(event: InventoryOpenEvent) {
+        val holder = event.inventory.holder as? VaultInventoryHolder ?: return
+        val player = event.player as? Player ?: return
+        if (!hasCurrentAccess(player, holder)) event.isCancelled = true
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onInventoryOpen(event: InventoryOpenEvent) {
+        if (event.isCancelled) return
         val holder = event.inventory.holder
 
         if (holder !is VaultInventoryHolder) {
