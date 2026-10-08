@@ -4,9 +4,10 @@ import java.sql.Connection
 
 /** Adds the historical physical-vault fields omitted by MariaDB migrations without rewriting stored guilds. */
 internal fun Connection.ensureGuildVaultSchema() {
-    val existing = metaData.getColumns(catalog, null, "guilds", null).use { columns ->
-        buildSet { while (columns.next()) add(columns.getString("COLUMN_NAME").lowercase()) }
-    }
+    val existing =
+        metaData.getColumns(catalog, null, "guilds", null).use { columns ->
+            buildSet { while (columns.next()) add(columns.getString("COLUMN_NAME").lowercase()) }
+        }
     GUILD_VAULT_COLUMNS.filterNot { it.first in existing }.forEach { (_, sql) ->
         createStatement().use { it.executeUpdate(sql) }
     }

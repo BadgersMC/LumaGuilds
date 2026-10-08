@@ -27,9 +27,9 @@ class GuildCosmeticUnlockRepositorySQLite(private val storage: Storage<Database>
             "INSERT IGNORE INTO guild_cosmetic_unlocks " +
                 "(guild_id, cosmetic_type, cosmetic_key, display_name, source, unlocked_at) VALUES (?, ?, ?, ?, ?, ?)"
         } else {
-        "INSERT OR IGNORE INTO guild_cosmetic_unlocks " +
-            "(guild_id, cosmetic_type, cosmetic_key, display_name, source, unlocked_at) VALUES (?, ?, ?, ?, ?, ?)"
-    }
+            "INSERT OR IGNORE INTO guild_cosmetic_unlocks " +
+                "(guild_id, cosmetic_type, cosmetic_key, display_name, source, unlocked_at) VALUES (?, ?, ?, ?, ?, ?)"
+        }
 
     init {
         createTable()
