@@ -24,13 +24,26 @@ class GuildCosmeticUnlockService(
 ) {
     /** Idempotent. False for a missing guild, invalid input or a persistence failure. */
     fun unlock(guildId: UUID, type: String, key: String, displayName: String, source: String): Boolean {
-        val normalType = normalise(type, MAX_COSMETIC_TYPE_LENGTH) ?: return false
-        val normalKey = normalise(key, MAX_COSMETIC_KEY_LENGTH) ?: return false
+        val identity = identity(type, key) ?: return false
         if (guilds.getById(guildId) == null) return false
-        if (unlocks.get(guildId, normalType, normalKey) != null) return true
-        val name = displayName.trim().ifEmpty { normalKey }.take(MAX_COSMETIC_DISPLAY_NAME_LENGTH)
-        return unlocks.saveIfAbsent(
-            GuildCosmeticUnlock(guildId, normalType, normalKey, name, source.trim().take(MAX_COSMETIC_SOURCE_LENGTH), clock())
+        return unlocks.get(guildId, identity.type, identity.key) != null ||
+            unlocks.saveIfAbsent(createUnlock(guildId, identity, displayName, source))
+    }
+
+    private fun createUnlock(
+        guildId: UUID,
+        identity: CosmeticKey,
+        displayName: String,
+        source: String,
+    ): GuildCosmeticUnlock {
+        val name = displayName.trim().ifEmpty { identity.key }.take(MAX_COSMETIC_DISPLAY_NAME_LENGTH)
+        return GuildCosmeticUnlock(
+            guildId,
+            identity.type,
+            identity.key,
+            name,
+            source.trim().take(MAX_COSMETIC_SOURCE_LENGTH),
+            clock(),
         )
     }
 
@@ -39,23 +52,37 @@ class GuildCosmeticUnlockService(
      * [GuiTheme.DEFAULT]. False for a missing guild, invalid input or a persistence failure.
      */
     fun revoke(guildId: UUID, type: String, key: String): Boolean {
-        val normalType = normalise(type, MAX_COSMETIC_TYPE_LENGTH) ?: return false
-        val normalKey = normalise(key, MAX_COSMETIC_KEY_LENGTH) ?: return false
+        val identity = identity(type, key) ?: return false
         val guild = guilds.getById(guildId) ?: return false
-        if (!unlocks.delete(guildId, normalType, normalKey)) return false
-        if (normalType == MENU_THEME_COSMETIC && guild.guiTheme.name == normalKey && guild.guiTheme.requiresUnlock) {
-            // Theme-only compare-and-set: never write back a stale copy of the guild. False just means
-            // the guild already switched away from this theme, which is the outcome we want.
-            guilds.updateGuiTheme(guildId, guild.guiTheme, GuiTheme.DEFAULT)
-        }
-        return true
+        val removed = unlocks.delete(guildId, identity.type, identity.key)
+        if (removed) resetEquippedTheme(guild, identity)
+        return removed
     }
 
+    private fun resetEquippedTheme(guild: net.lumalyte.lg.domain.entities.Guild, identity: CosmeticKey) {
+        if (identity.type == MENU_THEME_COSMETIC && guild.guiTheme.name == identity.key &&
+            guild.guiTheme.requiresUnlock
+        ) {
+            // Compare-and-set preserves concurrent changes to other guild fields.
+            guilds.updateGuiTheme(guild.id, guild.guiTheme, GuiTheme.DEFAULT)
+        }
+    }
+
+    private fun identity(type: String, key: String): CosmeticKey? {
+        val category = normalise(type, MAX_COSMETIC_TYPE_LENGTH) ?: return null
+        val name = normalise(key, MAX_COSMETIC_KEY_LENGTH) ?: return null
+        return CosmeticKey(category, name)
+    }
+
+    private data class CosmeticKey(val type: String, val key: String)
+
+    /** Read owned keys in the normalized category. */
     fun unlockedKeys(guildId: UUID, type: String): Set<String> {
         val normalType = normalise(type, MAX_COSMETIC_TYPE_LENGTH) ?: return emptySet()
         return unlocks.getForGuild(guildId).filter { it.type == normalType }.map { it.key }.toSet()
     }
 
+    /** Progression themes stay available; holiday themes require ownership. */
     fun isThemeAvailable(guildId: UUID, theme: GuiTheme): Boolean =
         !theme.requiresUnlock || unlocks.get(guildId, MENU_THEME_COSMETIC, theme.name) != null
 

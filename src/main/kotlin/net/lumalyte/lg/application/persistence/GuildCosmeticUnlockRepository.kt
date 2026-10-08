@@ -4,6 +4,7 @@ import net.lumalyte.lg.domain.entities.GuildCosmeticUnlock
 import java.util.UUID
 
 /** Durable guild cosmetic ownership (REQ-121). */
+@Suppress("LibraryEntitiesShouldNotBePublic")
 interface GuildCosmeticUnlockRepository {
     fun getForGuild(guildId: UUID): List<GuildCosmeticUnlock>
 

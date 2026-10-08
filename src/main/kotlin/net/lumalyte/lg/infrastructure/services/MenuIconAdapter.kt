@@ -178,11 +178,16 @@ internal class MenuIconAdapter(
         if (type != PacketType.Play.Server.WINDOW_ITEMS && type != PacketType.Play.Server.SET_SLOT) return
         val uuid = event.user?.uuid ?: return
         val standIn: (PacketItemStack?) -> PacketItemStack? =
-            when {
-                showsVanillaIcons(uuid) -> ::vanillaStandIn
-                else -> seasonalStyleFor(uuid)?.let { style -> { item -> seasonalStandIn(item, style) } } ?: return
+            if (showsVanillaIcons(uuid)) {
+                ::vanillaStandIn
+            } else {
+                seasonalStyleFor(uuid)?.let { style -> { item -> seasonalStandIn(item, style) } } ?: return
             }
-        if (type == PacketType.Play.Server.WINDOW_ITEMS) swapWindowItems(event, standIn) else swapSetSlot(event, standIn)
+        if (type == PacketType.Play.Server.WINDOW_ITEMS) {
+            swapWindowItems(event, standIn)
+        } else {
+            swapSetSlot(event, standIn)
+        }
     }
 
     private fun swapWindowItems(event: PacketSendEvent, standIn: (PacketItemStack?) -> PacketItemStack?) {
@@ -205,12 +210,14 @@ internal class MenuIconAdapter(
 
     private fun seasonalStandIn(item: PacketItemStack?, style: GuiTheme): PacketItemStack? {
         if (item == null || item.isEmpty || !hasPdcKey(item, SeasonalIcons.PDC_KEY)) return null
-        return runCatching {
-            val bukkit = SpigotConversionUtil.toBukkitItemStack(item)
-            val variantId = SeasonalIcons.iconId(bukkit)?.let { SeasonalIcons.variantId(it, style) } ?: return null
-            val variant = variant(variantId) ?: return null
-            SpigotConversionUtil.fromBukkitItemStack(SeasonalIcons.restyle(bukkit, variant))
-        }.getOrNull()
+        return runCatching { restyledPacket(item, style) }.getOrNull()
+    }
+
+    private fun restyledPacket(item: PacketItemStack, style: GuiTheme): PacketItemStack? {
+        val bukkit = SpigotConversionUtil.toBukkitItemStack(item)
+        val variantId = SeasonalIcons.iconId(bukkit)?.let { SeasonalIcons.variantId(it, style) } ?: return null
+        val variant = variant(variantId) ?: return null
+        return SpigotConversionUtil.fromBukkitItemStack(SeasonalIcons.restyle(bukkit, variant))
     }
 
     /** The built Nexo item [id], cached until Nexo reloads its items. */
