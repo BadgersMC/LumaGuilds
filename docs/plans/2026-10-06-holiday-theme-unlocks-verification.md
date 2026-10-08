@@ -26,8 +26,18 @@ production dependency, mock behavior or assertion was changed.
 
 ## Boundaries and remaining work
 
-- LG-1805: `guild_bg_halloween_<rows>_row` and `guild_bg_christmas_<rows>_row`
-  Nexo glyphs/textures belong in the server's resource pack. Until they exist, the
-  themes unlock and apply, but the menu background glyph will not render.
+- The pack assets now ship in `resourcepack/enthusia-icons` (LG-1907); install them
+  like the other Enthusia GUI files, then `/nexo reload all`.
 - MariaDB was not exercised in this session.
 - Live Paper/client validation with EnthusiaHolidays is outstanding.
+
+## Upstream port (2026-10-06)
+
+The work above landed first in the FainNeito fork, whose `main` was 108 commits behind
+BadgersMC/LumaGuilds. It was cherry-picked onto upstream `main` and adapted to the
+Enthusia redesign: the holiday themes became the design's `HALLOWEEN` and `CHRISTMAS`
+styles (with seasonal icon sets), a revoked style resets to `GuiTheme.DEFAULT`, and the
+requirement was renumbered REQ-121 because upstream already uses REQ-094. Tasks:
+LG-1904..LG-1908. Full `test` on the port: 1,573 tests, 0 failures, 0 errors, 4 skipped.
+The local RoseChat stand-in was extended with the 26.2 `ChannelMessageOptions` record
+and `ChannelSettings` shapes, read from the pinned RoseChat source (not built).

@@ -52,7 +52,10 @@ class GuildSettingsMenu(
 
     private val lang: LangService by inject()
     private val nexoEmojiService: NexoEmojiService by inject()
-    private val themeAccess: net.lumalyte.lg.application.services.GuildCosmeticUnlockService by inject()
+    // Holiday styles (REQ-121) are locked until earned; without the ledger they stay locked.
+    private val themeAccess by lazy {
+        getKoin().getOrNull<net.lumalyte.lg.application.services.GuildCosmeticUnlockService>()
+    }
 
     override fun open() {
         // Refresh guild data from database to ensure we have latest changes
@@ -534,7 +537,7 @@ class GuildSettingsMenu(
         net.lumalyte.lg.utils.GuiTheme.SELECTABLE.forEachIndexed { index, theme ->
             val isCurrent = theme == guild.guiTheme.resolved()
             // Holiday styles (REQ-121) stay locked until the guild earns them in EnthusiaHolidays.
-            val unlocked = themeAccess.isThemeAvailable(guild.id, theme)
+            val unlocked = !theme.requiresUnlock || themeAccess?.isThemeAvailable(guild.id, theme) == true
             val nexoId = "lg_theme_${theme.name.lowercase()}"
             // The vanilla style is shown as what it is: a plain chest.
             val item = (if (theme == net.lumalyte.lg.utils.GuiTheme.VANILLA) ItemStack.of(Material.CHEST)
