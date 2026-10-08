@@ -1127,6 +1127,13 @@ class GuildCommand : BaseCommand(), KoinComponent {
         player.sendMessage(lang.msg("command.migrated.guild.history.blank_line_2", "length" to "═".repeat(20 + displayName.length)))
     }
 
+    @Subcommand("chatsettings")
+    @CommandPermission("lumaguilds.guild.chat")
+    fun onChatSettings(player: Player) {
+        val navigator = MenuNavigator(player)
+        navigator.openMenu(menuFactory.createPlayerChatSettingsMenu(navigator, player))
+    }
+
     @Subcommand("chat")
     @CommandPermission("lumaguilds.guild.chat")
     fun onGuildChat(player: Player) {

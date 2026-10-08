@@ -92,3 +92,10 @@ The system will confirm the action before applying it. You can't promote someone
 - [Guilds](guilds.md) — create and manage your guild
 - [Homes](homes.md) — set per-home rank access
 - [LFG](lfg.md) — manage members and bans
+
+## Individual permission selection
+
+Permission categories now open individual toggles during rank creation and editing.
+Opening a category does not grant its permissions. You cannot grant permissions
+you do not currently hold. Lower priority numbers rank higher; priority zero is
+the owner rank. Claims-related permissions are hidden when claims are disabled.

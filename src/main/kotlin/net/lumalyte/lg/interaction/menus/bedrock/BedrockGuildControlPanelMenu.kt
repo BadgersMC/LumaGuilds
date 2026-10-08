@@ -43,6 +43,9 @@ class BedrockGuildControlPanelMenu(
             bedrockNavigator.openMenu(menuFactory.createGuildStallMenu(menuNavigator, player, guild))
         })
 
+        buttons.add(MenuButton(lang.bedrock("community.chat.settings"), config.guildSettingsIconUrl, config.guildSettingsIconPath) {
+            bedrockNavigator.openMenu(menuFactory.createPlayerChatSettingsMenu(menuNavigator, player))
+        })
         // Always present buttons
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.members"), config.guildMembersIconUrl, config.guildMembersIconPath) {
             bedrockNavigator.openMenu(BedrockGuildMemberListMenu(menuNavigator, player, guild, logger))

@@ -178,12 +178,14 @@ Current-run progression is keyed by `guild_id`; permanent perks by `(guild_id, r
 
 The XP/Elo/chapter contract lives in `docs/superpowers/specs/2026-08-27-chapter-2-progression-revamp-design.md`. The canonical guild-gold, Chapter 1 migration, reward cadence, and bounded-prestige contract lives in `docs/superpowers/specs/2026-08-30-chapter-2-prestige-gold-design.md`.
 
-
 ## Guild-shop XP (REQ-121)
 
 See [guild-shop-xp.md](guild-shop-xp.md) for approved policy, durable delivery, SPEAR state and acceptance boundaries.
 
-
 ### Guild-wide reconnect chat preference (REQ-135)
 
 `GuildChatReconnectSettingsService` owns membership/permission policy through `GuildChatReconnectSettingsRepository`; the SQL adapter stores a default-off guild preference with atomic expected-state writes. Both menu clients submit a rendered snapshot without replacing newer unchanged fields. `GuildChatReconnectListener` is wired with RoseChat startup, runs one tick after join, and rechecks the current session/channel before switching only guild/ally chat to the configured default. Additive schema migration and transactional disband cleanup cover both supported databases. See `docs/chat-reconnect.md` for verification and release boundaries.
+
+## Community chat, ranks and directory (REQ-136 through REQ-139)
+
+The shared interaction permission catalog drives creation and editing; selection never writes a category-wide grant. GuildListService assembles bounded read models through its SQL repository with priority-zero owners and active, non-expired allies. Personal chat preferences use an additive SQL table and transactional writes before cache publication. The RoseChat viewer adapter filters only global player messages; an optional boss bar reads the actual channel without taking over the action bar. Fullscreen announcement commands reuse announcement policy. Stall report navigation delegates to Market's independently authorized read-only command. See [community-ui.md](community-ui.md) for SPEAR evidence and acceptance boundaries.
