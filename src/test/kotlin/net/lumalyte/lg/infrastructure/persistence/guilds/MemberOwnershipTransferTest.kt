@@ -9,8 +9,8 @@ import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /** Both SQL rows and repository caches must survive a failed ownership change. */
@@ -19,44 +19,59 @@ internal class MemberOwnershipTransferTest {
 
     private fun fixture(block: (Fixture) -> Unit) {
         val storage = VirtualThreadSQLiteStorage(checkNotNull(directory).toFile())
-        try { block(Fixture(storage)) } finally { storage.connection.close() }
+        try {
+            block(Fixture(storage))
+        } finally {
+            storage.connection.close()
+        }
     }
 
-    @Test fun commitsBothRanks() = fixture { f ->
-        assertTrue(f.repo.transferOwnership(f.owner, f.next, f.lowerRank))
-        f.assertRanks(f.lowerRank, f.ownerRank)
-        val restarted = MemberRepositorySQLite(f.storage)
-        assertEquals(f.ownerRank, restarted.getRankId(f.next.playerId, f.guild))
-        assertFalse(f.repo.transferOwnership(f.owner, f.next, f.lowerRank))
-        f.assertRanks(f.lowerRank, f.ownerRank)
-    }
+    @Test fun commitsBothRanks() =
+        fixture { f ->
+            assertTrue(f.repo.transferOwnership(f.owner, f.next, f.lowerRank))
+            f.assertRanks(f.lowerRank, f.ownerRank)
+            val restarted = MemberRepositorySQLite(f.storage)
+            assertEquals(f.ownerRank, restarted.getRankId(f.next.playerId, f.guild))
+            assertFalse(f.repo.transferOwnership(f.owner, f.next, f.lowerRank))
+            f.assertRanks(f.lowerRank, f.ownerRank)
+        }
 
-    @Test fun secondWriteRollsBack() = fixture { f ->
-        f.storage.connection.executeUpdate("CREATE TRIGGER reject_transfer BEFORE UPDATE ON members " +
-            "WHEN NEW.player_id = '${f.next.playerId}' BEGIN SELECT RAISE(ABORT, 'test fault'); END")
-        assertFailsWith<SQLException> { f.repo.transferOwnership(f.owner, f.next, f.lowerRank) }
-        f.assertRanks(f.ownerRank, f.lowerRank)
-        f.storage.connection.executeUpdate("DROP TRIGGER reject_transfer")
-        assertTrue(f.repo.transferOwnership(f.owner, f.next, f.lowerRank))
-        f.assertRanks(f.lowerRank, f.ownerRank)
-    }
+    @Test fun secondWriteRollsBack() =
+        fixture { f ->
+            f.storage.connection.executeUpdate(
+                "CREATE TRIGGER reject_transfer BEFORE UPDATE ON members " +
+                    "WHEN NEW.player_id = '${f.next.playerId}' BEGIN SELECT RAISE(ABORT, 'test fault'); END",
+            )
+            assertFailsWith<SQLException> { f.repo.transferOwnership(f.owner, f.next, f.lowerRank) }
+            f.assertRanks(f.ownerRank, f.lowerRank)
+            f.storage.connection.executeUpdate("DROP TRIGGER reject_transfer")
+            assertTrue(f.repo.transferOwnership(f.owner, f.next, f.lowerRank))
+            f.assertRanks(f.lowerRank, f.ownerRank)
+        }
 
-    @Test fun staleTargetRollsBack() = fixture { f ->
-        f.storage.connection.executeUpdate("UPDATE members SET rank_id = ? WHERE player_id = ?",
-            f.thirdRank.toString(), f.next.playerId.toString())
-        assertFalse(f.repo.transferOwnership(f.owner, f.next, f.lowerRank))
-        assertEquals(f.ownerRank, f.repo.getRankId(f.owner.playerId, f.guild))
-        assertEquals(f.ownerRank.toString(), f.persisted(f.owner))
-        assertEquals(f.thirdRank.toString(), f.persisted(f.next))
-    }
+    @Test fun staleTargetRollsBack() =
+        fixture { f ->
+            f.storage.connection.executeUpdate(
+                "UPDATE members SET rank_id = ? WHERE player_id = ?",
+                f.thirdRank.toString(),
+                f.next.playerId.toString(),
+            )
+            assertFalse(f.repo.transferOwnership(f.owner, f.next, f.lowerRank))
+            assertEquals(f.ownerRank, f.repo.getRankId(f.owner.playerId, f.guild))
+            assertEquals(f.ownerRank.toString(), f.persisted(f.owner))
+            assertEquals(f.thirdRank.toString(), f.persisted(f.next))
+        }
 
-    @Test fun foreignRankRejected() = fixture { f ->
-        assertFalse(f.repo.transferOwnership(f.owner, f.next, UUID.randomUUID()))
-        f.assertRanks(f.ownerRank, f.lowerRank)
-        assertFalse(f.repo.transferOwnership(f.owner, f.owner, f.lowerRank))
-    }
+    @Test fun foreignRankRejected() =
+        fixture { f ->
+            assertFalse(f.repo.transferOwnership(f.owner, f.next, UUID.randomUUID()))
+            f.assertRanks(f.ownerRank, f.lowerRank)
+            assertFalse(f.repo.transferOwnership(f.owner, f.owner, f.lowerRank))
+        }
 
-    private class Fixture(val storage: VirtualThreadSQLiteStorage) {
+    private class Fixture(
+        val storage: VirtualThreadSQLiteStorage,
+    ) {
         val guild = UUID.randomUUID()
         val ownerRank = UUID.randomUUID()
         val lowerRank = UUID.randomUUID()
@@ -77,11 +92,19 @@ internal class MemberOwnershipTransferTest {
             check(repo.add(next))
         }
 
-        fun persisted(member: Member): String = storage.connection.getResults(
-            "SELECT rank_id FROM members WHERE player_id = ? AND guild_id = ?",
-            member.playerId.toString(), guild.toString()).single().getString("rank_id")
+        fun persisted(member: Member): String =
+            storage.connection
+                .getResults(
+                    "SELECT rank_id FROM members WHERE player_id = ? AND guild_id = ?",
+                    member.playerId.toString(),
+                    guild.toString(),
+                ).single()
+                .getString("rank_id")
 
-        fun assertRanks(current: UUID, successor: UUID) {
+        fun assertRanks(
+            current: UUID,
+            successor: UUID,
+        ) {
             assertEquals(current, repo.getRankId(owner.playerId, guild))
             assertEquals(successor, repo.getRankId(next.playerId, guild))
             assertEquals(current.toString(), persisted(owner))

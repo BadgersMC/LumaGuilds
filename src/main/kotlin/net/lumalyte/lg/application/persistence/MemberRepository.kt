@@ -116,6 +116,7 @@ interface MemberRepository {
      * @return The total count of members.
      */
     fun getTotalCount(): Int
+
     /**
      * Commits both owner rank changes together, checking the supplied previous rank IDs.
      * Unsupported adapters fail closed; cache state must change only after a committed transfer.

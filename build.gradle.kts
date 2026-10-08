@@ -151,6 +151,10 @@ idea {
 
 tasks.test {
     useJUnitPlatform()
+    val ownershipMariaPort = providers.environmentVariable("GUILD_OWNERSHIP_TEST_MARIA_PORT")
+    inputs.property("guildOwnershipTestMariaPort", ownershipMariaPort.orElse(""))
+    ownershipMariaPort.orNull?.let { environment("GUILD_OWNERSHIP_TEST_MARIA_PORT", it) }
+    outputs.upToDateWhen { !ownershipMariaPort.isPresent }
 }
 
 // Explicit opt-in: the same ownership contract runs against a disposable loopback
