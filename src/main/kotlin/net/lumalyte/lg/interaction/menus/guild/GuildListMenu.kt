@@ -166,30 +166,52 @@ class GuildListMenu(
 
     private fun createGuildItem(entry: GuildListEntry): ItemStack {
         val guild = entry.guild
-        val item = GuildBannerItemResolver.resolveForDisplay(guild)
-            .name(lang.gui("menu.guild_list.guild.name", "guild" to guild.name))
-            .lore(lang.gui("menu.guild_list.guild.level", "level" to guild.level))
-            .lore(lang.gui(
-                "menu.guild_list.guild.members",
-                "count" to entry.memberCount,
-            ))
-            .lore(lang.gui(
-                "menu.guild_list.guild.created",
-                "date" to CREATED_DATE.format(guild.createdAt),
-            ))
+        val item =
+            GuildBannerItemResolver.resolveForDisplay(guild)
+                .name(lang.gui("menu.guild_list.guild.name", "guild" to guild.name))
+                .lore(lang.gui("menu.guild_list.guild.level", "level" to guild.level))
+                .lore(
+                    lang.gui(
+                        "menu.guild_list.guild.members",
+                        "count" to entry.memberCount,
+                    ),
+                ).lore(
+                    lang.gui(
+                        "menu.guild_list.guild.created",
+                        "date" to CREATED_DATE.format(guild.createdAt),
+                    ),
+                )
 
-        val owners = entry.details.owners.joinToString(", ") { org.bukkit.Bukkit.getPlayer(it)?.name ?: it.toString() }
-            .ifEmpty { lang.raw("community.directory.unknown") }
-        item.lore(lang.gui("community.directory.owners", "owners" to owners))
-            .lore(lang.gui("community.directory.allies", "allies" to entry.details.allies.joinToString(", ").ifEmpty { lang.raw("community.directory.none") }))
-            .lore(if (guild.isOpen) lang.gui("community.directory.recruitment_open") else lang.gui("community.directory.recruitment_closed"))
+        val owners =
+            entry.details.owners
+                .joinToString(", ") {
+                    org.bukkit.Bukkit
+                        .getPlayer(it)
+                        ?.name ?: it.toString()
+                }.ifEmpty { lang.raw("community.directory.unknown") }
+        item
+            .lore(lang.gui("community.directory.owners", "owners" to owners))
+            .lore(
+                lang.gui(
+                    "community.directory.allies",
+                    "allies" to
+                        entry.details.allies
+                            .joinToString(", ")
+                            .ifEmpty { lang.raw("community.directory.none") },
+                ),
+            ).lore(
+                if (guild.isOpen) lang.gui("community.directory.recruitment_open") else lang.gui("community.directory.recruitment_closed"),
+            )
 
         when (sortKey) {
-            GuildListSortKey.ALL_TIME_ACTIVE ->
-                item.lore(lang.gui(
-                    "menu.guild_list.guild.activity_score",
-                    "activity_score" to entry.sortValue,
-                ))
+            GuildListSortKey.ALL_TIME_ACTIVE -> {
+                item.lore(
+                    lang.gui(
+                        "menu.guild_list.guild.activity_score",
+                        "activity_score" to entry.sortValue,
+                    ),
+                )
+            }
 
             GuildListSortKey.WEEKLY_ACTIVE -> {
                 item.lore(lang.gui(

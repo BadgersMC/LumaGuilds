@@ -151,12 +151,14 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         pane.addItem(iconGuiItem, 3, 0)
 
         // Permission count
-        val countItem = ItemStack.of(Material.BOOK)
-            .name(lang.gui("menu.rank_creation.summary.name"))
-            .lore(lang.gui("menu.rank_creation.summary.count", "count" to selectedPermissions.size))
-            .lore(lang.gui("menu.common.blank"))
-            .lore(lang.gui("menu.rank_creation.summary.select_below"))
-            .lore(lang.gui("community.rank.priority"))
+        val countItem =
+            ItemStack
+                .of(Material.BOOK)
+                .name(lang.gui("menu.rank_creation.summary.name"))
+                .lore(lang.gui("menu.rank_creation.summary.count", "count" to selectedPermissions.size))
+                .lore(lang.gui("menu.common.blank"))
+                .lore(lang.gui("menu.rank_creation.summary.select_below"))
+                .lore(lang.gui("community.rank.priority"))
 
         pane.addItem(GuiItem(countItem), 7, 0)
     }
@@ -259,9 +261,10 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
             categoryItem.lore(lang.gui("menu.common.blank"))
             categoryItem.lore(lang.gui("community.rank.open_category"))
 
-            val categoryGuiItem = GuiItem(categoryItem) {
-                openPermissionCategorySelection(categoryName, permissions)
-            }
+            val categoryGuiItem =
+                GuiItem(categoryItem) {
+                    openPermissionCategorySelection(categoryName, permissions)
+                }
             pane.addItem(categoryGuiItem, col, row)
         }
     }
@@ -365,32 +368,55 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         pane.addItem(cancelGuiItem, 7, 5)
     }
 
-    private fun openPermissionCategorySelection(categoryName: String, permissions: List<RankPermission>) {
+    private fun openPermissionCategorySelection(
+        categoryName: String,
+        permissions: List<RankPermission>,
+    ) {
         if (!rankService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RANKS)) return
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6,
-            lang.guiTitle("menu.permission_category.title", "category" to localizedCategoryName(categoryName), "rank" to rankName)))
+        val gui =
+            ChestGui(
+                6,
+                MenuTitleBuilder.build(
+                    guild.guiTheme,
+                    6,
+                    lang.guiTitle("menu.permission_category.title", "category" to localizedCategoryName(categoryName), "rank" to rankName),
+                ),
+            )
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick { if (it.click.isShiftClick) it.isCancelled = true }
         val pane = StaticPane(0, 0, 9, 6)
         permissions.forEachIndexed { index, permission ->
-            val enabled = permission in selectedPermissions
-            val allowed = rankService.hasPermission(player.uniqueId, guild.id, permission)
-            val item = ItemStack.of(if (!allowed) Material.BARRIER else if (enabled) Material.LIME_DYE else Material.GRAY_DYE)
-                .name(lang.gui("community.rank.permission", "permission" to localizedPermissionName(permission)))
-                .lore(if (!allowed) lang.gui("community.rank.unavailable") else if (enabled)
-                    lang.gui("community.rank.enabled") else lang.gui("community.rank.disabled"))
-            pane.addItem(GuiItem(item) {
-                if (rankService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RANKS) &&
-                    rankService.hasPermission(player.uniqueId, guild.id, permission)) {
-                    if (!selectedPermissions.remove(permission)) selectedPermissions.add(permission)
-                    openPermissionCategorySelection(categoryName, permissions)
-                }
+            pane.addItem(permissionItem(permission) {
+                openPermissionCategorySelection(categoryName, permissions)
             }, index % 9, 1 + index / 9)
         }
         pane.addItem(GuiItem(ItemStack.of(Material.ARROW).name(lang.gui("menu.common.item.back.name"))) { open() }, 4, 5)
         gui.addPane(pane)
         gui.show(player)
     }
+
+    private fun permissionItem(permission: RankPermission, refresh: () -> Unit): GuiItem {
+        val allowed = rankService.hasPermission(player.uniqueId, guild.id, permission)
+        val enabled = permission in selectedPermissions
+        val material = if (!allowed) Material.BARRIER else permissionMaterial(enabled)
+        val description = if (!allowed) lang.gui("community.rank.unavailable") else permissionDescription(enabled)
+        val item = ItemStack.of(material)
+            .name(lang.gui("community.rank.permission", "permission" to localizedPermissionName(permission)))
+            .lore(description)
+        return GuiItem(item) { togglePermission(permission, refresh) }
+    }
+
+    private fun togglePermission(permission: RankPermission, refresh: () -> Unit) {
+        if (!rankService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RANKS)) return
+        if (!rankService.hasPermission(player.uniqueId, guild.id, permission)) return
+        if (!selectedPermissions.remove(permission)) selectedPermissions.add(permission)
+        refresh()
+    }
+
+    private fun permissionMaterial(enabled: Boolean) = if (enabled) Material.LIME_DYE else Material.GRAY_DYE
+
+    private fun permissionDescription(enabled: Boolean) =
+        if (enabled) lang.gui("community.rank.enabled") else lang.gui("community.rank.disabled")
 
     private fun groupPermissionsByCategory(permissions: Set<RankPermission>): Map<String, List<RankPermission>> {
         return permissions.groupBy { permission ->

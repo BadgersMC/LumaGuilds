@@ -867,6 +867,10 @@ class LumaGuilds : JavaPlugin() {
         commandManager.registerCommand(QuickAllyChatCommand())
         commandManager.registerCommand(QuickModChatCommand())
         commandManager.registerCommand(QuickAnnounceCommand())
+        commandManager.registerCommand(
+            net.lumalyte.lg.interaction.commands
+                .FullscreenAnnounceCommand(),
+        )
 
         // Register LumaGuilds admin command
         getCommand("lumaguilds")?.setExecutor(LumaGuildsCommand())

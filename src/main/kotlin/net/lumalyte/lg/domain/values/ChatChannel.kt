@@ -33,7 +33,7 @@ data class ChatVisibilitySettings(
     val allyChatVisible: Boolean = true,
     val partyChatVisible: Boolean = true,
     val globalChatVisible: Boolean = true,
-    val destinationIndicator: Boolean = false
+    val destinationIndicator: Boolean = false,
 )
 
 /**

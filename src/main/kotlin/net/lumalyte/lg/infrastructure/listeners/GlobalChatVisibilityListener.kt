@@ -17,11 +17,19 @@ internal class GlobalChatVisibilityListener(
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     fun onMessage(event: PreParseMessageEvent) {
         val viewer = event.viewer.asPlayer() ?: return
-        if (event.direction != MessageDirection.PLAYER_TO_SERVER || !event.message.sender.isPlayer) return
-        val channel = event.message.channel ?: return // DMs and server notices are preserved.
-        val global = chat.getDefaultChannel() ?: return
-        if (channel.id == global.id && !settings.getVisibilitySettings(viewer.uniqueId).globalChatVisible) {
+        if (!isPlayerMessage(event)) return
+        if (!isGlobalMessage(event)) return
+        if (!settings.getVisibilitySettings(viewer.uniqueId).globalChatVisible) {
             event.isCancelled = true
         }
     }
+
+    private fun isGlobalMessage(event: PreParseMessageEvent): Boolean {
+        val channel = event.message.channel ?: return false // Preserve DMs and server notices.
+        val global = chat.getDefaultChannel() ?: return false
+        return channel.id == global.id
+    }
+
+    private fun isPlayerMessage(event: PreParseMessageEvent): Boolean =
+        event.direction == MessageDirection.PLAYER_TO_SERVER && event.message.sender.isPlayer
 }
