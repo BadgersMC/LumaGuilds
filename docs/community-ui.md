@@ -104,3 +104,12 @@ return counts, constants, documentation, configured formatting and transaction
 method boundaries. The focused privacy, SQL rollback/cache, directory, rank,
 announcement, locale and stall-menu contracts pass (40 tests, zero failures/errors).
 Final-head full/native/hosted validation remains separate. No gate suppression.
+
+Third hosted refinement: the provider reports 41 remaining findings at 6751cbc.
+Public directory facts now expose an interface and constructor-style factory
+with a private immutable data implementation; value equality remains available.
+Restore unchanged legacy SQL-method formatting, split test arrangement from
+assertions without dropping coverage, and refine remaining configured style.
+Focused behavior, locale, wiring and wiki checks pass. The preceding full matrix
+passed 1,679 ordinary cases and all 61 native cases; the final head is rechecked
+separately before completion.

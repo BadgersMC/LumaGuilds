@@ -14,24 +14,8 @@ internal class GuildDirectoryDetailsTest : RewardSqlTestFixture() {
             val guild = UUID.randomUUID()
             val ally = UUID.randomUUID()
             val owner = UUID.randomUUID()
-            sql.executeUpdate("INSERT INTO guilds VALUES (?, 'Closed'), (?, 'Ally')", guild.toString(), ally.toString())
-            sql.executeUpdate(
-                "INSERT INTO ranks VALUES ('owner', ?, 0), ('member', ?, 1)",
-                guild.toString(),
-                guild.toString(),
-            )
-            sql.executeUpdate(
-                "INSERT INTO members VALUES (?, ?, 'owner'), (?, ?, 'member')",
-                guild.toString(),
-                owner.toString(),
-                guild.toString(),
-                UUID.randomUUID().toString(),
-            )
-            sql.executeUpdate(
-                "INSERT INTO relations VALUES (?, ?, 'ALLY', 'ACTIVE', NULL)",
-                guild.toString(),
-                ally.toString(),
-            )
+            seedOwners(sql, guild, ally, owner)
+            seedAlliance(sql, guild, ally)
             val repository = GuildListRepositorySQL(storage)
             assertEquals(listOf(owner), repository.getDetails(setOf(guild)).getValue(guild).owners)
             assertEquals(listOf("Ally"), repository.getDetails(setOf(guild)).getValue(guild).allies)
@@ -39,12 +23,54 @@ internal class GuildDirectoryDetailsTest : RewardSqlTestFixture() {
             assertEquals(emptyList(), repository.getDetails(setOf(guild)).getValue(guild).allies)
             sql.executeUpdate("DELETE FROM members WHERE rank_id = 'owner'")
             assertEquals(emptyList(), repository.getDetails(setOf(guild)).getValue(guild).owners)
+        } finally {
+            closeStorage(storage)
+        }
+    }
+
+    @Test fun oversizedPageRejected() {
+        val storage = openStorage()
+        try {
+            val repository = GuildListRepositorySQL(storage)
             assertFailsWith<IllegalArgumentException> {
                 repository.getDetails((1..OVERSIZED_PAGE).map { UUID.randomUUID() }.toSet())
             }
         } finally {
             closeStorage(storage)
         }
+    }
+
+    private fun seedOwners(
+        sql: co.aikar.idb.Database,
+        guild: UUID,
+        ally: UUID,
+        owner: UUID,
+    ) {
+        sql.executeUpdate("INSERT INTO guilds VALUES (?, 'Closed'), (?, 'Ally')", guild.toString(), ally.toString())
+        sql.executeUpdate(
+            "INSERT INTO ranks VALUES ('owner', ?, 0), ('member', ?, 1)",
+            guild.toString(),
+            guild.toString(),
+        )
+        sql.executeUpdate(
+            "INSERT INTO members VALUES (?, ?, 'owner'), (?, ?, 'member')",
+            guild.toString(),
+            owner.toString(),
+            guild.toString(),
+            UUID.randomUUID().toString(),
+        )
+    }
+
+    private fun seedAlliance(
+        sql: co.aikar.idb.Database,
+        guild: UUID,
+        ally: UUID,
+    ) {
+        sql.executeUpdate(
+            "INSERT INTO relations VALUES (?, ?, 'ALLY', 'ACTIVE', NULL)",
+            guild.toString(),
+            ally.toString(),
+        )
     }
 
     private fun createSchema(sql: co.aikar.idb.Database) {

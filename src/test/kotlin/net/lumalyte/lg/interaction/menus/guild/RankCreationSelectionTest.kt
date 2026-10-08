@@ -37,15 +37,7 @@ internal class RankCreationSelectionTest {
         val server = MockBukkit.mock()
         val player = server.addPlayer()
         configureServices()
-        val menu =
-            spyk(
-                RankCreationMenu(
-                    mockk<MenuNavigator>(relaxed = true),
-                    player,
-                    Guild(UUID.randomUUID(), "Selection", createdAt = Instant.EPOCH),
-                ),
-            )
-        every { menu.open() } just Runs
+        val menu = createMenu(player)
         val method =
             menu.javaClass.getDeclaredMethod(
                 "openPermissionCategorySelection",
@@ -58,28 +50,50 @@ internal class RankCreationSelectionTest {
         assertTrue((field.get(menu) as Set<*>).isEmpty(), "Opening a category must not grant permissions")
     }
 
+    private fun createMenu(player: Player): RankCreationMenu {
+        val menu =
+            spyk(
+                RankCreationMenu(
+                    mockk<MenuNavigator>(relaxed = true),
+                    player,
+                    Guild(UUID.randomUUID(), "Selection", createdAt = Instant.EPOCH),
+                ),
+            )
+        every { menu.open() } just Runs
+        return menu
+    }
+
     private fun configureServices() {
+        configureBukkit()
+        val lang = mockk<LangService>(relaxed = true)
+        every { lang.raw(any()) } returns LABEL
+        every { lang.msg(any()) } returns Component.text(LABEL)
+        every { lang.msg(any(), any()) } returns Component.text(LABEL)
+        every { lang.msg(any(), any(), any()) } returns Component.text(LABEL)
+        val ranks = mockk<RankService>(relaxed = true)
+        every { ranks.hasPermission(any(), any(), any()) } returns true
+        startKoin { modules(servicesModule(lang, ranks)) }
+    }
+
+    private fun servicesModule(
+        lang: LangService,
+        ranks: RankService,
+    ) = module {
+        single { lang }
+        single { ranks }
+        single<ConfigService> { mockk { every { loadConfig() } returns MainConfig() } }
+    }
+
+    private fun configureBukkit() {
         val plugin = MockBukkit.createMockPlugin()
         mockkStatic(org.bukkit.plugin.java.JavaPlugin::class)
         every {
             org.bukkit.plugin.java.JavaPlugin
                 .getProvidingPlugin(any())
         } returns plugin
-        val lang = mockk<LangService>(relaxed = true)
-        every { lang.raw(any()) } returns "Permission"
-        every { lang.msg(any()) } returns Component.text("Permission")
-        every { lang.msg(any(), any()) } returns Component.text("Permission")
-        every { lang.msg(any(), any(), any()) } returns Component.text("Permission")
-        val ranks = mockk<RankService>(relaxed = true)
-        every { ranks.hasPermission(any(), any(), any()) } returns true
-        startKoin {
-            modules(
-                module {
-                    single { lang }
-                    single { ranks }
-                    single<ConfigService> { mockk { every { loadConfig() } returns MainConfig() } }
-                },
-            )
-        }
+    }
+
+    private companion object {
+        const val LABEL = "Permission"
     }
 }
