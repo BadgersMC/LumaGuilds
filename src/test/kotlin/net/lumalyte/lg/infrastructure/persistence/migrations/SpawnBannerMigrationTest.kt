@@ -48,7 +48,7 @@ class SpawnBannerMigrationTest {
         assertTrue(columnExists("spawn_banners", "banner_id"))
         assertTrue(columnExists("spawn_banners", "category"))
         assertTrue(columnExists("spawn_banners", "rank"))
-        assertEquals(43, databaseVersion())
+        assertEquals(44, databaseVersion())
     }
 
     private fun tableExists(table: String): Boolean =
