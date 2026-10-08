@@ -24,7 +24,7 @@ EnthusiaHolidays `docs/lumaguilds-integration.md`.
 - The selector lists every theme; locked ones show a lock and "earned through
   holiday guild goals (/holidays)" lore and cannot be applied. A failed change
   reports failure instead of claiming success.
-- Guild disband leaves ledger rows orphaned but harmless (a new guild has a new id).
+- Guild disband deletes cosmetic ownership in the same database transaction as the guild and its other dependent state; a failed disband preserves the ledger row.
 
 ## Prove
 

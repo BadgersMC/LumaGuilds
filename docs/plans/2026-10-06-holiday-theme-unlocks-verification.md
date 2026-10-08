@@ -26,8 +26,8 @@ production dependency, mock behavior or assertion was changed.
 
 ## Boundaries and remaining work
 
-- The pack assets now ship in `resourcepack/enthusia-icons` (LG-1907); install them
-  like the other Enthusia GUI files, then `/nexo reload all`.
+- The proprietary Nexo/resource-pack assets are intentionally **not stored in this public repository**.
+  Deploy the separately maintained private pack through the normal Enthusia asset pipeline, then `/nexo reload all`.
 - MariaDB was not exercised in this session.
 - Live Paper/client validation with EnthusiaHolidays is outstanding.
 
