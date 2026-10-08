@@ -341,7 +341,7 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 **Event-driven.** WHEN a player clicks the Enemy/Ally sections of `/g info` THEN THE SYSTEM SHALL expand to the full guild list (currently only top 3, no way to view the rest).
 
 ### REQ-071
-**Event-driven.** WHEN a guild first reaches the configured minimum guild level (default 50), THEN THE SYSTEM SHALL create/link a Discord role and dynamically grant/remove it for Discord-linked players as they join/leave the guild or link/unlink their Discord account. A guild without a saved role link below the minimum SHALL not gain a managed Discord role. An existing saved guild-to-role link SHALL remain unlocked after a level reduction, prestige reset, or increased minimum, and startup reconciliation SHALL preserve and repair that role. Disbanded guild roles SHALL still be removed.
+**Event-driven.** WHEN a guild reaches the configured minimum guild level (default 50), THEN THE SYSTEM SHALL create/link a Discord role and dynamically grant/remove it for Discord-linked players as they join/leave the guild or link/unlink their Discord account. Startup and periodic reconciliation SHALL automatically delete existing managed roles and their saved links for guilds below the minimum with no completed prestige, including roles created during earlier testing. Failed Discord deletion SHALL retain the link for retry. Those guilds SHALL wait until the minimum before the role is recreated. A guild with at least one completed prestige SHALL remain eligible to keep/create/repair its role after the level reset. Failed eligibility reads SHALL preserve the saved role/link for retry. Disbanded guild roles SHALL still be removed.
 
 ### REQ-072
 **Event-driven.** WHEN a guild edits its description THEN THE SYSTEM SHALL accept up to 200 characters of safe display MiniMessage formatting and SHALL recognize HTTPS Discord invite URLs from `discord.gg/<code>` and `discord.com/invite/<code>`. Discord invite URLs SHALL be the only external URLs promoted to clickable `OPEN_URL` components; arbitrary URLs SHALL remain inert text. User-authored interactive MiniMessage event tags including `click`, `hover`, and `insertion` SHALL be rejected at every write path. Java guild-info SHALL expose detected Discord invites through a clickable chat component, while Bedrock SHALL preserve the visible invite URL as plain text.
@@ -477,3 +477,45 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 
 ### REQ-120
 **Event-driven.** BEFORE Chapter 2 Bedrock release sign-off, automated parity contracts SHALL cover primary routing, authorization denials, data truthfulness and the new Quests/Prestige/Settings/Bank/Statistics flows; all visible Bedrock text in those flows SHALL be localized. A compatible staging environment with Geyser/Floodgate/Cumulus SHALL then complete a real Bedrock-client walkthrough of dashboard navigation, quests/claim, reward purchase/prestige, settings, bank, homes/access, members/ranks, party/LFG, diplomacy/warfare, statistics and close/back/timeout/reconnect behavior. Java or static-source validation SHALL NOT be reported as Bedrock runtime validation.
+
+### REQ-128
+WHEN a member mutates guild ranks or assigns a member rank, THE SYSTEM SHALL enforce management permission and rank priority at the service boundary, reject self-escalation and newly delegated permissions the actor lacks, preserve priority through ordinary edits, and reserve owner transitions for the explicit ownership-transfer service. Existing hidden permission values SHALL remain preserved unless explicitly edited.
+
+### REQ-129
+WHEN a guild owner transfers ownership, THE SYSTEM SHALL commit both rank updates in one transaction using the expected prior member ranks, preserve both prior ranks and caches on any failed write or stale snapshot, and publish success only after the transaction commits. Owner and demotion ranks SHALL belong to the same guild with priorities zero and greater than zero respectively.
+
+### REQ-131 — Accessible teleport completion
+
+WHEN a member completes `/guild home` THE SYSTEM SHALL suggest only homes accepted by the same current home-access decision as teleportation, retaining owner access and full-name completion for home management commands.
+
+## Guild-shop XP (REQ-134)
+
+See [guild-shop-xp.md](guild-shop-xp.md) for approved policy, durable delivery, SPEAR state and acceptance boundaries.
+
+### REQ-132
+
+**Event-driven.** WHEN a prepared guild-shop sale is delivered THEN THE SYSTEM SHALL consume it without XP if its captured chapter or prestige no longer matches, or the current chapter is frozen, closed, elapsed or not started. New installations and missing configuration SHALL default shop XP to disabled until an operator enables the reviewed integration. The approved numerical limits SHALL remain configurable. See guild-shop-xp.md for transaction-locking proof and release boundaries.
+### REQ-124
+**Event-driven.** WHEN a guild member opens Guild Stalls from their guild menu or `/g stall` THE SYSTEM SHALL show Market-authoritative guild-owned stalls, state, rent, deadlines, location and guild members with permitted shop actions on Java and Bedrock, SHALL distinguish unavailable data from no stall, and SHALL permit no Market mutations.
+
+### REQ-125
+**Ubiquitous.** THE SYSTEM SHALL ignore stale asynchronous stall results after navigation, disconnection or membership loss, SHALL tolerate absent or incompatible Market read providers, and SHALL requery ownership and permissions on refresh rather than cache access across membership or rank changes.
+
+### REQ-126
+**Ubiquitous.** THE Java Guild Stalls dashboard button SHALL use a dedicated transparent 16-by-16 stall icon with a striped canopy and counter in the existing Enthusia icon palette, SHALL retain its oak-sign fallback, and SHALL keep the Economy button's existing bank icon.
+
+### REQ-127
+**Ubiquitous.** THE Bedrock Guild Stalls button SHALL use independent configurable URL/resource-pack icons, SHALL preserve existing bank icon settings, and SHALL ship the matching stall texture as an additive Bedrock pack asset. THE Gradle test task SHALL track the configured Market API artifact path and contents so enabling or replacing the artifact invalidates cached compatibility results.
+### REQ-122
+**Event-driven.** WHEN a current guild member uses `/guild bank` or `/g bank` with the existing guild-menu command permission THEN THE SYSTEM SHALL open that member's platform-appropriate Guild Bank without requiring unrelated management permissions. Non-members SHALL receive the existing localized membership denial. Bank operation authorization and currency semantics SHALL remain unchanged.
+
+### REQ-123
+**Ubiquitous.** THE SYSTEM SHALL enforce `chat.announce_cooldown_minutes` and `chat.ping_cooldown_minutes` from current configuration when checking announcement and ping cooldowns, SHALL retain existing hourly limits, and SHALL treat non-positive cooldowns as disabling only the time-based limit.
+### REQ-130
+WHEN the staff strike feed cannot read historical guild membership, THE SYSTEM SHALL fail the page for retry and SHALL NOT treat the failed read as an empty history or attribute the punishment to the player's current guild. Configured current-guild fallback SHALL apply only after a successful historical read.
+### REQ-121
+**Event-driven.** WHEN an integrating plugin (EnthusiaHolidays) unlocks a guild cosmetic through the public `GuildCosmeticUnlocks` service THEN THE SYSTEM SHALL durably record that the guild owns the cosmetic `(type, key)` with its display name and source, idempotently, and SHALL report success for an already-owned cosmetic. Holiday menu styles marked `requiresUnlock` (`HALLOWEEN`, `CHRISTMAS`) SHALL be offered in the theme selector (Java and Bedrock) only as **locked** until the guild owns them, and `setGuiTheme` SHALL reject a locked theme regardless of caller. WHEN a cosmetic is revoked THE SYSTEM SHALL remove ownership idempotently and reset a guild currently using that theme to the default style without overwriting other guild fields. WHILE a guild uses a style with `seasonalIcons`, THE SYSTEM SHALL send its members the `<icon>_<style>` Nexo variant of each LumaGuilds menu icon that has one, and the normal icon otherwise. The API SHALL use JDK-only signatures, SHALL accept unknown keys (so a newer integration cannot wedge its sync), and SHALL return false only for a nonexistent guild or a persistence failure.
+
+
+### REQ-133
+**Ubiquitous.** THE SYSTEM SHALL initialize historical MariaDB physical-vault fields before guild persistence reads or updates and SHALL preserve existing guild names, home coordinates and vault state on repeated initialization. Schema repair SHALL add only absent fields and SHALL NOT rewrite existing data. SQLite SHALL retain its existing physical-vault semantics.

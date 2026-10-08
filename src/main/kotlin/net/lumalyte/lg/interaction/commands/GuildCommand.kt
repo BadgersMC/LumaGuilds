@@ -455,7 +455,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
     @Subcommand("home")
     @CommandPermission("lumaguilds.guild.home")
-    @CommandCompletion("@guildhomes")
+    @CommandCompletion("@guildaccessiblehomes")
     fun onHome(player: Player, @Optional homeName: String?, @Optional confirm: String?) {
         // Handle "/guild home confirm" — ACF puts "confirm" into homeName, not confirm param
         val isConfirm = confirm?.lowercase() == "confirm" || homeName?.lowercase() == "confirm"
@@ -1425,6 +1425,31 @@ class GuildCommand : BaseCommand(), KoinComponent {
         } else {
             player.sendMessage(lang.msg("command.migrated.guild.disband.failed_to_disband_guild"))
         }
+    }
+
+    @Subcommand("bank")
+    @CommandPermission("lumaguilds.guild.menu")
+    fun onBank(player: Player) {
+        val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
+        if (guild == null) {
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
+            return
+        }
+
+        val menuNavigator = MenuNavigator(player)
+        menuNavigator.openMenu(menuFactory.createGuildBankMenu(menuNavigator, player, guild))
+    }
+
+    @Subcommand("stall|stalls")
+    @CommandPermission("lumaguilds.guild.menu")
+    fun onStall(player: Player) {
+        val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
+        if (guild == null) {
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
+            return
+        }
+        val navigator = MenuNavigator(player)
+        navigator.openMenu(menuFactory.createGuildStallMenu(navigator, player, guild))
     }
 
     @Subcommand("menu")

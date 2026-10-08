@@ -49,6 +49,14 @@ class BedrockGuildSettingsMenu(
     private val chatRankSettings: net.lumalyte.lg.application.services.GuildChatRankSettingsService by inject()
     private val plugin: Plugin by inject()
 
+    // Holiday styles (REQ-121) are locked until earned; without the ledger they stay locked.
+    private val themeAccess by lazy {
+        getKoin().getOrNull<net.lumalyte.lg.application.services.GuildCosmeticUnlockService>()
+    }
+
+    private fun isThemeAvailable(theme: GuiTheme): Boolean =
+        !theme.requiresUnlock || themeAccess?.isThemeAvailable(guild.id, theme) == true
+
     override fun getForm(): Form {
         guild = guildService.getGuild(guild.id) ?: guild
 
@@ -91,7 +99,13 @@ class BedrockGuildSettingsMenu(
                 .toggle(lang.bedrock("guild_rank_customization.toggle.name"), renderedChatRanksVisible)
                 .dropdown(
                     lang.bedrock("menu.guild_settings.item.theme.name"),
-                    GuiTheme.SELECTABLE.map(GuiTheme::displayName),
+                    GuiTheme.SELECTABLE.map { theme ->
+                        if (isThemeAvailable(theme)) {
+                            theme.displayName
+                        } else {
+                            lang.bedrock("menu.guild_settings.item.theme_option.name.unearned", "theme" to theme.displayName)
+                        }
+                    },
                     GuiTheme.SELECTABLE.indexOf(guild.guiTheme.resolved()).coerceAtLeast(0)
                 )
         } else {
@@ -436,7 +450,10 @@ class BedrockGuildSettingsMenu(
         }
 
         if (hasGuildSettingsPermission && newTheme != guild.guiTheme) {
-            if (guildService.setGuiTheme(guild.id, newTheme, player.uniqueId)) {
+            if (!isThemeAvailable(newTheme)) {
+                allSuccessful = false
+                player.sendMessage(lang.msg("menu.guild_settings.feedback.theme_locked", "theme" to newTheme.displayName))
+            } else if (guildService.setGuiTheme(guild.id, newTheme, player.uniqueId)) {
                 guild = guild.copy(guiTheme = newTheme)
                 changes.add(
                     lang.bedrock(
