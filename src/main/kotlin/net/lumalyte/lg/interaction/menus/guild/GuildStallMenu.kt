@@ -157,17 +157,21 @@ internal class GuildStallMenu(
         return navigation
     }
 
-    private fun salesRow(stall: String): Row =
-        Row(lang.gui("community.stall.sales"), emptyList()) {
+    private fun salesRow(stall: String): Row {
+        return Row(lang.gui("community.stall.sales"), emptyList()) {
             if (canManageStock()) {
                 player.closeInventory()
                 player.performCommand("guildsales $stall")
             }
         }
 
-    private fun canShowSales(stall: String): Boolean =
-        stall.matches(Regex("[A-Za-z0-9_.:-]+")) &&
+    }
+
+    private fun canShowSales(stall: String): Boolean {
+        return stall.matches(Regex("[A-Za-z0-9_.:-]+")) &&
             Bukkit.getCommandMap().getCommand("guildsales") != null && canManageStock()
+
+    }
 
     private fun canManageStock(): Boolean =
         members.hasPermission(player.uniqueId, guild.id, RankPermission.EDIT_SHOP_STOCK)

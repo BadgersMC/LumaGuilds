@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.application.services.GuildListEntry
 import net.lumalyte.lg.application.services.GuildListService
 import net.lumalyte.lg.domain.entities.GuildListSortKey
 import net.lumalyte.lg.infrastructure.i18n.bedrock
@@ -56,7 +57,7 @@ class BedrockGuildListMenu(
                             "community.directory.bedrock_details",
                             "owners" to
                                 entry.details.owners.joinToString(", ", transform = ::ownerName)
-                                .ifEmpty { lang.bedrock("community.directory.unknown") },
+                                    .ifEmpty { lang.bedrock("community.directory.unknown") },
                             "allies" to
                                 entry.details.allies
                                     .joinToString(", ")
@@ -146,21 +147,20 @@ class BedrockGuildListMenu(
 
     private fun ownerName(id: java.util.UUID): String = org.bukkit.Bukkit.getPlayer(id)?.name ?: id.toString()
 
-    private fun activityText(entry: net.lumalyte.lg.application.services.GuildListEntry): String =
-        when (sortKey) {
-            GuildListSortKey.ALL_TIME_ACTIVE ->
-                lang.bedrock(
-                    "bedrock.guild_list.activity",
-                    "activity_score" to entry.sortValue,
-                )
-            GuildListSortKey.WEEKLY_ACTIVE ->
-                lang.bedrock(
-                    "bedrock.guild_list.weekly_activity",
-                    "activity_score" to entry.sortValue,
-                    "kills" to entry.uniquePvpKills,
-                )
-            GuildListSortKey.GUILD_LEVEL, GuildListSortKey.CREATED_AT -> ""
-        }
+    private fun activityText(entry: GuildListEntry): String = when (sortKey) {
+        GuildListSortKey.ALL_TIME_ACTIVE ->
+            lang.bedrock(
+                "bedrock.guild_list.activity",
+                "activity_score" to entry.sortValue,
+            )
+        GuildListSortKey.WEEKLY_ACTIVE ->
+            lang.bedrock(
+                "bedrock.guild_list.weekly_activity",
+                "activity_score" to entry.sortValue,
+                "kills" to entry.uniquePvpKills,
+            )
+        GuildListSortKey.GUILD_LEVEL, GuildListSortKey.CREATED_AT -> ""
+    }
 
     override fun handleResponse(player: Player, response: Any?) = Unit
 
