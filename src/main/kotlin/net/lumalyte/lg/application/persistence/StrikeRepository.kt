@@ -11,8 +11,11 @@ interface StrikeRepository {
     fun recordExternalStrike(strike: GuildStrike): Boolean
 
     fun deactivateStrike(punishmentType: String, litebansEntryId: Long): Boolean
+
+    /** Reconcile an existing legacy identity; return whether it exists. */
     fun reconcileLegacyStrike(punishmentType: String, litebansEntryId: Long, active: Boolean): Boolean
 
+    /** Reconcile an existing provider identity; storage failures throw for safe replay. */
     fun reconcileExternalStrike(
         sourceProvider: String,
         sourcePunishmentId: String,
@@ -20,9 +23,13 @@ interface StrikeRepository {
         expiresAt: Instant?,
     ): Boolean
 
+    /** Deactivate expired provider rows and return the number updated. */
     fun deactivateExpiredExternal(now: Instant): Int
 
+    /** Count all historical strikes assigned to the guild. */
     fun countByGuild(guildId: UUID): Int
+
+    /** Count the currently active strikes assigned to the guild. */
     fun countActiveByGuild(guildId: UUID): Int
     fun getByGuild(guildId: UUID): List<GuildStrike>
     fun getAllCounts(): Map<UUID, Int>
