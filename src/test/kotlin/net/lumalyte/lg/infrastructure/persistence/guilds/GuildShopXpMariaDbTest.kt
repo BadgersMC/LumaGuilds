@@ -173,9 +173,9 @@ internal class GuildShopXpMariaDbTest {
             val started = CountDownLatch(1)
             val result =
                 CompletableFuture.supplyAsync {
-                        started.countDown()
-                        repository.complete(id)
-                    }
+                    started.countDown()
+                    repository.complete(id)
+                }
             check(started.await(5, TimeUnit.SECONDS))
             c.createStatement().use { s ->
                 s.executeUpdate(

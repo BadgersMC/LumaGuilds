@@ -16,20 +16,20 @@ internal fun progressionUpsertSql(mariaDb: Boolean): String {
     }
 }
 
-private val MARIADB_USAGE_SEED_SQL =
+private const val MARIADB_USAGE_SEED_SQL =
     "INSERT INTO guild_experience_source_usage " +
         "(guild_id, source_pool, period_start, period_end, awarded_xp) " +
         "VALUES (?, ?, ?, ?, 0) " +
         "ON DUPLICATE KEY UPDATE period_end = VALUES(period_end) "
 
-private val SQLITE_USAGE_SEED_SQL =
+private const val SQLITE_USAGE_SEED_SQL =
     "INSERT INTO guild_experience_source_usage " +
         "(guild_id, source_pool, period_start, period_end, awarded_xp) " +
         "VALUES (?, ?, ?, ?, 0) " +
         "ON CONFLICT(guild_id, source_pool, period_start) " +
         "DO UPDATE SET period_end = excluded.period_end "
 
-private val MARIADB_PROGRESSION_UPSERT_SQL =
+private const val MARIADB_PROGRESSION_UPSERT_SQL =
     "INSERT INTO guild_progression " +
         "(guild_id, total_experience, current_level, experience_this_level, " +
         "experience_for_next_level, last_level_up, total_level_ups, " +
@@ -44,7 +44,7 @@ private val MARIADB_PROGRESSION_UPSERT_SQL =
         "total_level_ups = VALUES(total_level_ups), " +
         "last_updated = VALUES(last_updated) "
 
-private val SQLITE_PROGRESSION_UPSERT_SQL =
+private const val SQLITE_PROGRESSION_UPSERT_SQL =
     "INSERT INTO guild_progression " +
         "(guild_id, total_experience, current_level, experience_this_level, " +
         "experience_for_next_level, last_level_up, total_level_ups, " +

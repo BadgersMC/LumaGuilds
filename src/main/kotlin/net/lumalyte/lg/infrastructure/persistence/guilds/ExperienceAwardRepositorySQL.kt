@@ -41,7 +41,7 @@ class ExperienceAwardRepositorySQL(
             connection.committingTransaction {
                 if (!mariaDb) {
                     // Reserve the SQLite writer before opening a SELECT snapshot.
-                    execute(connection, "UPDATE guild_experience_source_usage SET awarded_xp = awarded_xp WHERE 0")
+                    connection.updateStatement("UPDATE guild_experience_source_usage SET awarded_xp = awarded_xp WHERE 0")
                 }
                 if (mariaDb) {
                     checkNotNull(
@@ -79,16 +79,9 @@ class ExperienceAwardRepositorySQL(
             connection.prepareStatement(sql).use { statement ->
                 statement.setString(1, guildId.toString())
                 statement.setLong(2, at.toEpochMilli())
-                statement.setLong(3, at.toEpochMilli())
+                statement.setLong(PERIOD_END_PARAMETER, at.toEpochMilli())
                 statement.executeQuery().use { it.experiencePools() }
             }
-        }
-    }
-
-    private fun execute(connection: Connection, sql: String, vararg parameters: Any?): Int {
-        return connection.prepareStatement(sql).use { statement ->
-            parameters.forEachIndexed { index, value -> statement.setObject(index + 1, value) }
-            statement.executeUpdate()
         }
     }
 
@@ -161,3 +154,5 @@ private fun ResultSet.experiencePools(): Map<String, Int> {
     while (next()) pools[getString("source_pool")] = getInt("awarded_xp")
     return pools
 }
+
+private const val PERIOD_END_PARAMETER = 3
