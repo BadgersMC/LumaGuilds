@@ -903,3 +903,21 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Refine: Focused role service, listener, SQL repository, architecture and Koin tests: 36 tests, zero failures. Full `test shadowJar` on Java 25 / Paper 26.2: 1542 tests, 0 failures, 0 errors, 4 skipped; build passed. Exact PR-head GitHub checks are pending.
   - Tooling: This checkout has no project-local EARS validator or SPEAR state helper. REQ-071 and this evidence/task record are maintained directly; no helper validation is claimed.
   - Acceptance boundary: No Discord roles have been deleted in this run. Merge, canonical network pin/build, deployment/activation and live role verification remain required.
+
+## Guild bank entry and chat cooldown review ? 2026-10-08
+
+- [x] **LG-2001** Direct bank entry for guild members.
+  - Tag: `TDD`
+  - References: REQ-122.
+  - Scope: `/guild bank` and `/g bank` route current members through the existing platform-aware menu factory without granting or bypassing bank mutation permissions.
+  - Acceptance: Java/Bedrock menu routing and membership denial are covered by regression tests; live client validation remains separate.
+- [x] **LG-2002** Apply configured chat cooldowns.
+  - Tag: `TDD`
+  - References: REQ-123.
+  - Scope: announcement and ping cooldown checks use current configuration while retaining existing hourly limits; non-positive cooldowns disable only the time-based gate.
+  - Acceptance: configuration and service regressions are covered by automated tests.
+- [ ] **LG-2003** Reconcile remaining integration/client gaps separately from this PR.
+  - Tag: `DOC`
+  - Scope: no unrelated home, shop-XP, menu-asset, or progression policy changes belong in this bank/cooldown repair.
+
+Sanitized rebuild note: this task slice is replayed on current post-#223 `main`; inherited #208/#209 history and private asset tests are intentionally excluded. Hosted CI and live client acceptance remain separate merge gates.
