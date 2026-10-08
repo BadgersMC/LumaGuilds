@@ -247,7 +247,10 @@ internal class EnthusiaStaffStrikeFeedTest {
         sourceId: String = SANCTION_ID,
         active: Boolean = true,
         expiresAt: Instant = FUTURE_EXPIRY,
-    ): PunishmentLifecycleEvent = eventFor(EventInput(source, sourceId, active, expiresAt))
+    ): PunishmentLifecycleEvent {
+        val input = EventInput(source, sourceId, active, expiresAt)
+        return eventFor(input)
+    }
 
     private fun eventFor(input: EventInput): PunishmentLifecycleEvent {
         return PunishmentLifecycleEvent(
