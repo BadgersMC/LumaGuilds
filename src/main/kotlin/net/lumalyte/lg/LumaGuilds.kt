@@ -142,6 +142,12 @@ class LumaGuilds : JavaPlugin() {
             ServicePriority.Normal
         )
         logColored("✓ GuildVisualLookup registered in ServicesManager for cross-plugin integration")
+        Bukkit.getServicesManager().register(
+            net.lumalyte.lg.api.GuildAllianceLookup::class.java,
+            net.lumalyte.lg.api.GuildAllianceLookupImpl(get().get()),
+            this,
+            ServicePriority.Normal,
+        )
 
         // REQ-121: EnthusiaHolidays grants holiday menu themes through this API.
         Bukkit.getServicesManager().register(
