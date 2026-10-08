@@ -10,34 +10,35 @@ package net.lumalyte.lg.utils
  *
  * Title component structure:
  *
- *   <shift:-9>                    calibrated horizontal offset
+ *   <shift:-8>                    calibrated horizontal offset
  *   <glyph:guild_bg_<theme>_<R>>  background overlay (advances cursor ~256px)
- *   <shift:-161>                  rewind ~80px less — title lands at ~x=86
+ *   <shift:-162>                  rewind ~80px less — title lands at ~x=86
  *   <title>                       visible title text in the top bar
  *
- * The rewind value of -161 advances the cursor ~80px into the title bar:
- *   D - 9 + 256 - 161 = D + 86
+ * The rewind value of -162 advances the cursor ~80px into the title bar:
+ *   D - 8 + 256 - 162 = D + 86
  *   where D = default cursor start, 256 = glyph texture width
  *
  * DO NOT use the neutral theme as a positioning reference — its
  * assets are oversized and are being corrected separately.
  *
+ * Horizontal shift -8 is paired with glyph ascent 13; the prior -9/ascent 14 drew
+ * the art one GUI pixel left and up. The -162 rewind retains the title offset.
+ *
  * Glyph naming: guild_bg_<theme>_<rows>_row
  */
 object MenuTitleBuilder {
 
-    /** Calibrated horizontal offset placing the glyph at the window origin. */
-    private const val HORIZONTAL_OFFSET: String = "<shift:-9>"
+    private const val HORIZONTAL_OFFSET: String = "<shift:-8>"
 
-    /** Rewind past the 256-pixel glyph advance, landing title ~86px from default start. */
-    private const val REWIND_TO_TITLE: String = "<shift:-161>"
+    private const val REWIND_TO_TITLE: String = "<shift:-162>"
 
     /**
      * Returns a ChestGui title string that renders a Nexo font-glyph
      * background with an optional visible title in the top bar.
      *
      * Result:
-     *   <shift:-9><glyph:guild_bg_<theme>_<R>_row><shift:-161><title>
+     *   <shift:-8><glyph:guild_bg_<theme>_<R>_row><shift:-162><title>
      *
      * @param theme  GUI background theme (default: Enthusia; retired themes resolve to it)
      * @param rows   Inventory row count (3-6)

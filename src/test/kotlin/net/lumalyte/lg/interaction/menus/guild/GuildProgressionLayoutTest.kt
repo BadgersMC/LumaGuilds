@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/** REQ-094: content may never conceal sidebar, header or navigation controls. */
+/** REQ-121: content may never conceal sidebar, header or navigation controls. */
 class GuildProgressionLayoutTest {
     @Test fun `a full source page has unique slots clear of every control`() {
         val menu = GuildProgressionMenu(mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk())
