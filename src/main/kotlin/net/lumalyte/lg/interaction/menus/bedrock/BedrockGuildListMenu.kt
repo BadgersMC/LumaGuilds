@@ -65,6 +65,10 @@ class BedrockGuildListMenu(
                         GuildListSortKey.GUILD_LEVEL,
                         GuildListSortKey.CREATED_AT -> ""
                     }
+                    val details = lang.bedrock("community.directory.bedrock_details",
+                            "owners" to entry.details.owners.joinToString(", ") { org.bukkit.Bukkit.getPlayer(it)?.name ?: it.toString() }.ifEmpty { lang.bedrock("community.directory.unknown") },
+                            "allies" to entry.details.allies.joinToString(", ").ifEmpty { lang.bedrock("community.directory.none") },
+                            "recruitment" to if (guild.isOpen) lang.bedrock("community.directory.recruitment_open") else lang.bedrock("community.directory.recruitment_closed"))
                     button(lang.bedrock(
                         "bedrock.guild_list.guild_button",
                         "guild" to guild.name,
@@ -72,6 +76,7 @@ class BedrockGuildListMenu(
                         "members" to entry.memberCount,
                         "created" to CREATED_DATE.format(guild.createdAt),
                         "activity" to activity,
+                        "details" to details,
                     ))
                     actions += {
                         menuNavigator.openMenu(

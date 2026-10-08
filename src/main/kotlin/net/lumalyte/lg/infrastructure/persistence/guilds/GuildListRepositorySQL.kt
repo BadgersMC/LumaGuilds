@@ -12,6 +12,35 @@ class GuildListRepositorySQL(
     private val storage: Storage<Database>,
 ) : GuildListRepository {
 
+    override fun getDetails(guildIds: Set<UUID>): Map<UUID, net.lumalyte.lg.domain.entities.GuildDirectoryDetails> {
+        if (guildIds.isEmpty()) return emptyMap()
+        require(guildIds.size <= 36) { "Directory details must be paged" }
+        val placeholders = guildIds.joinToString(",") { "?" }
+        val owners = guildIds.associateWith { mutableListOf<UUID>() }
+        val allies = guildIds.associateWith { mutableSetOf<String>() }
+        storage.connection.connection.use { connection ->
+            connection.prepareStatement("SELECT m.guild_id, m.player_id FROM members m JOIN ranks r ON r.id = m.rank_id AND r.guild_id = m.guild_id WHERE r.priority = 0 AND m.guild_id IN ($placeholders)").use { statement ->
+                guildIds.forEachIndexed { index, id -> statement.setString(index + 1, id.toString()) }
+                statement.executeQuery().use { rows ->
+                    while (rows.next()) owners[UUID.fromString(rows.getString("guild_id"))]?.add(UUID.fromString(rows.getString("player_id")))
+                }
+            }
+            connection.prepareStatement("SELECT r.guild_a, r.guild_b, a.name AS name_a, b.name AS name_b, r.expires_at FROM relations r JOIN guilds a ON a.id = r.guild_a JOIN guilds b ON b.id = r.guild_b WHERE r.type = 'ALLY' AND r.status = 'ACTIVE' AND (r.guild_a IN ($placeholders) OR r.guild_b IN ($placeholders))").use { statement ->
+                (guildIds.toList() + guildIds.toList()).forEachIndexed { index, id -> statement.setString(index + 1, id.toString()) }
+                statement.executeQuery().use { rows ->
+                    while (rows.next()) {
+                        val expires = rows.getString("expires_at")?.let(Instant::parse)
+                        if (expires != null && !expires.isAfter(Instant.now())) continue
+                        allies[UUID.fromString(rows.getString("guild_a"))]?.add(rows.getString("name_b"))
+                        allies[UUID.fromString(rows.getString("guild_b"))]?.add(rows.getString("name_a"))
+                    }
+                }
+            }
+        }
+        return guildIds.associateWith { id -> net.lumalyte.lg.domain.entities.GuildDirectoryDetails(
+            owners.getValue(id).distinct().sortedBy(UUID::toString), allies.getValue(id).sorted()) }
+    }
+
     override fun getCount(): Int =
         storage.connection.connection.use { connection ->
             connection.prepareStatement("SELECT COUNT(*) AS total FROM guilds").use { statement ->

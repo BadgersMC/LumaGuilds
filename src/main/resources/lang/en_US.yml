@@ -6,7 +6,7 @@ bedrock:
   guild_list:
     title: 'Guilds · <page>/<pages>'
     content: 'Sort: <sort><newline>Guilds: <total>'
-    guild_button: '<guild><newline>Level <level> · <members> members<newline>Created <created><activity>'
+    guild_button: '<guild><newline>Level <level> · <members> members<newline>Created <created><activity><newline><details>'
     activity: '<newline>Activity: <activity_score>'
     weekly_activity: '<newline>Activity: <activity_score> · <kills> unique PvP kills'
     sort:
@@ -6768,7 +6768,6 @@ menu:
       count: '<gray>Permissions: <white><enabled><gray>/<white><total>'
       some_selected: '<green>✓ Some permissions selected'
       none_selected: '<red>✗ No permissions selected'
-      toggle: '<yellow>Click to toggle all <white><category> <yellow>permissions'
     preview:
       name: '<gold>Rank Preview'
       rank_name: '<gray>Name: <white><rank>'
@@ -6814,10 +6813,6 @@ menu:
       missing_requirements: '<red>❌ Cannot create rank - missing requirements!'
       cleared: '<yellow>Cleared all selections!'
       cancelled: '<yellow>⚠ Rank creation cancelled.'
-      permission_removed: '<gray>Removed <white><permission><gray>.'
-      category_removed: '<gray>All <white><category> <gray>permissions removed.'
-      permission_added: '<green>Added <white><permission><green>.'
-      some_enabled: '<yellow>Some <category> permissions were already enabled.'
       name_set: '<green>✅ Rank name set to: ''<rank>'''
       icon_set: '<green>✅ Rank icon set to: <material>'
   rank_edit:
@@ -7589,3 +7584,42 @@ guild_chat_reconnect:
   disabled: "<gray>Disabled"
   saved: "<green>Chat reconnect preference saved."
   failed: "<red>Could not save this setting. Check your permission and reopen the menu."
+
+community:
+  rank:
+    permission: "<white><permission>"
+    unavailable: "<red>You cannot grant a permission you do not hold."
+    enabled: "<green>Enabled. Click to disable this permission."
+    disabled: "<gray>Disabled. Click to enable this permission."
+    open_category: "<yellow>Click to select individual permissions."
+    priority: "<gray>Lower numbers rank higher; zero belongs to the owner."
+  directory:
+    owners: "<gray>Owner: <white><owners>"
+    unknown: "Unknown"
+    allies: "<gray>Allies: <white><allies>"
+    none: "None"
+    recruitment_open: "<green>Open recruitment"
+    recruitment_closed: "<gray>Invite only"
+    bedrock_details: "Owner: <owners>\nAllies: <allies>\n<recruitment>"
+
+  chat:
+    settings: "Personal chat settings"
+    description: "Hide global player chatter while keeping DMs and server notices. The destination indicator shows where your next normal message will go."
+    global_visibility: "Show global player messages"
+    indicator: "Show chat destination indicator"
+    global_button: "Global player messages: <state>"
+    indicator_button: "Destination indicator: <state>"
+    enabled: "Enabled"
+    disabled: "Disabled"
+    failed: "<red>Could not save your chat preferences."
+    destination: "<aqua>Chat destination: <white><channel>"
+    guild: "Guild"
+    ally: "Guild and allies"
+    officer: "Guild moderators"
+    global: "Global"
+    unknown: "Unavailable"
+    fullscreen_usage: "<yellow>Use /gfa followed by your message. You need announcement permission in exactly one guild."
+    fullscreen_title: "<gold>Guild announcement"
+
+  stall:
+    sales: "View stall sales accounting"

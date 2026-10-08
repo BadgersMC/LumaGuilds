@@ -180,10 +180,7 @@ class ChatServiceBukkit(
                 ChatChannel.GUILD -> currentSettings.copy(guildChatVisible = !currentSettings.guildChatVisible)
                 ChatChannel.ALLY -> currentSettings.copy(allyChatVisible = !currentSettings.allyChatVisible)
                 ChatChannel.PARTY -> currentSettings.copy(partyChatVisible = !currentSettings.partyChatVisible)
-                ChatChannel.PUBLIC -> {
-                    logger.warn("Cannot toggle visibility for public channel")
-                    return false
-                }
+                ChatChannel.PUBLIC -> currentSettings.copy(globalChatVisible = !currentSettings.globalChatVisible)
             }
             
             val success = updateVisibilitySettings(playerId, newSettings)
@@ -193,7 +190,7 @@ class ChatServiceBukkit(
                     ChatChannel.GUILD -> newSettings.guildChatVisible
                     ChatChannel.ALLY -> newSettings.allyChatVisible
                     ChatChannel.PARTY -> newSettings.partyChatVisible
-                    ChatChannel.PUBLIC -> false
+                    ChatChannel.PUBLIC -> newSettings.globalChatVisible
                 }
                 logger.info("Player $playerId toggled $channel chat visibility to $visibilityState")
             }
@@ -211,7 +208,11 @@ class ChatServiceBukkit(
     }
     
     override fun updateVisibilitySettings(playerId: UUID, settings: ChatVisibilitySettings): Boolean {
-        return chatSettingsRepository.updateVisibilitySettings(settings)
+        if (playerId != settings.playerId) return false
+        return try { chatSettingsRepository.updateVisibilitySettings(settings) } catch (failure: Exception) {
+            logger.error("Failed to save chat preferences", failure)
+            false
+        }
     }
     
     override fun getRecipientsForChannel(senderId: UUID, channel: ChatChannel): Set<UUID> {

@@ -5,6 +5,7 @@ import net.lumalyte.lg.domain.entities.GuildListSortKey
 import java.time.Instant
 
 interface GuildListRepository {
+    fun getDetails(guildIds: Set<java.util.UUID>): Map<java.util.UUID, net.lumalyte.lg.domain.entities.GuildDirectoryDetails> = emptyMap()
     fun getCount(): Int
 
     fun getPage(

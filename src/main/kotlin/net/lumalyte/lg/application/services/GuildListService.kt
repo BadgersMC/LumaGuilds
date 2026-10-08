@@ -15,6 +15,7 @@ data class GuildListEntry(
     val sortValue: Long,
     val uniquePvpKills: Int,
     val memberCount: Int,
+    val details: net.lumalyte.lg.domain.entities.GuildDirectoryDetails = net.lumalyte.lg.domain.entities.GuildDirectoryDetails(),
 )
 
 data class GuildListPage(
@@ -76,8 +77,9 @@ class GuildListService(
             }
         }
 
+        val details = repository.getDetails(entries.map { it.guild.id }.toSet())
         return GuildListPage(
-            entries = entries,
+            entries = entries.map { it.copy(details = details[it.guild.id] ?: net.lumalyte.lg.domain.entities.GuildDirectoryDetails()) },
             page = safePage,
             pageSize = safePageSize,
             totalCount = totalCount,

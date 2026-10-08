@@ -132,7 +132,7 @@ internal class GuildStallMenu(
     }
 
     private fun controls(maxPage: Int, summary: Component): List<Row> {
-        return listOf(
+        val navigation = listOf(
             Row(lang.gui("guild_stall.back"), emptyList()) {
                 goBack()
             },
@@ -146,6 +146,16 @@ internal class GuildStallMenu(
                 open()
             },
         )
+        val stall = selected
+        if (stall == null || !stall.matches(Regex("[A-Za-z0-9_.:-]+")) ||
+            Bukkit.getCommandMap().getCommand("guildsales") == null ||
+            !members.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.EDIT_SHOP_STOCK)) return navigation
+        return navigation + Row(lang.gui("community.stall.sales"), emptyList()) {
+            if (members.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.EDIT_SHOP_STOCK)) {
+                player.closeInventory()
+                player.performCommand("guildsales $stall")
+            }
+        }
     }
 
     private fun goBack() {

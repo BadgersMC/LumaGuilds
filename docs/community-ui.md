@@ -1,0 +1,67 @@
+# Community chat, ranks and directory
+
+## Spec
+
+Owner approved G20/G21/G22/G24/G25 and Market-owned G44 on 8 October.
+This branch starts at freshly fetched canonical main a15b244 and includes the
+open #214 dependency chain; target #214 until dependencies merge.
+
+- REQ-136: Rank creation opens individual permission selection without granting
+  an entire category. Creation/editing share the complete supported permission
+  catalog; disabled claims are hidden and preserved on edits. Category placement
+  stays inside the inventory. Existing service authority/priority guards apply.
+- REQ-137: Public guild directory retains all guilds, including invite-only
+  guilds, and displays authoritative owner(s), founding date, allies, member
+  count, level and existing activity metrics on Java and Bedrock. Missing owners
+  are explicitly unknown. No online/last-active value is invented.
+- REQ-138: Chat provides an opt-in persistent destination indicator, a personal
+  global-player-message visibility preference, and guild fullscreen announcements
+  using existing announcement authorization/rate limits. DMs, server notices and
+  private channels remain visible. Indicator must not replace another plugin's
+  action bar. Unknown channels retain their actual name.
+
+## Prove / engine / arch / refine
+
+Current creation category handler toggles all permissions despite its individual
+selection comment; six groups cannot use index * 3 + 1 in a nine-column row.
+Regression tests and exact commands/results will be recorded before delivery.
+No local EARS or SPEAR state helpers are present; manual records apply.
+Market FIFO attribution policy is approved separately; no payout changes.
+
+Production remains unchanged. Local tests, GitHub checks, manual review and
+real Java/Bedrock acceptance are distinct. No merge/deployment authorization.
+
+
+### Recorded proof and boundaries
+
+The new category-opening regression failed against the prior handler and passed
+after replacing bulk grants with individual selection. SQLite/MariaDB preference
+contracts cover defaults, persistence, rollback without cache publication and
+64-bit announcement timestamps. Native MariaDB first failed on legacy TEXT key
+DDL; portable UUID keys, BIGINT times and REPLACE writes resolve that failure.
+Directory contracts cover owner/alliance authority, pending exclusion and page
+bounds. Chat tests preserve DMs/notices/private channels, exercise opt-in indicator
+cleanup and prove muted/rate-rejected fullscreen sends never show titles.
+
+The report shortcut appears only when Market registers its accounting command.
+It uses the same existing EDIT_SHOP_STOCK mapping as Market's MANAGE_SHOPS port;
+it does not introduce a new rank permission. The companion rechecks access.
+Offline owner names fall back to UUID rather than blocking on profile lookup.
+Local clean full-suite and native-profile totals are recorded below after final
+validation. Hosted checks and real Java/Bedrock rendering remain separate gates.
+
+
+### Local verification, 8 October 2026
+
+Java 25 / Paper 26.2: `clean test shadowJar mariaDbRewardTest
+-PmariaDbTestPort=33318 -PreleaseVersion=3.0.0-community-review.1` (version
+argument quoted in PowerShell) completed. Full suite: **1,679 tests, zero
+failures/errors, four unrelated skips**. Separate disposable MariaDB profile:
+**61 tests, zero failures/errors/skips**. The actual companion runtime contract
+executed with the frozen Market accounting artifact, not a mocked API. After a
+whitespace-only SQL cleanup, focused persistence verification and the review JAR
+were refreshed without broadening the behavioral claim.
+
+Local review artifacts are unmerged test builds. Exact PR-head hosted checks,
+manual review, canonical source/pin integration and real Java/Bedrock acceptance
+remain independent release gates. Production was not accessed or changed.

@@ -1451,6 +1451,7 @@ class LumaGuilds : JavaPlugin() {
     }
 
     override fun onDisable() {
+        get().getOrNull<net.lumalyte.lg.infrastructure.listeners.ChatDestinationIndicator>()?.close()
         enthusiaStaffStrikeFeed?.close()
         enthusiaStaffStrikeFeed = null
         Bukkit.getServicesManager().unregisterAll(this)

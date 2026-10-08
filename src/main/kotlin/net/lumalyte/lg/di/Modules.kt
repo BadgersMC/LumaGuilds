@@ -611,6 +611,8 @@ fun socialModule() = module {
     single<net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener> {
         net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener(get(), get(), get(), get(), get())
     }
+    single { net.lumalyte.lg.infrastructure.listeners.GlobalChatVisibilityListener(get()) }
+    single { net.lumalyte.lg.infrastructure.listeners.ChatDestinationIndicator(get(), get()) }
     single<net.lumalyte.lg.infrastructure.listeners.GuildMuteChatListener> {
         net.lumalyte.lg.infrastructure.listeners.GuildMuteChatListener(get(), get(), get())
     }
