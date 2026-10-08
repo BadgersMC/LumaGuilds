@@ -124,3 +124,10 @@ full matrix passed 1,680 ordinary cases (15 external skips) and all 62 native
 cases without skips. Final published-head validation is checked separately.
 An online dependency metadata request timed out at JitPack; the cached offline
 profile compiled and passed, which is distinct from hosted CI.
+
+At 9d54520 the full matrix passes 1,680 tests with zero failures/errors and
+15 external skips, plus all 62 native MariaDB cases without skips. The owned
+helper is stopped. Direct Codacy now reports only seven style findings; final
+expression-body/blank-line/short-signature corrections preserve behavior and
+pass focused validation. Published-head results are recorded on the PR; manual
+review and Java/Bedrock client acceptance remain outstanding.

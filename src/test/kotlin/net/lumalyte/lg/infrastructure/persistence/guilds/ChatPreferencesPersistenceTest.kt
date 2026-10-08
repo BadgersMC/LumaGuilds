@@ -53,12 +53,14 @@ internal class ChatPreferencesPersistenceTest : RewardSqlTestFixture() {
         assertEquals(FUTURE_ANNOUNCEMENT, ChatSettingsRepositorySQLite(storage).getRateLimit(id).lastAnnounceTime)
     }
 
-    private fun testPreferences(id: UUID) = ChatVisibilitySettings(
-        id,
-        allyChatVisible = false,
-        globalChatVisible = false,
-        destinationIndicator = true,
-    )
+    private fun testPreferences(id: UUID): ChatVisibilitySettings {
+        return ChatVisibilitySettings(
+            id,
+            allyChatVisible = false,
+            globalChatVisible = false,
+            destinationIndicator = true,
+        )
+    }
 
     private fun rejectPreferences(
         storage: net.lumalyte.lg.infrastructure.persistence.storage.Storage<co.aikar.idb.Database>,

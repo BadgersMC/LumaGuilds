@@ -60,11 +60,7 @@ internal class GuildDirectoryDetailsTest : RewardSqlTestFixture() {
         )
     }
 
-    private fun seedAlliance(
-        sql: co.aikar.idb.Database,
-        guild: UUID,
-        ally: UUID,
-    ) {
+    private fun seedAlliance(sql: co.aikar.idb.Database, guild: UUID, ally: UUID) {
         sql.executeUpdate(
             "INSERT INTO relations VALUES (?, ?, 'ALLY', 'ACTIVE', NULL)",
             guild.toString(),
