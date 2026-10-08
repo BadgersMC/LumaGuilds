@@ -27,6 +27,7 @@ class DatabaseMigrationUtility(
         val MIGRATION_TABLES = listOf(
             "guilds",
             GuildChatRankSettingsSchema.TABLE,
+            GuildChatReconnectSettingsSchema.TABLE,
             GuildHomeActivationSchema.ACTIVATIONS_TABLE,
             GuildHomeActivationSchema.CREDITS_TABLE,
             "ranks",

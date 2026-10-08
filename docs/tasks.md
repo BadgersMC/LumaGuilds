@@ -971,3 +971,8 @@ Menu audit follow-up (REQ-063):
   - Tag: `TDD`
   - References: REQ-148; EnthusiaHolidays REQ-GUILD-EMOJI-001.
   - Evidence: current main bfa6931 checks only actor emoji permission and rejects the tag's non-emoji glyph; the existing GuildCosmeticUnlocks string API can store EMOJI without an ABI change. Regression and delivery evidence: docs/evidence/holiday-pumpkin-emoji.md. EARS/state helpers absent; manual traceability used.
+
+- [x] **CHAT-RECONNECT** Optional guild-wide reconnect reset in Java/Bedrock settings.
+  - Tag: TDD`r
+  - References: REQ-135.
+  - Evidence: sanitized replay keeps only the reconnect feature commits on current main and omits obsolete #213 integration history. Historical feature validation recorded 58 focused contracts, a clean 1,673-test integration suite, and 59 native MariaDB cases; fresh exact-head hosted checks remain required after this replay. Persistence, authority, stale forms, configured channels, and disconnected/replaced sessions are covered. See docs/chat-reconnect.md. Production remains unchanged.

@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.application.services.GuildChatReconnectSettingsService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.Guild
@@ -47,6 +48,7 @@ class BedrockGuildSettingsMenu(
     private val configService: ConfigService by inject()
     private val lang: LangService by inject()
     private val chatRankSettings: net.lumalyte.lg.application.services.GuildChatRankSettingsService by inject()
+    private val reconnectSettings: GuildChatReconnectSettingsService by inject()
     private val plugin: Plugin by inject()
 
     // Holiday styles (REQ-121) are locked until earned; without the ledger they stay locked.
@@ -68,6 +70,7 @@ class BedrockGuildSettingsMenu(
         )
         val canManageSettings = authorization.canManageGuildSettings(player.uniqueId, guild.id)
         val renderedChatRanksVisible = chatRankSettings.ranksVisible(guild.id)
+        val renderedResetOnJoin = reconnectSettings.resetOnJoin(guild.id)
 
         val builder = CustomForm.builder()
             .title(lang.bedrock("bedrock.settings.title", "guild" to guild.name))
@@ -97,6 +100,7 @@ class BedrockGuildSettingsMenu(
                 .toggle(lang.bedrock("menu.guild_settings.item.access.name"), guild.isOpen)
                 .toggle(lang.bedrock("menu.guild_settings.item.tracking.name"), guild.trackingEnabled)
                 .toggle(lang.bedrock("guild_rank_customization.toggle.name"), renderedChatRanksVisible)
+                .toggle(lang.bedrock("guild_chat_reconnect.name"), renderedResetOnJoin)
                 .dropdown(
                     lang.bedrock("menu.guild_settings.item.theme.name"),
                     GuiTheme.SELECTABLE.map { theme ->
@@ -117,7 +121,7 @@ class BedrockGuildSettingsMenu(
             .validResultHandler { response ->
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                     if (player.isOnline) {
-                        handleFormResponse(response, canManageSettings, renderedChatRanksVisible)
+                        handleFormResponse(response, canManageSettings, renderedChatRanksVisible, renderedResetOnJoin)
                     }
                 })
             }
@@ -127,6 +131,16 @@ class BedrockGuildSettingsMenu(
                 })
             }
             .build()
+    }
+
+    private fun saveReconnectPreference(rendered: Boolean, submitted: Boolean): Boolean {
+        if (rendered == submitted) return true
+        if (reconnectSettings.apply(guild.id, rendered, submitted, player.uniqueId)) {
+            player.sendMessage(lang.msg("guild_chat_reconnect.saved"))
+            return true
+        }
+        player.sendMessage(lang.msg("guild_chat_reconnect.failed"))
+        return false
     }
 
     private fun createInfoSection(): String {
@@ -179,6 +193,7 @@ class BedrockGuildSettingsMenu(
         response: org.geysermc.cumulus.response.CustomFormResponse,
         renderedManagementControls: Boolean,
         renderedChatRanksVisible: Boolean,
+        renderedResetOnJoin: Boolean,
     ) {
         try {
             onFormResponseReceived()
@@ -201,6 +216,11 @@ class BedrockGuildSettingsMenu(
                 response.next() as? Boolean ?: renderedChatRanksVisible
             } else {
                 renderedChatRanksVisible
+            }
+            val submittedResetOnJoin = if (renderedManagementControls) {
+                response.next() as? Boolean ?: renderedResetOnJoin
+            } else {
+                renderedResetOnJoin
             }
             val submittedTheme = if (renderedManagementControls) {
                 val themeIndex = response.next() as? Int
@@ -248,7 +268,8 @@ class BedrockGuildSettingsMenu(
                 submittedOpen != guild.isOpen ||
                     submittedTracking != guild.trackingEnabled ||
                     submittedTheme != guild.guiTheme ||
-                    submittedChatRanks != renderedChatRanksVisible
+                    submittedChatRanks != renderedChatRanksVisible ||
+                    submittedResetOnJoin != renderedResetOnJoin
             if (managementChanged && !hasGuildSettingsPermission) {
                 validationErrors.add(lang.bedrock("bedrock.settings.error.no_settings_permission"))
             }
@@ -257,6 +278,8 @@ class BedrockGuildSettingsMenu(
                 showValidationErrors(validationErrors)
                 return
             }
+
+            if (!saveReconnectPreference(renderedResetOnJoin, submittedResetOnJoin)) return
 
             applySettings(
                 newName = newName,
@@ -269,7 +292,8 @@ class BedrockGuildSettingsMenu(
                 renderedChatRanksVisible = renderedChatRanksVisible,
                 hasGuildSettingsPermission = hasGuildSettingsPermission,
                 hasDescriptionPermission = hasDescriptionPermission,
-                hasModePermission = hasModePermission
+                hasModePermission = hasModePermission,
+                reconnectChanged = submittedResetOnJoin != renderedResetOnJoin
             )
         } catch (e: Exception) {
             logger.warning("Error processing guild settings form response: ${e.message}")
@@ -355,7 +379,8 @@ class BedrockGuildSettingsMenu(
         renderedChatRanksVisible: Boolean,
         hasGuildSettingsPermission: Boolean,
         hasDescriptionPermission: Boolean,
-        hasModePermission: Boolean
+        hasModePermission: Boolean,
+        reconnectChanged: Boolean
     ) {
         val changes = mutableListOf<String>()
         var allSuccessful = true
@@ -476,7 +501,7 @@ class BedrockGuildSettingsMenu(
             } else {
                 player.sendMessage(lang.msg("bedrock.settings.success.partial"))
             }
-        } else {
+        } else if (!reconnectChanged) {
             player.sendMessage(lang.msg("bedrock.settings.success.no_changes"))
         }
 
