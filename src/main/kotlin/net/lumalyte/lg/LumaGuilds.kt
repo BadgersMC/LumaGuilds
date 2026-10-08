@@ -618,16 +618,18 @@ class LumaGuilds : JavaPlugin() {
      * This allows AxKoth to recognize guilds as teams for KOTH events.
      */
     private fun initialiseAxKothIntegration() {
-        if (Bukkit.getPluginManager().getPlugin("AxKoth") != null) {
+        val axKothPlugin = Bukkit.getPluginManager().getPlugin("AxKoth")
+        if (axKothPlugin != null) {
             try {
                 val hook = net.lumalyte.lg.integrations.axkoth.LumaGuildsHook()
-                com.artillexstudios.axkoth.api.AxKothAPI.registerTeamHook(this, hook)
+                net.lumalyte.lg.integrations.axkoth.AxKothTeamHookRegistrar.register(this, axKothPlugin, hook)
                 logColored("✓ Successfully registered LumaGuilds hook with AxKoth!")
                 logColored("Guilds can now compete in KOTH events as teams")
             } catch (e: Exception) {
-                // Broad exception handling acceptable here - optional integration shouldn't crash plugin
-                // Can fail due to: NoClassDefFoundError, LinkageError, API changes
                 logger.severe("Error registering AxKoth integration: ${e.message}")
+                e.printStackTrace()
+            } catch (e: LinkageError) {
+                logger.severe("AxKoth API linkage failed: ${e.message}")
                 e.printStackTrace()
             }
         } else {

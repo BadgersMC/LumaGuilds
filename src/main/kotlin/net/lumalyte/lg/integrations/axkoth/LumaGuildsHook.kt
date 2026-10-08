@@ -1,6 +1,5 @@
 package net.lumalyte.lg.integrations.axkoth
 
-import com.artillexstudios.axkoth.hooks.teams.TeamHook
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import org.bukkit.Bukkit
@@ -14,13 +13,10 @@ import org.slf4j.LoggerFactory
  * Hook implementation for AxKoth integration with LumaGuilds.
  * Allows AxKoth to recognize LumaGuilds as a team provider for KOTH events.
  *
- * Registration:
- * Since AxKoth is closed-source, register this hook via their API:
- * ```kotlin
- * AxKothAPI.registerTeamHook(plugin, LumaGuildsHook())
- * ```
+ * Registration is performed by [AxKothTeamHookRegistrar] at runtime so AxKoth
+ * remains a truly optional dependency and is not required on the compile classpath.
  */
-class LumaGuildsHook : TeamHook, KoinComponent {
+class LumaGuildsHook : KoinComponent {
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
@@ -30,16 +26,8 @@ class LumaGuildsHook : TeamHook, KoinComponent {
      * Called by AxKoth when the hook is initialized.
      * Can be used for any setup logic.
      */
-    override fun setup() {
+    fun setup() {
         logger.info("LumaGuilds hook for AxKoth initialized successfully")
-    }
-
-    /**
-     * Returns the name of this team provider.
-     * Used by AxKoth for logging and identification.
-     */
-    override fun getName(): String {
-        return "LumaGuilds"
     }
 
     /**
@@ -49,7 +37,7 @@ class LumaGuildsHook : TeamHook, KoinComponent {
      * @param player The player to check
      * @return The guild tag (or name if tag is null) if player is in a guild, null otherwise
      */
-    override fun getTeamOfPlayer(player: Player): String? {
+    fun getTeamOfPlayer(player: Player): String? {
         return try {
             val playerId = player.uniqueId
 
@@ -77,7 +65,7 @@ class LumaGuildsHook : TeamHook, KoinComponent {
      * @param teamName The guild name
      * @return List of all guild members as OfflinePlayer, or empty list if guild not found
      */
-    override fun getTeamMembers(teamName: String): List<OfflinePlayer> {
+    fun getTeamMembers(teamName: String): List<OfflinePlayer> {
         return try {
             // Find guild by name
             val allGuilds = guildService.getAllGuilds()
@@ -116,7 +104,7 @@ class LumaGuildsHook : TeamHook, KoinComponent {
      * @param teamName The guild name to look up
      * @return The guild name if found (case-corrected), null otherwise
      */
-    override fun getTeamByName(teamName: String): String? {
+    fun getTeamByName(teamName: String): String? {
         return try {
             val allGuilds = guildService.getAllGuilds()
             val guild = allGuilds.find { it.name.equals(teamName, ignoreCase = true) }
