@@ -7,6 +7,7 @@ import io.mockk.unmockkAll
 import net.badgersmc.nexus.i18n.LangHost
 import net.badgersmc.nexus.i18n.LangService
 import net.badgersmc.nexus.i18n.Locale
+import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.services.GuildStallReadService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.StallReadResult
@@ -14,13 +15,12 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.infrastructure.i18n.LumaGuildsLang
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.bedrock.BaseBedrockMenu
-import net.kyori.adventure.text.Component
+import org.bukkit.event.inventory.InventoryType
+import org.bukkit.plugin.Plugin
+import org.bukkit.plugin.java.JavaPlugin
 import org.geysermc.cumulus.form.SimpleForm
 import org.geysermc.cumulus.form.impl.FormDefinition
 import org.geysermc.cumulus.form.impl.FormDefinitions
-import org.bukkit.plugin.Plugin
-import org.bukkit.plugin.java.JavaPlugin
-import org.bukkit.event.inventory.InventoryType
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -71,16 +71,25 @@ internal class GuildStallMenuSafetyTest {
     }
 
     private fun initializeServices(plugin: Plugin) {
-        val lang = LangService(object : LangHost {
-            override val dataFolder: File = directory.toFile()
-            override val resourceClassLoader: ClassLoader = LumaGuildsLang::class.java.classLoader
-        }, Locale("en_US"), LumaGuildsLang::class.java)
+        val lang =
+            LangService(
+                object : LangHost {
+                    override val dataFolder: File = directory.toFile()
+                    override val resourceClassLoader: ClassLoader = LumaGuildsLang::class.java.classLoader
+                },
+                Locale("en_US"),
+                LumaGuildsLang::class.java,
+            )
         stopKoin()
-        startKoin { modules(module {
-            single<Plugin> { plugin }
-            single { members }
-            single { lang }
-        }) }
+        startKoin {
+            modules(
+                module {
+                    single<Plugin> { plugin }
+                    single { members }
+                    single { lang }
+                },
+            )
+        }
     }
 
     /** Restore global test resources. */
@@ -94,7 +103,10 @@ internal class GuildStallMenuSafetyTest {
     /** Escape/close invalidates the loading request. */
     @Test
     fun closeDiscardsLateData() {
-        server.pluginManager.callEvent(org.bukkit.event.inventory.InventoryCloseEvent(player.openInventory))
+        server.pluginManager.callEvent(
+            org.bukkit.event.inventory
+                .InventoryCloseEvent(player.openInventory),
+        )
         player.closeInventory()
         pending.complete(StallReadResult.Available(emptyList()))
         server.scheduler.performOneTick()
@@ -149,12 +161,18 @@ internal class GuildStallMenuSafetyTest {
 
     private fun form(action: () -> Unit): SimpleForm {
         val rowType = GuildStallMenu::class.java.declaredClasses.single { it.simpleName == "Row" }
-        val row = rowType.declaredConstructors.single().apply { isAccessible = true }
-            .newInstance(Component.text("Member"), emptyList<Component>(), action)
+        val row =
+            rowType.declaredConstructors
+                .single()
+                .apply { isAccessible = true }
+                .newInstance(Component.text("Member"), emptyList<Component>(), action)
         val formType = GuildStallMenu::class.java.declaredClasses.single { it.simpleName == "StallForm" }
-        val view = formType.declaredConstructors.single().apply { isAccessible = true }
-            .newInstance(menu, navigator, player, navigator.currentNavigationToken(), Component.text("Stall"), listOf(row))
-            as BaseBedrockMenu
+        val view =
+            formType.declaredConstructors
+                .single()
+                .apply { isAccessible = true }
+                .newInstance(menu, navigator, player, navigator.currentNavigationToken(), Component.text("Stall"), listOf(row))
+                as BaseBedrockMenu
         return view.getForm() as SimpleForm
     }
 

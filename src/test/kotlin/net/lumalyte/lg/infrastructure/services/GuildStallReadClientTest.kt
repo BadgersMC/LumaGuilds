@@ -1,7 +1,6 @@
 package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.services.StallReadResult
-
 import org.junit.jupiter.api.Test
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
@@ -45,13 +44,19 @@ internal class GuildStallReadClientTest {
     }
 
     /** Reflective shape fixture; actual API compatibility is verified separately. */
-    class Provider(private val version: Int) {
+    class Provider(
+        private val version: Int,
+    ) {
         /** Response controlled by failure-path tests. */
         val response = CompletableFuture<List<Any>>()
+
         /** Supported read contract version. */
         fun apiVersion(): Int = version
+
         /** Test-only service method preserving the public companion call signature. */
-        fun guildStalls(guild: UUID, viewer: UUID): CompletableFuture<List<Any>> =
-            if (response.isDone) response else CompletableFuture.completedFuture(emptyList())
+        fun guildStalls(
+            guild: UUID,
+            viewer: UUID,
+        ): CompletableFuture<List<Any>> = if (response.isDone) response else CompletableFuture.completedFuture(emptyList())
     }
 }
