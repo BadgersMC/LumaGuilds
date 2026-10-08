@@ -1,6 +1,6 @@
 # Guild-shop XP delivery
 
-## Spec (REQ-121)
+## Spec (REQ-134)
 
 WHEN an outside customer completes a paid EnthusiaMarket SELL purchase from a guild-owned stall, THE SYSTEM SHALL award that stall's owning guild one configurable XP award (default 5), bounded by a guild UTC-day cap (500), buyer/guild UTC-day cap (50), and buyer/guild cooldown (300 seconds) shared across shops. Guild members, free trades, BUY shops, barter, and failed or compensated purchases SHALL award zero. Quantity and price SHALL NOT multiply XP. BUY-shop resale is a separate trade, not a refund.
 

@@ -907,12 +907,12 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Still open: human Java walkthrough on SMP Test (dashboard, Guild Actions, theme picker incl. Vanilla, Declare Enemy, progression sources, quests and toast); Bedrock go-live stays with LG-1901 (proxy untouched apart from the mapping backup).
 
 
-## Guild-shop XP (REQ-121)
+## Guild-shop XP (REQ-134)
 
 See [guild-shop-xp.md](guild-shop-xp.md) for approved policy, durable delivery, SPEAR state and acceptance boundaries.
 
 
-- [x] **SHOP-XP-SPEC** — REQ-121 approved limits, own-guild exclusion and no refund feature; docs/guild-shop-xp.md.
+- [x] **SHOP-XP-SPEC** — REQ-134 approved limits, own-guild exclusion and no refund feature; docs/guild-shop-xp.md.
 - [x] **SHOP-XP-ENGINE** — quotes, atomic caps/consumption/progression, API, persistence and cache integration.
 - [x] **SHOP-XP-PROVE-REFINE** — SQL concurrency/idempotence/rollback/config and full-suite local proof recorded in docs/guild-shop-xp.md.
 - [ ] **SHOP-XP-HOSTED** — inspect checks/review for exact published head; paired release contract must execute on the updated CI pin.
