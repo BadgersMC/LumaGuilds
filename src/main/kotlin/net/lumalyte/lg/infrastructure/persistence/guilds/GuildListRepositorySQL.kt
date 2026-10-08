@@ -84,9 +84,6 @@ class GuildListRepositorySQL(
         ids.forEachIndexed { index, id -> statement.setString(index + 1, id.toString()) }
     }
 
-    private companion object {
-        const val DIRECTORY_PAGE_SIZE = 36
-    }
 
     override fun getCount(): Int =
         storage.connection.connection.use { connection ->
@@ -265,4 +262,8 @@ class GuildListRepositorySQL(
                 }
             }
         }
+    private companion object {
+        const val DIRECTORY_PAGE_SIZE = 36
+    }
+
 }

@@ -29,10 +29,10 @@ internal class PlayerChatSettingsMenu(
 
     override fun open() {
         val settings = service.getVisibilitySettings(player.uniqueId)
-        val gui = ChestGui(3, lang.guiTitle("community.chat.settings"))
+        val gui = ChestGui(MENU_ROWS, lang.guiTitle("community.chat.settings"))
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick { if (it.click.isShiftClick) it.isCancelled = true }
-        val pane = StaticPane(0, 0, 9, 3)
+        val pane = StaticPane(0, 0, MENU_WIDTH, MENU_ROWS)
         add(
             pane,
             2,
@@ -42,12 +42,18 @@ internal class PlayerChatSettingsMenu(
         )
         add(
             pane,
-            6,
+            INDICATOR_COLUMN,
             Toggle(lang.gui("community.chat.indicator"), settings.destinationIndicator) {
                 it.copy(destinationIndicator = !it.destinationIndicator)
             },
         )
-        pane.addItem(GuiItem(ItemStack.of(Material.ARROW).name(lang.gui("menu.common.item.back.name"))) { navigator.goBack() }, 4, 2)
+        pane.addItem(
+            GuiItem(ItemStack.of(Material.ARROW).name(lang.gui("menu.common.item.back.name"))) {
+                navigator.goBack()
+            },
+            BACK_COLUMN,
+            2,
+        )
         gui.addPane(pane)
         gui.show(player)
     }
@@ -58,11 +64,7 @@ internal class PlayerChatSettingsMenu(
         val change: (ChatVisibilitySettings) -> ChatVisibilitySettings,
     )
 
-    private fun add(
-        pane: StaticPane,
-        x: Int,
-        toggle: Toggle,
-    ) {
+    private fun add(pane: StaticPane, x: Int, toggle: Toggle) {
         pane.addItem(
             GuiItem(ItemStack.of(if (toggle.enabled) Material.LIME_DYE else Material.GRAY_DYE).name(toggle.title)) {
                 val current = service.getVisibilitySettings(player.uniqueId)
@@ -81,4 +83,11 @@ internal class PlayerChatSettingsMenu(
     }
 
     override fun passData(data: Any?) = Unit
+
+    private companion object {
+        const val MENU_WIDTH = 9
+        const val MENU_ROWS = 3
+        const val INDICATOR_COLUMN = 6
+        const val BACK_COLUMN = 4
+    }
 }

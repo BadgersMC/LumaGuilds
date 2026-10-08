@@ -32,7 +32,9 @@ data class ChatVisibilitySettings(
     val guildChatVisible: Boolean = true,
     val allyChatVisible: Boolean = true,
     val partyChatVisible: Boolean = true,
+    /** Whether the player receives global player messages. */
     val globalChatVisible: Boolean = true,
+    /** Whether the player enables the optional destination boss bar. */
     val destinationIndicator: Boolean = false,
 )
 

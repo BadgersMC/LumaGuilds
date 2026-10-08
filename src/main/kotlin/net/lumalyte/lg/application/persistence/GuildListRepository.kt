@@ -1,12 +1,16 @@
 package net.lumalyte.lg.application.persistence
 
+import net.lumalyte.lg.domain.entities.GuildDirectoryDetails
+import java.util.UUID
 import net.lumalyte.lg.domain.entities.GuildListRankedRow
 import net.lumalyte.lg.domain.entities.GuildListSortKey
 import java.time.Instant
 
 interface GuildListRepository {
     /** Returns bounded public ownership/alliance facts for one directory page. */
-    fun getDetails(guildIds: Set<java.util.UUID>): Map<java.util.UUID, net.lumalyte.lg.domain.entities.GuildDirectoryDetails> = emptyMap()
+    fun getDetails(
+        guildIds: Set<UUID>,
+    ): Map<UUID, GuildDirectoryDetails> = emptyMap()
 
     fun getCount(): Int
 

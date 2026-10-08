@@ -17,11 +17,17 @@ internal class ChatPreferencesPersistenceTest : RewardSqlTestFixture() {
             assertTrue(
                 repository.updateRateLimit(
                     net.lumalyte.lg.domain.values
-                        .ChatRateLimit(id, lastAnnounceTime = 1_800_000_000_000L),
+                        .ChatRateLimit(id, lastAnnounceTime = FUTURE_ANNOUNCEMENT),
                 ),
             )
-            assertEquals(1_800_000_000_000L, ChatSettingsRepositorySQLite(storage).getRateLimit(id).lastAnnounceTime)
-            val settings = ChatVisibilitySettings(id, allyChatVisible = false, globalChatVisible = false, destinationIndicator = true)
+            assertEquals(FUTURE_ANNOUNCEMENT, ChatSettingsRepositorySQLite(storage).getRateLimit(id).lastAnnounceTime)
+            val settings =
+                ChatVisibilitySettings(
+                    id,
+                    allyChatVisible = false,
+                    globalChatVisible = false,
+                    destinationIndicator = true,
+                )
             assertTrue(repository.updateVisibilitySettings(settings))
             assertEquals(settings, ChatSettingsRepositorySQLite(storage).getVisibilitySettings(id))
             val trigger =
@@ -32,12 +38,22 @@ internal class ChatPreferencesPersistenceTest : RewardSqlTestFixture() {
                 } else {
                     "BEGIN SELECT RAISE(ABORT, 'failure'); END"
                 }
-            storage.connection.executeUpdate("CREATE TRIGGER fail_preferences BEFORE INSERT ON chat_ui_preferences $trigger")
-            assertFails { repository.updateVisibilitySettings(settings.copy(globalChatVisible = true, allyChatVisible = true)) }
+            storage.connection.executeUpdate(
+                "CREATE TRIGGER fail_preferences BEFORE INSERT ON chat_ui_preferences $trigger",
+            )
+            assertFails {
+                repository.updateVisibilitySettings(
+                    settings.copy(globalChatVisible = true, allyChatVisible = true),
+                )
+            }
             assertEquals(settings, repository.getVisibilitySettings(id))
             assertEquals(settings, ChatSettingsRepositorySQLite(storage).getVisibilitySettings(id))
         } finally {
             closeStorage(storage)
         }
+    }
+
+    private companion object {
+        const val FUTURE_ANNOUNCEMENT = 1_800_000_000_000L
     }
 }
