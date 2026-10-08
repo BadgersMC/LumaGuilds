@@ -668,3 +668,6 @@ WHEN a player opens or interacts with a guild vault THE SYSTEM SHALL recheck cur
 
 ### REQ-141
 **Event-driven.** WHEN a player clicks a previously rendered Java ally-home button THEN THE SYSTEM SHALL resolve the target guild by its stable identity, read its current ally home, and recheck current eligible-home listing (including both guilds' required perks) and service-backed ally-home access before starting the countdown. Removed homes, disbanded targets and revoked access SHALL be denied; relocated homes SHALL use current coordinates and renamed targets SHALL retain their identity. Existing safety/countdown/economy behavior SHALL be preserved. Real client acceptance is deferred; this correction addresses stale menu state, not authorization changes during an already running countdown.
+
+### REQ-142
+**Unwanted behavior.** IF the canonical CI Gradle test invocation fails before tests/source compilation with the observed incomplete Content-Length transfer of pinned AxKothAPI-4 or axapi-1.4.8 artifacts THEN THE CI adapter SHALL retry the same invocation at most three times total. Permanent/unrecognized dependency errors, source errors and any run that reached tests SHALL fail immediately. Final failure status and all test/release arguments SHALL be preserved; dependency coordinates, repositories and required checks SHALL NOT change.

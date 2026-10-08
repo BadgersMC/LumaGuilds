@@ -130,7 +130,10 @@ jobs:
         test -n "$STAFF_API_JAR"
         cp "$STAFF_API_JAR" "$GITHUB_WORKSPACE/libs/EnthusiaStaff-moderation-api.jar"
 
+    - name: Verify dependency retry classification
+      run: python3 ci/test_gradle_dependency_retry.py
+
     - name: Test with Gradle
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: ./gradlew test
+      run: python3 ci/gradle_dependency_retry.py test

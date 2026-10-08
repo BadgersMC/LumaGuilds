@@ -1016,3 +1016,9 @@ Ported from FainNeito/LumaGuilds#2/#3 onto the Enthusia redesign: the holiday st
   - References: REQ-141
   - Evidence: Integrated the reviewed #215/#217 stack with requirement/task conflicts resolved. Added a genuine failing seventh action case for lost current listing/perk eligibility; fixed using current GuildService.getAllyHomes and existing access policy. Final combined test/shadowJar passes 1,713 tests, zero failures/errors and 15 external skips; actual Market artifact contract runs with zero skips. Interactive behavioral preview accompanies the change; in-game acceptance deferred. No production changes, merge or activation. Hosted/manual review remains separate.
   - Files: GuildHomeMenu, AllyHomeMenuAuthorizationTest, docs/ally-home-menu-authorization.md
+
+- [x] CI-INCOMPLETE-DEPENDENCY-TRANSFER
+  - Tag: `INFRA`
+  - References: REQ-142
+  - Evidence: Hosted jobs 113447635682/113447627185 and 113449961228 failed before compilation because the official repository truncated pinned AxKothAPI/axapi transfers. Added a bounded, narrowly classified retry around existing Gradle test steps in build/unit-test/release profiles. Eight real-subprocess classifier contracts pass locally: eventual success, finite failure limit, test/source/permanent/unknown/mixed-error rejection and argument forwarding. Runtime Kotlin source remains unchanged from the 1,713-test combined build. GitHub validates workflow definitions; no local YAML parser or project-local EARS/state helper is available. Final-head hosted execution remains a separate gate. No manual workflow approval/rerun, release or production operation.
+  - Files: ci/gradle_dependency_retry.py, ci/test_gradle_dependency_retry.py, .github/workflows/build.yml, .github/workflows/unit-test.yml, .github/workflows/release.yml
