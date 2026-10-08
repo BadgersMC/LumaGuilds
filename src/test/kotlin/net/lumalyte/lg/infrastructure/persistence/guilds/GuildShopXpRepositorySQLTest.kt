@@ -31,7 +31,9 @@ internal class GuildShopXpRepositorySQLTest {
         storage.connection.executeUpdate("CREATE TABLE guilds (id VARCHAR(36) PRIMARY KEY, level INT)")
         storage.connection.executeUpdate("INSERT INTO guilds VALUES (?, 1)", guild.toString())
         storage.connection.executeUpdate("CREATE TABLE members (player_id VARCHAR(36), guild_id VARCHAR(36))")
-        storage.connection.executeUpdate("CREATE TABLE guild_reward_accounts (guild_id VARCHAR(36) PRIMARY KEY, prestige_count INT)")
+        storage.connection.executeUpdate(
+            "CREATE TABLE guild_reward_accounts (guild_id VARCHAR(36) PRIMARY KEY, prestige_count INT)",
+        )
         storage.connection.executeUpdate("INSERT INTO guild_reward_accounts VALUES (?, 0)", guild.toString())
         val awards = ExperienceAwardRepositorySQL(storage, ProgressionCurve(500.0, 1.15, 150, 100))
         repository = GuildShopXpRepositorySQL(storage, awards)
@@ -192,18 +194,13 @@ internal class GuildShopXpRepositorySQLTest {
         assertEquals(0, storage.connection.getResults("SELECT id FROM guild_shop_xp_sales").size)
     }
 
-    private fun prepare(
-        who: UUID = buyer,
-        time: Long = at,
-        policy: GuildShopXpPolicy = GuildShopXpPolicy(),
-    ): UUID {
+    private fun prepare(who: UUID = buyer, time: Long = at, policy: GuildShopXpPolicy = GuildShopXpPolicy()): UUID {
         val id = UUID.randomUUID()
         assertEquals("PREPARED", repository.prepare(GuildShopXpSale(id, guild, who, time), policy))
         return id
     }
 
-    private fun xp(): Int =
-        storage.connection.getResults("SELECT total_experience FROM guild_progression").sumOf {
-            it.getInt("total_experience")
-        }
+    private fun xp(): Int = storage.connection.getResults("SELECT total_experience FROM guild_progression").sumOf {
+        it.getInt("total_experience")
+    }
 }

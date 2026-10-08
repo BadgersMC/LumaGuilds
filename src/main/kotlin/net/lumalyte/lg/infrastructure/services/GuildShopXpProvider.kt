@@ -15,12 +15,7 @@ internal class GuildShopXpProvider(
 ) : GuildShopXpApi {
     override fun apiVersion(): Int = 1
 
-    override fun prepare(
-        saleId: UUID,
-        owningGuildId: UUID,
-        buyerId: UUID,
-        occurredAtMillis: Long,
-    ): String =
+    override fun prepare(saleId: UUID, owningGuildId: UUID, buyerId: UUID, occurredAtMillis: Long): String =
         repository.prepare(
             GuildShopXpSale(saleId, owningGuildId, buyerId, occurredAtMillis),
             config.loadConfig().progression.shopXp,
@@ -28,7 +23,11 @@ internal class GuildShopXpProvider(
 
     override fun complete(saleId: UUID): String {
         val result = repository.complete(saleId)
-        if (result.awardedNow || result.status.startsWith("AWARDED:")) progression.onCommittedExperience(result.guildId, result.level)
+        if (result.awardedNow ||
+            result.status.startsWith("AWARDED:")
+        ) {
+            progression.onCommittedExperience(result.guildId, result.level)
+        }
         return result.status
     }
 }

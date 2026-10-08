@@ -22,11 +22,10 @@ internal fun <T> Connection.committingTransaction(block: () -> T): T {
     }
 }
 
-private fun Connection.rollbackFailure(failure: Throwable): Boolean =
-    try {
-        rollback()
-        true
-    } catch (rollbackFailure: SQLException) {
-        failure.addSuppressed(rollbackFailure)
-        false
-    }
+private fun Connection.rollbackFailure(failure: Throwable): Boolean = try {
+    rollback()
+    true
+} catch (rollbackFailure: SQLException) {
+    failure.addSuppressed(rollbackFailure)
+    false
+}

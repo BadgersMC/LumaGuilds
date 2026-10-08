@@ -12,11 +12,12 @@ class PermanentExperienceService(
     private val activityService: PlaytimeActivityService,
     private val boostProvider: () -> net.lumalyte.lg.domain.values.ExperienceBoost? = { null },
 ) {
-    fun award(
-        request: ExperienceAwardRequest,
-        policy: ExperiencePolicy,
-    ): ExperienceAwardResult {
-        if (request.source == ExperienceSource.SHOP_SALE) return ExperienceAwardResult.Rejected(AwardRejection.INELIGIBLE)
+    fun award(request: ExperienceAwardRequest, policy: ExperiencePolicy): ExperienceAwardResult {
+        if (request.source ==
+            ExperienceSource.SHOP_SALE
+        ) {
+            return ExperienceAwardResult.Rejected(AwardRejection.INELIGIBLE)
+        }
         if (request.source != policy.source) {
             return ExperienceAwardResult.Rejected(AwardRejection.POLICY_MISMATCH)
         }

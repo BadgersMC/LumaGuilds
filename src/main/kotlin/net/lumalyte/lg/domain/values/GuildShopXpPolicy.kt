@@ -8,6 +8,8 @@ package net.lumalyte.lg.domain.values
  * @property buyerDailyCap UTC-day allowance shared by this buyer across the guild's shops.
  * @property pairCooldownSeconds Minimum interval between this buyer's awards to the guild.
  */
+// ProgressionConfig exposes this immutable configuration value in its established public API.
+@Suppress("LibraryEntitiesShouldNotBePublic")
 data class GuildShopXpPolicy(
     val enabled: Boolean = true,
     val xpPerSale: Int = 5,
@@ -15,12 +17,12 @@ data class GuildShopXpPolicy(
     val buyerDailyCap: Int = 50,
     val pairCooldownSeconds: Long = 300,
 ) {
-    private companion object {
-        const val MILLIS_PER_SECOND = 1000L
-    }
 
     init {
         require(xpPerSale >= 0 && guildDailyCap >= 0 && buyerDailyCap >= 0)
         require(pairCooldownSeconds in 0..Long.MAX_VALUE / MILLIS_PER_SECOND)
+    }
+    private companion object {
+        const val MILLIS_PER_SECOND = 1000L
     }
 }

@@ -49,7 +49,8 @@ internal class GuildShopXpMariaDbTest {
             "CREATE TABLE guild_reward_accounts (guild_id VARCHAR(36) PRIMARY KEY, prestige_count INT) ENGINE=InnoDB",
         )
         db.connection.executeUpdate("INSERT INTO guild_reward_accounts VALUES (?, 0)", guild.toString())
-        repository = GuildShopXpRepositorySQL(db, ExperienceAwardRepositorySQL(db, ProgressionCurve(500.0, 1.15, 150, 100)))
+        repository =
+            GuildShopXpRepositorySQL(db, ExperienceAwardRepositorySQL(db, ProgressionCurve(500.0, 1.15, 150, 100)))
     }
 
     @AfterEach fun close() {
@@ -153,7 +154,9 @@ internal class GuildShopXpMariaDbTest {
                 }
             check(started.await(5, TimeUnit.SECONDS))
             c.createStatement().use { s ->
-                s.executeUpdate("UPDATE guild_experience_source_usage SET awarded_xp = 10 WHERE source_pool = 'SHOP_SALE'")
+                s.executeUpdate(
+                    "UPDATE guild_experience_source_usage SET awarded_xp = 10 WHERE source_pool = 'SHOP_SALE'",
+                )
                 s.executeUpdate("UPDATE guild_progression SET total_experience = 10")
             }
             c.commit()
@@ -162,11 +165,7 @@ internal class GuildShopXpMariaDbTest {
         assertEquals(12, xp())
     }
 
-    private fun prepare(
-        who: UUID = buyer,
-        time: Long = at,
-        policy: GuildShopXpPolicy = GuildShopXpPolicy(),
-    ): UUID {
+    private fun prepare(who: UUID = buyer, time: Long = at, policy: GuildShopXpPolicy = GuildShopXpPolicy()): UUID {
         val id = UUID.randomUUID()
         repository.prepare(GuildShopXpSale(id, guild, who, time), policy)
         return id

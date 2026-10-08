@@ -6,6 +6,7 @@ package net.lumalyte.lg.domain.values
 enum class ExperienceSource(private val poolOverride: String? = null) {
     // Guild Activities
     BANK_DEPOSIT,
+    /** Flat qualifying guild-stall SELL award with its own UTC caps and pair cooldown. */
     SHOP_SALE,
     MEMBER_JOINED,
     WAR_WON,

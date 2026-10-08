@@ -20,10 +20,7 @@ internal data class GuildShopXpCompletion(
 /** Quotes eligibility before payment and consumes completed sales atomically with progression. */
 internal interface GuildShopXpRepository {
     /** Captures immutable sale identity, membership, run and policy; conflicts fail explicitly. */
-    fun prepare(
-        sale: GuildShopXpSale,
-        policy: GuildShopXpPolicy,
-    ): String
+    fun prepare(sale: GuildShopXpSale, policy: GuildShopXpPolicy): String
 
     /** Returns the retained terminal decision, awarding a prepared qualifying sale at most once. */
     fun complete(id: UUID): GuildShopXpCompletion
@@ -36,9 +33,4 @@ internal interface GuildShopXpRepository {
  * @property buyer Customer whose membership is captured before payment.
  * @property occurredAt Sale timestamp in epoch milliseconds.
  */
-internal data class GuildShopXpSale(
-    val id: UUID,
-    val guild: UUID,
-    val buyer: UUID,
-    val occurredAt: Long,
-)
+internal data class GuildShopXpSale(val id: UUID, val guild: UUID, val buyer: UUID, val occurredAt: Long)

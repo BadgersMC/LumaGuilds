@@ -15,7 +15,8 @@ internal class CommittedTransactionTest {
         val connection = mockk<Connection>(relaxed = true)
         every { connection.autoCommit } returns true
         every { connection.rollback() } throws SQLException("rollback failed")
-        val error = assertFailsWith<SQLException> { connection.committingTransaction { throw SQLException("award failed") } }
+        val error =
+            assertFailsWith<SQLException> { connection.committingTransaction { throw SQLException("award failed") } }
         assertEquals("award failed", error.message)
         assertEquals(1, error.suppressed.size)
         verify { connection.close() }
