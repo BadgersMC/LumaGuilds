@@ -78,7 +78,10 @@ internal class MemberOwnershipMariaDbTest {
             )
             listOf(ownerRank, lowerRank).forEachIndexed { priority, id ->
                 storage.connection.executeUpdate(
-                    "INSERT INTO ranks VALUES (?, ?, ?)", id.toString(), guild.toString(), priority
+                    "INSERT INTO ranks VALUES (?, ?, ?)",
+                    id.toString(),
+                    guild.toString(),
+                    priority,
                 )
             }
             repo = MemberRepositorySQLite(storage)
@@ -86,7 +89,10 @@ internal class MemberOwnershipMariaDbTest {
             check(repo.add(next))
         }
 
-        fun assertRanks(current: UUID, successor: UUID) {
+        fun assertRanks(
+            current: UUID,
+            successor: UUID,
+        ) {
             assertEquals(current, repo.getRankId(owner.playerId, guild))
             assertEquals(successor, repo.getRankId(next.playerId, guild))
             assertEquals(current.toString(), persisted(owner))
@@ -95,8 +101,10 @@ internal class MemberOwnershipMariaDbTest {
 
         private fun persisted(member: Member): String {
             val sql = "SELECT rank_id FROM members WHERE player_id = ? AND guild_id = ?"
-            return storage.connection.getResults(sql, member.playerId.toString(), guild.toString())
-                .single().getString("rank_id")
+            return storage.connection
+                .getResults(sql, member.playerId.toString(), guild.toString())
+                .single()
+                .getString("rank_id")
         }
     }
 

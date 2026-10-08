@@ -20,12 +20,6 @@ import kotlin.test.assertTrue
 /** Direct service calls must be as restrictive as the rank/member menus. */
 @Suppress("TooManyFunctions") // Independent authority cases share one small service fixture.
 internal class RankAuthorityBoundaryTest {
-    private companion object {
-        const val ACTOR_PRIORITY = 2
-        const val LOWER_PRIORITY = 4
-        const val LOWEST_PRIORITY = 5
-    }
-
     private val guild = UUID.randomUUID()
     private val actor = UUID.randomUUID()
     private val target = UUID.randomUUID()
@@ -42,7 +36,10 @@ internal class RankAuthorityBoundaryTest {
         )
     private val management = setOf(RankPermission.MANAGE_RANKS, RankPermission.MANAGE_MEMBERS)
 
-    private fun rank(priority: Int, permissions: Set<RankPermission> = management): Rank =
+    private fun rank(
+        priority: Int,
+        permissions: Set<RankPermission> = management,
+    ): Rank =
         Rank(UUID.randomUUID(), guild, "Rank$priority", priority, permissions).also {
             every { ranks.getById(it.id) } returns it
         }
@@ -52,7 +49,10 @@ internal class RankAuthorityBoundaryTest {
             every { members.getRankId(actor, guild) } returns it.id
         }
 
-    private fun member(player: UUID, rank: Rank) {
+    private fun member(
+        player: UUID,
+        rank: Rank,
+    ) {
         every { members.getByPlayerAndGuild(player, guild) } returns Member(player, guild, rank.id, Instant.EPOCH)
     }
 
@@ -124,5 +124,11 @@ internal class RankAuthorityBoundaryTest {
         every { ranks.update(any()) } returns true
         assertTrue(service.updateRank(lower.copy(icon = "BOOK"), actor))
         verify { ranks.update(match { RankPermission.WITHDRAW_FROM_BANK in it.permissions }) }
+    }
+
+    private companion object {
+        const val ACTOR_PRIORITY = 2
+        const val LOWER_PRIORITY = 4
+        const val LOWEST_PRIORITY = 5
     }
 }

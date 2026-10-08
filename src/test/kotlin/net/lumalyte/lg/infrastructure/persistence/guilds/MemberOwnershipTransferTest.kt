@@ -97,22 +97,27 @@ internal class MemberOwnershipTransferTest {
             storage.connection.executeUpdate("CREATE TABLE ranks (id TEXT PRIMARY KEY, guild_id TEXT, priority INT)")
             listOf(ownerRank, lowerRank, thirdRank).forEachIndexed { priority, id ->
                 storage.connection.executeUpdate(
-                    "INSERT INTO ranks VALUES (?, ?, ?)", id.toString(), guild.toString(), priority
+                    "INSERT INTO ranks VALUES (?, ?, ?)",
+                    id.toString(),
+                    guild.toString(),
+                    priority,
                 )
             }
         }
 
-        fun persisted(member: Member): String {
-            return storage.connection
+        fun persisted(member: Member): String =
+            storage.connection
                 .getResults(
                     "SELECT rank_id FROM members WHERE player_id = ? AND guild_id = ?",
                     member.playerId.toString(),
                     guild.toString(),
                 ).single()
                 .getString("rank_id")
-        }
 
-        fun assertRanks(current: UUID, successor: UUID) {
+        fun assertRanks(
+            current: UUID,
+            successor: UUID,
+        ) {
             assertEquals(current, repo.getRankId(owner.playerId, guild))
             assertEquals(successor, repo.getRankId(next.playerId, guild))
             assertEquals(current.toString(), persisted(owner))
