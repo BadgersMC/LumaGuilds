@@ -678,3 +678,11 @@ WHEN a companion checks guild alliance access THE public GuildAllianceLookup SHA
 
 ### REQ-144
 WHEN a currently authorized shop manager opens guild stall details THE Java and Bedrock controls SHALL offer the Market stall flags/access command. Market SHALL revalidate stall ownership and authority on each mutation; the shortcut SHALL NOT grant permissions.
+
+### REQ-145 — In-server guild Getting Started
+
+WHEN a player requests guild onboarding THE SYSTEM SHALL present current, permission-aware Java/Bedrock guidance and read-only milestone states, recheck every click, preserve existing costs/permissions, and offer guild creation and directory help before membership. See guild-onboarding.md.
+
+### REQ-146 — One-time membership prompt
+
+WHEN a guild creation or new membership occurs THE SYSTEM SHALL persist one pending prompt per player/guild, consume it once only for an online current member, retain pending offline prompts and preserve consumption across duplicate events and restarts. Existing memberships SHALL NOT be retroactively enrolled. See guild-onboarding.md.
