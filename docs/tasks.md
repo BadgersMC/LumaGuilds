@@ -983,3 +983,9 @@ Ported from FainNeito/LumaGuilds#2/#3 onto the Enthusia redesign: the holiday st
   - Refine: Focused role service, listener, SQL repository, architecture and Koin tests: 36 tests, zero failures. Full `test shadowJar` on Java 25 / Paper 26.2: 1542 tests, 0 failures, 0 errors, 4 skipped; build passed. Exact PR-head GitHub checks are pending.
   - Tooling: This checkout has no project-local EARS validator or SPEAR state helper. REQ-071 and this evidence/task record are maintained directly; no helper validation is claimed.
   - Acceptance boundary: No Discord roles have been deleted in this run. Merge, canonical network pin/build, deployment/activation and live role verification remain required.
+
+
+- [x] CHECKLIST-INTEGRATION: Reconcile the approved PR source chain without losing bank/stall commands, shutdown hooks or Gradle integration inputs.
+  - Tag: INFRA
+  - References: REQ-071, REQ-121 through REQ-134; docs/checklist-correctness.md.
+  - Evidence: local merge conflicts reproduced; reconciled source ancestry verified. Combined suite 1,653 tests, zero failures/errors, four unrelated skips; 54 separate native cases, zero skips. Hosted final-head checks and subsequent authorized release/player acceptance remain distinct.
