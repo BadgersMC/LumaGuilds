@@ -1,0 +1,1724 @@
+# LumaGuilds holiday menu styles (REQ-121): Halloween/Christmas style swatches and the seasonal
+# icon set each style sends (<icon>_<style>, see SeasonalIcons). Same install as lumaguilds_enthusia_icons.yml.
+
+lg_theme_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/theme_halloween
+
+lg_theme_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/theme_christmas
+
+lg_nav_info_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/guild_info
+
+lg_nav_members_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/members
+
+lg_nav_ranks_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/ranks
+
+lg_nav_quests_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/quests
+
+lg_nav_economy_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/bank
+
+lg_nav_settings_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/settings
+
+lg_nav_progression_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/level
+
+lg_nav_diplomacy_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/alliances
+
+lg_nav_warfare_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/wars
+
+lg_nav_statistics_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/statistics
+
+lg_back_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/back
+
+lg_page_prev_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/prev
+
+lg_page_next_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/next
+
+lg_close_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/close
+
+lg_confirm_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/confirm
+
+lg_cancel_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/cancel
+
+lg_toggle_on_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/toggle_on
+
+lg_toggle_off_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/toggle_off
+
+lg_invite_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/invite
+
+lg_kick_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/kick
+
+lg_promote_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/promote
+
+lg_home_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/home
+
+lg_bank_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/bank
+
+lg_deposit_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/deposit
+
+lg_withdraw_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/withdraw
+
+lg_history_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/history
+
+lg_level_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/level
+
+lg_emoji_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/emoji
+
+lg_tag_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/tag
+
+lg_description_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/description
+
+lg_rank_create_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/rank_create
+
+lg_alliance_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/alliance_rings
+
+lg_truce_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/truce
+
+lg_peace_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/olive_branch
+
+lg_enemy_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/enemy
+
+lg_declare_war_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/declare_war
+
+lg_war_stats_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/war_stats
+
+lg_relations_history_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/book
+
+lg_leader_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/leader
+
+lg_leave_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/leave
+
+lg_disband_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/disband
+
+lg_claims_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/claims
+
+lg_mode_peaceful_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/mode_peaceful
+
+lg_mode_hostile_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/mode_hostile
+
+lg_party_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/party
+
+lg_vault_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/vault
+
+lg_created_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/calendar
+
+lg_sort_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/sort
+
+lg_confirm_danger_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/confirm_danger
+
+lg_requests_in_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/requests_in
+
+lg_requests_out_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/requests_out
+
+lg_requests_in_empty_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/requests_in_empty
+
+lg_requests_out_empty_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/requests_out_empty
+
+lg_no_wars_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/no_wars
+
+lg_no_parties_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/no_parties
+
+lg_deposit_100_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/deposit_100
+
+lg_withdraw_100_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/withdraw_100
+
+lg_deposit_1000_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/deposit_1000
+
+lg_withdraw_1000_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/withdraw_1000
+
+lg_deposit_10000_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/deposit_10000
+
+lg_withdraw_10000_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/withdraw_10000
+
+lg_deposit_all_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/deposit_all
+
+lg_withdraw_all_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/withdraw_all
+
+lg_nav_actions_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/actions
+
+lg_vault_unavailable_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/vault_unavailable
+
+lg_mining_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/src_mining
+
+lg_ore_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/src_ore
+
+lg_farming_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/src_farming
+
+lg_fishing_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/src_fishing
+
+lg_combat_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/src_combat
+
+lg_smelting_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/src_smelting
+
+lg_crafting_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/src_crafting
+
+lg_enchanting_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/src_enchanting
+
+lg_brewing_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/src_brewing
+
+lg_exploration_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/src_exploration
+
+lg_block_place_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/src_block_place
+
+lg_qualified_recruit_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/src_recruit
+
+lg_war_victory_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/src_war_victory
+
+lg_war_defeat_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/src_war_defeat
+
+lg_claiming_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/claims
+
+lg_sources_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/prog_sources
+
+lg_reward_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/prog_reward
+
+lg_prestige_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/prog_prestige
+
+lg_stats_kills_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/stats_kills
+
+lg_stats_wars_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/stats_wars
+
+lg_stats_members_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/stats_members
+
+lg_stats_performance_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/stats_performance
+
+lg_stats_top_killers_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/stats_top_killers
+
+lg_stats_top_contributors_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/stats_top_contributors
+
+lg_stats_kd_analysis_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/stats_kd
+
+lg_stats_recent_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/stats_recent
+
+lg_stats_top_inviters_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/stats_top_inviters
+
+lg_stats_periodic_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/stats_periodic
+
+lg_stats_rivalry_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/stats_rivalry
+
+lg_stats_achievements_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/stats_achievements
+
+lg_stats_comparison_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/stats_comparison
+
+lg_stats_refresh_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/stats_refresh
+
+lg_gold_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/bank_gold
+
+lg_automation_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/bank_automation
+
+lg_bank_member_contributions_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/bank_contributions
+
+lg_bank_statistics_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/bank_statistics
+
+lg_home_set_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/home_set
+
+lg_home_add_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/home_add
+
+lg_home_remove_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/home_remove
+
+lg_home_teleport_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/home_teleport
+
+lg_home_list_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/home_list
+
+lg_home_none_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/home_none
+
+lg_home_access_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/home_access
+
+lg_ally_access_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/ally_access
+
+lg_ally_home_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/ally_home
+
+lg_ally_home_locked_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/ally_home_locked
+
+lg_party_send_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/party_send
+
+lg_party_create_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/party_create
+
+lg_party_send_locked_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/party_send_locked
+
+lg_party_create_locked_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/party_create_locked
+
+lg_party_access_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/party_access
+
+lg_party_access_locked_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/party_access_locked
+
+lg_party_permissions_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/party_permissions
+
+lg_party_info_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/party_info
+
+lg_party_moderate_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/party_moderate
+
+lg_active_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/war_active
+
+lg_star_halloween:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/halloween/star
+
+lg_nav_info_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/guild_info
+
+lg_nav_members_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/members
+
+lg_nav_ranks_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/ranks
+
+lg_nav_quests_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/quests
+
+lg_nav_economy_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/bank
+
+lg_nav_settings_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/settings
+
+lg_nav_progression_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/level
+
+lg_nav_diplomacy_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/alliances
+
+lg_nav_warfare_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/wars
+
+lg_nav_statistics_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/statistics
+
+lg_back_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/back
+
+lg_page_prev_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/prev
+
+lg_page_next_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/next
+
+lg_close_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/close
+
+lg_confirm_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/confirm
+
+lg_cancel_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/cancel
+
+lg_toggle_on_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/toggle_on
+
+lg_toggle_off_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/toggle_off
+
+lg_invite_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/invite
+
+lg_kick_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/kick
+
+lg_promote_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/promote
+
+lg_home_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/home
+
+lg_bank_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/bank
+
+lg_deposit_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/deposit
+
+lg_withdraw_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/withdraw
+
+lg_history_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/history
+
+lg_level_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/level
+
+lg_emoji_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/emoji
+
+lg_tag_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/tag
+
+lg_description_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/description
+
+lg_rank_create_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/rank_create
+
+lg_alliance_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/alliance_rings
+
+lg_truce_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/truce
+
+lg_peace_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/olive_branch
+
+lg_enemy_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/enemy
+
+lg_declare_war_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/declare_war
+
+lg_war_stats_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/war_stats
+
+lg_relations_history_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/book
+
+lg_leader_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/leader
+
+lg_leave_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/leave
+
+lg_disband_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/disband
+
+lg_claims_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/claims
+
+lg_mode_peaceful_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/mode_peaceful
+
+lg_mode_hostile_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/mode_hostile
+
+lg_party_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/party
+
+lg_vault_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/vault
+
+lg_created_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/calendar
+
+lg_sort_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/sort
+
+lg_confirm_danger_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/confirm_danger
+
+lg_requests_in_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/requests_in
+
+lg_requests_out_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/requests_out
+
+lg_requests_in_empty_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/requests_in_empty
+
+lg_requests_out_empty_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/requests_out_empty
+
+lg_no_wars_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/no_wars
+
+lg_no_parties_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/no_parties
+
+lg_deposit_100_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/deposit_100
+
+lg_withdraw_100_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/withdraw_100
+
+lg_deposit_1000_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/deposit_1000
+
+lg_withdraw_1000_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/withdraw_1000
+
+lg_deposit_10000_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/deposit_10000
+
+lg_withdraw_10000_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/withdraw_10000
+
+lg_deposit_all_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/deposit_all
+
+lg_withdraw_all_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/withdraw_all
+
+lg_nav_actions_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/actions
+
+lg_vault_unavailable_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/vault_unavailable
+
+lg_mining_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/src_mining
+
+lg_ore_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/src_ore
+
+lg_farming_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/src_farming
+
+lg_fishing_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/src_fishing
+
+lg_combat_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/src_combat
+
+lg_smelting_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/src_smelting
+
+lg_crafting_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/src_crafting
+
+lg_enchanting_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/src_enchanting
+
+lg_brewing_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/src_brewing
+
+lg_exploration_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/src_exploration
+
+lg_block_place_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/src_block_place
+
+lg_qualified_recruit_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/src_recruit
+
+lg_war_victory_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/src_war_victory
+
+lg_war_defeat_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/src_war_defeat
+
+lg_claiming_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/claims
+
+lg_sources_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/prog_sources
+
+lg_reward_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/prog_reward
+
+lg_prestige_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/prog_prestige
+
+lg_stats_kills_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/stats_kills
+
+lg_stats_wars_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/stats_wars
+
+lg_stats_members_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/stats_members
+
+lg_stats_performance_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/stats_performance
+
+lg_stats_top_killers_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/stats_top_killers
+
+lg_stats_top_contributors_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/stats_top_contributors
+
+lg_stats_kd_analysis_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/stats_kd
+
+lg_stats_recent_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/stats_recent
+
+lg_stats_top_inviters_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/stats_top_inviters
+
+lg_stats_periodic_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/stats_periodic
+
+lg_stats_rivalry_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/stats_rivalry
+
+lg_stats_achievements_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/stats_achievements
+
+lg_stats_comparison_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/stats_comparison
+
+lg_stats_refresh_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/stats_refresh
+
+lg_gold_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/bank_gold
+
+lg_automation_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/bank_automation
+
+lg_bank_member_contributions_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/bank_contributions
+
+lg_bank_statistics_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/bank_statistics
+
+lg_home_set_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/home_set
+
+lg_home_add_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/home_add
+
+lg_home_remove_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/home_remove
+
+lg_home_teleport_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/home_teleport
+
+lg_home_list_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/home_list
+
+lg_home_none_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/home_none
+
+lg_home_access_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/home_access
+
+lg_ally_access_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/ally_access
+
+lg_ally_home_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/ally_home
+
+lg_ally_home_locked_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/ally_home_locked
+
+lg_party_send_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/party_send
+
+lg_party_create_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/party_create
+
+lg_party_send_locked_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/party_send_locked
+
+lg_party_create_locked_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/party_create_locked
+
+lg_party_access_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/party_access
+
+lg_party_access_locked_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/party_access_locked
+
+lg_party_permissions_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/party_permissions
+
+lg_party_info_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/party_info
+
+lg_party_moderate_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/party_moderate
+
+lg_active_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/war_active
+
+lg_star_christmas:
+  material: PAPER
+  excludeFromInventory: true
+  Pack:
+    parent_model: item/generated
+    texture: lumaguilds:enthusia/christmas/star

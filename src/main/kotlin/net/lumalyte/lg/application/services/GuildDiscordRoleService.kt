@@ -2,9 +2,11 @@ package net.lumalyte.lg.application.services
 
 import net.lumalyte.lg.application.persistence.GuildDiscordRoleRepository
 import net.lumalyte.lg.application.persistence.ProgressionRepository
+import net.lumalyte.lg.application.persistence.RewardOwnershipRepository
 import net.lumalyte.lg.config.DiscordGuildRolesConfig
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildDiscordRoleLink
+import net.lumalyte.lg.domain.rewards.RewardOwnershipRead
 import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.util.UUID
@@ -36,10 +38,11 @@ class GuildDiscordRoleService(
     private val repository: GuildDiscordRoleRepository,
     private val gateway: DiscordGuildRoleGateway,
     private val progressionRepository: ProgressionRepository,
+    private val rewardOwnershipRepository: RewardOwnershipRepository,
     private val clock: Clock = Clock.systemUTC(),
 ) {
     private val logger = LoggerFactory.getLogger(GuildDiscordRoleService::class.java)
-    private val ensureInFlight = ConcurrentHashMap<UUID, CompletableFuture<EnsuredRole>>()
+    private val ensureInFlight = ConcurrentHashMap<UUID, CompletableFuture<EnsuredRole?>>()
     private val memberSyncInFlight =
         ConcurrentHashMap<MemberRoleKey, CompletableFuture<DiscordGuildRoleSyncSummary>>()
 
@@ -70,20 +73,14 @@ class GuildDiscordRoleService(
         val config = config()
         if (!config.enabled || !gateway.isAvailable()) return completed(DiscordGuildRoleSyncSummary())
         val guild = guildService.getGuild(guildId) ?: return completed(DiscordGuildRoleSyncSummary())
-        val level = guildLevel(guild) ?: return completed(DiscordGuildRoleSyncSummary(failures = 1))
-        val previouslyUnlocked = repository.get(guildId) != null
-        if (level < config.minimumLevel && !previouslyUnlocked) {
-            return completed(DiscordGuildRoleSyncSummary())
-        }
+        val allowCreate = canCreateRole(guild, config) ?: return completed(DiscordGuildRoleSyncSummary(failures = 1))
+        if (!allowCreate) return removeIneligibleRole(guildId)
 
-        return ensureRole(guild, config).thenCompose { ensured ->
-            val currentLevel = guildLevel(guild)
+        return ensureRole(guild, config, allowCreate).thenCompose { ensured ->
+            if (ensured == null) return@thenCompose completed(DiscordGuildRoleSyncSummary())
+            val stillAllowed = canCreateRole(guild, config)
                 ?: return@thenCompose completed(DiscordGuildRoleSyncSummary(failures = 1))
-            if (currentLevel < config.minimumLevel && !previouslyUnlocked) {
-                val link = repository.get(guild.id)
-                    ?: return@thenCompose completed(DiscordGuildRoleSyncSummary())
-                return@thenCompose deleteManagedRole(link, "ineligible guild")
-            }
+            if (!stillAllowed) return@thenCompose removeIneligibleRole(guildId)
             val allowedPlayerIds = memberService.getGuildMembers(guild.id)
                 .mapTo(linkedSetOf()) { it.playerId }
             gateway.revokeUnexpectedRoleMembers(ensured.roleId, allowedPlayerIds)
@@ -122,22 +119,16 @@ class GuildDiscordRoleService(
             }
             val guild = guildService.getGuild(guildId)
                 ?: return@serializeMemberUpdate completed(DiscordGuildRoleSyncSummary())
-            val level = guildLevel(guild)
+            val allowCreate = canCreateRole(guild, config)
                 ?: return@serializeMemberUpdate completed(DiscordGuildRoleSyncSummary(failures = 1))
-            val previouslyUnlocked = repository.get(guildId) != null
-            if (level < config.minimumLevel && !previouslyUnlocked) {
-                return@serializeMemberUpdate completed(DiscordGuildRoleSyncSummary())
-            }
+            if (!allowCreate) return@serializeMemberUpdate removeIneligibleRole(guildId)
 
-            ensureRole(guild, config)
+            ensureRole(guild, config, allowCreate)
                 .thenCompose { ensured ->
-                    val currentLevel = guildLevel(guild)
+                    if (ensured == null) return@thenCompose completed(DiscordGuildRoleSyncSummary())
+                    val stillAllowed = canCreateRole(guild, config)
                         ?: return@thenCompose completed(DiscordGuildRoleSyncSummary(failures = 1))
-                    if (currentLevel < config.minimumLevel && !previouslyUnlocked) {
-                        val link = repository.get(guild.id)
-                            ?: return@thenCompose completed(DiscordGuildRoleSyncSummary())
-                        return@thenCompose deleteManagedRole(link, "ineligible guild")
-                    }
+                    if (!stillAllowed) return@thenCompose removeIneligibleRole(guildId)
                     gateway.grantRole(playerId, ensured.roleId).thenApply { result ->
                         memberResult(result, null, grant = true)
                             .copy(rolesCreated = if (ensured.created) 1 else 0)
@@ -222,21 +213,20 @@ class GuildDiscordRoleService(
         }
     }
 
-    private fun ensureRole(guild: Guild, config: DiscordGuildRolesConfig): CompletableFuture<EnsuredRole> {
+    private fun ensureRole(
+        guild: Guild,
+        config: DiscordGuildRolesConfig,
+        allowCreate: Boolean,
+    ): CompletableFuture<EnsuredRole?> {
         ensureInFlight[guild.id]?.let { return it }
 
-        val claimed = CompletableFuture<EnsuredRole>()
+        val claimed = CompletableFuture<EnsuredRole?>()
         val winner = ensureInFlight.putIfAbsent(guild.id, claimed)
         if (winner != null) return winner
 
         try {
-            doEnsureRole(guild, config).whenComplete { ensured, error ->
-                if (error == null) {
-                    claimed.complete(ensured)
-                } else {
-                    claimed.completeExceptionally(unwrap(error))
-                }
-                ensureInFlight.remove(guild.id, claimed)
+            doEnsureRole(guild, config, allowCreate).whenComplete { ensured, error ->
+                completeRoleEnsure(guild.id, claimed, ensured, error)
             }
         } catch (error: Throwable) {
             claimed.completeExceptionally(error)
@@ -245,10 +235,29 @@ class GuildDiscordRoleService(
         return claimed
     }
 
-    private fun doEnsureRole(guild: Guild, config: DiscordGuildRolesConfig): CompletableFuture<EnsuredRole> {
+    private fun completeRoleEnsure(
+        guildId: UUID,
+        claimed: CompletableFuture<EnsuredRole?>,
+        ensured: EnsuredRole?,
+        error: Throwable?,
+    ) {
+        if (error == null) {
+            claimed.complete(ensured)
+        } else {
+            claimed.completeExceptionally(unwrap(error))
+        }
+        ensureInFlight.remove(guildId, claimed)
+    }
+
+    private fun doEnsureRole(
+        guild: Guild,
+        config: DiscordGuildRolesConfig,
+        allowCreate: Boolean,
+    ): CompletableFuture<EnsuredRole?> {
         val existing = repository.get(guild.id)
         val roleName = renderRoleName(config.roleNameFormat, guild.name)
-        return gateway.ensureRole(existing?.discordRoleId, roleName).thenCompose { ensured ->
+        return gateway.ensureRole(existing?.discordRoleId, roleName, allowCreate).thenCompose { ensured ->
+            if (ensured == null) return@thenCompose completed(null)
             val linkChanged = existing == null || existing.discordRoleId != ensured.roleId
             if (!linkChanged) {
                 completed(EnsuredRole(ensured.roleId, ensured.created))
@@ -302,6 +311,11 @@ class GuildDiscordRoleService(
     private fun deleteOrphan(link: GuildDiscordRoleLink): CompletableFuture<DiscordGuildRoleSyncSummary> =
         deleteManagedRole(link, "orphan")
 
+    private fun removeIneligibleRole(guildId: UUID): CompletableFuture<DiscordGuildRoleSyncSummary> {
+        val link = repository.get(guildId) ?: return completed(DiscordGuildRoleSyncSummary())
+        return deleteManagedRole(link, "ineligible guild")
+    }
+
     private fun deleteManagedRole(
         link: GuildDiscordRoleLink,
         reason: String,
@@ -320,6 +334,28 @@ class GuildDiscordRoleService(
     } catch (error: Exception) {
         logger.warn("Failed to read current level for Discord guild role ${guild.id}", error)
         null
+    }
+
+    private fun canCreateRole(guild: Guild, config: DiscordGuildRolesConfig): Boolean? {
+        val level = guildLevel(guild) ?: return null
+        if (level >= config.minimumLevel) return true
+        return hasCompletedPrestige(guild.id)
+    }
+
+    private fun hasCompletedPrestige(guildId: UUID): Boolean? {
+        return try {
+            when (val ownership = rewardOwnershipRepository.read(guildId)) {
+                is RewardOwnershipRead.Found -> ownership.snapshot.ownership.prestigeCount > 0
+                RewardOwnershipRead.Missing -> false
+                is RewardOwnershipRead.Failed -> {
+                    logger.warn("Failed to read prestige for Discord guild role $guildId: ${ownership.reason}")
+                    null
+                }
+            }
+        } catch (error: Exception) {
+            logger.warn("Failed to read prestige for Discord guild role $guildId", error)
+            null
+        }
     }
 
     internal fun renderRoleName(format: String, guildName: String): String =

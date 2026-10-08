@@ -1,0 +1,74 @@
+# Guild-menu backgrounds for the holiday styles (REQ-121; MenuTitleBuilder: guild_bg_<theme>_<rows>_row).
+# ascent/height match guild_bg_enthusia_*; chars U+A060.. follow the Enthusia-family range (U+A040-U+A05D).
+
+guild_bg_halloween_1_row:
+  texture: gui/halloween/guild_menu_halloween_1_row
+  ascent: 13
+  height: 256
+  char: ꁠ
+
+guild_bg_halloween_2_row:
+  texture: gui/halloween/guild_menu_halloween_2_row
+  ascent: 13
+  height: 256
+  char: ꁡ
+
+guild_bg_halloween_3_row:
+  texture: gui/halloween/guild_menu_halloween_3_row
+  ascent: 13
+  height: 256
+  char: ꁢ
+
+guild_bg_halloween_4_row:
+  texture: gui/halloween/guild_menu_halloween_4_row
+  ascent: 13
+  height: 256
+  char: ꁣ
+
+guild_bg_halloween_5_row:
+  texture: gui/halloween/guild_menu_halloween_5_row
+  ascent: 13
+  height: 256
+  char: ꁤ
+
+guild_bg_halloween_6_row:
+  texture: gui/halloween/guild_menu_halloween_6_row
+  ascent: 13
+  height: 256
+  char: ꁥ
+
+guild_bg_christmas_1_row:
+  texture: gui/christmas/guild_menu_christmas_1_row
+  ascent: 13
+  height: 256
+  char: ꁦ
+
+guild_bg_christmas_2_row:
+  texture: gui/christmas/guild_menu_christmas_2_row
+  ascent: 13
+  height: 256
+  char: ꁧ
+
+guild_bg_christmas_3_row:
+  texture: gui/christmas/guild_menu_christmas_3_row
+  ascent: 13
+  height: 256
+  char: ꁨ
+
+guild_bg_christmas_4_row:
+  texture: gui/christmas/guild_menu_christmas_4_row
+  ascent: 13
+  height: 256
+  char: ꁩ
+
+guild_bg_christmas_5_row:
+  texture: gui/christmas/guild_menu_christmas_5_row
+  ascent: 13
+  height: 256
+  char: ꁪ
+
+guild_bg_christmas_6_row:
+  texture: gui/christmas/guild_menu_christmas_6_row
+  ascent: 13
+  height: 256
+  char: ꁫ
