@@ -1,0 +1,32 @@
+name: Prepare verified AxKoth API dependencies
+description: Cache the unchanged official API artifacts and verify downloads before Gradle runs
+runs:
+  using: composite
+  steps:
+    - name: Restore pinned AxKoth Maven artifacts
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: |
+          ~/.m2/repository/com/artillexstudios/AxKothAPI/4
+          ~/.m2/repository/com/artillexstudios/axapi/axapi/1.4.8
+        key: axkoth-api-v4-${{ runner.os }}-${{ hashFiles('ci/axkoth/artifacts.sha256') }}
+
+    - name: Verify cached artifacts or download original published bytes
+      shell: bash
+      run: |
+        set -euo pipefail
+        task_repository="$HOME/.m2/repository"
+        mkdir -p "$task_repository"
+        while read -r task_digest task_relative; do
+          task_artifact="$task_repository/$task_relative"
+          mkdir -p "$(dirname "$task_artifact")"
+          if ! printf '%s  %s\n' "$task_digest" "$task_artifact" | sha256sum --check --status; then
+            curl --fail --silent --show-error --location --http1.1 \
+              --proto '=https' --proto-redir '=https' \
+              --retry 5 --retry-all-errors --retry-delay 1 \
+              --connect-timeout 15 --max-time 60 \
+              --output "$task_artifact" \
+              "https://repo.artillex-studios.com/releases/$task_relative"
+          fi
+          printf '%s  %s\n' "$task_digest" "$task_artifact" | sha256sum --check
+        done < "$GITHUB_WORKSPACE/ci/axkoth/artifacts.sha256"

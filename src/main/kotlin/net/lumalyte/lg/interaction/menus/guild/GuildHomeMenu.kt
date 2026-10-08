@@ -319,16 +319,29 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                     .lore(allyAction)
 
             val guiItem = GuiItem(allyItem) {
-                if (!allowed) {
-                    player.sendMessage(lang.msg("menu.guild_home.feedback.ally_denied"))
-                    player.sendMessage(lang.msg("menu.guild_home.feedback.ally_reason"))
-                    return@GuiItem
-                }
-                startTeleportCountdown(home)
+                teleportToAllyHome(targetGuild?.id)
             }
             pane.addItem(guiItem, slot, y)
             slot++
         }
+    }
+
+    private fun teleportToAllyHome(targetGuildId: UUID?) {
+        if (targetGuildId == null) return denyAllyHome()
+        val currentTarget = guildService.getGuild(targetGuildId) ?: return denyAllyHome()
+        val currentHome = currentTarget.allyHome ?: return denyAllyHome()
+        if (!canTeleportToAllyHome(currentTarget, currentHome)) return denyAllyHome()
+        startTeleportCountdown(currentHome)
+    }
+
+    private fun canTeleportToAllyHome(target: Guild, home: GuildHome): Boolean {
+        val eligibleHome = guildService.getAllyHomes(guild.id)[target.name]
+        return eligibleHome == home && guildService.canUseAllyHome(player.uniqueId, guild.id, target.id)
+    }
+
+    private fun denyAllyHome() {
+        player.sendMessage(lang.msg("menu.guild_home.feedback.ally_denied"))
+        player.sendMessage(lang.msg("menu.guild_home.feedback.ally_reason"))
     }
 
     private fun showRemoveHomesMenu() {
