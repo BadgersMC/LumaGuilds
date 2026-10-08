@@ -78,7 +78,7 @@ internal class GuildStallMenuSafetyTest {
                     override val resourceClassLoader: ClassLoader = LumaGuildsLang::class.java.classLoader
                 },
                 Locale("en_US"),
-                LumaGuildsLang::class.java,
+                LumaGuildsLang::class.java
             )
         stopKoin()
         startKoin {
@@ -87,7 +87,7 @@ internal class GuildStallMenuSafetyTest {
                     single<Plugin> { plugin }
                     single { members }
                     single { lang }
-                },
+                }
             )
         }
     }
@@ -105,7 +105,7 @@ internal class GuildStallMenuSafetyTest {
     fun closeDiscardsLateData() {
         server.pluginManager.callEvent(
             org.bukkit.event.inventory
-                .InventoryCloseEvent(player.openInventory),
+                .InventoryCloseEvent(player.openInventory)
         )
         player.closeInventory()
         pending.complete(StallReadResult.Available(emptyList()))
@@ -171,7 +171,14 @@ internal class GuildStallMenuSafetyTest {
             formType.declaredConstructors
                 .single()
                 .apply { isAccessible = true }
-                .newInstance(menu, navigator, player, navigator.currentNavigationToken(), Component.text("Stall"), listOf(row))
+                .newInstance(
+                    menu,
+                    navigator,
+                    player,
+                    navigator.currentNavigationToken(),
+                    Component.text("Stall"),
+                    listOf(row)
+                )
                 as BaseBedrockMenu
         return view.getForm() as SimpleForm
     }

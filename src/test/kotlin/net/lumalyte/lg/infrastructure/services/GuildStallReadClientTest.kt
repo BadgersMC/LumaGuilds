@@ -23,7 +23,10 @@ internal class GuildStallReadClientTest {
     /** A successful empty response is a distinct state. */
     @Test
     fun preservesEmptyResponse() {
-        assertEquals(StallReadResult.Available(emptyList()), GuildStallReadClient { Provider(1) }.read(guild, viewer).join())
+        assertEquals(
+            StallReadResult.Available(emptyList()),
+            GuildStallReadClient { Provider(1) }.read(guild, viewer).join()
+        )
     }
 
     /** Exceptional or malformed results cannot claim usable data. */
@@ -45,7 +48,7 @@ internal class GuildStallReadClientTest {
 
     /** Reflective shape fixture; actual API compatibility is verified separately. */
     class Provider(
-        private val version: Int,
+        private val version: Int
     ) {
         /** Response controlled by failure-path tests. */
         val response = CompletableFuture<List<Any>>()
@@ -54,9 +57,7 @@ internal class GuildStallReadClientTest {
         fun apiVersion(): Int = version
 
         /** Test-only service method preserving the public companion call signature. */
-        fun guildStalls(
-            guild: UUID,
-            viewer: UUID,
-        ): CompletableFuture<List<Any>> = if (response.isDone) response else CompletableFuture.completedFuture(emptyList())
+        fun guildStalls(guild: UUID, viewer: UUID): CompletableFuture<List<Any>> =
+            if (response.isDone) response else CompletableFuture.completedFuture(emptyList())
     }
 }

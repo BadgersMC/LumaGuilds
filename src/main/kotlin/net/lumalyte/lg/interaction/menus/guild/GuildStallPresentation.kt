@@ -9,14 +9,14 @@ import java.time.Instant
 
 /** Localized display text; navigation and current-member checks stay in the menu. */
 internal class GuildStallPresentation(
-    private val lang: LangService,
+    private val lang: LangService
 ) {
     fun metadata(stall: GuildStallInfo): List<Component> =
         listOf(
             lang.gui(
                 "guild_stall.location",
                 "world" to Component.text(stall.world),
-                "location" to Component.text(stall.coordinates ?: stall.region),
+                "location" to Component.text(stall.coordinates ?: stall.region)
             ),
             lang.gui("guild_stall.state", "state" to stateText(stall.state)),
             lang.gui(
@@ -24,14 +24,15 @@ internal class GuildStallPresentation(
                 "amount" to stall.rent,
                 "interval" to
                     net.lumalyte.lg.utils.QuestDisplayFormatter
-                        .duration(java.time.Duration.ofSeconds(stall.intervalSeconds)),
+                        .duration(java.time.Duration.ofSeconds(stall.intervalSeconds))
             ),
             lang.gui("guild_stall.due", "time" to instantText(stall.nextRentAt)),
             lang.gui("guild_stall.grace", "time" to instantText(stall.graceEndsAt)),
-            lang.gui("guild_stall.members", "count" to stall.members.size),
+            lang.gui("guild_stall.members", "count" to stall.members.size)
         )
 
-    private fun instantText(value: Instant?): Component = value?.let { Component.text(it.toString()) } ?: lang.gui("guild_stall.unknown")
+    private fun instantText(value: Instant?): Component =
+        value?.let { Component.text(it.toString()) } ?: lang.gui("guild_stall.unknown")
 
     private fun stateText(state: String): Component =
         when (state) {

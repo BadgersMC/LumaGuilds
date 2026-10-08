@@ -19,32 +19,30 @@ internal class GuildStallReadClient(
         services.knownServices.firstOrNull { it.name == API_NAME }?.let {
             services.getRegistration(it)?.provider
         }
-    },
-) : GuildStallReadService {
-    override fun read(
-        guildId: UUID,
-        viewerId: UUID,
-    ): CompletableFuture<StallReadResult> {
-        return try {
-            val service = provider() ?: return unavailable()
-            if (service.javaClass.getMethod("apiVersion").invoke(service) != API_VERSION) return unavailable()
-            val stage =
-                service.javaClass
-                    .getMethod("guildStalls", UUID::class.java, UUID::class.java)
-                    .invoke(service, guildId, viewerId) as? CompletionStage<*> ?: return unavailable()
-            stage.toCompletableFuture().orTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS).handle<StallReadResult> { value, error ->
-                if (error != null) {
-                    StallReadResult.Unavailable
-                } else {
-                    runCatching<StallReadResult> {
-                        StallReadResult.Available((value as List<*>).map { decode(requireNotNull(it)) })
-                    }.getOrDefault(StallReadResult.Unavailable)
-                }
-            }
-        } catch (_: Exception) {
-            unavailable()
-        }
     }
+) : GuildStallReadService {
+    override fun read(guildId: UUID, viewerId: UUID): CompletableFuture<StallReadResult> {
+        val stage = runCatching { loadStage(guildId, viewerId) }.getOrNull() ?: return unavailable()
+        return stage
+            .toCompletableFuture()
+            .orTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .handle<StallReadResult> { value, error ->
+                if (error != null) StallReadResult.Unavailable else decodeRows(value)
+            }
+    }
+
+    private fun loadStage(guildId: UUID, viewerId: UUID): CompletionStage<*>? {
+        val service = provider() ?: return null
+        check(service.javaClass.getMethod("apiVersion").invoke(service) == API_VERSION)
+        return service.javaClass
+            .getMethod("guildStalls", UUID::class.java, UUID::class.java)
+            .invoke(service, guildId, viewerId) as? CompletionStage<*>
+    }
+
+    private fun decodeRows(value: Any?): StallReadResult =
+        runCatching<StallReadResult> {
+            StallReadResult.Available((value as List<*>).map { decode(requireNotNull(it)) })
+        }.getOrDefault(StallReadResult.Unavailable)
 
     private fun decode(row: Any): GuildStallInfo =
         GuildStallInfo(
@@ -61,9 +59,9 @@ internal class GuildStallReadClient(
                 val member = requireNotNull(raw)
                 GuildStallMemberInfo(
                     member.field("playerId") as UUID,
-                    (member.field("permissions") as Set<*>).map { GuildStallPermission.valueOf(it as String) }.toSet(),
+                    (member.field("permissions") as Set<*>).map { GuildStallPermission.valueOf(it as String) }.toSet()
                 )
-            },
+            }
         )
 
     // A wrong non-null type is an unavailable contract, not silently missing metadata.
@@ -79,7 +77,8 @@ internal class GuildStallReadClient(
             require(it.isNotBlank() && it.length <= MAX_TEXT_LENGTH && it.none(Char::isISOControl))
         }
 
-    private fun unavailable(): CompletableFuture<StallReadResult> = CompletableFuture.completedFuture(StallReadResult.Unavailable)
+    private fun unavailable(): CompletableFuture<StallReadResult> =
+        CompletableFuture.completedFuture(StallReadResult.Unavailable)
 
     private companion object {
         const val API_NAME = "net.enthusia.market.api.guild.GuildStallReadApi"
@@ -96,6 +95,6 @@ internal object GuildStallLoadGuard {
         expected: Long,
         current: Long,
         online: Boolean,
-        member: Boolean,
+        member: Boolean
     ): Boolean = expected == current && online && member
 }
