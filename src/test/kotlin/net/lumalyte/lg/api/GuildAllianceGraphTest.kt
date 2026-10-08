@@ -30,16 +30,27 @@ internal class GuildAllianceGraphTest {
         val c = UUID.randomUUID()
         val guilds = mockk<GuildService>()
         val relations = mockk<RelationService>()
-        every { guilds.getAllGuilds() } returns listOf(a, b, c).mapIndexed { index, id ->
-            Guild(id = id, name = "guild$index", createdAt = Instant.now())
-        }.toSet()
+        val guildSet =
+            listOf(a, b, c)
+                .mapIndexed { index, id ->
+                    Guild(id = id, name = "guild$index", createdAt = Instant.now())
+                }.toSet()
+        every { guilds.getAllGuilds() } returns guildSet
         val active = Relation.create(guildA = a, guildB = b, type = RelationType.ALLY)
-        val pending = Relation.create(
-            guildA = a, guildB = c, type = RelationType.ALLY, status = RelationStatus.PENDING,
-        )
-        val expired = Relation.create(
-            guildA = b, guildB = c, type = RelationType.ALLY, status = RelationStatus.EXPIRED,
-        )
+        val pending =
+            Relation.create(
+                guildA = a,
+                guildB = c,
+                type = RelationType.ALLY,
+                status = RelationStatus.PENDING,
+            )
+        val expired =
+            Relation.create(
+                guildA = b,
+                guildB = c,
+                type = RelationType.ALLY,
+                status = RelationStatus.EXPIRED,
+            )
         val enemy = Relation.create(guildA = a, guildB = c, type = RelationType.ENEMY)
         every { relations.getGuildRelations(a) } returns setOf(active, pending, enemy)
         every { relations.getGuildRelations(b) } returns setOf(active, expired)
