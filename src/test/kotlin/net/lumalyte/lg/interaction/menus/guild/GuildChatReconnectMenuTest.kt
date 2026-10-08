@@ -96,8 +96,7 @@ internal class GuildChatReconnectMenuTest {
         }
     }
 
-    private fun createLanguage(): LangService =
-        LangService(TestLangHost(), Locale("en_US"), LumaGuildsLang::class.java)
+    private fun createLanguage(): LangService = LangService(TestLangHost(), Locale("en_US"), LumaGuildsLang::class.java)
 
     private inner class TestLangHost : LangHost {
         override val dataFolder: File = checkNotNull(directory).toFile()
