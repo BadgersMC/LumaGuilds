@@ -1,4 +1,5 @@
-"""Render the native 16px stall sprite using the existing Enthusia palette.
+"""
+Render the native 16px stall sprite using the existing Enthusia palette.
 
 Run from any directory with Python and Pillow; no smoothing or resampling.
 """
@@ -41,7 +42,8 @@ PIXELS = (
 
 
 def main():
-    assert len(PIXELS) == 16 and all(len(row) == 16 for row in PIXELS)
+    if len(PIXELS) != 16 or any(len(row) != 16 for row in PIXELS):
+        raise ValueError("Stall sprite must be exactly 16 by 16 pixels")
     image = Image.new('RGBA', (16, 16))
     image.putdata([PALETTE[pixel] for row in PIXELS for pixel in row])
     image.save(TEXTURE)

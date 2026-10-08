@@ -4,9 +4,9 @@ import org.bukkit.entity.Player
 import java.util.WeakHashMap
 import java.util.concurrent.atomic.AtomicLong
 
-class MenuNavigator(
-    private val player: Player,
-) {
+/** Public navigation contract used by the existing Java and Bedrock menu constructors. */
+@Suppress("LibraryEntitiesShouldNotBePublic") // Preserve the public menu-constructor contract.
+class MenuNavigator(private val player: Player) {
     private val menuStack = ArrayDeque<Menu>()
     private val navigationGeneration =
         synchronized(GENERATIONS) {

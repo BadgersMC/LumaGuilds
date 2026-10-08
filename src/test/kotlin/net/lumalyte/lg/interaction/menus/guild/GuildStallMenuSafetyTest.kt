@@ -23,6 +23,7 @@ import org.geysermc.cumulus.form.impl.FormDefinition
 import org.geysermc.cumulus.form.impl.FormDefinitions
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.koin.core.context.startKoin
@@ -72,15 +73,7 @@ internal class GuildStallMenuSafetyTest {
     }
 
     private fun initializeServices(plugin: Plugin) {
-        val lang =
-            LangService(
-                object : LangHost {
-                    override val dataFolder: File = checkNotNull(directory).toFile()
-                    override val resourceClassLoader: ClassLoader = LumaGuildsLang::class.java.classLoader
-                },
-                Locale("en_US"),
-                LumaGuildsLang::class.java,
-            )
+        val lang = createLanguage()
         stopKoin()
         startKoin {
             modules(
@@ -92,6 +85,15 @@ internal class GuildStallMenuSafetyTest {
             )
         }
     }
+
+    private fun createLanguage(): LangService = LangService(
+        object : LangHost {
+            override val dataFolder: File = checkNotNull(directory).toFile()
+            override val resourceClassLoader: ClassLoader = LumaGuildsLang::class.java.classLoader
+        },
+        Locale("en_US"),
+        LumaGuildsLang::class.java,
+    )
 
     /** Restore global test resources. */
     @AfterEach
@@ -117,7 +119,7 @@ internal class GuildStallMenuSafetyTest {
     /** A different command's inventory cannot be replaced by an old request. */
     @Test
     fun newInventoryDiscardsLateData() {
-        val replacement = server.createInventory(null, 9)
+        val replacement = server.createInventory(null, INVENTORY_ROW_SIZE)
         player.openInventory(replacement)
         pending.complete(StallReadResult.Available(emptyList()))
         server.scheduler.performOneTick()
@@ -126,7 +128,8 @@ internal class GuildStallMenuSafetyTest {
 
     /** Forms opened by a separate command invalidate the original navigator too. */
     @Test
-    fun separateNavigatorDiscardsLateData() {
+    @DisplayName("Separate navigator discards late data")
+    fun separateNavigatorDiscardsData() {
         val loading = player.openInventory.topInventory
         MenuNavigator(player).openMenu(mockk(relaxed = true))
         pending.complete(StallReadResult.Available(emptyList()))
@@ -146,7 +149,8 @@ internal class GuildStallMenuSafetyTest {
 
     /** Cumulus responses run on the server scheduler and recheck membership. */
     @Test
-    fun bedrockResponseRechecksMembership() {
+    @DisplayName("Bedrock response rechecks membership")
+    fun bedrockRechecksMembership() {
         var clicks = 0
         val form = form { clicks++ }
         val definition: FormDefinition<SimpleForm, *, *> = FormDefinitions.instance().definitionFor(form)
@@ -161,12 +165,7 @@ internal class GuildStallMenuSafetyTest {
     }
 
     private fun form(action: () -> Unit): SimpleForm {
-        val rowType = GuildStallMenu::class.java.declaredClasses.single { it.simpleName == "Row" }
-        val row =
-            rowType.declaredConstructors
-                .single()
-                .apply { isAccessible = true }
-                .newInstance(Component.text("Member"), emptyList<Component>(), action)
+        val row = formRow(action)
         val formType = GuildStallMenu::class.java.declaredClasses.single { it.simpleName == "StallForm" }
         val view =
             formType.declaredConstructors
@@ -184,11 +183,22 @@ internal class GuildStallMenuSafetyTest {
         return view.getForm() as SimpleForm
     }
 
+    private fun formRow(action: () -> Unit): Any {
+        val rowType = GuildStallMenu::class.java.declaredClasses.single { it.simpleName == "Row" }
+        return rowType.declaredConstructors
+            .single()
+            .apply { isAccessible = true }
+            .newInstance(Component.text("Member"), emptyList<Component>(), action)
+    }
+
     /** A current viewer receives a proper no-stall response. */
     @Test
     fun emptyResponseKeepsMenu() {
         pending.complete(StallReadResult.Available(emptyList()))
         server.scheduler.performOneTick()
         assertEquals(InventoryType.CHEST, player.openInventory.topInventory.type)
+    }
+    private companion object {
+        const val INVENTORY_ROW_SIZE = 9
     }
 }

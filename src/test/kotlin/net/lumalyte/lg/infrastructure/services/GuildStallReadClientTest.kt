@@ -47,9 +47,7 @@ internal class GuildStallReadClientTest {
     }
 
     /** Reflective shape fixture; actual API compatibility is verified separately. */
-    class Provider(
-        private val version: Int,
-    ) {
+    class Provider(private val version: Int) {
         /** Response controlled by failure-path tests. */
         val response = CompletableFuture<List<Any>>()
 
@@ -57,10 +55,9 @@ internal class GuildStallReadClientTest {
         fun apiVersion(): Int = version
 
         /** Test-only service method preserving the public companion call signature. */
-        fun guildStalls(
-            @Suppress("UNUSED_PARAMETER") guild: UUID, // Retain the reflected companion signature.
-            viewer: UUID,
-        ): CompletableFuture<List<Any>> =
-            if (response.isDone) response else CompletableFuture.completedFuture(emptyList())
+        fun guildStalls(guild: UUID, viewer: UUID): CompletableFuture<List<Any>> {
+            require(guild != viewer) { "Fixture expects distinct guild and viewer identities" }
+            return if (response.isDone) response else CompletableFuture.completedFuture(emptyList())
+        }
     }
 }
