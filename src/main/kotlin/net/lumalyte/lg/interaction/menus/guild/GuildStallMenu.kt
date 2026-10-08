@@ -135,8 +135,21 @@ internal class GuildStallMenu(
     private fun controls(maxPage: Int, summary: Component): List<Row> {
         val navigation = navigationControls(maxPage, summary)
         val stall = selected ?: return navigation
-        return if (canShowSales(stall)) navigation + salesRow(stall) else navigation
+        val sales = if (canShowSales(stall)) listOf(salesRow(stall)) else emptyList()
+        val access = if (canShowAccess(stall)) listOf(accessRow(stall)) else emptyList()
+        return navigation + sales + access
     }
+
+    private fun accessRow(stall: String): Row = Row(Component.text("Stall flags and access"), emptyList()) {
+        if (canShowAccess(stall)) {
+            player.closeInventory()
+            player.performCommand("stallaccess settings $stall")
+        }
+    }
+
+    private fun canShowAccess(stall: String): Boolean = stall.matches(Regex("[A-Za-z0-9_.:-]+")) &&
+        Bukkit.getCommandMap().getCommand("stallaccess") != null &&
+        members.hasPermission(player.uniqueId, guild.id, RankPermission.EDIT_SHOP_STOCK)
 
     private fun navigationControls(maxPage: Int, summary: Component): List<Row> {
         val navigation =
