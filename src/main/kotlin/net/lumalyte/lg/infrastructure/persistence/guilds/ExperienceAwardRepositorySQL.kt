@@ -47,9 +47,11 @@ class ExperienceAwardRepositorySQL(
 
     private fun reserveWriter(connection: Connection, guildId: UUID) {
         if (mariaDb) {
-            checkNotNull(connection.selectOne("SELECT level FROM guilds WHERE id = ? FOR UPDATE", guildId.toString()) {
-                it.getInt("level")
-            }) { "Guild $guildId does not exist" }
+            val level =
+                connection.selectOne("SELECT level FROM guilds WHERE id = ? FOR UPDATE", guildId.toString()) {
+                    it.getInt("level")
+                }
+            checkNotNull(level) { "Guild $guildId does not exist" }
         } else {
             // Reserve the SQLite writer before opening a SELECT snapshot.
             connection.updateStatement("UPDATE guild_experience_source_usage SET awarded_xp = awarded_xp WHERE 0")
