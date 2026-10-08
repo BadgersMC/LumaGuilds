@@ -31,7 +31,6 @@ Market FIFO attribution policy is approved separately; no payout changes.
 Production remains unchanged. Local tests, GitHub checks, manual review and
 real Java/Bedrock acceptance are distinct. No merge/deployment authorization.
 
-
 ### Recorded proof and boundaries
 
 The new category-opening regression failed against the prior handler and passed
@@ -50,7 +49,6 @@ Offline owner names fall back to UUID rather than blocking on profile lookup.
 Local clean full-suite and native-profile totals are recorded below after final
 validation. Hosted checks and real Java/Bedrock rendering remain separate gates.
 
-
 ### Local verification, 8 October 2026
 
 Java 25 / Paper 26.2: `clean test shadowJar mariaDbRewardTest
@@ -66,7 +64,6 @@ Local review artifacts are unmerged test builds. Exact PR-head hosted checks,
 manual review, canonical source/pin integration and real Java/Bedrock acceptance
 remain independent release gates. Production was not accessed or changed.
 
-
 Hosted review opened as [PR #215](https://github.com/BadgersMC/LumaGuilds/pull/215),
 paired with [Market #207](https://github.com/BadgersMC/EnthusiaMarket/pull/207).
 The first hosted wiki lint identified four extra-blank-line issues; they were
@@ -75,3 +72,8 @@ wiki/plan files with zero errors; topic parity passes. Frontmatter and strict
 MkDocs passed on the initial hosted source; local frontmatter tooling could not
 run because PyYAML is absent. Hosted checks for the updated head remain a distinct
 gate and are inspected through GitHub. No helper/tooling success is invented.
+
+The initial hosted unit build exposed an empty CI `MARKET_API_JAR` variable.
+Empty/blank values now select the optional profile, while a non-empty configured
+missing file still fails. Both the valid real-artifact execution and blank-profile
+skip were verified locally; Gradle tracks only non-blank configured artifacts.

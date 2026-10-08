@@ -914,7 +914,6 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
 
 See [guild-shop-xp.md](guild-shop-xp.md) for approved policy, durable delivery, SPEAR state and acceptance boundaries.
 
-
 - [x] **SHOP-XP-SPEC** — REQ-134 approved limits, own-guild exclusion and no refund feature; docs/guild-shop-xp.md.
 - [x] **SHOP-XP-ENGINE** — quotes, atomic caps/consumption/progression, API, persistence and cache integration.
 - [x] **SHOP-XP-PROVE-REFINE** — SQL concurrency/idempotence/rollback/config and full-suite local proof recorded in docs/guild-shop-xp.md.
@@ -968,7 +967,6 @@ Ported from FainNeito/LumaGuilds#2/#3 onto the Enthusia redesign: the holiday st
 - Full suite on this branch: **1,573 tests, 0 failures, 0 errors, 4 skipped**.
 - Still open: Java and Bedrock client walkthrough on SMP Test after installing the pack files; Geyser mappings for the seasonal icons (LG-1901).
 
-
 - [x] LG-1909: Review #208 ownership/theme contracts against actual companion APIs and prove native MariaDB insert/theme/vault schema compatibility (8 October).
   - Evidence: three native guild-update assertions failed on missing vault columns, then all native ownership/insert/theme contracts passed after additive schema repair. Final full local suite: 1,574 tests, zero failures/errors, four unrelated skips; ten native MariaDB cases, zero skips. Final hosted checks and client/pack acceptance remain distinct gates.
 ## Discord role cleanup delivery (2026-10-06)
@@ -984,7 +982,6 @@ Ported from FainNeito/LumaGuilds#2/#3 onto the Enthusia redesign: the holiday st
   - Tooling: This checkout has no project-local EARS validator or SPEAR state helper. REQ-071 and this evidence/task record are maintained directly; no helper validation is claimed.
   - Acceptance boundary: No Discord roles have been deleted in this run. Merge, canonical network pin/build, deployment/activation and live role verification remain required.
 
-
 - [x] CHECKLIST-INTEGRATION: Reconcile the approved PR source chain without losing bank/stall commands, shutdown hooks or Gradle integration inputs.
   - Tag: INFRA
   - References: REQ-071, REQ-121 through REQ-134; docs/checklist-correctness.md.
@@ -994,7 +991,6 @@ Ported from FainNeito/LumaGuilds#2/#3 onto the Enthusia redesign: the holiday st
   - Tag: TDD
   - References: REQ-135.
   - Evidence: authoritative main a15b244 inspected; isolated branch then integrated preceding approved review source #213 to preserve the checklist chain. Existing join cleanup only removes invalid channels. No project-local EARS/state helpers found; manual requirement/task/evidence maintained. Focused contracts: 58 passed. Clean integration suite: 1,673 tests, zero failures/errors, four skips; native MariaDB: 59 passed, zero skips. Persistence, authority, stale forms, configured channels, and disconnected/replaced sessions are covered. The actual companion runtime contract ran with zero skips. Codacy refinements passed the final clean integration build. Exact-head hosted checks are recorded on the PR. See docs/chat-reconnect.md. Production stays unchanged.
-
 
 - [x] COMMUNITY-UI: Implement approved G20/G21/G22/G24/G25 with personal chat settings, optional channel indicator, permission-safe individual rank selection and bounded public directory details.
   - Tag: TDD; References: REQ-136 through REQ-139; docs/community-ui.md.
