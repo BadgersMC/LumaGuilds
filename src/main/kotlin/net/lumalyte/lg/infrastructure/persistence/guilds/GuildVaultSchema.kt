@@ -12,10 +12,11 @@ internal fun Connection.ensureGuildVaultSchema() {
     }
 }
 
-private val GUILD_VAULT_COLUMNS = listOf(
-    "vault_status" to "ALTER TABLE guilds ADD COLUMN vault_status VARCHAR(32) DEFAULT 'NEVER_PLACED'",
-    "vault_chest_world" to "ALTER TABLE guilds ADD COLUMN vault_chest_world VARCHAR(36)",
-    "vault_chest_x" to "ALTER TABLE guilds ADD COLUMN vault_chest_x INTEGER",
-    "vault_chest_y" to "ALTER TABLE guilds ADD COLUMN vault_chest_y INTEGER",
-    "vault_chest_z" to "ALTER TABLE guilds ADD COLUMN vault_chest_z INTEGER",
-)
+private val GUILD_VAULT_COLUMNS =
+    listOf(
+        "vault_status" to "ALTER TABLE guilds ADD COLUMN vault_status VARCHAR(32) DEFAULT 'NEVER_PLACED'",
+        "vault_chest_world" to "ALTER TABLE guilds ADD COLUMN vault_chest_world VARCHAR(36)",
+        "vault_chest_x" to "ALTER TABLE guilds ADD COLUMN vault_chest_x INTEGER",
+        "vault_chest_y" to "ALTER TABLE guilds ADD COLUMN vault_chest_y INTEGER",
+        "vault_chest_z" to "ALTER TABLE guilds ADD COLUMN vault_chest_z INTEGER",
+    )

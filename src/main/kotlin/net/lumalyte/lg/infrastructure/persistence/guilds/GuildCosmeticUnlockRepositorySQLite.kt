@@ -22,10 +22,11 @@ import java.util.concurrent.ConcurrentHashMap
 class GuildCosmeticUnlockRepositorySQLite(private val storage: Storage<Database>) : GuildCosmeticUnlockRepository {
     private val logger = LoggerFactory.getLogger(GuildCosmeticUnlockRepositorySQLite::class.java)
     private val unlocks = ConcurrentHashMap<Triple<UUID, String, String>, GuildCosmeticUnlock>()
-    private val insertSql = if (storage.dialect == SqlDialect.MARIADB) {
-        "INSERT IGNORE INTO guild_cosmetic_unlocks " +
-            "(guild_id, cosmetic_type, cosmetic_key, display_name, source, unlocked_at) VALUES (?, ?, ?, ?, ?, ?)"
-    } else {
+    private val insertSql =
+        if (storage.dialect == SqlDialect.MARIADB) {
+            "INSERT IGNORE INTO guild_cosmetic_unlocks " +
+                "(guild_id, cosmetic_type, cosmetic_key, display_name, source, unlocked_at) VALUES (?, ?, ?, ?, ?, ?)"
+        } else {
         "INSERT OR IGNORE INTO guild_cosmetic_unlocks " +
             "(guild_id, cosmetic_type, cosmetic_key, display_name, source, unlocked_at) VALUES (?, ?, ?, ?, ?, ?)"
     }
@@ -126,7 +127,8 @@ class GuildCosmeticUnlockRepositorySQLite(private val storage: Storage<Database>
     private fun preload() {
         try {
             storage.connection.getResults(
-                "SELECT guild_id, cosmetic_type, cosmetic_key, display_name, source, unlocked_at FROM guild_cosmetic_unlocks",
+                "SELECT guild_id, cosmetic_type, cosmetic_key, display_name, source, unlocked_at " +
+                    "FROM guild_cosmetic_unlocks",
             ).forEach { row ->
                 val unlock = row.toUnlock()
                 unlocks[Triple(unlock.guildId, unlock.type, unlock.key)] = unlock

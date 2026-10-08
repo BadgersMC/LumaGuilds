@@ -32,14 +32,15 @@ internal class GuildServiceThemeUnlockTest {
     private var themeAccess: GuildCosmeticUnlockService by kotlin.properties.Delegates.notNull()
 
     private fun service(access: GuildCosmeticUnlockService?): GuildServiceBukkit {
-        val instance = GuildServiceBukkit(
-            guildRepository = guildRepository, rankRepository = ownerRanks(), memberRepository = ownerMembership(),
-            rankService = mockk(relaxed = true), memberService = mockk(relaxed = true),
-            nexoEmojiService = mockk(relaxed = true), vaultService = mockk(relaxed = true),
-            hologramService = mockk(relaxed = true), relationRepository = mockk(relaxed = true),
-            historyRepository = mockk(relaxed = true), adminOverrideService = noAdminOverride(),
-            homeActivationService = mockk(relaxed = true), themeAccess = access,
-        )
+        val instance =
+            GuildServiceBukkit(
+                guildRepository = guildRepository, rankRepository = ownerRanks(), memberRepository = ownerMembership(),
+                rankService = mockk(relaxed = true), memberService = mockk(relaxed = true),
+                nexoEmojiService = mockk(relaxed = true), vaultService = mockk(relaxed = true),
+                hologramService = mockk(relaxed = true), relationRepository = mockk(relaxed = true),
+                historyRepository = mockk(relaxed = true), adminOverrideService = noAdminOverride(),
+                homeActivationService = mockk(relaxed = true), themeAccess = access,
+            )
         return instance
     }
 

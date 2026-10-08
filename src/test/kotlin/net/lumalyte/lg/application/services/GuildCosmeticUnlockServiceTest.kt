@@ -131,10 +131,11 @@ internal class GuildCosmeticUnlockServiceTest {
     @Test
     fun scenario8() {
         every { guilds.getById(guildId) } returns guild()
-        val failing = mockk<GuildCosmeticUnlockRepository> {
-            every { get(any(), any(), any()) } returns null
-            every { saveIfAbsent(any()) } returns false
-        }
+        val failing =
+            mockk<GuildCosmeticUnlockRepository> {
+                every { get(any(), any(), any()) } returns null
+                every { saveIfAbsent(any()) } returns false
+            }
         assertFalse(
             GuildCosmeticUnlockService(guilds, failing) {
                 now
