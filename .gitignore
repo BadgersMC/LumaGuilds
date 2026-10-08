@@ -278,6 +278,3 @@ VIRTUAL_THREADS.md
 
 # MkDocs build output
 site/
-
-# Python CI helper caches
-__pycache__/
