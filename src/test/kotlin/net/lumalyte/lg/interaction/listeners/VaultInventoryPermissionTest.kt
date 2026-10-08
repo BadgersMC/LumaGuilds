@@ -191,11 +191,10 @@ private class Fixture(
         player.openInventory(inventory)
     }
 
-    fun click(
-        action: InventoryAction,
-        slot: Int,
-    ): InventoryClickEvent =
-        InventoryClickEvent(player.openInventory, InventoryType.SlotType.CONTAINER, slot, ClickType.LEFT, action)
+    fun click(action: InventoryAction, slot: Int): InventoryClickEvent {
+        return InventoryClickEvent(player.openInventory, InventoryType.SlotType.CONTAINER, slot, ClickType.LEFT, action)
+    }
+
 }
 
 private const val VAULT_SIZE = 54
