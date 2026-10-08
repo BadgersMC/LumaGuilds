@@ -22,7 +22,12 @@ internal class EnthusiaStaffStrikeProjector(
 ) {
     fun applyEvent(event: PunishmentLifecycleEvent) {
         val type = event.category().name
-        val counted = configProvider().countedTypes.asSequence().map { it.uppercase() }.toSet()
+        val counted =
+            configProvider()
+                .countedTypes
+                .asSequence()
+                .map { it.uppercase() }
+                .toSet()
         if (event.category() != PunishmentCategory.OTHER && type in counted) {
             val expiresAt = expirationFor(event)
             val active = effectiveActive(event, expiresAt)
@@ -46,15 +51,21 @@ internal class EnthusiaStaffStrikeProjector(
         event: PunishmentLifecycleEvent,
         expiresAt: Instant?,
         active: Boolean,
-    ): GuildStrike = GuildStrike(
-        guildId = guild, playerUuid = event.subjectId(), playerName = event.subjectName().orElse(null),
-        punishmentType = event.category().name, reason = event.publicReason(),
-        executorName = event.actorName().orElse(
-            null,
-        ),
-        issuedAt = event.issuedAt(), sourceProvider = PROVIDER, sourcePunishmentId = event.sourcePunishmentId(),
-        expiresAt = expiresAt, active = active,
-    )
+    ): GuildStrike {
+        return GuildStrike(
+            guildId = guild,
+            playerUuid = event.subjectId(),
+            playerName = event.subjectName().orElse(null),
+            punishmentType = event.category().name,
+            reason = event.publicReason(),
+            executorName = event.actorName().orElse(null),
+            issuedAt = event.issuedAt(),
+            sourceProvider = PROVIDER,
+            sourcePunishmentId = event.sourcePunishmentId(),
+            expiresAt = expiresAt,
+            active = active,
+        )
+    }
 
     private fun reconcileImportedLiteBans(type: String, event: PunishmentLifecycleEvent, active: Boolean) {
         val entryId = event.sourcePunishmentId().toLongOrNull()
@@ -76,8 +87,15 @@ internal class EnthusiaStaffStrikeProjector(
             resolveGuildAtTime(event.subjectId(), event.issuedAt(), configProvider().backfill.fallbackToCurrentGuild)
         if (guild != null) {
             strikeService.recordStrike(
-                guild, event.subjectId(), event.subjectName().orElse(null), type, event.publicReason(),
-                event.actorName().orElse(null), event.issuedAt(), entryId, active,
+                guild,
+                event.subjectId(),
+                event.subjectName().orElse(null),
+                type,
+                event.publicReason(),
+                event.actorName().orElse(null),
+                event.issuedAt(),
+                entryId,
+                active,
             )
         }
     }
@@ -85,22 +103,32 @@ internal class EnthusiaStaffStrikeProjector(
     private fun effectiveActive(event: PunishmentLifecycleEvent, expiresAt: Instant?): Boolean =
         event.active() && (expiresAt == null || expiresAt.isAfter(Instant.now()))
 
-    private fun expirationFor(event: PunishmentLifecycleEvent): Instant? = when (event.category()) {
-        PunishmentCategory.MUTE, PunishmentCategory.BAN -> event.expiresAt().orElse(null)
-        else -> null
+    private fun expirationFor(event: PunishmentLifecycleEvent): Instant? {
+        return when (event.category()) {
+            PunishmentCategory.MUTE, PunishmentCategory.BAN -> event.expiresAt().orElse(null)
+            else -> null
+        }
     }
 
     private fun resolveGuildAtTime(playerId: UUID, at: Instant, allowCurrentFallback: Boolean): UUID? {
         // A failed historical read must fail this page for retry, never enable current-guild fallback.
         val stints = membershipHistoryRepository.getByPlayer(playerId)
-        stints.firstOrNull { stint ->
-            !stint.joinedAt.isAfter(at) && stint.departedAt?.isAfter(at) != false
-        }?.let { return it.guildId }
+        stints
+            .firstOrNull { stint ->
+                !stint.joinedAt.isAfter(at) && stint.departedAt?.isAfter(at) != false
+            }?.let { return it.guildId }
 
-        if (!allowCurrentFallback) return null
-        return runCatching {
-            guildService.getPlayerGuilds(playerId).sortedBy { it.id }.firstOrNull()?.id
-        }.getOrNull()
+        return if (allowCurrentFallback) {
+            runCatching {
+                guildService
+                    .getPlayerGuilds(playerId)
+                    .sortedBy { it.id }
+                    .firstOrNull()
+                    ?.id
+            }.getOrNull()
+        } else {
+            null
+        }
     }
 
     private companion object {

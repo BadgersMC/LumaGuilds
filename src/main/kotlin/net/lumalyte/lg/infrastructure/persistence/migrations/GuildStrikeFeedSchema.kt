@@ -3,10 +3,12 @@ package net.lumalyte.lg.infrastructure.persistence.migrations
 import java.sql.Connection
 
 internal object GuildStrikeFeedSchema {
+    private const val TABLE = "guild_strikes"
+
     fun migrate(connection: Connection) {
-        addColumnIfMissing(connection, "guild_strikes", "source_provider", "VARCHAR(32)")
-        addColumnIfMissing(connection, "guild_strikes", "source_punishment_id", "VARCHAR(128)")
-        addColumnIfMissing(connection, "guild_strikes", "expires_at", "BIGINT")
+        addColumnIfMissing(connection, TABLE, "source_provider", "VARCHAR(32)")
+        addColumnIfMissing(connection, TABLE, "source_punishment_id", "VARCHAR(128)")
+        addColumnIfMissing(connection, TABLE, "expires_at", "BIGINT")
 
         if (!indexExists(connection, "guild_strikes", "idx_guild_strikes_source")) {
             connection.createStatement().use {
@@ -35,11 +37,13 @@ internal object GuildStrikeFeedSchema {
     private fun indexExists(connection: Connection, table: String, index: String): Boolean {
         for (tablePattern in listOf(table, table.uppercase())) {
             connection.metaData.getIndexInfo(connection.catalog, null, tablePattern, false, false).use { rows ->
-                while (rows.next()) {
-                    if (index.equals(rows.getString("INDEX_NAME"), ignoreCase = true)) return true
-                }
+                if (indexNames(rows).any { index.equals(it, ignoreCase = true) }) return true
             }
         }
         return false
+    }
+
+    private fun indexNames(rows: java.sql.ResultSet): Sequence<String> = generateSequence {
+        if (rows.next()) rows.getString("INDEX_NAME") else null
     }
 }
