@@ -10,6 +10,7 @@ import net.lumalyte.lg.config.StrikesConfig
 import net.lumalyte.lg.domain.entities.GuildStrike
 import org.bukkit.plugin.java.JavaPlugin
 import java.time.Instant
+import java.util.Locale
 import java.util.UUID
 
 /** Attributes and reconciles one provider projection without advancing a feed cursor. */
@@ -26,7 +27,7 @@ internal class EnthusiaStaffStrikeProjector(
             configProvider()
                 .countedTypes
                 .asSequence()
-                .map { it.uppercase() }
+                .map { it.uppercase(Locale.ROOT) }
                 .toSet()
         if (event.category() != PunishmentCategory.OTHER && type in counted) {
             val expiresAt = expirationFor(event)
