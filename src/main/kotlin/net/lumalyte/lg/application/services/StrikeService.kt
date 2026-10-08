@@ -6,8 +6,9 @@ import net.lumalyte.lg.domain.entities.GuildStrike
 import java.time.Instant
 import java.util.UUID
 
-/** Configured write policy and historical/current strike queries. */
 // Preserve the established public query and reconciliation facade used by plugin adapters.
+
+/** Configured write policy and historical/current strike queries. */
 @Suppress("TooManyFunctions")
 class StrikeService(private val repository: StrikeRepository, private val configProvider: () -> StrikesConfig) {
     /** Record an attributed legacy strike while enabled. */
