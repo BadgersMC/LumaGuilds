@@ -30,27 +30,10 @@ internal class GuildAllianceGraphTest {
         val c = UUID.randomUUID()
         val guilds = mockk<GuildService>()
         val relations = mockk<RelationService>()
-        val guildSet =
-            listOf(a, b, c)
-                .mapIndexed { index, id ->
-                    Guild(id = id, name = "guild$index", createdAt = Instant.now())
-                }.toSet()
-        every { guilds.getAllGuilds() } returns guildSet
+        every { guilds.getAllGuilds() } returns guildSet(a, b, c)
         val active = Relation.create(guildA = a, guildB = b, type = RelationType.ALLY)
-        val pending =
-            Relation.create(
-                guildA = a,
-                guildB = c,
-                type = RelationType.ALLY,
-                status = RelationStatus.PENDING,
-            )
-        val expired =
-            Relation.create(
-                guildA = b,
-                guildB = c,
-                type = RelationType.ALLY,
-                status = RelationStatus.EXPIRED,
-            )
+        val pending = ally(a, c, RelationStatus.PENDING)
+        val expired = ally(b, c, RelationStatus.EXPIRED)
         val enemy = Relation.create(guildA = a, guildB = c, type = RelationType.ENEMY)
         every { relations.getGuildRelations(a) } returns setOf(active, pending, enemy)
         every { relations.getGuildRelations(b) } returns setOf(active, expired)
@@ -58,4 +41,19 @@ internal class GuildAllianceGraphTest {
         val api = GuildLookupImpl(guilds, mockk(), mockk(), mockk(), relations)
         assertEquals(mapOf(a to setOf(b), b to setOf(a), c to emptySet()), api.getActiveAllianceGraph())
     }
+
+    private fun guildSet(vararg ids: UUID): Set<Guild> =
+        ids
+            .mapIndexed { index, id ->
+                Guild(id = id, name = "guild$index", createdAt = Instant.now())
+            }
+            .toSet()
+
+    private fun ally(a: UUID, b: UUID, status: RelationStatus): Relation =
+        Relation.create(
+            guildA = a,
+            guildB = b,
+            type = RelationType.ALLY,
+            status = status,
+        )
 }

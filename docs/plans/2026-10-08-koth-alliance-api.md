@@ -30,3 +30,11 @@ were test formatting/documentation/visibility and one chained-call layout;
 these were refined and the two focused alliance tests passed again in 28s.
 The artifact hash above identifies the earlier clean build before style refinement.
 Current-head hosted checks remain a delivery gate, distinct from local proof.
+
+## EnthusiaKoth delivery refinement
+
+Current canonical main e60d99e1 and AxKoth retirement #221 are incorporated. The newly added runtime-only retired registrar is also removed. Existing Discord cleanup remains intact. Full clean Java 25 test/shadowJar at implementation fff95638 passes 1,544 cases, zero failures/errors and four existing skips. Codacy formatting findings are corrected with small fixture helpers; the two focused alliance cases pass again.
+
+EnthusiaKoth #5 now supplies an opt-in actualGuildApiTest. All 14 real-provider cases execute against this built artifact, with a checked class origin, alliance/old API/system-bank/protected-payout coverage and tracked path/content inputs. Changing either the configured path or JAR bytes reruns the task; unchanged bytes are UP-TO-DATE. Ordinary KOTH suite has 282 passing cases plus one explicit real-provider-only skip. Provider and consumer hashes are recorded in its companion-api-verification.md. This is runtime API boundary proof, not actual server/client acceptance; the existing Paper 1.21.11 compilation profile and Java 25 provider-test profile are distinct.
+
+Project-local EARS/state helpers remain absent. Exact-head hosted checks and review are inspected separately. No XP, payout amount, reward selection, permission, bank or alliance policy was added or changed; no production action performed.
