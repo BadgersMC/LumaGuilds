@@ -10,9 +10,7 @@ import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 
-class StrikeRepositorySQLite(
-    private val storage: Storage<Database>,
-) : StrikeRepository {
+class StrikeRepositorySQLite(private val storage: Storage<Database>) : StrikeRepository {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     override fun recordStrike(strike: GuildStrike): Boolean {
@@ -65,19 +63,14 @@ class StrikeRepositorySQLite(
         }
     }
 
-    override fun deactivateStrike(punishmentType: String, litebansEntryId: Long): Boolean =
-        try {
-            reconcileLegacyStrike(punishmentType, litebansEntryId, active = false)
-        } catch (e: DatabaseOperationException) {
-            logger.error("Failed to deactivate strike {} entry {}", punishmentType, litebansEntryId, e)
-            false
-        }
+    override fun deactivateStrike(punishmentType: String, litebansEntryId: Long): Boolean = try {
+        reconcileLegacyStrike(punishmentType, litebansEntryId, active = false)
+    } catch (e: DatabaseOperationException) {
+        logger.error("Failed to deactivate strike {} entry {}", punishmentType, litebansEntryId, e)
+        false
+    }
 
-    override fun reconcileLegacyStrike(
-        punishmentType: String,
-        litebansEntryId: Long,
-        active: Boolean,
-    ): Boolean {
+    override fun reconcileLegacyStrike(punishmentType: String, litebansEntryId: Long, active: Boolean): Boolean {
         try {
             val updated = storage.connection.executeUpdate(
                 "UPDATE guild_strikes SET active = ? WHERE punishment_type = ? AND litebans_entry_id = ?",
@@ -141,13 +134,12 @@ class StrikeRepositorySQLite(
     override fun countActiveByGuild(guildId: UUID): Int =
         count("SELECT COUNT(*) AS cnt FROM guild_strikes WHERE guild_id = ? AND active = 1", guildId)
 
-    private fun count(sql: String, guildId: UUID): Int =
-        try {
-            storage.connection.getResults(sql, guildId.toString()).firstOrNull()?.getInt("cnt") ?: 0
-        } catch (e: SQLException) {
-            logger.error("Failed to count strikes for guild {}", guildId, e)
-            0
-        }
+    private fun count(sql: String, guildId: UUID): Int = try {
+        storage.connection.getResults(sql, guildId.toString()).firstOrNull()?.getInt("cnt") ?: 0
+    } catch (e: SQLException) {
+        logger.error("Failed to count strikes for guild {}", guildId, e)
+        0
+    }
 
     override fun getByGuild(guildId: UUID): List<GuildStrike> {
         val sql = """
@@ -183,60 +175,58 @@ class StrikeRepositorySQLite(
         }
     }
 
-    override fun countAll(): Int =
-        try {
-            storage.connection.getResults("SELECT COUNT(*) AS cnt FROM guild_strikes")
-                .firstOrNull()?.getInt("cnt") ?: 0
-        } catch (e: SQLException) {
-            logger.error("Failed to count all strikes", e)
-            0
-        }
+    override fun countAll(): Int = try {
+        storage.connection.getResults("SELECT COUNT(*) AS cnt FROM guild_strikes")
+            .firstOrNull()?.getInt("cnt") ?: 0
+    } catch (e: SQLException) {
+        logger.error("Failed to count all strikes", e)
+        0
+    }
 
-    private fun existsByTypeAndEntryId(punishmentType: String, entryId: Long): Boolean =
-        try {
-            storage.connection.getResults(
-                "SELECT 1 AS found FROM guild_strikes WHERE punishment_type = ? AND litebans_entry_id = ? LIMIT 1",
-                punishmentType, entryId,
-            ).isNotEmpty()
-        } catch (e: SQLException) {
-            logger.error("Failed to check strike {} entry {}", punishmentType, entryId, e)
-            false
-        }
+    private fun existsByTypeAndEntryId(punishmentType: String, entryId: Long): Boolean = try {
+        storage.connection.getResults(
+            "SELECT 1 AS found FROM guild_strikes WHERE punishment_type = ? AND litebans_entry_id = ? LIMIT 1",
+            punishmentType,
+            entryId,
+        ).isNotEmpty()
+    } catch (e: SQLException) {
+        logger.error("Failed to check strike {} entry {}", punishmentType, entryId, e)
+        false
+    }
 
-    private fun existsBySource(provider: String, sourceId: String): Boolean =
-        try {
-            storage.connection.getResults(
-                """
+    private fun existsBySource(provider: String, sourceId: String): Boolean = try {
+        storage.connection.getResults(
+            """
                 SELECT 1 AS found FROM guild_strikes
                 WHERE source_provider = ? AND source_punishment_id = ? LIMIT 1
-                """.trimIndent(),
-                provider, sourceId,
-            ).isNotEmpty()
-        } catch (e: SQLException) {
-            throw DatabaseOperationException("Failed to check external guild strike dedupe key", e)
-        }
+            """.trimIndent(),
+            provider,
+            sourceId,
+        ).isNotEmpty()
+    } catch (e: SQLException) {
+        throw DatabaseOperationException("Failed to check external guild strike dedupe key", e)
+    }
 
-    private fun co.aikar.idb.DbRow.toStrike(): GuildStrike? =
-        runCatching {
-            GuildStrike(
-                id = getLong("id") ?: 0L,
-                guildId = UUID.fromString(getString("guild_id")),
-                playerUuid = UUID.fromString(getString("player_uuid")),
-                playerName = getString("player_name"),
-                punishmentType = getString("punishment_type"),
-                reason = getString("reason"),
-                executorName = getString("executor_name"),
-                issuedAt = Instant.ofEpochMilli(getLong("issued_at") ?: 0L),
-                litebansEntryId = getLong("litebans_entry_id"),
-                sourceProvider = getString("source_provider"),
-                sourcePunishmentId = getString("source_punishment_id"),
-                expiresAt = getLong("expires_at")?.let(Instant::ofEpochMilli),
-                active = (getInt("active") ?: 1) == 1,
-            )
-        }.getOrElse { e ->
-            logger.warn("Skipping malformed strike row: {}", e.message)
-            null
-        }
+    private fun co.aikar.idb.DbRow.toStrike(): GuildStrike? = runCatching {
+        GuildStrike(
+            id = getLong("id") ?: 0L,
+            guildId = UUID.fromString(getString("guild_id")),
+            playerUuid = UUID.fromString(getString("player_uuid")),
+            playerName = getString("player_name"),
+            punishmentType = getString("punishment_type"),
+            reason = getString("reason"),
+            executorName = getString("executor_name"),
+            issuedAt = Instant.ofEpochMilli(getLong("issued_at") ?: 0L),
+            litebansEntryId = getLong("litebans_entry_id"),
+            sourceProvider = getString("source_provider"),
+            sourcePunishmentId = getString("source_punishment_id"),
+            expiresAt = getLong("expires_at")?.let(Instant::ofEpochMilli),
+            active = (getInt("active") ?: 1) == 1,
+        )
+    }.getOrElse { e ->
+        logger.warn("Skipping malformed strike row: {}", e.message)
+        null
+    }
 
     private fun isDuplicate(error: SQLException): Boolean =
         error.message.orEmpty().contains("UNIQUE", ignoreCase = true) ||
