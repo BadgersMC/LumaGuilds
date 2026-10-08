@@ -6006,6 +6006,7 @@ menu:
       weekly_period: "<gray>Current weekly period: <yellow><used> <gray>/ <yellow><cap> <gray>max"
       unlimited: "<green>Unlimited <gray>· no cap"
       names:
+        shop_sale: "Guild Shop Sales"
         bank_deposit: "Bank Deposits"
         member_joined: "Member Invites"
         war_won: "War Victories"

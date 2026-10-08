@@ -477,3 +477,8 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 
 ### REQ-120
 **Event-driven.** BEFORE Chapter 2 Bedrock release sign-off, automated parity contracts SHALL cover primary routing, authorization denials, data truthfulness and the new Quests/Prestige/Settings/Bank/Statistics flows; all visible Bedrock text in those flows SHALL be localized. A compatible staging environment with Geyser/Floodgate/Cumulus SHALL then complete a real Bedrock-client walkthrough of dashboard navigation, quests/claim, reward purchase/prestige, settings, bank, homes/access, members/ranks, party/LFG, diplomacy/warfare, statistics and close/back/timeout/reconnect behavior. Java or static-source validation SHALL NOT be reported as Bedrock runtime validation.
+
+
+## Guild-shop XP (REQ-121)
+
+See [guild-shop-xp.md](guild-shop-xp.md) for approved policy, durable delivery, SPEAR state and acceptance boundaries.

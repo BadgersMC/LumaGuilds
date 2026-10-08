@@ -890,3 +890,15 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Boot 1 (13:30, `3.0.4-enthusia-gui.2`): clean enable, schema v41, Nexo loaded every item and regenerated the pack with no errors for the new files — but `PacketEvents not available`: packetevents enabled after LumaGuilds despite the softdepend. Fixed (adapter now hooks on `PluginEnableEvent` for packetevents; 3 new probes), suite 1,463 / 0 / 4.
   - Boot 2 (13:54, `3.0.4-enthusia-gui.3`, SHA-256 `f103f90adce1a005a84cb4028e80d23ea99c32976b140a7c3d7fae13f4143733`): `Menu icon adapter waiting for packetevents to enable` → `Menu icon adapter active` one second later; `Done (38.634s)`. Remaining LumaGuilds warnings are pre-existing (SMP Test config still lists removed perks `CUSTOM_BANNER_COLORS`/`ANIMATED_EMOJIS`; DiscordSRV not connected on test). The `.2` jar is kept as `.superseded.disabled`.
   - Still open: human Java walkthrough on SMP Test (dashboard, Guild Actions, theme picker incl. Vanilla, Declare Enemy, progression sources, quests and toast); Bedrock go-live stays with LG-1901 (proxy untouched apart from the mapping backup).
+
+
+## Guild-shop XP (REQ-121)
+
+See [guild-shop-xp.md](guild-shop-xp.md) for approved policy, durable delivery, SPEAR state and acceptance boundaries.
+
+
+- [x] **SHOP-XP-SPEC** — REQ-121 approved limits, own-guild exclusion and no refund feature; docs/guild-shop-xp.md.
+- [x] **SHOP-XP-ENGINE** — quotes, atomic caps/consumption/progression, API, persistence and cache integration.
+- [x] **SHOP-XP-PROVE-REFINE** — SQL concurrency/idempotence/rollback/config and full-suite local proof recorded in docs/guild-shop-xp.md.
+- [ ] **SHOP-XP-HOSTED** — inspect checks/review for exact published head; paired release contract must execute on the updated CI pin.
+- [ ] **SHOP-XP-LIVE** — merged runtime/pins, MariaDB staging, live outside/own-guild purchases, restart/retry and prestige walkthrough. No production changes.

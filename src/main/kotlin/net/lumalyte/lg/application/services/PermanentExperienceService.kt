@@ -5,6 +5,7 @@ import net.lumalyte.lg.domain.entities.AwardRejection
 import net.lumalyte.lg.domain.entities.ExperienceAwardRequest
 import net.lumalyte.lg.domain.entities.ExperienceAwardResult
 import net.lumalyte.lg.domain.values.ExperiencePolicy
+import net.lumalyte.lg.domain.values.ExperienceSource
 
 class PermanentExperienceService(
     private val repository: ExperienceAwardRepository,
@@ -15,6 +16,7 @@ class PermanentExperienceService(
         request: ExperienceAwardRequest,
         policy: ExperiencePolicy,
     ): ExperienceAwardResult {
+        if (request.source == ExperienceSource.SHOP_SALE) return ExperienceAwardResult.Rejected(AwardRejection.INELIGIBLE)
         if (request.source != policy.source) {
             return ExperienceAwardResult.Rejected(AwardRejection.POLICY_MISMATCH)
         }

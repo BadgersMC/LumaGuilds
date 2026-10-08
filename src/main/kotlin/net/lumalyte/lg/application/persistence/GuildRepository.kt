@@ -7,6 +7,9 @@ import java.util.UUID
  * A repository that handles the persistence of Guilds.
  */
 interface GuildRepository {
+    /** Read the SQL level mirror into the cache after a committed external award; never write it. */
+    fun refreshCachedLevel(guildId: UUID) = Unit
+
     /** New guild admission with durable creator attribution; adapters must opt in. */
     fun addCreated(guild: Guild, creatorId: UUID): Boolean = false
     fun creationCooldownUntil(playerId: UUID): java.time.Instant? = null

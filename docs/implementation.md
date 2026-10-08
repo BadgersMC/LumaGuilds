@@ -177,3 +177,8 @@ Current-run progression, permanent guild rewards/prestige, canonical guild gold,
 Current-run progression is keyed by `guild_id`; permanent perks by `(guild_id, reward_id)` plus guild prestige count; canonical guild gold by `guild_id` in `vault_gold`; source usage by `(guild_id, source_pool, period_start)`; ratings and standings by `(chapter_id, guild_id)`; and rematch guards by an unordered guild pair within a chapter. XP award plus cap reservation is one transaction. A guild-gold mutation plus audit is one transaction with compensation for failed external Vault/item legs. Prestige fee, permanent rewards, temporary-perk reset, level/XP reset, and audit commit together. A rated result plus both Elo updates plus its pair guard is one transaction. Rollover follows `SCHEDULED -> FROZEN -> BACKED_UP -> ARCHIVED -> RESET -> PRUNED -> COMPLETE`; no reset or prune transition may run before a verified backup and archived standings exist.
 
 The XP/Elo/chapter contract lives in `docs/superpowers/specs/2026-08-27-chapter-2-progression-revamp-design.md`. The canonical guild-gold, Chapter 1 migration, reward cadence, and bounded-prestige contract lives in `docs/superpowers/specs/2026-08-30-chapter-2-prestige-gold-design.md`.
+
+
+## Guild-shop XP (REQ-121)
+
+See [guild-shop-xp.md](guild-shop-xp.md) for approved policy, durable delivery, SPEAR state and acceptance boundaries.

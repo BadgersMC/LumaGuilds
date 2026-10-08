@@ -14,6 +14,7 @@ class GuildProgressionIconMappingTest {
             .apply { isAccessible = true }
 
         val expected = mapOf(
+            ExperienceSource.SHOP_SALE to "lg_bank",
             ExperienceSource.BANK_DEPOSIT to "lg_deposit",
             ExperienceSource.MEMBER_JOINED to "lg_qualified_recruit",
             ExperienceSource.WAR_WON to "lg_war_victory",

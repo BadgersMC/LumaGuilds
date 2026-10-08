@@ -123,6 +123,12 @@ class LumaGuilds : JavaPlugin() {
         )
         logColored("✓ GuildLookup registered in ServicesManager for cross-plugin integration")
 
+        Bukkit.getServicesManager().register(
+            net.lumalyte.lg.api.GuildShopXpApi::class.java,
+            net.lumalyte.lg.infrastructure.services.GuildShopXpProvider(get().get(), get().get(), get().get()),
+            this, ServicePriority.Normal,
+        )
+
         val guildVisualLookup = net.lumalyte.lg.api.GuildVisualLookupImpl(
             get().get<net.lumalyte.lg.application.services.GuildService>(),
             get().get<net.lumalyte.lg.application.services.MemberService>(),
@@ -1412,6 +1418,7 @@ class LumaGuilds : JavaPlugin() {
     }
 
     override fun onDisable() {
+        Bukkit.getServicesManager().unregisterAll(this)
         try {
             get().getOrNull<net.lumalyte.lg.application.services.DiscordAccountLinkSubscription>()?.unsubscribe()
         } catch (e: Exception) {

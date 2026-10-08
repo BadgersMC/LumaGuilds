@@ -651,10 +651,16 @@ fun progressionModule() = module {
     // Repositories
     single<KillRepository> { KillRepositorySQLite(get()) }
     single<ProgressionRepository> { ProgressionRepositorySQLite(get(), get()) }
-    single<net.lumalyte.lg.application.persistence.ExperienceAwardRepository> {
+    single<net.lumalyte.lg.infrastructure.persistence.guilds.ExperienceAwardRepositorySQL> {
         net.lumalyte.lg.infrastructure.persistence.guilds.ExperienceAwardRepositorySQL(
             get(),
             { net.lumalyte.lg.domain.values.ProgressionCurve.from(get<ConfigService>().loadConfig().progression) },
+        )
+    }
+    single<net.lumalyte.lg.application.persistence.ExperienceAwardRepository> { get<net.lumalyte.lg.infrastructure.persistence.guilds.ExperienceAwardRepositorySQL>() }
+    single<net.lumalyte.lg.application.persistence.GuildShopXpRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildShopXpRepositorySQL(
+            get(), get<net.lumalyte.lg.infrastructure.persistence.guilds.ExperienceAwardRepositorySQL>(), get(),
         )
     }
     single<net.lumalyte.lg.application.persistence.BankProgressionRepository> {
