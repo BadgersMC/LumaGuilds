@@ -7434,6 +7434,10 @@ notification:
       with_tag: '<light_purple>[P] <tag> <player>:</light_purple> <message>'
       without_tag: '<light_purple>[P] <player>:</light_purple> <message>'
   vault:
+    inventory:
+      access_denied: '<red>You no longer have access to this guild vault.'
+      action_denied: '<red>Your guild rank does not allow this vault item movement.'
+      reserved_button: '<red>The vault balance button cannot be moved.'
     locked: '⚠ VAULT LOCKED: This vault has been locked by a server administrator for security reasons. Contact staff for more information.'
     hologram: '<gold>⚑ <guild> Vault'
     blank: ' '
