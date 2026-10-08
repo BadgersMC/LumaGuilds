@@ -15,3 +15,5 @@ The server no longer uses AxKoth. LumaGuilds shall stop registering its AxKoth t
 Canonical merge/release and any monorepo pin update remain review gates. No production upload, activation or restart is authorized by this change.
 
 The remote history was sanitized during delivery. This branch was reconstructed on rewritten main e11fb16; implementation/build/test inputs match the previously validated tree. No old-history merge or proprietary asset restoration is included.
+
+Current main follow-up: canonical e60d99e1 includes the reviewed Discord cleanup and a new runtime-only AxKoth registrar. Both retired hook and registrar are removed while preserving that cleanup. Clean Java 25 test/shadowJar passes 1,542 cases, zero failures/errors and four existing skips. Source/build have no active AxKoth reference. The first local attempt lacked ignored RoseChat/CombatLogX JARs; supplying the existing companion inputs resolves it without source patches. Hosted checks and maintainer review remain separate gates.
