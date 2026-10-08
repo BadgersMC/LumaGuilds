@@ -19,9 +19,12 @@ internal class GuildStallReadClient(
         services.knownServices.firstOrNull { it.name == API_NAME }?.let {
             services.getRegistration(it)?.provider
         }
-    }
+    },
 ) : GuildStallReadService {
-    override fun read(guildId: UUID, viewerId: UUID): CompletableFuture<StallReadResult> {
+    override fun read(
+        guildId: UUID,
+        viewerId: UUID,
+    ): CompletableFuture<StallReadResult> {
         val stage = runCatching { loadStage(guildId, viewerId) }.getOrNull() ?: return unavailable()
         return stage
             .toCompletableFuture()
@@ -31,7 +34,10 @@ internal class GuildStallReadClient(
             }
     }
 
-    private fun loadStage(guildId: UUID, viewerId: UUID): CompletionStage<*>? {
+    private fun loadStage(
+        guildId: UUID,
+        viewerId: UUID,
+    ): CompletionStage<*>? {
         val service = provider() ?: return null
         check(service.javaClass.getMethod("apiVersion").invoke(service) == API_VERSION)
         return service.javaClass
@@ -59,9 +65,9 @@ internal class GuildStallReadClient(
                 val member = requireNotNull(raw)
                 GuildStallMemberInfo(
                     member.field("playerId") as UUID,
-                    (member.field("permissions") as Set<*>).map { GuildStallPermission.valueOf(it as String) }.toSet()
+                    (member.field("permissions") as Set<*>).map { GuildStallPermission.valueOf(it as String) }.toSet(),
                 )
-            }
+            },
         )
 
     // A wrong non-null type is an unavailable contract, not silently missing metadata.
@@ -95,6 +101,6 @@ internal object GuildStallLoadGuard {
         expected: Long,
         current: Long,
         online: Boolean,
-        member: Boolean
+        member: Boolean,
     ): Boolean = expected == current && online && member
 }

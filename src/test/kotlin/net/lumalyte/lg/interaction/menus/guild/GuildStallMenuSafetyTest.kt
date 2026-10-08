@@ -36,19 +36,20 @@ import java.nio.file.Path
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
+import kotlin.properties.Delegates
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 
 /** Real inventory close/navigation prevents asynchronous Market results reopening menus. */
 internal class GuildStallMenuSafetyTest {
-    @TempDir lateinit var directory: Path
-    private lateinit var server: ServerMock
-    private lateinit var player: PlayerMock
-    private lateinit var members: MemberService
-    private lateinit var pending: CompletableFuture<StallReadResult>
-    private lateinit var navigator: MenuNavigator
-    private lateinit var menu: GuildStallMenu
+    @TempDir var directory: Path? = null
+    private var server: ServerMock by Delegates.notNull()
+    private var player: PlayerMock by Delegates.notNull()
+    private var members: MemberService by Delegates.notNull()
+    private var pending: CompletableFuture<StallReadResult> by Delegates.notNull()
+    private var navigator: MenuNavigator by Delegates.notNull()
+    private var menu: GuildStallMenu by Delegates.notNull()
     private val guild = Guild(UUID.randomUUID(), "Guild", createdAt = Instant.EPOCH)
 
     /** Initialize a real GUI with a controlled asynchronous read port. */
@@ -74,11 +75,11 @@ internal class GuildStallMenuSafetyTest {
         val lang =
             LangService(
                 object : LangHost {
-                    override val dataFolder: File = directory.toFile()
+                    override val dataFolder: File = checkNotNull(directory).toFile()
                     override val resourceClassLoader: ClassLoader = LumaGuildsLang::class.java.classLoader
                 },
                 Locale("en_US"),
-                LumaGuildsLang::class.java
+                LumaGuildsLang::class.java,
             )
         stopKoin()
         startKoin {
@@ -87,7 +88,7 @@ internal class GuildStallMenuSafetyTest {
                     single<Plugin> { plugin }
                     single { members }
                     single { lang }
-                }
+                },
             )
         }
     }
@@ -105,7 +106,7 @@ internal class GuildStallMenuSafetyTest {
     fun closeDiscardsLateData() {
         server.pluginManager.callEvent(
             org.bukkit.event.inventory
-                .InventoryCloseEvent(player.openInventory)
+                .InventoryCloseEvent(player.openInventory),
         )
         player.closeInventory()
         pending.complete(StallReadResult.Available(emptyList()))
@@ -177,7 +178,7 @@ internal class GuildStallMenuSafetyTest {
                     player,
                     navigator.currentNavigationToken(),
                     Component.text("Stall"),
-                    listOf(row)
+                    listOf(row),
                 )
                 as BaseBedrockMenu
         return view.getForm() as SimpleForm

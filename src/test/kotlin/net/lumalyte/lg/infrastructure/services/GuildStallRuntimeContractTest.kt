@@ -32,7 +32,10 @@ internal class GuildStallRuntimeContractTest {
         }
     }
 
-    private fun row(loader: ClassLoader, memberId: UUID): Any {
+    private fun row(
+        loader: ClassLoader,
+        memberId: UUID,
+    ): Any {
         val memberClass = loader.loadClass("net.enthusia.market.api.guild.GuildStallMember")
         val member = memberClass.constructors.single().newInstance(memberId, setOf("ACCESS_SHOP_CHESTS"))
         val rowClass = loader.loadClass("net.enthusia.market.api.guild.GuildStallSnapshot")
@@ -46,11 +49,14 @@ internal class GuildStallRuntimeContractTest {
             Instant.EPOCH,
             null,
             "1, 2, 3",
-            listOf(member)
+            listOf(member),
         )
     }
 
-    private fun provider(loader: ClassLoader, row: Any): Any {
+    private fun provider(
+        loader: ClassLoader,
+        row: Any,
+    ): Any {
         val api = loader.loadClass("net.enthusia.market.api.guild.GuildStallReadApi")
         return Proxy.newProxyInstance(loader, arrayOf(api)) { _, method, _ ->
             when (method.name) {

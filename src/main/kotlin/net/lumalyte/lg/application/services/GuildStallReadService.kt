@@ -7,7 +7,10 @@ import java.util.concurrent.CompletableFuture
 /** Optional Market read boundary; absence is never interpreted as no ownership. */
 internal interface GuildStallReadService {
     /** Reads authoritative stall data; an unavailable companion is never an empty ownership result. */
-    fun read(guildId: UUID, viewerId: UUID): CompletableFuture<StallReadResult>
+    fun read(
+        guildId: UUID,
+        viewerId: UUID,
+    ): CompletableFuture<StallReadResult>
 }
 
 /** Explicit availability separates empty ownership from an integration failure. */
@@ -15,7 +18,7 @@ internal sealed interface StallReadResult {
     data object Unavailable : StallReadResult
 
     data class Available(
-        val stalls: List<GuildStallInfo>
+        val stalls: List<GuildStallInfo>,
     ) : StallReadResult
 }
 
@@ -30,13 +33,13 @@ internal data class GuildStallInfo(
     val nextRentAt: Instant?,
     val graceEndsAt: Instant?,
     val coordinates: String?,
-    val members: List<GuildStallMemberInfo>
+    val members: List<GuildStallMemberInfo>,
 )
 
 /** Current guild members and the actions permitted by Market's guild access rules. */
 internal data class GuildStallMemberInfo(
     val playerId: UUID,
-    val permissions: Set<GuildStallPermission>
+    val permissions: Set<GuildStallPermission>,
 )
 
 /** These capabilities describe guild authority; global staff bypasses are separate. */

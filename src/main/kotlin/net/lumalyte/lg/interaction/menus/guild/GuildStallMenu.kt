@@ -37,7 +37,7 @@ internal class GuildStallMenu(
     private val player: Player,
     private val guild: Guild,
     private val bedrock: Boolean,
-    private val client: GuildStallReadService = GuildStallReadClient()
+    private val client: GuildStallReadService = GuildStallReadClient(),
 ) : Menu,
     KoinComponent {
     private val plugin: Plugin by inject()
@@ -64,12 +64,16 @@ internal class GuildStallMenu(
         }
     }
 
-    private fun acceptResult(result: StallReadResult, expected: Long, loadingInventory: Inventory?) {
+    private fun acceptResult(
+        result: StallReadResult,
+        expected: Long,
+        loadingInventory: Inventory?,
+    ) {
         if (!GuildStallLoadGuard.accepts(
                 expected,
                 navigator.currentNavigationToken(),
                 player.isOnline,
-                isMember()
+                isMember(),
             )
         ) {
             return
@@ -88,10 +92,13 @@ internal class GuildStallMenu(
     private data class Row(
         val name: Component,
         val lore: List<Component>,
-        val action: () -> Unit
+        val action: () -> Unit,
     )
 
-    private fun showStalls(stalls: List<GuildStallInfo>, token: Long) {
+    private fun showStalls(
+        stalls: List<GuildStallInfo>,
+        token: Long,
+    ) {
         if (stalls.isEmpty()) {
             selected = null
             display(emptyList(), lang.gui("guild_stall.none"), token)
@@ -120,14 +127,18 @@ internal class GuildStallMenu(
             } else {
                 presentation
                     .metadata(
-                        stall
+                        stall,
                     ).fold(lang.gui("guild_stall.access_note")) { text, line -> text.appendNewline().append(line) }
             }
         display(rows, summary, token)
     }
 
-    private fun display(rows: List<Row>, summary: Component, token: Long) {
-        val maxPage = ((rows.size - 1).coerceAtLeast(0) / PAGE_SIZE)
+    private fun display(
+        rows: List<Row>,
+        summary: Component,
+        token: Long,
+    ) {
+        val maxPage = (rows.size - 1).coerceAtLeast(0) / PAGE_SIZE
         page = page.coerceIn(0, maxPage)
         val visible = rows.drop(page * PAGE_SIZE).take(PAGE_SIZE)
         val controls = controls(maxPage, summary)
@@ -138,7 +149,10 @@ internal class GuildStallMenu(
         }
     }
 
-    private fun controls(maxPage: Int, summary: Component): List<Row> =
+    private fun controls(
+        maxPage: Int,
+        summary: Component,
+    ): List<Row> =
         listOf(
             Row(lang.gui("guild_stall.back"), emptyList()) {
                 if (selected == null) {
@@ -157,11 +171,16 @@ internal class GuildStallMenu(
             Row(lang.gui("guild_stall.next"), emptyList()) {
                 page = (page + 1).coerceAtMost(maxPage)
                 open()
-            }
+            },
         )
 
-    private fun displayInventory(visible: List<Row>, controls: List<Row>, summary: Component, token: Long) {
-        val title = MenuTitleBuilder.build(guild.guiTheme, MENU_ROWS, lang.guiTitle("guild_stall.title"))
+    private fun displayInventory(
+        visible: List<Row>,
+        controls: List<Row>,
+        summary: Component,
+        token: Long,
+    ) {
+        val title = MenuTitleBuilder.build(guild.guiTheme, MENU_ROWS, lang.guiTitle(TITLE_KEY))
         val gui = ChestGui(MENU_ROWS, title)
         val pane = StaticPane(0, 0, WIDTH, MENU_ROWS)
         gui.addPane(pane)
@@ -173,10 +192,15 @@ internal class GuildStallMenu(
         gui.show(player)
     }
 
-    private fun addRow(pane: StaticPane, slot: Int, row: Row, token: Long) {
+    private fun addRow(
+        pane: StaticPane,
+        slot: Int,
+        row: Row,
+        token: Long,
+    ) {
         val item = ItemStack.of(if (slot < PAGE_SIZE) Material.OAK_SIGN else Material.PAPER)
         item.editMeta { meta ->
-            meta.displayName(if (slot == STATUS_SLOT) lang.gui("guild_stall.title") else row.name)
+            meta.displayName(if (slot == STATUS_SLOT) lang.gui(TITLE_KEY) else row.name)
             meta.lore(if (slot == STATUS_SLOT) summaryLines(row.name) else row.lore)
         }
         pane.addItem(
@@ -184,7 +208,7 @@ internal class GuildStallMenu(
                 if (navigator.isNavigationCurrent(token) && isMember()) row.action()
             },
             slot % WIDTH,
-            slot / WIDTH
+            slot / WIDTH,
         )
     }
 
@@ -200,7 +224,7 @@ internal class GuildStallMenu(
         actor: Player,
         private val token: Long,
         private val summary: Component,
-        private val rows: List<Row>
+        private val rows: List<Row>,
     ) : BaseBedrockMenu(menuNavigator, actor, plugin.logger) {
         override fun getForm(): Form {
             val plain =
@@ -210,7 +234,7 @@ internal class GuildStallMenu(
                 SimpleForm
                     .builder()
                     .title(
-                        lang.bedrock("guild_stall.title")
+                        lang.bedrock(TITLE_KEY),
                     ).content(plain.serialize(summary))
             rows.forEach { row ->
                 builder.button(plain.serialize(row.name) + row.lore.joinToString("") { "\n" + plain.serialize(it) })
@@ -221,7 +245,7 @@ internal class GuildStallMenu(
                 }.closedOrInvalidResultHandler(
                     Runnable {
                         Bukkit.getScheduler().runTask(plugin, Runnable { acceptClose() })
-                    }
+                    },
                 ).build()
         }
 
@@ -239,10 +263,14 @@ internal class GuildStallMenu(
             }
         }
 
-        override fun handleResponse(player: Player, response: Any?) = Unit
+        override fun handleResponse(
+            player: Player,
+            response: Any?,
+        ) = Unit
     }
 
     private companion object {
+        const val TITLE_KEY = "guild_stall.title"
         const val WIDTH = 9
         const val MENU_ROWS = 6
         const val PAGE_SIZE = 45
