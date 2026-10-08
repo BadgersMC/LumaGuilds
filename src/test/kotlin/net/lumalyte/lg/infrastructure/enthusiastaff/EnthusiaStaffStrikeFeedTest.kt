@@ -247,9 +247,7 @@ internal class EnthusiaStaffStrikeFeedTest {
         sourceId: String = SANCTION_ID,
         active: Boolean = true,
         expiresAt: Instant = FUTURE_EXPIRY,
-    ): PunishmentLifecycleEvent {
-        return eventFor(EventInput(source, sourceId, active, expiresAt))
-    }
+    ): PunishmentLifecycleEvent = eventFor(EventInput(source, sourceId, active, expiresAt))
 
     private fun eventFor(input: EventInput): PunishmentLifecycleEvent {
         return PunishmentLifecycleEvent(
