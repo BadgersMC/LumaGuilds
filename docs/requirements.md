@@ -483,3 +483,7 @@ WHEN a member mutates guild ranks or assigns a member rank, THE SYSTEM SHALL enf
 
 ### REQ-129
 WHEN a guild owner transfers ownership, THE SYSTEM SHALL commit both rank updates in one transaction using the expected prior member ranks, preserve both prior ranks and caches on any failed write or stale snapshot, and publish success only after the transaction commits. Owner and demotion ranks SHALL belong to the same guild with priorities zero and greater than zero respectively.
+
+### REQ-131 — Accessible teleport completion
+
+WHEN a member completes `/guild home` THE SYSTEM SHALL suggest only homes accepted by the same current home-access decision as teleportation, retaining owner access and full-name completion for home management commands.

@@ -7,6 +7,7 @@ import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.application.persistence.RankRepository
 import net.lumalyte.lg.application.persistence.RelationRepository
+import net.lumalyte.lg.application.services.accessibleHomeNames
 import net.lumalyte.lg.application.services.GuildVaultService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
@@ -95,4 +96,17 @@ class GuildServiceHomeAccessTest {
         every { memberRepository.getByPlayerAndGuild(outsider, guildId) } returns null
         assertFalse(service.canUseHome(outsider, guildId, homeName))
     }
+    @Test
+    fun inaccessibleHomeNotSuggested() {
+        setup(homeAllowed = emptySet())
+        assertEquals(emptyList<String>(), service.accessibleHomeNames(memberPlayerId, guildId))
+        assertEquals(listOf(homeName), service.accessibleHomeNames(ownerPlayerId, guildId))
+    }
+
+    @Test
+    fun allowedHomeSuggested() {
+        setup(homeAllowed = setOf(memberRankId))
+        assertEquals(listOf(homeName), service.accessibleHomeNames(memberPlayerId, guildId))
+    }
+
 }

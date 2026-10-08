@@ -1,5 +1,6 @@
 package net.lumalyte.lg
 
+import net.lumalyte.lg.application.services.accessibleHomeNames
 import co.aikar.commands.PaperCommandManager
 import co.aikar.idb.Database
 import net.lumalyte.lg.di.appModule
@@ -791,6 +792,14 @@ class LumaGuilds : JavaPlugin() {
             if (guilds.isEmpty()) return@registerAsyncCompletion emptyList()
             val guild = guilds.first()
             guildService.getHomes(guild.id).homeNames.toList()
+        }
+
+        // Current membership/rank caches are read on the server thread, like the home command.
+        commandManager.commandCompletions.registerCompletion("guildaccessiblehomes") { context ->
+            val player = context.player ?: return@registerCompletion emptyList()
+            val service = get().get<net.lumalyte.lg.application.services.GuildService>()
+            val guild = service.getPlayerGuilds(player.uniqueId).firstOrNull()
+            if (guild == null) emptyList() else service.accessibleHomeNames(player.uniqueId, guild.id)
         }
 
         // Register unlocked emojis completion (shows only emojis the player has permission to use)
