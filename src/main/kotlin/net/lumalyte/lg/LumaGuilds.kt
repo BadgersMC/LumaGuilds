@@ -81,7 +81,6 @@ class LumaGuilds : JavaPlugin() {
         scheduler = server.scheduler
         initialiseVaultDependency()
         initialisePlaceholderAPI()
-        initialiseAxKothIntegration()
         commandManager = PaperCommandManager(this)
 
         // Enable case-insensitive command completion and parsing
@@ -609,28 +608,6 @@ class LumaGuilds : JavaPlugin() {
             }
         } else {
             logColored("⚠ PlaceholderAPI not found. LumaGuilds placeholders will not be available.")
-        }
-    }
-
-    /**
-     * Registers the AxKoth team hook if AxKoth is available.
-     * This allows AxKoth to recognize guilds as teams for KOTH events.
-     */
-    private fun initialiseAxKothIntegration() {
-        if (Bukkit.getPluginManager().getPlugin("AxKoth") != null) {
-            try {
-                val hook = net.lumalyte.lg.integrations.axkoth.LumaGuildsHook()
-                com.artillexstudios.axkoth.api.AxKothAPI.registerTeamHook(this, hook)
-                logColored("✓ Successfully registered LumaGuilds hook with AxKoth!")
-                logColored("Guilds can now compete in KOTH events as teams")
-            } catch (e: Exception) {
-                // Broad exception handling acceptable here - optional integration shouldn't crash plugin
-                // Can fail due to: NoClassDefFoundError, LinkageError, API changes
-                logger.severe("Error registering AxKoth integration: ${e.message}")
-                e.printStackTrace()
-            }
-        } else {
-            logColored("⚠ AxKoth not found. Guild KOTH integration unavailable.")
         }
     }
 
