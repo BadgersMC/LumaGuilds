@@ -7,13 +7,22 @@ import org.bukkit.configuration.file.YamlConfiguration
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Assumptions.assumeTrue
 import java.io.File
 import javax.imageio.ImageIO
 
-/** The shipped Nexo pack has everything the holiday styles draw (REQ-121). */
+/** Validate the separately supplied private Nexo pack (REQ-121). */
 internal class HolidayStylePackTest {
-    private val pack = File("resourcepack/enthusia-icons/Nexo")
+    private val assetRoot = System.getenv("LUMAGUILDS_PRIVATE_ASSET_ROOT")?.takeIf { it.isNotBlank() }?.let(::File)
+    private val pack get() = File(requireNotNull(assetRoot), "enthusia-icons/Nexo")
     private val holidayStyles = GuiTheme.entries.filter { it.requiresUnlock }
+
+    @BeforeEach
+    fun requirePrivateAssets() {
+        assumeTrue(assetRoot != null, "Private resource-pack validation requires LUMAGUILDS_PRIVATE_ASSET_ROOT")
+        assertTrue(requireNotNull(assetRoot).isDirectory, "Configured private resource-pack root must exist")
+    }
 
     private fun yaml(path: String) = YamlConfiguration.loadConfiguration(File(pack, path))
 
@@ -82,10 +91,10 @@ internal class HolidayStylePackTest {
         val base =
             yaml("items/lumaguilds_enthusia_icons.yml").getKeys(false) +
                 YamlConfiguration.loadConfiguration(
-                    File("resourcepack/enthusia-icons/server-kit/lg_enthusia_gui.yml"),
+                    File(requireNotNull(assetRoot), "enthusia-icons/server-kit/lg_enthusia_gui.yml"),
                 ).getKeys(false) +
                 YamlConfiguration.loadConfiguration(
-                    File("resourcepack/enthusia-icons/server-kit/repoint-textures.yml"),
+                    File(requireNotNull(assetRoot), "enthusia-icons/server-kit/repoint-textures.yml"),
                 ).getKeys(false)
         return base
     }

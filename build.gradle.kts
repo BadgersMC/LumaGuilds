@@ -149,6 +149,11 @@ idea {
 
 tasks.test {
     useJUnitPlatform()
+    val privateAssetRoot = providers.environmentVariable("LUMAGUILDS_PRIVATE_ASSET_ROOT").orElse("")
+    inputs.property("privateAssetRoot", privateAssetRoot)
+    inputs.files(privateAssetRoot.map { path -> if (path.isBlank()) files() else fileTree(path) })
+        .withPropertyName("privateAssetContents")
+    environment("LUMAGUILDS_PRIVATE_ASSET_ROOT", privateAssetRoot.get())
     val ownershipMariaPort = providers.environmentVariable("GUILD_OWNERSHIP_TEST_MARIA_PORT")
     inputs.property("guildOwnershipTestMariaPort", ownershipMariaPort.orElse(""))
     ownershipMariaPort.orNull?.let { environment("GUILD_OWNERSHIP_TEST_MARIA_PORT", it) }
