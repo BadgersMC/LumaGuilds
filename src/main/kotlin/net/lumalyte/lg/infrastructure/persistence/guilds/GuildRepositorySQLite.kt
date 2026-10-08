@@ -612,11 +612,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     it.executeUpdate()
                 }
             }
-            connection.prepareStatement("DELETE FROM relations WHERE guild_a = ? OR guild_b = ?").use {
-                it.setString(1, guildId.toString())
-                it.setString(2, guildId.toString())
-                it.executeUpdate()
-            }
+            connection.deleteGuildRelations(guildId)
             deleteRewardOwnershipState(connection, guildId)
             connection.prepareStatement("DELETE FROM guilds WHERE id = ?").use {
                 it.setString(1, guildId.toString())

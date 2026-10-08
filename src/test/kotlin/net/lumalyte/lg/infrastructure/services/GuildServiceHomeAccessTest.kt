@@ -96,6 +96,8 @@ class GuildServiceHomeAccessTest {
         every { memberRepository.getByPlayerAndGuild(outsider, guildId) } returns null
         assertFalse(service.canUseHome(outsider, guildId, homeName))
     }
+
+    /** Denied members see no home suggestions; the owner retains access. */
     @Test
     fun inaccessibleHomeNotSuggested() {
         setup(homeAllowed = emptySet())
@@ -103,10 +105,10 @@ class GuildServiceHomeAccessTest {
         assertEquals(listOf(homeName), service.accessibleHomeNames(ownerPlayerId, guildId))
     }
 
+    /** An allowed rank receives the active home name. */
     @Test
     fun allowedHomeSuggested() {
         setup(homeAllowed = setOf(memberRankId))
         assertEquals(listOf(homeName), service.accessibleHomeNames(memberPlayerId, guildId))
     }
-
 }
