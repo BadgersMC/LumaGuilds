@@ -89,13 +89,13 @@ internal class GuildStallMenuSafetyTest {
 
     private fun createLanguage(): LangService {
         return LangService(
-        object : LangHost {
-            override val dataFolder: File = checkNotNull(directory).toFile()
-            override val resourceClassLoader: ClassLoader = LumaGuildsLang::class.java.classLoader
-        },
-        Locale("en_US"),
-        LumaGuildsLang::class.java,
-    )
+            object : LangHost {
+                override val dataFolder: File = checkNotNull(directory).toFile()
+                override val resourceClassLoader: ClassLoader = LumaGuildsLang::class.java.classLoader
+            },
+            Locale("en_US"),
+            LumaGuildsLang::class.java,
+        )
     }
 
     /** Restore global test resources. */

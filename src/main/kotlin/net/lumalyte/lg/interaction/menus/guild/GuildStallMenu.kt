@@ -32,6 +32,8 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 /** Read-only, paginated guild stall inventory shared by Java and Bedrock. */
+// Literal title keys keep the existing locale source-contract scanner authoritative.
+@Suppress("DuplicateStringLiteral")
 internal class GuildStallMenu(
     private val navigator: MenuNavigator,
     private val player: Player,
@@ -131,13 +133,7 @@ internal class GuildStallMenu(
     private fun controls(maxPage: Int, summary: Component): List<Row> {
         return listOf(
             Row(lang.gui("guild_stall.back"), emptyList()) {
-                if (selected == null) {
-                    navigator.goBack()
-                } else {
-                    selected = null
-                    page = 0
-                    open()
-                }
+                goBack()
             },
             Row(lang.gui("guild_stall.previous"), emptyList()) {
                 page = (page - 1).coerceAtLeast(0)
@@ -151,8 +147,18 @@ internal class GuildStallMenu(
         )
     }
 
+    private fun goBack() {
+        if (selected == null) {
+            navigator.goBack()
+        } else {
+            selected = null
+            page = 0
+            open()
+        }
+    }
+
     private fun displayInventory(visible: List<Row>, controls: List<Row>, summary: Component, token: Long) {
-        val title = MenuTitleBuilder.build(guild.guiTheme, MENU_ROWS, lang.guiTitle(TITLE_KEY))
+        val title = MenuTitleBuilder.build(guild.guiTheme, MENU_ROWS, lang.guiTitle("guild_stall.title"))
         val gui = ChestGui(MENU_ROWS, title)
         val pane = StaticPane(0, 0, WIDTH, MENU_ROWS)
         gui.addPane(pane)
@@ -167,7 +173,7 @@ internal class GuildStallMenu(
     private fun addRow(pane: StaticPane, slot: Int, row: Row, token: Long) {
         val item = ItemStack.of(if (slot < PAGE_SIZE) Material.OAK_SIGN else Material.PAPER)
         item.editMeta { meta ->
-            meta.displayName(if (slot == STATUS_SLOT) lang.gui(TITLE_KEY) else row.name)
+            meta.displayName(if (slot == STATUS_SLOT) lang.gui("guild_stall.title") else row.name)
             meta.lore(if (slot == STATUS_SLOT) summaryLines(row.name) else row.lore)
         }
         pane.addItem(
@@ -200,11 +206,9 @@ internal class GuildStallMenu(
             val builder =
                 SimpleForm
                     .builder()
-                    .title(lang.bedrock(TITLE_KEY))
+                    .title(lang.bedrock("guild_stall.title"))
                     .content(plain.serialize(summary))
-            rows.forEach { row ->
-                builder.button(plain.serialize(row.name) + row.lore.joinToString("") { "\n" + plain.serialize(it) })
-            }
+            rows.forEach { row -> builder.button(buttonText(row, plain)) }
             return builder
                 .validResultHandler { response ->
                     Bukkit.getScheduler().runTask(plugin, Runnable { acceptClick(response.clickedButtonId()) })
@@ -216,6 +220,11 @@ internal class GuildStallMenu(
                 )
                 .build()
         }
+
+        private fun buttonText(
+            row: Row,
+            plain: net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer,
+        ): String = plain.serialize(row.name) + row.lore.joinToString("") { "\n" + plain.serialize(it) }
 
         private fun acceptClick(index: Int) {
             if (navigator.isNavigationCurrent(token) && player.isOnline && isMember()) {
@@ -235,7 +244,6 @@ internal class GuildStallMenu(
     }
 
     private companion object {
-        const val TITLE_KEY = "guild_stall.title"
         const val WIDTH = 9
         const val MENU_ROWS = 6
         const val PAGE_SIZE = 45
