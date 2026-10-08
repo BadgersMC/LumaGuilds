@@ -748,8 +748,7 @@ class GuildServiceBukkit(
         if (theme.requiresUnlock && themeAccess?.isThemeAvailable(guildId, theme) != true) {
             return false
         }
-        val updatedGuild = guild.copy(guiTheme = theme)
-        return guildRepository.update(updatedGuild)
+        return guildRepository.updateGuiTheme(guildId, guild.guiTheme, theme)
     }
 
     override fun canUseAllyHome(playerId: UUID, sourceGuildId: UUID, targetGuildId: UUID): Boolean {

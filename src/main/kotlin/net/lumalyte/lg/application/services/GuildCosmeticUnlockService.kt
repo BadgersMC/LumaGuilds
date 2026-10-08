@@ -10,6 +10,7 @@ import net.lumalyte.lg.domain.entities.MAX_COSMETIC_TYPE_LENGTH
 import net.lumalyte.lg.domain.entities.MENU_THEME_COSMETIC
 import net.lumalyte.lg.utils.GuiTheme
 import java.time.Instant
+import java.util.Locale
 import java.util.UUID
 
 /**
@@ -80,6 +81,7 @@ class GuildCosmeticUnlockService(
 
     /** Read owned keys in the normalized category. */
     fun unlockedKeys(guildId: UUID, type: String): Set<String> {
+        if (guilds.getById(guildId) == null) return emptySet()
         val normalType = normalise(type, MAX_COSMETIC_TYPE_LENGTH) ?: return emptySet()
         return unlocks.getForGuild(guildId).filter { it.type == normalType }.map { it.key }.toSet()
     }
@@ -93,5 +95,5 @@ class GuildCosmeticUnlockService(
         unlocks.get(guildId, MENU_THEME_COSMETIC, theme.name)?.displayName ?: theme.displayName
 
     private fun normalise(value: String, max: Int): String? =
-        value.trim().uppercase().takeIf { it.isNotEmpty() && it.length <= max }
+        value.trim().uppercase(Locale.ROOT).takeIf { it.isNotEmpty() && it.length <= max }
 }

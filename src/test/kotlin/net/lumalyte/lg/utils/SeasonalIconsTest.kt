@@ -35,6 +35,7 @@ internal class SeasonalIconsTest {
     @Test
     fun styleForGuildThemes() {
         assertEquals(GuiTheme.HALLOWEEN, SeasonalIcons.styleFor(listOf(GuiTheme.ENTHUSIA, GuiTheme.HALLOWEEN)))
+        assertEquals(GuiTheme.HALLOWEEN, SeasonalIcons.styleFor(listOf(GuiTheme.CHRISTMAS, GuiTheme.HALLOWEEN)))
         assertNull(SeasonalIcons.styleFor(listOf(GuiTheme.ENTHUSIA, GuiTheme.VANILLA)))
         assertNull(SeasonalIcons.styleFor(emptyList()))
     }

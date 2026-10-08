@@ -71,6 +71,7 @@ internal class GuildServiceThemeUnlockTest {
         every { guildRepository.getById(guildId) } returns
             Guild(id = guildId, name = "Enthusiasts", createdAt = Instant.now())
         every { guildRepository.update(any()) } returns true
+        every { guildRepository.updateGuiTheme(guildId, any(), any()) } returns true
         themeAccess = mockk()
     }
 
@@ -80,7 +81,7 @@ internal class GuildServiceThemeUnlockTest {
     fun scenario1() {
         every { themeAccess.isThemeAvailable(guildId, GuiTheme.HALLOWEEN) } returns false
         assertFalse(service(themeAccess).setGuiTheme(guildId, GuiTheme.HALLOWEEN, ownerId))
-        verify(exactly = 0) { guildRepository.update(any()) }
+        verify(exactly = 0) { guildRepository.updateGuiTheme(guildId, any(), any()) }
     }
 
     /** Owned holiday theme is applied. */
@@ -89,7 +90,7 @@ internal class GuildServiceThemeUnlockTest {
     fun scenario2() {
         every { themeAccess.isThemeAvailable(guildId, GuiTheme.HALLOWEEN) } returns true
         assertTrue(service(themeAccess).setGuiTheme(guildId, GuiTheme.HALLOWEEN, ownerId))
-        verify { guildRepository.update(match { it.guiTheme == GuiTheme.HALLOWEEN }) }
+        verify { guildRepository.updateGuiTheme(guildId, GuiTheme.ENTHUSIA, GuiTheme.HALLOWEEN) }
     }
 
     /** Without an unlock ledger holiday themes fail closed and progression themes still work. */
