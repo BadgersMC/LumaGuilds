@@ -22,7 +22,7 @@ Final clean `test shadowJar mariaDbRewardTest` on Java 25 / Paper 26.2 passed af
 
 The unmerged local review artifact is `LumaGuilds-3.0.0-reconnect-review.2.jar`, SHA-256 `df96f0bd197ac2c3d1ecf36efec4405fc4eb4fef22512cf7fa592162d267831e`. It is not a production release.
 
-Codacy's first-head findings were addressed by narrowing new implementation types to internal visibility, reducing return/branch complexity and nested JDBC reads, documenting the schema identifier, and refining test fixtures/style. The focused 58-case suite passed after the behavioral refactoring; the complete clean rerun above includes the final fixture changes.
+Codacy's first-head findings were addressed by narrowing new implementation types to internal visibility, reducing return/branch complexity and nested JDBC reads, documenting the schema identifier, and refining test fixtures/style. The focused 58-case suite passed after the behavioral refactoring and again after the last two fixture-only formatting fixes. The final runtime source passed the complete clean rerun above; the final focused rerun covers the subsequently refined language fixture.
 
 The first clean attempt encountered locked local database log files; an immediate helper restart then encountered the old process's data-file lock. After verifying the disposable loopback instance was ready, the complete clean integration rerun passed. These were local test-harness failures; no product workaround was applied. Exact-head hosted checks and review findings are tracked on the pull request. This checkout has no project-local EARS validator or SPEAR state helpers; requirement/task/evidence records are maintained directly. No helper validation is claimed.
 

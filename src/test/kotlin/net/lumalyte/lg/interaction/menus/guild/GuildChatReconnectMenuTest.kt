@@ -46,8 +46,9 @@ import java.util.logging.Logger
 import kotlin.properties.Delegates
 import kotlin.test.assertEquals
 
-/** Real Java actions and serialized Bedrock responses share the authorized preference service. */
 // Four client regressions share isolated lifecycle, language and form fixtures.
+
+/** Real Java actions and serialized Bedrock responses share the authorized preference service. */
 @Suppress("TooManyFunctions")
 internal class GuildChatReconnectMenuTest {
     @TempDir var directory: Path? = null
@@ -95,12 +96,12 @@ internal class GuildChatReconnectMenuTest {
         }
     }
 
-    private fun createLanguage(): LangService {
-        val host = object : LangHost {
-            override val dataFolder: File = checkNotNull(directory).toFile()
-            override val resourceClassLoader: ClassLoader = LumaGuildsLang::class.java.classLoader
-        }
-        return LangService(host, Locale("en_US"), LumaGuildsLang::class.java)
+    private fun createLanguage(): LangService =
+        LangService(TestLangHost(), Locale("en_US"), LumaGuildsLang::class.java)
+
+    private inner class TestLangHost : LangHost {
+        override val dataFolder: File = checkNotNull(directory).toFile()
+        override val resourceClassLoader: ClassLoader = LumaGuildsLang::class.java.classLoader
     }
 
     /** Restores process-wide test resources. */
