@@ -7580,3 +7580,12 @@ guild_stall:
   previous: '<gray>Previous page'
   refresh: '<yellow>Refresh'
   next: '<gray>Next page'
+
+# Guild-wide opt-in reconnect policy (REQ-135).
+guild_chat_reconnect:
+  name: "Reset chat on reconnect"
+  description: "Return guild and ally chat to global when reconnecting."
+  enabled: "<green>Enabled"
+  disabled: "<gray>Disabled"
+  saved: "<green>Chat reconnect preference saved."
+  failed: "<red>Could not save this setting. Check your permission and reopen the menu."

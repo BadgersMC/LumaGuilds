@@ -989,3 +989,8 @@ Ported from FainNeito/LumaGuilds#2/#3 onto the Enthusia redesign: the holiday st
   - Tag: INFRA
   - References: REQ-071, REQ-121 through REQ-134; docs/checklist-correctness.md.
   - Evidence: local merge conflicts reproduced; reconciled source ancestry verified. Combined suite 1,653 tests, zero failures/errors, four unrelated skips; 54 separate native cases, zero skips. Hosted final-head checks and subsequent authorized release/player acceptance remain distinct.
+
+- [x] CHAT-RECONNECT: Optional guild-wide reconnect reset in Java/Bedrock settings.
+  - Tag: TDD
+  - References: REQ-135.
+  - Evidence: authoritative main a15b244 inspected; isolated branch then integrated preceding approved review source #213 to preserve the checklist chain. Existing join cleanup only removes invalid channels. No project-local EARS/state helpers found; manual requirement/task/evidence maintained. Focused contracts: 58 passed. Clean integration suite: 1,673 tests, zero failures/errors, five skips; native MariaDB: 59 passed, zero skips. Persistence, authority, stale forms, configured channels, and disconnected/replaced sessions are covered. Optional companion runtime validation and exact-head hosted checks are recorded on the PR. See docs/chat-reconnect.md. Production stays unchanged.

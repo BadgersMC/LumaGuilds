@@ -1,5 +1,6 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
+import net.lumalyte.lg.infrastructure.persistence.migrations.GuildChatReconnectSettingsSchema
 import co.aikar.idb.Database
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.GuildRepository
@@ -101,7 +102,10 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
 
     init {
         createGuildTable()
-        storage.connection.connection.use { it.ensureGuildVaultSchema() }
+        storage.connection.connection.use {
+            it.ensureGuildVaultSchema()
+            GuildChatReconnectSettingsSchema.create(it)
+        }
         createGuildHomesTable()
         migrateTrackingColumn()
         migrateBankFrozenColumn()
@@ -643,6 +647,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                 }
             }
             connection.deleteGuildRelations(guildId)
+            GuildChatReconnectSettingsSchema.delete(connection, guildId)
             deleteRewardOwnershipState(connection, guildId)
             connection.prepareStatement("DELETE FROM guilds WHERE id = ?").use {
                 it.setString(1, guildId.toString())
@@ -1080,6 +1085,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                 var failure: Throwable? = null
                 var rolledBack = false
                 try {
+                    GuildChatReconnectSettingsSchema.delete(connection, guildId)
                     deleteRewardOwnershipState(connection, guildId)
                     val rowsAffected = connection.prepareStatement("DELETE FROM guilds WHERE id = ?").use {
                         it.setString(1, guildId.toString())
