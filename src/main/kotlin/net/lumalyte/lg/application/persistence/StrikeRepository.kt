@@ -4,8 +4,9 @@ import net.lumalyte.lg.domain.entities.GuildStrike
 import java.time.Instant
 import java.util.UUID
 
-/** Durable strike history with stable provider identities and retryable reconciliation. */
 // All twelve established port operations remain available to callers.
+
+/** Durable strike history with stable provider identities and retryable reconciliation. */
 @Suppress("TooManyFunctions")
 interface StrikeRepository {
     /** Record an attributed legacy strike while enabled. */

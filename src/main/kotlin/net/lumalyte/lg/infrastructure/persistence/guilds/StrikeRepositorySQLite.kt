@@ -10,8 +10,9 @@ import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 
-/** Persists the established strike port; provider failures remain retryable. */
 // Preserve all twelve operations in the repository contract; SQL helpers are file-private.
+
+/** Persists the established strike port; provider failures remain retryable. */
 @Suppress("TooManyFunctions")
 class StrikeRepositorySQLite(private val storage: Storage<Database>) : StrikeRepository {
 
