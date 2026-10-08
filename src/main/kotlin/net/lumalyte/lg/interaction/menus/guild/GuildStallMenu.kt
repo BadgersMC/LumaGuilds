@@ -20,7 +20,6 @@ import net.lumalyte.lg.interaction.menus.bedrock.BaseBedrockMenu
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.utils.inventoryframework.addPane
-import net.lumalyte.lg.domain.entities.RankPermission
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -135,21 +134,9 @@ internal class GuildStallMenu(
     private fun controls(maxPage: Int, summary: Component): List<Row> {
         val navigation = navigationControls(maxPage, summary)
         val stall = selected ?: return navigation
-        val sales = if (canShowSales(stall)) listOf(salesRow(stall)) else emptyList()
-        val access = if (canShowAccess(stall)) listOf(accessRow(stall)) else emptyList()
-        return navigation + sales + access
+        val manager = GuildStallManagerControls(player, guild.id, members, lang)
+        return navigation + manager.rows(stall).map { Row(it.name, emptyList(), it.action) }
     }
-
-    private fun accessRow(stall: String): Row = Row(Component.text("Stall flags and access"), emptyList()) {
-        if (canShowAccess(stall)) {
-            player.closeInventory()
-            player.performCommand("stallaccess settings $stall")
-        }
-    }
-
-    private fun canShowAccess(stall: String): Boolean = stall.matches(Regex("[A-Za-z0-9_.:-]+")) &&
-        Bukkit.getCommandMap().getCommand("stallaccess") != null &&
-        members.hasPermission(player.uniqueId, guild.id, RankPermission.EDIT_SHOP_STOCK)
 
     private fun navigationControls(maxPage: Int, summary: Component): List<Row> {
         val navigation =
@@ -169,25 +156,6 @@ internal class GuildStallMenu(
             )
         return navigation
     }
-
-    private fun salesRow(stall: String): Row {
-        return Row(lang.gui("community.stall.sales"), emptyList()) {
-            if (canManageStock()) {
-                player.closeInventory()
-                player.performCommand("guildsales $stall")
-            }
-        }
-
-    }
-
-    private fun canShowSales(stall: String): Boolean {
-        return stall.matches(Regex("[A-Za-z0-9_.:-]+")) &&
-            Bukkit.getCommandMap().getCommand("guildsales") != null && canManageStock()
-
-    }
-
-    private fun canManageStock(): Boolean =
-        members.hasPermission(player.uniqueId, guild.id, RankPermission.EDIT_SHOP_STOCK)
 
     private fun goBack() {
         if (selected == null) {

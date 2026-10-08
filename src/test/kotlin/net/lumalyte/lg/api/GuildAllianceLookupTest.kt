@@ -13,13 +13,16 @@ import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class GuildAllianceLookupTest {
-    @Test fun `only current active alliances grant access and repository warms before event reads`() {
+/** Public optional alliance API authorization contract. */
+internal class GuildAllianceLookupTest {
+    /** Warming and live relation changes cannot grant access to pending/enemy/absent relations. */
+    @Test fun currentAllianceOnly() {
         val guild = UUID.randomUUID()
         val ally = UUID.randomUUID()
         val repo = mockk<RelationRepository>()
         every { repo.getAll() } returns emptySet()
-        var relation: Relation? = Relation.create(UUID.randomUUID(), guild, ally, RelationType.ALLY, createdAt = Instant.now())
+        var relation: Relation? =
+            Relation.create(UUID.randomUUID(), guild, ally, RelationType.ALLY, createdAt = Instant.now())
         every { repo.getByGuilds(guild, ally) } answers { relation }
         val lookup = GuildAllianceLookupImpl(repo)
         verify(exactly = 1) { repo.getAll() }

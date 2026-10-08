@@ -75,11 +75,12 @@ internal class RankCreationSelectionTest {
         startKoin { modules(servicesModule(lang, ranks)) }
     }
 
-    private fun servicesModule(lang: LangService, ranks: RankService) = module {
-        single { lang }
-        single { ranks }
-        single<ConfigService> { mockk { every { loadConfig() } returns MainConfig() } }
-    }
+    private fun servicesModule(lang: LangService, ranks: RankService) =
+        module {
+            single { lang }
+            single { ranks }
+            single<ConfigService> { mockk { every { loadConfig() } returns MainConfig() } }
+        }
 
     private fun configureBukkit() {
         val plugin = MockBukkit.createMockPlugin()
