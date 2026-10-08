@@ -12,7 +12,7 @@ class GuildAllianceLookupImpl(private val relations: RelationRepository) : Guild
 
     override fun areAllied(guildId: UUID, otherGuildId: UUID): Boolean {
         if (guildId == otherGuildId) return false
-        val relation = relations.getByGuilds(guildId, otherGuildId) ?: return false
-        return relation.type == RelationType.ALLY && relation.isActive()
+        val relation = relations.getByGuilds(guildId, otherGuildId)
+        return relation?.type == RelationType.ALLY && relation.isActive()
     }
 }
