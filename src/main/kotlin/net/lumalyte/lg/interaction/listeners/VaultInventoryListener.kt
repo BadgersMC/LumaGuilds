@@ -112,14 +112,17 @@ class VaultInventoryListener(
             event.action == InventoryAction.MOVE_TO_OTHER_INVENTORY || event.action == InventoryAction.COLLECT_TO_CURSOR
 
     private fun protectBalanceButton(event: InventoryClickEvent, holder: VaultInventoryHolder, player: Player): Boolean {
-        val transferIntoEmptyButton = event.action == InventoryAction.MOVE_TO_OTHER_INVENTORY &&
-            event.currentItem != null && holder.inventory.getItem(0) == null
-        val collection = collectsBalanceButton(event, holder)
-        if (transferIntoEmptyButton || collection) {
+        val blocked = transfersIntoEmptyButton(event, holder) || collectsBalanceButton(event, holder)
+        if (blocked) {
             event.isCancelled = true
             player.sendMessage(lang.msg("notification.vault.inventory.reserved_button"))
         }
-        return transferIntoEmptyButton || collection
+        return blocked
+    }
+
+    private fun transfersIntoEmptyButton(event: InventoryClickEvent, holder: VaultInventoryHolder): Boolean {
+        return event.action == InventoryAction.MOVE_TO_OTHER_INVENTORY &&
+            event.currentItem != null && holder.inventory.getItem(0) == null
     }
 
     private fun collectsBalanceButton(event: InventoryClickEvent, holder: VaultInventoryHolder): Boolean {
