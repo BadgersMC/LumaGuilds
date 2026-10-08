@@ -515,6 +515,11 @@ fun guildClaimsIntegrationModule() = module {
  * Social module - Party system, chat, and LFG
  */
 fun socialModule() = module {
+    single<net.lumalyte.lg.application.persistence.GuildOnboardingRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildOnboardingRepositorySQL(get())
+    }
+    single { net.lumalyte.lg.application.services.GuildGettingStartedService(get(), get(), get()) }
+    single { net.lumalyte.lg.infrastructure.listeners.GuildOnboardingListener(get(), get(), get(), get(), get()) }
     // Repositories
     single<PartyRepository> { PartyRepositorySQLite(get()) }
     single<PlayerPartyPreferenceRepository> { PlayerPartyPreferenceRepositorySQLite(get()) }
