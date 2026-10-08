@@ -256,5 +256,7 @@ internal class GuildStallMenu(
 
 private fun summaryLines(text: Component): List<Component> {
     return net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
-        .serialize(text).lines().map(Component::text)
+        .serialize(text)
+        .lines()
+        .map(Component::text)
 }
