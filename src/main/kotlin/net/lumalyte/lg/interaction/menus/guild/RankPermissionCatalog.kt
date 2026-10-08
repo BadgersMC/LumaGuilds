@@ -4,8 +4,17 @@ import net.lumalyte.lg.domain.entities.RankPermission
 
 /** Shared supported permission groups for creation and editing. */
 internal object RankPermissionCatalog {
+    private val CLAIM_PERMISSIONS =
+        setOf(
+            RankPermission.MANAGE_CLAIMS,
+            RankPermission.MANAGE_FLAGS,
+            RankPermission.MANAGE_PERMISSIONS,
+            RankPermission.CREATE_CLAIMS,
+            RankPermission.DELETE_CLAIMS,
+        )
+
     fun categories(claimsEnabled: Boolean): Map<String, List<RankPermission>> =
-        RankPermission.entries.filter { claimsEnabled || it !in claims }.groupBy { permission ->
+        RankPermission.entries.filter { claimsEnabled || it !in CLAIM_PERMISSIONS }.groupBy { permission ->
             when (permission) {
                 RankPermission.MANAGE_RANKS, RankPermission.MANAGE_MEMBERS,
                 RankPermission.MANAGE_BANNER, RankPermission.MANAGE_EMOJI,
@@ -35,13 +44,4 @@ internal object RankPermissionCatalog {
                 else -> "Banking"
             }
         }
-
-    private val claims =
-        setOf(
-            RankPermission.MANAGE_CLAIMS,
-            RankPermission.MANAGE_FLAGS,
-            RankPermission.MANAGE_PERMISSIONS,
-            RankPermission.CREATE_CLAIMS,
-            RankPermission.DELETE_CLAIMS,
-        )
 }

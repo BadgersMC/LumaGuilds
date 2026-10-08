@@ -7,7 +7,6 @@ import dev.rosewood.rosechat.message.RoseMessage
 import dev.rosewood.rosechat.message.RosePlayer
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
 import net.lumalyte.lg.application.persistence.ChatSettingsRepository
 import net.lumalyte.lg.domain.values.ChatVisibilitySettings
 import net.lumalyte.lg.infrastructure.services.RoseChatAdapter

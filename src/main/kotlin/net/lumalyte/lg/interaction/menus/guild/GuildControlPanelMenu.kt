@@ -75,7 +75,7 @@ class GuildControlPanelMenu(
             GuiItem(ItemStack.of(Material.BOOK).name(lang.gui("community.chat.settings"))) {
                 menuNavigator.openMenu(menuFactory.createPlayerChatSettingsMenu(menuNavigator, player))
             },
-            4,
+            CHAT_SETTINGS_COLUMN,
             1,
         )
 
@@ -200,5 +200,6 @@ class GuildControlPanelMenu(
         const val VAULT_SLOT = 5
         const val BACK_SLOT = 4
         const val DISBAND_SLOT = 8
+        const val CHAT_SETTINGS_COLUMN = 4
     }
 }

@@ -46,7 +46,13 @@ class ChatSettingsRepositorySQLite(
         try {
             storage.connection.executeUpdate(visibilityTableSql)
             storage.connection.executeUpdate(
-                "CREATE TABLE IF NOT EXISTS chat_ui_preferences (player_id VARCHAR(36) PRIMARY KEY, global_chat_visible INTEGER NOT NULL DEFAULT 1, destination_indicator INTEGER NOT NULL DEFAULT 0)",
+                """
+                CREATE TABLE IF NOT EXISTS chat_ui_preferences (
+                    player_id VARCHAR(36) PRIMARY KEY,
+                    global_chat_visible INTEGER NOT NULL DEFAULT 1,
+                    destination_indicator INTEGER NOT NULL DEFAULT 0
+                )
+                """.trimIndent(),
             )
             storage.connection.executeUpdate(rateLimitTableSql)
         } catch (e: SQLException) {
@@ -62,9 +68,10 @@ class ChatSettingsRepositorySQLite(
     private fun preloadVisibilitySettings() {
         val sql =
             """
-            SELECT v.player_id, v.guild_chat_visible, v.ally_chat_visible, v.party_chat_visible,
-                COALESCE(u.global_chat_visible, 1) AS global_chat_visible, COALESCE(u.destination_indicator, 0) AS destination_indicator
-            FROM chat_visibility_settings v LEFT JOIN chat_ui_preferences u ON u.player_id = v.player_id
+                SELECT v.player_id, v.guild_chat_visible, v.ally_chat_visible, v.party_chat_visible,
+                COALESCE(u.global_chat_visible, 1) AS global_chat_visible,
+                COALESCE(u.destination_indicator, 0) AS destination_indicator
+                FROM chat_visibility_settings v LEFT JOIN chat_ui_preferences u ON u.player_id = v.player_id
             """.trimIndent()
 
         try {
@@ -123,47 +130,59 @@ class ChatSettingsRepositorySQLite(
             partyChatVisible = defaultChannelVisibility,
         )
 
-    override fun updateVisibilitySettings(settings: ChatVisibilitySettings): Boolean =
+    override fun updateVisibilitySettings(settings: ChatVisibilitySettings): Boolean {
         try {
-            storage.connection.connection.use { connection ->
-                connection.autoCommit = false
-                try {
-                    connection
-                        .prepareStatement(
-                            "REPLACE INTO chat_visibility_settings (player_id, guild_chat_visible, ally_chat_visible, party_chat_visible) VALUES (?, ?, ?, ?)",
-                        ).use { statement ->
-                            statement.setString(1, settings.playerId.toString())
-                            bindFlags(statement, listOf(settings.guildChatVisible, settings.allyChatVisible, settings.partyChatVisible))
-                            statement.executeUpdate()
-                        }
-                    connection
-                        .prepareStatement(
-                            "REPLACE INTO chat_ui_preferences (player_id, global_chat_visible, destination_indicator) VALUES (?, ?, ?)",
-                        ).use { statement ->
-                            statement.setString(1, settings.playerId.toString())
-                            bindFlags(statement, listOf(settings.globalChatVisible, settings.destinationIndicator))
-                            statement.executeUpdate()
-                        }
-                    connection.commit()
-                } catch (failure: SQLException) {
-                    try {
-                        connection.rollback()
-                    } catch (rollback: SQLException) {
-                        failure.addSuppressed(rollback)
-                    }
-                    throw failure
-                }
-            }
+            storage.connection.connection.use { connection -> persistVisibility(connection, settings) }
             visibilitySettings[settings.playerId] = settings
-            true
+            return true
         } catch (failure: SQLException) {
             throw DatabaseOperationException("Failed to update chat visibility settings", failure)
         }
+    }
 
-    private fun bindFlags(
-        statement: java.sql.PreparedStatement,
-        flags: List<Boolean>,
-    ) {
+    private fun persistVisibility(connection: java.sql.Connection, settings: ChatVisibilitySettings) {
+        connection.autoCommit = false
+        try {
+            saveVisibility(connection, settings)
+            savePreferences(connection, settings)
+            connection.commit()
+        } catch (failure: SQLException) {
+            try {
+                connection.rollback()
+            } catch (rollback: SQLException) {
+                failure.addSuppressed(rollback)
+            }
+            throw failure
+        }
+    }
+
+    private fun saveVisibility(connection: java.sql.Connection, settings: ChatVisibilitySettings) {
+        val sql =
+            """
+            REPLACE INTO chat_visibility_settings
+            (player_id, guild_chat_visible, ally_chat_visible, party_chat_visible) VALUES (?, ?, ?, ?)
+            """.trimIndent()
+        connection.prepareStatement(sql).use { statement ->
+            statement.setString(1, settings.playerId.toString())
+            bindFlags(statement, listOf(settings.guildChatVisible, settings.allyChatVisible, settings.partyChatVisible))
+            statement.executeUpdate()
+        }
+    }
+
+    private fun savePreferences(connection: java.sql.Connection, settings: ChatVisibilitySettings) {
+        val sql =
+            """
+            REPLACE INTO chat_ui_preferences
+            (player_id, global_chat_visible, destination_indicator) VALUES (?, ?, ?)
+            """.trimIndent()
+        connection.prepareStatement(sql).use { statement ->
+            statement.setString(1, settings.playerId.toString())
+            bindFlags(statement, listOf(settings.globalChatVisible, settings.destinationIndicator))
+            statement.executeUpdate()
+        }
+    }
+
+    private fun bindFlags(statement: java.sql.PreparedStatement, flags: List<Boolean>) {
         flags.forEachIndexed { index, enabled -> statement.setInt(index + 2, if (enabled) 1 else 0) }
     }
 

@@ -28,25 +28,27 @@ internal class FullscreenAnnounceCommand :
 
     @Default
     @CommandPermission("lumaguilds.guild.chat")
-    fun announce(
-        player: Player,
-        vararg args: String,
-    ) {
+    fun announce(player: Player, vararg args: String) {
         val message = args.joinToString(" ").trim()
         val guildId = resolveAnnouncementGuild(player, guilds, members)
         if (message.isBlank() || guildId == null) {
             player.sendMessage(lang.msg("community.chat.fullscreen_usage"))
             return
         }
-        if (penalties.isGuildMuted(guildId)) {
-            player.sendMessage(lang.msg("notification.guild_chat.guild_muted"))
-            return
-        }
-        if (!service.sendGuildAnnouncement(guildId, player.uniqueId, message)) {
-            player.sendMessage(lang.msg("command.migrated.quick_announce.announce.failed_to_send_announcement"))
-            return
-        }
+        if (!canSend(player, guildId, message)) return
         val title = Title.title(lang.msg("community.chat.fullscreen_title"), Component.text(message))
         service.getOnlineGuildMembers(guildId).forEach { Bukkit.getPlayer(it)?.showTitle(title) }
+    }
+
+    private fun canSend(player: Player, guildId: java.util.UUID, message: String): Boolean {
+        if (penalties.isGuildMuted(guildId)) {
+            player.sendMessage(lang.msg("notification.guild_chat.guild_muted"))
+            return false
+        }
+        val sent = service.sendGuildAnnouncement(guildId, player.uniqueId, message)
+        if (!sent) {
+            player.sendMessage(lang.msg("command.migrated.quick_announce.announce.failed_to_send_announcement"))
+        }
+        return sent
     }
 }

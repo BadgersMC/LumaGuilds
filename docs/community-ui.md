@@ -97,3 +97,10 @@ Final refinement validation: 1,679 tests, zero failures/errors, 15 external skip
 in the ordinary profile; all 61 disposable native MariaDB cases pass without
 skips. The actual companion runtime contract executes. Wiki lint (42 selected
 wiki/plan files) and all 13 topic-parity checks pass. Production is untouched.
+
+Second hosted refinement: #215 head e1381b6 reduced the provider report from 286
+to 125 findings and removed the high compatibility issue. Refine remaining
+return counts, constants, documentation, configured formatting and transaction
+method boundaries. The focused privacy, SQL rollback/cache, directory, rank,
+announcement, locale and stall-menu contracts pass (40 tests, zero failures/errors).
+Final-head full/native/hosted validation remains separate. No gate suppression.

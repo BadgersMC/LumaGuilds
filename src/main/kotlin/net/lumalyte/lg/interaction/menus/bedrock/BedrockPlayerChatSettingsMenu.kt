@@ -59,14 +59,12 @@ internal class BedrockPlayerChatSettingsMenu(
         open()
     }
 
+    private fun state(enabled: Boolean) =
+        if (enabled) lang.bedrock("community.chat.enabled") else lang.bedrock("community.chat.disabled")
+
+    override fun handleResponse(player: Player, response: Any?) = Unit
+
     private companion object {
         const val BACK_BUTTON = 2
     }
-
-    private fun state(enabled: Boolean) = if (enabled) lang.bedrock("community.chat.enabled") else lang.bedrock("community.chat.disabled")
-
-    override fun handleResponse(
-        player: Player,
-        response: Any?,
-    ) = Unit
 }

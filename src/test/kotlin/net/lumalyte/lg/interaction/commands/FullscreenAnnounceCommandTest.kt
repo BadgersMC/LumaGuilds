@@ -34,13 +34,13 @@ internal class FullscreenAnnounceCommandTest {
     @Test fun announcementLimits() {
         val fixture = Fixture()
         val command = FullscreenAnnounceCommand()
-        command.announce(fixture.player, "Hello")
+        command.announce(fixture.player, MESSAGE)
         verify(exactly = 0) { fixture.chat.sendGuildAnnouncement(any(), any(), any()) }
         fixture.muted = false
-        command.announce(fixture.player, "Hello")
+        command.announce(fixture.player, MESSAGE)
         verify(exactly = 0) { fixture.player.showTitle(any<Title>()) }
         fixture.allowed = true
-        command.announce(fixture.player, "Hello")
+        command.announce(fixture.player, MESSAGE)
         verify(exactly = 1) { fixture.player.showTitle(any<Title>()) }
     }
 
@@ -62,7 +62,7 @@ internal class FullscreenAnnounceCommandTest {
             every { guilds.getPlayerGuilds(id) } returns setOf(guild)
             every { members.hasPermission(id, guild.id, any()) } returns true
             every { penalties.isGuildMuted(guild.id) } answers { muted }
-            every { chat.sendGuildAnnouncement(guild.id, id, "Hello") } answers { allowed }
+            every { chat.sendGuildAnnouncement(guild.id, id, MESSAGE) } answers { allowed }
             every { chat.getOnlineGuildMembers(guild.id) } returns setOf(id)
             every { lang.msg(any()) } returns Component.text("Announcement")
             configureServices()
@@ -72,14 +72,20 @@ internal class FullscreenAnnounceCommandTest {
 
         private fun configureServices() {
             startKoin {
-                modules(module {
-                    single { guilds }
-                    single { members }
-                    single { penalties }
-                    single { chat }
-                    single { lang }
-                })
+                modules(
+                    module {
+                        single { guilds }
+                        single { members }
+                        single { penalties }
+                        single { chat }
+                        single { lang }
+                    },
+                )
             }
         }
+    }
+
+    private companion object {
+        const val MESSAGE = "Hello"
     }
 }

@@ -3,6 +3,7 @@ package net.lumalyte.lg.application.services
 import net.lumalyte.lg.application.persistence.GuildListRepository
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.domain.entities.GuildDirectoryDetails
 import net.lumalyte.lg.domain.entities.GuildListSortKey
 import net.lumalyte.lg.infrastructure.services.ProgressionConfigService
 import java.time.Instant
@@ -16,9 +17,8 @@ data class GuildListEntry(
     val uniquePvpKills: Int,
     val memberCount: Int,
     /** Public owner and alliance facts for this directory entry. */
-    val details: net.lumalyte.lg.domain.entities.GuildDirectoryDetails =
-        net.lumalyte.lg.domain.entities
-            .GuildDirectoryDetails(),
+    val details: GuildDirectoryDetails =
+        GuildDirectoryDetails(),
 )
 
 data class GuildListPage(
@@ -40,7 +40,10 @@ class GuildListService(
     private val nowProvider: () -> Instant = Instant::now,
 ) {
     fun configuredPageSize(): Int =
-        configService.loadConfig().guildList.pageSize.coerceIn(1, MAX_PAGE_SIZE)
+        configService
+            .loadConfig()
+            .guildList.pageSize
+            .coerceIn(1, MAX_PAGE_SIZE)
 
     fun getPage(
         page: Int,
@@ -53,12 +56,13 @@ class GuildListService(
         val totalPages = maxOf(1, (totalCount + safePageSize - 1) / safePageSize)
         val safePage = page.coerceIn(0, totalPages - 1)
         val config = configService.loadConfig()
-        val killWeight = progressionConfigService
-            .getProgressionConfig()
-            .activity
-            .weights
-            .killsThisWeek
-            .coerceAtLeast(0)
+        val killWeight =
+            progressionConfigService
+                .getProgressionConfig()
+                .activity
+                .weights
+                .killsThisWeek
+                .coerceAtLeast(0)
         val weeklyStart = nowProvider().minus(7, ChronoUnit.DAYS)
 
         val entries =
@@ -71,7 +75,8 @@ class GuildListService(
                     weeklyStart = weeklyStart,
                     claimsEnabled = config.claimsEnabled,
                     uniqueKillWeight = killWeight,
-                ).mapNotNull { ranked ->
+                )
+                .mapNotNull { ranked ->
                     guildRepository.getById(ranked.guildId)?.let { guild ->
                         GuildListEntry(
                             guild = guild,
@@ -83,15 +88,11 @@ class GuildListService(
                 }
 
         val details = repository.getDetails(entries.map { it.guild.id }.toSet())
+        val enriched = entries.map { entry ->
+            entry.copy(details = details[entry.guild.id] ?: GuildDirectoryDetails())
+        }
         return GuildListPage(
-            entries =
-                entries.map {
-                    it.copy(
-                        details =
-                            details[it.guild.id] ?: net.lumalyte.lg.domain.entities
-                                .GuildDirectoryDetails(),
-                    )
-                },
+            entries = enriched,
             page = safePage,
             pageSize = safePageSize,
             totalCount = totalCount,
