@@ -1,3 +1,5 @@
+> Historical evidence: superseded by REQ-147 because AxKoth is retired. No AxKoth artifact preparation remains active on this branch.
+
 # Pinned AxKoth dependency transport recovery
 
 ## Spec and boundaries

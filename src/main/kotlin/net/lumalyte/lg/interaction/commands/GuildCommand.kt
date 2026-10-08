@@ -2504,6 +2504,29 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
     }
 
+    @Subcommand("start|gettingstarted")
+    @CommandPermission("lumaguilds.guild.help")
+    fun onGettingStarted(player: Player, @Optional guildId: String?) {
+        val selected = if (guildId == null) guildService.getPlayerGuilds(player.uniqueId).firstOrNull()?.id else {
+            try { java.util.UUID.fromString(guildId) } catch (_: IllegalArgumentException) {
+                player.sendMessage(lang.msg("onboarding.unavailable")); return
+            }
+        }
+        val navigator = MenuNavigator(player)
+        navigator.openMenu(menuFactory.createGuildGettingStartedMenu(navigator, player, selected))
+    }
+
+    @Subcommand("start dismiss")
+    @CommandPermission("lumaguilds.guild.help")
+    fun onDismissGettingStarted(player: Player) {
+        val repository = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.persistence.GuildOnboardingRepository>()
+        val dismissed = guildService.getPlayerGuilds(player.uniqueId).map { repository.dismiss(player.uniqueId, it.id) }
+        if (dismissed.any { !it }) {
+            player.sendMessage(lang.msg("onboarding.failed")); return
+        }
+        player.sendMessage(lang.msg("onboarding.dismissed"))
+    }
+
     @Subcommand("help")
     @CommandPermission("lumaguilds.guild.help")
     fun onHelp(player: Player, @Optional topic: String?) {

@@ -20,10 +20,6 @@ repositories {
     maven("https://nexus.scarsz.me/content/groups/public/")
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
     maven {
-        name = "artillex-studios"
-        url = uri("https://repo.artillex-studios.com/releases/")
-    }
-    maven {
         name = "sirblobman-public"
         url = uri("https://nexus.sirblobman.xyz/public/")
     }
@@ -93,11 +89,8 @@ dependencies {
         exclude(group = "org.bukkit", module = "bukkit")
     }
     compileOnly("com.github.placeholderapi:placeholderapi:2.11.6")
-    compileOnly("com.artillexstudios:AxKothAPI:4")
-    // The Koin graph smoke test constructs every service (incl. placeholder + KOTH
-    // hooks) — these APIs must be on the test classpath too.
+    // The Koin graph smoke test constructs services using PlaceholderAPI.
     testImplementation("com.github.placeholderapi:placeholderapi:2.11.6")
-    testImplementation("com.artillexstudios:AxKothAPI:4")
     // RoseChat is required at compile-time for the GuildChatListener channel switch.
     // Drop the built jar into libs/ from the RoseChat project (libs/ is gitignored).
     val roseChatApi = files(findProperty("roseChatJar") ?: "libs/RoseChat-RC-2.jar")
@@ -194,6 +187,7 @@ tasks.register<Test>("mariaDbRewardTest") {
         includeTestsMatching("*GuildInsertColumnOrderTest")
         includeTestsMatching("*GuildThemeUpdateSQLTest")
         includeTestsMatching("*GuildChatReconnectSettingsRepositorySQLTest")
+        includeTestsMatching("*GuildOnboardingRepositorySQLTest")
         includeTestsMatching("*ChatPreferencesPersistenceTest")
         includeTestsMatching("*GuildDirectoryDetailsTest")
     }
