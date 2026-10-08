@@ -63,11 +63,11 @@ class ChatSettingsRepositorySQLite(
     }
 
     private fun preloadVisibilitySettings() {
-        val sql = "SELECT v.player_id, v.guild_chat_visible, v.ally_chat_visible, v.party_chat_visible, " +
-            "COALESCE(u.global_chat_visible, 1) AS global_chat_visible, " +
-            "COALESCE(u.destination_indicator, 0) AS destination_indicator " +
-            "FROM chat_visibility_settings v LEFT JOIN chat_ui_preferences u ON u.player_id = v.player_id"
-
+        val sql =
+            "SELECT v.player_id, v.guild_chat_visible, v.ally_chat_visible, v.party_chat_visible, " +
+                "COALESCE(u.global_chat_visible, 1) AS global_chat_visible, " +
+                "COALESCE(u.destination_indicator, 0) AS destination_indicator " +
+                "FROM chat_visibility_settings v LEFT JOIN chat_ui_preferences u ON u.player_id = v.player_id"
 
         try {
             val results = storage.connection.getResults(sql)
@@ -150,8 +150,9 @@ class ChatSettingsRepositorySQLite(
     }
 
     private fun saveVisibility(connection: java.sql.Connection, settings: ChatVisibilitySettings) {
-        val sql = "REPLACE INTO chat_visibility_settings " +
-            "(player_id, guild_chat_visible, ally_chat_visible, party_chat_visible) VALUES (?, ?, ?, ?)"
+        val sql =
+            "REPLACE INTO chat_visibility_settings " +
+                "(player_id, guild_chat_visible, ally_chat_visible, party_chat_visible) VALUES (?, ?, ?, ?)"
         connection.prepareStatement(sql).use { statement ->
             statement.setString(1, settings.playerId.toString())
             bindFlags(statement, listOf(settings.guildChatVisible, settings.allyChatVisible, settings.partyChatVisible))
@@ -160,8 +161,9 @@ class ChatSettingsRepositorySQLite(
     }
 
     private fun savePreferences(connection: java.sql.Connection, settings: ChatVisibilitySettings) {
-        val sql = "REPLACE INTO chat_ui_preferences " +
-            "(player_id, global_chat_visible, destination_indicator) VALUES (?, ?, ?)"
+        val sql =
+            "REPLACE INTO chat_ui_preferences " +
+                "(player_id, global_chat_visible, destination_indicator) VALUES (?, ?, ?)"
         connection.prepareStatement(sql).use { statement ->
             statement.setString(1, settings.playerId.toString())
             bindFlags(statement, listOf(settings.globalChatVisible, settings.destinationIndicator))

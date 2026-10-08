@@ -8,7 +8,7 @@ import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import java.time.Instant
 import java.util.UUID
 
-class GuildListRepositorySQL(
+internal class GuildListRepositorySQL(
     private val storage: Storage<Database>,
 ) : GuildListRepository {
     override fun getDetails(guildIds: Set<UUID>): Map<UUID, net.lumalyte.lg.domain.entities.GuildDirectoryDetails> {
@@ -265,5 +265,4 @@ class GuildListRepositorySQL(
     private companion object {
         const val DIRECTORY_PAGE_SIZE = 36
     }
-
 }

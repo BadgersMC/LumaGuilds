@@ -38,7 +38,8 @@ internal class BedrockPlayerChatSettingsMenu(
             }
             .closedOrInvalidResultHandler { _, _ ->
                 Bukkit.getScheduler().runTask(plugin, Runnable { if (player.isOnline) bedrockNavigator.goBack() })
-            }.build()
+            }
+            .build()
     }
 
     private fun select(selected: Int) {

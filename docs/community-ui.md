@@ -113,3 +113,14 @@ assertions without dropping coverage, and refine remaining configured style.
 Focused behavior, locale, wiring and wiki checks pass. The preceding full matrix
 passed 1,679 ordinary cases and all 61 native cases; the final head is rechecked
 separately before completion.
+
+Fourth hosted refinement: ffe4ec3 reduced the direct provider report to 22
+findings. Directory implementation types and the adapter constructor are now
+internal; the supported guild API does not expose these types. Java, Bedrock
+and Discord consumers compile, with immutable snapshots/equality retained.
+Remaining configured formatting and test-method length are refined without
+dropping assertions or suppressing checks. Focused contracts pass; the preceding
+full matrix passed 1,680 ordinary cases (15 external skips) and all 62 native
+cases without skips. Final published-head validation is checked separately.
+An online dependency metadata request timed out at JitPack; the cached offline
+profile compiled and passed, which is distinct from hosted CI.

@@ -11,7 +11,7 @@ import java.time.temporal.ChronoUnit
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor
 
-data class GuildListEntry(
+internal data class GuildListEntry(
     val guild: Guild,
     val sortValue: Long,
     val uniquePvpKills: Int,
@@ -21,7 +21,7 @@ data class GuildListEntry(
         GuildDirectoryDetails(),
 )
 
-data class GuildListPage(
+internal data class GuildListPage(
     val entries: List<GuildListEntry>,
     val page: Int,
     val pageSize: Int,
@@ -31,7 +31,7 @@ data class GuildListPage(
     val ascending: Boolean,
 )
 
-class GuildListService(
+internal class GuildListService(
     private val repository: GuildListRepository,
     private val guildRepository: GuildRepository,
     private val configService: ConfigService,
@@ -115,12 +115,13 @@ class GuildListService(
     private fun enrichEntries(
         entries: List<GuildListEntry>,
         details: Map<java.util.UUID, GuildDirectoryDetails>,
-    ): List<GuildListEntry> =
-        entries.map { entry ->
+    ): List<GuildListEntry> {
+        return entries.map { entry ->
             entry.copy(details = details[entry.guild.id] ?: GuildDirectoryDetails())
         }
+    }
+
     companion object {
         const val MAX_PAGE_SIZE = 36
     }
-
 }

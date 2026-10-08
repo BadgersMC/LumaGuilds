@@ -21,8 +21,7 @@ internal class GuildDirectoryDetailsTest : RewardSqlTestFixture() {
             assertEquals(listOf("Ally"), repository.getDetails(setOf(guild)).getValue(guild).allies)
             sql.executeUpdate("UPDATE relations SET status = 'PENDING'")
             assertEquals(emptyList(), repository.getDetails(setOf(guild)).getValue(guild).allies)
-            sql.executeUpdate("DELETE FROM members WHERE rank_id = 'owner'")
-            assertEquals(emptyList(), repository.getDetails(setOf(guild)).getValue(guild).owners)
+            assertUnknownOwners(sql, repository, guild)
         } finally {
             closeStorage(storage)
         }
@@ -40,12 +39,12 @@ internal class GuildDirectoryDetailsTest : RewardSqlTestFixture() {
         }
     }
 
-    private fun seedOwners(
-        sql: co.aikar.idb.Database,
-        guild: UUID,
-        ally: UUID,
-        owner: UUID,
-    ) {
+    private fun assertUnknownOwners(sql: co.aikar.idb.Database, repository: GuildListRepositorySQL, guild: UUID) {
+        sql.executeUpdate("DELETE FROM members WHERE rank_id = 'owner'")
+        assertEquals(emptyList(), repository.getDetails(setOf(guild)).getValue(guild).owners)
+    }
+
+    private fun seedOwners(sql: co.aikar.idb.Database, guild: UUID, ally: UUID, owner: UUID) {
         sql.executeUpdate("INSERT INTO guilds VALUES (?, 'Closed'), (?, 'Ally')", guild.toString(), ally.toString())
         sql.executeUpdate(
             "INSERT INTO ranks VALUES ('owner', ?, 0), ('member', ?, 1)",

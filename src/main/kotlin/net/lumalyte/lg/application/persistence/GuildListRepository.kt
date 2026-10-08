@@ -6,7 +6,7 @@ import net.lumalyte.lg.domain.entities.GuildListSortKey
 import java.time.Instant
 import java.util.UUID
 
-interface GuildListRepository {
+internal interface GuildListRepository {
     /** Returns bounded public ownership/alliance facts for one directory page. */
     fun getDetails(guildIds: Set<UUID>): Map<UUID, GuildDirectoryDetails> = emptyMap()
 
