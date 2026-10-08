@@ -488,6 +488,18 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 ### REQ-123
 **Ubiquitous.** THE SYSTEM SHALL enforce `chat.announce_cooldown_minutes` and `chat.ping_cooldown_minutes` from current configuration when checking announcement and ping cooldowns, SHALL retain existing hourly limits, and SHALL treat non-positive cooldowns as disabling only the time-based limit.
 
+### REQ-124
+**Event-driven.** WHEN a guild member opens Guild Stalls from their guild menu or `/g stall` THE SYSTEM SHALL show Market-authoritative guild-owned stalls, state, rent, deadlines, location and guild members with permitted shop actions on Java and Bedrock, SHALL distinguish unavailable data from no stall, and SHALL permit no Market mutations.
+
+### REQ-125
+**Ubiquitous.** THE SYSTEM SHALL ignore stale asynchronous stall results after navigation, disconnection or membership loss, SHALL tolerate absent or incompatible Market read providers, and SHALL requery ownership and permissions on refresh rather than cache access across membership or rank changes.
+
+### REQ-126
+**Ubiquitous.** THE Java Guild Stalls dashboard button SHALL use the dedicated `lg_nav_stalls` item when that private pack item is installed, SHALL retain its oak-sign fallback when it is unavailable, and SHALL keep the Economy button's existing bank icon. Proprietary icon artwork and generators SHALL remain outside this public repository.
+
+### REQ-127
+**Ubiquitous.** THE Bedrock Guild Stalls button SHALL use independent configurable URL/resource-pack icon references and SHALL preserve existing bank icon settings. The matching proprietary texture SHALL be supplied by the separately managed private pack and SHALL NOT be stored or generated in this public repository. THE Gradle test task SHALL track the configured Market API artifact path and contents so enabling or replacing the artifact invalidates cached compatibility results.
+
 ### REQ-130
 WHEN the staff strike feed cannot read historical guild membership, THE SYSTEM SHALL fail the page for retry and SHALL NOT treat the failed read as an empty history or attribute the punishment to the player's current guild. Configured current-guild fallback SHALL apply only after a successful historical read.
 

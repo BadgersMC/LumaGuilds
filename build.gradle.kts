@@ -149,6 +149,13 @@ idea {
 
 tasks.test {
     useJUnitPlatform()
+    // This optional integration profile must not reuse a skipped/stale result when
+    // the companion path or the JAR's contents change.
+    val marketApiJar = providers.environmentVariable("MARKET_API_JAR").orElse("")
+    inputs.property("marketApiJarPath", marketApiJar)
+    inputs.files(marketApiJar.map { path -> if (path.isBlank()) files() else files(path) })
+        .withPropertyName("marketApiJarContents")
+    environment("MARKET_API_JAR", marketApiJar.get())
 }
 
 // Explicit opt-in: the same ownership contract runs against a disposable loopback

@@ -619,7 +619,11 @@ data class BedrockConfig(
 
     // Debug and logging
     var debugBedrockMenus: Boolean = false,
-    var logFormInteractions: Boolean = false
+    var logFormInteractions: Boolean = false,
+
+    // Independent stall art; existing bank settings remain authoritative for the bank.
+    var guildStallsIconUrl: String = "",
+    var guildStallsIconPath: String = "textures/ui/stall.png"
 )
 
 data class MariaDBConfig(
