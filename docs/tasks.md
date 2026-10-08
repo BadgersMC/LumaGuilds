@@ -994,3 +994,8 @@ Ported from FainNeito/LumaGuilds#2/#3 onto the Enthusia redesign: the holiday st
   - Tag: TDD
   - References: REQ-135.
   - Evidence: authoritative main a15b244 inspected; isolated branch then integrated preceding approved review source #213 to preserve the checklist chain. Existing join cleanup only removes invalid channels. No project-local EARS/state helpers found; manual requirement/task/evidence maintained. Focused contracts: 58 passed. Clean integration suite: 1,673 tests, zero failures/errors, four skips; native MariaDB: 59 passed, zero skips. Persistence, authority, stale forms, configured channels, and disconnected/replaced sessions are covered. The actual companion runtime contract ran with zero skips. Codacy refinements passed the final clean integration build. Exact-head hosted checks are recorded on the PR. See docs/chat-reconnect.md. Production stays unchanged.
+
+
+- [x] COMMUNITY-UI: Implement approved G20/G21/G22/G24/G25 with personal chat settings, optional channel indicator, permission-safe individual rank selection and bounded public directory details.
+  - Tag: TDD; References: REQ-136 through REQ-139; docs/community-ui.md.
+  - Evidence: category-opening regression failed against prior implementation then passed; native SQL failure reproduced and fixed. Full 1,679-test suite passes with four unrelated skips; 61 native cases pass with zero skips. Shared service/SQL contracts and actual companion runtime are verified. No project-local EARS/state helpers exist; manual requirements/tasks/evidence maintained. PR-head CI, manual review and real Java/Bedrock acceptance remain separate. No merge or production changes.

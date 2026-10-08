@@ -178,6 +178,12 @@ class GuildListMenu(
                 "date" to CREATED_DATE.format(guild.createdAt),
             ))
 
+        val owners = entry.details.owners.joinToString(", ") { org.bukkit.Bukkit.getPlayer(it)?.name ?: it.toString() }
+            .ifEmpty { lang.raw("community.directory.unknown") }
+        item.lore(lang.gui("community.directory.owners", "owners" to owners))
+            .lore(lang.gui("community.directory.allies", "allies" to entry.details.allies.joinToString(", ").ifEmpty { lang.raw("community.directory.none") }))
+            .lore(if (guild.isOpen) lang.gui("community.directory.recruitment_open") else lang.gui("community.directory.recruitment_closed"))
+
         when (sortKey) {
             GuildListSortKey.ALL_TIME_ACTIVE ->
                 item.lore(lang.gui(

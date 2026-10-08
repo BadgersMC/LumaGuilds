@@ -156,6 +156,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
             .lore(lang.gui("menu.rank_creation.summary.count", "count" to selectedPermissions.size))
             .lore(lang.gui("menu.common.blank"))
             .lore(lang.gui("menu.rank_creation.summary.select_below"))
+            .lore(lang.gui("community.rank.priority"))
 
         pane.addItem(GuiItem(countItem), 7, 0)
     }
@@ -228,40 +229,11 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     }
 
     private fun addPermissionCategories(pane: StaticPane) {
-        val baseCategories = mutableMapOf(
-            "Guild Management" to listOf(
-                RankPermission.MANAGE_RANKS, RankPermission.MANAGE_MEMBERS,
-                RankPermission.MANAGE_BANNER, RankPermission.MANAGE_EMOJI,
-                RankPermission.MANAGE_HOME, RankPermission.MANAGE_MODE,
-                RankPermission.MANAGE_GUILD_SETTINGS
-            ),
-            "Banking" to listOf(
-                RankPermission.DEPOSIT_TO_BANK, RankPermission.WITHDRAW_FROM_BANK,
-                RankPermission.VIEW_BANK_TRANSACTIONS,
-                RankPermission.MANAGE_BANK_SETTINGS
-            ),
-            "Diplomacy" to listOf(
-                RankPermission.MANAGE_RELATIONS, RankPermission.DECLARE_WAR,
-                RankPermission.PLACE_WAR_BANNER,
-                RankPermission.ACCEPT_ALLIANCES, RankPermission.MANAGE_PARTIES,
-                RankPermission.SEND_PARTY_REQUESTS, RankPermission.ACCEPT_PARTY_INVITES
-            )
-        )
-
-        // Only add Claims category if claims are enabled
-        if (configService.loadConfig().claimsEnabled) {
-            baseCategories["Claims"] = listOf(
-                RankPermission.MANAGE_CLAIMS, RankPermission.MANAGE_FLAGS,
-                RankPermission.MANAGE_PERMISSIONS, RankPermission.CREATE_CLAIMS,
-                RankPermission.DELETE_CLAIMS
-            )
-        }
-
-        val categories = baseCategories
+        val categories = RankPermissionCatalog.categories(configService.loadConfig().claimsEnabled)
 
         categories.entries.forEachIndexed { index, (categoryName, permissions) ->
-            val row = 2
-            val col = index * 3 + 1
+            val row = 2 + index / 3
+            val col = (index % 3) * 3 + 1
 
             val hasAnyPermission = permissions.any { selectedPermissions.contains(it) }
             val enabledCount = permissions.count { selectedPermissions.contains(it) }
@@ -285,7 +257,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
             }
 
             categoryItem.lore(lang.gui("menu.common.blank"))
-            categoryItem.lore(lang.gui("menu.rank_creation.category.toggle", "category" to localizedCategoryGuiName(categoryName)))
+            categoryItem.lore(lang.gui("community.rank.open_category"))
 
             val categoryGuiItem = GuiItem(categoryItem) {
                 openPermissionCategorySelection(categoryName, permissions)
@@ -394,27 +366,30 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     }
 
     private fun openPermissionCategorySelection(categoryName: String, permissions: List<RankPermission>) {
-        // Toggle individual permissions for this category during rank creation
-        val allSelected = permissions.all { it in selectedPermissions }
-        if (allSelected) {
-            // Remove all — toggle them off one by one
-            permissions.forEach { perm ->
-                selectedPermissions.remove(perm)
-                player.sendMessage(lang.msg("menu.rank_creation.feedback.permission_removed", "permission" to localizedPermissionName(perm)))
-            }
-            player.sendMessage(lang.msg("menu.rank_creation.feedback.category_removed", "category" to localizedCategoryName(categoryName)))
-        } else {
-            // Add only the ones not yet selected
-            val added = permissions.filter { it !in selectedPermissions }
-            added.forEach { perm ->
-                selectedPermissions.add(perm)
-                player.sendMessage(lang.msg("menu.rank_creation.feedback.permission_added", "permission" to localizedPermissionName(perm)))
-            }
-            if (added.size < permissions.size) {
-                player.sendMessage(lang.msg("menu.rank_creation.feedback.some_enabled", "category" to localizedCategoryName(categoryName)))
-            }
+        if (!rankService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RANKS)) return
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6,
+            lang.guiTitle("menu.permission_category.title", "category" to localizedCategoryName(categoryName), "rank" to rankName)))
+        gui.setOnTopClick { it.isCancelled = true }
+        gui.setOnBottomClick { if (it.click.isShiftClick) it.isCancelled = true }
+        val pane = StaticPane(0, 0, 9, 6)
+        permissions.forEachIndexed { index, permission ->
+            val enabled = permission in selectedPermissions
+            val allowed = rankService.hasPermission(player.uniqueId, guild.id, permission)
+            val item = ItemStack.of(if (!allowed) Material.BARRIER else if (enabled) Material.LIME_DYE else Material.GRAY_DYE)
+                .name(lang.gui("community.rank.permission", "permission" to localizedPermissionName(permission)))
+                .lore(if (!allowed) lang.gui("community.rank.unavailable") else if (enabled)
+                    lang.gui("community.rank.enabled") else lang.gui("community.rank.disabled"))
+            pane.addItem(GuiItem(item) {
+                if (rankService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RANKS) &&
+                    rankService.hasPermission(player.uniqueId, guild.id, permission)) {
+                    if (!selectedPermissions.remove(permission)) selectedPermissions.add(permission)
+                    openPermissionCategorySelection(categoryName, permissions)
+                }
+            }, index % 9, 1 + index / 9)
         }
-        open() // Refresh the creation menu
+        pane.addItem(GuiItem(ItemStack.of(Material.ARROW).name(lang.gui("menu.common.item.back.name"))) { open() }, 4, 5)
+        gui.addPane(pane)
+        gui.show(player)
     }
 
     private fun groupPermissionsByCategory(permissions: Set<RankPermission>): Map<String, List<RankPermission>> {

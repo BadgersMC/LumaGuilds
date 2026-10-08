@@ -27,6 +27,7 @@ class GuildListServiceTest {
             createdAt = Instant.parse("2026-01-01T00:00:00Z"),
         )
         val repository = mockk<GuildListRepository>()
+        every { repository.getDetails(any()) } returns emptyMap()
         val guildRepository = mockk<GuildRepository>()
         val configService = mockk<ConfigService>()
         val progressionConfig = mockk<ProgressionConfigService>()

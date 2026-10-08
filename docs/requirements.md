@@ -522,3 +522,16 @@ WHEN the staff strike feed cannot read historical guild membership, THE SYSTEM S
 
 ### REQ-135
 **Event-driven.** WHEN an authorized guild manager changes Reset chat on reconnect in Java or Bedrock Guild Settings THE SYSTEM SHALL persist the guild-wide value, defaulting to disabled for existing/new guilds. WHEN a guild member reconnects in guild or ally chat and any guild they belong to enables the setting THE SYSTEM SHALL move them to RoseChat's configured default channel after join, using current membership/settings. Other channels and an allied guild's setting SHALL NOT trigger reset. Unchanged/stale forms SHALL NOT overwrite newer values; revoked authority and failed writes SHALL NOT change persistence. Existing invalid-channel cleanup SHALL remain.
+
+
+### REQ-136 — Individual rank permissions
+WHEN a rank manager opens a permission category THE SYSTEM SHALL display individual toggles without granting the category, SHALL use the complete shared catalog for creation/editing, and SHALL recheck grant authority on each selection. Disabled claim permissions SHALL remain hidden and preserved on edits.
+
+### REQ-137 — Public directory details
+WHEN a player opens the public directory THE SYSTEM SHALL include invite-only guilds and authoritative owners, founding date, active allies, member count, level and existing activity metrics on Java and Bedrock. Missing owners SHALL be labeled unknown; failed reads SHALL NOT fabricate facts.
+
+### REQ-138 — Personal chat preferences and fullscreen announcements
+WHEN a player changes personal chat preferences THE SYSTEM SHALL durably store global player-message visibility and an optional destination indicator, defaulting to visible/off. DMs, server notices and private channels SHALL remain visible. Fullscreen guild announcements SHALL reuse existing permission, mute and rate-limit checks; rejected sends SHALL NOT show titles.
+
+### REQ-139 — Stall report shortcut
+WHILE the companion accounting command is available THE guild stall detail menu SHALL offer its read-only report to currently authorized shop managers on Java and Bedrock. Market SHALL recheck current ownership, membership and shop authority before querying or disclosing records.

@@ -71,6 +71,9 @@ class GuildControlPanelMenu(
         // Row 0: guild features
         addPartyManagementButton(pane, PARTY_SLOT, 0)
         addVaultButton(pane, VAULT_SLOT, 0)
+        pane.addItem(GuiItem(ItemStack.of(Material.BOOK).name(lang.gui("community.chat.settings"))) {
+            menuNavigator.openMenu(menuFactory.createPlayerChatSettingsMenu(menuNavigator, player))
+        }, 4, 1)
 
         // Row 2: danger actions in the corners, Back in the standard centre slot
         addLeaveGuildButton(pane, 0, 2)

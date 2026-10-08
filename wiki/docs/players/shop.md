@@ -65,3 +65,10 @@ Guild shops support BUY and SELL only.
   — tariffs, embargoes, and policy management
 - [Guilds](guilds.md) — create and manage your guild
 - [Identity](identity.md) — customize your guild's tag and banner (displayed on shops)
+
+
+With the accounting companion installed, select your stall in **Guild Stalls**
+and choose **View stall sales accounting**. Existing shop management authority is
+required. Reports cover observed stock contributions and sales after accounting
+is installed; they do not distribute profit or change payouts. See Market's
+`/guildsales` commands for date filters and optional server-side CSV export.

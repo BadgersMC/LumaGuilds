@@ -893,6 +893,7 @@ class LumaGuilds : JavaPlugin() {
         commandManager.registerCommand(QuickAllyChatCommand())
         commandManager.registerCommand(QuickModChatCommand())
         commandManager.registerCommand(QuickAnnounceCommand())
+        commandManager.registerCommand(net.lumalyte.lg.interaction.commands.FullscreenAnnounceCommand())
 
         // Register LumaGuilds admin command
         getCommand("lumaguilds")?.setExecutor(LumaGuildsCommand())
@@ -1142,6 +1143,10 @@ class LumaGuilds : JavaPlugin() {
             // already seated in a guild channel when a mute lands).
             val guildMuteChatListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildMuteChatListener>()
             server.pluginManager.registerEvents(guildMuteChatListener, this)
+            server.pluginManager.registerEvents(get().get<net.lumalyte.lg.infrastructure.listeners.GlobalChatVisibilityListener>(), this)
+            val indicator = get().get<net.lumalyte.lg.infrastructure.listeners.ChatDestinationIndicator>()
+            server.pluginManager.registerEvents(indicator, this)
+            server.scheduler.runTaskTimer(this, indicator, 1L, 40L)
 
             // Register RoseChat ChannelProvider so guild/ally/modchat channels
             // resolve from channels.yml. A delayed reload re-reads the config
@@ -1477,6 +1482,7 @@ class LumaGuilds : JavaPlugin() {
     }
 
     override fun onDisable() {
+        get().getOrNull<net.lumalyte.lg.infrastructure.listeners.ChatDestinationIndicator>()?.close()
         Bukkit.getServicesManager().unregisterAll(this)
         enthusiaStaffStrikeFeed?.close()
         enthusiaStaffStrikeFeed = null

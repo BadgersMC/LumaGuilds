@@ -15,8 +15,8 @@ class ChatSettingsRepositorySQLite(
     private val defaultChannelVisibility: Boolean = true
 ) : ChatSettingsRepository {
     
-    private val visibilitySettings: MutableMap<UUID, ChatVisibilitySettings> = mutableMapOf()
-    private val rateLimits: MutableMap<UUID, ChatRateLimit> = mutableMapOf()
+    private val visibilitySettings: MutableMap<UUID, ChatVisibilitySettings> = java.util.concurrent.ConcurrentHashMap()
+    private val rateLimits: MutableMap<UUID, ChatRateLimit> = java.util.concurrent.ConcurrentHashMap()
     
     init {
         createChatSettingsTables()
@@ -26,7 +26,7 @@ class ChatSettingsRepositorySQLite(
     private fun createChatSettingsTables() {
         val visibilityTableSql = """
             CREATE TABLE IF NOT EXISTS chat_visibility_settings (
-                player_id TEXT PRIMARY KEY,
+                player_id VARCHAR(36) PRIMARY KEY,
                 guild_chat_visible INTEGER NOT NULL DEFAULT 1,
                 ally_chat_visible INTEGER NOT NULL DEFAULT 1,
                 party_chat_visible INTEGER NOT NULL DEFAULT 1
@@ -35,9 +35,9 @@ class ChatSettingsRepositorySQLite(
         
         val rateLimitTableSql = """
             CREATE TABLE IF NOT EXISTS chat_rate_limits (
-                player_id TEXT PRIMARY KEY,
-                last_announce_time INTEGER NOT NULL DEFAULT 0,
-                last_ping_time INTEGER NOT NULL DEFAULT 0,
+                player_id VARCHAR(36) PRIMARY KEY,
+                last_announce_time BIGINT NOT NULL DEFAULT 0,
+                last_ping_time BIGINT NOT NULL DEFAULT 0,
                 announce_count INTEGER NOT NULL DEFAULT 0,
                 ping_count INTEGER NOT NULL DEFAULT 0
             )
@@ -45,6 +45,7 @@ class ChatSettingsRepositorySQLite(
         
         try {
             storage.connection.executeUpdate(visibilityTableSql)
+            storage.connection.executeUpdate("CREATE TABLE IF NOT EXISTS chat_ui_preferences (player_id VARCHAR(36) PRIMARY KEY, global_chat_visible INTEGER NOT NULL DEFAULT 1, destination_indicator INTEGER NOT NULL DEFAULT 0)")
             storage.connection.executeUpdate(rateLimitTableSql)
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to create chat settings tables", e)
@@ -58,8 +59,9 @@ class ChatSettingsRepositorySQLite(
     
     private fun preloadVisibilitySettings() {
         val sql = """
-            SELECT player_id, guild_chat_visible, ally_chat_visible, party_chat_visible
-            FROM chat_visibility_settings
+            SELECT v.player_id, v.guild_chat_visible, v.ally_chat_visible, v.party_chat_visible,
+                COALESCE(u.global_chat_visible, 1) AS global_chat_visible, COALESCE(u.destination_indicator, 0) AS destination_indicator
+            FROM chat_visibility_settings v LEFT JOIN chat_ui_preferences u ON u.player_id = v.player_id
         """.trimIndent()
         
         try {
@@ -70,7 +72,9 @@ class ChatSettingsRepositorySQLite(
                     playerId = playerId,
                     guildChatVisible = result.getInt("guild_chat_visible") == 1,
                     allyChatVisible = result.getInt("ally_chat_visible") == 1,
-                    partyChatVisible = result.getInt("party_chat_visible") == 1
+                    partyChatVisible = result.getInt("party_chat_visible") == 1,
+                    globalChatVisible = result.getInt("global_chat_visible") == 1,
+                    destinationIndicator = result.getInt("destination_indicator") == 1
                 )
                 visibilitySettings[playerId] = settings
             }
@@ -115,38 +119,43 @@ class ChatSettingsRepositorySQLite(
     }
     
     override fun updateVisibilitySettings(settings: ChatVisibilitySettings): Boolean {
-        val sql = """
-            INSERT OR REPLACE INTO chat_visibility_settings 
-            (player_id, guild_chat_visible, ally_chat_visible, party_chat_visible)
-            VALUES (?, ?, ?, ?)
-        """.trimIndent()
-        
         return try {
-            val rowsAffected = storage.connection.executeUpdate(sql,
-                settings.playerId.toString(),
-                if (settings.guildChatVisible) 1 else 0,
-                if (settings.allyChatVisible) 1 else 0,
-                if (settings.partyChatVisible) 1 else 0
-            )
-            
-            if (rowsAffected > 0) {
-                visibilitySettings[settings.playerId] = settings
-                true
-            } else {
-                false
+            storage.connection.connection.use { connection ->
+                connection.autoCommit = false
+                try {
+                    connection.prepareStatement("REPLACE INTO chat_visibility_settings (player_id, guild_chat_visible, ally_chat_visible, party_chat_visible) VALUES (?, ?, ?, ?)").use { statement ->
+                        statement.setString(1, settings.playerId.toString())
+                        statement.setInt(2, if (settings.guildChatVisible) 1 else 0)
+                        statement.setInt(3, if (settings.allyChatVisible) 1 else 0)
+                        statement.setInt(4, if (settings.partyChatVisible) 1 else 0)
+                        statement.executeUpdate()
+                    }
+                    connection.prepareStatement("REPLACE INTO chat_ui_preferences (player_id, global_chat_visible, destination_indicator) VALUES (?, ?, ?)").use { statement ->
+                        statement.setString(1, settings.playerId.toString())
+                        statement.setInt(2, if (settings.globalChatVisible) 1 else 0)
+                        statement.setInt(3, if (settings.destinationIndicator) 1 else 0)
+                        statement.executeUpdate()
+                    }
+                    connection.commit()
+                } catch (failure: SQLException) {
+                    try { connection.rollback() } catch (rollback: SQLException) { failure.addSuppressed(rollback) }
+                    throw failure
+                }
             }
-        } catch (e: SQLException) {
-            throw DatabaseOperationException("Failed to update chat visibility settings", e)
+            visibilitySettings[settings.playerId] = settings
+            true
+        } catch (failure: SQLException) {
+            throw DatabaseOperationException("Failed to update chat visibility settings", failure)
         }
     }
-    
+
     override fun getRateLimit(playerId: UUID): ChatRateLimit {
         return rateLimits[playerId] ?: ChatRateLimit(playerId)
     }
     
     override fun updateRateLimit(rateLimit: ChatRateLimit): Boolean {
         val sql = """
-            INSERT OR REPLACE INTO chat_rate_limits 
+            REPLACE INTO chat_rate_limits
             (player_id, last_announce_time, last_ping_time, announce_count, ping_count)
             VALUES (?, ?, ?, ?, ?)
         """.trimIndent()
@@ -185,6 +194,7 @@ class ChatSettingsRepositorySQLite(
         val rateLimitDeleteSql = "DELETE FROM chat_rate_limits WHERE player_id = ?"
         
         return try {
+            storage.connection.executeUpdate("DELETE FROM chat_ui_preferences WHERE player_id = ?", playerId.toString())
             val visibilityDeleted = storage.connection.executeUpdate(visibilityDeleteSql, playerId.toString()) >= 0
             val rateLimitDeleted = storage.connection.executeUpdate(rateLimitDeleteSql, playerId.toString()) >= 0
             
