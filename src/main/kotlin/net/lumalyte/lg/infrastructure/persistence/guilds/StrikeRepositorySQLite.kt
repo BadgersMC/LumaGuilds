@@ -41,12 +41,13 @@ class StrikeRepositorySQLite(private val storage: Storage<Database>) : StrikeRep
 
     override fun reconcileLegacyStrike(punishmentType: String, litebansEntryId: Long, active: Boolean): Boolean {
         try {
-            val updated = storage.connection.executeUpdate(
-                "UPDATE guild_strikes SET active = ? WHERE punishment_type = ? AND litebans_entry_id = ?",
-                if (active) 1 else 0,
-                punishmentType,
-                litebansEntryId,
-            )
+            val updated =
+                storage.connection.executeUpdate(
+                    "UPDATE guild_strikes SET active = ? WHERE punishment_type = ? AND litebans_entry_id = ?",
+                    if (active) 1 else 0,
+                    punishmentType,
+                    litebansEntryId,
+                )
             return updated > 0 || storage.existsByTypeAndEntryId(punishmentType, litebansEntryId)
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to reconcile legacy guild strike", e)
@@ -69,14 +70,10 @@ class StrikeRepositorySQLite(private val storage: Storage<Database>) : StrikeRep
 
     override fun deactivateExpiredExternal(now: Instant): Int {
         try {
+            val sql = "UPDATE guild_strikes SET active = 0 WHERE source_provider IS NOT NULL " +
+                "AND active = 1 AND expires_at IS NOT NULL AND expires_at <= ?"
             return storage.connection.executeUpdate(
-                """
-                UPDATE guild_strikes SET active = 0
-                WHERE source_provider IS NOT NULL
-                  AND active = 1
-                  AND expires_at IS NOT NULL
-                  AND expires_at <= ?
-                """.trimIndent(),
+                sql,
                 now.toEpochMilli(),
             )
         } catch (e: SQLException) {
@@ -179,10 +176,8 @@ private fun Storage<Database>.existsByTypeAndEntryId(punishmentType: String, ent
 private fun Storage<Database>.existsBySource(provider: String, sourceId: String): Boolean {
     return try {
         connection.getResults(
-            """
-                SELECT 1 AS found FROM guild_strikes
-                WHERE source_provider = ? AND source_punishment_id = ? LIMIT 1
-            """.trimIndent(),
+            "SELECT 1 AS found FROM guild_strikes " +
+                "WHERE source_provider = ? AND source_punishment_id = ? LIMIT 1",
             provider,
             sourceId,
         ).isNotEmpty()
