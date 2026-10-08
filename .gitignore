@@ -278,3 +278,8 @@ VIRTUAL_THREADS.md
 
 # MkDocs build output
 site/
+
+# Proprietary Enthusia assets - stored outside this public repository
+/resourcepack/
+/docs/previews/*.png
+
