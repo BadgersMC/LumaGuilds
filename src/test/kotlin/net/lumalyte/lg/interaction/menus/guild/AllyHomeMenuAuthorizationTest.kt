@@ -151,9 +151,9 @@ internal class AllyHomeMenuAuthorizationTest {
         fun click() = requireNotNull(pane.getItem(0, ALLY_ROW)).callAction(mockk(relaxed = true))
 
         private fun eligibleHomes(): Map<String, GuildHome> {
-            val target = currentTarget ?: return emptyMap()
-            val home = target.allyHome ?: return emptyMap()
-            return if (eligible) mapOf(target.name to home) else emptyMap()
+            val target = currentTarget
+            val home = target?.allyHome
+            return if (eligible && target != null && home != null) mapOf(target.name to home) else emptyMap()
         }
     }
 }
