@@ -33,7 +33,9 @@ class GuildLookupImpl @JvmOverloads constructor(
         return ids.associateWith { id ->
             service.getGuildRelations(id)
                 .filter { it.type == net.lumalyte.lg.domain.entities.RelationType.ALLY && it.isActive() }
-                .map { it.getOtherGuild(id) }.filter { it in ids }.toSet()
+                .map { it.getOtherGuild(id) }
+                .filter { it in ids }
+                .toSet()
         }
     }
 
