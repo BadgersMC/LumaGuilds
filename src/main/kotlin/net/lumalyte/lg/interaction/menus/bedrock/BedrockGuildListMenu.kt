@@ -147,8 +147,8 @@ class BedrockGuildListMenu(
 
     private fun ownerName(id: java.util.UUID): String = org.bukkit.Bukkit.getPlayer(id)?.name ?: id.toString()
 
-    private fun activityText(entry: GuildListEntry): String =
-        when (sortKey) {
+    private fun activityText(entry: GuildListEntry): String {
+        return when (sortKey) {
             GuildListSortKey.ALL_TIME_ACTIVE ->
                 lang.bedrock(
                     "bedrock.guild_list.activity",
@@ -162,6 +162,7 @@ class BedrockGuildListMenu(
                 )
             GuildListSortKey.GUILD_LEVEL, GuildListSortKey.CREATED_AT -> ""
         }
+    }
 
     override fun handleResponse(player: Player, response: Any?) = Unit
 
