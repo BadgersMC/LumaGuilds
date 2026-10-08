@@ -38,12 +38,12 @@ internal class RankCreationSelectionTest {
         val player = server.addPlayer()
         configureServices()
         val menu = createMenu(player)
-        openBankingCategory(menu)
+        openCategory(menu)
         val field = menu.javaClass.getDeclaredField("selectedPermissions").apply { isAccessible = true }
         assertTrue((field.get(menu) as Set<*>).isEmpty(), "Opening a category must not grant permissions")
     }
 
-    private fun openBankingCategory(menu: RankCreationMenu) {
+    private fun openCategory(menu: RankCreationMenu) {
         val method =
             menu.javaClass.getDeclaredMethod(
                 "openPermissionCategorySelection",
