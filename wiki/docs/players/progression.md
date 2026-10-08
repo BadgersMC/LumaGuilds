@@ -5,7 +5,7 @@ topic: progression
 summary: Earn guild XP, complete weekly guild quests, unlock Chapter rewards, and use prestige when enabled.
 keywords: [progression, levels, xp, chapter, quests, weekly quests, rewards, prestige]
 related: [guilds, war, homes]
-updated: 2026-09-28
+updated: 2026-10-07
 ---
 
 # Progression, Quests & Prestige
@@ -60,6 +60,10 @@ The Progression menu shows whether a reward is locked, available, already owned,
 Prestige is server-configurable and may be disabled. When enabled and your guild meets the requirements, the Progression menu shows the current prestige count, fee, available retained-perk choices, and confirmation flow.
 
 Prestige is intentionally explicit: the menu shows what will be retained and what the next prestige costs before anything is committed.
+
+## Guild Discord roles
+
+When Discord role synchronization is enabled, a guild earns its role at the configured minimum guild level (default 50). A completed prestige preserves eligibility even though the current-run level resets. Role creation also requires the configured Discord integration and its role-management permissions; reaching the level alone does not guarantee successful Discord delivery.
 
 ## Seasonal war rating
 
