@@ -214,12 +214,12 @@ internal class EnthusiaStaffStrikeFeedTest {
         val history = mockk<MembershipHistoryRepository>()
         every { history.getByPlayer(player) } returns
             listOf(
-            mockk<MembershipHistory> {
-                every { guildId } returns guild
-                every { joinedAt } returns issuedAt.minusSeconds(STINT_AGE_SECONDS)
-                every { departedAt } returns null
-            },
-        )
+                mockk<MembershipHistory> {
+                    every { guildId } returns guild
+                    every { joinedAt } returns issuedAt.minusSeconds(STINT_AGE_SECONDS)
+                    every { departedAt } returns null
+                },
+            )
         return history
     }
 
@@ -247,21 +247,33 @@ internal class EnthusiaStaffStrikeFeedTest {
         sourceId: String = SANCTION_ID,
         active: Boolean = true,
         expiresAt: Instant = FUTURE_EXPIRY,
-    ): PunishmentLifecycleEvent =
-        PunishmentLifecycleEvent(
+    ): PunishmentLifecycleEvent {
+        return eventFor(EventInput(source, sourceId, active, expiresAt))
+    }
+
+    private fun eventFor(input: EventInput): PunishmentLifecycleEvent {
+        return PunishmentLifecycleEvent(
             UUID.fromString(SANCTION_ID),
             "CASE000000000001",
             player,
             Optional.of(SUBJECT_NAME),
             PunishmentCategory.BAN,
-            source,
-            sourceId,
+            input.source,
+            input.sourceId,
             issuedAt,
-            Optional.of(expiresAt),
+            Optional.of(input.expiresAt),
             PUBLIC_REASON,
             Optional.of(ACTOR_NAME),
-            active,
+            input.active,
         )
+    }
+
+    private data class EventInput(
+        val source: PunishmentLifecycleSource,
+        val sourceId: String,
+        val active: Boolean,
+        val expiresAt: Instant,
+    )
 
     private companion object {
         const val SUBJECT_NAME = "Player"
