@@ -65,3 +65,13 @@ were refreshed without broadening the behavioral claim.
 Local review artifacts are unmerged test builds. Exact PR-head hosted checks,
 manual review, canonical source/pin integration and real Java/Bedrock acceptance
 remain independent release gates. Production was not accessed or changed.
+
+
+Hosted review opened as [PR #215](https://github.com/BadgersMC/LumaGuilds/pull/215),
+paired with [Market #207](https://github.com/BadgersMC/EnthusiaMarket/pull/207).
+The first hosted wiki lint identified four extra-blank-line issues; they were
+removed. The exact configured local markdownlint v0.13.0/v0.34.0 checks all 70
+wiki/plan files with zero errors; topic parity passes. Frontmatter and strict
+MkDocs passed on the initial hosted source; local frontmatter tooling could not
+run because PyYAML is absent. Hosted checks for the updated head remain a distinct
+gate and are inspected through GitHub. No helper/tooling success is invented.

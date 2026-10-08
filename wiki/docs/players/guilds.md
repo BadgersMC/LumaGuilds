@@ -86,6 +86,7 @@ Use `/g info [guild]` to zoom into one guild's details — members, homes, relat
 - [Weekly Guild Quests](quests.md) — shared weekly objectives and leaderboards
 - [Progression, Quests & Prestige](progression.md) — Chapter progression and rewards
 
+## Directory details
 
 The public guild directory includes invite-only guilds. Each entry shows owners,
 founding date, active allies, member count, level and existing activity metrics.

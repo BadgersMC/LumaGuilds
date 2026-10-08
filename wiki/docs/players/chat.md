@@ -72,7 +72,6 @@ LumaGuilds hands guild chat off to RoseChat as a dedicated channel. RoseChat own
 - [Identity](identity.md) — set your guild tag and customize your appearance
 - [Alliances & Diplomacy](alliances.md) — who hears ally chat
 
-
 ## Personal chat settings
 
 Open **Personal chat settings** in your guild menu or use `/guild chatsettings`.

@@ -66,6 +66,7 @@ Guild shops support BUY and SELL only.
 - [Guilds](guilds.md) — create and manage your guild
 - [Identity](identity.md) — customize your guild's tag and banner (displayed on shops)
 
+## Contribution and sales reports
 
 With the accounting companion installed, select your stall in **Guild Stalls**
 and choose **View stall sales accounting**. Existing shop management authority is

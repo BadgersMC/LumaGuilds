@@ -93,6 +93,7 @@ The system will confirm the action before applying it. You can't promote someone
 - [Homes](homes.md) — set per-home rank access
 - [LFG](lfg.md) — manage members and bans
 
+## Individual permission selection
 
 Permission categories now open individual toggles during rank creation and editing.
 Opening a category does not grant its permissions. You cannot grant permissions
