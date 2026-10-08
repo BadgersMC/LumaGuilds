@@ -19,12 +19,7 @@ internal class GuildStrikeFeedSchemaTest {
         connection = DriverManager.getConnection("jdbc:sqlite::memory:")
         connection.createStatement().use {
             it.execute(
-                """
-                CREATE TABLE guild_strikes (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    guild_id TEXT NOT NULL
-                )
-                """.trimIndent(),
+                "CREATE TABLE guild_strikes (id INTEGER PRIMARY KEY AUTOINCREMENT, guild_id TEXT NOT NULL)",
             )
         }
     }
