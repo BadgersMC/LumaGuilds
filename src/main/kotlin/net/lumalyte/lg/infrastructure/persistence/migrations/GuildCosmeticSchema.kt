@@ -19,7 +19,8 @@ object GuildCosmeticSchema {
         val engine = if (mariaDb) " ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" else ""
         connection.createStatement().use { statement ->
             statement.executeUpdate(
-                """CREATE TABLE IF NOT EXISTS guild_cosmetic_unlocks (
+                """
+                CREATE TABLE IF NOT EXISTS guild_cosmetic_unlocks (
                     guild_id $guildIdType NOT NULL,
                     cosmetic_type $typeType NOT NULL,
                     cosmetic_key $keyType NOT NULL,
@@ -27,7 +28,8 @@ object GuildCosmeticSchema {
                     source $sourceType NOT NULL,
                     unlocked_at $timestampType NOT NULL,
                     PRIMARY KEY (guild_id, cosmetic_type, cosmetic_key)
-                )$engine""".trimIndent(),
+                )$engine
+                """.trimIndent(),
             )
         }
     }
