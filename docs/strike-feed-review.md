@@ -7,3 +7,8 @@ SPEAR spec: REQ-130 preserves attribution and page retry when membership storage
 Existing hosted Codacy findings require further review refinement; a successful local test is not a green hosted quality check. No PR merge or deployment authorized.
 
 The provider projector is now separate from scheduler/cursor orchestration, and the new external-strike application method accepts the existing GuildStrike value rather than eleven positional arguments. Lifecycle identity, legacy backfill switches, expiration and retry behavior are preserved. Clean Java 25/Paper 26.2 test + shadowJar passed; the exact test totals are recorded in the PR validation. Hosted code-quality results remain a distinct pending gate.
+
+
+## 8 October refinement
+
+All actionable hosted quality findings were addressed through bounded SQL helpers, explicit existing API contracts, documented fixtures and complete value-equality assertions. Both GitHub build and Codacy passed at code head b4ad45c. Full local Java 25/Paper 26.2 validation previously executed 1,549 tests with zero failures/errors and four unrelated optional skips; focused strike and optional LiteBans scenarios passed after the refinements. Exact final-head status is maintained in the PR description because this evidence update changes the head. No production changes or live sanction acceptance claimed.
