@@ -20,15 +20,15 @@ object GuildCosmeticSchema {
         connection.createStatement().use { statement ->
             statement.executeUpdate(
                 """
-                CREATE TABLE IF NOT EXISTS guild_cosmetic_unlocks (
-                    guild_id $guildIdType NOT NULL,
-                    cosmetic_type $typeType NOT NULL,
-                    cosmetic_key $keyType NOT NULL,
-                    display_name $displayNameType NOT NULL,
-                    source $sourceType NOT NULL,
-                    unlocked_at $timestampType NOT NULL,
-                    PRIMARY KEY (guild_id, cosmetic_type, cosmetic_key)
-                )$engine
+                    CREATE TABLE IF NOT EXISTS guild_cosmetic_unlocks (
+                        guild_id $guildIdType NOT NULL,
+                        cosmetic_type $typeType NOT NULL,
+                        cosmetic_key $keyType NOT NULL,
+                        display_name $displayNameType NOT NULL,
+                        source $sourceType NOT NULL,
+                        unlocked_at $timestampType NOT NULL,
+                        PRIMARY KEY (guild_id, cosmetic_type, cosmetic_key)
+                    )$engine
                 """.trimIndent(),
             )
         }

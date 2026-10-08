@@ -23,11 +23,12 @@ object SeasonalIcons {
         if (theme.seasonalIcons) "${iconId}_${theme.name.lowercase()}" else null
 
     /** The seasonal style a member of guilds using [themes] sees, or null for the normal icons. */
-    fun styleFor(themes: Collection<GuiTheme>): GuiTheme? =
-        themes.asSequence()
+    fun styleFor(themes: Collection<GuiTheme>): GuiTheme? {
+        return themes.asSequence()
             .map(GuiTheme::resolved)
             .filter(GuiTheme::seasonalIcons)
             .minByOrNull { it.ordinal }
+    }
 
     /** Marks [item] as the menu icon [iconId]. */
     fun tag(item: ItemStack, iconId: String): ItemStack {
