@@ -21,7 +21,7 @@ runs:
           task_artifact="$task_repository/$task_relative"
           mkdir -p "$(dirname "$task_artifact")"
           if ! printf '%s  %s\n' "$task_digest" "$task_artifact" | sha256sum --check --status; then
-            curl --fail --silent --show-error --location \
+            curl --fail --silent --show-error --location --http1.1 \
               --proto '=https' --proto-redir '=https' \
               --retry 5 --retry-all-errors --retry-delay 1 \
               --connect-timeout 15 --max-time 60 \
