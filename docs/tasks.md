@@ -2,6 +2,21 @@
 
 Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` line, and an `Evidence:` block that MUST be filled with real source citations before any downstream SPEAR phase runs on it.
 
+- [~] **LG-2010** Guild stall menus and optional read adapter.
+  - Tag: `TDD`
+  - References: REQ-124/125; Market REQ-340/341.
+  - Evidence: sanitized replay on current main keeps the Market integration read-only and optional; Java/Bedrock paths distinguish unavailable from empty and reject stale async results after navigation or membership changes. Focused and hosted validation remain merge gates.
+
+- [~] **LG-2011** Dedicated guild stall navigation icon.
+  - Tag: `INFRA`
+  - References: REQ-126; LG-2010.
+  - Evidence: source uses `lg_nav_stalls` with an oak-sign fallback. Proprietary Java/Bedrock artwork, Nexo definitions and generators remain in the private pack pipeline and are intentionally absent from this public repository.
+
+- [~] **LG-2012** Stall review follow-up: Bedrock icon configuration and Market test cache.
+  - Tag: `TDD`
+  - References: REQ-127; LG-2010/2011.
+  - Evidence: Bedrock stall icon settings are independent from bank settings, and the optional Market contract test fingerprints both artifact path and contents. Private pack bytes remain outside the public repository.
+
 PR grouping: tasks under each `## PR-n` header ship together in one pull request. PR order is dependency-driven â€” permissions first (commands must be executable before any feature is testable), then config plumbing (features consume the knobs), then feature domains, with the cross-cutting lang migration and UI completion last.
 
 ---
