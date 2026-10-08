@@ -669,7 +669,9 @@ WHEN a player opens or interacts with a guild vault THE SYSTEM SHALL recheck cur
 ### REQ-141
 **Event-driven.** WHEN a player clicks a previously rendered Java ally-home button THEN THE SYSTEM SHALL resolve the target guild by its stable identity, read its current ally home, and recheck current eligible-home listing (including both guilds' required perks) and service-backed ally-home access before starting the countdown. Removed homes, disbanded targets and revoked access SHALL be denied; relocated homes SHALL use current coordinates and renamed targets SHALL retain their identity. Existing safety/countdown/economy behavior SHALL be preserved. Real client acceptance is deferred; this correction addresses stale menu state, not authorization changes during an already running countdown.
 
-### REQ-142
+### REQ-142 - Superseded by REQ-147
+
+Retired on 2026-10-08: AxKoth is no longer used. The following describes historical artifact preparation and is not an active requirement.
 WHEN hosted build, test or release workflows prepare AxKothAPI 4 and its axapi 1.4.8 dependency THE SYSTEM SHALL verify their original published JARs and POMs against recorded SHA-256 digests before Gradle consumes them. Incomplete downloads SHALL be retried only during artifact preparation with a finite limit; cached files SHALL also be verified. Failed preparation SHALL prevent Gradle execution. Dependency coordinates, transitive metadata, compile-only runtime semantics and required test gates SHALL remain unchanged; source and test failures SHALL NOT be retried.
 
 
@@ -686,3 +688,7 @@ WHEN a player requests guild onboarding THE SYSTEM SHALL present current, permis
 ### REQ-146 — One-time membership prompt
 
 WHEN a guild creation or new membership occurs THE SYSTEM SHALL persist one pending prompt per player/guild, consume it once only for an online current member, retain pending offline prompts and preserve consumption across duplicate events and restarts. Existing memberships SHALL NOT be retroactively enrolled. See guild-onboarding.md.
+
+### REQ-147 — Retire unused AxKoth integration
+
+THE SYSTEM SHALL compile, test and start without the retired AxKoth API dependency, repository, plugin soft dependency or team-hook registration. Existing guild war, reward, standings and persistence behavior SHALL remain unchanged. See retired-axkoth.md. IDs 121–146 are reserved by the existing reviewed guild stack.

@@ -126,8 +126,6 @@ jobs:
         test -n "$STAFF_API_JAR"
         cp "$STAFF_API_JAR" "$GITHUB_WORKSPACE/libs/EnthusiaStaff-moderation-api.jar"
 
-    - name: Prepare verified AxKoth API dependencies
-      uses: ./.github/actions/prepare-axkoth-api
 
     - name: Test with Gradle
       env:

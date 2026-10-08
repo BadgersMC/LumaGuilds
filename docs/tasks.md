@@ -1010,7 +1010,7 @@ Ported from FainNeito/LumaGuilds#2/#3 onto the Enthusia redesign: the holiday st
   - Evidence: Canonical main a15b244 uses rendered access and destination at click time. New actual GuiItem-action regressions fail four of five cases on unchanged source; all five pass after fresh authorization/current-home resolution. Existing ally-access and locale focused checks pass. Full Java 25 offline test/shadowJar passes 1,543 tests with zero failures/errors and four external skips; final focused test/shadowJar also passes including the sixth grant-access case. Hosted/manual review remains separate; in-game testing deferred at user request. No local EARS/state helpers found; production untouched.
   - Files: GuildHomeMenu, AllyHomeMenuAuthorizationTest, docs/ally-home-menu-authorization.md
 
-- [ ] AXKOTH-ARTIFACT-PREPARATION
+- [x] AXKOTH-ARTIFACT-PREPARATION - superseded by RETIRE-AXKOTH-147; historical evidence follows.
   - Tag: INFRA; References: REQ-142
   - Spec: Preserve official AxKothAPI 4/axapi 1.4.8 and their original transitive POMs. Verify all cached/downloaded bytes before use; never retry Gradle tests or source errors.
   - Prove: Final #218 hosted job 113460383318 fails before compilation on truncated JAR bodies. Direct curl reproduced error 18; range resume failed with error 33. Artifact-only retry recovered the full AxKothAPI JAR matching publisher SHA-1 8f6bc658e9f18b1e544ede91e61234f1b46e7281 and the previously validated cache SHA-256. Original axapi JAR matches the publisher SHA-256. No historical behavioral red/green claim applies to this infrastructure change.
@@ -1032,3 +1032,5 @@ Ported from FainNeito/LumaGuilds#2/#3 onto the Enthusia redesign: the holiday st
   - Refine: Combined Java 25 offline test/shadowJar passes 1,714 cases, zero failures/errors and 15 external skips, including the actual Market artifact contract. Both previous merge conflicts are resolved; final-head hosted checks and maintainer review remain separate gates. Manual SPEAR records maintained; no EARS/state helpers found. In-game acceptance deferred; production untouched.
 
 - [x] GUILD-START-145/146 implementation/local proof: permission-aware onboarding menus, membership-scoped durable prompt and mobile preview. Evidence: docs/guild-onboarding.md. Clean build: 1,741 cases, zero failures/errors, 15 existing skips; all 27 new cases and four native MariaDB contracts execute. Local EARS/state helpers absent. Hosted checks, independent review, canonical release and client acceptance remain separate gates; production unchanged.
+
+- [x] RETIRE-AXKOTH-147 implementation/local proof: remove unused team hook, API dependencies, repository and soft dependency; preserve guild state/war services. Evidence: docs/retired-axkoth.md. Clean build: 1,538 cases, zero failures/errors, four existing skips; compile/test runtime graphs contain no AxKoth/axapi. Hosted checks and maintainer review remain separate gates; production unchanged.
