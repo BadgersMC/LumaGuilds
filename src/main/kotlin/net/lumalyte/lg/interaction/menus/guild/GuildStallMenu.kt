@@ -131,31 +131,41 @@ internal class GuildStallMenu(
         }
     }
 
-    private fun controls(maxPage: Int, summary: Component): List<Row> {
-        val navigation = listOf(
-            Row(lang.gui("guild_stall.back"), emptyList()) {
-                goBack()
-            },
-            Row(lang.gui("guild_stall.previous"), emptyList()) {
-                page = (page - 1).coerceAtLeast(0)
-                open()
-            },
-            Row(lang.gui("guild_stall.refresh"), summaryLines(summary)) { open() },
-            Row(lang.gui("guild_stall.next"), emptyList()) {
-                page = (page + 1).coerceAtMost(maxPage)
-                open()
-            },
-        )
+    private fun controls(
+        maxPage: Int,
+        summary: Component,
+    ): List<Row> {
+        val navigation =
+            listOf(
+                Row(lang.gui("guild_stall.back"), emptyList()) {
+                    goBack()
+                },
+                Row(lang.gui("guild_stall.previous"), emptyList()) {
+                    page = (page - 1).coerceAtLeast(0)
+                    open()
+                },
+                Row(lang.gui("guild_stall.refresh"), summaryLines(summary)) { open() },
+                Row(lang.gui("guild_stall.next"), emptyList()) {
+                    page = (page + 1).coerceAtMost(maxPage)
+                    open()
+                },
+            )
         val stall = selected
-        if (stall == null || !stall.matches(Regex("[A-Za-z0-9_.:-]+")) ||
-            Bukkit.getCommandMap().getCommand("guildsales") == null ||
-            !members.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.EDIT_SHOP_STOCK)) return navigation
-        return navigation + Row(lang.gui("community.stall.sales"), emptyList()) {
-            if (members.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.EDIT_SHOP_STOCK)) {
-                player.closeInventory()
-                player.performCommand("guildsales $stall")
+        if (stall == null) return navigation
+        if (!canShowSales(stall)) return navigation
+        return navigation +
+            Row(lang.gui("community.stall.sales"), emptyList()) {
+                if (members.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.EDIT_SHOP_STOCK)) {
+                    player.closeInventory()
+                    player.performCommand("guildsales $stall")
+                }
             }
-        }
+    }
+
+    private fun canShowSales(stall: String): Boolean {
+        if (!stall.matches(Regex("[A-Za-z0-9_.:-]+"))) return false
+        if (Bukkit.getCommandMap().getCommand("guildsales") == null) return false
+        return members.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.EDIT_SHOP_STOCK)
     }
 
     private fun goBack() {

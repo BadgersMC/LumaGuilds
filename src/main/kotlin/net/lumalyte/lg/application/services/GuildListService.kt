@@ -15,7 +15,10 @@ data class GuildListEntry(
     val sortValue: Long,
     val uniquePvpKills: Int,
     val memberCount: Int,
-    val details: net.lumalyte.lg.domain.entities.GuildDirectoryDetails = net.lumalyte.lg.domain.entities.GuildDirectoryDetails(),
+    /** Public owner and alliance facts for this directory entry. */
+    val details: net.lumalyte.lg.domain.entities.GuildDirectoryDetails =
+        net.lumalyte.lg.domain.entities
+            .GuildDirectoryDetails(),
 )
 
 data class GuildListPage(
@@ -58,28 +61,37 @@ class GuildListService(
             .coerceAtLeast(0)
         val weeklyStart = nowProvider().minus(7, ChronoUnit.DAYS)
 
-        val entries = repository.getPage(
-            offset = safePage * safePageSize,
-            limit = safePageSize,
-            sortKey = sortKey,
-            ascending = ascending,
-            weeklyStart = weeklyStart,
-            claimsEnabled = config.claimsEnabled,
-            uniqueKillWeight = killWeight,
-        ).mapNotNull { ranked ->
-            guildRepository.getById(ranked.guildId)?.let { guild ->
-                GuildListEntry(
-                    guild = guild,
-                    sortValue = ranked.sortValue,
-                    uniquePvpKills = ranked.uniquePvpKills,
-                    memberCount = ranked.memberCount,
-                )
-            }
-        }
+        val entries =
+            repository
+                .getPage(
+                    offset = safePage * safePageSize,
+                    limit = safePageSize,
+                    sortKey = sortKey,
+                    ascending = ascending,
+                    weeklyStart = weeklyStart,
+                    claimsEnabled = config.claimsEnabled,
+                    uniqueKillWeight = killWeight,
+                ).mapNotNull { ranked ->
+                    guildRepository.getById(ranked.guildId)?.let { guild ->
+                        GuildListEntry(
+                            guild = guild,
+                            sortValue = ranked.sortValue,
+                            uniquePvpKills = ranked.uniquePvpKills,
+                            memberCount = ranked.memberCount,
+                        )
+                    }
+                }
 
         val details = repository.getDetails(entries.map { it.guild.id }.toSet())
         return GuildListPage(
-            entries = entries.map { it.copy(details = details[it.guild.id] ?: net.lumalyte.lg.domain.entities.GuildDirectoryDetails()) },
+            entries =
+                entries.map {
+                    it.copy(
+                        details =
+                            details[it.guild.id] ?: net.lumalyte.lg.domain.entities
+                                .GuildDirectoryDetails(),
+                    )
+                },
             page = safePage,
             pageSize = safePageSize,
             totalCount = totalCount,

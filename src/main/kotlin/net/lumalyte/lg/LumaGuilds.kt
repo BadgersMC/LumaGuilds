@@ -893,7 +893,10 @@ class LumaGuilds : JavaPlugin() {
         commandManager.registerCommand(QuickAllyChatCommand())
         commandManager.registerCommand(QuickModChatCommand())
         commandManager.registerCommand(QuickAnnounceCommand())
-        commandManager.registerCommand(net.lumalyte.lg.interaction.commands.FullscreenAnnounceCommand())
+        commandManager.registerCommand(
+            net.lumalyte.lg.interaction.commands
+                .FullscreenAnnounceCommand(),
+        )
 
         // Register LumaGuilds admin command
         getCommand("lumaguilds")?.setExecutor(LumaGuildsCommand())
@@ -1477,9 +1480,7 @@ class LumaGuilds : JavaPlugin() {
         return get().get()
     }
 
-    fun getPhysicalCurrencyService(): net.lumalyte.lg.application.services.PhysicalCurrencyService {
-        return get().get()
-    }
+    fun getPhysicalCurrencyService(): net.lumalyte.lg.application.services.PhysicalCurrencyService = get().get()
 
     override fun onDisable() {
         get().getOrNull<net.lumalyte.lg.infrastructure.listeners.ChatDestinationIndicator>()?.close()

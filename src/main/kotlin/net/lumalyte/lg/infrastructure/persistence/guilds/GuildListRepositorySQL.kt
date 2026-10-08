@@ -11,34 +11,81 @@ import java.util.UUID
 class GuildListRepositorySQL(
     private val storage: Storage<Database>,
 ) : GuildListRepository {
-
     override fun getDetails(guildIds: Set<UUID>): Map<UUID, net.lumalyte.lg.domain.entities.GuildDirectoryDetails> {
         if (guildIds.isEmpty()) return emptyMap()
-        require(guildIds.size <= 36) { "Directory details must be paged" }
+        require(guildIds.size <= DIRECTORY_PAGE_SIZE) { "Directory details must be paged" }
         val placeholders = guildIds.joinToString(",") { "?" }
         val owners = guildIds.associateWith { mutableListOf<UUID>() }
         val allies = guildIds.associateWith { mutableSetOf<String>() }
         storage.connection.connection.use { connection ->
-            connection.prepareStatement("SELECT m.guild_id, m.player_id FROM members m JOIN ranks r ON r.id = m.rank_id AND r.guild_id = m.guild_id WHERE r.priority = 0 AND m.guild_id IN ($placeholders)").use { statement ->
-                guildIds.forEachIndexed { index, id -> statement.setString(index + 1, id.toString()) }
-                statement.executeQuery().use { rows ->
-                    while (rows.next()) owners[UUID.fromString(rows.getString("guild_id"))]?.add(UUID.fromString(rows.getString("player_id")))
-                }
-            }
-            connection.prepareStatement("SELECT r.guild_a, r.guild_b, a.name AS name_a, b.name AS name_b, r.expires_at FROM relations r JOIN guilds a ON a.id = r.guild_a JOIN guilds b ON b.id = r.guild_b WHERE r.type = 'ALLY' AND r.status = 'ACTIVE' AND (r.guild_a IN ($placeholders) OR r.guild_b IN ($placeholders))").use { statement ->
-                (guildIds.toList() + guildIds.toList()).forEachIndexed { index, id -> statement.setString(index + 1, id.toString()) }
-                statement.executeQuery().use { rows ->
-                    while (rows.next()) {
-                        val expires = rows.getString("expires_at")?.let(Instant::parse)
-                        if (expires != null && !expires.isAfter(Instant.now())) continue
-                        allies[UUID.fromString(rows.getString("guild_a"))]?.add(rows.getString("name_b"))
-                        allies[UUID.fromString(rows.getString("guild_b"))]?.add(rows.getString("name_a"))
-                    }
-                }
-            }
+            loadOwners(connection, placeholders, guildIds, owners)
+            loadAllies(connection, placeholders, guildIds, allies)
         }
-        return guildIds.associateWith { id -> net.lumalyte.lg.domain.entities.GuildDirectoryDetails(
-            owners.getValue(id).distinct().sortedBy(UUID::toString), allies.getValue(id).sorted()) }
+        return guildIds.associateWith { id ->
+            net.lumalyte.lg.domain.entities.GuildDirectoryDetails(
+                owners.getValue(id).distinct().sortedBy(UUID::toString),
+                allies.getValue(id).sorted(),
+            )
+        }
+    }
+
+    private fun loadOwners(
+        connection: java.sql.Connection,
+        placeholders: String,
+        guildIds: Set<UUID>,
+        owners: Map<UUID, MutableList<UUID>>,
+    ) {
+        val sql = """
+            SELECT m.guild_id, m.player_id FROM members m
+            JOIN ranks r ON r.id = m.rank_id AND r.guild_id = m.guild_id
+            WHERE r.priority = 0 AND m.guild_id IN ($placeholders)
+        """.trimIndent()
+        connection.prepareStatement(sql).use { statement ->
+            bindIds(statement, guildIds.toList())
+            statement.executeQuery().use { rows -> readOwners(rows, owners) }
+        }
+    }
+
+    private fun readOwners(rows: java.sql.ResultSet, owners: Map<UUID, MutableList<UUID>>) {
+        while (rows.next()) {
+            val guildId = UUID.fromString(rows.getString("guild_id"))
+            owners[guildId]?.add(UUID.fromString(rows.getString("player_id")))
+        }
+    }
+
+    private fun loadAllies(
+        connection: java.sql.Connection,
+        placeholders: String,
+        guildIds: Set<UUID>,
+        allies: Map<UUID, MutableSet<String>>,
+    ) {
+        val sql = """
+            SELECT r.guild_a, r.guild_b, a.name AS name_a, b.name AS name_b, r.expires_at
+            FROM relations r JOIN guilds a ON a.id = r.guild_a JOIN guilds b ON b.id = r.guild_b
+            WHERE r.type = 'ALLY' AND r.status = 'ACTIVE'
+            AND (r.guild_a IN ($placeholders) OR r.guild_b IN ($placeholders))
+        """.trimIndent()
+        connection.prepareStatement(sql).use { statement ->
+            bindIds(statement, guildIds.toList() + guildIds.toList())
+            statement.executeQuery().use { rows -> readAllies(rows, allies) }
+        }
+    }
+
+    private fun readAllies(rows: java.sql.ResultSet, allies: Map<UUID, MutableSet<String>>) {
+        while (rows.next()) {
+            val expires = rows.getString("expires_at")?.let(Instant::parse)
+            if (expires != null && !expires.isAfter(Instant.now())) continue
+            allies[UUID.fromString(rows.getString("guild_a"))]?.add(rows.getString("name_b"))
+            allies[UUID.fromString(rows.getString("guild_b"))]?.add(rows.getString("name_a"))
+        }
+    }
+
+    private fun bindIds(statement: java.sql.PreparedStatement, ids: List<UUID>) {
+        ids.forEachIndexed { index, id -> statement.setString(index + 1, id.toString()) }
+    }
+
+    private companion object {
+        const val DIRECTORY_PAGE_SIZE = 36
     }
 
     override fun getCount(): Int =

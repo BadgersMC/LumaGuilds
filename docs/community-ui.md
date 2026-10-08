@@ -77,3 +77,23 @@ The initial hosted unit build exposed an empty CI `MARKET_API_JAR` variable.
 Empty/blank values now select the optional profile, while a non-empty configured
 missing file still fails. Both the valid real-artifact execution and blank-profile
 skip were verified locally; Gradle tracks only non-blank configured artifacts.
+
+### Codacy refinement
+
+The current provider report exposes 286 new findings; GitHub annotations had not
+yet synchronized. Inspect severity and affected code directly. Preserve all
+permission, privacy, database rollback and unknown-data contracts while refining
+new code formatting and method boundaries; do not suppress the quality gate.
+
+Refinement preserves literal locale keys (the source contract caught a dynamic-key
+refactor) and the established banner resolver wiring. Those regressions were
+repaired and the final full suite passes; public directory facts use a regular
+class, and chat filtering, destination labels, rank toggles and SQL readers have
+smaller methods. Existing SQL rollback and cache-publication contracts remain.
+The optional broad default Detekt scan also sees historical repository findings;
+it is not presented as a passing project gate or a substitute for hosted Codacy.
+
+Final refinement validation: 1,679 tests, zero failures/errors, 15 external skips
+in the ordinary profile; all 61 disposable native MariaDB cases pass without
+skips. The actual companion runtime contract executes. Wiki lint (42 selected
+wiki/plan files) and all 13 topic-parity checks pass. Production is untouched.

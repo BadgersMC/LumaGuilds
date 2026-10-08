@@ -19,7 +19,11 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 /** Personal preferences are independent of guild management permissions. */
-internal class PlayerChatSettingsMenu(private val navigator: MenuNavigator, private val player: Player) : Menu, KoinComponent {
+internal class PlayerChatSettingsMenu(
+    private val navigator: MenuNavigator,
+    private val player: Player,
+) : Menu,
+    KoinComponent {
     private val service: ChatService by inject()
     private val lang: LangService by inject()
 
@@ -29,18 +33,52 @@ internal class PlayerChatSettingsMenu(private val navigator: MenuNavigator, priv
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick { if (it.click.isShiftClick) it.isCancelled = true }
         val pane = StaticPane(0, 0, 9, 3)
-        add(pane, 2, lang.gui("community.chat.global_visibility"), settings.globalChatVisible) { it.copy(globalChatVisible = !it.globalChatVisible) }
-        add(pane, 6, lang.gui("community.chat.indicator"), settings.destinationIndicator) { it.copy(destinationIndicator = !it.destinationIndicator) }
+        add(
+            pane,
+            2,
+            Toggle(lang.gui("community.chat.global_visibility"), settings.globalChatVisible) {
+                it.copy(globalChatVisible = !it.globalChatVisible)
+            },
+        )
+        add(
+            pane,
+            6,
+            Toggle(lang.gui("community.chat.indicator"), settings.destinationIndicator) {
+                it.copy(destinationIndicator = !it.destinationIndicator)
+            },
+        )
         pane.addItem(GuiItem(ItemStack.of(Material.ARROW).name(lang.gui("menu.common.item.back.name"))) { navigator.goBack() }, 4, 2)
-        gui.addPane(pane); gui.show(player)
+        gui.addPane(pane)
+        gui.show(player)
     }
 
-    private fun add(pane: StaticPane, x: Int, title: net.kyori.adventure.text.Component, enabled: Boolean, change: (ChatVisibilitySettings) -> ChatVisibilitySettings) {
-        pane.addItem(GuiItem(ItemStack.of(if (enabled) Material.LIME_DYE else Material.GRAY_DYE).name(title)) {
-            val current = service.getVisibilitySettings(player.uniqueId)
-            if (!service.updateVisibilitySettings(player.uniqueId, change(current))) player.sendMessage(lang.msg("community.chat.failed"))
-            open()
-        }, x, 1)
+    private class Toggle(
+        val title: net.kyori.adventure.text.Component,
+        val enabled: Boolean,
+        val change: (ChatVisibilitySettings) -> ChatVisibilitySettings,
+    )
+
+    private fun add(
+        pane: StaticPane,
+        x: Int,
+        toggle: Toggle,
+    ) {
+        pane.addItem(
+            GuiItem(ItemStack.of(if (toggle.enabled) Material.LIME_DYE else Material.GRAY_DYE).name(toggle.title)) {
+                val current = service.getVisibilitySettings(player.uniqueId)
+                if (!service.updateVisibilitySettings(
+                        player.uniqueId,
+                        toggle.change(current),
+                    )
+                ) {
+                    player.sendMessage(lang.msg("community.chat.failed"))
+                }
+                open()
+            },
+            x,
+            1,
+        )
     }
+
     override fun passData(data: Any?) = Unit
 }
