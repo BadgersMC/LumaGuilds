@@ -1,4 +1,4 @@
-﻿# LumaGuilds â€” Tasks (SPEAR)
+# LumaGuilds â€” Tasks (SPEAR)
 
 Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` line, and an `Evidence:` block that MUST be filled with real source citations before any downstream SPEAR phase runs on it.
 
@@ -890,3 +890,9 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Boot 1 (13:30, `3.0.4-enthusia-gui.2`): clean enable, schema v41, Nexo loaded every item and regenerated the pack with no errors for the new files — but `PacketEvents not available`: packetevents enabled after LumaGuilds despite the softdepend. Fixed (adapter now hooks on `PluginEnableEvent` for packetevents; 3 new probes), suite 1,463 / 0 / 4.
   - Boot 2 (13:54, `3.0.4-enthusia-gui.3`, SHA-256 `f103f90adce1a005a84cb4028e80d23ea99c32976b140a7c3d7fae13f4143733`): `Menu icon adapter waiting for packetevents to enable` → `Menu icon adapter active` one second later; `Done (38.634s)`. Remaining LumaGuilds warnings are pre-existing (SMP Test config still lists removed perks `CUSTOM_BANNER_COLORS`/`ANIMATED_EMOJIS`; DiscordSRV not connected on test). The `.2` jar is kept as `.superseded.disabled`.
   - Still open: human Java walkthrough on SMP Test (dashboard, Guild Actions, theme picker incl. Vanilla, Declare Enemy, progression sources, quests and toast); Bedrock go-live stays with LG-1901 (proxy untouched apart from the mapping backup).
+
+- [x] ALLY-HOME-MENU-AUTHORIZATION
+  - Tag: `TDD`
+  - References: REQ-141
+  - Evidence: Canonical main a15b244 uses rendered access and destination at click time. New actual GuiItem-action regressions fail four of five cases on unchanged source; all five pass after fresh authorization/current-home resolution. Existing ally-access and locale focused checks pass. Full Java 25 offline test/shadowJar passes 1,543 tests with zero failures/errors and four external skips; final focused test/shadowJar also passes including the sixth grant-access case. Hosted/manual review remains separate; in-game testing deferred at user request. No local EARS/state helpers found; production untouched.
+  - Files: GuildHomeMenu, AllyHomeMenuAuthorizationTest, docs/ally-home-menu-authorization.md
