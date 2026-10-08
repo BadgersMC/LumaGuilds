@@ -111,7 +111,8 @@ internal class AllyHomeMenuAuthorizationTest {
             mockkStatic(JavaPlugin::class)
             every { JavaPlugin.getProvidingPlugin(any<Class<*>>()) } returns plugin
             val lang = mockk<LangService>(relaxed = true)
-            every { lang.msg(any(), *anyVararg()) } returns Component.text("Home")
+            every { lang.msg(any()) } returns Component.text("Home")
+            every { lang.msg(any(), any()) } returns Component.text("Home")
             every { guilds.getAllyHomes(source.id) } returns mapOf("Ally" to requireNotNull(currentTarget?.allyHome))
             every { guilds.getGuildByName("Ally") } returns currentTarget
             every { guilds.getGuild(targetId) } answers { currentTarget }
@@ -134,7 +135,8 @@ internal class AllyHomeMenuAuthorizationTest {
                     StaticPane::class.java,
                     Int::class.javaPrimitiveType,
                     Int::class.javaPrimitiveType,
-                ).also { it.isAccessible = true }
+                )
+                .also { it.isAccessible = true }
                 .invoke(menu, pane, 0, ALLY_ROW)
         }
 
