@@ -3,7 +3,7 @@ package net.lumalyte.lg.application.persistence
 import java.util.UUID
 
 /** Guild-wide reconnect preference; missing entries are disabled. */
-interface GuildChatReconnectSettingsRepository {
+internal interface GuildChatReconnectSettingsRepository {
     /** Returns the current durable preference. */
     fun resetOnJoin(guildId: UUID): Boolean
 

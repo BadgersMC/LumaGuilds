@@ -5,7 +5,7 @@ import net.lumalyte.lg.domain.entities.RankPermission
 import java.util.UUID
 
 /** Authorizes guild-wide reconnect settings without depending on a chat platform. */
-class GuildChatReconnectSettingsService(
+internal class GuildChatReconnectSettingsService(
     private val repository: GuildChatReconnectSettingsRepository,
     private val guildService: GuildService,
 ) {
@@ -23,7 +23,7 @@ class GuildChatReconnectSettingsService(
         ) {
             return false
         }
-        if (rendered == submitted || repository.resetOnJoin(guildId) == submitted) return true
-        return repository.compareAndSet(guildId, rendered, submitted)
+        return rendered == submitted || repository.resetOnJoin(guildId) == submitted ||
+            repository.compareAndSet(guildId, rendered, submitted)
     }
 }

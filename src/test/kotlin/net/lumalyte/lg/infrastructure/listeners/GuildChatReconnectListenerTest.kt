@@ -103,5 +103,5 @@ internal class GuildChatReconnectListenerTest {
         verify(exactly = 0) { chat.switchChannel(any(), any()) }
     }
 
-    private fun channel(id: String): Channel = mockk { every { this@mockk.id } returns id }
+    private fun channel(channelId: String): Channel = mockk { every { id } returns channelId }
 }

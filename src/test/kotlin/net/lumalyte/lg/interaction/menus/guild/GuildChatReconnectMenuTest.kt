@@ -43,13 +43,16 @@ import java.nio.file.Path
 import java.time.Instant
 import java.util.UUID
 import java.util.logging.Logger
+import kotlin.properties.Delegates
 import kotlin.test.assertEquals
 
 /** Real Java actions and serialized Bedrock responses share the authorized preference service. */
+// Four client regressions share isolated lifecycle, language and form fixtures.
+@Suppress("TooManyFunctions")
 internal class GuildChatReconnectMenuTest {
-    @TempDir lateinit var directory: Path
-    private lateinit var server: ServerMock
-    private lateinit var player: PlayerMock
+    @TempDir var directory: Path? = null
+    private var server: ServerMock by Delegates.notNull()
+    private var player: PlayerMock by Delegates.notNull()
     private val guild = Guild(UUID.randomUUID(), "Reconnect", createdAt = Instant.EPOCH)
     private val guilds = mockk<GuildService>(relaxed = true)
     private val repository = mockk<GuildChatReconnectSettingsRepository>()
@@ -92,14 +95,13 @@ internal class GuildChatReconnectMenuTest {
         }
     }
 
-    private fun createLanguage() = LangService(
-        object : LangHost {
-            override val dataFolder: File = directory.toFile()
+    private fun createLanguage(): LangService {
+        val host = object : LangHost {
+            override val dataFolder: File = checkNotNull(directory).toFile()
             override val resourceClassLoader: ClassLoader = LumaGuildsLang::class.java.classLoader
-        },
-        Locale("en_US"),
-        LumaGuildsLang::class.java,
-    )
+        }
+        return LangService(host, Locale("en_US"), LumaGuildsLang::class.java)
+    }
 
     /** Restores process-wide test resources. */
     @AfterEach
@@ -113,7 +115,7 @@ internal class GuildChatReconnectMenuTest {
     @Test
     fun javaToggle() {
         val menu = javaMenu()
-        val pane = StaticPane(0, 0, 9, 6)
+        val pane = StaticPane(0, 0, MENU_COLUMNS, MENU_ROWS)
         menu.javaClass
             .getDeclaredMethod("addReconnectControl", StaticPane::class.java)
             .apply { isAccessible = true }
@@ -185,7 +187,11 @@ internal class GuildChatReconnectMenuTest {
         val definition: FormDefinition<CustomForm, *, *> = FormDefinitions.instance().definitionFor(form)
         definition.handleFormResponse(
             form,
-            "[null,\"Reconnect\",\"\",0,${guild.isOpen},${guild.trackingEnabled},true,$enabled,0,null]",
+            """[null,"Reconnect","",0,${guild.isOpen},${guild.trackingEnabled},true,$enabled,0,null]""",
         )
+    }
+    private companion object {
+        const val MENU_COLUMNS = 9
+        const val MENU_ROWS = 6
     }
 }

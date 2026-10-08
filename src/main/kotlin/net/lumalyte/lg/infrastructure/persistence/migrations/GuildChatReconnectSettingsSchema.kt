@@ -4,7 +4,8 @@ import java.sql.Connection
 import java.util.UUID
 
 /** Additive guild preference schema shared by startup and migration. */
-object GuildChatReconnectSettingsSchema {
+internal object GuildChatReconnectSettingsSchema {
+    /** Fixed table identifier shared with the database migration inventory. */
     const val TABLE = "guild_chat_reconnect_settings"
     private const val CREATE_SQL =
         "CREATE TABLE IF NOT EXISTS guild_chat_reconnect_settings " +

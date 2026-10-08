@@ -11,7 +11,7 @@ import java.sql.SQLException
 import java.util.UUID
 
 /** Reads durable preferences and rejects stale writes without a guild snapshot/cache. */
-class GuildChatReconnectSettingsRepositorySQL(private val storage: Storage<Database>) :
+internal class GuildChatReconnectSettingsRepositorySQL(private val storage: Storage<Database>) :
     GuildChatReconnectSettingsRepository {
     private val logger = LoggerFactory.getLogger(GuildChatReconnectSettingsRepositorySQL::class.java)
 
@@ -19,31 +19,36 @@ class GuildChatReconnectSettingsRepositorySQL(private val storage: Storage<Datab
         storage.connection.connection.use { GuildChatReconnectSettingsSchema.create(it) }
     }
 
-    override fun resetOnJoin(guildId: UUID): Boolean = try {
-        storage.connection.connection.use { connection ->
-            connection.prepareStatement(READ_SQL).use {
-                it.setString(1, guildId.toString())
-                it.executeQuery().use { row -> row.next() && row.getBoolean("reset_on_join") }
-            }
+    override fun resetOnJoin(guildId: UUID): Boolean {
+        return try {
+            storage.connection.connection.use { readPreference(it, guildId) }
+        } catch (error: SQLException) {
+            logger.error("Failed to read guild reconnect preference for $guildId", error)
+            false
         }
-    } catch (error: SQLException) {
-        logger.error("Failed to read guild reconnect preference for $guildId", error)
-        false
     }
 
-    override fun compareAndSet(guildId: UUID, expected: Boolean, enabled: Boolean): Boolean = try {
-        storage.connection.connection.use { connection ->
-            insertDefault(connection, guildId)
-            connection.prepareStatement(UPDATE_SQL).use {
-                it.setBoolean(1, enabled)
-                it.setString(2, guildId.toString())
-                it.setBoolean(3, expected)
-                it.executeUpdate() == 1
-            }
+    private fun readPreference(connection: Connection, guildId: UUID): Boolean =
+        connection.prepareStatement(READ_SQL).use {
+            it.setString(1, guildId.toString())
+            it.executeQuery().use { row -> row.next() && row.getBoolean("reset_on_join") }
         }
-    } catch (error: SQLException) {
-        logger.error("Failed to save guild reconnect preference for $guildId", error)
-        false
+
+    override fun compareAndSet(guildId: UUID, expected: Boolean, enabled: Boolean): Boolean {
+        return try {
+            storage.connection.connection.use { connection ->
+                insertDefault(connection, guildId)
+                connection.prepareStatement(UPDATE_SQL).use {
+                    it.setBoolean(1, enabled)
+                    it.setString(2, guildId.toString())
+                    it.setBoolean(EXPECTED_STATE_PARAMETER, expected)
+                    it.executeUpdate() == 1
+                }
+            }
+        } catch (error: SQLException) {
+            logger.error("Failed to save guild reconnect preference for $guildId", error)
+            false
+        }
     }
 
     private fun insertDefault(connection: Connection, guildId: UUID) {
@@ -55,6 +60,7 @@ class GuildChatReconnectSettingsRepositorySQL(private val storage: Storage<Datab
     }
 
     private companion object {
+        const val EXPECTED_STATE_PARAMETER = 3
         const val READ_SQL = "SELECT reset_on_join FROM guild_chat_reconnect_settings WHERE guild_id = ?"
         const val UPDATE_SQL =
             "UPDATE guild_chat_reconnect_settings SET reset_on_join = ? WHERE guild_id = ? AND reset_on_join = ?"
