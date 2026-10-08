@@ -561,7 +561,7 @@ fun socialModule() = module {
         }
     }
     single {
-        net.lumalyte.lg.application.services.GuildDiscordRoleService(get(), get(), get(), get(), get(), get())
+        net.lumalyte.lg.application.services.GuildDiscordRoleService(get(), get(), get(), get(), get(), get(), get())
     }
     single<net.lumalyte.lg.infrastructure.listeners.GuildDiscordRoleListener> {
         net.lumalyte.lg.infrastructure.listeners.GuildDiscordRoleListener(get())
