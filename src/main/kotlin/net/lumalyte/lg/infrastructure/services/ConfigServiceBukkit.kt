@@ -411,7 +411,7 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             levelExponent = config.getDouble("progression.level_exponent", 1.15),
             linearBonusPerLevel = config.getInt("progression.linear_bonus_per_level", 150),
             shopXp = net.lumalyte.lg.domain.values.GuildShopXpPolicy(
-                enabled = config.getBoolean("progression.shop_xp.enabled", true),
+                enabled = config.getBoolean("progression.shop_xp.enabled", false),
                 xpPerSale = config.getInt("progression.shop_xp.xp_per_sale", 5),
                 guildDailyCap = config.getInt("progression.shop_xp.guild_daily_cap", 500),
                 buyerDailyCap = config.getInt("progression.shop_xp.buyer_daily_cap", 50),

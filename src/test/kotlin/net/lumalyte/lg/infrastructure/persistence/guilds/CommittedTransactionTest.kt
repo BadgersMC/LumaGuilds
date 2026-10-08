@@ -3,6 +3,7 @@ package net.lumalyte.lg.infrastructure.persistence.guilds
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import java.sql.Connection
 import java.sql.SQLException
@@ -11,7 +12,9 @@ import kotlin.test.assertFailsWith
 
 /** Failure paths must preserve rollback and never commit unknown state. */
 internal class CommittedTransactionTest {
-    @Test fun `failed rollback disposes connection without implicitly committing unknown state`() {
+    @DisplayName("failed rollback disposes connection without implicitly committing unknown state")
+    @Test
+    fun failedRollbackDisposes() {
         val connection = mockk<Connection>(relaxed = true)
         every { connection.autoCommit } returns true
         every { connection.rollback() } throws SQLException("rollback failed")

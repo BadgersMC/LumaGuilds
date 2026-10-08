@@ -19,19 +19,21 @@ internal class GuildShopXpRepositorySQL(
     private val awards: ExperienceAwardRepositorySQL,
     private val guildActions: GuildActionCoordinator = GuildActionCoordinator(),
 ) : GuildShopXpRepository {
-
     private val maria = storage.dialect == SqlDialect.MARIADB
 
     private val ledger = GuildShopXpLedger(storage)
+    private val chapters = GuildShopXpChapterGuard(storage)
 
     override fun prepare(sale: GuildShopXpSale, policy: GuildShopXpPolicy): String {
         require(sale.occurredAt > 0)
         return guildActions.withGuilds(sale.guild) {
             transaction { c ->
+                val chapter = chapters.current(c)
                 ledger.lockGuild(c, sale.guild)
                 val existing = ledger.read(c, sale.id)
                 if (existing == null) {
-                    ledger.capture(c, sale, policy)
+                    val chapterAllowed = chapters.capture(c, sale.id, sale.occurredAt, chapter)
+                    ledger.capture(c, sale, policy, chapterAllowed)
                 } else {
                     require(
                         existing.guild == sale.guild && existing.buyer == sale.buyer && existing.at == sale.occurredAt,
@@ -51,21 +53,31 @@ internal class GuildShopXpRepositorySQL(
     }
 
     private fun completeLocked(c: Connection, id: UUID, guild: UUID): GuildShopXpCompletion {
+        val chapter = chapters.current(c)
         val guildExists = ledger.lockGuild(c, guild, required = false)
         val sale =
             ledger.read(c, id)
                 ?: error("Sale disappeared")
         if (sale.status != PREPARED) return GuildShopXpCompletion(sale.status, guild)
-        val denial = completionDenial(c, sale, guildExists)
+        val denial = chapters.denial(c, id, chapter) ?: completionDenial(c, sale, guildExists)
         return if (denial == null) awardSale(c, id, sale) else ledger.finish(c, id, sale, denial)
     }
 
     private fun completionDenial(c: Connection, sale: GuildShopXpReceipt, guildExists: Boolean): String? {
         val prestige = ledger.prestige(c, sale.guild)
-        if (!guildExists || prestige != sale.prestige) return "STALE_RUN"
-        val last = ledger.lastAward(c, sale)
-        if (sale.isCoolingDown(last)) return "COOLDOWN"
-        return if (sale.guildCap == 0 || sale.buyerCap == 0) CAPPED else null
+        return if (!guildExists || prestige != sale.prestige) {
+            "STALE_RUN"
+        } else {
+            saleAllowanceDenial(c, sale)
+        }
+    }
+
+    private fun saleAllowanceDenial(c: Connection, sale: GuildShopXpReceipt): String? {
+        return when {
+            sale.isCoolingDown(ledger.lastAward(c, sale)) -> "COOLDOWN"
+            sale.guildCap == 0 || sale.buyerCap == 0 -> CAPPED
+            else -> null
+        }
     }
 
     private fun awardSale(c: Connection, id: UUID, sale: GuildShopXpReceipt): GuildShopXpCompletion {
@@ -89,10 +101,12 @@ internal class GuildShopXpRepositorySQL(
         }
     }
 
-    private fun <T> transaction(block: (Connection) -> T): T = storage.connection.connection.use { c ->
-        c.committingTransaction {
-            if (!maria) c.updateStatement("UPDATE guild_shop_xp_sales SET status = status WHERE 0")
-            block(c)
+    private fun <T> transaction(block: (Connection) -> T): T {
+        return storage.connection.connection.use { c ->
+            c.committingTransaction {
+                if (!maria) c.updateStatement("UPDATE guild_shop_xp_sales SET status = status WHERE 0")
+                block(c)
+            }
         }
     }
 

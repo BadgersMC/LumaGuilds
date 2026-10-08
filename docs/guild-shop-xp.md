@@ -45,3 +45,14 @@ Revised unmerged review artifact SHA-256: b09c321bd6e15be9db1f7363606c6a04bc33ad
 ## Atomic ledger refinement
 
 Cap/progression writes now live in a caller-owned ExperienceAwardTransaction; quote, buyer allowance and cooldown SQL live in GuildShopXpLedger. The repository still reserves the same writer/guild lock and commits all changes together. Clean Java 25/Paper 26.2 test and shadowJar passed 1,562 tests, zero failures/errors, four unrelated skips; all seven native MariaDB contracts executed. Unmerged review JAR SHA-256: `0f7d906272a12230d5807d2fd5b44a3bd4189a164b22497ced5d4346c34df361`. Hosted review results remain separate. GuildShopXpPolicy remains public because the established public ProgressionConfig exposes it; its targeted visibility-rule exception documents that contract.
+
+## Chapter and activation boundaries
+
+REQ-132: Newly prepared sale XP defaults to disabled until the compatible companion integration is reviewed and an operator enables it. The approved numeric defaults remain 5 XP, 500/guild/UTC day, 50/buyer-to-guild/UTC day and a 300-second pair cooldown; own-guild sales remain zero.
+
+Two SQLite regressions failed before the lifecycle guard: a frozen chapter still awarded XP, and an unchanged-prestige receipt entered a different chapter. Quotes now persist their chapter identity in a separate durable ledger, avoiding destructive changes to pre-existing receipt tables. Completion locks and checks the current lifecycle row before taking the guild/progression lock; MariaDB rollover updates that same row before seasonal work. Frozen, closed, not-yet-started or elapsed chapters consume the receipt without XP or cap reservation; another chapter produces STALE_RUN. An unconfigured lifecycle with no rows retains pre-chapter behavior; the appearance of a chapter invalidates older null-chapter receipts. Nine native MariaDB contracts and the SQLite chapter regressions passed, including a delivery blocked until a concurrent freeze commits. Tests explicitly opt into awards; default and YAML fallback remain disabled. No new reward economy is activated on existing servers.
+
+
+### 8 October refinement validation
+
+Full Java 25 / pinned Paper 26.2 test and review shadow-JAR build passed: 1,566 tests, zero failures/errors, four unrelated optional skips. All nine disposable loopback native MariaDB shop-XP scenarios executed without skips, including concurrent caps, receipt replay, transaction rollback and chapter freeze/identity fences. Two new SQLite chapter regressions failed before the guard and passed afterward. Default enablement remains false; explicit configuration opt-in and numeric overrides are tested. This is local unmerged review evidence, not GitHub CI or production acceptance.

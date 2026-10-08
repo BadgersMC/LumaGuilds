@@ -12,39 +12,36 @@ class PermanentExperienceService(
     private val activityService: PlaytimeActivityService,
     private val boostProvider: () -> net.lumalyte.lg.domain.values.ExperienceBoost? = { null },
 ) {
+    /** Reject invalid/source-ineligible requests before reserving caps or changing progression. */
     fun award(request: ExperienceAwardRequest, policy: ExperiencePolicy): ExperienceAwardResult {
-        if (request.source ==
-            ExperienceSource.SHOP_SALE
-        ) {
-            return ExperienceAwardResult.Rejected(AwardRejection.INELIGIBLE)
-        }
-        if (request.source != policy.source) {
-            return ExperienceAwardResult.Rejected(AwardRejection.POLICY_MISMATCH)
-        }
-        if (!policy.enabled) {
-            return ExperienceAwardResult.Rejected(AwardRejection.SOURCE_DISABLED)
-        }
-        if (!request.eligible) {
-            return ExperienceAwardResult.Rejected(AwardRejection.INELIGIBLE)
-        }
-        if (request.units <= 0) {
-            return ExperienceAwardResult.Rejected(AwardRejection.INVALID_UNITS)
-        }
-        if (request.actorId != null && activityService.isXpBlocked(request.actorId)) {
-            return ExperienceAwardResult.Rejected(AwardRejection.SUSPICIOUS_OR_AFK)
-        }
+        val rejection = sourceRejection(request, policy) ?: actorRejection(request)
+        return if (rejection == null) awardEligible(request, policy) else ExperienceAwardResult.Rejected(rejection)
+    }
 
-        val requestedXp = try {
-            val base = Math.multiplyExact(policy.awardXp, request.units)
-            boostProvider()?.apply(base, request.source, request.occurredAt) ?: base
-        } catch (_: ArithmeticException) {
-            return ExperienceAwardResult.Rejected(AwardRejection.INVALID_UNITS)
-        }
-        return repository.awardAtomically(
-            request = request,
-            policy = policy,
-            requestedXp = requestedXp,
-            window = policy.windowContaining(request.occurredAt),
-        )
+    private fun sourceRejection(request: ExperienceAwardRequest, policy: ExperiencePolicy): AwardRejection? = when {
+        request.source == ExperienceSource.SHOP_SALE -> AwardRejection.INELIGIBLE
+        request.source != policy.source -> AwardRejection.POLICY_MISMATCH
+        !policy.enabled -> AwardRejection.SOURCE_DISABLED
+        else -> null
+    }
+
+    private fun actorRejection(request: ExperienceAwardRequest): AwardRejection? = when {
+        !request.eligible -> AwardRejection.INELIGIBLE
+        request.units <= 0 -> AwardRejection.INVALID_UNITS
+        request.actorId?.let(activityService::isXpBlocked) == true -> AwardRejection.SUSPICIOUS_OR_AFK
+        else -> null
+    }
+
+    private fun awardEligible(request: ExperienceAwardRequest, policy: ExperiencePolicy): ExperienceAwardResult {
+        val requestedXp =
+            requestedXp(request, policy) ?: return ExperienceAwardResult.Rejected(AwardRejection.INVALID_UNITS)
+        return repository.awardAtomically(request, policy, requestedXp, policy.windowContaining(request.occurredAt))
+    }
+
+    private fun requestedXp(request: ExperienceAwardRequest, policy: ExperiencePolicy): Int? = try {
+        val base = Math.multiplyExact(policy.awardXp, request.units)
+        boostProvider()?.apply(base, request.source, request.occurredAt) ?: base
+    } catch (_: ArithmeticException) {
+        null
     }
 }

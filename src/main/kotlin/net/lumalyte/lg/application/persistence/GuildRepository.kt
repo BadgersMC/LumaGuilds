@@ -8,7 +8,7 @@ import java.util.UUID
  */
 interface GuildRepository {
     /** Read the SQL level mirror into the cache after a committed external award; never write it. */
-    fun refreshCachedLevel(guildId: UUID) = Unit
+    fun refreshCachedLevel(guildId: UUID) {}
 
     /** New guild admission with durable creator attribution; adapters must opt in. */
     fun addCreated(guild: Guild, creatorId: UUID): Boolean = false

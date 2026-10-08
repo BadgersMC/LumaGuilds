@@ -482,3 +482,7 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 ## Guild-shop XP (REQ-121)
 
 See [guild-shop-xp.md](guild-shop-xp.md) for approved policy, durable delivery, SPEAR state and acceptance boundaries.
+
+### REQ-132
+
+**Event-driven.** WHEN a prepared guild-shop sale is delivered THEN THE SYSTEM SHALL consume it without XP if its captured chapter or prestige no longer matches, or the current chapter is frozen, closed, elapsed or not started. New installations and missing configuration SHALL default shop XP to disabled until an operator enables the reviewed integration. The approved numerical limits SHALL remain configurable. See guild-shop-xp.md for transaction-locking proof and release boundaries.

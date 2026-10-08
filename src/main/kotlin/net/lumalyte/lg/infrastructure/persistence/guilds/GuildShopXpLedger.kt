@@ -44,23 +44,30 @@ internal class GuildShopXpLedger(private val storage: Storage<Database>) {
     fun read(c: Connection, id: UUID): GuildShopXpReceipt? =
         c.selectOne("SELECT * FROM guild_shop_xp_sales WHERE id = ?$lock", id.toString(), mapper = ::readReceipt)
 
-    fun identity(c: Connection, id: UUID): UUID =
-        c.selectOne("SELECT guild_id FROM guild_shop_xp_sales WHERE id = ?", id.toString()) {
+    fun identity(c: Connection, id: UUID): UUID {
+        return c.selectOne("SELECT guild_id FROM guild_shop_xp_sales WHERE id = ?", id.toString()) {
             UUID.fromString(it.getString(1))
         } ?: error("Sale has not been prepared")
+    }
 
-    fun prestige(c: Connection, guild: UUID): Int? =
-        c.selectOne("SELECT prestige_count FROM guild_reward_accounts WHERE guild_id = ?$lock", guild.toString()) {
+    fun prestige(c: Connection, guild: UUID): Int? {
+        return c.selectOne(
+            "SELECT prestige_count FROM guild_reward_accounts WHERE guild_id = ?$lock",
+            guild.toString(),
+        ) {
             it.getInt(1)
         }
+    }
 
-    fun lastAward(c: Connection, receipt: GuildShopXpReceipt): Long? = c.selectOne(
-        "SELECT last_award FROM guild_shop_xp_pairs WHERE guild_id = ? AND buyer_id = ?",
-        receipt.guild.toString(),
-        receipt.buyer.toString(),
-    ) { it.getLong(1) }
+    fun lastAward(c: Connection, receipt: GuildShopXpReceipt): Long? {
+        return c.selectOne(
+            "SELECT last_award FROM guild_shop_xp_pairs WHERE guild_id = ? AND buyer_id = ?",
+            receipt.guild.toString(),
+            receipt.buyer.toString(),
+        ) { it.getLong(1) }
+    }
 
-    fun capture(c: Connection, sale: GuildShopXpSale, policy: GuildShopXpPolicy) {
+    fun capture(c: Connection, sale: GuildShopXpSale, policy: GuildShopXpPolicy, chapterAllowed: Boolean) {
         val prestige = prestige(c, sale.guild) ?: error("Guild progression identity unavailable")
         val own = c.selectOne(
             "SELECT 1 FROM members WHERE guild_id = ? AND player_id = ?",
@@ -69,28 +76,23 @@ internal class GuildShopXpLedger(private val storage: Storage<Database>) {
         ) { true } ?: false
         val status = when {
             own -> "OWN_GUILD"
-            !policy.enabled || policy.xpPerSale == 0 -> "DISABLED"
+            policy.disabled() -> "DISABLED"
+            !chapterAllowed -> "CHAPTER_FROZEN"
             else -> "PREPARED"
         }
-        insert(c, sale, policy, prestige, Capture(status, own))
+        insert(c, sale, policy, Capture(status, own, prestige))
     }
 
-    private fun insert(
-        c: Connection,
-        sale: GuildShopXpSale,
-        policy: GuildShopXpPolicy,
-        prestige: Int,
-        capture: Capture,
-    ) {
+    private fun insert(c: Connection, sale: GuildShopXpSale, policy: GuildShopXpPolicy, capture: Capture) {
         c.updateStatement(
             "INSERT INTO guild_shop_xp_sales VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            sale.id.toString(), sale.guild.toString(), sale.buyer.toString(), sale.occurredAt, prestige,
+            sale.id.toString(), sale.guild.toString(), sale.buyer.toString(), sale.occurredAt, capture.prestige,
             if (capture.own) 0 else 1, policy.xpPerSale, policy.guildDailyCap, policy.buyerDailyCap,
             policy.pairCooldownSeconds * MILLIS_PER_SECOND, capture.status,
         )
     }
 
-    private data class Capture(val status: String, val own: Boolean)
+    private data class Capture(val status: String, val own: Boolean, val prestige: Int)
 
     fun buyerAllowance(c: Connection, sale: GuildShopXpReceipt, pool: String, window: PeriodWindow): Int {
         val sql =
@@ -120,6 +122,10 @@ internal class GuildShopXpLedger(private val storage: Storage<Database>) {
             reservation.window.endExclusive.toEpochMilli(),
             reservation.xp,
         )
+        reservePair(c, sale)
+    }
+
+    private fun reservePair(c: Connection, sale: GuildShopXpReceipt) {
         val pairUpsert =
             if (maria) {
                 "ON DUPLICATE KEY UPDATE last_award = VALUES(last_award)"
@@ -159,7 +165,7 @@ internal class GuildShopXpLedger(private val storage: Storage<Database>) {
     }
 }
 
-internal data class GuildShopXpReceipt(
+internal class GuildShopXpReceipt(
     val guild: UUID,
     val buyer: UUID,
     val at: Long,
@@ -173,26 +179,32 @@ internal data class GuildShopXpReceipt(
     fun experiencePolicy(): ExperiencePolicy =
         ExperiencePolicy(ExperienceSource.SHOP_SALE, "SHOP_SALE", xp, guildCap, CapPeriod.DAILY, true)
 
-    fun awardRequest(id: UUID): ExperienceAwardRequest = ExperienceAwardRequest(
-        guild,
-        buyer,
-        ExperienceSource.SHOP_SALE,
-        1,
-        Instant.ofEpochMilli(at),
-        transactionId = id,
-    )
+    fun awardRequest(id: UUID): ExperienceAwardRequest {
+        return ExperienceAwardRequest(
+            guild,
+            buyer,
+            ExperienceSource.SHOP_SALE,
+            1,
+            Instant.ofEpochMilli(at),
+            transactionId = id,
+        )
+    }
 
     fun isCoolingDown(last: Long?): Boolean = last != null && (at < last || at - last < cooldown)
 }
 
-private fun readReceipt(r: ResultSet) = GuildShopXpReceipt(
-    UUID.fromString(r.getString("guild_id")),
-    UUID.fromString(r.getString("buyer_id")),
-    r.getLong("occurred_at"),
-    r.getInt("prestige_count"),
-    r.getInt("award_xp"),
-    r.getInt("guild_cap"),
-    r.getInt("buyer_cap"),
-    r.getLong("cooldown_ms"),
-    r.getString("status"),
-)
+private fun readReceipt(r: ResultSet): GuildShopXpReceipt {
+    return GuildShopXpReceipt(
+        UUID.fromString(r.getString("guild_id")),
+        UUID.fromString(r.getString("buyer_id")),
+        r.getLong("occurred_at"),
+        r.getInt("prestige_count"),
+        r.getInt("award_xp"),
+        r.getInt("guild_cap"),
+        r.getInt("buyer_cap"),
+        r.getLong("cooldown_ms"),
+        r.getString("status"),
+    )
+}
+
+private fun GuildShopXpPolicy.disabled(): Boolean = !enabled || xpPerSale == 0

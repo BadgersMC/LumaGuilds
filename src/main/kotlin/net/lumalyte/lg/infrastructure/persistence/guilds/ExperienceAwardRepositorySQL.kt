@@ -71,27 +71,36 @@ class ExperienceAwardRepositorySQL(
     ): ExperienceAwardResult =
         ExperienceAwardTransaction(connection, mariaDb, curveProvider()).award(request, policy, requestedXp, window)
 
-    override fun getAwardedXpByPool(guildId: UUID, at: java.time.Instant): Map<String, Int> =
-        storage.connection.getResults(
+    override fun getAwardedXpByPool(guildId: UUID, at: java.time.Instant): Map<String, Int> {
+        return storage.connection.getResults(
             "SELECT source_pool, awarded_xp FROM guild_experience_source_usage WHERE guild_id = ? AND period_start <= ? AND period_end > ?",
             guildId.toString(),
             at.toEpochMilli(),
             at.toEpochMilli(),
         ).associate { it.getString("source_pool") to it.getInt("awarded_xp") }
+    }
 
-    private fun execute(connection: Connection, sql: String, vararg parameters: Any?): Int =
-        connection.prepareStatement(sql).use { statement ->
+    private fun execute(connection: Connection, sql: String, vararg parameters: Any?): Int {
+        return connection.prepareStatement(sql).use { statement ->
             parameters.forEachIndexed { index, value -> statement.setObject(index + 1, value) }
             statement.executeUpdate()
         }
+    }
 
-    private fun <T> query(connection: Connection, sql: String, vararg parameters: Any?, mapper: (ResultSet) -> T): T? =
-        connection.prepareStatement(sql).use { statement ->
+    private fun <T> query(connection: Connection, sql: String, vararg parameters: Any?, mapper: (ResultSet) -> T): T? {
+        return connection.prepareStatement(sql).use { statement ->
             parameters.forEachIndexed { index, value -> statement.setObject(index + 1, value) }
             statement.executeQuery().use { results -> if (results.next()) mapper(results) else null }
         }
+    }
 
     private fun createTables() {
+        createUsageTable()
+        createProgressionTable()
+        createReceiptTable()
+    }
+
+    private fun createUsageTable() {
         storage.connection.executeUpdate(
             """
             CREATE TABLE IF NOT EXISTS guild_experience_source_usage (
@@ -104,6 +113,9 @@ class ExperienceAwardRepositorySQL(
             )
             """.trimIndent(),
         )
+    }
+
+    private fun createProgressionTable() {
         storage.connection.executeUpdate(
             """
             CREATE TABLE IF NOT EXISTS guild_progression (
@@ -120,6 +132,9 @@ class ExperienceAwardRepositorySQL(
             )
             """.trimIndent(),
         )
+    }
+
+    private fun createReceiptTable() {
         storage.connection.executeUpdate(
             """
             CREATE TABLE IF NOT EXISTS experience_transactions (

@@ -587,7 +587,7 @@ progression:
   # Paid guild SELL trades only; own-guild buyers never earn XP.
   # Caps use UTC sale date; cooldown spans every shop belonging to the guild.
   shop_xp:
-    enabled: true
+    enabled: false
     xp_per_sale: 5
     guild_daily_cap: 500
     buyer_daily_cap: 50

@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
+// Explicit fixture overrides prove configurable amounts, independent of approved default values.
+@Suppress("MagicNumber")
 internal class GuildShopXpConfigurationTest {
     @DisplayName("missing settings use approved defaults and explicit settings override each limit")
     @Test
@@ -14,12 +16,12 @@ internal class GuildShopXpConfigurationTest {
         val yaml = YamlConfiguration()
         val service = ConfigServiceBukkit { yaml }
         assertEquals(GuildShopXpPolicy(), service.loadConfig().progression.shopXp)
-        yaml.set("progression.shop_xp.enabled", false)
+        yaml.set("progression.shop_xp.enabled", true)
         yaml.set("progression.shop_xp.xp_per_sale", 3)
         yaml.set("progression.shop_xp.guild_daily_cap", 90)
         yaml.set("progression.shop_xp.buyer_daily_cap", 9)
         yaml.set("progression.shop_xp.pair_cooldown_seconds", 60)
-        assertEquals(GuildShopXpPolicy(false, 3, 90, 9, 60), service.loadConfig().progression.shopXp)
+        assertEquals(GuildShopXpPolicy(true, 3, 90, 9, 60), service.loadConfig().progression.shopXp)
     }
 
     @DisplayName("invalid limits fail explicitly rather than becoming unlimited")
