@@ -70,7 +70,8 @@ class StrikeRepositorySQLite(private val storage: Storage<Database>) : StrikeRep
 
     override fun deactivateExpiredExternal(now: Instant): Int {
         try {
-            val sql = "UPDATE guild_strikes SET active = 0 WHERE source_provider IS NOT NULL " +
+            val sql =
+                "UPDATE guild_strikes SET active = 0 WHERE source_provider IS NOT NULL " +
                 "AND active = 1 AND expires_at IS NOT NULL AND expires_at <= ?"
             return storage.connection.executeUpdate(
                 sql,
@@ -110,7 +111,8 @@ class StrikeRepositorySQLite(private val storage: Storage<Database>) : StrikeRep
         return try {
             storage.connection.getResults("SELECT COUNT(*) AS cnt FROM guild_strikes")
                 .firstOrNull()
-                ?.getInt("cnt") ?: 0
+                ?.getInt("cnt")
+                ?: 0
         } catch (e: SQLException) {
             STRIKE_LOGGER.error("Failed to count all strikes", e)
             0
@@ -137,7 +139,8 @@ private fun Storage<Database>.insertStrike(strike: GuildStrike, strict: Boolean)
 
 private fun Storage<Database>.count(sql: String, guildId: UUID): Int {
     return try {
-        connection.getResults(sql, guildId.toString()).firstOrNull()?.getInt("cnt") ?: 0
+        connection.getResults(sql, guildId.toString()).firstOrNull()?.getInt("cnt")
+                ?: 0
     } catch (e: SQLException) {
         STRIKE_LOGGER.error("Failed to count strikes for guild {}", guildId, e)
         0
