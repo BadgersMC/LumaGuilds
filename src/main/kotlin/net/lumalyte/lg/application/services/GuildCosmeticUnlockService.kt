@@ -17,6 +17,7 @@ import java.util.UUID
  * themes ([GuiTheme.requiresUnlock]) are available only once owned; every other
  * theme keeps its existing behavior.
  */
+@Suppress("LibraryEntitiesShouldNotBePublic")
 class GuildCosmeticUnlockService(
     private val guilds: GuildRepository,
     private val unlocks: GuildCosmeticUnlockRepository,
@@ -25,9 +26,10 @@ class GuildCosmeticUnlockService(
     /** Idempotent. False for a missing guild, invalid input or a persistence failure. */
     fun unlock(guildId: UUID, type: String, key: String, displayName: String, source: String): Boolean {
         val identity = identity(type, key) ?: return false
-        if (guilds.getById(guildId) == null) return false
-        return unlocks.get(guildId, identity.type, identity.key) != null ||
-            unlocks.saveIfAbsent(createUnlock(guildId, identity, displayName, source))
+        return guilds.getById(guildId) != null && (
+            unlocks.get(guildId, identity.type, identity.key) != null ||
+                unlocks.saveIfAbsent(createUnlock(guildId, identity, displayName, source))
+            )
     }
 
     private fun createUnlock(
@@ -53,9 +55,9 @@ class GuildCosmeticUnlockService(
      */
     fun revoke(guildId: UUID, type: String, key: String): Boolean {
         val identity = identity(type, key) ?: return false
-        val guild = guilds.getById(guildId) ?: return false
-        val removed = unlocks.delete(guildId, identity.type, identity.key)
-        if (removed) resetEquippedTheme(guild, identity)
+        val guild = guilds.getById(guildId)
+        val removed = guild != null && unlocks.delete(guildId, identity.type, identity.key)
+        if (removed) resetEquippedTheme(requireNotNull(guild), identity)
         return removed
     }
 
@@ -70,8 +72,8 @@ class GuildCosmeticUnlockService(
 
     private fun identity(type: String, key: String): CosmeticKey? {
         val category = normalise(type, MAX_COSMETIC_TYPE_LENGTH) ?: return null
-        val name = normalise(key, MAX_COSMETIC_KEY_LENGTH) ?: return null
-        return CosmeticKey(category, name)
+        val name = normalise(key, MAX_COSMETIC_KEY_LENGTH)
+        return name?.let { CosmeticKey(category, it) }
     }
 
     private data class CosmeticKey(val type: String, val key: String)

@@ -917,3 +917,7 @@ Ported from FainNeito/LumaGuilds#2/#3 onto the Enthusia redesign: the holiday st
   - Evidence: `GuildInsertColumnOrderTest` (3) on the migrated schema.
 - Full suite on this branch: **1,573 tests, 0 failures, 0 errors, 4 skipped**.
 - Still open: Java and Bedrock client walkthrough on SMP Test after installing the pack files; Geyser mappings for the seasonal icons (LG-1901).
+
+
+- [x] LG-1909: Review #208 ownership/theme contracts against actual companion APIs and prove native MariaDB insert/theme/vault schema compatibility (8 October).
+  - Evidence: three native guild-update assertions failed on missing vault columns, then all native ownership/insert/theme contracts passed after additive schema repair. Hosted quality and full-suite release gates remain in the verification record.

@@ -66,7 +66,11 @@ interface GuildRepository {
      *
      * @return true if the theme was changed.
      */
-    fun updateGuiTheme(guildId: UUID, expected: net.lumalyte.lg.utils.GuiTheme, theme: net.lumalyte.lg.utils.GuiTheme): Boolean {
+    fun updateGuiTheme(
+        guildId: UUID,
+        expected: net.lumalyte.lg.utils.GuiTheme,
+        theme: net.lumalyte.lg.utils.GuiTheme,
+    ): Boolean {
         val current = getById(guildId) ?: return false
         return current.guiTheme == expected && update(current.copy(guiTheme = theme))
     }

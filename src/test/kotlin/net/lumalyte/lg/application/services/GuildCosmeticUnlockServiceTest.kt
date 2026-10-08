@@ -42,7 +42,9 @@ internal class GuildCosmeticUnlockServiceTest {
         assertFalse(service.isThemeAvailable(guildId, GuiTheme.HALLOWEEN))
         assertTrue(service.isThemeAvailable(guildId, GuiTheme.EMBERSTONE))
 
-        assertTrue(service.unlock(guildId, "menu_theme", "halloween", TEST_HOLIDAY_NAME, "event:halloween-2026"))
+        assertTrue(
+            service.unlock(guildId, TEST_LOWER_CATEGORY, TEST_LOWER_THEME, TEST_HOLIDAY_NAME, "event:halloween-2026"),
+        )
         assertTrue(service.isThemeAvailable(guildId, GuiTheme.HALLOWEEN))
         assertFalse(service.isThemeAvailable(guildId, GuiTheme.CHRISTMAS))
         assertEquals(TEST_HOLIDAY_NAME, service.themeDisplayName(guildId, GuiTheme.HALLOWEEN))
@@ -54,9 +56,9 @@ internal class GuildCosmeticUnlockServiceTest {
     @Test
     fun scenario2() {
         every { guilds.getById(guildId) } returns guild()
-        assertTrue(service.unlock(guildId, " menu_theme ", "halloween", TEST_HOLIDAY_NAME, TEST_GRANT_SOURCE))
+        assertTrue(service.unlock(guildId, " menu_theme ", TEST_LOWER_THEME, TEST_HOLIDAY_NAME, TEST_GRANT_SOURCE))
         assertTrue(service.unlock(guildId, TEST_MENU_THEME, TEST_HALLOWEEN, "Other", TEST_GRANT_SOURCE))
-        assertEquals(setOf(TEST_HALLOWEEN), service.unlockedKeys(guildId, "menu_theme"))
+        assertEquals(setOf(TEST_HALLOWEEN), service.unlockedKeys(guildId, TEST_LOWER_CATEGORY))
         assertEquals(
             GuildCosmeticUnlock(guildId, TEST_MENU_THEME, TEST_HALLOWEEN, TEST_HOLIDAY_NAME, TEST_GRANT_SOURCE, now),
             unlocks.get(guildId, TEST_MENU_THEME, TEST_HALLOWEEN),
@@ -69,8 +71,8 @@ internal class GuildCosmeticUnlockServiceTest {
     fun scenario3() {
         every { guilds.getById(guildId) } returns guild()
         assertTrue(service.unlock(guildId, "BADGE", "HALLOWEEN_2026", "Halloween 2026 Badge", TEST_GRANT_SOURCE))
-        assertTrue(service.unlock(guildId, TEST_MENU_THEME, "SPRING_GARDEN", "Spring Garden", TEST_GRANT_SOURCE))
-        assertEquals(setOf("SPRING_GARDEN"), service.unlockedKeys(guildId, TEST_MENU_THEME))
+        assertTrue(service.unlock(guildId, TEST_MENU_THEME, TEST_UNKNOWN_COSMETIC, "Spring Garden", TEST_GRANT_SOURCE))
+        assertEquals(setOf(TEST_UNKNOWN_COSMETIC), service.unlockedKeys(guildId, TEST_MENU_THEME))
     }
 
     /** Missing guild and invalid input are rejected. */
@@ -78,13 +80,13 @@ internal class GuildCosmeticUnlockServiceTest {
     @Test
     fun scenario4() {
         every { guilds.getById(guildId) } returns null
-        assertFalse(service.unlock(guildId, TEST_MENU_THEME, TEST_HALLOWEEN, "x", TEST_GRANT_SOURCE))
+        assertFalse(service.unlock(guildId, TEST_MENU_THEME, TEST_HALLOWEEN, TEST_SHORT_LABEL, TEST_GRANT_SOURCE))
         assertFalse(service.revoke(guildId, TEST_MENU_THEME, TEST_HALLOWEEN))
 
         every { guilds.getById(guildId) } returns guild()
-        assertFalse(service.unlock(guildId, TEST_MENU_THEME, " ", "x", TEST_GRANT_SOURCE))
-        assertFalse(service.unlock(guildId, TEST_MENU_THEME, "K".repeat(65), "x", TEST_GRANT_SOURCE))
-        assertFalse(service.unlock(guildId, "", TEST_HALLOWEEN, "x", TEST_GRANT_SOURCE))
+        assertFalse(service.unlock(guildId, TEST_MENU_THEME, " ", TEST_SHORT_LABEL, TEST_GRANT_SOURCE))
+        assertFalse(service.unlock(guildId, TEST_MENU_THEME, "K".repeat(65), TEST_SHORT_LABEL, TEST_GRANT_SOURCE))
+        assertFalse(service.unlock(guildId, "", TEST_HALLOWEEN, TEST_SHORT_LABEL, TEST_GRANT_SOURCE))
         assertTrue(unlocks.getForGuild(guildId).isEmpty())
     }
 
@@ -93,8 +95,8 @@ internal class GuildCosmeticUnlockServiceTest {
     @Test
     fun scenario5() {
         every { guilds.getById(guildId) } returns guild()
-        assertTrue(service.unlock(guildId, TEST_MENU_THEME, "CHRISTMAS", "  ", TEST_GRANT_SOURCE))
-        assertEquals("CHRISTMAS", unlocks.get(guildId, TEST_MENU_THEME, "CHRISTMAS")?.displayName)
+        assertTrue(service.unlock(guildId, TEST_MENU_THEME, TEST_CHRISTMAS, "  ", TEST_GRANT_SOURCE))
+        assertEquals(TEST_CHRISTMAS, unlocks.get(guildId, TEST_MENU_THEME, TEST_CHRISTMAS)?.displayName)
     }
 
     /** Revoking the equipped holiday theme resets only the theme. */
@@ -105,7 +107,7 @@ internal class GuildCosmeticUnlockServiceTest {
         every { guilds.updateGuiTheme(guildId, GuiTheme.HALLOWEEN, GuiTheme.DEFAULT) } returns true
         service.unlock(guildId, TEST_MENU_THEME, TEST_HALLOWEEN, TEST_HOLIDAY_NAME, TEST_GRANT_SOURCE)
 
-        assertTrue(service.revoke(guildId, "menu_theme", "halloween"))
+        assertTrue(service.revoke(guildId, TEST_LOWER_CATEGORY, TEST_LOWER_THEME))
         assertTrue(service.revoke(guildId, TEST_MENU_THEME, TEST_HALLOWEEN))
 
         verify(atLeast = 1) { guilds.updateGuiTheme(guildId, GuiTheme.HALLOWEEN, GuiTheme.DEFAULT) }
@@ -136,7 +138,7 @@ internal class GuildCosmeticUnlockServiceTest {
         assertFalse(
             GuildCosmeticUnlockService(guilds, failing) {
                 now
-            }.unlock(guildId, TEST_MENU_THEME, TEST_HALLOWEEN, "x", TEST_GRANT_SOURCE),
+            }.unlock(guildId, TEST_MENU_THEME, TEST_HALLOWEEN, TEST_SHORT_LABEL, TEST_GRANT_SOURCE),
         )
     }
 
@@ -162,3 +164,13 @@ private const val TEST_HALLOWEEN = "HALLOWEEN"
 private const val TEST_HOLIDAY_NAME = "Halloween '26"
 
 private const val TEST_GRANT_SOURCE = "src"
+
+private const val TEST_LOWER_CATEGORY = "menu_theme"
+
+private const val TEST_LOWER_THEME = "halloween"
+
+private const val TEST_UNKNOWN_COSMETIC = "SPRING_GARDEN"
+
+private const val TEST_SHORT_LABEL = "x"
+
+private const val TEST_CHRISTMAS = "CHRISTMAS"

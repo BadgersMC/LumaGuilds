@@ -216,11 +216,11 @@ internal class MenuIconAdapter(
     private fun restyledPacket(item: PacketItemStack, style: GuiTheme): PacketItemStack? {
         val bukkit = SpigotConversionUtil.toBukkitItemStack(item)
         val variantId = SeasonalIcons.iconId(bukkit)?.let { SeasonalIcons.variantId(it, style) } ?: return null
-        val variant = variant(variantId) ?: return null
-        return SpigotConversionUtil.fromBukkitItemStack(SeasonalIcons.restyle(bukkit, variant))
+        return variant(variantId)?.let { replacement ->
+            SpigotConversionUtil.fromBukkitItemStack(SeasonalIcons.restyle(bukkit, replacement))
+        }
     }
 
-    /** The built Nexo item [id], cached until Nexo reloads its items. */
     private fun variant(id: String): ItemStack? {
         val loads = NexoItemProvider.loadCount
         if (loads != variantsLoadCount) {

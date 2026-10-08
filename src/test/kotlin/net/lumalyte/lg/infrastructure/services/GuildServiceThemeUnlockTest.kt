@@ -31,30 +31,37 @@ internal class GuildServiceThemeUnlockTest {
     private var guildRepository: GuildRepository by kotlin.properties.Delegates.notNull()
     private var themeAccess: GuildCosmeticUnlockService by kotlin.properties.Delegates.notNull()
 
-    private fun service(access: GuildCosmeticUnlockService?) = GuildServiceBukkit(
-        guildRepository = guildRepository,
-        rankRepository = mockk<RankRepository>(relaxed = true).also {
-            every { it.getById(ownerRankId) } returns
-                Rank(id = ownerRankId, guildId = guildId, name = "Owner", priority = 0, permissions = emptySet())
-        },
-        memberRepository = mockk<MemberRepository>(relaxed = true).also {
-            every { it.getByPlayerAndGuild(ownerId, guildId) } returns
-                Member(ownerId, guildId, ownerRankId, Instant.now())
-        },
-        rankService = mockk(relaxed = true),
-        memberService = mockk(relaxed = true),
-        nexoEmojiService = mockk(relaxed = true),
-        vaultService = mockk(relaxed = true),
-        hologramService = mockk(relaxed = true),
-        relationRepository = mockk(relaxed = true),
-        historyRepository = mockk(relaxed = true),
-        adminOverrideService = mockk<AdminOverrideService>(relaxed = true).also {
-            every { it.hasOverride(any()) } returns
-                false
-        },
-        homeActivationService = mockk(relaxed = true),
-        themeAccess = access,
-    )
+    private fun service(access: GuildCosmeticUnlockService?): GuildServiceBukkit {
+        val instance = GuildServiceBukkit(
+            guildRepository = guildRepository, rankRepository = ownerRanks(), memberRepository = ownerMembership(),
+            rankService = mockk(relaxed = true), memberService = mockk(relaxed = true),
+            nexoEmojiService = mockk(relaxed = true), vaultService = mockk(relaxed = true),
+            hologramService = mockk(relaxed = true), relationRepository = mockk(relaxed = true),
+            historyRepository = mockk(relaxed = true), adminOverrideService = noAdminOverride(),
+            homeActivationService = mockk(relaxed = true), themeAccess = access,
+        )
+        return instance
+    }
+
+    private fun ownerRanks(): RankRepository {
+        val ranks = mockk<RankRepository>(relaxed = true)
+        every { ranks.getById(ownerRankId) } returns
+            Rank(id = ownerRankId, guildId = guildId, name = "Owner", priority = 0, permissions = emptySet())
+        return ranks
+    }
+
+    private fun ownerMembership(): MemberRepository {
+        val members = mockk<MemberRepository>(relaxed = true)
+        every { members.getByPlayerAndGuild(ownerId, guildId) } returns
+            Member(ownerId, guildId, ownerRankId, Instant.now())
+        return members
+    }
+
+    private fun noAdminOverride(): AdminOverrideService {
+        val overrides = mockk<AdminOverrideService>(relaxed = true)
+        every { overrides.hasOverride(any()) } returns false
+        return overrides
+    }
 
     /** Initialize the disposable fixture and service dependencies. */
     @BeforeEach
