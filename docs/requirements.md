@@ -661,3 +661,7 @@ WHEN a player changes personal chat preferences THE SYSTEM SHALL durably store g
 ### REQ-139 — Stall report shortcut
 
 WHILE the companion accounting command is available THE guild stall detail menu SHALL offer its read-only report to currently authorized shop managers on Java and Bedrock. Market SHALL recheck current ownership, membership and shop authority before querying or disclosing records.
+
+### REQ-140
+
+WHEN a player opens or interacts with a guild vault THE SYSTEM SHALL recheck current ACCESS_VAULT authorization. Item movements SHALL require DEPOSIT_TO_VAULT for ingress and WITHDRAW_FROM_VAULT for egress, including shift transfers, collection, drops and swaps. Swaps SHALL require both permissions. Permission loss SHALL cancel the interaction before mutation and close only the affected vault view safely. Player-only actions SHALL retain normal behavior while access remains valid; the gold button SHALL retain its existing operation-specific checks. Unknown/cancelled actions SHALL NOT mutate or synchronize the vault. Existing explicit admin override semantics SHALL remain unchanged.
