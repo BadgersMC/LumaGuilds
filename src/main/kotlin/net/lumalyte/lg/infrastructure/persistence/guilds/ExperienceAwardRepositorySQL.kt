@@ -41,12 +41,13 @@ class ExperienceAwardRepositorySQL(
             connection.committingTransaction {
                 if (!mariaDb) {
                     // Reserve the SQLite writer before opening a SELECT snapshot.
-                    connection.updateStatement("UPDATE guild_experience_source_usage SET awarded_xp = awarded_xp WHERE 0")
+                    connection.updateStatement(
+                        "UPDATE guild_experience_source_usage SET awarded_xp = awarded_xp WHERE 0",
+                    )
                 }
                 if (mariaDb) {
                     checkNotNull(
-                        query(
-                            connection,
+                        connection.selectOne(
                             "SELECT level FROM guilds WHERE id = ? FOR UPDATE",
                             request.guildId.toString(),
                         ) {
@@ -82,13 +83,6 @@ class ExperienceAwardRepositorySQL(
                 statement.setLong(PERIOD_END_PARAMETER, at.toEpochMilli())
                 statement.executeQuery().use { it.experiencePools() }
             }
-        }
-    }
-
-    private fun <T> query(connection: Connection, sql: String, vararg parameters: Any?, mapper: (ResultSet) -> T): T? {
-        return connection.prepareStatement(sql).use { statement ->
-            parameters.forEachIndexed { index, value -> statement.setObject(index + 1, value) }
-            statement.executeQuery().use { results -> if (results.next()) mapper(results) else null }
         }
     }
 
