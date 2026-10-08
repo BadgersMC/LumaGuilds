@@ -416,7 +416,15 @@ fun guildsModule() = module {
     single<MembershipHistoryRepository> { MembershipHistoryRepositorySQLite(get()) }
 
     // Services
-    single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<net.lumalyte.lg.application.persistence.GuildCosmeticUnlockRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildCosmeticUnlockRepositorySQLite(get())
+    }
+    single { net.lumalyte.lg.application.services.GuildCosmeticUnlockService(get(), get()) }
+    single<GuildService> {
+        GuildServiceBukkit(
+            get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
+        )
+    }
     single<RankService> {
         RankServiceBukkit(
             get(), get(), get(), get(), get(),
@@ -459,7 +467,7 @@ fun guildsModule() = module {
         net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners(get<LumaGuilds>(), get(), get(), get())
     }
 
-    // Guild Strikes (LiteBans integration)
+    // Guild Strikes (EnthusiaStaff lifecycle + legacy LiteBans compatibility)
     single<net.lumalyte.lg.application.persistence.StrikeRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.StrikeRepositorySQLite(get())
     }
@@ -518,6 +526,14 @@ fun socialModule() = module {
         net.lumalyte.lg.infrastructure.persistence.guilds.GuildChatRankSettingsRepositorySQL(get())
     }
     single { net.lumalyte.lg.application.services.GuildChatRankSettingsService(get(), get()) }
+    single<net.lumalyte.lg.application.persistence.GuildChatReconnectSettingsRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildChatReconnectSettingsRepositorySQL(get())
+    }
+    single { net.lumalyte.lg.application.services.GuildChatReconnectSettingsService(get(), get()) }
+    single {
+        net.lumalyte.lg.infrastructure.listeners.GuildChatReconnectListener(get(), get(), get())
+    }
+
 
     // Services
     single<PartyService> { PartyServiceBukkit(get(), get(), get(), get(), get()) }
@@ -561,7 +577,7 @@ fun socialModule() = module {
         }
     }
     single {
-        net.lumalyte.lg.application.services.GuildDiscordRoleService(get(), get(), get(), get(), get(), get())
+        net.lumalyte.lg.application.services.GuildDiscordRoleService(get(), get(), get(), get(), get(), get(), get())
     }
     single<net.lumalyte.lg.infrastructure.listeners.GuildDiscordRoleListener> {
         net.lumalyte.lg.infrastructure.listeners.GuildDiscordRoleListener(get())
@@ -595,6 +611,8 @@ fun socialModule() = module {
     single<net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener> {
         net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener(get(), get(), get(), get(), get())
     }
+    single { net.lumalyte.lg.infrastructure.listeners.GlobalChatVisibilityListener(get()) }
+    single { net.lumalyte.lg.infrastructure.listeners.ChatDestinationIndicator(get(), get()) }
     single<net.lumalyte.lg.infrastructure.listeners.GuildMuteChatListener> {
         net.lumalyte.lg.infrastructure.listeners.GuildMuteChatListener(get(), get(), get())
     }
@@ -651,10 +669,16 @@ fun progressionModule() = module {
     // Repositories
     single<KillRepository> { KillRepositorySQLite(get()) }
     single<ProgressionRepository> { ProgressionRepositorySQLite(get(), get()) }
-    single<net.lumalyte.lg.application.persistence.ExperienceAwardRepository> {
+    single<net.lumalyte.lg.infrastructure.persistence.guilds.ExperienceAwardRepositorySQL> {
         net.lumalyte.lg.infrastructure.persistence.guilds.ExperienceAwardRepositorySQL(
             get(),
             { net.lumalyte.lg.domain.values.ProgressionCurve.from(get<ConfigService>().loadConfig().progression) },
+        )
+    }
+    single<net.lumalyte.lg.application.persistence.ExperienceAwardRepository> { get<net.lumalyte.lg.infrastructure.persistence.guilds.ExperienceAwardRepositorySQL>() }
+    single<net.lumalyte.lg.application.persistence.GuildShopXpRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildShopXpRepositorySQL(
+            get(), get<net.lumalyte.lg.infrastructure.persistence.guilds.ExperienceAwardRepositorySQL>(), get(),
         )
     }
     single<net.lumalyte.lg.application.persistence.BankProgressionRepository> {

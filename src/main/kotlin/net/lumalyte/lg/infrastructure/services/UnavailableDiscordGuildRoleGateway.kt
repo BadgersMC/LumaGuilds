@@ -9,7 +9,11 @@ import java.util.concurrent.CompletableFuture
 class UnavailableDiscordGuildRoleGateway : DiscordGuildRoleGateway {
     override fun isAvailable(): Boolean = false
 
-    override fun ensureRole(existingRoleId: String?, roleName: String): CompletableFuture<DiscordRoleEnsureResult> = unavailable()
+    override fun ensureRole(
+        existingRoleId: String?,
+        roleName: String,
+        allowCreate: Boolean,
+    ): CompletableFuture<DiscordRoleEnsureResult?> = unavailable()
 
     override fun grantRole(playerId: UUID, roleId: String): CompletableFuture<DiscordMemberRoleResult> = unavailable()
 

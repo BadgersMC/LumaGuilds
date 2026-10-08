@@ -503,7 +503,12 @@ class ProgressionServiceBukkit(
             logger.error("Failed to read source usage for guild $guildId", e)
             emptyMap()
         }
-        val policies = configService.loadConfig().progression.sourcePolicies.values
+        val configuration = configService.loadConfig().progression
+        val shop = configuration.shopXp
+        val shopPolicies = if (shop.enabled && shop.xpPerSale > 0 && shop.guildDailyCap > 0 && shop.buyerDailyCap > 0) {
+            listOf(ExperiencePolicy(ExperienceSource.SHOP_SALE, "SHOP_SALE", shop.xpPerSale, shop.guildDailyCap, CapPeriod.DAILY, true))
+        } else emptyList()
+        val policies = (configuration.sourcePolicies.values.filter { it.source != ExperienceSource.SHOP_SALE } + shopPolicies)
             .filter { it.enabled }
             .groupBy { it.pool }
         return policies.values.map { sharedPolicies ->
@@ -540,6 +545,22 @@ class ProgressionServiceBukkit(
             ExperienceAwardRequest(guildId, actorId, source, experience, Instant.now(), eligible),
             rawXpPolicy,
         ))
+    }
+
+    override fun onCommittedExperience(guildId: UUID, leveledUpTo: Int?) {
+        val refresh = Runnable {
+            try {
+                val current = progressionRepository.refreshGuildProgression(guildId)
+                guildRepository.refreshCachedLevel(guildId)
+                if (leveledUpTo != null && current?.currentLevel == leveledUpTo) {
+                    publishLevelChanged(guildId, leveledUpTo)
+                    processLevelUp(guildId, leveledUpTo)
+                }
+            } catch (error: Exception) {
+                logger.warn("Failed to refresh committed shop XP for $guildId", error)
+            }
+        }
+        if (Bukkit.isPrimaryThread()) refresh.run() else Bukkit.getScheduler().runTask(plugin, refresh)
     }
 
     private fun levelFromAward(guildId: UUID, result: ExperienceAwardResult): Int? = when (result) {

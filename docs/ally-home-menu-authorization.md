@@ -15,3 +15,10 @@ The click handler resolves GuildService.getGuild using the stable target ID, rea
 ## Refine
 
 Full Java 25 offline test/shadowJar passes 1,543 tests, zero failures/errors and four existing external skips. The final helper refinement and sixth access-grant case pass the focused test/shadowJar profile. No project-local EARS/state helpers exist; manual requirement/task/evidence records are maintained. In-game acceptance is deferred at user request. Production untouched; any generated JAR is an unmerged local test artifact. Hosted CI and manual review remain separate gates.
+
+
+## Review stack and final eligibility refinement
+
+Integrated reviewed #215/#217 source without changing prior implementation; retained REQ-121 through REQ-140 and all task records. Review order: #215 -> #217 -> #218. Additional source inspection found that getAllyHomes applies current mutual perk eligibility while canUseAllyHome does not; the old button bypassed that current listing. A seventh actual-action regression failed before the eligibility-list check, then passed. The click now checks the current named home against the target resolved by stable ID before invoking access authorization.
+
+Final combined Java 25 offline test/shadowJar: 1,713 tests, zero failures/errors and 15 external skips. The actual Market review-artifact contract executes with zero skips. Native database results from prerequisite work remain separate; this new adapter change introduces no SQL/API contract changes. Interactive behavioral preview is delivered alongside the changes in chat; cropped inventory rows, sample guilds/items and resulting actions are simulated, not server/client acceptance. Production untouched. Final-head hosted checks and manual review remain separate.

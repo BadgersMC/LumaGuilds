@@ -21,12 +21,14 @@ class GuildListServiceTest {
     @Test
     fun `page lookup clamps page and delegates bounded offset limit to repository`() {
         val rankedId = UUID.randomUUID()
-        val guild = Guild(
-            id = rankedId,
-            name = "Badgers",
-            createdAt = Instant.parse("2026-01-01T00:00:00Z"),
-        )
+        val guild =
+            Guild(
+                id = rankedId,
+                name = "Badgers",
+                createdAt = Instant.parse("2026-01-01T00:00:00Z"),
+            )
         val repository = mockk<GuildListRepository>()
+        every { repository.getDetails(any()) } returns emptyMap()
         val guildRepository = mockk<GuildRepository>()
         val configService = mockk<ConfigService>()
         val progressionConfig = mockk<ProgressionConfigService>()

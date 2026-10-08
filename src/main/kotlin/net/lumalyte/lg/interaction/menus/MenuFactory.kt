@@ -691,6 +691,14 @@ class MenuFactory(
         }
     }
 
+    /** Read-only guild stall menu with the same Market snapshot on both platforms. */
+    fun createPlayerChatSettingsMenu(navigator: MenuNavigator, player: Player): Menu =
+        if (shouldUseBedrockMenus(player)) net.lumalyte.lg.interaction.menus.bedrock.BedrockPlayerChatSettingsMenu(navigator, player, logger)
+        else net.lumalyte.lg.interaction.menus.guild.PlayerChatSettingsMenu(navigator, player)
+
+    fun createGuildStallMenu(menuNavigator: MenuNavigator, player: Player, guild: net.lumalyte.lg.domain.entities.Guild): Menu =
+        net.lumalyte.lg.interaction.menus.guild.GuildStallMenu(menuNavigator, player, guild, shouldUseBedrockMenus(player))
+
     /**
      * Creates a guild bank statistics menu appropriate for the player's platform
      */

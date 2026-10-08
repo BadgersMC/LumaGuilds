@@ -2,6 +2,21 @@
 
 Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` line, and an `Evidence:` block that MUST be filled with real source citations before any downstream SPEAR phase runs on it.
 
+- [~] **LG-2010** Guild stall menus and optional read adapter.
+  - Tag: `TDD`
+  - References: REQ-124/125; Market REQ-340/341.
+  - Evidence: main a15b244 has no stall menu/read provider. Contract introduction failed compilation before implementation; inventory and separate-navigator regressions failed before their guards. Full local suite passed 1,549 tests, zero failures/errors, four skips. Adapter, actual inventory/Cumulus responses, locales and a separate-classloader companion JAR are covered. See docs/guild-stall-menu.md and PR #211 for checks and boundaries. Hosted exact-head results and live Java/Bedrock client acceptance remain separate; no project-local EARS/state helpers exist and production is unchanged.
+
+- [~] **LG-2011** Dedicated guild stall navigation icon.
+  - Tag: `INFRA`
+  - References: REQ-126; LG-2010.
+  - Evidence: dashboard currently reuses `lg_nav_economy` for stalls. Replace only that item ID and supply matching Nexo item/texture definitions; validate native dimensions, transparency, existing palette and ID/CMD uniqueness. No business behavior changes or historical red/green test claim apply to this asset change. Local asset/layout checks, hosted checks and client rendering remain distinct.
+
+- [~] **LG-2012** Stall review follow-up: Bedrock art and Market test cache.
+  - Tag: `TDD`
+  - References: REQ-127; LG-2010/2011.
+  - Evidence: new independent-icon config test initially failed compilation for missing fields; fields/loader/menu now agree. An absent Market artifact test run, then enabling a real artifact, executed tests; unchanged input was UP-TO-DATE; changing a local JAR copy at the same path executed tests again without --rerun. Java and Bedrock textures are byte-identical. See docs/guild-stall-menu.md for final checks; hosted results and live client acceptance remain separate.
+
 PR grouping: tasks under each `## PR-n` header ship together in one pull request. PR order is dependency-driven â€” permissions first (commands must be executable before any feature is testable), then config plumbing (features consume the knobs), then feature domains, with the cross-cutting lang migration and UI completion last.
 
 ---
@@ -539,7 +554,7 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - References: REQ-071
   - Evidence: DiscordSRV is an optional soft dependency, but when available the integration is enabled by default and every guild receives a durable managed Discord role immediately on creation (no progression level/perk gate). Existing guilds reconcile on startup; persisted role IDs prevent duplicate creation and a manually deleted role is recreated/relinked. Discord-linked members receive the role on guild creation/join and lose it on leave/kick; DiscordSRV account link/unlink events also grant/revoke dynamically, with unlink using the event's captured Discord ID so removal still works after the mapping disappears. Guild renames update the role name, disband deletes the Discord role, orphan links are garbage-collected, and failed persistence compensates by deleting newly created untracked roles. Schema v35 stores guildâ†’role links for SQLite/MariaDB. Focused contracts cover creation-time availability, membership sync, late link/unlink, restart persistence, concurrency, compensation, config, and migration repair. Full `test shadowJar`: 1,125 tests, zero failures/errors/skips; Shadow JAR built; `git diff --check` clean.
   - Files: DiscordSRV gateway/account-link subscription, `GuildDiscordRoleService`, `GuildDiscordRoleListener`, durable role-link repository/schema, config, migrations, lifecycle tests
-  - Follow-up (2026-09-30): Gate the first managed role creation at `discord.guild_roles.minimum_level` (default 50) and reconcile level changes. Existing durable guild-to-role links remain unlocked, including roles from earlier testing and roles held through prestige; membership grants continue below the threshold for those guilds. The original creation-time behavior above is historical evidence.
+  - Follow-up (2026-10-01): Gate creation/recreation at `discord.guild_roles.minimum_level` (default 50). Startup and periodic reconciliation automatically remove managed roles and saved links for guilds below the threshold with no completed prestige, including earlier test roles; failed deletion retains the link for retry. Completed prestige permanently qualifies the guild to keep/create/repair its role after the level reset. Failed eligibility reads preserve roles/links. The original creation-time behavior above is historical evidence.
 - [x] **LG-1507** Enhanced guild descriptions â€” Discord invite links embeddable in guild description
   - Tag: `TDD`
   - References: REQ-072
@@ -891,8 +906,113 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Boot 2 (13:54, `3.0.4-enthusia-gui.3`, SHA-256 `f103f90adce1a005a84cb4028e80d23ea99c32976b140a7c3d7fae13f4143733`): `Menu icon adapter waiting for packetevents to enable` → `Menu icon adapter active` one second later; `Done (38.634s)`. Remaining LumaGuilds warnings are pre-existing (SMP Test config still lists removed perks `CUSTOM_BANNER_COLORS`/`ANIMATED_EMOJIS`; DiscordSRV not connected on test). The `.2` jar is kept as `.superseded.disabled`.
   - Still open: human Java walkthrough on SMP Test (dashboard, Guild Actions, theme picker incl. Vanilla, Declare Enemy, progression sources, quests and toast); Bedrock go-live stays with LG-1901 (proxy untouched apart from the mapping backup).
 
+- [x] **LG-2013** Enforce service rank authority and atomic ownership transfer (REQ-128/129, checklist G02/G24).
+  - Evidence: eight direct RankService regressions initially gave six failures; all pass after guards. Four actual SQLite ownership tests cover second-write rollback, stale compare-and-set, restart and retry. Clean Java 25/Paper 26.2 suite: 1,550 tests, zero failures/errors, four skips. See docs/checklist-correctness.md.
+  - Gates: exact-head hosted CI, supported database/runtime acceptance and maintainer review; no production repair or deployment.
+
+## Guild-shop XP (REQ-134)
+
+See [guild-shop-xp.md](guild-shop-xp.md) for approved policy, durable delivery, SPEAR state and acceptance boundaries.
+
+- [x] **SHOP-XP-SPEC** — REQ-134 approved limits, own-guild exclusion and no refund feature; docs/guild-shop-xp.md.
+- [x] **SHOP-XP-ENGINE** — quotes, atomic caps/consumption/progression, API, persistence and cache integration.
+- [x] **SHOP-XP-PROVE-REFINE** — SQL concurrency/idempotence/rollback/config and full-suite local proof recorded in docs/guild-shop-xp.md.
+- [ ] **SHOP-XP-HOSTED** — inspect checks/review for exact published head; paired release contract must execute on the updated CI pin.
+- [ ] **SHOP-XP-LIVE** — merged runtime/pins, MariaDB staging, live outside/own-guild purchases, restart/retry and prestige walkthrough. No production changes.
+## Unresolved guild investigations — 2026-10-07
+
+- [x] **LG-2001** Direct bank entry for guild members.
+  - Tag: `TDD`
+  - References: REQ-122; operations audit G03.
+  - Spec: reuse MenuFactory Java/Bedrock routing and existing menu command permission; retain all bank mutation guards.
+  - Evidence: main a15b244 has no bank subcommand; `/guild menu` gates on unrelated management permissions. New test initially could not compile because onBank was absent; all three bank regressions passed after the adapter was added. Java/Bedrock live acceptance remains separate.
+- [x] **LG-2002** Apply configured chat cooldowns.
+  - Tag: `TDD`
+  - References: REQ-123; spam-control investigation.
+  - Evidence: ChatConfig defaults 30/5 minutes, but ChatServiceBukkit used hardcoded 5/1 minutes. Four of five service tests failed before the engine change; all five passed afterwards. Hourly limits preserved, nonpositive cooldowns covered.
+- [ ] **LG-2003** Reconcile remaining integration/client gaps.
+  - Tag: `DOC`
+  - References: G17/G22/G31 and 2026-10-07 fork audit.
+  - Evidence: home selectors use Java inventories/Bedrock forms, not a reproduced chat selector; guild-shop XP requires Market-side transaction evidence; menu textures and insert/alignment fixes have separate asset/upstream PR ownership. No production writes or unapproved feature policies authorized.
+
+SPEAR tooling boundary: no project-local EARS validator/state helper exists. Requirements, tasks and the investigation evidence record provide traceability; no automated EARS/state pass is claimed. Production stays read-only. User-confirmed bugs and denied home proposals remain closed.
+
+Local validation (2026-10-07): Java 25 / pinned Paper 26.2, `gradlew clean test shadowJar` passed: 1,546 tests, zero failures/errors, four skips. This includes layer/locale contracts and existing bank, rank, home and leaderboard regressions. Unmerged local test artifact only: `LumaGuilds-3.0.0.jar`, 24,982,673 bytes, SHA-256 `9e8079faea2da9d3f34c24705bc1046cbd2e222a35f428cc2e79d5d3a2cdd120`. No production upload or activation.
+
+PR #210 review refinement: initial head `310df95c` passed GitHub build; Codacy requested 37 test-style corrections (documentation, internal visibility, method names, constants and formatting). Applied those corrections without changing engine behavior; all eight focused tests passed again. Hosted validation must be checked on the revised exact head. Existing workflow deprecation warnings are separate from new test findings.
+## Holiday menu styles (EnthusiaHolidays) — 2026-10-06
+
+Ported from FainNeito/LumaGuilds#2/#3 onto the Enthusia redesign: the holiday styles are the Halloween and Christmas styles from the Guild Menus design (`LumaGuilds_Guild_Menus_3`), not separate themes.
+
+- [x] **LG-1904** Cosmetic unlock ledger and public API — `GuildCosmeticUnlock`, `GuildCosmeticUnlockRepository` (SQLite/MariaDB, preload cache), `GuildCosmeticUnlockService`, `net.lumalyte.lg.api.GuildCosmeticUnlocks` registered in ServicesManager.
+  - Tag: `TDD`
+  - References: REQ-121
+  - Evidence: `GuildCosmeticUnlockRepositorySQLiteTest` (4), `GuildCosmeticUnlockServiceTest` (8), `GuildCosmeticUnlocksImplTest` (2), `GuildThemeUpdateSQLTest` (2). Revoking the equipped style resets only `gui_theme` with a compare-and-set (`updateGuiTheme`), never a stale full-guild write. MariaDB DDL mirrors the existing ledgers but was not run against MariaDB.
+- [x] **LG-1905** `HALLOWEEN` and `CHRISTMAS` styles — `requiresUnlock` + `seasonalIcons`, offered in Settings → GUI Theme (Java and Bedrock) after Voidlight; locked until earned (Java: locked name and unlock hint; Bedrock: "(locked)" in the dropdown and a locked message). `setGuiTheme` rejects a locked style and fails closed without the ledger.
+  - Tag: `TDD`
+  - References: REQ-121, REQ-096
+  - Evidence: `GuildServiceThemeUnlockTest` (3), `MenuTitleBuilderTest` picker order, `LocaleContractTest`.
+- [x] **LG-1906** Seasonal icon sets — menu icons carry their base id in PDC `lumaguilds:icon`; `MenuIconAdapter` sends members of a Halloween/Christmas guild each icon drawn with its `<id>_<style>` Nexo variant (model and custom model data copied; name, lore, count and click handling unchanged). Vanilla icons win over seasonal ones; icons without a variant are unchanged; variants are cached until Nexo reloads.
+  - Tag: `TDD`
+  - References: REQ-121, LG-1900
+  - Evidence: `SeasonalIconsTest` (5), `MenuIconAdapterTest` +4 (holiday style, other styles, vanilla precedence, switch/quit). Probes failed to compile before `seasonalStyleFor` existed. The packet swap itself needs a live client (not verified).
+- [x] **LG-1907** Holiday pack assets from the Guild Menus design — 12 backgrounds (`gui/{halloween,christmas}/guild_menu_<style>_<1-6>_row.png`, artwork at origin on 256×256; the design's Enthusia art matches the shipped texture pixel for pixel), glyphs U+A060–U+A06B, `lg_theme_halloween`/`lg_theme_christmas` swatches and 2 × 122 seasonal icons (`Nexo/items/lumaguilds_holiday_styles.yml`; server-kit copy with CMD 733500–733745 and `item_model nexo:<id>`).
+  - Tag: `ASSET`
+  - References: REQ-121, REQ-099
+  - Evidence: `HolidayStylePackTest` (4): every row has a 256×256 background glyph, glyph chars unique across the pack, every holiday item has a 16×16 texture, every seasonal item varies an existing icon. In-game rendering not verified.
+- [x] **LG-1908** Fix shifted `gui_theme` / ally-home columns on guild insert (from FainNeito/LumaGuilds#3) — the bound theme now follows the column order in all five insert variants; startup repairs rows written in the shifted layout.
+  - Tag: `TDD`
+  - References: REQ-121 (GUI themes), ally homes
+  - Evidence: `GuildInsertColumnOrderTest` (3) on the migrated schema.
+- Full suite on this branch: **1,573 tests, 0 failures, 0 errors, 4 skipped**.
+- Still open: Java and Bedrock client walkthrough on SMP Test after installing the pack files; Geyser mappings for the seasonal icons (LG-1901).
+
+- [x] LG-1909: Review #208 ownership/theme contracts against actual companion APIs and prove native MariaDB insert/theme/vault schema compatibility (8 October).
+  - Evidence: three native guild-update assertions failed on missing vault columns, then all native ownership/insert/theme contracts passed after additive schema repair. Final full local suite: 1,574 tests, zero failures/errors, four unrelated skips; ten native MariaDB cases, zero skips. Final hosted checks and client/pack acceptance remain distinct gates.
+## Discord role cleanup delivery (2026-10-06)
+
+- [ ] **LG-1506-CLEANUP** Remove legacy managed roles below the configured minimum while preserving completed prestige.
+  - Tag: `TDD`
+  - References: REQ-071
+  - Spec: Existing links alone do not establish eligibility. The configured minimum remains 50 by default; recorded completed prestige preserves eligibility after level reset. Only persisted managed role IDs are deleted.
+  - Prove: Current canonical main a15b244 uses `repository.get(guildId) != null` as a permanent unlock, explaining retained legacy test roles. Recovered existing Oct 1 regressions; no historical red/green result is claimed for this run.
+  - Engine: Recovered eligibility/deletion changes from 05a56f0 and 25b8a86 onto current main. Failed eligibility reads preserve links; deletion failures retain links for retry. Cleanup runs at startup and on the existing five-minute reconciliation schedule.
+  - Arch: Reward ownership is queried through its application repository; Discord operations remain in the infrastructure gateway. Persisted schema is unchanged. Current focused architecture and Koin graph checks pass. DiscordSRV 1.30.5 JDA getRoleById/createRole/setName signatures were inspected against the locally downloaded runtime.
+  - Refine: Focused role service, listener, SQL repository, architecture and Koin tests: 36 tests, zero failures. Full `test shadowJar` on Java 25 / Paper 26.2: 1542 tests, 0 failures, 0 errors, 4 skipped; build passed. Exact PR-head GitHub checks are pending.
+  - Tooling: This checkout has no project-local EARS validator or SPEAR state helper. REQ-071 and this evidence/task record are maintained directly; no helper validation is claimed.
+  - Acceptance boundary: No Discord roles have been deleted in this run. Merge, canonical network pin/build, deployment/activation and live role verification remain required.
+
+- [x] CHECKLIST-INTEGRATION: Reconcile the approved PR source chain without losing bank/stall commands, shutdown hooks or Gradle integration inputs.
+  - Tag: INFRA
+  - References: REQ-071, REQ-121 through REQ-134; docs/checklist-correctness.md.
+  - Evidence: local merge conflicts reproduced; reconciled source ancestry verified. Combined suite 1,653 tests, zero failures/errors, four unrelated skips; 54 separate native cases, zero skips. Hosted final-head checks and subsequent authorized release/player acceptance remain distinct.
+
+- [x] CHAT-RECONNECT: Optional guild-wide reconnect reset in Java/Bedrock settings.
+  - Tag: TDD
+  - References: REQ-135.
+  - Evidence: authoritative main a15b244 inspected; isolated branch then integrated preceding approved review source #213 to preserve the checklist chain. Existing join cleanup only removes invalid channels. No project-local EARS/state helpers found; manual requirement/task/evidence maintained. Focused contracts: 58 passed. Clean integration suite: 1,673 tests, zero failures/errors, four skips; native MariaDB: 59 passed, zero skips. Persistence, authority, stale forms, configured channels, and disconnected/replaced sessions are covered. The actual companion runtime contract ran with zero skips. Codacy refinements passed the final clean integration build. Exact-head hosted checks are recorded on the PR. See docs/chat-reconnect.md. Production stays unchanged.
+
+- [x] COMMUNITY-UI: Implement approved G20/G21/G22/G24/G25 with personal chat settings, optional channel indicator, permission-safe individual rank selection and bounded public directory details.
+  - Tag: TDD; References: REQ-136 through REQ-139; docs/community-ui.md.
+  - Evidence: category-opening regression failed against prior implementation then passed; native SQL failure reproduced and fixed. Full 1,679-test suite passes with four unrelated skips; 61 native cases pass with zero skips. Shared service/SQL contracts and actual companion runtime are verified. No project-local EARS/state helpers exist; manual requirements/tasks/evidence maintained. PR-head CI, manual review and real Java/Bedrock acceptance remain separate. No merge or production changes.
+
+- [x] COMMUNITY-CODACY — Inspect #215 provider results directly, refine public directory types, new-code formatting and method boundaries, preserve literal locale/wiring contracts, rerun full and native SQL validation, then inspect the published head. EARS/state helpers remain absent; manual evidence is in docs/community-ui.md. Codacy passes at source 604e1e5 (check 113413615301), with zero new issues. Full local validation passes 1,680 ordinary cases (15 external skips) and all 62 native cases without skips. Final PR-head checks and manual/client acceptance remain separate.
+
+- [x] VAULT-PERMISSIONS
+  - Tag: `TDD`
+  - References: REQ-140
+  - Evidence: Source correction from canonical main a15b244; historical live member-access report remains unconfirmed. Red: 10 of 12 listener tests failed before the fix. Expanded focused checks pass 75 tests; full Java 25 offline test/shadowJar passes 1,564 tests, zero failures/errors and four external skips. Final helper/fixture refinement passes the same focused test/shadowJar profile; signature-only refinement compiles. See vault-inventory-permissions.md. PR/hosted review and in-game acceptance remain separate; the latter is deferred at user request. Production untouched; no project-local EARS/state helpers found.
+  - Files: VaultInventoryListener, VaultItemPermissions, VaultInventoryPermissionTest, docs/vault-inventory-permissions.md
+
 - [x] ALLY-HOME-MENU-AUTHORIZATION
   - Tag: `TDD`
   - References: REQ-141
   - Evidence: Canonical main a15b244 uses rendered access and destination at click time. New actual GuiItem-action regressions fail four of five cases on unchanged source; all five pass after fresh authorization/current-home resolution. Existing ally-access and locale focused checks pass. Full Java 25 offline test/shadowJar passes 1,543 tests with zero failures/errors and four external skips; final focused test/shadowJar also passes including the sixth grant-access case. Hosted/manual review remains separate; in-game testing deferred at user request. No local EARS/state helpers found; production untouched.
+  - Files: GuildHomeMenu, AllyHomeMenuAuthorizationTest, docs/ally-home-menu-authorization.md
+
+
+- [x] ALLY-HOME-STACK-REFINEMENT
+  - Tag: `TDD`
+  - References: REQ-141
+  - Evidence: Integrated the reviewed #215/#217 stack with requirement/task conflicts resolved. Added a genuine failing seventh action case for lost current listing/perk eligibility; fixed using current GuildService.getAllyHomes and existing access policy. Final combined test/shadowJar passes 1,713 tests, zero failures/errors and 15 external skips; actual Market artifact contract runs with zero skips. Interactive behavioral preview accompanies the change; in-game acceptance deferred. No production changes, merge or activation. Hosted/manual review remains separate.
   - Files: GuildHomeMenu, AllyHomeMenuAuthorizationTest, docs/ally-home-menu-authorization.md
