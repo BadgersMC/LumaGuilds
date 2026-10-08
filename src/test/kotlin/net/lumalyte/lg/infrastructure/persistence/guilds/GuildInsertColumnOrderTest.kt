@@ -41,8 +41,18 @@ internal class GuildInsertColumnOrderTest : RewardSqlTestFixture() {
         )
         assertTrue(repository.add(guild))
 
+        assertStoredColumns(storage, guild)
+
+        val reloaded = GuildRepositorySQLite(storage).getById(guild.id)!!
+        assertEquals(GuiTheme.EMBERSTONE, reloaded.guiTheme)
+        assertEquals(guild.allyHome, reloaded.allyHome)
+        assertEquals(setOf(ally), reloaded.allyHomeAllowedGuilds)
+    }
+
+    private fun assertStoredColumns(storage: Storage<Database>, guild: Guild) {
         val row = storage.connection.getFirstRow(
-            "SELECT gui_theme, ally_home_world, ally_home_x, ally_home_y, ally_home_z, ally_home_allowed_guilds FROM guilds WHERE id = ?",
+            "SELECT gui_theme, ally_home_world, ally_home_x, ally_home_y, ally_home_z, " +
+                "ally_home_allowed_guilds FROM guilds WHERE id = ?",
             guild.id.toString(),
         )
         assertEquals("EMBERSTONE", row.getString("gui_theme"))
@@ -51,11 +61,6 @@ internal class GuildInsertColumnOrderTest : RewardSqlTestFixture() {
         assertEquals(64, (row.get<Any>("ally_home_y") as Number).toInt())
         assertEquals(-20, (row.get<Any>("ally_home_z") as Number).toInt())
         assertEquals(ally.toString(), row.getString("ally_home_allowed_guilds"))
-
-        val reloaded = GuildRepositorySQLite(storage).getById(guild.id)!!
-        assertEquals(GuiTheme.EMBERSTONE, reloaded.guiTheme)
-        assertEquals(guild.allyHome, reloaded.allyHome)
-        assertEquals(setOf(ally), reloaded.allyHomeAllowedGuilds)
     }
 
     /** Rows written by the old insert are repaired on startup. */
@@ -105,7 +110,6 @@ internal class GuildInsertColumnOrderTest : RewardSqlTestFixture() {
         assertEquals(guild.allyHome, reloaded.allyHome)
     }
 
-    /** Production schema via the real migration chain, as at plugin enable. */
     private fun migratedRepository(storage: Storage<Database>): GuildRepositorySQLite {
         val plugin = io.mockk.mockk<org.bukkit.plugin.java.JavaPlugin>(relaxed = true)
         io.mockk.every { plugin.getComponentLogger() } returns

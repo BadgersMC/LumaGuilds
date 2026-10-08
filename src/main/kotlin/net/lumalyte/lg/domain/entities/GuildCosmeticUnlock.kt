@@ -18,12 +18,13 @@ const val MAX_COSMETIC_SOURCE_LENGTH = 128
 /** Cosmetic type for guild menu background themes ([net.lumalyte.lg.utils.GuiTheme] names). */
 const val MENU_THEME_COSMETIC = "MENU_THEME"
 
+// Existing JDK-only plugin API exposes immutable ownership records.
+
 /**
  * A cosmetic a guild owns because an integrating plugin granted it (REQ-121),
  * e.g. a holiday menu theme earned through EnthusiaHolidays. [type] and [key]
  * are stored upper case; unknown values are kept for forward compatibility.
  */
-// Existing JDK-only plugin API exposes immutable ownership records.
 @Suppress("ForbiddenPublicDataClass", "LibraryEntitiesShouldNotBePublic")
 data class GuildCosmeticUnlock(
     /** Owning guild identity. */

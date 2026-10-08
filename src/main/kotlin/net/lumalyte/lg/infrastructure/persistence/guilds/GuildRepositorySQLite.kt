@@ -101,6 +101,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
 
     init {
         createGuildTable()
+        storage.connection.connection.use { it.ensureGuildVaultSchema() }
         createGuildHomesTable()
         migrateTrackingColumn()
         migrateBankFrozenColumn()

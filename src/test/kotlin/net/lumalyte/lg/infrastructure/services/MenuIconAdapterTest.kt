@@ -136,7 +136,7 @@ internal class MenuIconAdapterTest {
 
     /** Switching away from a holiday style, or leaving, restores the normal icons. */
     @Test
-    fun seasonalStyleClearsOnSwitchAndQuit() {
+    fun seasonalStyleClears() {
         val p = player(bedrock = false, theme = GuiTheme.CHRISTMAS)
         adapter.refresh(p)
         val themed = mockk<Guild> { every { guiTheme } returns GuiTheme.ENTHUSIA }

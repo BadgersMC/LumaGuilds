@@ -16,7 +16,9 @@ package net.lumalyte.lg.utils
  * `<icon>_<theme>` Nexo variants (see MenuIconAdapter).
  */
 enum class GuiTheme(
+    /** Localized fallback label for the selector. */
     val displayName: String,
+    /** Whether the theme draws a chest-menu background. */
     val hasBackground: Boolean = true,
     val requiresUnlock: Boolean = false,
     val seasonalIcons: Boolean = false,

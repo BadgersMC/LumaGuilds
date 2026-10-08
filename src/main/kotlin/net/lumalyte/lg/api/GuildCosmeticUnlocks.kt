@@ -21,7 +21,13 @@ import java.util.UUID
  */
 interface GuildCosmeticUnlocks {
     /** True if the guild owns the cosmetic afterwards (newly or already); false for a missing guild, invalid input or storage failure. */
-    fun unlockCosmetic(guildId: UUID, type: String, key: String, displayName: String, source: String): Boolean
+    fun unlockCosmetic(
+        guildId: UUID,
+        type: String,
+        key: String,
+        displayName: String,
+        source: String,
+    ): Boolean
 
     /** True if the guild does not own it afterwards; resets an equipped holiday theme to the default. */
     fun revokeCosmetic(guildId: UUID, type: String, key: String): Boolean

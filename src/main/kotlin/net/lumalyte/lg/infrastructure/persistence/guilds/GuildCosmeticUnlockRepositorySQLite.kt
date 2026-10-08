@@ -18,6 +18,7 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 /** Guild cosmetic ownership ledger (REQ-121), preloaded like the emoji grant ledger. */
+@Suppress("LibraryEntitiesShouldNotBePublic")
 class GuildCosmeticUnlockRepositorySQLite(private val storage: Storage<Database>) : GuildCosmeticUnlockRepository {
     private val logger = LoggerFactory.getLogger(GuildCosmeticUnlockRepositorySQLite::class.java)
     private val unlocks = ConcurrentHashMap<Triple<UUID, String, String>, GuildCosmeticUnlock>()
@@ -48,15 +49,7 @@ class GuildCosmeticUnlockRepositorySQLite(private val storage: Storage<Database>
         val id = Triple(unlock.guildId, unlock.type, unlock.key)
         if (unlocks.containsKey(id)) return true
         return try {
-            storage.connection.executeUpdate(
-                insertSql,
-                unlock.guildId.toString(),
-                unlock.type,
-                unlock.key,
-                unlock.displayName,
-                unlock.source,
-                unlock.unlockedAt.toEpochMilli(),
-            )
+            insertUnlock(unlock)
             // A concurrent writer may have inserted first; the cache keeps whichever record landed.
             unlocks.putIfAbsent(id, readRow(unlock.guildId, unlock.type, unlock.key) ?: unlock)
             true
@@ -70,6 +63,18 @@ class GuildCosmeticUnlockRepositorySQLite(private val storage: Storage<Database>
             )
             false
         }
+    }
+
+    private fun insertUnlock(unlock: GuildCosmeticUnlock) {
+        storage.connection.executeUpdate(
+            insertSql,
+            unlock.guildId.toString(),
+            unlock.type,
+            unlock.key,
+            unlock.displayName,
+            unlock.source,
+            unlock.unlockedAt.toEpochMilli(),
+        )
     }
 
     override fun delete(guildId: UUID, type: String, key: String): Boolean {
