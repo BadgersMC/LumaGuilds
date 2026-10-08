@@ -52,9 +52,7 @@ internal class MemberOwnershipMariaDbTest {
         }
     }
 
-    private class Fixture(
-        val storage: MariaDBStorage,
-    ) {
+    private class Fixture(val storage: MariaDBStorage) {
         val guild = UUID.randomUUID()
         val ownerRank = UUID.randomUUID()
         val lowerRank = UUID.randomUUID()
@@ -63,6 +61,16 @@ internal class MemberOwnershipMariaDbTest {
         val repo: MemberRepositorySQLite
 
         init {
+            createSchema()
+            listOf(ownerRank, lowerRank).forEachIndexed { priority, id ->
+                insertRank(id, priority)
+            }
+            repo = MemberRepositorySQLite(storage)
+            check(repo.add(owner))
+            check(repo.add(next))
+        }
+
+        private fun createSchema() {
             storage.connection.executeUpdate("DROP TRIGGER IF EXISTS reject_transfer")
             listOf("members", "ranks", "guilds").forEach {
                 storage.connection.executeUpdate("DROP TABLE IF EXISTS $it")
@@ -76,23 +84,18 @@ internal class MemberOwnershipMariaDbTest {
                 "CREATE TABLE members (player_id VARCHAR(36), guild_id VARCHAR(36), rank_id VARCHAR(36), " +
                     "joined_at VARCHAR(64), PRIMARY KEY (player_id, guild_id)) ENGINE=InnoDB",
             )
-            listOf(ownerRank, lowerRank).forEachIndexed { priority, id ->
-                storage.connection.executeUpdate(
-                    "INSERT INTO ranks VALUES (?, ?, ?)",
-                    id.toString(),
-                    guild.toString(),
-                    priority,
-                )
-            }
-            repo = MemberRepositorySQLite(storage)
-            check(repo.add(owner))
-            check(repo.add(next))
         }
 
-        fun assertRanks(
-            current: UUID,
-            successor: UUID,
-        ) {
+        private fun insertRank(id: UUID, priority: Int) {
+            storage.connection.executeUpdate(
+                "INSERT INTO ranks VALUES (?, ?, ?)",
+                id.toString(),
+                guild.toString(),
+                priority,
+            )
+        }
+
+        fun assertRanks(current: UUID, successor: UUID) {
             assertEquals(current, repo.getRankId(owner.playerId, guild))
             assertEquals(successor, repo.getRankId(next.playerId, guild))
             assertEquals(current.toString(), persisted(owner))

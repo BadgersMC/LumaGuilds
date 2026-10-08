@@ -2,10 +2,8 @@
 title: Progression, Quests & Prestige
 audience: player
 topic: progression
-summary: Earn guild XP, complete weekly guild quests, unlock Chapter rewards,
-and use prestige when enabled.
-keywords: [progression, levels, xp, chapter, quests, weekly quests, rewards,
-prestige]
+summary: Earn guild XP, complete weekly guild quests, unlock Chapter rewards, and use prestige when enabled.
+keywords: [progression, levels, xp, chapter, quests, weekly quests, rewards, prestige]
 related: [guilds, war, homes]
 updated: 2026-10-07
 ---
