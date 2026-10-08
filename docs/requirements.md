@@ -519,3 +519,6 @@ WHEN the staff strike feed cannot read historical guild membership, THE SYSTEM S
 
 ### REQ-133
 **Ubiquitous.** THE SYSTEM SHALL initialize historical MariaDB physical-vault fields before guild persistence reads or updates and SHALL preserve existing guild names, home coordinates and vault state on repeated initialization. Schema repair SHALL add only absent fields and SHALL NOT rewrite existing data. SQLite SHALL retain its existing physical-vault semantics.
+
+### REQ-135
+**Event-driven.** WHEN an authorized guild manager changes Reset chat on reconnect in Java or Bedrock Guild Settings THE SYSTEM SHALL persist the guild-wide value, defaulting to disabled for existing/new guilds. WHEN a guild member reconnects in guild or ally chat and any guild they belong to enables the setting THE SYSTEM SHALL move them to RoseChat's configured default channel after join, using current membership/settings. Other channels and an allied guild's setting SHALL NOT trigger reset. Unchanged/stale forms SHALL NOT overwrite newer values; revoked authority and failed writes SHALL NOT change persistence. Existing invalid-channel cleanup SHALL remain.

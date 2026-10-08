@@ -7,11 +7,12 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.entities.GuildHomes
 import net.lumalyte.lg.domain.entities.GuildMode
-import net.lumalyte.lg.domain.entities.VaultStatus
 import net.lumalyte.lg.domain.entities.GuildVaultLocation
-import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import net.lumalyte.lg.domain.entities.VaultStatus
 import net.lumalyte.lg.infrastructure.persistence.getInstant
 import net.lumalyte.lg.infrastructure.persistence.getInstantNotNull
+import net.lumalyte.lg.infrastructure.persistence.migrations.GuildChatReconnectSettingsSchema
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import java.sql.SQLException
 import java.time.Instant
 import java.time.ZoneOffset
@@ -101,7 +102,10 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
 
     init {
         createGuildTable()
-        storage.connection.connection.use { it.ensureGuildVaultSchema() }
+        storage.connection.connection.use {
+            it.ensureGuildVaultSchema()
+            GuildChatReconnectSettingsSchema.create(it)
+        }
         createGuildHomesTable()
         migrateTrackingColumn()
         migrateBankFrozenColumn()
@@ -643,6 +647,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                 }
             }
             connection.deleteGuildRelations(guildId)
+            GuildChatReconnectSettingsSchema.delete(connection, guildId)
             deleteRewardOwnershipState(connection, guildId)
             connection.prepareStatement("DELETE FROM guilds WHERE id = ?").use {
                 it.setString(1, guildId.toString())
@@ -1080,6 +1085,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                 var failure: Throwable? = null
                 var rolledBack = false
                 try {
+                    GuildChatReconnectSettingsSchema.delete(connection, guildId)
                     deleteRewardOwnershipState(connection, guildId)
                     val rowsAffected = connection.prepareStatement("DELETE FROM guilds WHERE id = ?").use {
                         it.setString(1, guildId.toString())

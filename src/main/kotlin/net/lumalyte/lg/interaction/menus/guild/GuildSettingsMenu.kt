@@ -12,6 +12,7 @@ import net.lumalyte.lg.infrastructure.services.NexoEmojiService
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import net.lumalyte.lg.utils.inventoryframework.StaticPane
+import net.lumalyte.lg.application.services.GuildChatReconnectSettingsService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.ProgressionService
@@ -50,6 +51,7 @@ class GuildSettingsMenu(
     private val progressionRepository: ProgressionRepository
 ): Menu, KoinComponent {
 
+    private val reconnectSettings: GuildChatReconnectSettingsService by inject()
     private val lang: LangService by inject()
     private val nexoEmojiService: NexoEmojiService by inject()
     // Holiday styles (REQ-121) are locked until earned; without the ledger they stay locked.
@@ -82,6 +84,23 @@ class GuildSettingsMenu(
         addLocationModeSection(pane)
 
         gui.show(player)
+    }
+
+    private fun addReconnectControl(pane: StaticPane) {
+        val rendered = reconnectSettings.resetOnJoin(guild.id)
+        val item = NexoItemProvider.getItemStackOrFallback(if (rendered) "lg_toggle_on" else "lg_toggle_off") {
+            ItemStack.of(if (rendered) Material.LIME_DYE else Material.GRAY_DYE)
+        }.name(lang.gui("guild_chat_reconnect.name"))
+            .lore(lang.gui("guild_chat_reconnect.description"))
+            .lore(if (rendered) lang.gui("guild_chat_reconnect.enabled") else lang.gui("guild_chat_reconnect.disabled"))
+        pane.addItem(GuiItem(item) {
+            if (reconnectSettings.apply(guild.id, rendered, !rendered, player.uniqueId)) {
+                player.sendMessage(lang.msg("guild_chat_reconnect.saved"))
+                open()
+            } else {
+                player.sendMessage(lang.msg("guild_chat_reconnect.failed"))
+            }
+        }, 5, 4)
     }
 
     private fun addGuildInfoSection(pane: StaticPane) {
@@ -312,6 +331,7 @@ class GuildSettingsMenu(
     }
 
     private fun addLocationModeSection(pane: StaticPane) {
+        addReconnectControl(pane)
         // Guild Home
         val homeItem = NexoItemProvider.getItemStackOrFallback("lg_home") { ItemStack.of(Material.COMPASS) }
                 .name(lang.gui("menu.guild_settings.item.homes.name"))

@@ -1133,6 +1133,9 @@ class LumaGuilds : JavaPlugin() {
         val wireRoseChatHook = {
             val roseChatCleanupListener = get().get<net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener>()
             server.pluginManager.registerEvents(roseChatCleanupListener, this)
+            server.pluginManager.registerEvents(
+                get().get<net.lumalyte.lg.infrastructure.listeners.GuildChatReconnectListener>(), this
+            )
             logColored("✓ RoseChat integration registered for chat cleanup")
 
             // Enforce guild mutes on the live RoseChat message path (players
