@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.litebans
 
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import java.io.File
 
@@ -38,8 +39,10 @@ class OptionalLiteBansWiringTest {
         assertFalse(Regex("""(?m)^depend:.*LiteBans""").containsMatchIn(pluginYml))
     }
 
+    /** Staff remains optional and takes precedence over legacy LiteBans wiring. */
+    @DisplayName("EnthusiaStaff lifecycle feed is optional and preferred over LiteBans")
     @Test
-    fun `EnthusiaStaff lifecycle feed is optional and preferred over LiteBans`() {
+    fun optionalStaffPreferred() {
         val pluginYml = File("src/main/resources/plugin.yml").readText()
         val source = File("src/main/kotlin/net/lumalyte/lg/LumaGuilds.kt").readText()
 
