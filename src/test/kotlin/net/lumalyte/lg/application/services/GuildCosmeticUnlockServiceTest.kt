@@ -1,3 +1,6 @@
+// Explicit fixture numbers document persisted coordinates, icon dimensions and approved boundaries.
+@file:Suppress("MagicNumber")
+
 package net.lumalyte.lg.application.services
 
 import io.mockk.every
@@ -8,6 +11,7 @@ import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildCosmeticUnlock
 import net.lumalyte.lg.utils.GuiTheme
+import org.junit.jupiter.api.DisplayName
 import java.time.Instant
 import java.util.UUID
 import kotlin.test.Test
@@ -16,17 +20,20 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /** REQ-121: unlock/revoke policy and holiday theme availability. */
-class GuildCosmeticUnlockServiceTest {
+internal class GuildCosmeticUnlockServiceTest {
     private val guildId = UUID.randomUUID()
     private val now = Instant.parse("2026-10-20T12:00:00Z")
     private val guilds = mockk<GuildRepository>(relaxed = true)
     private val unlocks = InMemoryUnlocks()
     private val service = GuildCosmeticUnlockService(guilds, unlocks) { now }
 
-    private fun guild(theme: GuiTheme = GuiTheme.DEFAULT) = Guild(id = guildId, name = "Enthusiasts", createdAt = now, guiTheme = theme)
+    private fun guild(theme: GuiTheme = GuiTheme.DEFAULT) =
+        Guild(id = guildId, name = "Enthusiasts", createdAt = now, guiTheme = theme)
 
+    /** Holiday themes are locked until unlocked and progression themes never are. */
+    @DisplayName("holiday themes are locked until unlocked and progression themes never are")
     @Test
-    fun `holiday themes are locked until unlocked and progression themes never are`() {
+    fun scenario1() {
         every { guilds.getById(guildId) } returns guild()
         assertTrue(GuiTheme.HALLOWEEN.requiresUnlock)
         assertTrue(GuiTheme.CHRISTMAS.requiresUnlock)
@@ -35,59 +42,71 @@ class GuildCosmeticUnlockServiceTest {
         assertFalse(service.isThemeAvailable(guildId, GuiTheme.HALLOWEEN))
         assertTrue(service.isThemeAvailable(guildId, GuiTheme.EMBERSTONE))
 
-        assertTrue(service.unlock(guildId, "menu_theme", "halloween", "Halloween '26", "event:halloween-2026"))
+        assertTrue(service.unlock(guildId, "menu_theme", "halloween", TEST_HOLIDAY_NAME, "event:halloween-2026"))
         assertTrue(service.isThemeAvailable(guildId, GuiTheme.HALLOWEEN))
         assertFalse(service.isThemeAvailable(guildId, GuiTheme.CHRISTMAS))
-        assertEquals("Halloween '26", service.themeDisplayName(guildId, GuiTheme.HALLOWEEN))
+        assertEquals(TEST_HOLIDAY_NAME, service.themeDisplayName(guildId, GuiTheme.HALLOWEEN))
         assertEquals(GuiTheme.EMBERSTONE.displayName, service.themeDisplayName(guildId, GuiTheme.EMBERSTONE))
     }
 
+    /** Unlock is idempotent and records normalised values. */
+    @DisplayName("unlock is idempotent and records normalised values")
     @Test
-    fun `unlock is idempotent and records normalised values`() {
+    fun scenario2() {
         every { guilds.getById(guildId) } returns guild()
-        assertTrue(service.unlock(guildId, " menu_theme ", "halloween", "Halloween '26", "src"))
-        assertTrue(service.unlock(guildId, "MENU_THEME", "HALLOWEEN", "Other", "src"))
-        assertEquals(setOf("HALLOWEEN"), service.unlockedKeys(guildId, "menu_theme"))
-        assertEquals(GuildCosmeticUnlock(guildId, "MENU_THEME", "HALLOWEEN", "Halloween '26", "src", now),
-            unlocks.get(guildId, "MENU_THEME", "HALLOWEEN"))
+        assertTrue(service.unlock(guildId, " menu_theme ", "halloween", TEST_HOLIDAY_NAME, TEST_GRANT_SOURCE))
+        assertTrue(service.unlock(guildId, TEST_MENU_THEME, TEST_HALLOWEEN, "Other", TEST_GRANT_SOURCE))
+        assertEquals(setOf(TEST_HALLOWEEN), service.unlockedKeys(guildId, "menu_theme"))
+        assertEquals(
+            GuildCosmeticUnlock(guildId, TEST_MENU_THEME, TEST_HALLOWEEN, TEST_HOLIDAY_NAME, TEST_GRANT_SOURCE, now),
+            unlocks.get(guildId, TEST_MENU_THEME, TEST_HALLOWEEN),
+        )
     }
 
+    /** Unknown keys are stored for forward compatibility. */
+    @DisplayName("unknown keys are stored for forward compatibility")
     @Test
-    fun `unknown keys are stored for forward compatibility`() {
+    fun scenario3() {
         every { guilds.getById(guildId) } returns guild()
-        assertTrue(service.unlock(guildId, "BADGE", "HALLOWEEN_2026", "Halloween 2026 Badge", "src"))
-        assertTrue(service.unlock(guildId, "MENU_THEME", "SPRING_GARDEN", "Spring Garden", "src"))
-        assertEquals(setOf("SPRING_GARDEN"), service.unlockedKeys(guildId, "MENU_THEME"))
+        assertTrue(service.unlock(guildId, "BADGE", "HALLOWEEN_2026", "Halloween 2026 Badge", TEST_GRANT_SOURCE))
+        assertTrue(service.unlock(guildId, TEST_MENU_THEME, "SPRING_GARDEN", "Spring Garden", TEST_GRANT_SOURCE))
+        assertEquals(setOf("SPRING_GARDEN"), service.unlockedKeys(guildId, TEST_MENU_THEME))
     }
 
+    /** Missing guild and invalid input are rejected. */
+    @DisplayName("missing guild and invalid input are rejected")
     @Test
-    fun `missing guild and invalid input are rejected`() {
+    fun scenario4() {
         every { guilds.getById(guildId) } returns null
-        assertFalse(service.unlock(guildId, "MENU_THEME", "HALLOWEEN", "x", "src"))
-        assertFalse(service.revoke(guildId, "MENU_THEME", "HALLOWEEN"))
+        assertFalse(service.unlock(guildId, TEST_MENU_THEME, TEST_HALLOWEEN, "x", TEST_GRANT_SOURCE))
+        assertFalse(service.revoke(guildId, TEST_MENU_THEME, TEST_HALLOWEEN))
 
         every { guilds.getById(guildId) } returns guild()
-        assertFalse(service.unlock(guildId, "MENU_THEME", " ", "x", "src"))
-        assertFalse(service.unlock(guildId, "MENU_THEME", "K".repeat(65), "x", "src"))
-        assertFalse(service.unlock(guildId, "", "HALLOWEEN", "x", "src"))
+        assertFalse(service.unlock(guildId, TEST_MENU_THEME, " ", "x", TEST_GRANT_SOURCE))
+        assertFalse(service.unlock(guildId, TEST_MENU_THEME, "K".repeat(65), "x", TEST_GRANT_SOURCE))
+        assertFalse(service.unlock(guildId, "", TEST_HALLOWEEN, "x", TEST_GRANT_SOURCE))
         assertTrue(unlocks.getForGuild(guildId).isEmpty())
     }
 
+    /** Blank display name falls back to the key. */
+    @DisplayName("blank display name falls back to the key")
     @Test
-    fun `blank display name falls back to the key`() {
+    fun scenario5() {
         every { guilds.getById(guildId) } returns guild()
-        assertTrue(service.unlock(guildId, "MENU_THEME", "CHRISTMAS", "  ", "src"))
-        assertEquals("CHRISTMAS", unlocks.get(guildId, "MENU_THEME", "CHRISTMAS")?.displayName)
+        assertTrue(service.unlock(guildId, TEST_MENU_THEME, "CHRISTMAS", "  ", TEST_GRANT_SOURCE))
+        assertEquals("CHRISTMAS", unlocks.get(guildId, TEST_MENU_THEME, "CHRISTMAS")?.displayName)
     }
 
+    /** Revoking the equipped holiday theme resets only the theme. */
+    @DisplayName("revoking the equipped holiday theme resets only the theme")
     @Test
-    fun `revoking the equipped holiday theme resets only the theme`() {
+    fun scenario6() {
         every { guilds.getById(guildId) } returns guild(GuiTheme.HALLOWEEN)
         every { guilds.updateGuiTheme(guildId, GuiTheme.HALLOWEEN, GuiTheme.DEFAULT) } returns true
-        service.unlock(guildId, "MENU_THEME", "HALLOWEEN", "Halloween '26", "src")
+        service.unlock(guildId, TEST_MENU_THEME, TEST_HALLOWEEN, TEST_HOLIDAY_NAME, TEST_GRANT_SOURCE)
 
         assertTrue(service.revoke(guildId, "menu_theme", "halloween"))
-        assertTrue(service.revoke(guildId, "MENU_THEME", "HALLOWEEN"))
+        assertTrue(service.revoke(guildId, TEST_MENU_THEME, TEST_HALLOWEEN))
 
         verify(atLeast = 1) { guilds.updateGuiTheme(guildId, GuiTheme.HALLOWEEN, GuiTheme.DEFAULT) }
         // A full-record write would overwrite concurrent changes to the guild.
@@ -95,22 +114,30 @@ class GuildCosmeticUnlockServiceTest {
         assertFalse(service.isThemeAvailable(guildId, GuiTheme.HALLOWEEN))
     }
 
+    /** Revoking a theme the guild is not using leaves its theme alone. */
+    @DisplayName("revoking a theme the guild is not using leaves its theme alone")
     @Test
-    fun `revoking a theme the guild is not using leaves its theme alone`() {
+    fun scenario7() {
         every { guilds.getById(guildId) } returns guild(GuiTheme.EMBERSTONE)
-        service.unlock(guildId, "MENU_THEME", "HALLOWEEN", "Halloween '26", "src")
-        assertTrue(service.revoke(guildId, "MENU_THEME", "HALLOWEEN"))
+        service.unlock(guildId, TEST_MENU_THEME, TEST_HALLOWEEN, TEST_HOLIDAY_NAME, TEST_GRANT_SOURCE)
+        assertTrue(service.revoke(guildId, TEST_MENU_THEME, TEST_HALLOWEEN))
         verify(exactly = 0) { guilds.update(any()) }
     }
 
+    /** Persistence failure is reported. */
+    @DisplayName("persistence failure is reported")
     @Test
-    fun `persistence failure is reported`() {
+    fun scenario8() {
         every { guilds.getById(guildId) } returns guild()
         val failing = mockk<GuildCosmeticUnlockRepository> {
             every { get(any(), any(), any()) } returns null
             every { saveIfAbsent(any()) } returns false
         }
-        assertFalse(GuildCosmeticUnlockService(guilds, failing) { now }.unlock(guildId, "MENU_THEME", "HALLOWEEN", "x", "src"))
+        assertFalse(
+            GuildCosmeticUnlockService(guilds, failing) {
+                now
+            }.unlock(guildId, TEST_MENU_THEME, TEST_HALLOWEEN, "x", TEST_GRANT_SOURCE),
+        )
     }
 
     private class InMemoryUnlocks : GuildCosmeticUnlockRepository {
@@ -127,3 +154,11 @@ class GuildCosmeticUnlockServiceTest {
         }
     }
 }
+
+private const val TEST_MENU_THEME = "MENU_THEME"
+
+private const val TEST_HALLOWEEN = "HALLOWEEN"
+
+private const val TEST_HOLIDAY_NAME = "Halloween '26"
+
+private const val TEST_GRANT_SOURCE = "src"

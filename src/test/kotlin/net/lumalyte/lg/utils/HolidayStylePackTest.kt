@@ -1,8 +1,12 @@
+// Explicit fixture numbers document persisted coordinates, icon dimensions and approved boundaries.
+@file:Suppress("MagicNumber")
+
 package net.lumalyte.lg.utils
 
 import org.bukkit.configuration.file.YamlConfiguration
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import java.io.File
 import javax.imageio.ImageIO
@@ -61,9 +65,15 @@ internal class HolidayStylePackTest {
     @Test
     fun seasonalIconsVaryExistingIcons() {
         val base = yaml("items/lumaguilds_enthusia_icons.yml").getKeys(false) +
-            YamlConfiguration.loadConfiguration(File("resourcepack/enthusia-icons/server-kit/lg_enthusia_gui.yml")).getKeys(false) +
-            YamlConfiguration.loadConfiguration(File("resourcepack/enthusia-icons/server-kit/repoint-textures.yml")).getKeys(false)
-        val seasonal = yaml("items/lumaguilds_holiday_styles.yml").getKeys(false).filterNot { it.startsWith("lg_theme_") }
+            YamlConfiguration.loadConfiguration(
+                File("resourcepack/enthusia-icons/server-kit/lg_enthusia_gui.yml"),
+            ).getKeys(false) +
+            YamlConfiguration.loadConfiguration(
+                File("resourcepack/enthusia-icons/server-kit/repoint-textures.yml"),
+            ).getKeys(false)
+        val seasonal = yaml("items/lumaguilds_holiday_styles.yml").getKeys(false).filterNot {
+            it.startsWith("lg_theme_")
+        }
         assertTrue(seasonal.isNotEmpty())
         seasonal.forEach { id ->
             val style = holidayStyles.first { id.endsWith("_" + it.name.lowercase()) }

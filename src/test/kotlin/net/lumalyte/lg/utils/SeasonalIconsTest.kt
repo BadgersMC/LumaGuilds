@@ -1,7 +1,11 @@
+// Explicit fixture numbers document persisted coordinates, icon dimensions and approved boundaries.
+@file:Suppress("MagicNumber")
+
 package net.lumalyte.lg.utils
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 
 /** Seasonal icon naming and which style a player sees (REQ-121). */
@@ -23,7 +27,7 @@ internal class SeasonalIconsTest {
 
     /** Only the holiday styles re-skin icons, and both are earned. */
     @Test
-    fun seasonalStylesAreTheHolidayStyles() {
+    fun seasonalStylesMatch() {
         assertEquals(listOf(GuiTheme.HALLOWEEN, GuiTheme.CHRISTMAS), GuiTheme.entries.filter { it.seasonalIcons })
         assertEquals(GuiTheme.entries.filter { it.seasonalIcons }, GuiTheme.entries.filter { it.requiresUnlock })
     }
