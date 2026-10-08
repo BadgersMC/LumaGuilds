@@ -9,7 +9,9 @@ import net.enthusia.staff.moderation.api.PunishmentLifecycleSource
 import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.StrikeService
+import net.lumalyte.lg.config.StrikesBackfillConfig
 import net.lumalyte.lg.config.StrikesConfig
+import net.lumalyte.lg.domain.entities.GuildStrike
 import net.lumalyte.lg.domain.entities.MembershipHistory
 import org.bukkit.plugin.java.JavaPlugin
 import org.junit.jupiter.api.DisplayName
@@ -49,28 +51,13 @@ internal class EnthusiaStaffStrikeFeedTest {
     fun nativeCreatesStrike() {
         val strikes = mockk<StrikeService>(relaxed = true)
         every { strikes.reconcileExternalStrike(any(), any(), any(), any()) } returns false
-        val history = mockk<MembershipHistoryRepository>()
-        every { history.getByPlayer(player) } returns
-            listOf(
-                mockk<MembershipHistory> {
-                    every { guildId } returns guild
-                    every { joinedAt } returns issuedAt.minusSeconds(STINT_AGE_SECONDS)
-                    every { departedAt } returns null
-                },
-            )
+        val history = historicalMembership()
         val feed = feed(strikes, history)
 
         feed.applyEvent(event(PunishmentLifecycleSource.ENTHUSIA_STAFF))
 
         verify(exactly = 1) {
-            strikes.recordExternalStrike(
-                match {
-                    it.guildId == guild && it.playerUuid == player && it.playerName == SUBJECT_NAME &&
-                        it.punishmentType == BAN_TYPE && it.reason == PUBLIC_REASON && it.executorName == ACTOR_NAME &&
-                        it.issuedAt == issuedAt && it.sourceProvider == PROVIDER &&
-                        it.sourcePunishmentId == SANCTION_ID && it.expiresAt == FUTURE_EXPIRY && it.active
-                },
-            )
+            strikes.recordExternalStrike(expectedNativeStrike())
         }
     }
 
@@ -177,19 +164,11 @@ internal class EnthusiaStaffStrikeFeedTest {
         val strikes = mockk<StrikeService>(relaxed = true)
         every { strikes.reconcileLegacyStrike(BAN_TYPE, LEGACY_ID, true) } returns false
         val history = mockk<MembershipHistoryRepository>(relaxed = true)
-        val feed =
-            feed(
-                strikes,
-                history,
-                config =
-                StrikesConfig(
-                    enabled = true,
-                    countedTypes = listOf("WARN", "KICK", "MUTE", BAN_TYPE),
-                    backfill =
-                    net.lumalyte.lg.config
-                        .StrikesBackfillConfig(enabled = false),
-                ),
-            )
+        val config = StrikesConfig(
+            enabled = true, countedTypes = listOf("WARN", "KICK", "MUTE", BAN_TYPE),
+            backfill = StrikesBackfillConfig(enabled = false),
+        )
+        val feed = feed(strikes, history, config = config)
 
         feed.applyEvent(event(PunishmentLifecycleSource.LITEBANS, sourceId = LEGACY_ID.toString()))
 
@@ -206,15 +185,7 @@ internal class EnthusiaStaffStrikeFeedTest {
     fun legacyBackfillsHistoricalRow() {
         val strikes = mockk<StrikeService>(relaxed = true)
         every { strikes.reconcileLegacyStrike(BAN_TYPE, LEGACY_ID, true) } returns false
-        val history = mockk<MembershipHistoryRepository>()
-        every { history.getByPlayer(player) } returns
-            listOf(
-                mockk<MembershipHistory> {
-                    every { guildId } returns guild
-                    every { joinedAt } returns issuedAt.minusSeconds(STINT_AGE_SECONDS)
-                    every { departedAt } returns null
-                },
-            )
+        val history = historicalMembership()
         val feed = feed(strikes, history)
 
         feed.applyEvent(event(PunishmentLifecycleSource.LITEBANS, sourceId = LEGACY_ID.toString()))
@@ -234,35 +205,58 @@ internal class EnthusiaStaffStrikeFeedTest {
         }
     }
 
+    private fun historicalMembership(): MembershipHistoryRepository {
+        val history = mockk<MembershipHistoryRepository>()
+        every { history.getByPlayer(player) } returns listOf(
+            mockk<MembershipHistory> {
+                every { guildId } returns guild
+                every { joinedAt } returns issuedAt.minusSeconds(STINT_AGE_SECONDS)
+                every { departedAt } returns null
+            },
+        )
+        return history
+    }
+
+    private fun expectedNativeStrike(): GuildStrike {
+        return GuildStrike(
+            guildId = guild, playerUuid = player, playerName = SUBJECT_NAME, punishmentType = BAN_TYPE,
+            reason = PUBLIC_REASON, executorName = ACTOR_NAME, issuedAt = issuedAt, sourceProvider = PROVIDER,
+            sourcePunishmentId = SANCTION_ID, expiresAt = FUTURE_EXPIRY,
+        )
+    }
+
     private fun feed(
         strikes: StrikeService,
         history: MembershipHistoryRepository,
         guildService: GuildService = mockk(relaxed = true),
         config: StrikesConfig = StrikesConfig(enabled = true, countedTypes = listOf("WARN", "KICK", "MUTE", BAN_TYPE)),
-    ): EnthusiaStaffStrikeFeed =
-        EnthusiaStaffStrikeFeed(mockk<JavaPlugin>(relaxed = true), guildService, strikes, history) {
+    ): EnthusiaStaffStrikeFeed {
+        return EnthusiaStaffStrikeFeed(mockk<JavaPlugin>(relaxed = true), guildService, strikes, history) {
             config
         }
+    }
 
     private fun event(
         source: PunishmentLifecycleSource,
         sourceId: String = SANCTION_ID,
         active: Boolean = true,
         expiresAt: Instant = FUTURE_EXPIRY,
-    ): PunishmentLifecycleEvent = PunishmentLifecycleEvent(
-        UUID.fromString(SANCTION_ID),
-        "CASE000000000001",
-        player,
-        Optional.of(SUBJECT_NAME),
-        PunishmentCategory.BAN,
-        source,
-        sourceId,
-        issuedAt,
-        Optional.of(expiresAt),
-        PUBLIC_REASON,
-        Optional.of(ACTOR_NAME),
-        active,
-    )
+    ): PunishmentLifecycleEvent {
+        return PunishmentLifecycleEvent(
+            UUID.fromString(SANCTION_ID),
+            "CASE000000000001",
+            player,
+            Optional.of(SUBJECT_NAME),
+            PunishmentCategory.BAN,
+            source,
+            sourceId,
+            issuedAt,
+            Optional.of(expiresAt),
+            PUBLIC_REASON,
+            Optional.of(ACTOR_NAME),
+            active,
+        )
+    }
 
     private companion object {
         const val SUBJECT_NAME = "Player"

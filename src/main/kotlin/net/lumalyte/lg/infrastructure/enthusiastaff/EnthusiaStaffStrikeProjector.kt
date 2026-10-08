@@ -116,7 +116,8 @@ internal class EnthusiaStaffStrikeProjector(
         stints
             .firstOrNull { stint ->
                 !stint.joinedAt.isAfter(at) && stint.departedAt?.isAfter(at) != false
-            }?.let { return it.guildId }
+            }
+            ?.let { return it.guildId }
 
         return if (allowCurrentFallback) {
             runCatching {

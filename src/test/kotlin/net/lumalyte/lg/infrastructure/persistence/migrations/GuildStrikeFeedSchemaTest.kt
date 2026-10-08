@@ -48,17 +48,21 @@ internal class GuildStrikeFeedSchemaTest {
         assertTrue(indexExists(TABLE, "idx_guild_strikes_source"))
     }
 
-    private fun columnExists(table: String, column: String): Boolean = connection.createStatement().use { statement ->
-        statement.executeQuery("PRAGMA table_info($table)").use { rows ->
-            generateSequence { if (rows.next()) rows.getString("name") else null }
-                .any { it == column }
+    private fun columnExists(table: String, column: String): Boolean {
+        return connection.createStatement().use { statement ->
+            statement.executeQuery("PRAGMA table_info($table)").use { rows ->
+                generateSequence { if (rows.next()) rows.getString("name") else null }
+                    .any { it == column }
+            }
         }
     }
 
-    private fun indexExists(table: String, index: String): Boolean = connection.createStatement().use { statement ->
-        statement.executeQuery("PRAGMA index_list($table)").use { rows ->
-            generateSequence { if (rows.next()) rows.getString("name") else null }
-                .any { it == index }
+    private fun indexExists(table: String, index: String): Boolean {
+        return connection.createStatement().use { statement ->
+            statement.executeQuery("PRAGMA index_list($table)").use { rows ->
+                generateSequence { if (rows.next()) rows.getString("name") else null }
+                    .any { it == index }
+            }
         }
     }
 
