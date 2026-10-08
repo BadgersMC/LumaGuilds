@@ -44,6 +44,8 @@ class GuildServiceBukkit(
     private val historyRepository: MembershipHistoryRepository,
     private val adminOverrideService: net.lumalyte.lg.application.services.AdminOverrideService,
     private val homeActivationService: GuildHomeActivationService,
+    // Null (tests, partial wiring) fails closed: holiday themes stay locked.
+    private val themeAccess: net.lumalyte.lg.application.services.GuildCosmeticUnlockService? = null,
 ) : GuildService, KoinComponent {
 
     // Lazy because BannermanListeners depends on GuildService, which would create a Koin
@@ -740,6 +742,10 @@ class GuildServiceBukkit(
     override fun setGuiTheme(guildId: UUID, theme: net.lumalyte.lg.utils.GuiTheme, actorId: UUID): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false
         if (!hasPermission(actorId, guildId, RankPermission.MANAGE_GUILD_SETTINGS)) {
+            return false
+        }
+        // REQ-121: holiday themes are applied only once the guild has earned them.
+        if (theme.requiresUnlock && themeAccess?.isThemeAvailable(guildId, theme) != true) {
             return false
         }
         val updatedGuild = guild.copy(guiTheme = theme)

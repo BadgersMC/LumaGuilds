@@ -64,6 +64,11 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:26.2.build.129-stable")
     compileOnly("com.github.retrooper:packetevents-spigot:2.11.2")
     compileOnly("com.discordsrv:discordsrv:1.28.0")
+    // Provider-neutral EnthusiaStaff lifecycle API; CI builds the exact pinned source into libs/.
+    // Runtime classes are supplied by the EnthusiaStaff plugin through the soft dependency.
+    val enthusiaStaffModerationApi = files("libs/EnthusiaStaff-moderation-api.jar")
+    compileOnly(enthusiaStaffModerationApi)
+    testImplementation(enthusiaStaffModerationApi)
     shadow("org.jetbrains.kotlin:kotlin-stdlib")
 
     implementation("org.slf4j:slf4j-nop:2.0.13")
@@ -165,6 +170,9 @@ tasks.register<Test>("mariaDbRewardTest") {
         includeTestsMatching("*Reward*RepositorySQLTest")
         includeTestsMatching("*ExperienceBoostRepositorySQLTest")
         includeTestsMatching("*GuildCreation*SQLTest")
+        includeTestsMatching("*GuildCosmeticUnlockRepositorySQLiteTest")
+        includeTestsMatching("*GuildInsertColumnOrderTest")
+        includeTestsMatching("*GuildThemeUpdateSQLTest")
     }
     doFirst {
         val port = providers.gradleProperty("mariaDbTestPort").orNull

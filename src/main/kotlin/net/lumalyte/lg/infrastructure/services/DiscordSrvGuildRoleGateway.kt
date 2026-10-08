@@ -20,7 +20,8 @@ class DiscordSrvGuildRoleGateway : DiscordGuildRoleGateway {
     override fun ensureRole(
         existingRoleId: String?,
         roleName: String,
-    ): CompletableFuture<DiscordRoleEnsureResult> {
+        allowCreate: Boolean,
+    ): CompletableFuture<DiscordRoleEnsureResult?> {
         val guild = mainGuild() ?: return failedFuture(IllegalStateException("DiscordSRV main guild is unavailable"))
         existingRoleId?.let { id ->
             guild.getRoleById(id)?.let { role ->
@@ -31,6 +32,7 @@ class DiscordSrvGuildRoleGateway : DiscordGuildRoleGateway {
                     .thenApply { DiscordRoleEnsureResult(role.id, false) }
             }
         }
+        if (!allowCreate) return CompletableFuture.completedFuture(null)
         return guild.createRole()
             .setName(roleName)
             .setMentionable(false)

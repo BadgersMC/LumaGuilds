@@ -3746,6 +3746,7 @@ menu:
       settings_requirement: '<gray>You need the MANAGE_GUILD_SETTINGS permission'
       theme_changed: '<green>GUI theme changed to <theme>'
       theme_change_failed: '<red>Could not change the GUI theme.'
+      theme_locked: '<red><theme> is a holiday style your guild has not earned yet.'
       tracking_disabled: '<green>✅ Lunar tracking is now <red>DISABLED'
       tracking_enabled: '<green>✅ Lunar tracking is now <green>ENABLED'
       tracking_failure: '<red>❌ Failed to update tracking settings'
@@ -3845,10 +3846,14 @@ menu:
         lore:
           apply: '<yellow>Click to apply'
           current: '<green>Current theme'
+          holiday: '<gold>Holiday style'
           locked: '<red>Requires Manage Guild Settings'
+          unearned: '<gray>Earned through holiday guild goals'
+          unearned_hint: '<gray>See <white>/holidays</white> during events'
         name:
           available: '<gray><theme>'
           current: '<white><theme>'
+          unearned: '<dark_gray><theme> (locked)'
       tracking:
         lore:
           action: '<yellow>Click to toggle Lunar tracking'

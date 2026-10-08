@@ -20,11 +20,13 @@ jobs:
     env:
       ROSECHAT_UPSTREAM_REF: 179483128fa2020f3ad8b0e4192ada3d0a251c49
       COMBATLOGX_API_REF: 4812e85af1264ebb27da481b9d9cbf8de0956e53
+      ENTHUSIASTAFF_API_REF: 8539bb8c77d7ecaf083546dda7ca8ccbfa8064e6 # Staff PR #408 lifecycle API
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # need tags for version bump
+          persist-credentials: false
 
       - name: Set up Java 21 for CombatLogX API build
         uses: actions/setup-java@v4
@@ -107,6 +109,27 @@ jobs:
       # class-presence check would pass that jar (the class file exists; the
       # registration doesn't). KoinGraphSmokeTest force-resolves every definition,
       # so a broken graph fails here, before the artifact is published.
+      - name: Cache EnthusiaStaff moderation API jar
+        id: enthusiastaff-api-cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: libs/EnthusiaStaff-moderation-api.jar
+          key: enthusiastaff-moderation-api-${{ env.ENTHUSIASTAFF_API_REF }}
+
+      - name: Build EnthusiaStaff moderation API jar
+        if: steps.enthusiastaff-api-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone https://github.com/wsg138/EnthusiaStaff.git "$RUNNER_TEMP/enthusiastaff"
+          cd "$RUNNER_TEMP/enthusiastaff"
+          git checkout "$ENTHUSIASTAFF_API_REF"
+          chmod +x gradlew
+          ./gradlew :moderation-platform-api:jar --no-daemon
+          mkdir -p "$GITHUB_WORKSPACE/libs"
+          STAFF_API_JAR=$(find moderation-platform-api/build/libs -maxdepth 1 -name '*.jar' \
+            ! -name '*-sources.jar' ! -name '*-javadoc.jar' | head -1)
+          test -n "$STAFF_API_JAR"
+          cp "$STAFF_API_JAR" "$GITHUB_WORKSPACE/libs/EnthusiaStaff-moderation-api.jar"
+
       - name: Test with Gradle
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

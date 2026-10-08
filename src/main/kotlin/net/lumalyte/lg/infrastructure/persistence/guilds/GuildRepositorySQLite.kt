@@ -101,11 +101,13 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
 
     init {
         createGuildTable()
+        storage.connection.connection.use { it.ensureGuildVaultSchema() }
         createGuildHomesTable()
         migrateTrackingColumn()
         migrateBankFrozenColumn()
         migrateAllyHomeColumns()
         migrateGuiThemeColumn()
+        repairShiftedInsertColumns()
         preload()
     }
 
@@ -261,6 +263,28 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                 !msg.contains("already exists", ignoreCase = true)) {
                 println("WARN [GuildRepositorySQLite] Failed to add gui_theme column: $msg")
             }
+        }
+    }
+
+    /**
+     * Earlier inserts passed gui_theme before the ally-home values, so new guilds stored
+     * their theme name in ally_home_world and the allowed-guilds list in gui_theme.
+     * A theme name can never be a world UUID, so those rows are recognisable; put the
+     * theme back and clear the ally home the guild never set. Idempotent.
+     */
+    private fun repairShiftedInsertColumns() {
+        if (!hasGuiThemeColumn) return
+        val themes = net.lumalyte.lg.utils.GuiTheme.entries.map { it.name }
+        try {
+            val repaired = storage.connection.executeUpdate(
+                "UPDATE guilds SET gui_theme = ally_home_world, ally_home_world = NULL, ally_home_x = NULL, " +
+                    "ally_home_y = NULL, ally_home_z = NULL, ally_home_allowed_guilds = '' " +
+                    "WHERE ally_home_world IN (${themes.joinToString(",") { "?" }})",
+                *themes.toTypedArray(),
+            )
+            if (repaired > 0) println("INFO [GuildRepositorySQLite] Repaired $repaired guild row(s) written with shifted theme/ally-home columns")
+        } catch (e: SQLException) {
+            println("WARN [GuildRepositorySQLite] Could not repair guild rows with shifted theme/ally-home columns: ${e.message}")
         }
     }
 
@@ -684,12 +708,13 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     if (guild.trackingEnabled) 1 else 0,
                     if (guild.bankFrozen) 1 else 0,
                     *bannermanArg(guild),
-                    *guiThemeArg(guild),
                     guild.allyHome?.worldId?.toString(),
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,
                     guild.allyHome?.position?.z,
-                    guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() }
+                    guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() },
+                    // gui_theme is the last column in every INSERT above.
+                    *guiThemeArg(guild)
                 )
             } else if (hasLfgColumns && hasTrackingColumn) {
                 writer.executeUpdate(sql,
@@ -712,12 +737,13 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.joinFeeAmount,
                     if (guild.trackingEnabled) 1 else 0,
                     *bannermanArg(guild),
-                    *guiThemeArg(guild),
                     guild.allyHome?.worldId?.toString(),
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,
                     guild.allyHome?.position?.z,
-                    guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() }
+                    guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() },
+                    // gui_theme is the last column in every INSERT above.
+                    *guiThemeArg(guild)
                 )
             } else if (hasLfgColumns) {
                 writer.executeUpdate(sql,
@@ -739,12 +765,13 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     if (guild.joinFeeEnabled) 1 else 0,
                     guild.joinFeeAmount,
                     *bannermanArg(guild),
-                    *guiThemeArg(guild),
                     guild.allyHome?.worldId?.toString(),
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,
                     guild.allyHome?.position?.z,
-                    guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() }
+                    guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() },
+                    // gui_theme is the last column in every INSERT above.
+                    *guiThemeArg(guild)
                 )
             } else if (hasTrackingColumn) {
                 writer.executeUpdate(sql,
@@ -763,12 +790,13 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.modeChangedAt?.toSqlDateTime(),
                     guild.createdAt.toSqlDateTime(),
                     if (guild.trackingEnabled) 1 else 0,
-                    *guiThemeArg(guild),
                     guild.allyHome?.worldId?.toString(),
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,
                     guild.allyHome?.position?.z,
-                    guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() }
+                    guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() },
+                    // gui_theme is the last column in every INSERT above.
+                    *guiThemeArg(guild)
                 )
             } else {
                 writer.executeUpdate(sql,
@@ -790,7 +818,8 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.allyHome?.position?.x,
                     guild.allyHome?.position?.y,
                     guild.allyHome?.position?.z,
-                    guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() }
+                    guild.allyHomeAllowedGuilds.joinToString(",") { it.toString() },
+                    *guiThemeArg(guild)
                 )
             }
             if (rowsAffected > 0 && publish) {
@@ -801,6 +830,20 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             rowsAffected > 0
         } catch (e: SQLException) {
             false
+        }
+    }
+
+    override fun updateGuiTheme(guildId: UUID, expected: net.lumalyte.lg.utils.GuiTheme, theme: net.lumalyte.lg.utils.GuiTheme): Boolean {
+        if (!hasGuiThemeColumn) return false
+        return try {
+            val changed = storage.connection.executeUpdate(
+                "UPDATE guilds SET gui_theme = ? WHERE id = ? AND gui_theme = ?",
+                theme.name, guildId.toString(), expected.name,
+            ) > 0
+            if (changed) guilds.computeIfPresent(guildId) { _, guild -> guild.copy(guiTheme = theme) }
+            changed
+        } catch (e: SQLException) {
+            throw DatabaseOperationException("Failed to update GUI theme for guild $guildId", e)
         }
     }
 

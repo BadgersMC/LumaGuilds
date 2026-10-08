@@ -1,42 +1,52 @@
 package net.lumalyte.lg.application.persistence
 
 import net.lumalyte.lg.domain.entities.GuildStrike
+import java.time.Instant
 import java.util.UUID
 
-/**
- * Persistence for Guild Strikes — LiteBans punishments attributed to guilds.
- */
-interface StrikeRepository {
+// All twelve established port operations remain available to callers.
 
-    /**
-     * Records a strike if one with the same [GuildStrike.punishmentType] +
-     * [GuildStrike.litebansEntryId] does not already exist (dedupe). Returns
-     * true if a new row was inserted. LiteBans ids are per-table sequences, so
-     * the type is part of the dedupe key.
-     */
+/** Durable strike history with stable provider identities and retryable reconciliation. */
+@Suppress("TooManyFunctions", "LibraryEntitiesShouldNotBePublic", "ComplexInterface")
+interface StrikeRepository {
+    /** Record an attributed legacy strike while enabled. */
     fun recordStrike(strike: GuildStrike): Boolean
 
-    /**
-     * Marks a strike inactive (punishment removed/expired). Returns true if a row
-     * was updated. [punishmentType] disambiguates LiteBans' per-table id sequences.
-     */
+    /** Duplicate provider ids return false; storage failures throw so feed cursors stay replay-safe. */
+    fun recordExternalStrike(strike: GuildStrike): Boolean
+
+    /** Deactivate an existing legacy identity while enabled. */
     fun deactivateStrike(punishmentType: String, litebansEntryId: Long): Boolean
 
-    /** Total strikes (active + inactive) recorded against a guild. */
+    /** Reconcile an existing legacy identity; return whether it exists. */
+    fun reconcileLegacyStrike(punishmentType: String, litebansEntryId: Long, active: Boolean): Boolean
+
+    /** Reconcile an existing provider identity; storage failures throw for safe replay. */
+    fun reconcileExternalStrike(
+        sourceProvider: String,
+        sourcePunishmentId: String,
+        active: Boolean,
+        expiresAt: Instant?,
+    ): Boolean
+
+    /** Deactivate expired provider rows and return the number updated. */
+    fun deactivateExpiredExternal(now: Instant): Int
+
+    /** Count all historical strikes assigned to the guild. */
     fun countByGuild(guildId: UUID): Int
 
-    /** Strikes currently in force (active = 1) against a guild. */
+    /** Count the currently active strikes assigned to the guild. */
     fun countActiveByGuild(guildId: UUID): Int
 
-    /** All strikes for a guild, newest first. */
+    /** Read the ordered historical strikes for a guild. */
     fun getByGuild(guildId: UUID): List<GuildStrike>
 
-    /** Total strikes per guild, guild id -> count. Only guilds with >= 1 strike. */
+    /** Read historical counts by guild. */
     fun getAllCounts(): Map<UUID, Int>
 
-    /** Active (in-force) strikes per guild, guild id -> count. Only guilds with >= 1. */
+    /** Read active counts by guild. */
     fun getAllActiveCounts(): Map<UUID, Int>
 
-    /** Overall number of recorded strikes. */
+    /** Count all historical strikes. */
     fun countAll(): Int
 }
