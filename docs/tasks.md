@@ -1,4 +1,4 @@
-﻿# LumaGuilds â€” Tasks (SPEAR)
+# LumaGuilds â€” Tasks (SPEAR)
 
 Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` line, and an `Evidence:` block that MUST be filled with real source citations before any downstream SPEAR phase runs on it.
 
@@ -996,4 +996,37 @@ Ported from FainNeito/LumaGuilds#2/#3 onto the Enthusia redesign: the holiday st
   - Tag: TDD; References: REQ-136 through REQ-139; docs/community-ui.md.
   - Evidence: category-opening regression failed against prior implementation then passed; native SQL failure reproduced and fixed. Full 1,679-test suite passes with four unrelated skips; 61 native cases pass with zero skips. Shared service/SQL contracts and actual companion runtime are verified. No project-local EARS/state helpers exist; manual requirements/tasks/evidence maintained. PR-head CI, manual review and real Java/Bedrock acceptance remain separate. No merge or production changes.
 
-- [~] COMMUNITY-CODACY — Inspect #215 provider results directly, refine public directory types, new-code formatting and method boundaries, preserve literal locale/wiring contracts, rerun full and native SQL validation, then inspect the published head. EARS/state helpers remain absent; manual evidence is in docs/community-ui.md. Hosted completion is a separate gate.
+- [x] COMMUNITY-CODACY — Inspect #215 provider results directly, refine public directory types, new-code formatting and method boundaries, preserve literal locale/wiring contracts, rerun full and native SQL validation, then inspect the published head. EARS/state helpers remain absent; manual evidence is in docs/community-ui.md. Codacy passes at source 604e1e5 (check 113413615301), with zero new issues. Full local validation passes 1,680 ordinary cases (15 external skips) and all 62 native cases without skips. Final PR-head checks and manual/client acceptance remain separate.
+
+- [x] VAULT-PERMISSIONS
+  - Tag: `TDD`
+  - References: REQ-140
+  - Evidence: Source correction from canonical main a15b244; historical live member-access report remains unconfirmed. Red: 10 of 12 listener tests failed before the fix. Expanded focused checks pass 75 tests; full Java 25 offline test/shadowJar passes 1,564 tests, zero failures/errors and four external skips. Final helper/fixture refinement passes the same focused test/shadowJar profile; signature-only refinement compiles. See vault-inventory-permissions.md. PR/hosted review and in-game acceptance remain separate; the latter is deferred at user request. Production untouched; no project-local EARS/state helpers found.
+  - Files: VaultInventoryListener, VaultItemPermissions, VaultInventoryPermissionTest, docs/vault-inventory-permissions.md
+
+- [x] ALLY-HOME-MENU-AUTHORIZATION
+  - Tag: `TDD`
+  - References: REQ-141
+  - Evidence: Canonical main a15b244 uses rendered access and destination at click time. New actual GuiItem-action regressions fail four of five cases on unchanged source; all five pass after fresh authorization/current-home resolution. Existing ally-access and locale focused checks pass. Full Java 25 offline test/shadowJar passes 1,543 tests with zero failures/errors and four external skips; final focused test/shadowJar also passes including the sixth grant-access case. Hosted/manual review remains separate; in-game testing deferred at user request. No local EARS/state helpers found; production untouched.
+  - Files: GuildHomeMenu, AllyHomeMenuAuthorizationTest, docs/ally-home-menu-authorization.md
+
+- [ ] AXKOTH-ARTIFACT-PREPARATION
+  - Tag: INFRA; References: REQ-142
+  - Spec: Preserve official AxKothAPI 4/axapi 1.4.8 and their original transitive POMs. Verify all cached/downloaded bytes before use; never retry Gradle tests or source errors.
+  - Prove: Final #218 hosted job 113460383318 fails before compilation on truncated JAR bodies. Direct curl reproduced error 18; range resume failed with error 33. Artifact-only retry recovered the full AxKothAPI JAR matching publisher SHA-1 8f6bc658e9f18b1e544ede91e61234f1b46e7281 and the previously validated cache SHA-256. Original axapi JAR matches the publisher SHA-256. No historical behavioral red/green claim applies to this infrastructure change.
+  - Engine / arch: Shared composite action prepares only these two Maven coordinates in the existing mavenLocal repository, retaining official POMs and unchanged Gradle invocation. Five curl retries bound each transfer; SHA-256 verification fails closed. No plugin behavior, API version, shading or production changes.
+  - Refine: All four original artifacts/POMs match the recorded SHA-256 digests and the existing validated Gradle cache. Truncated bytes fail checksum comparison. Full Java 25 offline test/shadowJar using the prepared Maven artifacts passes 1,713 cases, zero failures/errors and 15 external skips; actual Market API contract executes. Final-head hosted workflow validation pending. No project-local EARS/state helper or local Bash/YAML parser is available; manual evidence maintained. In-game tests deferred.
+
+
+- [x] ALLY-HOME-STACK-REFINEMENT
+  - Tag: `TDD`
+  - References: REQ-141
+  - Evidence: Integrated the reviewed #215/#217 stack with requirement/task conflicts resolved. Added a genuine failing seventh action case for lost current listing/perk eligibility; fixed using current GuildService.getAllyHomes and existing access policy. Final combined test/shadowJar passes 1,713 tests, zero failures/errors and 15 external skips; actual Market artifact contract runs with zero skips. Interactive behavioral preview accompanies the change; in-game acceptance deferred. No production changes, merge or activation. Hosted/manual review remains separate.
+  - Files: GuildHomeMenu, AllyHomeMenuAuthorizationTest, docs/ally-home-menu-authorization.md
+
+
+- [x] STALL-REVIEW-RECONCILIATION
+  - Tag: INFRA; References: REQ-143/REQ-144 and existing REQ-136/REQ-139.
+  - Prove: Read-only merge-tree probe of #216 and #218 reproduces conflicts in GuildStallMenu and RankCreationSelectionTest. Standalone stall documentation also duplicated REQ-140/REQ-141.
+  - Engine / arch: Retained the current shared permission-rechecking sales/access controls and reviewed rank setup, incorporated the existing vault/ally-home corrections and verified artifact preparation, reconciled unique requirement IDs. Existing player-facing behavior is unchanged; no historical red/green runtime claim is made for this merge.
+  - Refine: Combined Java 25 offline test/shadowJar passes 1,714 cases, zero failures/errors and 15 external skips, including the actual Market artifact contract. Both previous merge conflicts are resolved; final-head hosted checks and maintainer review remain separate gates. Manual SPEAR records maintained; no EARS/state helpers found. In-game acceptance deferred; production untouched.

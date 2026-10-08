@@ -78,49 +78,34 @@ Empty/blank values now select the optional profile, while a non-empty configured
 missing file still fails. Both the valid real-artifact execution and blank-profile
 skip were verified locally; Gradle tracks only non-blank configured artifacts.
 
-### Codacy refinement
+### Codacy refinement complete
 
-The current provider report exposes 286 new findings; GitHub annotations had not
-yet synchronized. Inspect severity and affected code directly. Preserve all
-permission, privacy, database rollback and unknown-data contracts while refining
-new code formatting and method boundaries; do not suppress the quality gate.
+Inspected the direct provider report because GitHub initially omitted/truncated
+findings. The initial report contained 286 new findings. Refinement preserved
+literal locale keys, banner wiring, permission/privacy rules, transaction rollback
+and cache publication; existing contracts caught and helped repair intermediate
+locale/wiring regressions. No quality-gate suppression was added.
 
-Refinement preserves literal locale keys (the source contract caught a dynamic-key
-refactor) and the established banner resolver wiring. Those regressions were
-repaired and the final full suite passes; public directory facts use a regular
-class, and chat filtering, destination labels, rank toggles and SQL readers have
-smaller methods. Existing SQL rollback and cache-publication contracts remain.
-The optional broad default Detekt scan also sees historical repository findings;
-it is not presented as a passing project gate or a substitute for hosted Codacy.
+Directory implementation types and the Discord adapter constructor are internal;
+the supported guild API does not expose them. Immutable directory facts retain
+value equality. SQL readers, chat filtering/destination labels, announcements,
+rank toggles and test arrangement have smaller methods and configured formatting.
+The broad default Detekt advisory also found historical repository issues; it is
+not a passing project gate or a substitute for the hosted provider.
 
-Final refinement validation: 1,679 tests, zero failures/errors, 15 external skips
-in the ordinary profile; all 61 disposable native MariaDB cases pass without
-skips. The actual companion runtime contract executes. Wiki lint (42 selected
-wiki/plan files) and all 13 topic-parity checks pass. Production is untouched.
+Final implementation/test source: 604e1e57e76656a604cf58a44509ba150f28a3ad.
+Codacy check 113413615301 succeeds with zero annotations/new issues. All four
+hosted wiki checks pass at that source head. Full local Java-25 / Paper-26.2
+matrix: 1,680 ordinary tests, zero failures/errors, 15 external skips; all 62
+separate native MariaDB cases pass without skips. The actual frozen Market
+companion runtime contract executes. The owned loopback helper is stopped.
 
-Second hosted refinement: #215 head e1381b6 reduced the provider report from 286
-to 125 findings and removed the high compatibility issue. Refine remaining
-return counts, constants, documentation, configured formatting and transaction
-method boundaries. The focused privacy, SQL rollback/cache, directory, rank,
-announcement, locale and stall-menu contracts pass (40 tests, zero failures/errors).
-Final-head full/native/hosted validation remains separate. No gate suppression.
+Online JitPack metadata timed out during one validation attempt; the cached
+offline profile compiled and passed. This is separate from hosted CI. Wiki lint
+passes for 42 selected wiki/plan files. Local EARS/state helpers remain absent;
+manual requirements/tasks/evidence are maintained. Final hosted results are
+recorded on #215. Manual review and real Java/Bedrock acceptance remain open.
 
-Third hosted refinement: the provider reports 41 remaining findings at 6751cbc.
-Public directory facts now expose an interface and constructor-style factory
-with a private immutable data implementation; value equality remains available.
-Restore unchanged legacy SQL-method formatting, split test arrangement from
-assertions without dropping coverage, and refine remaining configured style.
-Focused behavior, locale, wiring and wiki checks pass. The preceding full matrix
-passed 1,679 ordinary cases and all 61 native cases; the final head is rechecked
-separately before completion.
-
-Fourth hosted refinement: ffe4ec3 reduced the direct provider report to 22
-findings. Directory implementation types and the adapter constructor are now
-internal; the supported guild API does not expose these types. Java, Bedrock
-and Discord consumers compile, with immutable snapshots/equality retained.
-Remaining configured formatting and test-method length are refined without
-dropping assertions or suppressing checks. Focused contracts pass; the preceding
-full matrix passed 1,680 ordinary cases (15 external skips) and all 62 native
-cases without skips. Final published-head validation is checked separately.
-An online dependency metadata request timed out at JitPack; the cached offline
-profile compiled and passed, which is distinct from hosted CI.
+This final evidence/state update changes documentation only; additional engine
+or behavioral proof does not apply because runtime/test sources are unchanged.
+Production stays untouched; no merge, deployment, approval or restart occurred.

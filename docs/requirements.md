@@ -661,3 +661,20 @@ WHEN a player changes personal chat preferences THE SYSTEM SHALL durably store g
 ### REQ-139 — Stall report shortcut
 
 WHILE the companion accounting command is available THE guild stall detail menu SHALL offer its read-only report to currently authorized shop managers on Java and Bedrock. Market SHALL recheck current ownership, membership and shop authority before querying or disclosing records.
+
+### REQ-140
+
+WHEN a player opens or interacts with a guild vault THE SYSTEM SHALL recheck current ACCESS_VAULT authorization. Item movements SHALL require DEPOSIT_TO_VAULT for ingress and WITHDRAW_FROM_VAULT for egress, including shift transfers, collection, drops and swaps. Swaps SHALL require both permissions. Permission loss SHALL cancel the interaction before mutation and close only the affected vault view safely. Player-only actions SHALL retain normal behavior while access remains valid; the gold button SHALL retain its existing operation-specific checks. Unknown/cancelled actions SHALL NOT mutate or synchronize the vault. Existing explicit admin override semantics SHALL remain unchanged.
+
+### REQ-141
+**Event-driven.** WHEN a player clicks a previously rendered Java ally-home button THEN THE SYSTEM SHALL resolve the target guild by its stable identity, read its current ally home, and recheck current eligible-home listing (including both guilds' required perks) and service-backed ally-home access before starting the countdown. Removed homes, disbanded targets and revoked access SHALL be denied; relocated homes SHALL use current coordinates and renamed targets SHALL retain their identity. Existing safety/countdown/economy behavior SHALL be preserved. Real client acceptance is deferred; this correction addresses stale menu state, not authorization changes during an already running countdown.
+
+### REQ-142
+WHEN hosted build, test or release workflows prepare AxKothAPI 4 and its axapi 1.4.8 dependency THE SYSTEM SHALL verify their original published JARs and POMs against recorded SHA-256 digests before Gradle consumes them. Incomplete downloads SHALL be retried only during artifact preparation with a finite limit; cached files SHALL also be verified. Failed preparation SHALL prevent Gradle execution. Dependency coordinates, transitive metadata, compile-only runtime semantics and required test gates SHALL remain unchanged; source and test failures SHALL NOT be retried.
+
+
+### REQ-143
+WHEN a companion checks guild alliance access THE public GuildAllianceLookup SHALL return true only for an active ALLY relation between distinct guilds; pending, ended, absent and enemy relations SHALL return false. The repository SHALL be warmed at registration so event reads use its existing cache.
+
+### REQ-144
+WHEN a currently authorized shop manager opens guild stall details THE Java and Bedrock controls SHALL offer the Market stall flags/access command. Market SHALL revalidate stall ownership and authority on each mutation; the shortcut SHALL NOT grant permissions.
