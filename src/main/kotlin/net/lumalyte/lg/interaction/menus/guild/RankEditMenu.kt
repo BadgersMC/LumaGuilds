@@ -256,50 +256,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
     }
 
     private fun addPermissionCategories(pane: StaticPane) {
-        val baseCategories = mutableMapOf(
-            "Guild Management" to listOf(
-                RankPermission.MANAGE_RANKS, RankPermission.MANAGE_MEMBERS,
-                RankPermission.MANAGE_BANNER, RankPermission.MANAGE_EMOJI,
-                RankPermission.MANAGE_DESCRIPTION, RankPermission.MANAGE_HOME,
-                RankPermission.MANAGE_MODE, RankPermission.MANAGE_GUILD_SETTINGS
-            ),
-            "Banking" to listOf(
-                RankPermission.DEPOSIT_TO_BANK, RankPermission.WITHDRAW_FROM_BANK,
-                RankPermission.VIEW_BANK_TRANSACTIONS,
-                RankPermission.MANAGE_BANK_SETTINGS,
-                RankPermission.PLACE_VAULT, RankPermission.ACCESS_VAULT,
-                RankPermission.DEPOSIT_TO_VAULT, RankPermission.WITHDRAW_FROM_VAULT,
-                RankPermission.MANAGE_VAULT, RankPermission.BREAK_VAULT,
-                RankPermission.ACCESS_SHOP_CHESTS, RankPermission.EDIT_SHOP_STOCK,
-                RankPermission.MODIFY_SHOP_PRICES
-            ),
-            "Diplomacy" to listOf(
-                RankPermission.MANAGE_RELATIONS, RankPermission.DECLARE_WAR,
-                RankPermission.PLACE_WAR_BANNER,
-                RankPermission.ACCEPT_ALLIANCES, RankPermission.MANAGE_PARTIES,
-                RankPermission.SEND_PARTY_REQUESTS, RankPermission.ACCEPT_PARTY_INVITES,
-                RankPermission.USE_ALLY_HOMES
-            ),
-            "Communication" to listOf(
-                RankPermission.SEND_ANNOUNCEMENTS, RankPermission.SEND_PINGS,
-                RankPermission.MODERATE_CHAT
-            ),
-            "Administrative" to listOf(
-                RankPermission.ACCESS_ADMIN_COMMANDS, RankPermission.BYPASS_RESTRICTIONS,
-                RankPermission.VIEW_AUDIT_LOGS, RankPermission.MANAGE_INTEGRATIONS
-            )
-        )
-
-        // Only add Claims category if claims are enabled
-        if (areClaimsEnabled()) {
-            baseCategories["Claims"] = listOf(
-                RankPermission.MANAGE_CLAIMS, RankPermission.MANAGE_FLAGS,
-                RankPermission.MANAGE_PERMISSIONS, RankPermission.CREATE_CLAIMS,
-                RankPermission.DELETE_CLAIMS
-            )
-        }
-
-        val categories = baseCategories
+        val categories = RankPermissionCatalog.categories(areClaimsEnabled())
 
         categories.entries.forEachIndexed { index, (categoryName, permissions) ->
             val row = 1 + (index / 3)

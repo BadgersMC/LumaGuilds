@@ -36,7 +36,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.atomic.AtomicBoolean
 
-class DiscordSrvGuildProfileSubscription(
+class DiscordSrvGuildProfileSubscription internal constructor(
     private val plugin: LumaGuilds,
     private val profiles: GuildDiscordProfileService,
     private val guildListService: GuildListService,

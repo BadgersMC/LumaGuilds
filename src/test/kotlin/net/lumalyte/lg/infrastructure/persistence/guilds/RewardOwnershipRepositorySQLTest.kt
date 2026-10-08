@@ -189,9 +189,9 @@ class RewardOwnershipRepositorySQLTest : RewardSqlTestFixture() {
         )
         storage.connection.executeUpdate(
             """CREATE TABLE IF NOT EXISTS guild_prestige_transactions (
-                transaction_id TEXT PRIMARY KEY,
-                guild_id TEXT NOT NULL,
-                outcome TEXT NOT NULL
+                transaction_id VARCHAR(36) PRIMARY KEY,
+                guild_id VARCHAR(36) NOT NULL,
+                outcome VARCHAR(32) NOT NULL
             )""".trimIndent(),
         )
         storage.connection.executeUpdate(

@@ -5,7 +5,7 @@ topic: ranks
 summary: Create ranks, set permissions, and manage member rank assignments.
 keywords: [ranks, permissions, priority, promote, demote]
 related: [guilds, homes, lfg]
-updated: 2026-10-03
+updated: 2026-10-07
 ---
 
 # Ranks & Permissions
@@ -22,7 +22,7 @@ Create ranks, set permissions, and manage member rank assignments.
 
 ## How it works
 
-Every member is assigned a rank. Ranks have a *priority* (0 = owner, higher numbers = lower rank) and a set of *permissions*. To do anything privileged — invite, kick, manage homes, declare war — your rank needs the matching permission. You can never promote someone to or beyond your own priority, and you can never manage a member who outranks you.
+Every member is assigned a rank. Ranks have a *priority* (0 = owner, higher numbers = lower rank) and a set of *permissions*. To do anything privileged — invite, kick, manage homes, declare war — your rank needs the matching permission. You can only manage members and ranks below your own priority. You cannot change your own assignment, grant an owner rank through normal promotion, or delegate permissions your rank lacks. Ownership changes use the separate ownership-transfer action.
 
 ## Opening the rank menu
 
@@ -92,3 +92,10 @@ The system will confirm the action before applying it. You can't promote someone
 - [Guilds](guilds.md) — create and manage your guild
 - [Homes](homes.md) — set per-home rank access
 - [LFG](lfg.md) — manage members and bans
+
+## Individual permission selection
+
+Permission categories now open individual toggles during rank creation and editing.
+Opening a category does not grant its permissions. You cannot grant permissions
+you do not currently hold. Lower priority numbers rank higher; priority zero is
+the owner rank. Claims-related permissions are hidden when claims are disabled.
