@@ -41,8 +41,10 @@ internal class RankAuthorityBoundaryTest {
             every { ranks.getById(it.id) } returns it
         }
 
-    private fun actorRank(priority: Int = ACTOR_PRIORITY): Rank = rank(priority).also {
-        every { members.getRankId(actor, guild) } returns it.id
+    private fun actorRank(priority: Int = ACTOR_PRIORITY): Rank {
+        return rank(priority).also {
+            every { members.getRankId(actor, guild) } returns it.id
+        }
     }
 
     private fun member(player: UUID, rank: Rank) {

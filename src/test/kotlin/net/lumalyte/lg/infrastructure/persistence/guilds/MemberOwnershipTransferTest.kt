@@ -98,14 +98,16 @@ internal class MemberOwnershipTransferTest {
             }
         }
 
-        fun persisted(member: Member): String = storage.connection
-            .getResults(
-                "SELECT rank_id FROM members WHERE player_id = ? AND guild_id = ?",
-                member.playerId.toString(),
-                guild.toString(),
-            )
-            .single()
-            .getString("rank_id")
+        fun persisted(member: Member): String {
+            return storage.connection
+                .getResults(
+                    "SELECT rank_id FROM members WHERE player_id = ? AND guild_id = ?",
+                    member.playerId.toString(),
+                    guild.toString(),
+                )
+                .single()
+                .getString("rank_id")
+        }
 
         private fun insertRank(id: UUID, priority: Int) {
             storage.connection.executeUpdate(

@@ -62,7 +62,7 @@ internal class MemberOwnershipMariaDbTest {
 
         init {
             createSchema()
-            listOf(ownerRank, lowerRank).forEachIndexed { priority, id ->
+            for ((priority, id) in listOf(ownerRank, lowerRank).withIndex()) {
                 insertRank(id, priority)
             }
             repo = MemberRepositorySQLite(storage)
