@@ -39,28 +39,32 @@ internal class GuildStallReadClient(
             .invoke(service, guildId, viewerId) as? CompletionStage<*>
     }
 
-    private fun decodeRows(value: Any?): StallReadResult = runCatching<StallReadResult> {
-        StallReadResult.Available((value as List<*>).map { decode(requireNotNull(it)) })
-    }.getOrDefault(StallReadResult.Unavailable)
+    private fun decodeRows(value: Any?): StallReadResult {
+        return runCatching<StallReadResult> {
+            StallReadResult.Available((value as List<*>).map { decode(requireNotNull(it)) })
+        }.getOrDefault(StallReadResult.Unavailable)
+    }
 
-    private fun decode(row: Any): GuildStallInfo = GuildStallInfo(
-        row.text("id"),
-        row.text("region"),
-        row.text("world"),
-        row.text("state"),
-        (row.field("rent") as Long).also { require(it >= 0) },
-        (row.field("intervalSeconds") as Long).also { require(it > 0) },
-        row.optional<Instant>("nextRentAt"),
-        row.optional<Instant>("graceEndsAt"),
-        row.optional<String>("coordinates"),
-        (row.field("members") as List<*>).map { raw ->
-            val member = requireNotNull(raw)
-            GuildStallMemberInfo(
-                member.field("playerId") as UUID,
-                (member.field("permissions") as Set<*>).map { GuildStallPermission.valueOf(it as String) }.toSet(),
-            )
-        },
-    )
+    private fun decode(row: Any): GuildStallInfo {
+        return GuildStallInfo(
+            row.text("id"),
+            row.text("region"),
+            row.text("world"),
+            row.text("state"),
+            (row.field("rent") as Long).also { require(it >= 0) },
+            (row.field("intervalSeconds") as Long).also { require(it > 0) },
+            row.optional<Instant>("nextRentAt"),
+            row.optional<Instant>("graceEndsAt"),
+            row.optional<String>("coordinates"),
+            (row.field("members") as List<*>).map { raw ->
+                val member = requireNotNull(raw)
+                GuildStallMemberInfo(
+                    member.field("playerId") as UUID,
+                    (member.field("permissions") as Set<*>).map { GuildStallPermission.valueOf(it as String) }.toSet(),
+                )
+            },
+        )
+    }
 
     // A wrong non-null type is an unavailable contract, not silently missing metadata.
     private inline fun <reified T> Any.optional(name: String): T? {
@@ -70,8 +74,10 @@ internal class GuildStallReadClient(
 
     private fun Any.field(name: String): Any? = javaClass.getMethod(name).invoke(this)
 
-    private fun Any.text(name: String): String = (field(name) as String).also {
-        require(it.isNotBlank() && it.length <= MAX_TEXT_LENGTH && it.none(Char::isISOControl))
+    private fun Any.text(name: String): String {
+        return (field(name) as String).also {
+            require(it.isNotBlank() && it.length <= MAX_TEXT_LENGTH && it.none(Char::isISOControl))
+        }
     }
 
     private fun unavailable(): CompletableFuture<StallReadResult> =

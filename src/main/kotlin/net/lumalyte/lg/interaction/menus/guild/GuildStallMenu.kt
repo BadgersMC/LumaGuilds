@@ -128,26 +128,28 @@ internal class GuildStallMenu(
         }
     }
 
-    private fun controls(maxPage: Int, summary: Component): List<Row> = listOf(
-        Row(lang.gui("guild_stall.back"), emptyList()) {
-            if (selected == null) {
-                navigator.goBack()
-            } else {
-                selected = null
-                page = 0
+    private fun controls(maxPage: Int, summary: Component): List<Row> {
+        return listOf(
+            Row(lang.gui("guild_stall.back"), emptyList()) {
+                if (selected == null) {
+                    navigator.goBack()
+                } else {
+                    selected = null
+                    page = 0
+                    open()
+                }
+            },
+            Row(lang.gui("guild_stall.previous"), emptyList()) {
+                page = (page - 1).coerceAtLeast(0)
                 open()
-            }
-        },
-        Row(lang.gui("guild_stall.previous"), emptyList()) {
-            page = (page - 1).coerceAtLeast(0)
-            open()
-        },
-        Row(lang.gui("guild_stall.refresh"), summaryLines(summary)) { open() },
-        Row(lang.gui("guild_stall.next"), emptyList()) {
-            page = (page + 1).coerceAtMost(maxPage)
-            open()
-        },
-    )
+            },
+            Row(lang.gui("guild_stall.refresh"), summaryLines(summary)) { open() },
+            Row(lang.gui("guild_stall.next"), emptyList()) {
+                page = (page + 1).coerceAtMost(maxPage)
+                open()
+            },
+        )
+    }
 
     private fun displayInventory(visible: List<Row>, controls: List<Row>, summary: Component, token: Long) {
         val title = MenuTitleBuilder.build(guild.guiTheme, MENU_ROWS, lang.guiTitle(TITLE_KEY))
@@ -198,9 +200,7 @@ internal class GuildStallMenu(
             val builder =
                 SimpleForm
                     .builder()
-                    .title(
-                        lang.bedrock(TITLE_KEY),
-                    )
+                    .title(lang.bedrock(TITLE_KEY))
                     .content(plain.serialize(summary))
             rows.forEach { row ->
                 builder.button(plain.serialize(row.name) + row.lore.joinToString("") { "\n" + plain.serialize(it) })
@@ -213,7 +213,8 @@ internal class GuildStallMenu(
                     Runnable {
                         Bukkit.getScheduler().runTask(plugin, Runnable { acceptClose() })
                     },
-                ).build()
+                )
+                .build()
         }
 
         private fun acceptClick(index: Int) {

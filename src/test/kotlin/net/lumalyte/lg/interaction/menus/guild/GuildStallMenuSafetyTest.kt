@@ -43,6 +43,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertSame
 
 /** Real inventory close/navigation prevents asynchronous Market results reopening menus. */
+@Suppress("TooManyFunctions") // Six independent GUI races share small JUnit lifecycle/reflective fixtures.
 internal class GuildStallMenuSafetyTest {
     @TempDir var directory: Path? = null
     private var server: ServerMock by Delegates.notNull()
@@ -86,7 +87,8 @@ internal class GuildStallMenuSafetyTest {
         }
     }
 
-    private fun createLanguage(): LangService = LangService(
+    private fun createLanguage(): LangService {
+        return LangService(
         object : LangHost {
             override val dataFolder: File = checkNotNull(directory).toFile()
             override val resourceClassLoader: ClassLoader = LumaGuildsLang::class.java.classLoader
@@ -94,6 +96,7 @@ internal class GuildStallMenuSafetyTest {
         Locale("en_US"),
         LumaGuildsLang::class.java,
     )
+    }
 
     /** Restore global test resources. */
     @AfterEach
