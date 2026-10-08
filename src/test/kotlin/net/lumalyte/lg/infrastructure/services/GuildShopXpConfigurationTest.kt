@@ -2,12 +2,15 @@ package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.domain.values.GuildShopXpPolicy
 import org.bukkit.configuration.file.YamlConfiguration
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-class GuildShopXpConfigurationTest {
-    @Test fun `missing settings use approved defaults and explicit settings override each limit`() {
+internal class GuildShopXpConfigurationTest {
+    @DisplayName("missing settings use approved defaults and explicit settings override each limit")
+    @Test
+    fun scenario1() {
         val yaml = YamlConfiguration()
         val service = ConfigServiceBukkit { yaml }
         assertEquals(GuildShopXpPolicy(), service.loadConfig().progression.shopXp)
@@ -19,7 +22,9 @@ class GuildShopXpConfigurationTest {
         assertEquals(GuildShopXpPolicy(false, 3, 90, 9, 60), service.loadConfig().progression.shopXp)
     }
 
-    @Test fun `invalid limits fail explicitly rather than becoming unlimited`() {
+    @DisplayName("invalid limits fail explicitly rather than becoming unlimited")
+    @Test
+    fun scenario2() {
         assertFailsWith<IllegalArgumentException> { GuildShopXpPolicy(buyerDailyCap = -1) }
         assertFailsWith<IllegalArgumentException> { GuildShopXpPolicy(pairCooldownSeconds = Long.MAX_VALUE) }
     }

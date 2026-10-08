@@ -1,6 +1,13 @@
 package net.lumalyte.lg.domain.values
 
-/** A completed outside-customer SELL trade earns one award, irrespective of its size. */
+/**
+ * A completed outside-customer SELL trade earns one award, irrespective of its size.
+ * @property enabled Whether newly prepared sales can award XP.
+ * @property xpPerSale Flat award; zero disables awards.
+ * @property guildDailyCap Shared UTC-day guild allowance; zero prevents awards.
+ * @property buyerDailyCap UTC-day allowance shared by this buyer across the guild's shops.
+ * @property pairCooldownSeconds Minimum interval between this buyer's awards to the guild.
+ */
 data class GuildShopXpPolicy(
     val enabled: Boolean = true,
     val xpPerSale: Int = 5,
@@ -8,8 +15,12 @@ data class GuildShopXpPolicy(
     val buyerDailyCap: Int = 50,
     val pairCooldownSeconds: Long = 300,
 ) {
+    private companion object {
+        const val MILLIS_PER_SECOND = 1000L
+    }
+
     init {
         require(xpPerSale >= 0 && guildDailyCap >= 0 && buyerDailyCap >= 0)
-        require(pairCooldownSeconds in 0..(Long.MAX_VALUE / 1000))
+        require(pairCooldownSeconds in 0..Long.MAX_VALUE / MILLIS_PER_SECOND)
     }
 }

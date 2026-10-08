@@ -2,18 +2,29 @@ package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.api.GuildShopXpApi
 import net.lumalyte.lg.application.persistence.GuildShopXpRepository
+import net.lumalyte.lg.application.persistence.GuildShopXpSale
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.ProgressionService
 import java.util.UUID
 
-class GuildShopXpProvider(
+/** Publishes the JDK-only companion API and refreshes committed progression on the server thread. */
+internal class GuildShopXpProvider(
     private val repository: GuildShopXpRepository,
     private val config: ConfigService,
     private val progression: ProgressionService,
 ) : GuildShopXpApi {
     override fun apiVersion(): Int = 1
-    override fun prepare(saleId: UUID, owningGuildId: UUID, buyerId: UUID, occurredAtMillis: Long): String =
-        repository.prepare(saleId, owningGuildId, buyerId, occurredAtMillis, config.loadConfig().progression.shopXp)
+
+    override fun prepare(
+        saleId: UUID,
+        owningGuildId: UUID,
+        buyerId: UUID,
+        occurredAtMillis: Long,
+    ): String =
+        repository.prepare(
+            GuildShopXpSale(saleId, owningGuildId, buyerId, occurredAtMillis),
+            config.loadConfig().progression.shopXp,
+        )
 
     override fun complete(saleId: UUID): String {
         val result = repository.complete(saleId)

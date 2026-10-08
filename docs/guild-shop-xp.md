@@ -35,3 +35,9 @@ For uncertain Market trades, inspect `guild_sale_xp_journal` by ID/shop/buyer an
 Local unmerged review artifact: `build/libs/LumaGuilds-3.0.17-shop-xp-review.jar`; SHA-256 `de2472bd9201021a6f21fceb79180687a8977a4360db2359968b9d1e2b161d0f`. This is not a production artifact or deployment approval.
 
 The optional native test target is fixed to loopback and a disposable test database. Gradle tracks its configured port and reruns configured native checks rather than reusing skipped or stale external-database results.
+
+## Review refinement (7 October)
+
+The SQL completion path is split into terminal-denial, award and buyer-reservation steps, retaining one transaction. Preparation takes one internal immutable sale identity. Internal-only implementation types remain internal; display names retain descriptive test output. Transaction rollback now also covers Errors, with a regression proving rollback on AssertionError and disposal after failed rollback. Clean Java 25/Paper 26.2 test + shadowJar passed 1,562 tests, zero failures/errors and four unrelated skips. All seven native MariaDB contracts executed on disposable loopback MariaDB 11.8.3. These results supersede the previous local count and review-artifact hash above.
+
+Revised unmerged review artifact SHA-256: b09c321bd6e15be9db1f7363606c6a04bc33ad2318724d87684124be8fd9947d. Hosted checks for the revised head, the released companion pin and staging remain separate gates; production was unchanged.

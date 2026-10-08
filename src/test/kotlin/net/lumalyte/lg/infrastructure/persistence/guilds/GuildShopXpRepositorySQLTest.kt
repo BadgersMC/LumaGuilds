@@ -1,22 +1,24 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
+import net.lumalyte.lg.application.persistence.GuildShopXpSale
 import net.lumalyte.lg.domain.values.GuildShopXpPolicy
 import net.lumalyte.lg.domain.values.ProgressionCurve
 import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteStorage
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Path
 import java.time.Instant
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
 
-class GuildShopXpRepositorySQLTest {
+internal class GuildShopXpRepositorySQLTest {
     @TempDir lateinit var directory: Path
     private lateinit var storage: VirtualThreadSQLiteStorage
     private lateinit var repository: GuildShopXpRepositorySQL
@@ -35,16 +37,22 @@ class GuildShopXpRepositorySQLTest {
         repository = GuildShopXpRepositorySQL(storage, awards)
     }
 
-    @AfterEach fun close() { storage.connection.close(5, TimeUnit.SECONDS) }
+    @AfterEach fun close() {
+        storage.connection.close(5, TimeUnit.SECONDS)
+    }
 
-    @Test fun `duplicate delivery and acknowledgement loss grant only one award`() {
+    @DisplayName("duplicate delivery and acknowledgement loss grant only one award")
+    @Test
+    fun duplicateDeliveryOnce() {
         val id = prepare()
         assertEquals("AWARDED:5", repository.complete(id).status)
         assertEquals("AWARDED:5", repository.complete(id).status)
         assertEquals(5, xp())
     }
 
-    @Test fun `membership is captured before payment and own guild cannot earn XP`() {
+    @DisplayName("membership is captured before payment and own guild cannot earn XP")
+    @Test
+    fun ownGuildSnapshot() {
         storage.connection.executeUpdate("INSERT INTO members VALUES (?, ?)", buyer.toString(), guild.toString())
         val id = prepare()
         storage.connection.executeUpdate("DELETE FROM members")
@@ -55,7 +63,9 @@ class GuildShopXpRepositorySQLTest {
         assertEquals("AWARDED:5", repository.complete(outside).status)
     }
 
-    @Test fun `caps and cooldown span all shops and denials remain consumed`() {
+    @DisplayName("caps and cooldown span all shops and denials remain consumed")
+    @Test
+    fun sharedCapsAndCooldown() {
         val policy = GuildShopXpPolicy(guildDailyCap = 12, buyerDailyCap = 7)
         assertEquals("AWARDED:5", repository.complete(prepare(policy = policy)).status)
         val cooldown = prepare(time = at + 299_999, policy = policy)
@@ -67,7 +77,9 @@ class GuildShopXpRepositorySQLTest {
         assertEquals("COOLDOWN", repository.complete(cooldown).status)
     }
 
-    @Test fun `prestige rejects pending sale without affecting new run`() {
+    @DisplayName("prestige rejects pending sale without affecting new run")
+    @Test
+    fun utcBoundary() {
         val id = prepare()
         storage.connection.executeUpdate("UPDATE guild_reward_accounts SET prestige_count = 1")
         assertEquals("STALE_RUN", repository.complete(id).status)
@@ -75,7 +87,9 @@ class GuildShopXpRepositorySQLTest {
         assertEquals("AWARDED:5", repository.complete(prepare()).status)
     }
 
-    @Test fun `daily limits reset at UTC midnight while cooldown crosses midnight`() {
+    @DisplayName("daily limits reset at UTC midnight while cooldown crosses midnight")
+    @Test
+    fun prestigeRunGuard() {
         val midnight = Instant.parse("2026-10-08T00:00:00Z").toEpochMilli()
         val policy = GuildShopXpPolicy(guildDailyCap = 5, buyerDailyCap = 5)
         repository.complete(prepare(time = midnight - 1, policy = policy))
@@ -84,20 +98,32 @@ class GuildShopXpRepositorySQLTest {
         assertEquals(10, xp())
     }
 
-    @Test fun `failed SQL rolls back caps and consumption and can retry`() {
+    @DisplayName("failed SQL rolls back caps and consumption and can retry")
+    @Test
+    fun rollbackIsRetryable() {
         val id = prepare()
-        storage.connection.executeUpdate("CREATE TRIGGER reject_xp BEFORE INSERT ON experience_transactions BEGIN SELECT RAISE(ABORT, 'test fault'); END")
+        storage.connection.executeUpdate(
+            "CREATE TRIGGER reject_xp BEFORE INSERT ON experience_transactions BEGIN SELECT RAISE(ABORT, 'test fault'); END",
+        )
         assertFails { repository.complete(id) }
         assertEquals(0, xp())
         storage.connection.executeUpdate("DROP TRIGGER reject_xp")
         assertEquals("AWARDED:5", repository.complete(id).status)
     }
 
-    @Test fun `concurrent distinct buyers cannot exceed shared guild cap`() {
+    @DisplayName("concurrent distinct buyers cannot exceed shared guild cap")
+    @Test
+    fun concurrentGuildCap() {
         val policy = GuildShopXpPolicy(guildDailyCap = 12)
         val ids = List(12) { prepare(who = UUID.randomUUID(), policy = policy) }
         val start = CountDownLatch(1)
-        val results = ids.map { id -> CompletableFuture.supplyAsync { start.await(); repository.complete(id) } }
+        val results =
+            ids.map { id ->
+                CompletableFuture.supplyAsync {
+                    start.await()
+                    repository.complete(id)
+                }
+            }
         start.countDown()
         results.forEach { it.get(10, TimeUnit.SECONDS) }
         assertEquals(12, xp())
@@ -106,16 +132,26 @@ class GuildShopXpRepositorySQLTest {
         assertEquals(12, xp())
     }
 
-    @Test fun `concurrent same buyer across shops and duplicate ID cannot bypass cooldown`() {
+    @DisplayName("concurrent same buyer across shops and duplicate ID cannot bypass cooldown")
+    @Test
+    fun concurrentPairCooldown() {
         val ids = List(8) { prepare() }
         val start = CountDownLatch(1)
-        val results = (ids + ids).map { id -> CompletableFuture.supplyAsync { start.await(); repository.complete(id) } }
+        val results =
+            (ids + ids).map { id ->
+                CompletableFuture.supplyAsync {
+                    start.await()
+                    repository.complete(id)
+                }
+            }
         start.countDown()
         results.forEach { it.get(10, TimeUnit.SECONDS) }
         assertEquals(5, xp())
     }
 
-    @Test fun `consumption survives XP history retention`() {
+    @DisplayName("consumption survives XP history retention")
+    @Test
+    fun retainedConsumption() {
         val id = prepare()
         repository.complete(id)
         storage.connection.executeUpdate("DELETE FROM experience_transactions")
@@ -123,35 +159,51 @@ class GuildShopXpRepositorySQLTest {
         assertEquals(5, xp())
     }
 
-    @Test fun `disbanded guild terminally rejects prepared sale`() {
+    @DisplayName("disbanded guild terminally rejects prepared sale")
+    @Test
+    fun disbandConsumes() {
         val id = prepare()
         storage.connection.executeUpdate("DELETE FROM guilds")
         assertEquals("STALE_RUN", repository.complete(id).status)
         assertEquals(0, xp())
     }
 
-    @Test fun `sale identity cannot be rebound to another buyer`() {
+    @DisplayName("sale identity cannot be rebound to another buyer")
+    @Test
+    fun identityConflict() {
         val id = prepare()
-        assertFails { repository.prepare(id, guild, UUID.randomUUID(), at, GuildShopXpPolicy()) }
+        assertFails { repository.prepare(GuildShopXpSale(id, guild, UUID.randomUUID(), at), GuildShopXpPolicy()) }
         assertEquals("AWARDED:5", repository.complete(id).status)
     }
 
-    @Test fun `disabled and zero cap policies are terminal without XP`() {
+    @DisplayName("disabled and zero cap policies are terminal without XP")
+    @Test
+    fun disabledZeroCap() {
         assertEquals("DISABLED", repository.complete(prepare(policy = GuildShopXpPolicy(enabled = false))).status)
         assertEquals("CAPPED", repository.complete(prepare(policy = GuildShopXpPolicy(guildDailyCap = 0))).status)
         assertEquals(0, xp())
     }
 
-    @Test fun `missing authoritative account fails preparation instead of assuming eligibility`() {
+    @DisplayName("missing authoritative account fails preparation instead of assuming eligibility")
+    @Test
+    fun missingAccountRejected() {
         storage.connection.executeUpdate("DELETE FROM guild_reward_accounts")
         assertFails { prepare() }
         assertEquals(0, storage.connection.getResults("SELECT id FROM guild_shop_xp_sales").size)
     }
 
-    private fun prepare(who: UUID = buyer, time: Long = at, policy: GuildShopXpPolicy = GuildShopXpPolicy()): UUID {
+    private fun prepare(
+        who: UUID = buyer,
+        time: Long = at,
+        policy: GuildShopXpPolicy = GuildShopXpPolicy(),
+    ): UUID {
         val id = UUID.randomUUID()
-        assertEquals("PREPARED", repository.prepare(id, guild, who, time, policy))
+        assertEquals("PREPARED", repository.prepare(GuildShopXpSale(id, guild, who, time), policy))
         return id
     }
-    private fun xp(): Int = storage.connection.getResults("SELECT total_experience FROM guild_progression").sumOf { it.getInt("total_experience") }
+
+    private fun xp(): Int =
+        storage.connection.getResults("SELECT total_experience FROM guild_progression").sumOf {
+            it.getInt("total_experience")
+        }
 }
