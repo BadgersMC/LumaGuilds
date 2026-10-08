@@ -224,7 +224,8 @@ internal class EnthusiaStaffStrikeFeed(
         at: Instant,
         allowCurrentFallback: Boolean,
     ): UUID? {
-        val stints = runCatching { membershipHistoryRepository.getByPlayer(playerId) }.getOrElse { emptyList() }
+        // A failed historical read must fail this page for retry, never enable current-guild fallback.
+        val stints = membershipHistoryRepository.getByPlayer(playerId)
         stints.firstOrNull { stint ->
             !stint.joinedAt.isAfter(at) && stint.departedAt?.isAfter(at) != false
         }?.let { return it.guildId }
