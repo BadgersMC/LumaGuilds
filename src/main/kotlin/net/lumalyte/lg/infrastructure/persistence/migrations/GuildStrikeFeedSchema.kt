@@ -43,7 +43,9 @@ internal object GuildStrikeFeedSchema {
         return false
     }
 
-    private fun indexNames(rows: java.sql.ResultSet): Sequence<String> = generateSequence {
-        if (rows.next()) rows.getString("INDEX_NAME") else null
+    private fun indexNames(rows: java.sql.ResultSet): Sequence<String> {
+        return generateSequence {
+            if (rows.next()) rows.getString("INDEX_NAME") else null
+        }
     }
 }

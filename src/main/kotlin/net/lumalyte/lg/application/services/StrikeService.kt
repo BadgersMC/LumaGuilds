@@ -9,7 +9,7 @@ import java.util.UUID
 // Preserve the established public query and reconciliation facade used by plugin adapters.
 
 /** Configured write policy and historical/current strike queries. */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LibraryEntitiesShouldNotBePublic")
 class StrikeService(private val repository: StrikeRepository, private val configProvider: () -> StrikesConfig) {
     /** Record an attributed legacy strike while enabled. */
     fun recordStrike(
@@ -72,14 +72,19 @@ class StrikeService(private val repository: StrikeRepository, private val config
 
     /** Count every historical strike for a guild. */
     fun countByGuild(guildId: UUID): Int = repository.countByGuild(guildId)
+
     /** Count active strikes for a guild. */
     fun countActiveByGuild(guildId: UUID): Int = repository.countActiveByGuild(guildId)
+
     /** Read the ordered historical strikes for a guild. */
     fun getByGuild(guildId: UUID): List<GuildStrike> = repository.getByGuild(guildId)
+
     /** Read historical counts by guild. */
     fun getAllCounts(): Map<UUID, Int> = repository.getAllCounts()
+
     /** Read active counts by guild. */
     fun getAllActiveCounts(): Map<UUID, Int> = repository.getAllActiveCounts()
+
     /** Count all historical strikes. */
     fun countAll(): Int = repository.countAll()
 
