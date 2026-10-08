@@ -236,6 +236,8 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(43)
                 dbVersion = 43
             }
+            // Additive post-version schemas are idempotently ensured on every startup.
+            GuildCosmeticSchema.create(connection, mariaDb = false)
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
 

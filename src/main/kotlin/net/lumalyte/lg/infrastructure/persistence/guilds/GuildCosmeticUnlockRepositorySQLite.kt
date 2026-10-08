@@ -5,10 +5,7 @@ import co.aikar.idb.DbRow
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.GuildCosmeticUnlockRepository
 import net.lumalyte.lg.domain.entities.GuildCosmeticUnlock
-import net.lumalyte.lg.domain.entities.MAX_COSMETIC_DISPLAY_NAME_LENGTH
-import net.lumalyte.lg.domain.entities.MAX_COSMETIC_KEY_LENGTH
-import net.lumalyte.lg.domain.entities.MAX_COSMETIC_SOURCE_LENGTH
-import net.lumalyte.lg.domain.entities.MAX_COSMETIC_TYPE_LENGTH
+import net.lumalyte.lg.infrastructure.persistence.migrations.GuildCosmeticSchema
 import net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.slf4j.LoggerFactory
@@ -117,8 +114,9 @@ class GuildCosmeticUnlockRepositorySQLite(private val storage: Storage<Database>
 
     private fun createTable() {
         try {
-            val createSql = cosmeticLedgerSchema(storage.dialect)
-            storage.connection.executeUpdate(createSql)
+            storage.connection.connection.use { connection ->
+                GuildCosmeticSchema.create(connection, mariaDb = storage.dialect == SqlDialect.MARIADB)
+            }
         } catch (exception: SQLException) {
             throw DatabaseOperationException("Failed to create guild cosmetic unlock ledger", exception)
         }
@@ -140,30 +138,3 @@ class GuildCosmeticUnlockRepositorySQLite(private val storage: Storage<Database>
         }
     }
 }
-
-private fun cosmeticLedgerSchema(dialect: SqlDialect): String {
-    val maria = dialect == SqlDialect.MARIADB
-    return if (maria) MARIADB_COSMETIC_SCHEMA else SQLITE_COSMETIC_SCHEMA
-}
-
-private const val MARIADB_COSMETIC_SCHEMA =
-    "CREATE TABLE IF NOT EXISTS guild_cosmetic_unlocks ( " +
-        "guild_id VARCHAR(36) NOT NULL, " +
-        "cosmetic_type VARCHAR($MAX_COSMETIC_TYPE_LENGTH) NOT NULL, " +
-        "cosmetic_key VARCHAR($MAX_COSMETIC_KEY_LENGTH) NOT NULL, " +
-        "display_name VARCHAR($MAX_COSMETIC_DISPLAY_NAME_LENGTH) NOT NULL, " +
-        "source VARCHAR($MAX_COSMETIC_SOURCE_LENGTH) NOT NULL, " +
-        "unlocked_at BIGINT NOT NULL, " +
-        "PRIMARY KEY (guild_id, cosmetic_type, cosmetic_key) " +
-        ") ENGINE=InnoDB "
-
-private const val SQLITE_COSMETIC_SCHEMA =
-    "CREATE TABLE IF NOT EXISTS guild_cosmetic_unlocks ( " +
-        "guild_id TEXT NOT NULL, " +
-        "cosmetic_type TEXT NOT NULL, " +
-        "cosmetic_key TEXT NOT NULL, " +
-        "display_name TEXT NOT NULL, " +
-        "source TEXT NOT NULL, " +
-        "unlocked_at INTEGER NOT NULL, " +
-        "PRIMARY KEY (guild_id, cosmetic_type, cosmetic_key) " +
-        ") "

@@ -167,6 +167,8 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(43)
                 currentDbVersion = 43
             }
+            // Additive post-version schemas are idempotently ensured on every startup.
+            GuildCosmeticSchema.create(connection, mariaDb = true)
             connection.commit()
 
             val finalVersion = getCurrentDatabaseVersion()
