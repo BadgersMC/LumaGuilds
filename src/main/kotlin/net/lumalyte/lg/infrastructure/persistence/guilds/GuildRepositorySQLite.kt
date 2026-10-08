@@ -642,6 +642,10 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                 it.executeUpdate()
             }
             deleteRewardOwnershipState(connection, guildId)
+            connection.prepareStatement("DELETE FROM guild_cosmetic_unlocks WHERE guild_id = ?").use {
+                it.setString(1, guildId.toString())
+                it.executeUpdate()
+            }
             connection.prepareStatement("DELETE FROM guilds WHERE id = ?").use {
                 it.setString(1, guildId.toString())
                 it.executeUpdate() == 1

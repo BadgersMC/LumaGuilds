@@ -25,10 +25,16 @@ class GuildDisbandAtomicityTest : RewardSqlTestFixture() {
         val members = MemberRepositorySQLite(storage)
         val relations = RelationRepositorySQLite(storage)
         val history = MembershipHistoryRepositorySQLite(storage)
+        val cosmetics = GuildCosmeticUnlockRepositorySQLite(storage)
         val creator = UUID.randomUUID()
         val guild = Guild(UUID.randomUUID(), "Disband", createdAt = Instant.now())
         val other = Guild(UUID.randomUUID(), "Neighbor", createdAt = Instant.now())
         assertTrue(guilds.addCreated(guild, creator))
+        assertTrue(
+            cosmetics.saveIfAbsent(
+                GuildCosmeticUnlock(guild.id, "MENU_THEME", "HALLOWEEN", "Halloween", "test", Instant.now()),
+            ),
+        )
         assertTrue(guilds.add(other))
         val rank = Rank(UUID.randomUUID(), guild.id, "Owner")
         assertTrue(ranks.add(rank))
@@ -68,6 +74,13 @@ class GuildDisbandAtomicityTest : RewardSqlTestFixture() {
                 assertEquals(expected, storage.connection.getFirstRow("SELECT COUNT(*) AS n FROM $table WHERE guild_id = ?", guild.id.toString())!!.getInt("n"))
             }
             assertEquals(expected, storage.connection.getFirstRow("SELECT COUNT(*) AS n FROM relations")!!.getInt("n"))
+            assertEquals(
+                expected,
+                storage.connection.getFirstRow(
+                    "SELECT COUNT(*) AS n FROM guild_cosmetic_unlocks WHERE guild_id = ?",
+                    guild.id.toString(),
+                )!!.getInt("n"),
+            )
             assertEquals(fail, members.getByPlayerAndGuild(creator, guild.id) != null)
             assertEquals(fail, ranks.getById(rank.id) != null)
             assertEquals(fail, relations.getAll().contains(relation))
