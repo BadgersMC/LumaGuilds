@@ -212,7 +212,8 @@ internal class EnthusiaStaffStrikeFeedTest {
 
     private fun historicalMembership(): MembershipHistoryRepository {
         val history = mockk<MembershipHistoryRepository>()
-        every { history.getByPlayer(player) } returns listOf(
+        every { history.getByPlayer(player) } returns
+            listOf(
             mockk<MembershipHistory> {
                 every { guildId } returns guild
                 every { joinedAt } returns issuedAt.minusSeconds(STINT_AGE_SECONDS)
@@ -241,15 +242,13 @@ internal class EnthusiaStaffStrikeFeedTest {
         }
     }
 
-    // The wrapper maps all twelve fields of the actual companion API constructor explicitly.
-    @Suppress("LongMethod")
     private fun event(
         source: PunishmentLifecycleSource,
         sourceId: String = SANCTION_ID,
         active: Boolean = true,
         expiresAt: Instant = FUTURE_EXPIRY,
-    ): PunishmentLifecycleEvent {
-        return PunishmentLifecycleEvent(
+    ): PunishmentLifecycleEvent =
+        PunishmentLifecycleEvent(
             UUID.fromString(SANCTION_ID),
             "CASE000000000001",
             player,
@@ -263,7 +262,6 @@ internal class EnthusiaStaffStrikeFeedTest {
             Optional.of(ACTOR_NAME),
             active,
         )
-    }
 
     private companion object {
         const val SUBJECT_NAME = "Player"
@@ -278,6 +276,5 @@ internal class EnthusiaStaffStrikeFeedTest {
     }
 }
 
-private fun defaultFeedConfig(): StrikesConfig {
-    return StrikesConfig(enabled = true, countedTypes = listOf("WARN", "KICK", "MUTE", "BAN"))
-}
+private fun defaultFeedConfig(): StrikesConfig =
+    StrikesConfig(enabled = true, countedTypes = listOf("WARN", "KICK", "MUTE", "BAN"))
