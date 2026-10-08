@@ -83,4 +83,5 @@ These are personal settings, separate from the guild-wide reconnect preference.
 `/gfa your message` sends a guild fullscreen announcement plus its usual chat
 message. You need announcement authority in exactly one guild; mute and existing
 announcement cooldowns still apply. `/gc`, `/gac`, `/gmc` and `/ga` keep their
-existing behavior. `/gh` is not assigned a new hide-chat meaning because of home-command ambiguity.
+existing behavior. `/gh` is not assigned a new hide-chat meaning because of
+home-command ambiguity.

@@ -42,7 +42,8 @@ class GuildListService(
     fun configuredPageSize(): Int =
         configService
             .loadConfig()
-            .guildList.pageSize
+            .guildList
+            .pageSize
             .coerceIn(1, MAX_PAGE_SIZE)
 
     fun getPage(
@@ -88,9 +89,7 @@ class GuildListService(
                 }
 
         val details = repository.getDetails(entries.map { it.guild.id }.toSet())
-        val enriched = entries.map { entry ->
-            entry.copy(details = details[entry.guild.id] ?: GuildDirectoryDetails())
-        }
+        val enriched = enrichEntries(entries, details)
         return GuildListPage(
             entries = enriched,
             page = safePage,
@@ -113,7 +112,15 @@ class GuildListService(
             asyncExecutor,
         )
 
+    private fun enrichEntries(
+        entries: List<GuildListEntry>,
+        details: Map<java.util.UUID, GuildDirectoryDetails>,
+    ): List<GuildListEntry> =
+        entries.map { entry ->
+            entry.copy(details = details[entry.guild.id] ?: GuildDirectoryDetails())
+        }
     companion object {
         const val MAX_PAGE_SIZE = 36
     }
+
 }

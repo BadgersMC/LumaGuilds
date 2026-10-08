@@ -23,44 +23,51 @@ internal class GlobalChatVisibilityListenerTest {
     }
 
     @Test fun hidesOnlyGlobalPlayerChatter() {
-        org.mockbukkit.mockbukkit.MockBukkit
-            .mock()
-        val player = mockk<Player>()
+        val fixture = Fixture()
+        val hidden = fixture.event()
+        fixture.listener.onMessage(hidden)
+        assertTrue(hidden.isCancelled)
+        every { fixture.message.channel } returns fixture.guild
+        val privateChannel = fixture.event()
+        fixture.listener.onMessage(privateChannel)
+        assertFalse(privateChannel.isCancelled)
+        every { fixture.message.channel } returns null
+        val dm = fixture.event()
+        fixture.listener.onMessage(dm)
+        assertFalse(dm.isCancelled)
+        every { fixture.message.channel } returns fixture.global
+        every { fixture.sender.isPlayer } returns false
+        val notice = fixture.event()
+        fixture.listener.onMessage(notice)
+        assertFalse(notice.isCancelled)
+    }
+
+    private class Fixture {
         val id = UUID.randomUUID()
-        every { player.uniqueId } returns id
+        val player = mockk<Player>()
         val viewer = mockk<RosePlayer>()
-        every { viewer.asPlayer() } returns player
         val sender = mockk<RosePlayer>()
-        every { sender.isPlayer } returns true
         val global = mockk<Channel>()
-        every { global.id } returns "public"
         val guild = mockk<Channel>()
-        every { guild.id } returns "guild"
         val settings = mockk<ChatSettingsRepository>()
-        every { settings.getVisibilitySettings(id) } returns ChatVisibilitySettings(id, globalChatVisible = false)
         val chat = mockk<RoseChatAdapter>()
-        every { chat.getDefaultChannel() } returns global
         val message = mockk<RoseMessage>()
-        every { message.sender } returns sender
-        every { message.channel } returns global
         val listener = GlobalChatVisibilityListener(settings, chat)
 
+        init {
+            org.mockbukkit.mockbukkit.MockBukkit
+                .mock()
+            every { player.uniqueId } returns id
+            every { viewer.asPlayer() } returns player
+            every { sender.isPlayer } returns true
+            every { global.id } returns "public"
+            every { guild.id } returns "guild"
+            every { settings.getVisibilitySettings(id) } returns ChatVisibilitySettings(id, globalChatVisible = false)
+            every { chat.getDefaultChannel() } returns global
+            every { message.sender } returns sender
+            every { message.channel } returns global
+        }
+
         fun event() = PreParseMessageEvent(message, viewer, MessageDirection.PLAYER_TO_SERVER)
-        val hidden = event()
-        listener.onMessage(hidden)
-        assertTrue(hidden.isCancelled)
-        every { message.channel } returns guild
-        val privateChannel = event()
-        listener.onMessage(privateChannel)
-        assertFalse(privateChannel.isCancelled)
-        every { message.channel } returns null
-        val dm = event()
-        listener.onMessage(dm)
-        assertFalse(dm.isCancelled)
-        every { message.channel } returns global
-        every { sender.isPlayer } returns false
-        val notice = event()
-        listener.onMessage(notice)
-        assertFalse(notice.isCancelled)
     }
 }

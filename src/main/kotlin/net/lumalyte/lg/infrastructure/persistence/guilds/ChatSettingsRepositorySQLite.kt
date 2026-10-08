@@ -46,13 +46,10 @@ class ChatSettingsRepositorySQLite(
         try {
             storage.connection.executeUpdate(visibilityTableSql)
             storage.connection.executeUpdate(
-                """
-                CREATE TABLE IF NOT EXISTS chat_ui_preferences (
-                    player_id VARCHAR(36) PRIMARY KEY,
-                    global_chat_visible INTEGER NOT NULL DEFAULT 1,
-                    destination_indicator INTEGER NOT NULL DEFAULT 0
-                )
-                """.trimIndent(),
+                "CREATE TABLE IF NOT EXISTS chat_ui_preferences (" +
+                    "player_id VARCHAR(36) PRIMARY KEY, " +
+                    "global_chat_visible INTEGER NOT NULL DEFAULT 1, " +
+                    "destination_indicator INTEGER NOT NULL DEFAULT 0)",
             )
             storage.connection.executeUpdate(rateLimitTableSql)
         } catch (e: SQLException) {
@@ -66,13 +63,11 @@ class ChatSettingsRepositorySQLite(
     }
 
     private fun preloadVisibilitySettings() {
-        val sql =
-            """
-                SELECT v.player_id, v.guild_chat_visible, v.ally_chat_visible, v.party_chat_visible,
-                COALESCE(u.global_chat_visible, 1) AS global_chat_visible,
-                COALESCE(u.destination_indicator, 0) AS destination_indicator
-                FROM chat_visibility_settings v LEFT JOIN chat_ui_preferences u ON u.player_id = v.player_id
-            """.trimIndent()
+        val sql = "SELECT v.player_id, v.guild_chat_visible, v.ally_chat_visible, v.party_chat_visible, " +
+            "COALESCE(u.global_chat_visible, 1) AS global_chat_visible, " +
+            "COALESCE(u.destination_indicator, 0) AS destination_indicator " +
+            "FROM chat_visibility_settings v LEFT JOIN chat_ui_preferences u ON u.player_id = v.player_id"
+
 
         try {
             val results = storage.connection.getResults(sql)
@@ -95,26 +90,24 @@ class ChatSettingsRepositorySQLite(
     }
 
     private fun preloadRateLimits() {
-        val sql =
-            """
+        val sql = """
             SELECT player_id, last_announce_time, last_ping_time, announce_count, ping_count
             FROM chat_rate_limits
-            """.trimIndent()
+        """.trimIndent()
 
         try {
             val results = storage.connection.getResults(sql)
             for (result in results) {
                 val playerId = UUID.fromString(result.getString("player_id"))
-                val rateLimit =
-                    ChatRateLimit(
-                        playerId = playerId,
-                        // IDB returns small SQLite INTEGER values as Int, including the default 0.
-                        // getLong casts to Long and fails when a player has not used one action yet.
-                        lastAnnounceTime = (result.get("last_announce_time") as Number).toLong(),
-                        lastPingTime = (result.get("last_ping_time") as Number).toLong(),
-                        announceCount = result.getInt("announce_count"),
-                        pingCount = result.getInt("ping_count"),
-                    )
+                val rateLimit = ChatRateLimit(
+                    playerId = playerId,
+                    // IDB returns small SQLite INTEGER values as Int, including the default 0.
+                    // getLong casts to Long and fails when a player has not used one action yet.
+                    lastAnnounceTime = (result.get("last_announce_time") as Number).toLong(),
+                    lastPingTime = (result.get("last_ping_time") as Number).toLong(),
+                    announceCount = result.getInt("announce_count"),
+                    pingCount = result.getInt("ping_count")
+                )
                 rateLimits[playerId] = rateLimit
             }
         } catch (e: SQLException) {
@@ -157,11 +150,8 @@ class ChatSettingsRepositorySQLite(
     }
 
     private fun saveVisibility(connection: java.sql.Connection, settings: ChatVisibilitySettings) {
-        val sql =
-            """
-            REPLACE INTO chat_visibility_settings
-            (player_id, guild_chat_visible, ally_chat_visible, party_chat_visible) VALUES (?, ?, ?, ?)
-            """.trimIndent()
+        val sql = "REPLACE INTO chat_visibility_settings " +
+            "(player_id, guild_chat_visible, ally_chat_visible, party_chat_visible) VALUES (?, ?, ?, ?)"
         connection.prepareStatement(sql).use { statement ->
             statement.setString(1, settings.playerId.toString())
             bindFlags(statement, listOf(settings.guildChatVisible, settings.allyChatVisible, settings.partyChatVisible))
@@ -170,11 +160,8 @@ class ChatSettingsRepositorySQLite(
     }
 
     private fun savePreferences(connection: java.sql.Connection, settings: ChatVisibilitySettings) {
-        val sql =
-            """
-            REPLACE INTO chat_ui_preferences
-            (player_id, global_chat_visible, destination_indicator) VALUES (?, ?, ?)
-            """.trimIndent()
+        val sql = "REPLACE INTO chat_ui_preferences " +
+            "(player_id, global_chat_visible, destination_indicator) VALUES (?, ?, ?)"
         connection.prepareStatement(sql).use { statement ->
             statement.setString(1, settings.playerId.toString())
             bindFlags(statement, listOf(settings.globalChatVisible, settings.destinationIndicator))
@@ -186,26 +173,25 @@ class ChatSettingsRepositorySQLite(
         flags.forEachIndexed { index, enabled -> statement.setInt(index + 2, if (enabled) 1 else 0) }
     }
 
-    override fun getRateLimit(playerId: UUID): ChatRateLimit = rateLimits[playerId] ?: ChatRateLimit(playerId)
+    override fun getRateLimit(playerId: UUID): ChatRateLimit {
+        return rateLimits[playerId] ?: ChatRateLimit(playerId)
+    }
 
     override fun updateRateLimit(rateLimit: ChatRateLimit): Boolean {
-        val sql =
-            """
+        val sql = """
             REPLACE INTO chat_rate_limits
             (player_id, last_announce_time, last_ping_time, announce_count, ping_count)
             VALUES (?, ?, ?, ?, ?)
-            """.trimIndent()
+        """.trimIndent()
 
         return try {
-            val rowsAffected =
-                storage.connection.executeUpdate(
-                    sql,
-                    rateLimit.playerId.toString(),
-                    rateLimit.lastAnnounceTime,
-                    rateLimit.lastPingTime,
-                    rateLimit.announceCount,
-                    rateLimit.pingCount,
-                )
+            val rowsAffected = storage.connection.executeUpdate(sql,
+                rateLimit.playerId.toString(),
+                rateLimit.lastAnnounceTime,
+                rateLimit.lastPingTime,
+                rateLimit.announceCount,
+                rateLimit.pingCount
+            )
 
             if (rowsAffected > 0) {
                 rateLimits[rateLimit.playerId] = rateLimit
@@ -223,7 +209,9 @@ class ChatSettingsRepositorySQLite(
         return updateRateLimit(resetRateLimit)
     }
 
-    override fun getPlayersWithCustomSettings(): Set<UUID> = visibilitySettings.keys.toSet()
+    override fun getPlayersWithCustomSettings(): Set<UUID> {
+        return visibilitySettings.keys.toSet()
+    }
 
     override fun removePlayerSettings(playerId: UUID): Boolean {
         val visibilityDeleteSql = "DELETE FROM chat_visibility_settings WHERE player_id = ?"

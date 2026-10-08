@@ -33,6 +33,19 @@ internal class PlayerChatSettingsMenu(
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick { if (it.click.isShiftClick) it.isCancelled = true }
         val pane = StaticPane(0, 0, MENU_WIDTH, MENU_ROWS)
+        addToggles(pane, settings)
+        pane.addItem(
+            GuiItem(ItemStack.of(Material.ARROW).name(lang.gui("menu.common.item.back.name"))) {
+                navigator.goBack()
+            },
+            BACK_COLUMN,
+            2,
+        )
+        gui.addPane(pane)
+        gui.show(player)
+    }
+
+    private fun addToggles(pane: StaticPane, settings: ChatVisibilitySettings) {
         add(
             pane,
             2,
@@ -47,18 +60,9 @@ internal class PlayerChatSettingsMenu(
                 it.copy(destinationIndicator = !it.destinationIndicator)
             },
         )
-        pane.addItem(
-            GuiItem(ItemStack.of(Material.ARROW).name(lang.gui("menu.common.item.back.name"))) {
-                navigator.goBack()
-            },
-            BACK_COLUMN,
-            2,
-        )
-        gui.addPane(pane)
-        gui.show(player)
     }
 
-    private class Toggle(
+    private data class Toggle(
         val title: net.kyori.adventure.text.Component,
         val enabled: Boolean,
         val change: (ChatVisibilitySettings) -> ChatVisibilitySettings,

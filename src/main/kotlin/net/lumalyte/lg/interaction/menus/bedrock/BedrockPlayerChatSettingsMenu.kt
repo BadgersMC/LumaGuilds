@@ -35,7 +35,8 @@ internal class BedrockPlayerChatSettingsMenu(
             .validResultHandler { response ->
                 val selected = response.clickedButtonId()
                 Bukkit.getScheduler().runTask(plugin, Runnable { select(selected) })
-            }.closedOrInvalidResultHandler { _, _ ->
+            }
+            .closedOrInvalidResultHandler { _, _ ->
                 Bukkit.getScheduler().runTask(plugin, Runnable { if (player.isOnline) bedrockNavigator.goBack() })
             }.build()
     }
