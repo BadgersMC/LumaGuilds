@@ -455,7 +455,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
     @Subcommand("home")
     @CommandPermission("lumaguilds.guild.home")
-    @CommandCompletion("@guildhomes")
+    @CommandCompletion("@guildaccessiblehomes")
     fun onHome(player: Player, @Optional homeName: String?, @Optional confirm: String?) {
         // Handle "/guild home confirm" — ACF puts "confirm" into homeName, not confirm param
         val isConfirm = confirm?.lowercase() == "confirm" || homeName?.lowercase() == "confirm"

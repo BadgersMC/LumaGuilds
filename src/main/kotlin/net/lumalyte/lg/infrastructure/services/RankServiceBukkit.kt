@@ -37,6 +37,16 @@ class RankServiceBukkit(
         }
     }
     
+    private fun canEditRank(actorId: UUID, rank: Rank): Boolean {
+        val actor = getPlayerRank(actorId, rank.guildId) ?: return false
+        return actor.priority == 0 || actor.priority < rank.priority
+    }
+
+    private fun canGrant(actorId: UUID, guildId: UUID, permissions: Set<RankPermission>): Boolean {
+        val actor = getPlayerRank(actorId, guildId) ?: return false
+        return actor.priority == 0 || actor.permissions.containsAll(permissions)
+    }
+
     override fun listRanks(guildId: UUID): Set<Rank> = rankRepository.getByGuild(guildId)
     
     override fun addRank(guildId: UUID, name: String, permissions: Set<RankPermission>, actorId: UUID): Rank? {
@@ -46,6 +56,8 @@ class RankServiceBukkit(
             return null
         }
         
+        if (!canGrant(actorId, guildId, permissions)) return null
+
         // Validate rank name
         if (!RankNameContent.valid(name)) {
             logger.warn("Invalid rank name: $name")
@@ -61,6 +73,8 @@ class RankServiceBukkit(
         // Create rank
         val rankId = UUID.randomUUID()
         val priority = rankRepository.getNextPriority(guildId)
+        val actorRank = getPlayerRank(actorId, guildId) ?: return null
+        if (priority <= actorRank.priority) return null
         val rank = Rank(
             id = rankId,
             guildId = guildId,
@@ -89,6 +103,7 @@ class RankServiceBukkit(
     
     override fun renameRank(rankId: UUID, newName: String, actorId: UUID): Boolean {
         val rank = rankRepository.getById(rankId) ?: return false
+        if (!canEditRank(actorId, rank)) return false
         
         // Check if actor has permission to manage ranks
         if (!hasPermission(actorId, rank.guildId, RankPermission.MANAGE_RANKS)) {
@@ -129,6 +144,8 @@ class RankServiceBukkit(
     
     override fun deleteRank(rankId: UUID, actorId: UUID): Boolean {
         val rank = rankRepository.getById(rankId) ?: return false
+        if (!canEditRank(actorId, rank)) return false
+        if (rank.priority == 0) return false
         
         // Check if actor has permission to manage ranks
         if (!hasPermission(actorId, rank.guildId, RankPermission.MANAGE_RANKS)) {
@@ -156,6 +173,8 @@ class RankServiceBukkit(
     
     override fun setRankPermissions(rankId: UUID, permissions: Set<RankPermission>, actorId: UUID): Boolean {
         val rank = rankRepository.getById(rankId) ?: return false
+        if (!canEditRank(actorId, rank)) return false
+        if (!canGrant(actorId, rank.guildId, permissions - rank.permissions)) return false
         
         // Check if actor has permission to manage ranks
         if (!hasPermission(actorId, rank.guildId, RankPermission.MANAGE_RANKS)) {
@@ -174,6 +193,8 @@ class RankServiceBukkit(
     
     override fun addRankPermission(rankId: UUID, permission: RankPermission, actorId: UUID): Boolean {
         val rank = rankRepository.getById(rankId) ?: return false
+        if (!canEditRank(actorId, rank)) return false
+        if (!canGrant(actorId, rank.guildId, setOf(permission))) return false
         
         // Check if actor has permission to manage ranks
         if (!hasPermission(actorId, rank.guildId, RankPermission.MANAGE_RANKS)) {
@@ -198,6 +219,7 @@ class RankServiceBukkit(
     
     override fun removeRankPermission(rankId: UUID, permission: RankPermission, actorId: UUID): Boolean {
         val rank = rankRepository.getById(rankId) ?: return false
+        if (!canEditRank(actorId, rank)) return false
         
         // Check if actor has permission to manage ranks
         if (!hasPermission(actorId, rank.guildId, RankPermission.MANAGE_RANKS)) {
@@ -234,9 +256,16 @@ class RankServiceBukkit(
             return false
         }
         
+        val actorRank = getPlayerRank(actorId, guildId) ?: return false
+        if (playerId == actorId || rank.priority <= actorRank.priority) return false
+        // Ownership must move through MemberService.transferOwnership, never ordinary assignment.
+        if (rank.priority == 0) return false
+
         // Check if player is already a member
         val existingMember = memberRepository.getByPlayerAndGuild(playerId, guildId)
         if (existingMember != null) {
+            val currentRank = rankRepository.getById(existingMember.rankId) ?: return false
+            if (currentRank.priority <= actorRank.priority || currentRank.priority == 0) return false
             // Update existing member's rank
             val updatedMember = existingMember.copy(rankId = rankId)
             val result = memberRepository.update(updatedMember)
@@ -281,6 +310,9 @@ class RankServiceBukkit(
     override fun updateRank(rank: Rank, actorId: UUID): Boolean {
         // Check if rank exists
         val existingRank = rankRepository.getById(rank.id) ?: return false
+        if (!canEditRank(actorId, existingRank)) return false
+        if (existingRank.priority != rank.priority) return false
+        if (!canGrant(actorId, rank.guildId, rank.permissions - existingRank.permissions)) return false
 
         // Validate that the rank belongs to the same guild
         if (existingRank.guildId != rank.guildId) {

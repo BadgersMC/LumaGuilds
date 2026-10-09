@@ -142,6 +142,7 @@ class RankServicePriorityTest {
         every { memberRepo.getByPlayerAndGuild(playerId, guildId) } returns existing
         every { rankRepo.getById(owner.id) } returns owner
         every { rankRepo.getById(newRank.id) } returns newRank
+        every { rankRepo.getById(oldRank.id) } returns oldRank
         every { memberRepo.update(any()) } returns true
 
         val invalidated = mutableListOf<UUID>()
