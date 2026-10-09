@@ -506,5 +506,11 @@ THE SYSTEM SHALL compile, test and start without the retired AxKoth API dependen
 ### REQ-130
 WHEN the staff strike feed cannot read historical guild membership, THE SYSTEM SHALL fail the page for retry and SHALL NOT treat the failed read as an empty history or attribute the punishment to the player's current guild. Configured current-guild fallback SHALL apply only after a successful historical read.
 
+### REQ-132
+**Event-driven.** WHEN a prepared guild-shop sale is delivered THEN THE SYSTEM SHALL consume it without XP if its captured chapter or prestige no longer matches, or the current chapter is frozen, closed, elapsed or not started. New installations and missing configuration SHALL default shop XP to disabled until an operator enables the reviewed integration. The approved numerical limits SHALL remain configurable.
+
 ### REQ-133
 **Ubiquitous.** THE SYSTEM SHALL initialize historical MariaDB physical-vault fields before guild persistence reads or updates and SHALL preserve existing guild names, home coordinates and vault state on repeated initialization. Schema repair SHALL add only absent fields and SHALL NOT rewrite existing data. SQLite SHALL retain its existing physical-vault semantics.
+
+### REQ-134
+**Event-driven.** WHEN EnthusiaMarket prepares a unique paid outside-customer SELL sale before mutating payment or stock THEN THE SYSTEM SHALL durably capture the sale identity, owning guild, buyer, occurrence time, current prestige run, chapter identity and current shop-XP policy. WHEN that same sale is later durably completed, THE SYSTEM SHALL award at most the captured flat XP once, subject atomically to the guild daily cap, buyer-to-guild daily cap and pair cooldown; own-guild buyers, disabled policy, zero caps, stale prestige/chapter runs, frozen chapters and duplicate completion SHALL not grant additional XP. Failed SQL completion SHALL roll back XP, cap/cooldown reservations and receipt finalization so the same completed sale can retry safely. WHEN Market knows a prepared trade failed before durable completion THEN THE SYSTEM SHALL idempotently terminalize that receipt as ABORTED without overwriting any already terminal outcome; duplicate completion replay SHALL NOT re-fire committed progression side effects.

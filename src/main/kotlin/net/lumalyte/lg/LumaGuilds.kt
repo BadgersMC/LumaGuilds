@@ -1440,6 +1440,7 @@ class LumaGuilds : JavaPlugin() {
     override fun onDisable() {
         enthusiaStaffStrikeFeed?.close()
         enthusiaStaffStrikeFeed = null
+        Bukkit.getServicesManager().unregisterAll(this)
         try {
             get().getOrNull<net.lumalyte.lg.application.services.DiscordAccountLinkSubscription>()?.unsubscribe()
         } catch (e: Exception) {

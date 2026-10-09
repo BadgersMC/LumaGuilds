@@ -937,3 +937,11 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Scope: no unrelated home, shop-XP, menu-asset, or progression policy changes belong in this bank/cooldown repair.
 
 Sanitized rebuild note: this task slice is replayed on current post-#223 `main`; inherited #208/#209 history and private asset tests are intentionally excluded. Hosted CI and live client acceptance remain separate merge gates.
+
+## Guild-shop XP (REQ-134)
+
+- [x] **SHOP-XP-SPEC** ? Approved flat award, guild/buyer caps, pair cooldown, own-guild exclusion and no refund/clawback policy; see `docs/guild-shop-xp.md`.
+- [x] **SHOP-XP-ENGINE** ? Durable prepare/abort/complete receipts, atomic XP/cap/cooldown persistence, prestige/chapter fencing and version-2 JDK-only companion API. Duplicate delivery refreshes progression only when that call actually commits XP.
+- [x] **SHOP-XP-VALIDATE** ? Sanitized post-#225 validation passed: 23 focused SQLite/provider/config tests with zero skips/failures/errors; full `test shadowJar` produced 1,640 tests with zero failures/errors and 14 optional/environment skips; nine native MariaDB 11.8 shop-XP cases executed with zero skips/failures/errors.
+- [ ] **SHOP-XP-HOSTED** ? Publish only sanitized history and require exact-head Gradle/Codacy/CodeRabbit success.
+- [ ] **SHOP-XP-LIVE** ? Requires canonical Market #197/#198/#200 delivery plus combined pins/build and staging/live outside/own-guild, restart/retry and prestige walkthrough. No production acceptance is claimed by source tests.

@@ -584,6 +584,15 @@ progression:
 
   # Chapter 2 guild-wide source policies. Caps are independent per pool;
   # WEEKLY_ACTIVITY is intentionally unlimited so quests bypass daily caps.
+  # Paid guild SELL trades only; own-guild buyers never earn XP.
+  # Caps use UTC sale date; cooldown spans every shop belonging to the guild.
+  shop_xp:
+    enabled: false
+    xp_per_sale: 5
+    guild_daily_cap: 500
+    buyer_daily_cap: 50
+    pair_cooldown_seconds: 300
+
   sources:
     bank_deposit: { enabled: true, award_xp: 1, cap_xp: 500, period: DAILY, pool: BANK_DEPOSIT }
     qualified_recruit: { enabled: true, award_xp: 1000, cap_xp: 5000, period: WEEKLY, pool: QUALIFIED_RECRUIT }
