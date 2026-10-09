@@ -236,6 +236,19 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(43)
                 dbVersion = 43
             }
+            // Additive post-version schemas are idempotently ensured on every startup.
+            GuildCosmeticSchema.create(connection, mariaDb = false)
+            if (dbVersion < 44) {
+                // Partial-schema recovery tests and damaged production schemas can legitimately
+                // reach a later version without the older strike table. Recreate the v24 table
+                // before applying the provider-neutral v44 columns/indexes.
+                if (!tableExists("guild_strikes")) {
+                    migrateToVersion24()
+                }
+                GuildStrikeFeedSchema.migrate(connection)
+                updateDatabaseVersion(44)
+                dbVersion = 44
+            }
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
 

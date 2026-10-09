@@ -460,8 +460,8 @@ war_banner:
 
 chat:
   # Rate Limiting
-  announce_cooldown_minutes: 30  # Cooldown for guild announcements
-  ping_cooldown_minutes: 5       # Cooldown for @everyone pings
+  announce_cooldown_minutes: 30  # Guild announcement cooldown; <= 0 disables it, not the hourly cap
+  ping_cooldown_minutes: 5       # @everyone ping cooldown; <= 0 disables it, not the hourly cap
   max_message_length: 256
   
   # Channels
@@ -854,6 +854,9 @@ bedrock:
   guild_settings_icon_path: "textures/ui/settings.png"
   guild_bank_icon_url: ""
   guild_bank_icon_path: "textures/ui/bank.png"
+  # Stall art is separate from the bank. RESOURCE_PACK needs the supplied Bedrock overlay.
+  guild_stalls_icon_url: ""
+  guild_stalls_icon_path: "textures/ui/stall.png"
   guild_wars_icon_url: ""
   guild_wars_icon_path: "textures/ui/wars.png"
   guild_home_icon_url: ""
@@ -983,15 +986,15 @@ apollo:
     server_ip: "play.enthusia.info"
 # =====================================
 # Guild Strikes
-# LiteBans punishments attributed to guilds. When a guild member is punished
-# (warn/kick/mute/ban) while in the guild, the guild receives a strike.
+# EnthusiaStaff punishments attributed to guilds, with legacy LiteBans history
+# reconciled through EnthusiaStaff's imported punishment snapshot.
 # =====================================
 strikes:
   # Master switch: if false, no punishments are recorded and /g strikes is disabled.
   enabled: true
   # Punishments before a guild is "up for a penalty" (admin-triggered action).
   threshold: 5
-  # Which LiteBans punishment types count as strikes.
+  # Which normalized punishment categories count as strikes.
   # Valid: WARN, KICK, MUTE, BAN
   counted_types:
     - WARN
@@ -1011,11 +1014,10 @@ strikes:
       # Guild mute duration in milliseconds (0 = disabled). 24h default.
       duration_ms: 86400000
 
-  # One-shot backfill of pre-existing LiteBans punishments on startup, so
-  # existing guilds get credit for past behaviour. Idempotent (deduped by
-  # LiteBans entry id) — safe to leave enabled.
+  # Historical LiteBans backfill/repair. Existing recorded legacy rows are always
+  # reconciled; this switch controls whether missing historical rows may be created.
   backfill:
-    # Run the backfill on startup.
+    # Allow creation of missing historical LiteBans strike rows.
     enabled: true
     # When membership history cannot prove which guild the player was in at
     # punishment time, attribute to the player's current guild instead

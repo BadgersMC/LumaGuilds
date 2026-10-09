@@ -2,6 +2,21 @@
 
 Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` line, and an `Evidence:` block that MUST be filled with real source citations before any downstream SPEAR phase runs on it.
 
+- [~] **LG-2010** Guild stall menus and optional read adapter.
+  - Tag: `TDD`
+  - References: REQ-124/125; Market REQ-340/341.
+  - Evidence: sanitized replay on current main keeps the Market integration read-only and optional; Java/Bedrock paths distinguish unavailable from empty and reject stale async results after navigation or membership changes. Focused and hosted validation remain merge gates.
+
+- [~] **LG-2011** Dedicated guild stall navigation icon.
+  - Tag: `INFRA`
+  - References: REQ-126; LG-2010.
+  - Evidence: source uses `lg_nav_stalls` with an oak-sign fallback. Proprietary Java/Bedrock artwork, Nexo definitions and generators remain in the private pack pipeline and are intentionally absent from this public repository.
+
+- [~] **LG-2012** Stall review follow-up: Bedrock icon configuration and Market test cache.
+  - Tag: `TDD`
+  - References: REQ-127; LG-2010/2011.
+  - Evidence: Bedrock stall icon settings are independent from bank settings, and the optional Market contract test fingerprints both artifact path and contents. Private pack bytes remain outside the public repository.
+
 PR grouping: tasks under each `## PR-n` header ship together in one pull request. PR order is dependency-driven â€” permissions first (commands must be executable before any feature is testable), then config plumbing (features consume the knobs), then feature domains, with the cross-cutting lang migration and UI completion last.
 
 ---
@@ -904,3 +919,21 @@ PR grouping: tasks under each `## PR-n` header ship together in one pull request
   - Refine: Focused role service, listener, SQL repository, architecture and Koin tests: 36 tests, zero failures. Full `test shadowJar` on Java 25 / Paper 26.2: 1542 tests, 0 failures, 0 errors, 4 skipped; build passed. Exact PR-head GitHub checks are pending.
   - Tooling: This checkout has no project-local EARS validator or SPEAR state helper. REQ-071 and this evidence/task record are maintained directly; no helper validation is claimed.
   - Acceptance boundary: No Discord roles have been deleted in this run. Merge, canonical network pin/build, deployment/activation and live role verification remain required.
+
+## Guild bank entry and chat cooldown review ? 2026-10-08
+
+- [x] **LG-2001** Direct bank entry for guild members.
+  - Tag: `TDD`
+  - References: REQ-122.
+  - Scope: `/guild bank` and `/g bank` route current members through the existing platform-aware menu factory without granting or bypassing bank mutation permissions.
+  - Acceptance: Java/Bedrock menu routing and membership denial are covered by regression tests; live client validation remains separate.
+- [x] **LG-2002** Apply configured chat cooldowns.
+  - Tag: `TDD`
+  - References: REQ-123.
+  - Scope: announcement and ping cooldown checks use current configuration while retaining existing hourly limits; non-positive cooldowns disable only the time-based gate.
+  - Acceptance: configuration and service regressions are covered by automated tests.
+- [ ] **LG-2003** Reconcile remaining integration/client gaps separately from this PR.
+  - Tag: `DOC`
+  - Scope: no unrelated home, shop-XP, menu-asset, or progression policy changes belong in this bank/cooldown repair.
+
+Sanitized rebuild note: this task slice is replayed on current post-#223 `main`; inherited #208/#209 history and private asset tests are intentionally excluded. Hosted CI and live client acceptance remain separate merge gates.

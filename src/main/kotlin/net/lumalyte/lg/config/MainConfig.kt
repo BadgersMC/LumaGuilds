@@ -94,23 +94,20 @@ data class StrikesConfig(
     var enabled: Boolean = true,
     /** Punishments before a guild is "up for a penalty" (admin-triggered action). */
     var threshold: Int = 5,
-    /**
-     * Which LiteBans punishment types count as strikes. LiteBans types:
-     * WARN, KICK, MUTE, BAN (matching litebans.api.Entry#getType()).
-     */
+    /** Which normalized punishment categories count as strikes: WARN, KICK, MUTE, BAN. */
     var countedTypes: List<String> = listOf("WARN", "KICK", "MUTE", "BAN"),
     /** Admin penalty actions available once a guild crosses the threshold. */
     var penalties: StrikesPenaltiesConfig = StrikesPenaltiesConfig(),
-    /** One-shot backfill of pre-existing LiteBans punishments on startup. */
+    /** Historical LiteBans backfill/repair policy. */
     var backfill: StrikesBackfillConfig = StrikesBackfillConfig()
 )
 
 /**
- * Backfill settings — imports historical LiteBans punishments into the strike
- * ledger on startup so existing guilds get credit for past behaviour.
+ * Backfill settings for historical LiteBans punishments represented through
+ * EnthusiaStaff's imported sanction projection or the legacy LiteBans fallback.
  */
 data class StrikesBackfillConfig(
-    /** Run the backfill on startup (idempotent — deduped by LiteBans entry id). */
+    /** Allow creation of missing historical rows (idempotent by LiteBans entry id). */
     var enabled: Boolean = true,
     /**
      * When membership history cannot prove which guild the player was in at the
@@ -622,7 +619,11 @@ data class BedrockConfig(
 
     // Debug and logging
     var debugBedrockMenus: Boolean = false,
-    var logFormInteractions: Boolean = false
+    var logFormInteractions: Boolean = false,
+
+    // Independent stall art; existing bank settings remain authoritative for the bank.
+    var guildStallsIconUrl: String = "",
+    var guildStallsIconPath: String = "textures/ui/stall.png"
 )
 
 data class MariaDBConfig(

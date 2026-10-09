@@ -416,7 +416,15 @@ fun guildsModule() = module {
     single<MembershipHistoryRepository> { MembershipHistoryRepositorySQLite(get()) }
 
     // Services
-    single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<net.lumalyte.lg.application.persistence.GuildCosmeticUnlockRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildCosmeticUnlockRepositorySQLite(get())
+    }
+    single { net.lumalyte.lg.application.services.GuildCosmeticUnlockService(get(), get()) }
+    single<GuildService> {
+        GuildServiceBukkit(
+            get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
+        )
+    }
     single<RankService> {
         RankServiceBukkit(
             get(), get(), get(), get(), get(),
@@ -459,7 +467,7 @@ fun guildsModule() = module {
         net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners(get<LumaGuilds>(), get(), get(), get())
     }
 
-    // Guild Strikes (LiteBans integration)
+    // Guild Strikes (EnthusiaStaff lifecycle + legacy LiteBans compatibility)
     single<net.lumalyte.lg.application.persistence.StrikeRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.StrikeRepositorySQLite(get())
     }
