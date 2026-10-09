@@ -561,6 +561,12 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
         )
     }
 
+    override fun refreshCachedLevel(guildId: UUID) {
+        val cached = guilds[guildId] ?: return
+        val row = storage.connection.getResults("SELECT level FROM guilds WHERE id = ?", guildId.toString()).firstOrNull() ?: return
+        guilds[guildId] = cached.copy(level = row.getInt("level"))
+    }
+
     override fun getAll(): Set<Guild> = guilds.values.toSet()
     
     override fun getById(id: UUID): Guild? = guilds[id]

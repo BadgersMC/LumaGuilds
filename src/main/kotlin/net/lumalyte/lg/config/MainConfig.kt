@@ -453,6 +453,7 @@ data class PrestigeConfig(
 data class ProgressionConfig(
     var maxLevel: Int = 100,
     val prestige: PrestigeConfig = PrestigeConfig(),
+    val shopXp: net.lumalyte.lg.domain.values.GuildShopXpPolicy = net.lumalyte.lg.domain.values.GuildShopXpPolicy(),
 
     // Experience values for different activities
     var bankDepositXpPer100: Int = 1,

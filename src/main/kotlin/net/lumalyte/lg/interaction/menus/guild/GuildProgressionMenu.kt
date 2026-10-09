@@ -487,6 +487,7 @@ class GuildProgressionMenu(
     }
 
     private fun sourceToIconId(source: ExperienceSource): String = when (source) {
+        ExperienceSource.SHOP_SALE -> "lg_bank"
         ExperienceSource.BANK_DEPOSIT -> "lg_deposit"
         ExperienceSource.MEMBER_JOINED, ExperienceSource.QUALIFIED_RECRUIT -> "lg_qualified_recruit"
         ExperienceSource.WAR_WON, ExperienceSource.PRE_CAP_WAR_WIN -> "lg_war_victory"
@@ -532,6 +533,7 @@ class GuildProgressionMenu(
     }
 
     private fun sourceToMaterial(source: ExperienceSource): Material = when (source) {
+        ExperienceSource.SHOP_SALE -> Material.EMERALD
         ExperienceSource.BANK_DEPOSIT -> Material.GOLD_NUGGET
         ExperienceSource.MEMBER_JOINED, ExperienceSource.QUALIFIED_RECRUIT -> Material.PLAYER_HEAD
         ExperienceSource.WAR_WON, ExperienceSource.PRE_CAP_WAR_WIN -> Material.DIAMOND_SWORD
@@ -570,6 +572,7 @@ class GuildProgressionMenu(
     }
 
     private fun sourceToDisplayName(source: ExperienceSource): Component = when (source) {
+        ExperienceSource.SHOP_SALE -> lang.gui("menu.guild_progression.source.names.shop_sale")
         ExperienceSource.BANK_DEPOSIT -> lang.gui("menu.guild_progression.source.names.bank_deposit")
         ExperienceSource.MEMBER_JOINED -> lang.gui("menu.guild_progression.source.names.member_joined")
         ExperienceSource.WAR_WON -> lang.gui("menu.guild_progression.source.names.war_won")
