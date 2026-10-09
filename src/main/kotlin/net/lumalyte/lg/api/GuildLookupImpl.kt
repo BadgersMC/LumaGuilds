@@ -19,12 +19,25 @@ import java.util.UUID
  * Koin resolution happens inside LumaGuilds' own classloader (safe) and consumers
  * only ever touch the [GuildLookup] interface.
  */
-class GuildLookupImpl(
+class GuildLookupImpl @JvmOverloads constructor(
     private val guilds: GuildService,
     private val members: MemberService,
     private val ranks: RankService,
     private val banks: BankService,
+    private val relations: net.lumalyte.lg.application.services.RelationService? = null,
 ) : GuildLookup {
+
+    override fun getActiveAllianceGraph(): Map<UUID, Set<UUID>>? {
+        val service = relations ?: return null
+        val ids = guilds.getAllGuilds().map { it.id }.toSet()
+        return ids.associateWith { id ->
+            service.getGuildRelations(id)
+                .filter { it.type == net.lumalyte.lg.domain.entities.RelationType.ALLY && it.isActive() }
+                .map { it.getOtherGuild(id) }
+                .filter { it in ids }
+                .toSet()
+        }
+    }
 
     override fun getPlayerGuildIds(playerId: UUID): Set<UUID> = members.getPlayerGuilds(playerId)
 

@@ -27,6 +27,9 @@ import java.util.UUID
  * enum names (e.g. "EDIT_SHOP_STOCK").
  */
 interface GuildLookup {
+    /** Complete active ALLY graph, including isolated guilds; null means unsupported/unavailable. */
+    fun getActiveAllianceGraph(): Map<UUID, Set<UUID>>? = null
+
     /** Guild ids the player is a member of (may be empty). */
     fun getPlayerGuildIds(playerId: UUID): Set<UUID>
 
