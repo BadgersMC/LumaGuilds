@@ -982,7 +982,8 @@ class WarConfigEnforcementTest {
         val defending = UUID.randomUUID()
         val members = mockk<MemberService>()
         every { members.hasPermission(actor, declaring, RankPermission.DECLARE_WAR) } returns false
-        val service = newService(mockk(), memberService = members)
+        val notifications = mockk<WarNotificationService>(relaxed = true)
+        val service = newService(mockk(), memberService = members, warNotifications = notifications)
 
         assertFalse(service.canPlayerManageWars(actor, declaring))
         assertNull(
@@ -991,6 +992,7 @@ class WarConfigEnforcementTest {
             )
         )
         assertTrue(records.isEmpty())
+        verify(exactly = 0) { notifications.declarationCreated(any()) }
     }
 
     @Test
