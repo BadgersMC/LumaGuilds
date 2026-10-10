@@ -39,11 +39,13 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /** Exercises the real member inventory, locale placeholders and text styling. */
-class GuildMemberRankTooltipTest {
+internal class GuildMemberRankTooltipTest {
+    /** Isolated locale storage for the real translation service. */
     @TempDir var directory: Path? = null
     private var player: PlayerMock by Delegates.notNull()
     private var ranks: RankService by Delegates.notNull()
     private val guild = Guild(UUID.randomUUID(), "Enthusiast", createdAt = Instant.EPOCH)
+    private val expectedColor = checkNotNull(TextColor.fromHexString("#f99801"))
 
     /** Bind the normal menu services to a single known member. */
     @BeforeEach
@@ -62,20 +64,21 @@ class GuildMemberRankTooltipTest {
         val lang = createLanguage()
         stopKoin()
         startKoin {
-            modules(module {
-                single<Plugin> { plugin }
-                single { members }
-                single { ranks }
-                single { lang }
-            })
+            modules(
+                module {
+                    single<Plugin> { plugin }
+                    single { members }
+                    single { ranks }
+                    single { lang }
+                },
+            )
         }
     }
 
     private fun createMembers(): MemberService {
         val members = mockk<MemberService>()
-        every { members.getGuildMembers(guild.id) } returns setOf(
-            Member(player.uniqueId, guild.id, UUID.randomUUID(), Instant.EPOCH),
-        )
+        val member = Member(player.uniqueId, guild.id, UUID.randomUUID(), Instant.EPOCH)
+        every { members.getGuildMembers(guild.id) } returns setOf(member)
         return members
     }
 
@@ -110,11 +113,10 @@ class GuildMemberRankTooltipTest {
         val visible = PlainTextComponentSerializer.plainText().serialize(rankLine)
         assertFalse(visible.contains("f99801"), "Raw hex leaked into member lore: $visible")
         assertTrue(visible.contains("ꜰᴏᴜɴᴅᴇʀ"), "Visible rank name is missing: $visible")
-        assertTrue(hasColor(rankLine, TextColor.color(0xf99801)))
+        assertTrue(hasColor(rankLine, expectedColor))
         assertEquals(storedName, ranks.getPlayerRank(player.uniqueId, guild.id)?.name)
     }
 
-    private fun hasColor(component: Component, color: TextColor): Boolean {
-        return component.color() == color || component.children().any { hasColor(it, color) }
-    }
+    private fun hasColor(component: Component, color: TextColor): Boolean =
+        component.color() == color || component.children().any { hasColor(it, color) }
 }

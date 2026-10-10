@@ -33,3 +33,7 @@ interactive comparison works at 320px with no horizontal overflow and orange
 RGB (249,152,1). Browser access to ChatGPT reached a verification challenge;
 actual phone access and in-game acceptance are not claimed. Custom artwork is
 not embedded or published in this PR. Exact-head hosted checks remain separate.
+
+Codacy refinement: normalize multiline calls, use an internal test fixture with
+documented temporary storage, and avoid a numeric color literal. The six focused
+cases pass after these style changes; the rank conversion is unchanged.
