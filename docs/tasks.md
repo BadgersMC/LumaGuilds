@@ -945,3 +945,8 @@ Sanitized rebuild note: this task slice is replayed on current post-#223 `main`;
 - [x] **SHOP-XP-VALIDATE** ? Sanitized post-#225 validation passed: 23 focused SQLite/provider/config tests with zero skips/failures/errors; full `test shadowJar` produced 1,640 tests with zero failures/errors and 14 optional/environment skips; nine native MariaDB 11.8 shop-XP cases executed with zero skips/failures/errors.
 - [ ] **SHOP-XP-HOSTED** ? Publish only sanitized history and require exact-head Gradle/Codacy/CodeRabbit success.
 - [ ] **SHOP-XP-LIVE** ? Requires canonical Market #197/#198/#200 delivery plus combined pins/build and staging/live outside/own-guild, restart/retry and prestige walkthrough. No production acceptance is claimed by source tests.
+
+## Member tooltip rank colors (REQ-063)
+
+- [x] **MEMBER-RANK-COLOR** Render stored legacy/hex rank colors in Java member-list lore through the existing converter. Three real-inventory regressions reproduce literal hex before the fix and pass afterward; stored names remain unchanged. Full local `test shadowJar`: 1,645 cases, zero failures/errors, 14 existing optional/environment skips. See `docs/plans/2026-10-10-member-rank-tooltip.md` for SPEAR and private preview evidence.
+- [ ] **MEMBER-RANK-DELIVERY** Exact-head hosted checks, maintainer review/merge, canonical release/pins and deferred in-game tooltip acceptance remain separate. Production unchanged.

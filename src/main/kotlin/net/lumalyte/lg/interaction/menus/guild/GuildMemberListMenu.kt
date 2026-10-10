@@ -5,6 +5,7 @@ import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.utils.RankNameContent
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -68,7 +69,9 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
                 .name(lang.gui("menu.member_list.item.member.name", "player" to playerName))
                 .lore(lang.gui(
                     "menu.member_list.item.member.lore.rank",
-                    "rank" to (rank?.name ?: lang.raw("menu.member_list.default_rank")),
+                    "rank" to RankNameContent.miniMessage(
+                        rank?.name ?: lang.raw("menu.member_list.default_rank"),
+                    ),
                 ))
 
             val joinFormatter = DateTimeFormatter.ofPattern(lang.raw("menu.member_list.date_pattern"))
