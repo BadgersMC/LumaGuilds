@@ -106,10 +106,12 @@ class GuildMemberRankMenu(
         val rankItem = if (currentRank != null) {
             ItemStack.of(Material.DIAMOND_CHESTPLATE)
                 .name(lang.gui("menu.guild_member_rank.current.name"))
-                .lore(lang.gui(
-                    "menu.guild_member_rank.current.rank",
-                    "rank" to RankNameContent.miniMessage(currentRank.name),
-                ))
+                .lore(
+                    lang.gui(
+                        "menu.guild_member_rank.current.rank",
+                        "rank" to RankNameContent.miniMessage(currentRank.name),
+                    ),
+                )
                 .lore(lang.gui("menu.guild_member_rank.current.priority", "priority" to currentRank.priority))
                 .lore(lang.gui("menu.guild_member_rank.current.permissions", "count" to currentRank.permissions.size))
         } else {

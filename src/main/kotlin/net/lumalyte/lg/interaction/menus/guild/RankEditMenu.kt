@@ -480,19 +480,23 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                 for (member in membersWithRank) {
                     memberService.changeMemberRank(member.playerId, guild.id, targetRank.id, player.uniqueId)
                 }
-                player.sendMessage(lang.msg(
-                    "menu.rank_edit.feedback.members_moved",
-                    "count" to membersWithRank.size,
-                    "rank" to RankNameContent.miniMessage(targetRank.name),
-                ))
+                player.sendMessage(
+                    lang.msg(
+                        "menu.rank_edit.feedback.members_moved",
+                        "count" to membersWithRank.size,
+                        "rank" to RankNameContent.miniMessage(targetRank.name),
+                    ),
+                )
             }
 
             val result = rankService.deleteRank(rank.id, player.uniqueId)
             if (result) {
-                player.sendMessage(lang.msg(
-                    "menu.rank_edit.feedback.deleted",
-                    "rank" to RankNameContent.miniMessage(rank.name),
-                ))
+                player.sendMessage(
+                    lang.msg(
+                        "menu.rank_edit.feedback.deleted",
+                        "rank" to RankNameContent.miniMessage(rank.name),
+                    ),
+                )
             } else {
                 player.sendMessage(lang.msg("menu.rank_edit.feedback.delete_failed"))
             }
@@ -536,10 +540,12 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
 
         player.sendMessage(lang.msg("menu.rank_edit.input.name.header"))
         player.sendMessage(lang.msg("menu.rank_edit.input.name.prompt"))
-        player.sendMessage(lang.msg(
-            "menu.rank_edit.input.name.current",
-            "rank" to RankNameContent.miniMessage(rank.name),
-        ))
+        player.sendMessage(
+            lang.msg(
+                "menu.rank_edit.input.name.current",
+                "rank" to RankNameContent.miniMessage(rank.name),
+            ),
+        )
         player.sendMessage(lang.msg("menu.rank_edit.input.name.requirements"))
         player.sendMessage(lang.msg("menu.rank_edit.input.name.length"))
         player.sendMessage(lang.msg("menu.rank_edit.input.name.characters"))
@@ -616,10 +622,12 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                     val success = rankService.updateRank(renamed, player.uniqueId)
                     if (success) {
                         rank = renamed
-                        player.sendMessage(lang.msg(
-                            "menu.rank_edit.feedback.name_updated",
-                            "rank" to RankNameContent.miniMessage(input),
-                        ))
+                        player.sendMessage(
+                            lang.msg(
+                                "menu.rank_edit.feedback.name_updated",
+                                "rank" to RankNameContent.miniMessage(input),
+                            ),
+                        )
                     } else {
                         player.sendMessage(lang.msg("menu.rank_edit.feedback.name_update_failed"))
                     }

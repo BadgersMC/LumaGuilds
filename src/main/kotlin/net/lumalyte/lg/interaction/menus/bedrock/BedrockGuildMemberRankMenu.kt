@@ -80,11 +80,13 @@ class BedrockGuildMemberRankMenu(
 
         if (success) {
             val memberName = Bukkit.getOfflinePlayer(member.playerId).name ?: lang.bedrock("menu.common.unknown_player")
-            player.sendMessage(lang.msg(
-                "bedrock.member_rank.feedback.changed",
-                "player" to memberName,
-                "rank" to RankNameContent.miniMessage(newRankName),
-            ))
+            player.sendMessage(
+                lang.msg(
+                    "bedrock.member_rank.feedback.changed",
+                    "player" to memberName,
+                    "rank" to RankNameContent.miniMessage(newRankName),
+                ),
+            )
             bedrockNavigator.goBack()
         } else {
             player.sendMessage(lang.msg("bedrock.member_rank.feedback.failed"))

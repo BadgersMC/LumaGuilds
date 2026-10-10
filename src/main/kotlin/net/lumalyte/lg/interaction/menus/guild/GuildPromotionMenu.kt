@@ -101,11 +101,13 @@ class GuildPromotionMenu(
                             // Fetch the exact rank the service assigned
                             val updatedMember = memberService.getMember(member.playerId, guild.id)
                             val newRankName = updatedMember?.let { m -> rankById[m.rankId]?.name } ?: ranks[rankIdx - 1].name
-                            player.sendMessage(lang.msg(
-                                "menu.guild_promotion.feedback.promoted",
-                                "player" to playerName,
-                                "rank" to RankNameContent.miniMessage(newRankName),
-                            ))
+                            player.sendMessage(
+                                lang.msg(
+                                    "menu.guild_promotion.feedback.promoted",
+                                    "player" to playerName,
+                                    "rank" to RankNameContent.miniMessage(newRankName),
+                                ),
+                            )
                             player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
                             reloadSafely()
                         } else {
@@ -122,11 +124,13 @@ class GuildPromotionMenu(
                             // Fetch the exact rank the service assigned
                             val updatedMember = memberService.getMember(member.playerId, guild.id)
                             val newRankName = updatedMember?.let { m -> rankById[m.rankId]?.name } ?: ranks[rankIdx + 1].name
-                            player.sendMessage(lang.msg(
-                                "menu.guild_promotion.feedback.demoted",
-                                "player" to playerName,
-                                "rank" to RankNameContent.miniMessage(newRankName),
-                            ))
+                            player.sendMessage(
+                                lang.msg(
+                                    "menu.guild_promotion.feedback.demoted",
+                                    "player" to playerName,
+                                    "rank" to RankNameContent.miniMessage(newRankName),
+                                ),
+                            )
                             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 0.8f, 1.0f)
                             reloadSafely()
                         } else {

@@ -287,12 +287,14 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
             } else {
                 warStats.defendingGuildKills
             }
-            statsItem.lore(lang.gui(
-                "menu.guild_info.statistics.war_kills",
-                "opponent" to opponent,
-                "kills" to kills,
-                "target" to killTarget,
-            ))
+            statsItem.lore(
+                lang.gui(
+                    "menu.guild_info.statistics.war_kills",
+                    "opponent" to opponent,
+                    "kills" to kills,
+                    "target" to killTarget,
+                ),
+            )
         }
 
         if (guild.home != null) {

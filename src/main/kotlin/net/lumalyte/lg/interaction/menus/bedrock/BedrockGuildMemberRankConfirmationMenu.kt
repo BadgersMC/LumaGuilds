@@ -42,14 +42,16 @@ class BedrockGuildMemberRankConfirmationMenu(
 
         return SimpleForm.builder()
             .title(lang.bedrock("bedrock.member_rank_confirmation.title"))
-            .content(lang.bedrock(
-                "bedrock.member_rank_confirmation.content",
-                "guild" to guild.name,
-                "player" to targetName,
-                "current_rank" to RankNameContent.miniMessage(currentRankName),
-                "new_rank" to RankNameContent.miniMessage(newRank.name),
-                "change" to getRankChangeDescription(currentRank, newRank)
-            ))
+            .content(
+                lang.bedrock(
+                    "bedrock.member_rank_confirmation.content",
+                    "guild" to guild.name,
+                    "player" to targetName,
+                    "current_rank" to RankNameContent.miniMessage(currentRankName),
+                    "new_rank" to RankNameContent.miniMessage(newRank.name),
+                    "change" to getRankChangeDescription(currentRank, newRank)
+                ),
+            )
             .button(lang.bedrock("bedrock.member_rank_confirmation.button.confirm"))
             .button(lang.bedrock("bedrock.member_rank_confirmation.button.cancel"))
             .validResultHandler { response ->
@@ -82,20 +84,24 @@ class BedrockGuildMemberRankConfirmationMenu(
         val success = memberService.changeMemberRank(targetMember.playerId, guild.id, newRank.id, player.uniqueId)
 
         if (success) {
-            player.sendMessage(lang.msg(
-                "bedrock.member_rank_confirmation.feedback.changed",
-                "player" to targetName,
-                "rank" to RankNameContent.miniMessage(newRank.name),
-            ))
+            player.sendMessage(
+                lang.msg(
+                    "bedrock.member_rank_confirmation.feedback.changed",
+                    "player" to targetName,
+                    "rank" to RankNameContent.miniMessage(newRank.name),
+                ),
+            )
 
             // Notify the target player if they're online
             val targetPlayer = Bukkit.getPlayer(targetMember.playerId)
             if (targetPlayer != null) {
-                targetPlayer.sendMessage(lang.msg(
-                    "bedrock.member_rank_confirmation.feedback.target_changed",
-                    "guild" to guild.name,
-                    "rank" to RankNameContent.miniMessage(newRank.name),
-                ))
+                targetPlayer.sendMessage(
+                    lang.msg(
+                        "bedrock.member_rank_confirmation.feedback.target_changed",
+                        "guild" to guild.name,
+                        "rank" to RankNameContent.miniMessage(newRank.name),
+                    ),
+                )
             }
 
             // Return to member management menu

@@ -24,7 +24,6 @@ import kotlin.test.assertTrue
 
 /** Exercises the real Java inventories and native Bedrock form labels. */
 internal class GuildMemberRankTooltipTest : GuildRankMenuFixture() {
-
     /** Every accepted hex representation must reach the item lore as color. */
     @ParameterizedTest
     @ValueSource(strings = [AMP_HEX, BARE_HEX, SECTION_HEX])
@@ -80,7 +79,12 @@ internal class GuildMemberRankTooltipTest : GuildRankMenuFixture() {
         assertEquals(0, dropdown.defaultOption())
         val confirmation =
             BedrockGuildMemberRankConfirmationMenu(
-                navigator, player, guild, member, rank, logger,
+                navigator,
+                player,
+                guild,
+                member,
+                rank,
+                logger,
             ).getForm() as SimpleForm
         assertFalse(confirmation.content().contains(HEX_DIGITS))
         assertEquals(storedName, rank.name)
@@ -101,7 +105,7 @@ internal class GuildMemberRankTooltipTest : GuildRankMenuFixture() {
     /** Member pickers and management labels hide syntax while the editor preserves it. */
     @ParameterizedTest
     @ValueSource(strings = [AMP_HEX, BARE_HEX, SECTION_HEX])
-    fun bedrockMemberAndManagementForms(storedName: String) {
+    fun bedrockManagementLabels(storedName: String) {
         val rank = bindRank(storedName)
         val navigator = MenuNavigator(player)
         val logger = Logger.getAnonymousLogger()
