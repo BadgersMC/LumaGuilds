@@ -1,9 +1,5 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
-import net.lumalyte.lg.utils.RankNameContent
-
-import net.lumalyte.lg.infrastructure.i18n.bedrock
-
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
@@ -11,19 +7,21 @@ import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.infrastructure.i18n.bedrock
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.sortMembersByRank
+import net.lumalyte.lg.utils.RankNameContent
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
-import org.geysermc.cumulus.form.SimpleForm
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.ModalForm
+import org.geysermc.cumulus.form.SimpleForm
 import org.geysermc.cumulus.util.FormImage
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import java.util.logging.Logger
 import java.util.UUID
+import java.util.logging.Logger
 
 /**
  * Bedrock Edition guild member list menu using Cumulus SimpleForm
@@ -138,7 +136,7 @@ class BedrockGuildMemberListMenu(
                 "bedrock.member_list.member_row",
                 "status" to onlineStatus,
                 "player" to playerName,
-                "rank" to RankNameContent.miniMessage(rank)
+                "rank" to RankNameContent.miniMessage(rank),
             )
         }
 
@@ -197,7 +195,11 @@ class BedrockGuildMemberListMenu(
             val rank = rankService.getRank(member.rankId)?.name
                 ?: lang.bedrock("bedrock.member_list.unknown")
             builder = builder.button(
-                lang.bedrock("bedrock.member_list.select_member", "player" to name, "rank" to RankNameContent.miniMessage(rank))
+                lang.bedrock(
+                    "bedrock.member_list.select_member",
+                    "player" to name,
+                    "rank" to RankNameContent.miniMessage(rank),
+                ),
             )
             actions += {
                 bedrockNavigator.openMenu(

@@ -55,3 +55,13 @@ Adventure color and visible text, plain dropdown options, unchanged default
 selection and raw editable input. Source audit also covers related feedback and
 member selection callbacks. Full suite and final-head CI results are recorded
 in the delivery evidence. No production or artwork changes.
+
+Full follow-up validation before style-only refinement: Java 25 / Paper 26.2
+`test shadowJar` passed with 1,657 discovered tests, zero failures/errors and
+14 existing environment/optional skips. Codacy then flagged formatting and the
+expanded test fixture size. Split shared setup into a separate fixture and
+normalize the affected display calls/imports; rerun the focused checks and build.
+The native rank-name editing field remains deliberately raw and is asserted.
+Focused regression checks and shadowJar pass after fixture/style refinement:
+18 cases, zero failures/errors/skips. Final-head hosted checks remain a separate
+review gate. Local source/build evidence does not establish client acceptance.

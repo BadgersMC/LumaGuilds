@@ -1,29 +1,26 @@
 package net.lumalyte.lg.interaction.menus.guild
 
-import net.lumalyte.lg.utils.RankNameContent
-
-import net.lumalyte.lg.utils.inventoryframework.addPane
-
-import net.lumalyte.lg.utils.NexoItemProvider
-import net.lumalyte.lg.utils.MenuTitleBuilder
-import net.lumalyte.lg.infrastructure.i18n.gui
-import net.lumalyte.lg.infrastructure.i18n.guiTitle
-import net.badgersmc.nexus.i18n.LangService
-
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import io.papermc.paper.datacomponent.DataComponentTypes
 import io.papermc.paper.datacomponent.item.ResolvableProfile
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.Rank
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.utils.NexoItemProvider
+import net.lumalyte.lg.utils.RankNameContent
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Bukkit
@@ -109,7 +106,10 @@ class GuildMemberRankMenu(
         val rankItem = if (currentRank != null) {
             ItemStack.of(Material.DIAMOND_CHESTPLATE)
                 .name(lang.gui("menu.guild_member_rank.current.name"))
-                .lore(lang.gui("menu.guild_member_rank.current.rank", "rank" to RankNameContent.miniMessage(currentRank.name)))
+                .lore(lang.gui(
+                    "menu.guild_member_rank.current.rank",
+                    "rank" to RankNameContent.miniMessage(currentRank.name),
+                ))
                 .lore(lang.gui("menu.guild_member_rank.current.priority", "priority" to currentRank.priority))
                 .lore(lang.gui("menu.guild_member_rank.current.permissions", "count" to currentRank.permissions.size))
         } else {
@@ -137,9 +137,15 @@ class GuildMemberRankMenu(
             val rankItem = ItemStack.of(if (isCurrentRank) Material.LIME_CONCRETE else Material.GRAY_CONCRETE)
                 .name(
                     if (isCurrentRank) {
-                        lang.gui("menu.guild_member_rank.selection.name.current", "rank" to RankNameContent.miniMessage(rank.name))
+                        lang.gui(
+                            "menu.guild_member_rank.selection.name.current",
+                            "rank" to RankNameContent.miniMessage(rank.name),
+                        )
                     } else {
-                        lang.gui("menu.guild_member_rank.selection.name.available", "rank" to RankNameContent.miniMessage(rank.name))
+                        lang.gui(
+                            "menu.guild_member_rank.selection.name.available",
+                            "rank" to RankNameContent.miniMessage(rank.name),
+                        )
                     }
                 )
                 .lore(lang.gui("menu.guild_member_rank.selection.priority", "priority" to rank.priority))

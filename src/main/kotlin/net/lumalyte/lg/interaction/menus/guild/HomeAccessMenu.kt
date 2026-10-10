@@ -1,25 +1,22 @@
 package net.lumalyte.lg.interaction.menus.guild
 
-import net.lumalyte.lg.utils.RankNameContent
-
-import net.lumalyte.lg.utils.inventoryframework.addPane
-
-import net.lumalyte.lg.utils.NexoItemProvider
-import net.lumalyte.lg.utils.MenuTitleBuilder
-import net.badgersmc.nexus.i18n.LangService
-import net.lumalyte.lg.infrastructure.i18n.gui
-import net.lumalyte.lg.infrastructure.i18n.guiTitle
-
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import net.lumalyte.lg.utils.inventoryframework.StaticPane
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.utils.NexoItemProvider
+import net.lumalyte.lg.utils.RankNameContent
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Material
@@ -79,8 +76,11 @@ class HomeAccessMenu(
                     else -> Material.GRAY_DYE
                 }
             ).name(
-                if (on) lang.gui("menu.home_access.rank.allowed", "rank" to RankNameContent.miniMessage(r.name))
-                else lang.gui("menu.home_access.rank.denied", "rank" to RankNameContent.miniMessage(r.name))
+                if (on) {
+                    lang.gui("menu.home_access.rank.allowed", "rank" to RankNameContent.miniMessage(r.name))
+                } else {
+                    lang.gui("menu.home_access.rank.denied", "rank" to RankNameContent.miniMessage(r.name))
+                },
             )
                 .lore(lang.gui("menu.home_access.rank.priority", "priority" to r.priority))
                 .lore(lang.gui("menu.common.blank"))

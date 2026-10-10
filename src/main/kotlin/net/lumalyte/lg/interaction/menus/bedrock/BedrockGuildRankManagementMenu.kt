@@ -1,9 +1,5 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
-import net.lumalyte.lg.utils.RankNameContent
-
-import net.lumalyte.lg.infrastructure.i18n.bedrock
-
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
@@ -11,7 +7,9 @@ import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Rank
 import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.infrastructure.i18n.bedrock
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.RankNameContent
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
@@ -91,7 +89,9 @@ class BedrockGuildRankManagementMenu(
         val existingRanks = rankService.listRanks(guild.id).sortedBy { it.priority }
         formBuilder.dropdown(
             lang.bedrock("bedrock.rank_management.select_rank"),
-            existingRanks.map { RankNameContent.plain(it.name) }.ifEmpty { listOf(lang.bedrock("bedrock.rank_management.no_ranks")) },
+            existingRanks.map { RankNameContent.plain(it.name) }.ifEmpty {
+                listOf(lang.bedrock("bedrock.rank_management.no_ranks"))
+            },
             selectedRank?.let { existingRanks.indexOf(it).coerceAtLeast(0) } ?: 0
         )
 
@@ -228,7 +228,10 @@ class BedrockGuildRankManagementMenu(
             // Check for duplicate names without rejecting the rank currently being edited.
             val existingRank = rankService.getRankByName(guild.id, rankName)
             if (existingRank != null && existingRank.id != rankToEdit?.id) {
-                player.sendMessage(lang.msg("bedrock.rank_management.error.duplicate", "rank" to RankNameContent.miniMessage(rankName)))
+                player.sendMessage(lang.msg(
+                    "bedrock.rank_management.error.duplicate",
+                    "rank" to RankNameContent.miniMessage(rankName),
+                ))
                 reopen()
                 return
             }
@@ -245,7 +248,10 @@ class BedrockGuildRankManagementMenu(
 
                 if (createdRank != null) {
                     // RankService owns creation-order priority; the Bedrock adapter does not reorder it.
-                    player.sendMessage(lang.msg("bedrock.rank_management.success.created", "rank" to RankNameContent.miniMessage(rankName)))
+                    player.sendMessage(lang.msg(
+                        "bedrock.rank_management.success.created",
+                        "rank" to RankNameContent.miniMessage(rankName),
+                    ))
                 } else {
                     player.sendMessage(lang.msg("bedrock.rank_management.error.create_failed"))
                 }
@@ -264,7 +270,10 @@ class BedrockGuildRankManagementMenu(
 
                     val success = rankService.updateRank(updatedRank, player.uniqueId)
                     if (success) {
-                        player.sendMessage(lang.msg("bedrock.rank_management.success.updated", "rank" to RankNameContent.miniMessage(rankName)))
+                        player.sendMessage(lang.msg(
+                            "bedrock.rank_management.success.updated",
+                            "rank" to RankNameContent.miniMessage(rankName),
+                        ))
                     } else {
                         player.sendMessage(lang.msg("bedrock.rank_management.error.update_failed"))
                     }

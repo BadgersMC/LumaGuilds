@@ -1,35 +1,32 @@
 package net.lumalyte.lg.interaction.menus.guild
 
-import net.lumalyte.lg.utils.RankNameContent
-
-import net.lumalyte.lg.utils.inventoryframework.addPane
-
-import net.lumalyte.lg.utils.NexoItemProvider
-import net.lumalyte.lg.utils.MenuTitleBuilder
-import net.lumalyte.lg.infrastructure.i18n.gui
-import net.lumalyte.lg.infrastructure.i18n.guiTitle
-import net.lumalyte.lg.infrastructure.i18n.rankNameError
-import net.badgersmc.nexus.i18n.LangService
-
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import net.lumalyte.lg.utils.inventoryframework.StaticPane
-import net.lumalyte.lg.application.services.RankService
-import net.lumalyte.lg.application.services.MemberService
-import net.lumalyte.lg.application.services.ConfigService
-import net.lumalyte.lg.domain.entities.Guild
-import net.lumalyte.lg.domain.entities.Rank
-import net.lumalyte.lg.domain.entities.RankPermission
-import net.lumalyte.lg.interaction.listeners.ChatInputHandler
-import net.lumalyte.lg.interaction.listeners.ChatInputListener
-import net.lumalyte.lg.interaction.menus.Menu
-import net.lumalyte.lg.interaction.menus.MenuNavigator
-import net.lumalyte.lg.utils.lore
-import net.lumalyte.lg.utils.name
+import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
+import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.application.services.RankService
+import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.domain.entities.Rank
+import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.lumalyte.lg.infrastructure.i18n.rankNameError
+import net.lumalyte.lg.interaction.listeners.ChatInputHandler
+import net.lumalyte.lg.interaction.listeners.ChatInputListener
+import net.lumalyte.lg.interaction.menus.Menu
+import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.utils.NexoItemProvider
+import net.lumalyte.lg.utils.RankNameContent
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.addPane
+import net.lumalyte.lg.utils.lore
+import net.lumalyte.lg.utils.name
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -483,12 +480,19 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                 for (member in membersWithRank) {
                     memberService.changeMemberRank(member.playerId, guild.id, targetRank.id, player.uniqueId)
                 }
-                player.sendMessage(lang.msg("menu.rank_edit.feedback.members_moved", "count" to membersWithRank.size, "rank" to RankNameContent.miniMessage(targetRank.name)))
+                player.sendMessage(lang.msg(
+                    "menu.rank_edit.feedback.members_moved",
+                    "count" to membersWithRank.size,
+                    "rank" to RankNameContent.miniMessage(targetRank.name),
+                ))
             }
 
             val result = rankService.deleteRank(rank.id, player.uniqueId)
             if (result) {
-                player.sendMessage(lang.msg("menu.rank_edit.feedback.deleted", "rank" to RankNameContent.miniMessage(rank.name)))
+                player.sendMessage(lang.msg(
+                    "menu.rank_edit.feedback.deleted",
+                    "rank" to RankNameContent.miniMessage(rank.name),
+                ))
             } else {
                 player.sendMessage(lang.msg("menu.rank_edit.feedback.delete_failed"))
             }
@@ -532,7 +536,10 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
 
         player.sendMessage(lang.msg("menu.rank_edit.input.name.header"))
         player.sendMessage(lang.msg("menu.rank_edit.input.name.prompt"))
-        player.sendMessage(lang.msg("menu.rank_edit.input.name.current", "rank" to RankNameContent.miniMessage(rank.name)))
+        player.sendMessage(lang.msg(
+            "menu.rank_edit.input.name.current",
+            "rank" to RankNameContent.miniMessage(rank.name),
+        ))
         player.sendMessage(lang.msg("menu.rank_edit.input.name.requirements"))
         player.sendMessage(lang.msg("menu.rank_edit.input.name.length"))
         player.sendMessage(lang.msg("menu.rank_edit.input.name.characters"))
@@ -609,7 +616,10 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                     val success = rankService.updateRank(renamed, player.uniqueId)
                     if (success) {
                         rank = renamed
-                        player.sendMessage(lang.msg("menu.rank_edit.feedback.name_updated", "rank" to RankNameContent.miniMessage(input)))
+                        player.sendMessage(lang.msg(
+                            "menu.rank_edit.feedback.name_updated",
+                            "rank" to RankNameContent.miniMessage(input),
+                        ))
                     } else {
                         player.sendMessage(lang.msg("menu.rank_edit.feedback.name_update_failed"))
                     }
