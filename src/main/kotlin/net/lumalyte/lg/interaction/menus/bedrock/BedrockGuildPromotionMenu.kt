@@ -77,7 +77,7 @@ class BedrockGuildPromotionMenu(
         return members.map { member ->
             val playerName = getPlayerName(member)
             val currentRank = rankService.getRank(member.rankId)?.name ?: lang.bedrock("bedrock.promotion.unknown_rank")
-            lang.bedrock("bedrock.promotion.member_option", "player" to playerName, "rank" to currentRank)
+            lang.bedrock("bedrock.promotion.member_option", "player" to playerName, "rank" to RankNameContent.miniMessage(currentRank))
         }
     }
 

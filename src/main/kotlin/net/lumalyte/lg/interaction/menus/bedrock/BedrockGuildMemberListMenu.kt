@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.infrastructure.i18n.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
@@ -136,7 +138,7 @@ class BedrockGuildMemberListMenu(
                 "bedrock.member_list.member_row",
                 "status" to onlineStatus,
                 "player" to playerName,
-                "rank" to rank
+                "rank" to RankNameContent.miniMessage(rank)
             )
         }
 
@@ -195,7 +197,7 @@ class BedrockGuildMemberListMenu(
             val rank = rankService.getRank(member.rankId)?.name
                 ?: lang.bedrock("bedrock.member_list.unknown")
             builder = builder.button(
-                lang.bedrock("bedrock.member_list.select_member", "player" to name, "rank" to rank)
+                lang.bedrock("bedrock.member_list.select_member", "player" to name, "rank" to RankNameContent.miniMessage(rank))
             )
             actions += {
                 bedrockNavigator.openMenu(

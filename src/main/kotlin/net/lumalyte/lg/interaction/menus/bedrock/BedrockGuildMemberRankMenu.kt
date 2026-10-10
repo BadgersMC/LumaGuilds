@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.infrastructure.i18n.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
@@ -38,7 +40,7 @@ class BedrockGuildMemberRankMenu(
 
         val memberName = Bukkit.getOfflinePlayer(member.playerId).name ?: lang.bedrock("menu.common.unknown_player")
         val ranks = rankService.listRanks(guild.id).sortedBy { it.priority }
-        val rankNames = ranks.map { it.name }
+        val rankNames = ranks.map { RankNameContent.plain(it.name) }
         val currentRank = rankService.getRank(member.rankId)
         val currentRankIndex = ranks.indexOfFirst { it.id == member.rankId }.coerceAtLeast(0)
 
@@ -46,7 +48,7 @@ class BedrockGuildMemberRankMenu(
             .title(lang.bedrock("bedrock.member_rank.title", "player" to memberName))
             .apply { rankIcon?.let { icon(it) } }
             .label(lang.bedrock("bedrock.member_rank.description", "player" to memberName))
-            .label(lang.bedrock("bedrock.member_rank.current", "rank" to (currentRank?.name ?: lang.bedrock("bedrock.member_rank.unknown_rank"))))
+            .label(lang.bedrock("bedrock.member_rank.current", "rank" to RankNameContent.miniMessage(currentRank?.name ?: lang.bedrock("bedrock.member_rank.unknown_rank"))))
             .dropdown(
                 lang.bedrock("bedrock.member_rank.new_rank"),
                 rankNames,
@@ -79,7 +81,7 @@ class BedrockGuildMemberRankMenu(
 
         if (success) {
             val memberName = Bukkit.getOfflinePlayer(member.playerId).name ?: lang.bedrock("menu.common.unknown_player")
-            player.sendMessage(lang.msg("bedrock.member_rank.feedback.changed", "player" to memberName, "rank" to newRankName))
+            player.sendMessage(lang.msg("bedrock.member_rank.feedback.changed", "player" to memberName, "rank" to RankNameContent.miniMessage(newRankName)))
             bedrockNavigator.goBack()
         } else {
             player.sendMessage(lang.msg("bedrock.member_rank.feedback.failed"))

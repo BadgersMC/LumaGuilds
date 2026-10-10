@@ -91,7 +91,7 @@ class BedrockGuildRankManagementMenu(
         val existingRanks = rankService.listRanks(guild.id).sortedBy { it.priority }
         formBuilder.dropdown(
             lang.bedrock("bedrock.rank_management.select_rank"),
-            existingRanks.map { it.name }.ifEmpty { listOf(lang.bedrock("bedrock.rank_management.no_ranks")) },
+            existingRanks.map { RankNameContent.plain(it.name) }.ifEmpty { listOf(lang.bedrock("bedrock.rank_management.no_ranks")) },
             selectedRank?.let { existingRanks.indexOf(it).coerceAtLeast(0) } ?: 0
         )
 
@@ -152,7 +152,7 @@ class BedrockGuildRankManagementMenu(
                 "bedrock.rank_management.info.editing",
                 "guild" to guild.name,
                 "count" to rankCount,
-                "rank" to selectedRank.name
+                "rank" to RankNameContent.miniMessage(selectedRank.name)
             )
         } else {
             lang.bedrock("bedrock.rank_management.info.creating", "guild" to guild.name, "count" to rankCount)

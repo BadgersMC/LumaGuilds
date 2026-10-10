@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import net.lumalyte.lg.utils.NexoItemProvider
@@ -79,7 +81,7 @@ class GuildPromotionMenu(
 
             val item = ItemStack.of(if (isOnline) Material.PLAYER_HEAD else Material.SKELETON_SKULL)
                 .name(lang.gui("menu.guild_promotion.member.name", "player" to playerName))
-                .lore(lang.gui("menu.guild_promotion.member.rank", "rank" to (rank?.name ?: lang.raw("menu.guild_promotion.fallback.unknown_rank"))))
+                .lore(lang.gui("menu.guild_promotion.member.rank", "rank" to RankNameContent.miniMessage(rank?.name ?: lang.raw("menu.guild_promotion.fallback.unknown_rank"))))
                 .lore(
                     if (isOnline) {
                         lang.gui("menu.guild_promotion.member.status.online")
@@ -101,7 +103,7 @@ class GuildPromotionMenu(
                             // Fetch the exact rank the service assigned
                             val updatedMember = memberService.getMember(member.playerId, guild.id)
                             val newRankName = updatedMember?.let { m -> rankById[m.rankId]?.name } ?: ranks[rankIdx - 1].name
-                            player.sendMessage(lang.msg("menu.guild_promotion.feedback.promoted", "player" to playerName, "rank" to newRankName))
+                            player.sendMessage(lang.msg("menu.guild_promotion.feedback.promoted", "player" to playerName, "rank" to RankNameContent.miniMessage(newRankName)))
                             player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
                             reloadSafely()
                         } else {
@@ -118,7 +120,7 @@ class GuildPromotionMenu(
                             // Fetch the exact rank the service assigned
                             val updatedMember = memberService.getMember(member.playerId, guild.id)
                             val newRankName = updatedMember?.let { m -> rankById[m.rankId]?.name } ?: ranks[rankIdx + 1].name
-                            player.sendMessage(lang.msg("menu.guild_promotion.feedback.demoted", "player" to playerName, "rank" to newRankName))
+                            player.sendMessage(lang.msg("menu.guild_promotion.feedback.demoted", "player" to playerName, "rank" to RankNameContent.miniMessage(newRankName)))
                             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 0.8f, 1.0f)
                             reloadSafely()
                         } else {

@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.infrastructure.i18n.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
@@ -45,8 +47,8 @@ class BedrockGuildMemberRankConfirmationMenu(
                 "bedrock.member_rank_confirmation.content",
                 "guild" to guild.name,
                 "player" to targetName,
-                "current_rank" to (currentRank?.name ?: lang.bedrock("bedrock.member_rank_confirmation.unknown_rank")),
-                "new_rank" to newRank.name,
+                "current_rank" to RankNameContent.miniMessage(currentRank?.name ?: lang.bedrock("bedrock.member_rank_confirmation.unknown_rank")),
+                "new_rank" to RankNameContent.miniMessage(newRank.name),
                 "change" to getRankChangeDescription(currentRank, newRank)
             ))
             .button(lang.bedrock("bedrock.member_rank_confirmation.button.confirm"))
@@ -81,12 +83,12 @@ class BedrockGuildMemberRankConfirmationMenu(
         val success = memberService.changeMemberRank(targetMember.playerId, guild.id, newRank.id, player.uniqueId)
 
         if (success) {
-            player.sendMessage(lang.msg("bedrock.member_rank_confirmation.feedback.changed", "player" to targetName, "rank" to newRank.name))
+            player.sendMessage(lang.msg("bedrock.member_rank_confirmation.feedback.changed", "player" to targetName, "rank" to RankNameContent.miniMessage(newRank.name)))
 
             // Notify the target player if they're online
             val targetPlayer = Bukkit.getPlayer(targetMember.playerId)
             if (targetPlayer != null) {
-                targetPlayer.sendMessage(lang.msg("bedrock.member_rank_confirmation.feedback.target_changed", "guild" to guild.name, "rank" to newRank.name))
+                targetPlayer.sendMessage(lang.msg("bedrock.member_rank_confirmation.feedback.target_changed", "guild" to guild.name, "rank" to RankNameContent.miniMessage(newRank.name)))
             }
 
             // Return to member management menu

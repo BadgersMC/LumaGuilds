@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import net.lumalyte.lg.utils.NexoItemProvider
@@ -77,8 +79,8 @@ class HomeAccessMenu(
                     else -> Material.GRAY_DYE
                 }
             ).name(
-                if (on) lang.gui("menu.home_access.rank.allowed", "rank" to r.name)
-                else lang.gui("menu.home_access.rank.denied", "rank" to r.name)
+                if (on) lang.gui("menu.home_access.rank.allowed", "rank" to RankNameContent.miniMessage(r.name))
+                else lang.gui("menu.home_access.rank.denied", "rank" to RankNameContent.miniMessage(r.name))
             )
                 .lore(lang.gui("menu.home_access.rank.priority", "priority" to r.priority))
                 .lore(lang.gui("menu.common.blank"))

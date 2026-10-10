@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import net.lumalyte.lg.utils.NexoItemProvider
@@ -153,7 +155,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
                 val playerName = Bukkit.getOfflinePlayer(member.playerId).name ?: lang.raw("menu.guild_info.fallback.unknown_player")
                 val memberItem = ItemStack.of(Material.PLAYER_HEAD)
                     .name(lang.gui("menu.guild_info.members.player", "player" to playerName))
-                    .lore(lang.gui("menu.guild_info.members.rank", "rank" to (rank?.name ?: lang.raw("menu.guild_info.fallback.member"))))
+                    .lore(lang.gui("menu.guild_info.members.rank", "rank" to RankNameContent.miniMessage(rank?.name ?: lang.raw("menu.guild_info.fallback.member"))))
 
                 memberItem.setData(
                     DataComponentTypes.PROFILE,

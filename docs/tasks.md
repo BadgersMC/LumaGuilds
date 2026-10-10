@@ -950,3 +950,9 @@ Sanitized rebuild note: this task slice is replayed on current post-#223 `main`;
 
 - [x] **MEMBER-RANK-COLOR** Render stored legacy/hex rank colors in Java member-list lore through the existing converter. Three real-inventory regressions reproduce literal hex before the fix and pass afterward; stored names remain unchanged. Full local `test shadowJar`: 1,645 cases, zero failures/errors, 14 existing optional/environment skips. See `docs/plans/2026-10-10-member-rank-tooltip.md` for SPEAR and private preview evidence.
 - [ ] **MEMBER-RANK-DELIVERY** Exact-head hosted checks, maintainer review/merge, canonical release/pins and deferred in-game tooltip acceptance remain separate. Production unchanged.
+
+Menu audit follow-up (REQ-063):
+- [x] Audit all Java and Bedrock rank-name presentation sinks; repair 11 additional menu classes and their rank-change feedback.
+- [x] Preserve raw editable input defaults, rank IDs, ordering, permission checks and persistence.
+- [x] Run 18 focused rank-converter, Java inventory and native-form regressions with zero failures/skips; record full build and exact-head hosted checks separately.
+- [x] Expand the private clickable preview to the affected screen families; in-game acceptance remains deferred.

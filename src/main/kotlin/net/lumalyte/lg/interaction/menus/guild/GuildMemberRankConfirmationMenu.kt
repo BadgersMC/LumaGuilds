@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
@@ -95,7 +97,7 @@ class GuildMemberRankConfirmationMenu(
         val currentRankItem = if (currentRank != null) {
             ItemStack.of(Material.RED_CONCRETE)
                 .name(lang.gui("menu.guild_confirmation.rank_change.item.current.name"))
-                .lore(lang.gui("menu.guild_confirmation.rank_change.item.rank_lore.rank", "rank" to currentRank.name))
+                .lore(lang.gui("menu.guild_confirmation.rank_change.item.rank_lore.rank", "rank" to RankNameContent.miniMessage(currentRank.name)))
                 .lore(lang.gui("menu.guild_confirmation.rank_change.item.rank_lore.priority", "priority" to currentRank.priority))
         } else {
             ItemStack.of(Material.BARRIER)
@@ -105,7 +107,7 @@ class GuildMemberRankConfirmationMenu(
         // New rank
         val newRankItem = ItemStack.of(Material.GREEN_CONCRETE)
             .name(lang.gui("menu.guild_confirmation.rank_change.item.new.name"))
-            .lore(lang.gui("menu.guild_confirmation.rank_change.item.rank_lore.rank", "rank" to newRank.name))
+            .lore(lang.gui("menu.guild_confirmation.rank_change.item.rank_lore.rank", "rank" to RankNameContent.miniMessage(newRank.name)))
             .lore(lang.gui("menu.guild_confirmation.rank_change.item.rank_lore.priority", "priority" to newRank.priority))
 
         // Change direction indicator
@@ -119,8 +121,8 @@ class GuildMemberRankConfirmationMenu(
         val summaryItem = ItemStack.of(Material.BOOK)
             .name(lang.gui("menu.guild_confirmation.rank_change.item.summary.name"))
             .lore(changeDirection)
-            .lore(lang.gui("menu.guild_confirmation.rank_change.item.summary.lore.from", "rank" to (currentRank?.name ?: lang.raw("general.unknown"))))
-            .lore(lang.gui("menu.guild_confirmation.rank_change.item.summary.lore.to", "rank" to newRank.name))
+            .lore(lang.gui("menu.guild_confirmation.rank_change.item.summary.lore.from", "rank" to RankNameContent.miniMessage(currentRank?.name ?: lang.raw("general.unknown"))))
+            .lore(lang.gui("menu.guild_confirmation.rank_change.item.summary.lore.to", "rank" to RankNameContent.miniMessage(newRank.name)))
             .lore(lang.gui("menu.guild_confirmation.rank_change.item.summary.lore.priority_change", "change" to ((currentRank?.priority ?: 0) - newRank.priority)))
             .lore("")
             .lore(lang.gui("menu.guild_confirmation.rank_change.item.summary.lore.permissions", "permission_count" to newRank.permissions.size))
@@ -138,7 +140,7 @@ class GuildMemberRankConfirmationMenu(
                 "menu.guild_confirmation.rank_change.item.confirm.lore.player",
                 "player" to (Bukkit.getOfflinePlayer(targetMember.playerId).name ?: lang.raw("general.unknown")),
             ))
-            .lore(lang.gui("menu.guild_confirmation.rank_change.item.confirm.lore.rank", "rank" to newRank.name))
+            .lore(lang.gui("menu.guild_confirmation.rank_change.item.confirm.lore.rank", "rank" to RankNameContent.miniMessage(newRank.name)))
 
         val confirmGuiItem = GuiItem(confirmItem) {
             performRankChange()
@@ -177,13 +179,13 @@ class GuildMemberRankConfirmationMenu(
                 }
 
                 player.sendMessage(successMessage)
-                player.sendMessage(lang.msg("menu.guild_confirmation.rank_change.feedback.new_rank", "rank" to newRank.name))
+                player.sendMessage(lang.msg("menu.guild_confirmation.rank_change.feedback.new_rank", "rank" to RankNameContent.miniMessage(newRank.name)))
 
                 // Notify the target player if they're online
                 val targetPlayer = Bukkit.getPlayer(targetMember.playerId)
                 if (targetPlayer != null && targetPlayer.isOnline) {
                     targetPlayer.sendMessage(lang.msg("menu.guild_confirmation.rank_change.feedback.target", "guild" to guild.name))
-                    targetPlayer.sendMessage(lang.msg("menu.guild_confirmation.rank_change.feedback.new_rank", "rank" to newRank.name))
+                    targetPlayer.sendMessage(lang.msg("menu.guild_confirmation.rank_change.feedback.new_rank", "rank" to RankNameContent.miniMessage(newRank.name)))
                 }
 
                 // Return to member management menu

@@ -37,3 +37,21 @@ not embedded or published in this PR. Exact-head hosted checks remain separate.
 Codacy refinement: normalize multiline calls, use an internal test fixture with
 documented temporary storage, and avoid a numeric color literal. The six focused
 cases pass after these style changes; the rank conversion is unchanged.
+
+Follow-up spec: audit all Java/Bedrock menu rank presentation and menu feedback.
+Convert raw stored names at display sinks, including info, promotion, assignment,
+confirmation, home access, rank priority neighbors, member pickers and rank management.
+Bedrock form labels retain the existing plain-text contract; editable input defaults
+retain raw color syntax. IDs, dropdown order, permissions and persistence do not change.
+Regression proof covers real Java inventory output and native Cumulus forms.
+
+Follow-up evidence: six additional parameterized cases failed before conversion
+(three Java inventory groups, three Bedrock form cases). The Java red groups
+reproduced literal hex in info, promotion and confirmation output; initial
+fixture setup errors were corrected separately. Final focused suite: 18 cases,
+zero failures/errors/skips, including five additional Java inventories, rank-editor
+priority neighbors and five native Bedrock form families. Tests verify actual
+Adventure color and visible text, plain dropdown options, unchanged default
+selection and raw editable input. Source audit also covers related feedback and
+member selection callbacks. Full suite and final-head CI results are recorded
+in the delivery evidence. No production or artwork changes.

@@ -87,7 +87,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         val upItem = ItemStack.of(if (canUp) Material.SPECTRAL_ARROW else Material.BARRIER)
             .name(if (canUp) lang.gui("menu.rank_edit.priority.up") else lang.gui("menu.rank_edit.priority.up_locked"))
             .lore(lang.gui("menu.rank_edit.priority.current", "priority" to rank.priority))
-            .lore(if (upNeighbor != null) lang.gui("menu.rank_edit.priority.above", "rank" to upNeighbor.name) else lang.gui("menu.rank_edit.priority.no_above"))
+            .lore(if (upNeighbor != null) lang.gui("menu.rank_edit.priority.above", "rank" to RankNameContent.miniMessage(upNeighbor.name)) else lang.gui("menu.rank_edit.priority.no_above"))
             .lore(lang.gui("menu.common.blank"))
             .lore(if (canUp) lang.gui("menu.rank_edit.priority.raise") else lang.gui("menu.rank_edit.priority.cannot_reorder"))
         pane.addItem(GuiItem(upItem) {
@@ -105,7 +105,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         val downItem = ItemStack.of(if (canDown) Material.SPECTRAL_ARROW else Material.BARRIER)
             .name(if (canDown) lang.gui("menu.rank_edit.priority.down") else lang.gui("menu.rank_edit.priority.down_locked"))
             .lore(lang.gui("menu.rank_edit.priority.current", "priority" to rank.priority))
-            .lore(if (downNeighbor != null) lang.gui("menu.rank_edit.priority.below", "rank" to downNeighbor.name) else lang.gui("menu.rank_edit.priority.no_below"))
+            .lore(if (downNeighbor != null) lang.gui("menu.rank_edit.priority.below", "rank" to RankNameContent.miniMessage(downNeighbor.name)) else lang.gui("menu.rank_edit.priority.no_below"))
             .lore(lang.gui("menu.common.blank"))
             .lore(if (canDown) lang.gui("menu.rank_edit.priority.lower") else lang.gui("menu.rank_edit.priority.cannot_reorder"))
         pane.addItem(GuiItem(downItem) {
@@ -483,7 +483,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                 for (member in membersWithRank) {
                     memberService.changeMemberRank(member.playerId, guild.id, targetRank.id, player.uniqueId)
                 }
-                player.sendMessage(lang.msg("menu.rank_edit.feedback.members_moved", "count" to membersWithRank.size, "rank" to targetRank.name))
+                player.sendMessage(lang.msg("menu.rank_edit.feedback.members_moved", "count" to membersWithRank.size, "rank" to RankNameContent.miniMessage(targetRank.name)))
             }
 
             val result = rankService.deleteRank(rank.id, player.uniqueId)
