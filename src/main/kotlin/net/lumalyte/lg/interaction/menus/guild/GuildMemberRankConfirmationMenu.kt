@@ -132,7 +132,7 @@ class GuildMemberRankConfirmationMenu(
             .lore(
                 lang.gui(
                     "menu.guild_confirmation.rank_change.item.summary.lore.from",
-                    "rank" to RankNameContent.miniMessage(currentRank?.name ?: lang.raw(UNKNOWN_KEY)),
+                    "rank" to RankNameContent.miniMessage(currentRank?.name ?: unknownText()),
                 ),
             )
             .lore(
@@ -157,7 +157,7 @@ class GuildMemberRankConfirmationMenu(
             .lore(
                 lang.gui(
                     "menu.guild_confirmation.rank_change.item.confirm.lore.player",
-                    "player" to (Bukkit.getOfflinePlayer(targetMember.playerId).name ?: lang.raw(UNKNOWN_KEY)),
+                    "player" to (Bukkit.getOfflinePlayer(targetMember.playerId).name ?: unknownText()),
                 ),
             )
             .lore(
@@ -230,7 +230,7 @@ class GuildMemberRankConfirmationMenu(
             }
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
-            player.sendMessage(lang.msg("menu.guild_confirmation.rank_change.feedback.error", "error" to (e.message ?: lang.raw(UNKNOWN_KEY))))
+            player.sendMessage(lang.msg("menu.guild_confirmation.rank_change.feedback.error", "error" to (e.message ?: unknownText())))
             logger.error("Error changing member rank", e)
         }
     }
@@ -261,9 +261,9 @@ class GuildMemberRankConfirmationMenu(
             .lore(lang.gui("menu.guild_confirmation.rank_change.item.head.lore.confirming"))
     }
 
+    private fun unknownText(): String = lang.raw("general.unknown")
+
     override fun passData(data: Any?) {
         // Handle data passed back from sub-menus if needed
     }
 }
-
-private const val UNKNOWN_KEY = "general.unknown"

@@ -65,3 +65,9 @@ The native rank-name editing field remains deliberately raw and is asserted.
 Focused regression checks and shadowJar pass after fixture/style refinement:
 18 cases, zero failures/errors/skips. Final-head hosted checks remain a separate
 review gate. Local source/build evidence does not establish client acceptance.
+
+Hosted refinement caught the locale scanner treating a factored translation-key
+constant as three new dynamic calls. Preserve the scanner's literal-key contract
+by sharing the localized unknown text through a helper with one literal lookup;
+do not change the recovery baseline. Rank rendering plus LocaleContractTest pass
+locally after correction. Final-head hosted results are tracked in delivery evidence.
