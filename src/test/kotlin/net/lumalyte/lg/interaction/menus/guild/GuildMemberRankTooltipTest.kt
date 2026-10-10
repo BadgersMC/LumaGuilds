@@ -74,9 +74,7 @@ internal class GuildMemberRankTooltipTest : GuildRankMenuFixture() {
         val logger = Logger.getAnonymousLogger()
         val assignment = BedrockGuildMemberRankMenu(navigator, player, guild, member, logger).getForm() as CustomForm
         assignment.content().filterNotNull().forEach { assertFalse(it.text().contains(HEX_DIGITS)) }
-        val dropdown = assignment.content().filterIsInstance<DropdownComponent>().single()
-        assertEquals(listOf("Founder"), dropdown.options())
-        assertEquals(0, dropdown.defaultOption())
+        assertRankDropdown(assignment)
         val confirmation =
             BedrockGuildMemberRankConfirmationMenu(
                 navigator,
@@ -125,6 +123,12 @@ internal class GuildMemberRankTooltipTest : GuildRankMenuFixture() {
                 component.options().forEach { assertFalse(it.contains(HEX_DIGITS)) }
             }
         }
+    }
+
+    private fun assertRankDropdown(form: CustomForm) {
+        val dropdown = form.content().filterIsInstance<DropdownComponent>().single()
+        assertEquals(listOf("Founder"), dropdown.options())
+        assertEquals(0, dropdown.defaultOption())
     }
 }
 
