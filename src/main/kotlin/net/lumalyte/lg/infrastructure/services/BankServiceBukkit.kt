@@ -101,7 +101,7 @@ class BankServiceBukkit(
 
         val rsp: RegisteredServiceProvider<Economy>? = Bukkit.getServer().servicesManager.getRegistration(Economy::class.java)
         if (rsp == null) {
-            logger.error("No economy provider found! Guild Bank will not function without an economy plugin (Essentials, iConomy, etc.)")
+            logger.info("Waiting for a Vault economy provider to register; Guild Bank checks availability before each operation")
             return
         }
 
@@ -113,8 +113,12 @@ class BankServiceBukkit(
      * Get the Vault economy instance
      */
     private fun getEconomy(): Economy? {
-        if (economy == null) {
-            setupEconomy()
+        val registered = Bukkit.getServer().servicesManager.getRegistration(Economy::class.java)?.provider
+        if (registered !== economy) {
+            economy = registered
+            if (registered != null) {
+                logger.info("Successfully hooked into economy provider: ${registered.javaClass.simpleName}")
+            }
         }
         return economy
     }

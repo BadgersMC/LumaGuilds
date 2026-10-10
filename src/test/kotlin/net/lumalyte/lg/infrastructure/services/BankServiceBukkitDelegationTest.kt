@@ -126,6 +126,24 @@ class BankServiceBukkitDelegationTest {
         }
     }
 
+    @Test fun `economy provider registered after startup is discovered`() {
+        val plugin = MockBukkit.createMockPlugin("Vault")
+        assertFalse(bank.isEconomyAvailable())
+        org.bukkit.Bukkit.getServicesManager().register(net.milkbowl.vault.economy.Economy::class.java,
+            mockk(relaxed = true), plugin, org.bukkit.plugin.ServicePriority.Normal)
+        assertTrue(bank.isEconomyAvailable())
+    }
+
+    @Test fun `unregistered economy provider is not retained as available`() {
+        val plugin = MockBukkit.createMockPlugin("Vault")
+        val economy = mockk<net.milkbowl.vault.economy.Economy>(relaxed = true)
+        org.bukkit.Bukkit.getServicesManager().register(net.milkbowl.vault.economy.Economy::class.java,
+            economy, plugin, org.bukkit.plugin.ServicePriority.Normal)
+        assertTrue(bank.isEconomyAvailable())
+        org.bukkit.Bukkit.getServicesManager().unregister(net.milkbowl.vault.economy.Economy::class.java, economy)
+        assertFalse(bank.isEconomyAvailable(), "A disabled provider must not remain cached by Guild Bank")
+    }
+
     @Test fun `paid physical join removes currency and credits canonical bank exactly once`() {
         val (lfg, guild) = paidJoin(physical = true)
         assertTrue(lfg.joinGuild(actorId, guild) is LfgJoinResult.Success)
