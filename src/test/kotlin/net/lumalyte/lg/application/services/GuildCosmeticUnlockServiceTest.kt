@@ -21,6 +21,17 @@ import kotlin.test.assertTrue
 
 /** REQ-121: unlock/revoke policy and holiday theme availability. */
 internal class GuildCosmeticUnlockServiceTest {
+    @Test
+    fun pumpkinEmojiOwnershipAndRevoke() {
+        every { guilds.getById(guildId) } returns guild().copy(emoji = ":pumpkin_king_icon:")
+        assertFalse(service.ownsPumpkinEmoji(guildId))
+        assertTrue(service.unlock(guildId, "EMOJI", "PUMPKIN_KING", "Pumpkin King Guild Emoji", "event:halloween-2026"))
+        assertTrue(service.ownsPumpkinEmoji(guildId))
+        every { guilds.clearEmoji(guildId, ":pumpkin_king_icon:") } returns true
+        assertTrue(service.revoke(guildId, "EMOJI", "PUMPKIN_KING"))
+        assertFalse(service.ownsPumpkinEmoji(guildId))
+        verify { guilds.clearEmoji(guildId, ":pumpkin_king_icon:") }
+    }
     private val guildId = UUID.randomUUID()
     private val now = Instant.parse("2026-10-20T12:00:00Z")
     private val guilds = mockk<GuildRepository>(relaxed = true)

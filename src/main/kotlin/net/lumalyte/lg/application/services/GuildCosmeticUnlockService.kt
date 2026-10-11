@@ -3,6 +3,7 @@ package net.lumalyte.lg.application.services
 import net.lumalyte.lg.application.persistence.GuildCosmeticUnlockRepository
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.domain.entities.GuildCosmeticUnlock
+import net.lumalyte.lg.domain.entities.HolidayGuildEmoji
 import net.lumalyte.lg.domain.entities.MAX_COSMETIC_DISPLAY_NAME_LENGTH
 import net.lumalyte.lg.domain.entities.MAX_COSMETIC_KEY_LENGTH
 import net.lumalyte.lg.domain.entities.MAX_COSMETIC_SOURCE_LENGTH
@@ -58,7 +59,12 @@ class GuildCosmeticUnlockService(
         val identity = identity(type, key) ?: return false
         val guild = guilds.getById(guildId)
         val removed = guild != null && unlocks.delete(guildId, identity.type, identity.key)
-        if (removed) resetEquippedTheme(requireNotNull(guild), identity)
+        if (removed) {
+            resetEquippedTheme(requireNotNull(guild), identity)
+            if (identity.type == HolidayGuildEmoji.TYPE && identity.key == HolidayGuildEmoji.KEY &&
+                guild.emoji == HolidayGuildEmoji.PLACEHOLDER
+            ) return guilds.clearEmoji(guildId, HolidayGuildEmoji.PLACEHOLDER)
+        }
         return removed
     }
 
@@ -92,6 +98,10 @@ class GuildCosmeticUnlockService(
     /** Progression themes stay available; holiday themes require ownership. */
     fun isThemeAvailable(guildId: UUID, theme: GuiTheme): Boolean =
         !theme.requiresUnlock || unlocks.get(guildId, MENU_THEME_COSMETIC, theme.name) != null
+
+    /** Explicit guild ownership is required, independent of an actor's wildcard permissions. */
+    fun ownsPumpkinEmoji(guildId: UUID): Boolean =
+        guilds.getById(guildId) != null && unlocks.get(guildId, HolidayGuildEmoji.TYPE, HolidayGuildEmoji.KEY) != null
 
     /** The granted display name (e.g. "Halloween '26") when owned, else the theme's own name. */
     fun themeDisplayName(guildId: UUID, theme: GuiTheme): String =

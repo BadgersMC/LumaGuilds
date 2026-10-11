@@ -186,7 +186,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
     }
 
     private fun addEmojiSelectorButton(pane: StaticPane, x: Int, y: Int) {
-        val unlockedCount = nexoEmojiService.getPlayerUnlockedEmojis(player).size
+        val unlockedCount = nexoEmojiService.getPlayerUnlockedEmojis(player, guild.id).size
         println("[LumaGuilds] GuildEmojiMenu: Player ${player.name} has $unlockedCount unlocked emojis")
         val selectorItem = NexoItemProvider.getItemStackOrFallback("lg_emoji") { ItemStack.of(Material.ENDER_CHEST) }
             .name(lang.gui("menu.guild_emoji.selector.name"))
@@ -480,7 +480,7 @@ class EmojiSelectionMenu(
 
     override fun open() {
         // Get all unlocked emojis for this player
-        unlockedEmojis = nexoEmojiService.getPlayerUnlockedEmojis(player)
+        unlockedEmojis = nexoEmojiService.getPlayerUnlockedEmojis(player, guild.id)
 
         if (unlockedEmojis.isEmpty()) {
             player.sendMessage(lang.msg("menu.guild_emoji.feedback.none_unlocked"))

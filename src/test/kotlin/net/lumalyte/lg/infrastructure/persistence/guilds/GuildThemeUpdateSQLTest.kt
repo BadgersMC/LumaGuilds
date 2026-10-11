@@ -57,6 +57,19 @@ internal class GuildThemeUpdateSQLTest : RewardSqlTestFixture() {
         assertEquals(GuiTheme.EMBERSTONE, GuildRepositorySQLite(storage).getById(guild.id)!!.guiTheme)
     }
 
+    @Test
+    fun `emoji revocation clears only the expected emoji and preserves concurrent fields`() {
+        val repository = migratedRepository(openStorage())
+        val guild = Guild(UUID.randomUUID(), "Haunted", createdAt = Instant.now(), emoji = ":pumpkin_king_icon:")
+        assertTrue(repository.add(guild))
+        assertTrue(repository.update(guild.copy(name = TEST_RENAMED_GUILD)))
+        assertTrue(repository.clearEmoji(guild.id, ":other:"))
+        assertEquals(":pumpkin_king_icon:", repository.getById(guild.id)!!.emoji)
+        assertTrue(repository.clearEmoji(guild.id, ":pumpkin_king_icon:"))
+        assertEquals(null, repository.getById(guild.id)!!.emoji)
+        assertEquals(TEST_RENAMED_GUILD, repository.getById(guild.id)!!.name)
+    }
+
     private fun migratedRepository(storage: Storage<Database>): GuildRepositorySQLite {
         val plugin = io.mockk.mockk<org.bukkit.plugin.java.JavaPlugin>(relaxed = true)
         io.mockk.every { plugin.getComponentLogger() } returns

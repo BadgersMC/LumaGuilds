@@ -2,6 +2,9 @@ package net.lumalyte.lg.infrastructure.services
 
 import com.nexomc.nexo.NexoPlugin
 import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.application.services.GuildCosmeticUnlockService
+import net.lumalyte.lg.domain.entities.HolidayGuildEmoji
+import java.util.UUID
 import org.bukkit.entity.Player
 import org.slf4j.LoggerFactory
 
@@ -71,10 +74,14 @@ private fun nexoFontManager() = try {
 class NexoEmojiService internal constructor(
     private val configService: ConfigService,
     private val glyphResolver: NexoGlyphResolver = NexoPublicGlyphResolver,
+    private val guildCosmetics: GuildCosmeticUnlockService? = null,
 ) {
 
     /** Creates the service using the optional installed Nexo plugin. */
     constructor(configService: ConfigService) : this(configService, NexoPublicGlyphResolver)
+
+    constructor(configService: ConfigService, guildCosmetics: GuildCosmeticUnlockService) :
+        this(configService, NexoPublicGlyphResolver, guildCosmetics)
 
     private val logger = LoggerFactory.getLogger(NexoEmojiService::class.java)
 
@@ -125,6 +132,15 @@ class NexoEmojiService internal constructor(
         
         return hasPermission
     }
+
+    /** Selection entitlement belongs to this guild; ordinary emoji permissions are unchanged. */
+    fun hasGuildEmojiPermission(player: Player, emoji: String, guildId: UUID?): Boolean {
+        val canonical = validatedEmojiName(emoji) ?: return false
+        if (canonical == HolidayGuildEmoji.GLYPH) {
+            return emoji == HolidayGuildEmoji.PLACEHOLDER && guildId != null && guildCosmetics?.ownsPumpkinEmoji(guildId) == true
+        }
+        return hasEmojiPermission(player, emoji)
+    }
     
     /**
      * Gets a formatted display name for the guild including the emoji if set.
@@ -165,7 +181,11 @@ class NexoEmojiService internal constructor(
 
     private fun resolveEmoji(emoji: String?): ResolvedNexoGlyph? {
         val name = emoji?.let(::extractEmojiName) ?: return null
-        return resolveOptionalGlyph(glyphResolver, name)?.takeIf { it.isEmoji && it.character.isNotBlank() }
+        return resolveOptionalGlyph(glyphResolver, name)?.takeIf {
+            val pumpkin = name == HolidayGuildEmoji.GLYPH && (it.id == null || it.id == name) &&
+                it.character == HolidayGuildEmoji.CHARACTER && it.font == HolidayGuildEmoji.FONT
+            (it.isEmoji || pumpkin) && it.character.isNotBlank()
+        }
     }
 
     private fun validatedEmojiName(emoji: String?): String? {
@@ -271,29 +291,27 @@ class NexoEmojiService internal constructor(
      * @param player The player to check permissions for.
      * @return List of emoji names (without colons) that the player can use.
      */
-    fun getPlayerUnlockedEmojis(player: Player): List<String> {
+    fun getPlayerUnlockedEmojis(player: Player): List<String> = getPlayerUnlockedEmojis(player, null)
+
+    fun getPlayerUnlockedEmojis(player: Player, guildId: UUID?): List<String> {
         if (!isNexoAvailable()) {
             logger.debug("Nexo not available, cannot get unlocked emojis for ${player.name}")
             return emptyList()
         }
 
-        val availableEmojis = getAvailableEmojisFromNexo()
+        val availableEmojis = getAvailableEmojisFromNexo()?.let { emojis ->
+            (emojis + listOfNotNull(HolidayGuildEmoji.GLYPH.takeIf {
+                doesEmojiExist(HolidayGuildEmoji.PLACEHOLDER)
+            })).distinct()
+        }
         if (availableEmojis == null) {
             logger.debug("Could not retrieve available emojis from Nexo")
             return emptyList()
         }
 
         // Filter emojis based on player permissions
-        val prefix = getEmojiPermissionPrefix()
         return availableEmojis.filter { emojiName ->
-            val permission = "$prefix.$emojiName"
-            val hasPermission = player.hasPermission(permission)
-
-            if (!hasPermission) {
-                logger.debug("Player ${player.name} does not have permission for emoji: $permission")
-            }
-
-            hasPermission
+            hasGuildEmojiPermission(player, createEmojiPlaceholder(emojiName), guildId)
         }
     }
 

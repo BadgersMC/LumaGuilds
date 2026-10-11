@@ -853,6 +853,21 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
         }
     }
 
+    override fun clearEmoji(guildId: UUID, expected: String): Boolean {
+        return try {
+            val changed = storage.connection.executeUpdate(
+                "UPDATE guilds SET emoji = NULL WHERE id = ? AND emoji = ?",
+                guildId.toString(), expected,
+            ) > 0
+            if (changed) guilds.computeIfPresent(guildId) { _, guild ->
+                if (guild.emoji == expected) guild.copy(emoji = null) else guild
+            }
+            true
+        } catch (e: SQLException) {
+            throw DatabaseOperationException("Failed to clear emoji for guild $guildId", e)
+        }
+    }
+
     override fun update(guild: Guild): Boolean {
         // Use cached column existence check
         val sql = if (hasLfgColumns && hasTrackingColumn && hasBankFrozenColumn) {

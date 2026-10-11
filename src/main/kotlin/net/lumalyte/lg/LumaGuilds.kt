@@ -797,7 +797,9 @@ class LumaGuilds : JavaPlugin() {
             val nexoEmojiService = get().get<net.lumalyte.lg.infrastructure.services.NexoEmojiService>()
 
             // Get emoji names player has permission for and format as :emojiname:
-            nexoEmojiService.getPlayerUnlockedEmojis(player).map { emojiName ->
+            val guildId = get().get<net.lumalyte.lg.application.services.GuildService>()
+                .getPlayerGuilds(player.uniqueId).firstOrNull()?.id
+            nexoEmojiService.getPlayerUnlockedEmojis(player, guildId).map { emojiName ->
                 ":$emojiName:"
             }
         }
