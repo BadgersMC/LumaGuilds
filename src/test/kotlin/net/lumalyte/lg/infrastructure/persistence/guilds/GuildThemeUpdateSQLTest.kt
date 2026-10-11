@@ -62,7 +62,8 @@ internal class GuildThemeUpdateSQLTest : RewardSqlTestFixture() {
     @Test
     fun scenario3() {
         val repository = migratedRepository(openStorage())
-        val guild = Guild(UUID.randomUUID(), "Haunted", createdAt = Instant.now(), emoji = HolidayGuildEmoji.PLACEHOLDER)
+        val guild =
+            Guild(UUID.randomUUID(), "Haunted", createdAt = Instant.now(), emoji = HolidayGuildEmoji.PLACEHOLDER)
         assertTrue(repository.add(guild))
         assertTrue(repository.update(guild.copy(name = TEST_RENAMED_GUILD)))
         assertTrue(repository.clearEmoji(guild.id, ":other:"))

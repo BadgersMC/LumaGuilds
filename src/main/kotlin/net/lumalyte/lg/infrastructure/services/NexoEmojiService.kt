@@ -303,11 +303,12 @@ class NexoEmojiService internal constructor(
             return emptyList()
         }
         val availableEmojis = getAvailableEmojisFromNexo().orEmpty()
-        val holidayEmojis = if (doesEmojiExist(HolidayGuildEmoji.PLACEHOLDER)) {
-            listOf(HolidayGuildEmoji.GLYPH)
-        } else {
-            emptyList()
-        }
+        val holidayEmojis =
+            if (doesEmojiExist(HolidayGuildEmoji.PLACEHOLDER)) {
+                listOf(HolidayGuildEmoji.GLYPH)
+            } else {
+                emptyList()
+            }
         return (availableEmojis + holidayEmojis).distinct().filter { emojiName ->
             hasGuildEmojiPermission(player, createEmojiPlaceholder(emojiName), guildId)
         }
