@@ -59,13 +59,18 @@ class GuildCosmeticUnlockService(
         val identity = identity(type, key) ?: return false
         val guild = guilds.getById(guildId)
         val removed = guild != null && unlocks.delete(guildId, identity.type, identity.key)
-        if (removed) {
+        return if (removed) {
             resetEquippedTheme(requireNotNull(guild), identity)
             if (identity.type == HolidayGuildEmoji.TYPE && identity.key == HolidayGuildEmoji.KEY &&
                 guild.emoji == HolidayGuildEmoji.PLACEHOLDER
-            ) return guilds.clearEmoji(guildId, HolidayGuildEmoji.PLACEHOLDER)
+            ) {
+                guilds.clearEmoji(guildId, HolidayGuildEmoji.PLACEHOLDER)
+            } else {
+                true
+            }
+        } else {
+            false
         }
-        return removed
     }
 
     private fun resetEquippedTheme(guild: net.lumalyte.lg.domain.entities.Guild, identity: CosmeticKey) {

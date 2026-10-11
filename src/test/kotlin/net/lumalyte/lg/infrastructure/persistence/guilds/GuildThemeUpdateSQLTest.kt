@@ -4,6 +4,7 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
 import co.aikar.idb.Database
+import net.lumalyte.lg.domain.entities.HolidayGuildEmoji
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.infrastructure.persistence.migrations.MariaDBMigrations
 import net.lumalyte.lg.infrastructure.persistence.migrations.SQLiteMigrations
@@ -57,15 +58,16 @@ internal class GuildThemeUpdateSQLTest : RewardSqlTestFixture() {
         assertEquals(GuiTheme.EMBERSTONE, GuildRepositorySQLite(storage).getById(guild.id)!!.guiTheme)
     }
 
+    @DisplayName("emoji revocation preserves concurrent fields and compares the equipped emoji")
     @Test
-    fun `emoji revocation clears only the expected emoji and preserves concurrent fields`() {
+    fun scenario3() {
         val repository = migratedRepository(openStorage())
-        val guild = Guild(UUID.randomUUID(), "Haunted", createdAt = Instant.now(), emoji = ":pumpkin_king_icon:")
+        val guild = Guild(UUID.randomUUID(), "Haunted", createdAt = Instant.now(), emoji = HolidayGuildEmoji.PLACEHOLDER)
         assertTrue(repository.add(guild))
         assertTrue(repository.update(guild.copy(name = TEST_RENAMED_GUILD)))
         assertTrue(repository.clearEmoji(guild.id, ":other:"))
-        assertEquals(":pumpkin_king_icon:", repository.getById(guild.id)!!.emoji)
-        assertTrue(repository.clearEmoji(guild.id, ":pumpkin_king_icon:"))
+        assertEquals(HolidayGuildEmoji.PLACEHOLDER, repository.getById(guild.id)!!.emoji)
+        assertTrue(repository.clearEmoji(guild.id, HolidayGuildEmoji.PLACEHOLDER))
         assertEquals(null, repository.getById(guild.id)!!.emoji)
         assertEquals(TEST_RENAMED_GUILD, repository.getById(guild.id)!!.name)
     }

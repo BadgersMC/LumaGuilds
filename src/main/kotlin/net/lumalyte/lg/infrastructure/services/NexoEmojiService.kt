@@ -136,10 +136,12 @@ class NexoEmojiService internal constructor(
     /** Selection entitlement belongs to this guild; ordinary emoji permissions are unchanged. */
     fun hasGuildEmojiPermission(player: Player, emoji: String, guildId: UUID?): Boolean {
         val canonical = validatedEmojiName(emoji) ?: return false
-        if (canonical == HolidayGuildEmoji.GLYPH) {
-            return emoji == HolidayGuildEmoji.PLACEHOLDER && guildId != null && guildCosmetics?.ownsPumpkinEmoji(guildId) == true
+        return if (canonical == HolidayGuildEmoji.GLYPH) {
+            emoji == HolidayGuildEmoji.PLACEHOLDER && guildId != null &&
+                guildCosmetics?.ownsPumpkinEmoji(guildId) == true
+        } else {
+            hasEmojiPermission(player, emoji)
         }
-        return hasEmojiPermission(player, emoji)
     }
     
     /**
@@ -182,8 +184,9 @@ class NexoEmojiService internal constructor(
     private fun resolveEmoji(emoji: String?): ResolvedNexoGlyph? {
         val name = emoji?.let(::extractEmojiName) ?: return null
         return resolveOptionalGlyph(glyphResolver, name)?.takeIf {
-            val pumpkin = name == HolidayGuildEmoji.GLYPH && (it.id == null || it.id == name) &&
-                it.character == HolidayGuildEmoji.CHARACTER && it.font == HolidayGuildEmoji.FONT
+            val pumpkin =
+                name == HolidayGuildEmoji.GLYPH && (it.id == null || it.id == name) &&
+                    it.character == HolidayGuildEmoji.CHARACTER && it.font == HolidayGuildEmoji.FONT
             (it.isEmoji || pumpkin) && it.character.isNotBlank()
         }
     }
@@ -293,24 +296,19 @@ class NexoEmojiService internal constructor(
      */
     fun getPlayerUnlockedEmojis(player: Player): List<String> = getPlayerUnlockedEmojis(player, null)
 
+    /** Lists personal emojis plus the pumpkin entitlement owned by this guild. */
     fun getPlayerUnlockedEmojis(player: Player, guildId: UUID?): List<String> {
         if (!isNexoAvailable()) {
             logger.debug("Nexo not available, cannot get unlocked emojis for ${player.name}")
             return emptyList()
         }
-
-        val availableEmojis = getAvailableEmojisFromNexo()?.let { emojis ->
-            (emojis + listOfNotNull(HolidayGuildEmoji.GLYPH.takeIf {
-                doesEmojiExist(HolidayGuildEmoji.PLACEHOLDER)
-            })).distinct()
+        val availableEmojis = getAvailableEmojisFromNexo().orEmpty()
+        val holidayEmojis = if (doesEmojiExist(HolidayGuildEmoji.PLACEHOLDER)) {
+            listOf(HolidayGuildEmoji.GLYPH)
+        } else {
+            emptyList()
         }
-        if (availableEmojis == null) {
-            logger.debug("Could not retrieve available emojis from Nexo")
-            return emptyList()
-        }
-
-        // Filter emojis based on player permissions
-        return availableEmojis.filter { emojiName ->
+        return (availableEmojis + holidayEmojis).distinct().filter { emojiName ->
             hasGuildEmojiPermission(player, createEmojiPlaceholder(emojiName), guildId)
         }
     }
