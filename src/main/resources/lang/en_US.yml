@@ -2,6 +2,9 @@
 #
 # All values are MiniMessage strings. Placeholders use <name> syntax.
 #
+quest_discovery:
+  available: '<gold>Guild quests:</gold> <yellow><count> objectives available.</yellow> <green>Click here or use /g quests to view them.</green>'
+
 bedrock:
   guild_list:
     title: 'Guilds · <page>/<pages>'
@@ -1783,7 +1786,7 @@ command:
         quests:
           menu: '<click:run_command:''/g help quests''><hover:show_text:''<gold>Open Weekly Guild Quests help''><dark_gray>  [<yellow>Weekly Guild Quests<dark_gray>] <gray>Complete shared objectives, earn automatic rewards, and compete on quest leaderboards.</hover></click>'
           page: |-
-            <gold><bold>─── Help · Weekly Guild Quests ───<newline><gray>Complete shared objectives, earn automatic rewards, and compete on per-quest leaderboards.<newline><yellow>How it works:<newline><white>  Open Guild Quests from /g menu.<newline><white>  Rewards are automatic when the normal target is reached.<newline><white>  Progress can continue past completion for weekly leaderboard scoring.<newline><newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/quests/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/quests/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
+            <gold><bold>─── Help · Weekly Guild Quests ───<newline><gray>Complete shared objectives, earn automatic rewards, and compete on per-quest leaderboards.<newline><yellow>How it works:<newline><white>  All guild members can use /g quests or /guild quest menu.<newline><white>  Rewards are automatic when the normal target is reached.<newline><white>  Progress can continue past completion for weekly leaderboard scoring.<newline><newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/quests/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/quests/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
         progression:
           menu: '<click:run_command:''/g help progression''><hover:show_text:''<gold>Open Progression, Rewards & Prestige help''><dark_gray>  [<yellow>Progression, Rewards & Prestige<dark_gray>] <gray>Track Chapter XP, unlock rewards, and use prestige when enabled.</hover></click>'
           page: |-

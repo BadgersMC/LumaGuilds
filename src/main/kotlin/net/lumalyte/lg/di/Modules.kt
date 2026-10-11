@@ -878,7 +878,13 @@ single {
             )
         )
     }
-    single { net.lumalyte.lg.infrastructure.services.WeeklyQuestCoordinator(get(), get(), get()) }
+    single { net.lumalyte.lg.infrastructure.services.QuestAvailabilityNotifierBukkit(get(), get(), get(), get()) }
+    single {
+        val notifier = get<net.lumalyte.lg.infrastructure.services.QuestAvailabilityNotifierBukkit>()
+        net.lumalyte.lg.infrastructure.services.WeeklyQuestCoordinator(get(), get(), get()) {
+            notifier.onReset(org.bukkit.Bukkit.getOnlinePlayers())
+        }
+    }
     single<net.lumalyte.lg.application.services.DailyWarCostsService> {
         net.lumalyte.lg.infrastructure.services.DailyWarCostsServiceBukkit(get(), get(), get(), get())
     }

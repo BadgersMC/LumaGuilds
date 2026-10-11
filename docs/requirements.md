@@ -564,3 +564,13 @@ WHEN a player opens or interacts with a guild vault THE SYSTEM SHALL recheck cur
 
 ### REQ-151 — Invite block persistence and API safety
 **Unwanted.** IF stored blocks cannot be loaded completely or a database write fails THEN THE SYSTEM SHALL respectively refuse invites or report failure without publishing unsaved cache state. Per-instance writes SHALL preserve durable/cache ordering. THE SYSTEM SHALL migrate/create/repair schema v45 for SQLite and migrate MariaDB, provide a JDK-only GuildInviteBlocks API, and use memory-only chat reads.
+## Member quest discovery (local only, 2026-10-11)
+
+### REQ-QUEST-DISCOVERY-1
+**Event-driven.** WHEN a guild member executes `/g quests`, `/guild quest`, or `/guild quest menu` THEN THE SYSTEM SHALL open the existing Java or Bedrock quest menu using `lumaguilds.guild.quests` (default true), without requiring management rank permissions, AND SHALL reject nonmembers without opening guild management controls.
+
+### REQ-QUEST-DISCOVERY-2
+**Event-driven.** WHEN a member joins or a new weekly set is generated AND the corresponding availability notification is enabled AND unfinished milestone quests remain THEN THE SYSTEM SHALL send a clickable `/g quests` reminder. THE SYSTEM SHALL NOT send periodic reminders or reminders for disabled, expired, future, or fully completed sets.
+
+### REQ-QUEST-DISCOVERY-3
+**Ubiquitous.** THE SYSTEM SHALL expose active quest descriptions, targets, rewards, availability, own-guild scores/ranks and top guild names/scores through PlaceholderAPI for spawn displays, including playerless global fields. Leaderboard positions SHALL be bounded to 1..100 and cached for 30 seconds per weekly set, and missing entries SHALL return empty strings.

@@ -1005,3 +1005,8 @@ Menu audit follow-up (REQ-063):
 ## Personal invite block delivery (REQ-150/151)
 - [x] Refine PR #232 persistence, filtered lookup/counts, routing and viewer filtering; run focused/full checks and publish source fixes.
 - [ ] Complete exact-head hosted quality/review gates and maintainer review; merge and real-client acceptance remain separate. Current main inspected at283d75f1; existing fork head db53a274. Project EARS/state helpers absent; manual evidence in docs/plans/2026-10-13-invite-block-review.md. No merge or production authorization.
+## Local quest discovery - no PR requested
+- [x] **QUEST-DISCOVERY** Member command, availability reminders and spawn leaderboard placeholders.
+  - Tag: `TDD`
+  - References: REQ-QUEST-DISCOVERY-1/2/3.
+  - Evidence: current canonical main bfa6931 inspected. GuildCommand.onMenu gates management ranks; existing quest menus already check membership. Existing weekly quest placeholders cover objectives and own progress, but not top guild scores. No project EARS/state helpers or generic verification.md present. Local implementation complete: 1,643 tests passed, 14 optional/environment fixtures skipped; local unmerged shadow JAR built. See docs/plans/2026-10-11-quest-discovery-verification.md. No historical red/green claim; client/spawn acceptance remains deferred. No production modifications or PR.
