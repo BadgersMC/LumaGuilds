@@ -2,43 +2,43 @@ package net.lumalyte.lg
 
 import co.aikar.commands.PaperCommandManager
 import co.aikar.idb.Database
-import net.lumalyte.lg.di.appModule
-import net.lumalyte.lg.infrastructure.persistence.migrations.SQLiteMigrations
-import net.lumalyte.lg.infrastructure.persistence.migrations.MariaDBMigrations
-import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
-import net.lumalyte.lg.infrastructure.persistence.storage.MariaDBStorage
-import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteStorage
-import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadMariaDBStorage
-import net.lumalyte.lg.infrastructure.persistence.storage.Storage
-import net.lumalyte.lg.infrastructure.placeholders.LumaGuildsExpansion
-import net.lumalyte.lg.interaction.commands.*
-import net.lumalyte.lg.interaction.commands.LumaGuildsCommand
-import net.lumalyte.lg.interaction.listeners.*
-import net.lumalyte.lg.infrastructure.listeners.ProgressionEventListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import net.milkbowl.vault.chat.Chat
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.application.services.DailyWarCostsService
+import net.lumalyte.lg.application.services.accessibleHomeNames
+import net.lumalyte.lg.di.appModule
+import net.lumalyte.lg.infrastructure.listeners.ProgressionEventListener
+import net.lumalyte.lg.infrastructure.persistence.migrations.MariaDBMigrations
+import net.lumalyte.lg.infrastructure.persistence.migrations.SQLiteMigrations
+import net.lumalyte.lg.infrastructure.persistence.storage.MariaDBStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadMariaDBStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteStorage
+import net.lumalyte.lg.infrastructure.placeholders.LumaGuildsExpansion
+import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
+import net.lumalyte.lg.infrastructure.services.DailyWarCostsScheduler
+import net.lumalyte.lg.infrastructure.services.LumaGuildsChannelProvider
+import net.lumalyte.lg.interaction.commands.*
+import net.lumalyte.lg.interaction.commands.LumaGuildsCommand
+import net.lumalyte.lg.interaction.listeners.*
+import net.milkbowl.vault.chat.Chat
 import org.bukkit.Bukkit
 import org.bukkit.plugin.ServicePriority
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitScheduler
-import org.koin.core.context.GlobalContext.startKoin
 import org.koin.core.context.GlobalContext.get
-import net.lumalyte.lg.application.services.ConfigService
-import net.lumalyte.lg.application.services.DailyWarCostsService
-import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
-import net.lumalyte.lg.infrastructure.services.DailyWarCostsScheduler
-import net.lumalyte.lg.infrastructure.services.LumaGuildsChannelProvider
+import org.koin.core.context.GlobalContext.startKoin
 import java.io.File
 import java.io.IOException
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
-
 
 /**
  * The entry point for the Luma Guilds plugin.
@@ -781,6 +781,14 @@ class LumaGuilds : JavaPlugin() {
             if (guilds.isEmpty()) return@registerAsyncCompletion emptyList()
             val guild = guilds.first()
             guildService.getHomes(guild.id).homeNames.toList()
+        }
+
+        // Current membership/rank caches are read on the server thread, like the home command.
+        commandManager.commandCompletions.registerCompletion("guildaccessiblehomes") { context ->
+            val player = context.player ?: return@registerCompletion emptyList()
+            val service = get().get<net.lumalyte.lg.application.services.GuildService>()
+            val guild = service.getPlayerGuilds(player.uniqueId).firstOrNull()
+            if (guild == null) emptyList() else service.accessibleHomeNames(player.uniqueId, guild.id)
         }
 
         // Register unlocked emojis completion (shows only emojis the player has permission to use)

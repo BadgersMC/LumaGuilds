@@ -215,19 +215,17 @@ class MemberServiceBukkit(
             return false
         }
 
-        // OWNER PROTECTION: even with admin override, ownership must go through ownership-transfer flow
+        // OWNER PROTECTION: even with admin override, all ownership changes must use the atomic transfer flow.
         if (newRank.priority == 0) {
             logger.warn("Cannot directly promote to owner rank - use ownership transfer instead (actor=$actorId, override=$isOverride)")
             return false
         }
+        if (currentRank.priority == 0) {
+            logger.warn("Cannot directly change the current owner's rank - use ownership transfer instead (actor=$actorId, override=$isOverride)")
+            return false
+        }
 
         if (!isOverride) {
-            // OWNER PROTECTION: Prevent owner from changing their own rank
-            if (currentRank.priority == 0 && playerId == actorId) {
-                logger.warn("Player $actorId (owner) attempted to change their own rank - ownership transfer required")
-                return false
-            }
-
             // PRIORITY CHECK: Actor must strictly outrank the target (lower priority number = higher rank)
             val actorMember = memberRepository.getByPlayerAndGuild(actorId, guildId) ?: return false
             val actorRank = rankRepository.getById(actorMember.rankId) ?: return false
@@ -427,19 +425,9 @@ class MemberServiceBukkit(
 
         // Atomically update both members
         try {
-            // Demote current owner to second-highest rank
-            val demotedOwner = currentOwner.copy(rankId = secondHighestRank.id)
-            if (!memberRepository.update(demotedOwner)) {
-                logger.error("Failed to demote current owner")
-                return false
-            }
-
-            // Promote new owner to owner rank
-            val promotedNewOwner = newOwner.copy(rankId = ownerRank.id)
-            if (!memberRepository.update(promotedNewOwner)) {
-                logger.error("Failed to promote new owner - rolling back current owner demotion")
-                // Rollback: restore current owner's rank
-                memberRepository.update(currentOwner)
+            if (ownerRank.id != currentOwner.rankId || secondHighestRank.priority == 0) return false
+            if (!memberRepository.transferOwnership(currentOwner, newOwner, secondHighestRank.id)) {
+                logger.error("Ownership transfer was not committed; both previous ranks were preserved")
                 return false
             }
 
