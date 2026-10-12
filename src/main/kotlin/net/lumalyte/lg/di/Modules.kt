@@ -1091,6 +1091,9 @@ fun progressionModule() = module {
                 config = { get<ConfigService>().loadConfig().progression.prestige },
                 stallsLive = { org.bukkit.Bukkit.getPluginManager().isPluginEnabled("EnthusiaMarket") },
             ),
+            playerGuildSnapshot = { players ->
+                net.lumalyte.lg.infrastructure.web.handlers.PlayerGuildSnapshotHandler(get(), get(), get()).build(players)
+            },
             guildQuestSnapshot = {
                 net.lumalyte.lg.infrastructure.web.handlers.GuildQuestSnapshotHandler(
                     get<net.lumalyte.lg.application.persistence.QuestRepository>() as?
