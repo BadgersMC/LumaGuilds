@@ -514,3 +514,12 @@ WHEN the staff strike feed cannot read historical guild membership, THE SYSTEM S
 
 ### REQ-134
 **Event-driven.** WHEN EnthusiaMarket prepares a unique paid outside-customer SELL sale before mutating payment or stock THEN THE SYSTEM SHALL durably capture the sale identity, owning guild, buyer, occurrence time, current prestige run, chapter identity and current shop-XP policy. WHEN that same sale is later durably completed, THE SYSTEM SHALL award at most the captured flat XP once, subject atomically to the guild daily cap, buyer-to-guild daily cap and pair cooldown; own-guild buyers, disabled policy, zero caps, stale prestige/chapter runs, frozen chapters and duplicate completion SHALL not grant additional XP. Failed SQL completion SHALL roll back XP, cap/cooldown reservations and receipt finalization so the same completed sale can retry safely. WHEN Market knows a prepared trade failed before durable completion THEN THE SYSTEM SHALL idempotently terminalize that receipt as ABORTED without overwriting any already terminal outcome; duplicate completion replay SHALL NOT re-fire committed progression side effects.
+
+### REQ-128
+**Event-driven.** WHEN a member mutates guild ranks or assigns a member rank, THE SYSTEM SHALL enforce management permission and rank priority at the service boundary, reject self-escalation and newly delegated permissions the actor lacks, preserve priority through ordinary edits, and reserve every transition to or from the owner rank for the explicit ownership-transfer service. Administrative override SHALL NOT bypass this owner-integrity boundary. Existing hidden permission values SHALL remain preserved unless explicitly edited.
+
+### REQ-129
+**Event-driven.** WHEN a guild owner transfers ownership, THE SYSTEM SHALL commit both rank updates in one transaction using the expected prior member ranks, preserve both prior ranks and caches on any failed write or stale snapshot, and publish success only after the transaction commits. Owner and demotion ranks SHALL belong to the same guild with priorities zero and greater than zero respectively.
+
+### REQ-131 — Accessible teleport completion
+**Event-driven.** WHEN a member completes /guild home THE SYSTEM SHALL suggest only homes accepted by the same current home-access decision as teleportation, retaining owner access and full-name completion for home management commands.

@@ -942,6 +942,16 @@ Sanitized rebuild note: this task slice is replayed on current post-#223 `main`;
 
 - [x] **SHOP-XP-SPEC** ? Approved flat award, guild/buyer caps, pair cooldown, own-guild exclusion and no refund/clawback policy; see `docs/guild-shop-xp.md`.
 - [x] **SHOP-XP-ENGINE** ? Durable prepare/abort/complete receipts, atomic XP/cap/cooldown persistence, prestige/chapter fencing and version-2 JDK-only companion API. Duplicate delivery refreshes progression only when that call actually commits XP.
-- [x] **SHOP-XP-VALIDATE** ? Sanitized post-#225 validation passed: 23 focused SQLite/provider/config tests with zero skips/failures/errors; full `test shadowJar` produced 1,640 tests with zero failures/errors and 14 optional/environment skips; nine native MariaDB 11.8 shop-XP cases executed with zero skips/failures/errors.
-- [ ] **SHOP-XP-HOSTED** ? Publish only sanitized history and require exact-head Gradle/Codacy/CodeRabbit success.
+- [x] **SHOP-XP-VALIDATE** ? Sanitized validation passed: 23 focused SQLite/provider/config tests with zero skips/failures/errors; full `test shadowJar` produced 1,640 tests with zero failures/errors and 14 optional/environment skips. Earlier feature work also exercised nine native MariaDB shop-XP cases; that native profile was not rerun after the API-v2 hardening.
+- [x] **SHOP-XP-HOSTED** ? Sanitized one-commit PR #226 passed exact-head Gradle, Codacy (0 annotations), and CodeRabbit, then merged as `bfa6931e`.
 - [ ] **SHOP-XP-LIVE** ? Requires canonical Market #197/#198/#200 delivery plus combined pins/build and staging/live outside/own-guild, restart/retry and prestige walkthrough. No production acceptance is claimed by source tests.
+
+## Guild checklist correctness sanitized rebuild (REQ-128/129/131)
+
+- [x] **CHECKLIST-AUTHORITY** — Rank/member service boundaries reject peer/self escalation and reserve every transition to or from owner rank for atomic ownership transfer; admin override does not bypass owner integrity.
+- [x] **CHECKLIST-OWNERSHIP** — Ownership transfer compare-and-set writes both member ranks in one transaction and publishes success only after commit.
+- [x] **CHECKLIST-HOMES** — `/guild home` completion uses the same access decision as teleportation while management completion retains the complete home set.
+- [x] **CHECKLIST-DISBAND** — Relation cleanup supports historical/current MariaDB relation layouts inside the existing disband transaction while retaining reward and cosmetic ownership cleanup.
+- [x] **CHECKLIST-FOCUSED** — Sanitized post-#226 focused validation passed 21 tests with zero skips/failures/errors.
+- [x] **CHECKLIST-FULL** — Single-commit publish tree passed clean `test shadowJar`: 1,659 tests, zero failures/errors, 16 optional/environment skips; Shadow JAR produced.
+- [ ] **CHECKLIST-HOSTED** — Require exact-head Gradle, Codacy, and CodeRabbit before merge; live/database acceptance remains separate.
