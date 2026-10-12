@@ -9,6 +9,7 @@ import io.mockk.verify
 import net.lumalyte.lg.application.persistence.GuildCosmeticUnlockRepository
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.domain.entities.HolidayGuildEmoji
 import net.lumalyte.lg.domain.entities.GuildCosmeticUnlock
 import net.lumalyte.lg.utils.GuiTheme
 import org.junit.jupiter.api.DisplayName
@@ -26,6 +27,18 @@ internal class GuildCosmeticUnlockServiceTest {
     private val guilds = mockk<GuildRepository>(relaxed = true)
     private val unlocks = InMemoryUnlocks()
     private val service = GuildCosmeticUnlockService(guilds, unlocks) { now }
+
+    @Test
+    fun pumpkinEmojiOwnershipAndRevoke() {
+        every { guilds.getById(guildId) } returns guild().copy(emoji = HolidayGuildEmoji.PLACEHOLDER)
+        assertFalse(service.ownsPumpkinEmoji(guildId))
+        assertTrue(service.unlock(guildId, "EMOJI", "PUMPKIN_KING", "Pumpkin King Guild Emoji", "event:halloween-2026"))
+        assertTrue(service.ownsPumpkinEmoji(guildId))
+        every { guilds.clearEmoji(guildId, HolidayGuildEmoji.PLACEHOLDER) } returns true
+        assertTrue(service.revoke(guildId, "EMOJI", "PUMPKIN_KING"))
+        assertFalse(service.ownsPumpkinEmoji(guildId))
+        verify { guilds.clearEmoji(guildId, HolidayGuildEmoji.PLACEHOLDER) }
+    }
 
     private fun guild(theme: GuiTheme = GuiTheme.DEFAULT) =
         Guild(id = guildId, name = "Enthusiasts", createdAt = now, guiTheme = theme)

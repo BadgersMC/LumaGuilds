@@ -63,6 +63,12 @@ interface GuildRepository {
      */
     fun update(guild: Guild): Boolean
 
+    /** Clears only the still-equipped emoji; implementations must preserve other guild fields. */
+    fun clearEmoji(guildId: UUID, expected: String): Boolean {
+        val current = getById(guildId) ?: return false
+        return current.emoji != expected || update(current.copy(emoji = null))
+    }
+
     /**
      * Sets only the GUI theme, and only while [expected] is still equipped (REQ-121).
      * Unlike [update] it never writes a stale copy of the rest of the guild.

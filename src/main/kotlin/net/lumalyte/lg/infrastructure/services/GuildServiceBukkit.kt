@@ -277,7 +277,7 @@ class GuildServiceBukkit(
                 return false
             }
             
-            if (!nexoEmojiService.hasEmojiPermission(player, emojiValue)) {
+            if (!nexoEmojiService.hasGuildEmojiPermission(player, emojiValue, guildId)) {
                 logger.warn("Player ${player.name} does not have permission to use emoji: $emojiValue")
                 return false
             }

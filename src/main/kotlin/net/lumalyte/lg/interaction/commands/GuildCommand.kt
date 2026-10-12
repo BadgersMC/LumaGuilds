@@ -927,7 +927,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         // Check if player has permission for this specific emoji
-        if (!nexoEmojiService.hasEmojiPermission(player, emoji)) {
+        if (!nexoEmojiService.hasGuildEmojiPermission(player, emoji, guild.id)) {
             val permission = nexoEmojiService.getEmojiPermission(emoji) ?: "unknown"
             player.sendMessage(lang.msg("command.migrated.guild.emoji.you_don_t_have_permission_to_use"))
             player.sendMessage(lang.msg("command.migrated.guild.emoji.required_permission", "permission" to permission))

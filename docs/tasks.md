@@ -966,3 +966,8 @@ Menu audit follow-up (REQ-063):
 - [x] **CHECKLIST-FOCUSED** — Sanitized post-#226 focused validation passed 21 tests with zero skips/failures/errors.
 - [x] **CHECKLIST-FULL** — Single-commit publish tree passed clean `test shadowJar`: 1,659 tests, zero failures/errors, 16 optional/environment skips; Shadow JAR produced.
 - [ ] **CHECKLIST-HOSTED** — Require exact-head Gradle, Codacy, and CodeRabbit before merge; live/database acceptance remains separate.
+
+- [x] **LG-2013** Earned holiday pumpkin guild emoji.
+  - Tag: `TDD`
+  - References: REQ-148; EnthusiaHolidays REQ-GUILD-EMOJI-001.
+  - Evidence: current main bfa6931 checks only actor emoji permission and rejects the tag's non-emoji glyph; the existing GuildCosmeticUnlocks string API can store EMOJI without an ABI change. Regression and delivery evidence: docs/evidence/holiday-pumpkin-emoji.md. EARS/state helpers absent; manual traceability used.
