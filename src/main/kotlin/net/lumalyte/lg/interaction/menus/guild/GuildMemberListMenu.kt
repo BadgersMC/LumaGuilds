@@ -5,6 +5,7 @@ import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.utils.RankNameContent
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -63,12 +64,13 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
             val rank = rankService.getPlayerRank(member.playerId, guild.id)
             val offlinePlayer = Bukkit.getOfflinePlayer(member.playerId)
             val playerName = offlinePlayer.name ?: lang.raw("menu.guild_confirmation.common.unknown_player")
+            val rankName = rank?.name ?: lang.raw("menu.member_list.default_rank")
 
             val memberItem = ItemStack.of(Material.PLAYER_HEAD)
                 .name(lang.gui("menu.member_list.item.member.name", "player" to playerName))
                 .lore(lang.gui(
                     "menu.member_list.item.member.lore.rank",
-                    "rank" to (rank?.name ?: lang.raw("menu.member_list.default_rank")),
+                    "rank" to RankNameContent.miniMessage(rankName),
                 ))
 
             val joinFormatter = DateTimeFormatter.ofPattern(lang.raw("menu.member_list.date_pattern"))

@@ -1,4 +1,4 @@
-﻿# LumaGuilds â€” Tasks (SPEAR)
+# LumaGuilds â€” Tasks (SPEAR)
 
 Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` line, and an `Evidence:` block that MUST be filled with real source citations before any downstream SPEAR phase runs on it.
 
@@ -945,6 +945,17 @@ Sanitized rebuild note: this task slice is replayed on current post-#223 `main`;
 - [x] **SHOP-XP-VALIDATE** ? Sanitized validation passed: 23 focused SQLite/provider/config tests with zero skips/failures/errors; full `test shadowJar` produced 1,640 tests with zero failures/errors and 14 optional/environment skips. Earlier feature work also exercised nine native MariaDB shop-XP cases; that native profile was not rerun after the API-v2 hardening.
 - [x] **SHOP-XP-HOSTED** ? Sanitized one-commit PR #226 passed exact-head Gradle, Codacy (0 annotations), and CodeRabbit, then merged as `bfa6931e`.
 - [ ] **SHOP-XP-LIVE** ? Requires canonical Market #197/#198/#200 delivery plus combined pins/build and staging/live outside/own-guild, restart/retry and prestige walkthrough. No production acceptance is claimed by source tests.
+
+## Member tooltip rank colors (REQ-063)
+
+- [x] **MEMBER-RANK-COLOR** Render stored legacy/hex rank colors in Java member-list lore through the existing converter. Three real-inventory regressions reproduce literal hex before the fix and pass afterward; stored names remain unchanged. Full local `test shadowJar`: 1,645 cases, zero failures/errors, 14 existing optional/environment skips. See `docs/plans/2026-10-10-member-rank-tooltip.md` for SPEAR and private preview evidence.
+- [ ] **MEMBER-RANK-DELIVERY** Exact-head hosted checks, maintainer review/merge, canonical release/pins and deferred in-game tooltip acceptance remain separate. Production unchanged.
+
+Menu audit follow-up (REQ-063):
+- [x] Audit all Java and Bedrock rank-name presentation sinks; repair 11 additional menu classes and their rank-change feedback.
+- [x] Preserve raw editable input defaults, rank IDs, ordering, permission checks and persistence.
+- [x] Run 18 focused rank-converter, Java inventory and native-form regressions with zero failures/skips; record full build and exact-head hosted checks separately.
+- [x] Expand the private clickable preview to the affected screen families; in-game acceptance remains deferred.
 
 ## Guild checklist correctness sanitized rebuild (REQ-128/129/131)
 

@@ -1,28 +1,27 @@
 package net.lumalyte.lg.interaction.menus.guild
 
-import net.lumalyte.lg.utils.inventoryframework.addPane
-
-import net.lumalyte.lg.utils.NexoItemProvider
-import net.lumalyte.lg.utils.MenuTitleBuilder
-import net.lumalyte.lg.infrastructure.i18n.gui
-import net.lumalyte.lg.infrastructure.i18n.guiTitle
-import net.lumalyte.lg.infrastructure.services.NexoEmojiService
-import net.badgersmc.nexus.i18n.LangService
-
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import io.papermc.paper.datacomponent.DataComponentTypes
 import io.papermc.paper.datacomponent.item.ResolvableProfile
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.application.services.RelationService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.RelationType
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.lumalyte.lg.infrastructure.services.NexoEmojiService
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.GuildDescriptionContent
+import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.utils.NexoItemProvider
+import net.lumalyte.lg.utils.RankNameContent
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Bukkit
@@ -151,9 +150,10 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
             if (index < 3) { // Show only first 3 members to fit
                 val rank = rankService.getPlayerRank(member.playerId, guild.id)
                 val playerName = Bukkit.getOfflinePlayer(member.playerId).name ?: lang.raw("menu.guild_info.fallback.unknown_player")
+                val rankName = rank?.name ?: lang.raw("menu.guild_info.fallback.member")
                 val memberItem = ItemStack.of(Material.PLAYER_HEAD)
                     .name(lang.gui("menu.guild_info.members.player", "player" to playerName))
-                    .lore(lang.gui("menu.guild_info.members.rank", "rank" to (rank?.name ?: lang.raw("menu.guild_info.fallback.member"))))
+                    .lore(lang.gui("menu.guild_info.members.rank", "rank" to RankNameContent.miniMessage(rankName)))
 
                 memberItem.setData(
                     DataComponentTypes.PROFILE,
@@ -287,12 +287,14 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
             } else {
                 warStats.defendingGuildKills
             }
-            statsItem.lore(lang.gui(
-                "menu.guild_info.statistics.war_kills",
-                "opponent" to opponent,
-                "kills" to kills,
-                "target" to killTarget,
-            ))
+            statsItem.lore(
+                lang.gui(
+                    "menu.guild_info.statistics.war_kills",
+                    "opponent" to opponent,
+                    "kills" to kills,
+                    "target" to killTarget,
+                ),
+            )
         }
 
         if (guild.home != null) {
