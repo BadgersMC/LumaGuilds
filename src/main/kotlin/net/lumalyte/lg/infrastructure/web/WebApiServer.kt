@@ -20,8 +20,10 @@ class WebApiServer(
     private val guildLeaderboardHandler: GuildLeaderboardHandler,
     /** REQ-301: the Hall of Prestige feed; null leaves the route unavailable. */
     private val prestigeFeed: net.lumalyte.lg.infrastructure.web.handlers.PrestigeHallFeed? = null,
+    private val guildQuestSnapshot: (() -> Map<String, Any?>?)? = null,
 ) {
     private val gson: Gson = GsonBuilder().disableHtmlEscaping().create()
+    private val questGson: Gson = GsonBuilder().disableHtmlEscaping().serializeNulls().create()
     private var server: HttpServer? = null
 
     fun start() {
@@ -35,6 +37,7 @@ class WebApiServer(
         httpServer.createContext("/api/leaderboards/guilds", ::handleGuildLeaderboard)
         httpServer.createContext("/api/community/guild-directory", ::handleGuildDirectory)
         httpServer.createContext("/api/community/prestige", ::handlePrestige)
+        httpServer.createContext("/api/community/guildquests", ::handleGuildQuests)
         httpServer.createContext("/api/health") { exchange ->
             respondJson(exchange, 200, mapOf("status" to "ok"))
         }
@@ -139,6 +142,36 @@ class WebApiServer(
         return constantTimeEquals(provided, token)
     }
 
+    @Volatile private var questCache: Pair<Long, Map<String, Any?>>? = null
+    private val questCacheLock = Any()
+    private fun cachedQuestSnapshot(): Map<String, Any?>? = synchronized(questCacheLock) {
+        val cached = questCache
+        if (cached != null && System.currentTimeMillis() - cached.first < 60_000L) return@synchronized cached.second
+        val data = guildQuestSnapshot?.invoke() ?: return@synchronized null
+        if (questGson.toJson(data).toByteArray(StandardCharsets.UTF_8).size > 150_000) return@synchronized null
+        questCache = System.currentTimeMillis() to data
+        data
+    }
+    private fun handleGuildQuests(exchange: HttpExchange) {
+        try {
+            if (exchange.requestURI.path != "/api/community/guildquests") {
+                respondJson(exchange, 404, mapOf("error" to "not_found")); return
+            }
+            if (exchange.requestMethod != "GET") {
+                respondJson(exchange, 405, mapOf("error" to "method_not_allowed")); return
+            }
+            if (!isAuthorized(exchange)) {
+                respondJson(exchange, 401, mapOf("error" to "unauthorized")); return
+            }
+            val data = cachedQuestSnapshot()
+            respondJson(exchange, if (data == null) 503 else 200,
+                data ?: mapOf("error" to "quest_export_unavailable"), questGson)
+        } catch (_: Exception) {
+            plugin.logger.warning("[WebApi] quest export failed")
+            respondJson(exchange, 503, mapOf("error" to "quest_export_unavailable"))
+        }
+    }
+
     private fun constantTimeEquals(a: String, b: String): Boolean {
         if (a.length != b.length) return false
         var result = 0
@@ -146,8 +179,8 @@ class WebApiServer(
         return result == 0
     }
 
-    private fun respondJson(exchange: HttpExchange, status: Int, body: Any) {
-        val bytes = gson.toJson(body).toByteArray(StandardCharsets.UTF_8)
+    private fun respondJson(exchange: HttpExchange, status: Int, body: Any, serializer: Gson = gson) {
+        val bytes = serializer.toJson(body).toByteArray(StandardCharsets.UTF_8)
         exchange.responseHeaders.add("Content-Type", "application/json; charset=utf-8")
         exchange.responseHeaders.add("Cache-Control", "no-store")
         exchange.sendResponseHeaders(status, bytes.size.toLong())
