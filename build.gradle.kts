@@ -151,7 +151,7 @@ tasks.test {
     useJUnitPlatform()
     // This optional integration profile must not reuse a skipped/stale result when
     // the companion path or the JAR's contents change.
-    val marketApiJar = providers.environmentVariable("MARKET_API_JAR").orElse("")
+    val marketApiJar = providers.environmentVariable("MARKET_API_JAR").filter { it.isNotBlank() }.orElse("")
     inputs.property("marketApiJarPath", marketApiJar)
     inputs.files(marketApiJar.map { path -> if (path.isBlank()) files() else files(path) })
         .withPropertyName("marketApiJarContents")
@@ -181,6 +181,8 @@ tasks.register<Test>("mariaDbRewardTest") {
         includeTestsMatching("*GuildInsertColumnOrderTest")
         includeTestsMatching("*GuildThemeUpdateSQLTest")
         includeTestsMatching("*GuildChatReconnectSettingsRepositorySQLTest")
+        includeTestsMatching("*ChatPreferencesPersistenceTest")
+        includeTestsMatching("*GuildDirectoryDetailsTest")
     }
     doFirst {
         val port = providers.gradleProperty("mariaDbTestPort").orNull

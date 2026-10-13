@@ -71,3 +71,17 @@ LumaGuilds hands guild chat off to RoseChat as a dedicated channel. RoseChat own
 
 - [Identity](identity.md) — set your guild tag and customize your appearance
 - [Alliances & Diplomacy](alliances.md) — who hears ally chat
+
+## Personal chat settings
+
+Open **Personal chat settings** in your guild menu or use `/guild chatsettings`.
+You can hide global player chatter while keeping direct messages, server notices
+and private channels visible. You can also enable a boss bar showing your current
+chat destination. Global messages start visible; the indicator starts disabled.
+These are personal settings, separate from the guild-wide reconnect preference.
+
+`/gfa your message` sends a guild fullscreen announcement plus its usual chat
+message. You need announcement authority in exactly one guild; mute and existing
+announcement cooldowns still apply. `/gc`, `/gac`, `/gmc` and `/ga` keep their
+existing behavior. `/gh` is not assigned a new hide-chat meaning because of
+home-command ambiguity.

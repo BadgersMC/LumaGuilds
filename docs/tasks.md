@@ -976,3 +976,9 @@ Menu audit follow-up (REQ-063):
   - Tag: `TDD`
   - References: REQ-135.
   - Evidence: sanitized replay keeps only the reconnect feature commits on current main and omits obsolete #213 integration history. Historical branch validation recorded 58 focused contracts, a clean 1,673-test suite with zero failures/errors and four skips, 59 native MariaDB cases, and the actual companion runtime contract with zero skips; Codacy refinements passed that integration build. Fresh exact-head hosted checks remain required after this replay. Persistence, authority, stale forms, configured channels, and disconnected/replaced sessions are covered. See `docs/chat-reconnect.md`. Production remains unchanged.
+- [x] **COMMUNITY-UI** Implement approved G20/G21/G22/G24/G25 with personal chat settings, optional channel indicator, permission-safe individual rank selection and bounded public directory details.
+  - Tag: `TDD`
+  - References: REQ-136 through REQ-139; `docs/community-ui.md`.
+  - Evidence: category-opening regression failed against the prior implementation then passed; native SQL failure reproduced and fixed. Historical branch validation recorded a 1,679-test suite with four unrelated skips and 61 native cases with zero skips. Shared service/SQL contracts and the actual companion runtime were verified. Fresh exact-head hosted checks and real Java/Bedrock acceptance remain separate. Production remains unchanged.
+
+- [x] **COMMUNITY-CODACY** Inspect #215 provider results directly, refine public directory types, new-code formatting and method boundaries, preserve literal locale/wiring contracts, rerun full and native SQL validation, then inspect the published head. EARS/state helpers remain absent; manual evidence is in `docs/community-ui.md`. Hosted completion is a separate gate.
