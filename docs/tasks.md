@@ -997,3 +997,7 @@ Menu audit follow-up (REQ-063):
   - Tag: `TDD`
   - References: REQ-145, REQ-146.
   - Evidence: sanitized replay carries only the Getting Started feature on the current reviewed stack; retired AxKoth removal and old stack-merge history are intentionally excluded because AxKoth is already retired on `main`. Historical feature validation recorded a clean 1,741-case build with zero failures/errors and 15 existing external skips; all 27 new cases and four native MariaDB contracts executed. Fresh exact-head hosted checks, independent review and real Java/Bedrock acceptance remain separate. See `docs/guild-onboarding.md`. Production remains unchanged.
+- [x] **VAULT-ECONOMY-LIFECYCLE** Re-resolve Vault Economy registration for late provider startup, unregister and replacement.
+  - Tag: `TDD`
+  - References: REQ-149.
+  - Evidence: the historical TEST branch reproduced stale-provider behavior and recorded 24 focused cases plus a 1,752-test full suite with zero failures/errors and 20 optional skips. This sanitized rebuild contains only the provider lifecycle source/test correction and evidence; fresh exact-head hosted checks remain required. See `docs/test-startup-cleanup.md`. Production remains unchanged.
