@@ -982,3 +982,6 @@ Menu audit follow-up (REQ-063):
   - Evidence: category-opening regression failed against the prior implementation then passed; native SQL failure reproduced and fixed. Historical branch validation recorded a 1,679-test suite with four unrelated skips and 61 native cases with zero skips. Shared service/SQL contracts and the actual companion runtime were verified. Fresh exact-head hosted checks and real Java/Bedrock acceptance remain separate. Production remains unchanged.
 
 - [x] **COMMUNITY-CODACY** Inspect #215 provider results directly, refine public directory types, new-code formatting and method boundaries, preserve literal locale/wiring contracts, rerun full and native SQL validation, then inspect the published head. EARS/state helpers remain absent; manual evidence is in `docs/community-ui.md`. Hosted completion is a separate gate.
+- [x] **VAULT-PERMISSIONS** Enforce current access and operation-specific inventory permissions (REQ-140).
+  - Tag: `TDD`
+  - Evidence: historical branch validation recorded 75 focused tests and a 1,564-test Java 25 suite with zero failures/errors and four external skips. Fresh exact-head hosted checks and deferred in-game acceptance remain separate. See `docs/vault-inventory-permissions.md`. Production remains unchanged.
