@@ -330,8 +330,13 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         if (targetGuildId == null) return denyAllyHome()
         val currentTarget = guildService.getGuild(targetGuildId) ?: return denyAllyHome()
         val currentHome = currentTarget.allyHome ?: return denyAllyHome()
-        if (!guildService.canUseAllyHome(player.uniqueId, guild.id, currentTarget.id)) return denyAllyHome()
+        if (!canTeleportToAllyHome(currentTarget, currentHome)) return denyAllyHome()
         startTeleportCountdown(currentHome)
+    }
+
+    private fun canTeleportToAllyHome(target: Guild, home: GuildHome): Boolean {
+        val eligibleHome = guildService.getAllyHomes(guild.id)[target.name]
+        return eligibleHome == home && guildService.canUseAllyHome(player.uniqueId, guild.id, target.id)
     }
 
     private fun denyAllyHome() {

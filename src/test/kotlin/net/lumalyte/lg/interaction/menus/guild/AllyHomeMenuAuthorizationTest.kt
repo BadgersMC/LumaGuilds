@@ -87,12 +87,20 @@ internal class AllyHomeMenuAuthorizationTest {
         verify(exactly = 1) { fixture.teleports.startTeleport(fixture.player, any<Location>(), any()) }
     }
 
+    @Test fun unlistedHomeDenied() {
+        val fixture = Fixture()
+        fixture.eligible = false
+        fixture.click()
+        verify(exactly = 0) { fixture.teleports.startTeleport(any(), any(), any()) }
+    }
+
     private class Fixture(initialAllowed: Boolean = true) {
         val server = MockBukkit.mock()
         val world = server.addSimpleWorld("world")
         val player = server.addPlayer()
         val teleports = mockk<TeleportationService>(relaxed = true)
         var allowed = initialAllowed
+        var eligible = true
         var currentTarget: Guild? =
             Guild(
                 id = UUID.randomUUID(),
@@ -113,7 +121,7 @@ internal class AllyHomeMenuAuthorizationTest {
             val lang = mockk<LangService>(relaxed = true)
             every { lang.msg(any()) } returns Component.text("Home")
             every { lang.msg(any(), any()) } returns Component.text("Home")
-            every { guilds.getAllyHomes(source.id) } returns mapOf("Ally" to requireNotNull(currentTarget?.allyHome))
+            every { guilds.getAllyHomes(source.id) } answers { eligibleHomes() }
             every { guilds.getGuildByName("Ally") } returns currentTarget
             every { guilds.getGuild(targetId) } answers { currentTarget }
             every { guilds.canUseAllyHome(player.uniqueId, source.id, targetId) } answers { allowed }
@@ -141,6 +149,12 @@ internal class AllyHomeMenuAuthorizationTest {
         }
 
         fun click() = requireNotNull(pane.getItem(0, ALLY_ROW)).callAction(mockk(relaxed = true))
+
+        private fun eligibleHomes(): Map<String, GuildHome> {
+            val target = currentTarget ?: return emptyMap()
+            val home = target.allyHome ?: return emptyMap()
+            return if (eligible) mapOf(target.name to home) else emptyMap()
+        }
     }
 }
 
