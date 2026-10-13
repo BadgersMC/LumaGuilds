@@ -1,0 +1,41 @@
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const path=require('path');
+(async()=>{
+  const browser=await chromium.launch({headless:true,channel:'chrome'});
+  const page=await browser.newPage();
+  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  await page.goto('file:///'+path.resolve(__dirname,'guild-getting-started-local.html').replaceAll('\\','/'));
+  const frame=page.frameLocator('iframe');
+  for(const width of [320,390,736]){
+    await page.setViewportSize({width,height:900});
+    await frame.locator('#start-profile').selectOption('leader');
+    await frame.locator('#start-dashboard-open').click();
+    await frame.locator('#start-topic').selectOption('4');
+    await frame.locator('#start-state').filter({hasText:'Locked'}).waitFor();
+    await frame.locator('#start-shortcut').filter({hasText:'Guild progression'}).waitFor();
+    const content=page.frames().find(f=>f!==page.mainFrame());
+    const overflow=await content.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth);
+    if(overflow)throw Error('Horizontal overflow at '+width);
+    await frame.locator('#start-shortcut').click();
+    await frame.locator('#start-route').filter({hasText:'Guild progression'}).waitFor();
+    await frame.locator('#start-profile').selectOption('member');
+    await frame.locator('#start-dashboard-open').click();
+    await frame.locator('#start-topic').selectOption('2');
+    if(await frame.locator('#start-shortcut').isEnabled())throw Error('Member rank shortcut enabled');
+    await frame.locator('#start-guide [data-action=dismiss]').click();
+    if(await frame.locator('#start-prompt').isVisible())throw Error('Prompt remains after dismissal: '+JSON.stringify(await frame.locator('#start-prompt').evaluate(e=>({hidden:e.hidden,display:getComputedStyle(e).display})))+' '+errors.join(';'));
+    if(width===390)await page.screenshot({path:path.join(__dirname,'getting-started-mobile.png'),fullPage:true});
+    await frame.locator('#start-profile').selectOption('none');
+    await frame.locator('#start-topic').selectOption('0');
+    await frame.locator('#start-shortcut').click();
+    await frame.locator('#start-route').filter({hasText:'Guild directory'}).waitFor();
+    await frame.locator('#start-edition').selectOption('bedrock');
+    await frame.locator('#start-destination [data-action=guide]').click();
+    await frame.locator('#start-bedrock button').first().click();
+    await frame.locator('#start-route').filter({hasText:'Guild directory'}).waitFor();
+    await frame.locator('#start-edition').selectOption('java');
+  }
+  if(errors.length)throw Error(errors.join('\n'));
+  console.log('Preview interactions pass at 320, 390 and 736 px; no page errors or horizontal overflow.');
+  await browser.close();
+})().catch(error=>{console.error(error);process.exit(1)});

@@ -993,3 +993,7 @@ Menu audit follow-up (REQ-063):
   - Tag: `TDD`
   - References: REQ-143, REQ-144; existing REQ-136 and REQ-139.
   - Evidence: sanitized replay keeps the four direct stall feature/review commits and omits obsolete stack merges, AxKoth recovery, and dependency-reconciliation history. `GuildStallManagerControls` preserves both `guildsales` and `stallaccess` shortcuts while rechecking `EDIT_SHOP_STOCK`; `GuildAllianceLookup` accepts only active distinct-guild ALLY relations. Historical combined validation recorded 1,714 Java 25 cases with zero failures/errors and 15 external skips, including the Market artifact contract. Fresh exact-head hosted checks and live Java/Bedrock acceptance remain separate. See `docs/stall-access-verification.md`. Production remains unchanged.
+- [x] **GUILD-GETTING-STARTED** Permission-aware Java/Bedrock onboarding with a one-time membership prompt.
+  - Tag: `TDD`
+  - References: REQ-145, REQ-146.
+  - Evidence: sanitized replay carries only the Getting Started feature on the current reviewed stack; retired AxKoth removal and old stack-merge history are intentionally excluded because AxKoth is already retired on `main`. Historical feature validation recorded a clean 1,741-case build with zero failures/errors and 15 existing external skips; all 27 new cases and four native MariaDB contracts executed. Fresh exact-head hosted checks, independent review and real Java/Bedrock acceptance remain separate. See `docs/guild-onboarding.md`. Production remains unchanged.

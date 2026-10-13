@@ -547,5 +547,12 @@ WHEN a player opens or interacts with a guild vault THE SYSTEM SHALL recheck cur
 
 ### REQ-144
 **Event-driven.** WHEN a currently authorized shop manager opens guild stall details THE Java and Bedrock controls SHALL offer the Market stall flags/access command. Market SHALL revalidate stall ownership and authority on each mutation; the shortcut SHALL NOT grant permissions.
+### REQ-145 — In-server guild Getting Started
+
+**Event-driven.** WHEN a player requests guild onboarding THE SYSTEM SHALL present current, permission-aware Java/Bedrock guidance and read-only milestone states, recheck every click, preserve existing costs/permissions, and offer guild creation and directory help before membership. See `docs/guild-onboarding.md`.
+
+### REQ-146 — One-time membership prompt
+
+**Event-driven.** WHEN a guild creation or new membership occurs THE SYSTEM SHALL persist one pending prompt per player/guild, consume it once only for an online current member, retain pending offline prompts and preserve consumption across duplicate events and restarts. Existing memberships SHALL NOT be retroactively enrolled. See `docs/guild-onboarding.md`.
 ### REQ-148
 **Event-driven.** WHEN a guild owns EMOJI:PUMPKIN_KING THE SYSTEM SHALL allow members with existing MANAGE_EMOJI authority to equip the existing pumpkin_king_icon glyph as its guild emoji through Java, Bedrock and command paths. Unowned guilds SHALL be rejected even with broad personal emoji permissions. Ordinary emojis SHALL preserve their prior permission rules. Only this existing glyph with its expected U+A0A0 character and minecraft:default font SHALL be admitted from non-emoji assets; all other non-emoji glyphs SHALL remain excluded. Revocation SHALL clear only the matching equipped emoji with a conditional field write, preserving unrelated guild fields.

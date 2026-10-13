@@ -1,0 +1,111 @@
+<div id="guild-start-preview" class="viz-dotted-background">
+  <div class="preview-controls">
+    <label>Sample player <select id="start-profile"><option value="leader">New guild leader</option><option value="member">New guild member</option><option value="established">Established guild leader</option><option value="none">No guild yet</option></select></label>
+    <label>Edition <select id="start-edition"><option value="java">Java</option><option value="bedrock">Bedrock</option></select></label>
+  </div>
+  <div class="game">
+    <div id="start-prompt" class="chat"><span>Welcome to Ember! Explore your guild's first steps.</span> <button data-action="guide">[Open guide]</button> <button data-action="dismiss">Dismiss prompt</button></div>
+    <h3 id="start-heading">Ember — Guild Dashboard</h3>
+    <div id="start-dashboard" class="inventory" aria-label="Guild dashboard, three rows"></div>
+    <div id="start-guide" hidden>
+      <p id="start-overview"></p>
+      <div id="start-slots" class="inventory" aria-label="Getting Started, three rows"></div>
+      <div id="start-bedrock" hidden></div>
+      <div id="start-inspector">
+        <label>Inspect a book <select id="start-topic"></select></label>
+        <div class="lore"><strong id="start-topic-title"></strong><p id="start-state"></p><p id="start-details"></p><p id="start-reason"></p><button id="start-shortcut">Open shortcut</button></div>
+      </div>
+      <div class="footer"><button data-action="help">All help topics</button><button data-action="refresh">Refresh progress</button><button data-action="dashboard">Back</button><button data-action="dismiss">Dismiss prompt</button></div>
+    </div>
+    <div id="start-destination" hidden><p id="start-route"></p><button data-action="guide">Back to Getting Started</button></div>
+    <p id="start-feedback" role="status" aria-live="polite"></p>
+    <p class="command">Manual access: /g start · Existing help: /g help</p>
+  </div>
+</div>
+<style>
+#guild-start-preview{color-scheme:light dark;font-family:system-ui,sans-serif}
+#guild-start-preview .preview-controls{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+#guild-start-preview label{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+#guild-start-preview select{max-width:100%;padding:10px;background:light-dark(#fff,#242424);color:light-dark(#222,#eee);border:1px solid light-dark(#888,#777);border-radius:4px;font:inherit;min-height:44px}
+#guild-start-preview .game{background:#281417;color:#f9e5c5;padding:14px;border:3px solid #be8f38;font-family:ui-monospace,monospace}
+#guild-start-preview h3{font-size:16px;margin:12px 0;overflow-wrap:anywhere}
+#guild-start-preview p{font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+#guild-start-preview .inventory{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:3px;background:#7e333b;padding:5px;border:2px solid #ce9849}
+#guild-start-preview .slot{aspect-ratio:1;background:#b4565e;border:2px inset #dc8990;display:flex;align-items:center;justify-content:center;min-width:0;font-size:20px}
+#guild-start-preview .slot.active{background:#d49f45;color:#201413}
+#guild-start-preview .slot span{font-size:12px}
+#guild-start-preview button{min-height:44px;padding:8px 10px;background:#5b282d;border:1px solid #caa456;color:#fff2da;border-radius:3px;font:inherit}
+#guild-start-preview button:disabled{opacity:.65}
+#guild-start-preview .chat{padding:10px;background:#121215;font-size:14px;line-height:1.6;color:#ffc65c}
+#guild-start-preview .chat button{color:#87de89;background:#121215;border:0}
+#guild-start-preview .footer{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+#guild-start-preview #start-inspector{margin-top:14px}
+#guild-start-preview .lore{margin-top:10px;padding:12px;background:#160b20;border:1px solid #885987}
+#guild-start-preview .lore strong{font-size:15px;color:#ffce68}
+#guild-start-preview #start-reason{color:#ffd768}
+#guild-start-preview #start-bedrock{display:flex;flex-direction:column;gap:6px}
+#guild-start-preview #start-bedrock[hidden],#guild-start-preview [hidden]{display:none}
+#guild-start-preview .command{color:#c9bfc0;font-size:12px;margin-bottom:0}
+@media(max-width:400px){#guild-start-preview .game{padding:8px}#guild-start-preview .slot{font-size:15px;border-width:1px}#guild-start-preview .inventory{gap:2px;padding:3px}#guild-start-preview .slot span{font-size:11px}}
+</style>
+<script>
+(() => {
+  const root=document.getElementById('guild-start-preview'), el=id=>root.querySelector('#'+id);
+  const topics=[
+    ['Create or join a guild','Use /g create followed by a name, or browse guilds to join. Creation and joining may have configured costs.','Guild information'],
+    ['Invite your first member','Leaders can invite players from the member menu. Member capacity comes from current unlocked rewards.','Guild invites'],
+    ['Understand guild ranks','Leaders customize ranks and grant permissions. Members should ask a leader about their access.','Rank management'],
+    ['Use guild chat','Use /gc for guild chat and /gac for allied chat. Personal chat settings are available here.','Personal chat settings'],
+    ['Establish a guild home','Unlock a home slot, then set and activate a home. Existing active homes can move for free.','Guild homes'],
+    ['Explore guild quests','Open current guild quests to see objectives, progress and rewards. Participation keeps existing rules.','Guild quests'],
+    ['Reach the next guild level','Earn guild XP through supported activities and quests. Review rewards, requirements and prices here.','Guild progression'],
+    ['Understand the guild bank','Bank deposits and withdrawals follow your rank permissions. Physical vault permissions are separate.','Guild bank'],
+    ['Explore guild stalls','Guild Stalls shows authoritative ownership and member access, or explains unavailable Market data.','Guild Stalls']
+  ];
+  let profile='leader',edition='java',screen='dashboard',selected=0,dismissed=false;
+  const permission='Your guild rank does not permit this action. Ask a guild leader.';
+  function status(i){
+    if(profile==='none')return {state:i===0?'Available':'Locked',route:i===0?'Guild directory':null,reason:i===0?'':'Create or join a guild to unlock these steps.'};
+    const established=profile==='established',manager=profile!=='member';
+    let state=(i===0||(established&&[1,4,6].includes(i)))?'Completed':'Available',route=topics[i][2],reason='';
+    if([1,2].includes(i)&&!manager){route=null;if(state!=='Completed')state='Locked';reason=i===1?'Inviting requires member-management permission and a free member slot.':permission;}
+    if(i===1&&manager)reason='Inviting requires member-management permission and a free member slot.';
+    if(i===4&&!established){state='Locked';route=manager?'Guild progression':null;reason=manager?'Unlock a home slot through progression first. Click to review rewards and requirements.':permission;}
+    return {state,route,reason};
+  }
+  function cell(icon,label,active=false){const div=document.createElement('div');div.className='slot'+(active?' active':'');div.textContent=icon;div.setAttribute('aria-label',label);return div;}
+  function slots(target,items){target.replaceChildren();for(let i=0;i<27;i++){const item=items[i];target.append(cell(item?item[0]:'',item?item[1]:'Empty slot',item&&item[2]));}}
+  function inspect(){const t=topics[selected],s=status(selected);el('start-topic-title').textContent=t[0];el('start-state').textContent=s.state;el('start-details').textContent=t[1];el('start-reason').textContent=s.reason;el('start-shortcut').textContent=s.route?'Open '+s.route:'Locked';el('start-shortcut').disabled=!s.route;}
+  function render(){
+    el('start-prompt').hidden=dismissed||profile==='none'||profile==='established';
+    el('start-dashboard').hidden=screen!=='dashboard';el('start-guide').hidden=screen!=='guide';el('start-destination').hidden=screen!=='destination';
+    el('start-heading').textContent=screen==='guide'?'Getting Started':screen==='dashboard'?'Ember — Guild Dashboard':'Existing menu shortcut';
+    const dashboard={0:['🏪','Guild Stalls'],2:['📕','Getting Started',true],4:['🏰','Guild information'],8:['⚒','Guild actions'],9:['📖','Information'],11:['👤','Members'],13:['⚔','Ranks'],15:['🕰','Quests'],17:['▣','Economy'],18:['⚙','Settings'],20:['✦','Progression'],22:['⚑','Diplomacy'],24:['⚔','Warfare'],26:['📚','Statistics']};
+    slots(el('start-dashboard'),dashboard);
+    if(screen==='dashboard') {const guideButton=document.createElement('button');guideButton.textContent='Open Getting Started';guideButton.dataset.action='guide';el('start-dashboard').after(guideButton);guideButton.id='start-dashboard-open';}
+    root.querySelectorAll('#start-dashboard-open').forEach((b,i,list)=>{if(screen!=='dashboard'||i<list.length-1)b.remove();});
+    el('start-overview').textContent=profile==='none'?'Create or join a guild to unlock these steps.':`Members: ${profile==='established'?'4/10':'1/5'}. Completed labels describe current guild milestones; other entries are guidance.`;
+    const books={4:['📕','Guide overview']};topics.forEach((t,i)=>books[9+i]=['📕',t[0],i===selected]);books[18]=['📖','All help topics'];books[20]=['🕰','Refresh progress'];books[22]=['↩','Back'];books[24]=['▤','Dismiss prompt'];slots(el('start-slots'),books);
+    el('start-slots').hidden=edition!=='java';el('start-inspector').hidden=edition!=='java';el('start-bedrock').hidden=edition!=='bedrock';
+    el('start-bedrock').replaceChildren();
+    if(edition==='bedrock'){
+      const content=document.createElement('p');content.textContent=topics.map((t,i)=>t[0]+': '+t[1]+(status(i).reason?' '+status(i).reason:'')).join('\n\n');content.style.whiteSpace='pre-line';el('start-bedrock').append(content);
+      topics.forEach((t,i)=>{const b=document.createElement('button');b.textContent=t[0]+' — '+status(i).state;b.onclick=()=>{selected=i;openShortcut();};el('start-bedrock').append(b);});
+    }
+    inspect();
+  }
+  function openShortcut(){const s=status(selected);if(!s.route){el('start-feedback').textContent=s.reason;return;}screen='destination';el('start-route').textContent='Shortcut destination: '+s.route+'. The existing menu supplies its current permissions, data and any prices.';render();}
+  topics.forEach((t,i)=>{const o=document.createElement('option');o.value=i;o.textContent=t[0];el('start-topic').append(o);});
+  el('start-topic').onchange=e=>{selected=Number(e.target.value);inspect();render();};
+  el('start-profile').onchange=e=>{profile=e.target.value;dismissed=false;screen=profile==='none'?'guide':'dashboard';el('start-feedback').textContent='';render();};
+  el('start-edition').onchange=e=>{edition=e.target.value;render();};el('start-shortcut').onclick=openShortcut;
+  root.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b)return;const a=b.dataset.action;
+    if(a==='guide'||a==='dashboard'){screen=a==='dashboard'&&profile==='none'?'guide':a;el('start-feedback').textContent='';}
+    if(a==='help'){screen='destination';el('start-route').textContent='Shortcut destination: existing /g help topic browser. All current help topics stay available.';}
+    if(a==='refresh')el('start-feedback').textContent='Progress refreshed from the sample guild state.';
+    if(a==='dismiss'){dismissed=true;el('start-feedback').textContent='Getting Started remains available with /g start. The first-time prompt will not repeat.';}
+    render();
+  });
+  render();
+})();
+</script>
