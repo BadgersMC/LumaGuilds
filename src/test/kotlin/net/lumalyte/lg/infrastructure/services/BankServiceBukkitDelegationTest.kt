@@ -1,13 +1,17 @@
 package net.lumalyte.lg.infrastructure.services
 
-import io.mockk.mockk
 import io.mockk.every
+import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.gold.*
 import net.lumalyte.lg.infrastructure.persistence.guilds.GuildGoldRepositorySQL
 import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteStorage
+import net.milkbowl.vault.economy.Economy
+import org.bukkit.Bukkit
+import org.bukkit.plugin.Plugin
+import org.bukkit.plugin.ServicePriority
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -17,6 +21,7 @@ import java.nio.file.Path
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class BankServiceBukkitDelegationTest {
@@ -124,6 +129,48 @@ class BankServiceBukkitDelegationTest {
         verify(exactly = 1) {
             chapterAwards.awardBankGrowth(guildId, actorId, 0L, 100L, any())
         }
+    }
+
+    @Test fun `late economy provider is discovered`() {
+        val plugin = MockBukkit.createMockPlugin("Vault")
+        assertFalse(bank.isEconomyAvailable())
+        registerEconomy(mockk(relaxed = true), plugin)
+        assertTrue(bank.isEconomyAvailable())
+    }
+
+    @Test fun `unregistered provider is discarded`() {
+        val plugin = MockBukkit.createMockPlugin("Vault")
+        val economy = mockk<Economy>(relaxed = true)
+        registerEconomy(economy, plugin)
+        assertTrue(bank.isEconomyAvailable())
+        Bukkit.getServicesManager().unregister(Economy::class.java, economy)
+        assertFalse(bank.isEconomyAvailable(), "A disabled provider must not remain cached by Guild Bank")
+    }
+
+    @Test fun `replacement provider wins`() {
+        val plugin = MockBukkit.createMockPlugin("Vault")
+        val original = mockk<Economy>(relaxed = true)
+        val replacement = mockk<Economy>(relaxed = true)
+        registerEconomy(original, plugin)
+        assertTrue(bank.isEconomyAvailable())
+        assertSame(original, cachedEconomy())
+        registerEconomy(replacement, plugin, ServicePriority.Highest)
+        assertTrue(bank.isEconomyAvailable())
+        assertSame(replacement, cachedEconomy())
+    }
+
+    private fun cachedEconomy(): Economy? {
+        val field =
+            BankServiceBukkit::class.java.getDeclaredField("economy").apply { isAccessible = true }
+        return field.get(bank) as Economy?
+    }
+
+    private fun registerEconomy(
+        economy: Economy,
+        plugin: Plugin,
+        priority: ServicePriority = ServicePriority.Normal,
+    ) {
+        Bukkit.getServicesManager().register(Economy::class.java, economy, plugin, priority)
     }
 
     @Test fun `paid physical join removes currency and credits canonical bank exactly once`() {
