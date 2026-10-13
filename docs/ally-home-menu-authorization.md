@@ -15,3 +15,7 @@ The click handler resolves GuildService.getGuild using the stable target ID, rea
 ## Refine
 
 Full Java 25 offline test/shadowJar passes 1,543 tests, zero failures/errors and four existing external skips. The final helper refinement and sixth access-grant case pass the focused test/shadowJar profile. No project-local EARS/state helpers exist; manual requirement/task/evidence records are maintained. In-game acceptance is deferred at user request. Production untouched; any generated JAR is an unmerged local test artifact. Hosted CI and manual review remain separate gates.
+
+## Current eligible-home listing
+
+The click-time check also requires the resolved target/home to remain present in `getAllyHomes`, so current mutual-perk eligibility is revalidated before the existing access check and teleport countdown.
