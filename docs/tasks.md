@@ -985,3 +985,7 @@ Menu audit follow-up (REQ-063):
 - [x] **VAULT-PERMISSIONS** Enforce current access and operation-specific inventory permissions (REQ-140).
   - Tag: `TDD`
   - Evidence: historical branch validation recorded 75 focused tests and a 1,564-test Java 25 suite with zero failures/errors and four external skips. Fresh exact-head hosted checks and deferred in-game acceptance remain separate. See `docs/vault-inventory-permissions.md`. Production remains unchanged.
+- [x] **ALLY-HOME-MENU-AUTHORIZATION** Reauthorize rendered ally-home menu clicks against current guild/home/access state.
+  - Tag: `TDD`
+  - References: REQ-141.
+  - Evidence: historical branch regressions failed four of five stale-menu cases before the fix and passed all cases after current-home/current-access resolution; the final focused profile also covered newly granted access and current eligible-list denial. A Java 25 offline test/shadowJar run recorded 1,543 tests with zero failures/errors and four external skips. Fresh exact-head hosted checks and deferred in-game acceptance remain separate. See `docs/ally-home-menu-authorization.md`. Production remains unchanged.
