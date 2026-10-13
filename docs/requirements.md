@@ -524,5 +524,8 @@ WHEN the staff strike feed cannot read historical guild membership, THE SYSTEM S
 ### REQ-131 — Accessible teleport completion
 **Event-driven.** WHEN a member completes /guild home THE SYSTEM SHALL suggest only homes accepted by the same current home-access decision as teleportation, retaining owner access and full-name completion for home management commands.
 
+### REQ-135
+**Event-driven.** WHEN an authorized guild manager changes Reset chat on reconnect in Java or Bedrock Guild Settings THE SYSTEM SHALL persist the guild-wide value, defaulting to disabled for existing/new guilds. WHEN a guild member reconnects in guild or ally chat and any guild they belong to enables the setting THE SYSTEM SHALL move them to RoseChat's configured default channel after join, using current membership/settings. Other channels and an allied guild's setting SHALL NOT trigger reset. Unchanged/stale forms SHALL NOT overwrite newer values; revoked authority and failed writes SHALL NOT change persistence. Existing invalid-channel cleanup SHALL remain.
+
 ### REQ-148
 **Event-driven.** WHEN a guild owns EMOJI:PUMPKIN_KING THE SYSTEM SHALL allow members with existing MANAGE_EMOJI authority to equip the existing pumpkin_king_icon glyph as its guild emoji through Java, Bedrock and command paths. Unowned guilds SHALL be rejected even with broad personal emoji permissions. Ordinary emojis SHALL preserve their prior permission rules. Only this existing glyph with its expected U+A0A0 character and minecraft:default font SHALL be admitted from non-emoji assets; all other non-emoji glyphs SHALL remain excluded. Revocation SHALL clear only the matching equipped emoji with a conditional field write, preserving unrelated guild fields.

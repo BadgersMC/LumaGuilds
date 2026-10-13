@@ -526,6 +526,14 @@ fun socialModule() = module {
         net.lumalyte.lg.infrastructure.persistence.guilds.GuildChatRankSettingsRepositorySQL(get())
     }
     single { net.lumalyte.lg.application.services.GuildChatRankSettingsService(get(), get()) }
+    single<net.lumalyte.lg.application.persistence.GuildChatReconnectSettingsRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildChatReconnectSettingsRepositorySQL(get())
+    }
+    single { net.lumalyte.lg.application.services.GuildChatReconnectSettingsService(get(), get()) }
+    single {
+        net.lumalyte.lg.infrastructure.listeners.GuildChatReconnectListener(get(), get(), get())
+    }
+
 
     // Services
     single<PartyService> { PartyServiceBukkit(get(), get(), get(), get(), get()) }
