@@ -989,3 +989,7 @@ Menu audit follow-up (REQ-063):
   - Tag: `TDD`
   - References: REQ-141.
   - Evidence: historical branch regressions failed four of five stale-menu cases before the fix and passed all cases after current-home/current-access resolution; the final focused profile also covered newly granted access and current eligible-list denial. A Java 25 offline test/shadowJar run recorded 1,543 tests with zero failures/errors and four external skips. Fresh exact-head hosted checks and deferred in-game acceptance remain separate. See `docs/ally-home-menu-authorization.md`. Production remains unchanged.
+- [x] **STALL-ALLIANCE-ACCESS** Expose active alliance lookup and permission-safe stall manager controls.
+  - Tag: `TDD`
+  - References: REQ-143, REQ-144; existing REQ-136 and REQ-139.
+  - Evidence: sanitized replay keeps the four direct stall feature/review commits and omits obsolete stack merges, AxKoth recovery, and dependency-reconciliation history. `GuildStallManagerControls` preserves both `guildsales` and `stallaccess` shortcuts while rechecking `EDIT_SHOP_STOCK`; `GuildAllianceLookup` accepts only active distinct-guild ALLY relations. Historical combined validation recorded 1,714 Java 25 cases with zero failures/errors and 15 external skips, including the Market artifact contract. Fresh exact-head hosted checks and live Java/Bedrock acceptance remain separate. See `docs/stall-access-verification.md`. Production remains unchanged.

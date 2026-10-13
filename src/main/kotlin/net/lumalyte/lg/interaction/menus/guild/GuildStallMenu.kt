@@ -20,7 +20,6 @@ import net.lumalyte.lg.interaction.menus.bedrock.BaseBedrockMenu
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.utils.inventoryframework.addPane
-import net.lumalyte.lg.domain.entities.RankPermission
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -135,7 +134,8 @@ internal class GuildStallMenu(
     private fun controls(maxPage: Int, summary: Component): List<Row> {
         val navigation = navigationControls(maxPage, summary)
         val stall = selected ?: return navigation
-        return if (canShowSales(stall)) navigation + salesRow(stall) else navigation
+        val manager = GuildStallManagerControls(player, guild.id, members, lang)
+        return navigation + manager.rows(stall).map { Row(it.name, emptyList(), it.action) }
     }
 
     private fun navigationControls(maxPage: Int, summary: Component): List<Row> {
@@ -156,23 +156,6 @@ internal class GuildStallMenu(
             )
         return navigation
     }
-
-    private fun salesRow(stall: String): Row {
-        return Row(lang.gui("community.stall.sales"), emptyList()) {
-            if (canManageStock()) {
-                player.closeInventory()
-                player.performCommand("guildsales $stall")
-            }
-        }
-    }
-
-    private fun canShowSales(stall: String): Boolean {
-        return stall.matches(Regex("[A-Za-z0-9_.:-]+")) &&
-            Bukkit.getCommandMap().getCommand("guildsales") != null && canManageStock()
-    }
-
-    private fun canManageStock(): Boolean =
-        members.hasPermission(player.uniqueId, guild.id, RankPermission.EDIT_SHOP_STOCK)
 
     private fun goBack() {
         if (selected == null) {
@@ -211,13 +194,6 @@ internal class GuildStallMenu(
             slot / WIDTH,
         )
     }
-
-    private fun summaryLines(text: Component): List<Component> =
-        net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-            .plainText()
-            .serialize(text)
-            .lines()
-            .map(Component::text)
 
     private inner class StallForm(
         menuNavigator: MenuNavigator,
@@ -276,4 +252,11 @@ internal class GuildStallMenu(
         const val PAGE_SIZE = 45
         const val STATUS_SLOT = 53
     }
+}
+
+private fun summaryLines(text: Component): List<Component> {
+    return net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
+        .serialize(text)
+        .lines()
+        .map(Component::text)
 }
