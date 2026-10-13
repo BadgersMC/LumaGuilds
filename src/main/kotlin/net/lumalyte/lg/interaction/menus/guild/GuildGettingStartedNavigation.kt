@@ -5,6 +5,7 @@ import net.lumalyte.lg.application.services.GuildGettingStartedService
 import net.lumalyte.lg.application.services.GuildStartTopic
 import net.lumalyte.lg.application.services.GuildStartStep
 import net.lumalyte.lg.application.services.GuildStartState
+import net.lumalyte.lg.domain.entities.Guild
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import net.lumalyte.lg.application.persistence.GuildOnboardingRepository
 import net.lumalyte.lg.infrastructure.i18n.gui
@@ -77,7 +78,14 @@ internal class GuildGettingStartedNavigation(private val navigator: MenuNavigato
         val step = current.steps.first { it.topic == topic }
         val action = step.action ?: run { player.sendMessage(reason(step)); return }
         val guild = current.guild
-        if (guild == null) { navigator.openMenu(factory.createGuildListMenu(navigator, player)); return }
+        if (guild == null) {
+            navigator.openMenu(factory.createGuildListMenu(navigator, player))
+            return
+        }
+        openAction(action, guild)
+    }
+
+    private fun openAction(action: GuildStartTopic, guild: Guild) {
         val menu = when (action) {
             GuildStartTopic.MEMBERSHIP -> factory.createGuildInfoMenu(navigator, player, guild)
             GuildStartTopic.INVITES -> factory.createGuildInviteMenu(navigator, player, guild)
