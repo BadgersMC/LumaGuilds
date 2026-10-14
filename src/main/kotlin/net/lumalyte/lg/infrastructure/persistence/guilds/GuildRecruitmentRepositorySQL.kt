@@ -101,14 +101,15 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
                 )
             if (denial == null) {
                 execute(
-                    connection,
-                    """
+                    connection.prepareStatement(
+                        """
                         INSERT INTO guild_recruitment_applications
                         (id, guild_id, applicant_id, answers, created_at, expires_at,
                          status, reviewed_by, reviewed_at, decision_reason)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """
-                        .trimIndent(),
+                            .trimIndent(),
+                    ),
                     application.id, application.guildId, application.applicantId,
                     application.answers, application.createdAt.toEpochMilli(), application.expiresAt.toEpochMilli(),
                     application.status.name, null, null, "",
@@ -174,12 +175,13 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
                 return@transaction false
             }
             execute(
-                connection,
-                """
+                connection.prepareStatement(
+                    """
                     UPDATE guild_recruitment_applications SET expires_at = ?, status = ?,
                     reviewed_by = ?, reviewed_at = ?, decision_reason = ? WHERE id = ?
                 """
-                    .trimIndent(),
+                        .trimIndent(),
+                ),
                 updated.expiresAt.toEpochMilli(), updated.status.name, updated.reviewedBy,
                 updated.reviewedAt?.toEpochMilli(), updated.decisionReason, updated.id,
             ) == 1
@@ -210,18 +212,27 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
     }
 
     private fun lockApplicant(connection: Connection, player: UUID) {
-        val suffix =
-            if (maria) {
-                "ON DUPLICATE KEY UPDATE player_id = VALUES(player_id)"
-            } else {
-                "ON CONFLICT(player_id) DO NOTHING"
-            }
-        execute(connection, "INSERT INTO guild_recruitment_applicants (player_id) VALUES (?) $suffix", player)
-        execute(connection, "UPDATE guild_recruitment_applicants SET player_id = player_id WHERE player_id = ?", player)
+        val insert = if (maria) {
+            connection.prepareStatement(
+                "INSERT INTO guild_recruitment_applicants (player_id) VALUES (?) " +
+                    "ON DUPLICATE KEY UPDATE player_id = VALUES(player_id)",
+            )
+        } else {
+            connection.prepareStatement(
+                "INSERT INTO guild_recruitment_applicants (player_id) VALUES (?) ON CONFLICT(player_id) DO NOTHING",
+            )
+        }
+        execute(insert, player)
+        execute(
+            connection.prepareStatement(
+                "UPDATE guild_recruitment_applicants SET player_id = player_id WHERE player_id = ?",
+            ),
+            player,
+        )
     }
 
-    private fun execute(connection: Connection, sql: String, vararg values: Any?): Int {
-        return connection.prepareStatement(sql).use { statement ->
+    private fun execute(prepared: java.sql.PreparedStatement, vararg values: Any?): Int {
+        return prepared.use { statement ->
             values.forEachIndexed {
                     index,
                     value,
