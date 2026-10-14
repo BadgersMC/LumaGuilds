@@ -7700,7 +7700,9 @@ recruitment:
   invalid_input: "<yellow>That value could not be accepted. Check the field length, Discord invite format, or current permissions and try again. Cancel returns to the menu.</yellow>"
   submit_input: Submit
   cancel_input: Cancel and Return
-  return_menu: Return to Menu
+  return_application: Back to Application
+  application_details: Application Details
+  return_profile: Back to Guild Profile
   guide: Guild Guide
   setup: Guided Recruitment Setup
   publish: Publish Recruitment Listing

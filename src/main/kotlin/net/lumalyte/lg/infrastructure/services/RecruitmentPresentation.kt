@@ -8,10 +8,8 @@ import io.papermc.paper.registry.data.dialog.DialogBase
 import io.papermc.paper.registry.data.dialog.action.DialogAction
 import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
-import net.kyori.adventure.inventory.Book
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickCallback
-import net.kyori.adventure.text.event.ClickEvent
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.koin.core.component.inject
@@ -79,49 +77,18 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
     }
 
     fun book(player: Player, content: RecruitmentBookContent, valid: () -> Boolean, back: () -> Unit) {
-        if (PLATFORMS.isBedrockPlayer(player)) {
-            bedrockBook(player, content, valid, back)
-        } else {
-            javaBook(player, content, valid, back)
-        }
-    }
-
-    private fun bedrockBook(player: Player, content: RecruitmentBookContent, valid: () -> Boolean, back: () -> Unit) {
-        val form =
-            org.geysermc.cumulus.form.SimpleForm.builder().title(content.title)
-                .content(content.lines.joinToString("\n"))
-                .button(content.returnLabel)
-                .validResultHandler { _ -> returnToMenu(player, valid, back) }
-                .build()
-        org.geysermc.floodgate.api.FloodgateApi.getInstance().sendForm(player.uniqueId, form)
-    }
-
-    private fun javaBook(player: Player, content: RecruitmentBookContent, valid: () -> Boolean, back: () -> Unit) {
-        val options = ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(2)).build()
-        val returnLink =
-            Component.text(content.returnLabel).clickEvent(
-                ClickEvent.callback({ audience ->
-                    if (audience is Player && audience.uniqueId == player.uniqueId) returnToMenu(player, valid, back)
-                }, options),
-            )
-        val pages = bookPages(content.lines, returnLink)
-        player.closeInventory()
-        player.openBook(Book.book(Component.text(content.title), Component.text("LumaGuilds"), pages))
-    }
-
-    private fun returnToMenu(player: Player, valid: () -> Boolean, back: () -> Unit) {
-        Bukkit.getScheduler().runTask(
-            net.lumalyte.lg.common.PluginKeys.getPlugin(),
-            Runnable { if (player.isOnline && valid()) back() },
+        RecruitmentReader(player, content, valid, back).open(
+            PLATFORMS.isBedrockPlayer(player),
+            supportsDialog(player),
         )
     }
 
     /** Retains complete validated text and wraps at Unicode code-point boundaries. */
-    internal fun bookPages(lines: List<String>, returnLink: Component): List<Component> {
+    internal fun bookPages(lines: List<String>, returnLink: Component, columns: Int = BOOK_COLUMNS): List<Component> {
         val rows =
             lines.flatMap { value ->
                 value.lines().flatMap { line ->
-                    line.codePoints().toArray().toList().chunked(BOOK_COLUMNS).map { points ->
+                    line.codePoints().toArray().toList().chunked(columns).map { points ->
                         buildString { points.forEach { appendCodePoint(it) } }
                     }
                 }

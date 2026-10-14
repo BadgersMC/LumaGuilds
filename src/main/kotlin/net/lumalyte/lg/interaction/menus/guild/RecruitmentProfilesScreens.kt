@@ -45,7 +45,7 @@ internal fun RecruitmentController.profile(): List<RecruitmentButton> {
             net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.book(
                 player,
                 net.lumalyte.lg.infrastructure.services.RecruitmentBookContent(
-                    current.name, details(current), lang.raw("recruitment.return_menu"),
+                    current.name, details(current), lang.raw("recruitment.return_profile"), theme(), current,
                 ),
                 { navigationValid() && selected == current.id && screen == RecruitmentScreen.PROFILE },
                 { run { refresh() } },
