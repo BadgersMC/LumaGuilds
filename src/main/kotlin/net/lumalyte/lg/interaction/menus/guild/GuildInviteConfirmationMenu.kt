@@ -121,6 +121,13 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
     }
 
     private fun sendInvite() {
+        // Menu snapshots are not authority: rank or membership may have changed since opening.
+        if (guildService.getGuild(guild.id) == null ||
+            !net.lumalyte.lg.application.services.GuildRecruitmentPermissions.canInvite(memberService, player.uniqueId, guild.id)) {
+            player.sendMessage(lang.msg("command.migrated.guild.invite.you_don_t_have_permission_to_invite"))
+            player.closeInventory()
+            return
+        }
         // Check if player is already in a guild
         if (memberService.isPlayerInGuild(targetPlayer.uniqueId, guild.id)) {
             player.sendMessage(lang.msg("menu.guild_confirmation.invite.feedback.already_member", "player" to targetPlayer.name))
@@ -155,7 +162,7 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
         targetPlayer.playSound(targetPlayer.location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.2f)
 
         // Return to member management menu
-        menuNavigator.openMenu(menuFactory.createGuildMemberManagementMenu(menuNavigator, player, guild))
+        menuNavigator.goBack()
     }
 
     override fun passData(data: Any?) {

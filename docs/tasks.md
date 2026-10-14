@@ -2,6 +2,11 @@
 
 Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` line, and an `Evidence:` block that MUST be filled with real source citations before any downstream SPEAR phase runs on it.
 
+- [~] **LG-RECRUITMENT** Approved LFG recruitment upgrade and discovery.
+  - Tag: `TDD`
+  - References: REQ-150; REC-001 through REC-012 in `docs/plans/guild-recruitment.md`.
+  - Evidence: first implementation slice adds rank invitation authority and reauthorization, pure application/offer policy and a portable durable compare-and-set application repository. SQLite focused contracts pass; runtime menus, admission/payment integration, notifications and native MariaDB proof remain pending. Private art is not in this repository; no production or TEST changes occurred.
+
 - [~] **LG-2010** Guild stall menus and optional read adapter.
   - Tag: `TDD`
   - References: REQ-124/125; Market REQ-340/341.

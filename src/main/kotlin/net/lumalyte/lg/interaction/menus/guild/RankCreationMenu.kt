@@ -442,6 +442,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         return permissions.groupBy { permission ->
             when (permission) {
                 RankPermission.MANAGE_RANKS, RankPermission.MANAGE_MEMBERS,
+                RankPermission.MANAGE_RECRUITMENT, RankPermission.EDIT_RECRUITMENT_SETTINGS,
                 RankPermission.MANAGE_BANNER, RankPermission.MANAGE_EMOJI,
                 RankPermission.MANAGE_DESCRIPTION, RankPermission.MANAGE_HOME,
                 RankPermission.MANAGE_MODE, RankPermission.MANAGE_GUILD_SETTINGS -> "Guild Management"

@@ -6695,6 +6695,8 @@ menu:
     description:
       manage_ranks: '<gray>Create, edit, and delete guild ranks'
       manage_members: '<gray>Invite, kick, and promote members'
+      manage_recruitment: '<gray>Send recruitment invites and review applications without member management'
+      edit_recruitment_settings: '<gray>Edit recruitment listings, joining method, requirements and Discord invite'
       manage_banner: '<gray>Change guild banner and appearance'
       manage_emoji: '<gray>Set guild emoji and icons'
       manage_description: '<gray>Set and edit guild description'
@@ -7007,6 +7009,8 @@ permission:
       bank: Deposit to Guild Bank
       vault: Deposit to Guild Vault
   edit:
+    recruitment:
+      settings: Edit Recruitment Settings
     shop:
       stock: Edit Shop Stock
   container:
@@ -7054,6 +7058,7 @@ permission:
     home: Manage Home
     integrations: Manage Integrations
     members: Manage Members
+    recruitment: Manage Recruitment
     mode: Manage Mode
     parties: Manage Parties
     permissions: Manage Permissions

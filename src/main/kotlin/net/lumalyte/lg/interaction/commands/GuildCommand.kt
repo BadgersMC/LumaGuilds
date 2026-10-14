@@ -1520,7 +1520,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val guild = guilds.first()
 
         // Check if player has member management permission
-        if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_MEMBERS)) {
+        if (!net.lumalyte.lg.application.services.GuildRecruitmentPermissions.canInvite(memberService, playerId, guild.id)) {
             player.sendMessage(lang.msg("command.migrated.guild.invite.you_don_t_have_permission_to_invite"))
             return
         }
