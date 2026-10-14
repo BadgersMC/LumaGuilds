@@ -1030,6 +1030,9 @@ class LumaGuilds : JavaPlugin() {
 
         // Register player session cleanup listener
         server.pluginManager.registerEvents(get().get<net.lumalyte.lg.infrastructure.listeners.GuildOnboardingListener>(), this)
+        val recruitmentListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildRecruitmentListener>()
+        server.pluginManager.registerEvents(recruitmentListener, this)
+        recruitmentListener.start()
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.PlayerSessionListener(), this)
 
         // Register war kill tracking listener

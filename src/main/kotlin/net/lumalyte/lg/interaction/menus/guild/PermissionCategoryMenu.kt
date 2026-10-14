@@ -304,6 +304,8 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             // Guild Management
             RankPermission.MANAGE_RANKS -> lang.gui("menu.permission_category.description.manage_ranks")
             RankPermission.MANAGE_MEMBERS -> lang.gui("menu.permission_category.description.manage_members")
+            RankPermission.MANAGE_RECRUITMENT -> lang.gui("menu.permission_category.description.manage_recruitment")
+            RankPermission.EDIT_RECRUITMENT_SETTINGS -> lang.gui("menu.permission_category.description.edit_recruitment_settings")
             RankPermission.MANAGE_BANNER -> lang.gui("menu.permission_category.description.manage_banner")
             RankPermission.MANAGE_EMOJI -> lang.gui("menu.permission_category.description.manage_emoji")
             RankPermission.MANAGE_DESCRIPTION -> lang.gui("menu.permission_category.description.manage_description")

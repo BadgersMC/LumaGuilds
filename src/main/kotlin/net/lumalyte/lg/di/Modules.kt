@@ -457,7 +457,7 @@ fun guildsModule() = module {
         )
     }
     single<RelationService> { RelationServiceBukkit(get(), get(), get()) }
-    single<LfgService> { LfgServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<LfgService> { LfgServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<GuildBannerService> { GuildBannerServiceBukkit() }
     single<AuditService> { AuditServiceBukkit() }
     single<NexoEmojiService> { NexoEmojiService(get(), guildCosmetics = get()) }
@@ -521,6 +521,23 @@ fun guildClaimsIntegrationModule() = module {
  * Social module - Party system, chat, and LFG
  */
 fun socialModule() = module {
+    single { net.lumalyte.lg.infrastructure.listeners.GuildRecruitmentListener(get(), get(), get(), get(), get(), get(), get()) }
+    single<net.lumalyte.lg.application.persistence.GuildRecruitmentRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildRecruitmentRepositorySQL(get())
+    }
+    single<net.lumalyte.lg.application.persistence.RecruitmentDirectoryRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.RecruitmentDirectoryRepositorySQL(get())
+    }
+    single<net.lumalyte.lg.application.services.GuildRecruitmentEligibility> {
+        net.lumalyte.lg.infrastructure.services.GuildRecruitmentEligibilityBukkit(get(), get())
+    }
+    single {
+        val config = get<ConfigService>()
+        val eligibility = get<net.lumalyte.lg.application.services.GuildRecruitmentEligibility>()
+        net.lumalyte.lg.application.services.GuildRecruitmentService(get(), get(), get(), get(), get(),
+            { config.loadConfig().recruitment.policy() }, eligibility::allows,
+            maximumMembers = { config.loadConfig().guild.maxMembersPerGuild })
+    }
     single<net.lumalyte.lg.application.persistence.GuildOnboardingRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.GuildOnboardingRepositorySQL(get())
     }

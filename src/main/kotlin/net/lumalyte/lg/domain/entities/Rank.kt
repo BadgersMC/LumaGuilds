@@ -38,6 +38,8 @@ enum class RankPermission {
     // Guild management
     MANAGE_RANKS,
     MANAGE_MEMBERS,
+    MANAGE_RECRUITMENT,
+    EDIT_RECRUITMENT_SETTINGS,
     MANAGE_BANNER,
     MANAGE_EMOJI,
     MANAGE_DESCRIPTION,

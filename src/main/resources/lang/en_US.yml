@@ -6709,6 +6709,8 @@ menu:
     description:
       manage_ranks: '<gray>Create, edit, and delete guild ranks'
       manage_members: '<gray>Invite, kick, and promote members'
+      manage_recruitment: '<gray>Send recruitment invites and review applications without member management'
+      edit_recruitment_settings: '<gray>Edit recruitment listings, joining method, requirements and Discord invite'
       manage_banner: '<gray>Change guild banner and appearance'
       manage_emoji: '<gray>Set guild emoji and icons'
       manage_description: '<gray>Set and edit guild description'
@@ -7021,6 +7023,8 @@ permission:
       bank: Deposit to Guild Bank
       vault: Deposit to Guild Vault
   edit:
+    recruitment:
+      settings: Edit Recruitment Settings
     shop:
       stock: Edit Shop Stock
   container:
@@ -7068,6 +7072,7 @@ permission:
     home: Manage Home
     integrations: Manage Integrations
     members: Manage Members
+    recruitment: Manage Recruitment
     mode: Manage Mode
     parties: Manage Parties
     permissions: Manage Permissions
@@ -7685,3 +7690,69 @@ onboarding:
     progression: "Earn guild XP through supported activities and quests. Review rewards, requirements and prices here."
     bank: "Bank deposits and withdrawals follow your rank permissions. Physical vault permissions are separate."
     stalls: "Guild Stalls shows authoritative ownership and member access, or explains unavailable Market data."
+
+recruitment:
+  title: Guild Recruitment
+  browse: Find a Guild
+  mine: My Applications
+  search: Search Guilds
+  filter: "Guild Mode Filter (Any / Peaceful / Hostile)"
+  any: Any
+  enabled: Enabled
+  disabled: Disabled
+  peaceful: Peaceful
+  competitive: Hostile
+  status:
+    submitted: Awaiting Review
+    offered: Join Offer Available
+    declined: Declined
+    withdrawn: Withdrawn
+    expired: Expired
+    admission_pending: Admission Pending Staff Review
+    joined: Joined
+    closed: Closed
+  filter_recruiting: Only Guilds Recruiting With Space
+  filter_beginner: Only Beginner Friendly Guilds
+  reminders: Toggle Recruitment Reminders
+  inbox: Recruitment Inbox
+  settings: Recruitment Settings
+  spaces: Available Spaces
+  level: Guild Level
+  fee: Joining Fee
+  fee_unavailable: Unavailable
+  beginner: Beginners Welcome
+  introduction: "Introduce yourself (maximum 2000 characters)"
+  discord: Guild Discord Invite
+  withdraw: Withdraw Application
+  offer: Review Join Offer
+  pending: "Admission needs staff review. Do not pay again."
+  send_offer: Send Join Offer
+  decline: Decline Application
+  reason: "Decline reason (maximum 300 characters; optional)"
+  confirm: Confirm and Join
+  discord_notice: "Applications happen in Discord. Opening this invite does not submit an in-game application. Copy the invite on Bedrock if clicking is unavailable."
+  discord_confirm: Show Discord Link
+  method: Recruitment Method
+  pitch: "Recruitment Message (maximum 300 characters)"
+  requirements: "Requirements (maximum 500 characters)"
+  interests: "Interests (up to 8, comma separated)"
+  times: Preferred Play Times
+  language: Preferred Language
+  instructions: Discord Application Instructions
+  empty: No Entries Found
+  previous: Previous Page
+  next: Next Page
+  mode:
+    join: Join Immediately
+    apply: Apply In Game
+    discord: Apply Through Discord
+    closed: Recruitment Closed
+  feedback:
+    failed: "<red>Could not complete recruitment. Refresh the menu and check your permissions, eligibility, space, joining fee or Discord invite. If admission is pending, contact staff before paying again."
+    input_expired: "<gray>Your recruitment input expired. Reopen recruitment to try again."
+    joined: "<green>You joined the guild. Your other active applications will be closed."
+    input: "<yellow><field><gray>. Enter your answer in chat, or type cancel."
+  discovery:
+    prompt: "<gold>Looking for people to play with? <yellow>Click to browse recruiting guilds. <gray>Use the reminder toggle to opt out."
+    leave: "<gray>Looking for another guild? <yellow>Click to browse recruiting guilds."
+    updated: "<gold>Your guild applications or recruitment inbox changed. <yellow>Click to view recruitment."

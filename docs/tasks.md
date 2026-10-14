@@ -2,6 +2,11 @@
 
 Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` line, and an `Evidence:` block that MUST be filled with real source citations before any downstream SPEAR phase runs on it.
 
+- [~] **LG-RECRUITMENT** Approved LFG recruitment upgrade and discovery.
+  - Tag: `TDD`
+  - References: REQ-150; REC-001 through REC-012 in `docs/plans/guild-recruitment.md`.
+  - Evidence: runtime board/profile/private application/inbox/settings flows, canonical offer admission, durable notifications and discovery preferences are wired for Java and Bedrock. Local check: 1,807 cases, zero failures/errors, 16 existing optional skips; native disposable MariaDB: 13 cases, zero failures/errors/skips. Hosted review/checks, merged delivery and in-game acceptance remain gates. See the recruitment plan for failure evidence and integration boundaries. Private art is excluded; no production or TEST changes occurred.
+
 - [~] **LG-2010** Guild stall menus and optional read adapter.
   - Tag: `TDD`
   - References: REQ-124/125; Market REQ-340/341.
