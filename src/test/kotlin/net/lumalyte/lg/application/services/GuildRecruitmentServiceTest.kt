@@ -58,8 +58,11 @@ internal class GuildRecruitmentServiceTest {
     }
 
     private fun service(): GuildRecruitmentService {
-        stubReads()
-        stubTransitions()
+        every { guilds.getGuild(guild.id) } returns guild
+        every { directory.profile(guild.id) } returns profile
+        every { members.getMemberLimit(guild.id) } returns MEMBER_CAPACITY
+        every { members.hasPermission(actor, guild.id, RankPermission.MANAGE_RECRUITMENT) } returns true
+        applications.stubRecruitmentState(application.id, { current }, { current = it })
         return GuildRecruitmentService(
             applications,
             GuildRecruitmentListings(directory, guilds, members),
@@ -68,13 +71,6 @@ internal class GuildRecruitmentServiceTest {
             lfg,
             GuildRecruitmentRules({ RecruitmentPolicy() }, { _, _ -> eligible }, Clock.fixed(now, ZoneOffset.UTC)),
         )
-    }
-
-    private fun stubReads() {
-        every { guilds.getGuild(guild.id) } returns guild
-        every { directory.profile(guild.id) } returns profile
-        every { members.getMemberLimit(guild.id) } returns MEMBER_CAPACITY
-        every { members.hasPermission(actor, guild.id, RankPermission.MANAGE_RECRUITMENT) } returns true
     }
 
     @org.junit.jupiter.api.DisplayName("review is an offer and never calls admission")
@@ -170,16 +166,20 @@ internal class GuildRecruitmentServiceTest {
         assertFailsWith<IllegalArgumentException> { service.confirm(player, application.id, guild) }
         verify(exactly = 1) { lfg.joinApprovedGuild(player, guild, any()) }
     }
-    private fun stubTransitions() {
-        every { applications.get(application.id) } answers { current }
-        every { applications.transition(any(), any()) } answers {
-            transitionCurrent(firstArg(), secondArg())
-        }
-    }
+}
 
-    private fun transitionCurrent(expected: GuildApplication, updated: GuildApplication): Boolean {
-        if (expected != current) return false
-        current = updated
-        return true
+private fun GuildRecruitmentRepository.stubRecruitmentState(
+    id: UUID,
+    read: () -> GuildApplication,
+    write: (GuildApplication) -> Unit,
+) {
+    every { get(id) }.answers { read() }
+    every { transition(any(), any()) }.answers {
+        if (firstArg<GuildApplication>() != read()) {
+            false
+        } else {
+            write(secondArg())
+            true
+        }
     }
 }

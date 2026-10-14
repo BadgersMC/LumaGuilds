@@ -122,25 +122,21 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
     }
 
     override fun get(id: UUID): GuildApplication? {
-        return read(
-            RecruitmentSelect.ID,
-            id,
-        )
-            .firstOrNull()
+        return storage.connection.connection.use { connection ->
+            query(connection, RecruitmentSelect.ID, id).firstOrNull()
+        }
     }
 
     override fun forApplicant(applicant: UUID): List<GuildApplication> {
-        return read(
-            RecruitmentSelect.APPLICANT_ORDERED,
-            applicant,
-        )
+        return storage.connection.connection.use { connection ->
+            query(connection, RecruitmentSelect.APPLICANT_ORDERED, applicant)
+        }
     }
 
     override fun forGuild(guild: UUID): List<GuildApplication> {
-        return read(
-            RecruitmentSelect.GUILD_ORDERED,
-            guild,
-        )
+        return storage.connection.connection.use { connection ->
+            query(connection, RecruitmentSelect.GUILD_ORDERED, guild)
+        }
     }
 
     override fun transition(expected: GuildApplication, updated: GuildApplication): Boolean {
@@ -165,7 +161,7 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
     ): Boolean {
         return updated.status != ApplicationStatus.ADMISSION_PENDING ||
             query(connection, RecruitmentSelect.APPLICANT, expected.applicantId)
-                .none { it.id != expected.id && it.status == ApplicationStatus.ADMISSION_PENDING }
+                .all { it.id == expected.id || it.status != ApplicationStatus.ADMISSION_PENDING }
     }
 
     private fun writeTransition(connection: Connection, updated: GuildApplication): Int {
@@ -182,11 +178,6 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
             updated.id,
         )
     }
-
-    private fun read(query: RecruitmentSelect, id: UUID): List<GuildApplication> =
-        storage.connection.connection.use {
-            query(it, query, id)
-        }
 
     private fun query(connection: Connection, query: RecruitmentSelect, id: UUID): List<GuildApplication> {
         return connection.recruitmentStatement(query).use { statement ->

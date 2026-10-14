@@ -52,7 +52,8 @@ internal fun RecruitmentController.browse(): List<RecruitmentButton> {
         }
 }
 
-private fun RecruitmentController.visibleRecruiter(id: java.util.UUID): Boolean =
-    org.bukkit.Bukkit.getPlayer(id)?.let {
+private fun RecruitmentController.visibleRecruiter(id: java.util.UUID): Boolean {
+    return org.bukkit.Bukkit.getPlayer(id)?.let {
         it.isOnline && player.canSee(it)
     } == true
+}
