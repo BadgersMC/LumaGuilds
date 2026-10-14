@@ -1003,4 +1003,5 @@ Menu audit follow-up (REQ-063):
   - Evidence: the historical TEST branch reproduced stale-provider behavior and recorded 24 focused cases plus a 1,752-test full suite with zero failures/errors and 20 optional skips. This sanitized rebuild contains only the provider lifecycle source/test correction and evidence; fresh exact-head hosted checks remain required. See `docs/test-startup-cleanup.md`. Production remains unchanged.
 
 ## Personal invite block delivery (REQ-150/151)
-- [ ] Refine PR #232 persistence, filtered lookup/counts, routing and viewer filtering; clear actionable Codacy/review findings, run focused/full checks and inspect exact-head hosted results. Current main inspected at283d75f1; existing fork head db53a274. Project EARS/state helpers absent; manual evidence in docs/plans/2026-10-13-invite-block-review.md. No merge or production authorization.
+- [x] Refine PR #232 persistence, filtered lookup/counts, routing and viewer filtering; run focused/full checks and publish source fixes.
+- [ ] Complete exact-head hosted quality/review gates and maintainer review; merge and real-client acceptance remain separate. Current main inspected at283d75f1; existing fork head db53a274. Project EARS/state helpers absent; manual evidence in docs/plans/2026-10-13-invite-block-review.md. No merge or production authorization.

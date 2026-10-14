@@ -19,6 +19,15 @@ internal class ChatServiceInviteBlockTest {
     private val other = UUID.randomUUID()
     private val partyId = UUID.randomUUID()
 
+    private val parties =
+        mockk<PartyRepository> {
+            every { getById(partyId) } returns
+                mockk {
+                    every { isActive() } returns true
+                    every { id } returns partyId
+                }
+        }
+
     private fun service(blocks: InviteBlockService?): ChatServiceBukkit {
         val settings =
             mockk<ChatSettingsRepository> {
@@ -38,15 +47,6 @@ internal class ChatServiceInviteBlockTest {
             every { getByPlayerId(sender) } returns mockk { every { partyId } returns selectedPartyId }
         }
     }
-
-    private val parties =
-        mockk<PartyRepository> {
-            every { getById(partyId) } returns
-                mockk {
-                    every { isActive() } returns true
-                    every { id } returns partyId
-                }
-        }
 
     /** Verifies party chat skips members who blocked the sender. */
     @Test

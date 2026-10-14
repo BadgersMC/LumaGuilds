@@ -46,7 +46,7 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
         while (rows.next()) {
             val owner = readBlockIdentity(rows.getString(OWNER_COLUMN))
             val target = readBlockIdentity(rows.getString(TARGET_COLUMN))
-            blockSet(owner).add(target)
+            blocks.computeIfAbsent(owner) { ConcurrentHashMap.newKeySet() }.add(target)
         }
     }
 
@@ -68,7 +68,11 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
             storage.connection.connection.use { connection ->
                 if (blocked) insertBlock(connection, ownerId, targetId) else deleteBlock(connection, ownerId, targetId)
             }
-            if (blocked) blockSet(ownerId).add(targetId) else blocks[ownerId]?.remove(targetId)
+            if (blocked) {
+                blocks.computeIfAbsent(ownerId) { ConcurrentHashMap.newKeySet() }.add(targetId)
+            } else {
+                blocks[ownerId]?.remove(targetId)
+            }
             true
         } catch (_: SQLException) {
             false
@@ -110,10 +114,6 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
         }
     }
 
-    private fun blockSet(owner: UUID): MutableSet<UUID> = blocks.computeIfAbsent(owner) {
-        ConcurrentHashMap.newKeySet()
-    }
-
     private companion object {
         const val OWNER_COLUMN = 1
         const val TARGET_COLUMN = 2
@@ -122,8 +122,10 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
     }
 }
 
-private fun readBlockIdentity(value: String?): UUID = try {
-    UUID.fromString(value)
-} catch (error: IllegalArgumentException) {
-    throw SQLException("Invalid identity in invite block storage", error)
+private fun readBlockIdentity(value: String?): UUID {
+    try {
+        return UUID.fromString(value)
+    } catch (error: IllegalArgumentException) {
+        throw SQLException("Invalid identity in invite block storage", error)
+    }
 }
