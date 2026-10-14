@@ -7678,6 +7678,15 @@ onboarding:
     stalls: "Guild Stalls shows authoritative ownership and member access, or explains unavailable Market data."
 
 recruitment:
+  filter_language: Filter by Language (blank clears)
+  filter_times: Filter by Play Times (blank clears)
+  listing_updated: "Listing updated (UTC): "
+  unknown: Not recorded
+  invalid_input: "<yellow>That value could not be accepted. Check the field length, Discord invite format, or current permissions and try again. Cancel returns to the menu.</yellow>"
+  submit_input: Submit
+  cancel_input: Cancel and Return
+  return_menu: Return to Menu
+  guide: Guild Guide
   setup: Guided Recruitment Setup
   publish: Publish Recruitment Listing
   discard: Discard Draft
@@ -7757,4 +7766,4 @@ recruitment:
   discovery:
     prompt: "<gold>Looking for people to play with? <yellow>Click to browse recruiting guilds. <gray>Use the reminder toggle to opt out."
     leave: "<gray>Looking for another guild? <yellow>Click to browse recruiting guilds."
-    updated: "<gold>Your guild applications or recruitment inbox changed. <yellow>Click to view recruitment."
+    updated: "<gold>Recruitment updated: <offers> join offers and <pending> applications awaiting your review. <yellow>Click to open recruitment."

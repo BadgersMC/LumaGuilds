@@ -12,6 +12,32 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 internal class RecruitmentDirectoryRepositorySQLTest : RewardSqlTestFixture() {
+    @Test
+    fun listingTimestampSurvivesReopenAndLegacyRecordsRemainReadable() {
+        val storage = openStorage()
+        val repository = RecruitmentDirectoryRepositorySQL(storage)
+        val profile = RecruitmentProfile(UUID.randomUUID(), RecruitmentMode.IN_GAME)
+        assertNull(repository.updatedAt(profile.guildId))
+        val before = Instant.now()
+        repository.save(profile)
+        val at = requireNotNull(RecruitmentDirectoryRepositorySQL(storage).updatedAt(profile.guildId))
+        assertTrue(at >= before && at <= Instant.now())
+        val row =
+            storage.connection.getFirstRow(
+                "SELECT profile FROM guild_recruitment_profiles WHERE guild_id = ?",
+                profile.guildId.toString(),
+            )
+        val legacy = org.json.JSONObject(requireNotNull(row).getString("profile"))
+        legacy.remove("updatedAt")
+        storage.connection.executeUpdate(
+            "UPDATE guild_recruitment_profiles SET profile = ? WHERE guild_id = ?",
+            legacy.toString(),
+            profile.guildId.toString(),
+        )
+        assertNull(repository.updatedAt(profile.guildId))
+        assertEquals(profile, repository.profile(profile.guildId))
+    }
+
     private val player = UUID.randomUUID()
     private val now = Instant.parse("2026-10-14T12:00:00Z")
 

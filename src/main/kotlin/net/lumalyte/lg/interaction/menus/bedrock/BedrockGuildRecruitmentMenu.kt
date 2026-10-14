@@ -19,7 +19,11 @@ internal class BedrockGuildRecruitmentMenu(
     player: Player,
     logger: Logger,
 ) : BaseBedrockMenu(navigator, player, logger) {
-    private val controller = RecruitmentController(player, ::open)
+    private val controller = RecruitmentController(player, ::open) {
+        val token = navigator.currentNavigationToken()
+        val guard: () -> Boolean = { navigator.isNavigationCurrent(token) }
+        guard
+    }
     private val plugin: Plugin by inject()
     private val lang: LangService by inject()
 

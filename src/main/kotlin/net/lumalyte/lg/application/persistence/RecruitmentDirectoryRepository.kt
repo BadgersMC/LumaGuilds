@@ -7,6 +7,9 @@ import java.util.UUID
 
 /** Recruitment listings and durable player discovery preferences. */
 internal interface RecruitmentDirectoryRepository {
+    /** Unknown for pre-existing listings without a recorded edit timestamp. */
+    fun updatedAt(guild: UUID): Instant? = null
+
     /** Null preserves the guild's legacy open/closed setting. */
     fun profile(guild: UUID): RecruitmentProfile?
 

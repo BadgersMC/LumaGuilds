@@ -59,6 +59,7 @@ internal class RecruitmentDirectoryRepositorySQL(
     override fun save(profile: RecruitmentProfile) {
         val json =
             JSONObject()
+                .put("updatedAt", Instant.now().toString())
                 .put("mode", profile.mode.name).put("pitch", profile.pitch).put("requirements", profile.requirements)
                 .put("interests", JSONArray(profile.interests.toList())).put("times", profile.preferredTimes)
                 .put("language", profile.language).put("beginner", profile.beginnerFriendly)
@@ -77,6 +78,15 @@ internal class RecruitmentDirectoryRepositorySQL(
             profile.guildId.toString(),
             json.toString(),
         )
+    }
+
+    override fun updatedAt(guild: UUID): Instant? {
+        val row =
+            storage.connection.getFirstRow(
+                "SELECT profile FROM guild_recruitment_profiles WHERE guild_id = ?", guild.toString(),
+            ) ?: return null
+        val value = JSONObject(row.getString("profile")).optString("updatedAt", "")
+        return value.takeIf(String::isNotBlank)?.let(Instant::parse)
     }
 
     /** Enables or disables personal discovery prompts without resetting prompt history. */
