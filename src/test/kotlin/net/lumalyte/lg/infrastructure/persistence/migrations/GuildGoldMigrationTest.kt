@@ -50,6 +50,7 @@ class GuildGoldMigrationTest {
         }
     }
 
+    /** Releases the guild-gold migration fixture after each scenario. */
     @AfterEach
     fun tearDown() {
         connection.close()
@@ -62,7 +63,7 @@ class GuildGoldMigrationTest {
         assertTrue(tableExists("guild_gold_operations"))
         assertTrue(tableExists("guild_gold_withdrawal_usage"))
         assertTrue(tableExists("guild_gold_security"))
-        assertEquals(44, databaseVersion())
+        assertEquals(InviteBlockSchema.VERSION, databaseVersion())
     }
 
     private fun tableExists(table: String): Boolean = connection.prepareStatement(

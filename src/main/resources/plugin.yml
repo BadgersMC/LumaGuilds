@@ -94,6 +94,7 @@ permissions:
       lumaguilds.guild.lfg: true
       lumaguilds.guild.decline: true
       lumaguilds.guild.invites: true
+      lumaguilds.guild.block: true
       lumaguilds.guild.leave: true
       lumaguilds.guild.transfer: true
       lumaguilds.guild.getvault: true
@@ -184,6 +185,9 @@ permissions:
     default: true
   lumaguilds.guild.invites:
     description: View pending guild invitations
+    default: true
+  lumaguilds.guild.block:
+    description: Block players from sending you guild invites and from your guild, ally and party chat
     default: true
   lumaguilds.guild.leave:
     description: Leave your guild

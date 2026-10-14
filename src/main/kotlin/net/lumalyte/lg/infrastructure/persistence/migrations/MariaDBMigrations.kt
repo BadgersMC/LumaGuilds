@@ -14,6 +14,7 @@ private const val BANNERMAN_MIGRATION_VERSION = 22
 class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: Connection) {
     private val componentLogger = plugin.getComponentLogger()
 
+    /** Advances the MariaDB schema and ensures the invite-block table exists before recording its version. */
     fun migrate() {
         try {
             connection.autoCommit = false
@@ -178,6 +179,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 GuildStrikeFeedSchema.migrate(connection)
                 updateDatabaseVersion(44)
                 currentDbVersion = 44
+            }
+            InviteBlockSchema.create(connection, mariaDb = true)
+            if (currentDbVersion < InviteBlockSchema.VERSION) {
+                updateDatabaseVersion(InviteBlockSchema.VERSION)
+                currentDbVersion = InviteBlockSchema.VERSION
             }
             connection.commit()
 

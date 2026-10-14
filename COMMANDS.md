@@ -42,6 +42,9 @@ LumaGuilds is a comprehensive guild management plugin with party chat, claim man
 |---------|------------|-------------|-------|
 | `/guild invite <player>` | `lumaguilds.guild.invite` | Invite player to guild | `/guild invite Notch` |
 | `/guild kick <player>` | `lumaguilds.guild.kick` | Kick player from guild | `/guild kick BadPlayer` |
+| `/guild block <player>` | `lumaguilds.guild.block` | Stop guild invites from a player and from any guild they are in, and hide their guild, ally and party chat from you (memberships are unchanged) | `/guild block Griefer` |
+| `/guild unblock <player>` | `lumaguilds.guild.block` | Remove that block | `/guild unblock Griefer` |
+| `/guild blocked` | `lumaguilds.guild.block` | List the players you blocked | `/guild blocked` |
 
 ### Guild Customization
 | Command | Permission | Description | Usage |

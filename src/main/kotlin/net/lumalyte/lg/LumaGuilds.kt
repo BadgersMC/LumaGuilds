@@ -61,6 +61,7 @@ class LumaGuilds : JavaPlugin() {
     private val componentLogger = getComponentLogger()
 
 
+    /** Initializes persistence, services and optional integrations before registering player-facing listeners. */
     override fun onEnable() {
         enabledAtMillis = System.currentTimeMillis()
 
@@ -154,12 +155,22 @@ class LumaGuilds : JavaPlugin() {
         )
         logColored("✓ GuildCosmeticUnlocks registered in ServicesManager for cross-plugin integration")
 
+        // EnthusiaFriends' Block Everywhere blocks guild invites through this API.
+        Bukkit.getServicesManager().register(
+            net.lumalyte.lg.api.GuildInviteBlocks::class.java,
+            net.lumalyte.lg.api.GuildInviteBlocksImpl(get().get<net.lumalyte.lg.application.services.InviteBlockService>()),
+            this,
+            ServicePriority.Normal
+        )
+        logColored("✓ GuildInviteBlocks registered in ServicesManager")
+
         // Initialize Apollo AFTER Koin is started (requires Koin DI)
         initialiseApolloIntegration()
 
         // Initialize GuildInvitationManager with the repository from Koin
         net.lumalyte.lg.infrastructure.services.GuildInvitationManager.initialize(
-            get().get<net.lumalyte.lg.application.persistence.GuildInvitationRepository>()
+            get().get<net.lumalyte.lg.application.persistence.GuildInvitationRepository>(),
+            get().get<net.lumalyte.lg.application.services.InviteBlockService>(),
         )
 
         // Initialize Gold Balance Button
@@ -1127,6 +1138,10 @@ class LumaGuilds : JavaPlugin() {
             // already seated in a guild channel when a mute lands).
             val guildMuteChatListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildMuteChatListener>()
             server.pluginManager.registerEvents(guildMuteChatListener, this)
+            // Hide blocked players' guild, ally and mod channel messages from the players who blocked them.
+            server.pluginManager.registerEvents(
+                get().get<net.lumalyte.lg.infrastructure.listeners.InviteBlockChatListener>(), this
+            )
 
             // Register RoseChat ChannelProvider so guild/ally/modchat channels
             // resolve from channels.yml. A delayed reload re-reads the config

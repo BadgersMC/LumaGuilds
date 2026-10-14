@@ -410,6 +410,12 @@ fun guildsModule() = module {
     single<MemberRepository> { MemberRepositorySQLite(get()) }
     single<RelationRepository> { RelationRepositorySQLite(get()) }
     single<GuildInvitationRepository> { GuildInvitationRepositorySQLite(get()) }
+    single<net.lumalyte.lg.application.persistence.InviteBlockRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.InviteBlockRepositorySQL(get())
+    }
+    single<net.lumalyte.lg.application.services.InviteBlockService> {
+        net.lumalyte.lg.infrastructure.services.InviteBlockServiceImpl(get(), get(), get())
+    }
     single { net.lumalyte.lg.application.services.InvitationStatisticsService(get()) }
     single<GuildBannerRepository> { GuildBannerRepositorySQLite(get()) }
     single<AuditRepository> { AuditRepositorySQLite(get()) }
@@ -542,7 +548,7 @@ fun socialModule() = module {
 
     // Services
     single<PartyService> { PartyServiceBukkit(get(), get(), get(), get(), get()) }
-    single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Listeners
     single<ChatInputListener> { ChatInputListener() }
@@ -618,6 +624,9 @@ fun socialModule() = module {
     }
     single { net.lumalyte.lg.infrastructure.listeners.GlobalChatVisibilityListener(get()) }
     single { net.lumalyte.lg.infrastructure.listeners.ChatDestinationIndicator(get(), get()) }
+    single<net.lumalyte.lg.infrastructure.listeners.InviteBlockChatListener> {
+        net.lumalyte.lg.infrastructure.listeners.InviteBlockChatListener(get())
+    }
     single<net.lumalyte.lg.infrastructure.listeners.GuildMuteChatListener> {
         net.lumalyte.lg.infrastructure.listeners.GuildMuteChatListener(get(), get(), get())
     }
