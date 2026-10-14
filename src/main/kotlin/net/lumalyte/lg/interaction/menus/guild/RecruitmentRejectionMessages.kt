@@ -3,20 +3,6 @@ package net.lumalyte.lg.interaction.menus.guild
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
 
-internal enum class RecruitmentRejection {
-    EDIT_DENIED,
-    REVIEW_DENIED,
-    GUILD_REMOVED,
-    METHOD_CHANGED,
-    APPLICATION_LIMIT,
-    APPLICATION_REMOVED,
-    STALE_APPLICATION,
-    FEE_CHANGED,
-    INELIGIBLE,
-    DISCORD_SETUP,
-    INVITE_CHANGED,
-}
-
 private val REJECTION_REASONS =
     mapOf(
         "Recruitment settings permission required" to RecruitmentRejection.EDIT_DENIED,
@@ -48,8 +34,8 @@ private val REJECTION_REASONS =
 internal fun recruitmentRejectionReason(error: Exception): RecruitmentRejection? =
     if (error is IllegalArgumentException) REJECTION_REASONS[error.message] else null
 
-internal fun recruitmentRejectionMessage(lang: LangService, error: Exception, input: Boolean = false): Component =
-    when (recruitmentRejectionReason(error)) {
+internal fun recruitmentRejectionMessage(lang: LangService, error: Exception, input: Boolean = false): Component {
+    return when (recruitmentRejectionReason(error)) {
         RecruitmentRejection.APPLICATION_LIMIT -> lang.msg("recruitment.feedback.application_limit")
         RecruitmentRejection.STALE_APPLICATION -> lang.msg("recruitment.feedback.stale_application")
         RecruitmentRejection.INELIGIBLE -> lang.msg("recruitment.feedback.ineligible")
@@ -63,3 +49,4 @@ internal fun recruitmentRejectionMessage(lang: LangService, error: Exception, in
         RecruitmentRejection.INVITE_CHANGED -> lang.msg("recruitment.feedback.invite_changed")
         null -> if (input) lang.msg("recruitment.invalid_input") else lang.msg("recruitment.feedback.failed")
     }
+}

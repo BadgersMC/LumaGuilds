@@ -31,6 +31,7 @@ import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
+private const val MEMBER_CAPACITY = 10
 private const val ORIGINAL_PITCH = "Existing listing"
 
 /** Exercises screen actions against the real permission-checking application service. */
@@ -135,7 +136,7 @@ internal class RecruitmentControllerFlowTest {
         every { player.canSee(hidden) } returns false
         every { guilds.getAllGuilds() } returns setOf(guild, hiddenGuild)
         every { directory.profile(hiddenGuild.id) } returns RecruitmentProfile(hiddenGuild.id, RecruitmentMode.IN_GAME)
-        every { members.getMemberLimit(any()) } returns 10
+        every { members.getMemberLimit(any()) } returns MEMBER_CAPACITY
         every { members.getGuildMembers(guild.id) } returns emptySet()
         every { members.getGuildMembers(hiddenGuild.id) } returns
             setOf(

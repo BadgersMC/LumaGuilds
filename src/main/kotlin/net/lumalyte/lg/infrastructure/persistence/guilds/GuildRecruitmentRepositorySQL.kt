@@ -24,12 +24,13 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         )
         storage.connection.executeUpdate(
             """
-            CREATE TABLE IF NOT EXISTS guild_recruitment_applications (
-            id VARCHAR(36) PRIMARY KEY, guild_id VARCHAR(36) NOT NULL, applicant_id VARCHAR(36) NOT NULL,
-            answers TEXT NOT NULL, created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL,
-            status VARCHAR(32) NOT NULL, reviewed_by VARCHAR(36) NULL, reviewed_at BIGINT NULL,
-            decision_reason TEXT NOT NULL)$engine
-            """.trimIndent(),
+                CREATE TABLE IF NOT EXISTS guild_recruitment_applications (
+                id VARCHAR(36) PRIMARY KEY, guild_id VARCHAR(36) NOT NULL, applicant_id VARCHAR(36) NOT NULL,
+                answers TEXT NOT NULL, created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL,
+                status VARCHAR(32) NOT NULL, reviewed_by VARCHAR(36) NULL, reviewed_at BIGINT NULL,
+                decision_reason TEXT NOT NULL)$engine
+            """
+                .trimIndent(),
         )
         // Inline index syntax differs between SQLite and MariaDB; create only if absent via metadata.
         storage.connection.connection.use { connection ->
@@ -44,12 +45,13 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
                         "guild_recruitment_applications",
                         false,
                         false,
-                    ).use {
-                            rows ->
-                        var found = false
-                        while (rows.next()) if (name.equals(rows.getString("INDEX_NAME"), true)) found = true
-                        found
-                    }
+                    )
+                        .use {
+                                rows ->
+                            var found = false
+                            while (rows.next()) if (name.equals(rows.getString("INDEX_NAME"), true)) found = true
+                            found
+                        }
                 if (!exists) {
                     connection.createStatement().use {
                         it.executeUpdate(
@@ -84,11 +86,12 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
                 execute(
                     connection,
                     """
-                    INSERT INTO guild_recruitment_applications
-                    (id, guild_id, applicant_id, answers, created_at, expires_at,
-                     status, reviewed_by, reviewed_at, decision_reason)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """.trimIndent(),
+                        INSERT INTO guild_recruitment_applications
+                        (id, guild_id, applicant_id, answers, created_at, expires_at,
+                         status, reviewed_by, reviewed_at, decision_reason)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """
+                        .trimIndent(),
                     application.id, application.guildId, application.applicantId,
                     application.answers, application.createdAt.toEpochMilli(), application.expiresAt.toEpochMilli(),
                     application.status.name, null, null, "",
@@ -98,23 +101,27 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         }
     }
 
-    override fun get(id: UUID): GuildApplication? =
-        read(
+    override fun get(id: UUID): GuildApplication? {
+        return read(
             "SELECT * FROM guild_recruitment_applications WHERE id = ?",
             id,
-        ).firstOrNull()
+        )
+            .firstOrNull()
+    }
 
-    override fun forApplicant(applicant: UUID): List<GuildApplication> =
-        read(
+    override fun forApplicant(applicant: UUID): List<GuildApplication> {
+        return read(
             "SELECT * FROM guild_recruitment_applications WHERE applicant_id = ? ORDER BY created_at, id",
             applicant,
         )
+    }
 
-    override fun forGuild(guild: UUID): List<GuildApplication> =
-        read(
+    override fun forGuild(guild: UUID): List<GuildApplication> {
+        return read(
             "SELECT * FROM guild_recruitment_applications WHERE guild_id = ? ORDER BY created_at, id",
             guild,
         )
+    }
 
     override fun transition(expected: GuildApplication, updated: GuildApplication): Boolean {
         require(
@@ -130,7 +137,8 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
                     connection,
                     "SELECT * FROM guild_recruitment_applications WHERE id = ?",
                     expected.id,
-                ).firstOrNull()
+                )
+                    .firstOrNull()
             if (current !=
                 expected.copy(
                     createdAt = millis(expected.createdAt), expiresAt = millis(expected.expiresAt),
@@ -151,9 +159,10 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
             execute(
                 connection,
                 """
-                UPDATE guild_recruitment_applications SET expires_at = ?, status = ?,
-                reviewed_by = ?, reviewed_at = ?, decision_reason = ? WHERE id = ?
-                """.trimIndent(),
+                    UPDATE guild_recruitment_applications SET expires_at = ?, status = ?,
+                    reviewed_by = ?, reviewed_at = ?, decision_reason = ? WHERE id = ?
+                """
+                    .trimIndent(),
                 updated.expiresAt.toEpochMilli(), updated.status.name, updated.reviewedBy,
                 updated.reviewedAt?.toEpochMilli(), updated.decisionReason, updated.id,
             ) == 1
@@ -165,11 +174,12 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
 
     private fun millis(at: Instant): Instant = Instant.ofEpochMilli(at.toEpochMilli())
 
-    private fun query(connection: Connection, sql: String, id: UUID): List<GuildApplication> =
-        connection.prepareStatement(sql).use { statement ->
+    private fun query(connection: Connection, sql: String, id: UUID): List<GuildApplication> {
+        return connection.prepareStatement(sql).use { statement ->
             statement.setString(1, id.toString())
             statement.executeQuery().use { rows -> buildList { while (rows.next()) add(map(rows)) } }
         }
+    }
 
     private fun map(rows: ResultSet): GuildApplication {
         val reviewedAt = rows.getLong("reviewed_at").let { if (rows.wasNull()) null else Instant.ofEpochMilli(it) }
@@ -193,8 +203,8 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         execute(connection, "UPDATE guild_recruitment_applicants SET player_id = player_id WHERE player_id = ?", player)
     }
 
-    private fun execute(connection: Connection, sql: String, vararg values: Any?): Int =
-        connection.prepareStatement(sql).use { statement ->
+    private fun execute(connection: Connection, sql: String, vararg values: Any?): Int {
+        return connection.prepareStatement(sql).use { statement ->
             values.forEachIndexed {
                     index,
                     value,
@@ -203,12 +213,13 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
             }
             statement.executeUpdate()
         }
+    }
 
     @Suppress(
         "TooGenericExceptionCaught",
     ) // Transaction boundary rolls back every failure and preserves rollback errors.
-    private fun <T> transaction(operation: (Connection) -> T): T =
-        storage.connection.connection.use { connection ->
+    private fun <T> transaction(operation: (Connection) -> T): T {
+        return storage.connection.connection.use { connection ->
             connection.autoCommit = false
             try {
                 val result = operation(connection)
@@ -224,4 +235,5 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
                 throw failure
             }
         }
+    }
 }

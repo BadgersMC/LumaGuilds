@@ -15,14 +15,18 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+private const val PARALLEL_SUBMISSIONS = 8
+private const val SUBMISSION_TIMEOUT_SECONDS = 20L
+private const val SUB_MILLISECOND_NANOS = 123_456L
+
 internal class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
     private val now = Instant.parse("2026-10-14T12:00:00Z")
     private val player = UUID.randomUUID()
     private val guild = UUID.randomUUID()
     private val policy = RecruitmentPolicy()
 
-    private fun application() =
-        GuildApplication(
+    private fun application(): GuildApplication {
+        return GuildApplication(
             UUID.randomUUID(),
             guild,
             player,
@@ -30,6 +34,7 @@ internal class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
             now,
             now.plus(policy.applicationLifetime),
         )
+    }
 
     @org.junit.jupiter.api.DisplayName("applications and decision actor survive a new repository instance")
     @Test
@@ -68,12 +73,12 @@ internal class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
         val storage = openStorage()
         val repositories = listOf(GuildRecruitmentRepositorySQL(storage), GuildRecruitmentRepositorySQL(storage))
         val attempts =
-            (0..7).map { n ->
+            (0 until PARALLEL_SUBMISSIONS).map { n ->
                 CompletableFuture.supplyAsync {
                     repositories[n % 2].submit(application(), policy, now)
                 }
             }
-        assertEquals(1, attempts.count { it.get(20, TimeUnit.SECONDS) == null })
+        assertEquals(1, attempts.count { it.get(SUBMISSION_TIMEOUT_SECONDS, TimeUnit.SECONDS) == null })
         for (n in 1..2) assertNull(repositories[0].submit(application().copy(guildId = UUID.randomUUID()), policy, now))
         assertEquals(
             SubmissionDenial.LIMIT,
@@ -124,7 +129,7 @@ internal class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
     @Test
     fun nanosecondClockValuesDoNot6() {
         val repository = GuildRecruitmentRepositorySQL(openStorage())
-        val precise = now.plusNanos(123456)
+        val precise = now.plusNanos(SUB_MILLISECOND_NANOS)
         val a = application().copy(createdAt = precise, expiresAt = precise.plus(policy.applicationLifetime))
         repository.submit(a, policy, precise)
         val offered = a.offer(UUID.randomUUID(), precise, policy.offerLifetime)

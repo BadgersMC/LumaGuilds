@@ -30,7 +30,8 @@ internal fun RecruitmentController.details(guild: Guild): List<String> {
         lang.raw("recruitment.listing_updated") +
             (directory.updatedAt(guild.id)?.toString() ?: lang.raw("recruitment.unknown")),
         if (profile.beginnerFriendly) lang.raw("recruitment.beginner") else "",
-    ).filter(String::isNotBlank)
+    )
+        .filter(String::isNotBlank)
 }
 
 internal fun RecruitmentController.profile(): List<RecruitmentButton> {
@@ -42,7 +43,10 @@ internal fun RecruitmentController.profile(): List<RecruitmentButton> {
             val current = selectedGuild()
             val navigationValid = returnGuard()
             net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.book(
-                player, current.name, details(current), lang.raw("recruitment.return_menu"),
+                player,
+                net.lumalyte.lg.infrastructure.services.RecruitmentBookContent(
+                    current.name, details(current), lang.raw("recruitment.return_menu"),
+                ),
                 { navigationValid() && selected == current.id && screen == RecruitmentScreen.PROFILE },
                 { run { refresh() } },
             )
@@ -54,14 +58,14 @@ internal fun RecruitmentController.profile(): List<RecruitmentButton> {
                     RecruitmentButton(mode(profile.mode), icon = RecruitmentIcons.CONFIRM) {
                         quotedGuild = guild
                         quotedFee = lfg.getJoinRequirement(guild)
-                        go(RecruitmentScreen.CONFIRM)
+                        showScreen(RecruitmentScreen.CONFIRM)
                     }
             RecruitmentMode.IN_GAME ->
                 items +=
                     RecruitmentButton(mode(profile.mode), icon = RecruitmentIcons.DESCRIPTION) {
                         ask(lang.raw("recruitment.introduction")) {
                             service.submit(player.uniqueId, guild.id, it)
-                            go(RecruitmentScreen.MINE)
+                            showScreen(RecruitmentScreen.MINE)
                         }
                     }
             // The optional Discord button below opens exact-destination confirmation.
@@ -72,7 +76,7 @@ internal fun RecruitmentController.profile(): List<RecruitmentButton> {
     if (profile.discordInvite != null) {
         items +=
             RecruitmentButton(lang.raw("recruitment.discord"), icon = RecruitmentIcons.INVITE) {
-                go(RecruitmentScreen.DISCORD)
+                showScreen(RecruitmentScreen.DISCORD)
             }
     }
     return items

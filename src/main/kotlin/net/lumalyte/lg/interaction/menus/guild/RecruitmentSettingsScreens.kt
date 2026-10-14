@@ -24,7 +24,7 @@ internal fun RecruitmentController.settings(): List<RecruitmentButton> {
         }
     return listOf(
         RecruitmentButton(lang.raw("recruitment.method"), listOf(mode(profile.mode)), RecruitmentIcons.NAV_SETTINGS) {
-            go(RecruitmentScreen.METHOD)
+            showScreen(RecruitmentScreen.METHOD)
         },
         edit(lang.raw("recruitment.pitch"), profile.pitch) { current, value -> current.copy(pitch = value) },
         edit(
@@ -74,8 +74,8 @@ internal fun RecruitmentController.settings(): List<RecruitmentButton> {
     )
 }
 
-internal fun RecruitmentController.methodSettings(): List<RecruitmentButton> =
-    RecruitmentMode.entries.map { method ->
+internal fun RecruitmentController.methodSettings(): List<RecruitmentButton> {
+    return RecruitmentMode.entries.map { method ->
         RecruitmentButton(mode(method), icon = RecruitmentIcons.NAV_SETTINGS) {
             val guild = requireNotNull(ownGuild())
             val profile = service.profile(guild)
@@ -83,10 +83,11 @@ internal fun RecruitmentController.methodSettings(): List<RecruitmentButton> =
                 (profile.discordInvite == null || profile.discordInstructions.isBlank())
             ) {
                 player.sendMessage(lang.msg("recruitment.discord_setup"))
-                go(RecruitmentScreen.SETTINGS)
+                showScreen(RecruitmentScreen.SETTINGS)
                 return@RecruitmentButton
             }
             service.saveProfile(player.uniqueId, profile.copy(mode = method))
-            go(RecruitmentScreen.SETTINGS)
+            showScreen(RecruitmentScreen.SETTINGS)
         }
     }
+}
