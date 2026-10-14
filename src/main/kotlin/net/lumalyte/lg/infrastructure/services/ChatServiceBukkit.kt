@@ -232,7 +232,6 @@ class ChatServiceBukkit(
         return recipients.filterNot { inviteBlocks.hidesChat(it, senderId) }.toSet()
     }
 
-    /** Builds the channel-specific audience before applying the viewer-only party block filter. */
     private fun recipientsForChannel(
         senderId: UUID,
         channel: ChatChannel,
@@ -321,7 +320,6 @@ class ChatServiceBukkit(
         }
     }
 
-    /** Native Adventure rendering used by live localized chat delivery. */
     private fun formatLocalizedMessage(senderId: UUID, message: String, channel: ChatChannel): Component {
         val senderName = Bukkit.getPlayer(senderId)?.name ?: UNKNOWN_PLAYER
         val processedMessage = processEmojis(senderId, message)
