@@ -115,8 +115,12 @@ internal class GuildRecruitmentService(
         if (result is LfgJoinResult.Success) {
             applications.transition(pending, pending.completeAdmission())
             closeOtherApplications(player, guild.id)
+        } else if (result is LfgJoinResult.PaymentRejected || result is LfgJoinResult.PaymentRefunded) {
+            check(applications.transition(pending, pending.releaseAdmission(now()))) {
+                "Application changed; refresh your applications"
+            }
         }
-        // Failures after reservation remain fail-closed; never guess whether a payment committed.
+        // Unknown failures remain fail-closed; only typed, definitive outcomes release the reservation.
         return result
     }
 

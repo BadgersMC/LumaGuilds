@@ -53,6 +53,15 @@ interface LfgService {
  */
 sealed class LfgJoinResult {
 
+    /** Definitive rejection before a personal payment was applied. */
+    data class PaymentRejected(val reason: net.lumalyte.lg.domain.gold.GuildGoldRejection) : LfgJoinResult()
+
+    /** Payment restoration is confirmed; no membership was completed. */
+    data class PaymentRefunded(val transactionId: UUID) : LfgJoinResult()
+
+    /** Payment or admission outcome needs reconciliation; never invite a retry. */
+    data class PaymentUncertain(val transactionId: UUID) : LfgJoinResult()
+
     /**
      * Player successfully joined the guild.
      *

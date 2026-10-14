@@ -71,7 +71,7 @@ class LfgServiceBukkitTest {
             every { bankService.collectJoinFee(any(), any(), any()) } answers {
                 gold.collectJoinFee(firstArg(), secondArg(), thirdArg())
             }
-            assertTrue(lfgService.joinGuild(UUID.randomUUID(), openGuildWithFee) is LfgJoinResult.Error)
+            assertTrue(lfgService.joinGuild(UUID.randomUUID(), openGuildWithFee) is LfgJoinResult.PaymentUncertain)
             assertEquals(500L, personal)
             assertEquals(500L, sql.getBalance(openGuildWithFee.id))
             verify(exactly = 0) { memberService.addMember(any(), any(), any()) }
@@ -221,7 +221,7 @@ class LfgServiceBukkitTest {
             assertFalse(admission.complete())
             GuildGoldResult.Failed(firstArg<PersonalGoldRequest>().transactionId, false)
         }
-        assertTrue(lfgService.joinApprovedGuild(player, openGuildWithFee) { allowed } is LfgJoinResult.Error)
+        assertTrue(lfgService.joinApprovedGuild(player, openGuildWithFee) { allowed } is LfgJoinResult.PaymentUncertain)
         verify(exactly = 0) { memberService.addMember(any(), any(), any()) }
     }
 

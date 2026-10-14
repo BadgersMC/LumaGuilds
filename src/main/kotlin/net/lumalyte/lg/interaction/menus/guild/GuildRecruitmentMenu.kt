@@ -170,5 +170,7 @@ internal class GuildRecruitmentMenu(
     }
 
     /** This menu has no external mutable payload. */
-    override fun passData(data: Any?) = Unit
+    override fun passData(data: Any?) {
+        if (data is net.lumalyte.lg.domain.entities.Guild) controller.previewJoin(data)
+    }
 }

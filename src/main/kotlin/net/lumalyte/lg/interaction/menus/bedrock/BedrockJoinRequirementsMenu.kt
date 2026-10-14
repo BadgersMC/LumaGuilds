@@ -118,6 +118,10 @@ class BedrockJoinRequirementsMenu(
         // Status section
         sb.appendLine()
         when (canJoinResult) {
+            is LfgJoinResult.PaymentRejected, is LfgJoinResult.PaymentRefunded, is LfgJoinResult.PaymentUncertain -> {
+                sb.appendLine(net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
+                    .serialize(net.lumalyte.lg.interaction.menus.guild.recruitmentAdmissionFeedback(lang, canJoinResult)))
+            }
             is LfgJoinResult.Success -> {
                 sb.appendLine(lang.bedrock("bedrock.join_requirements.status.ready"))
             }
@@ -145,6 +149,10 @@ class BedrockJoinRequirementsMenu(
         val result = lfgService.joinGuild(player.uniqueId, guild)
 
         when (result) {
+            is LfgJoinResult.PaymentRejected, is LfgJoinResult.PaymentRefunded, is LfgJoinResult.PaymentUncertain -> {
+                player.sendMessage(net.lumalyte.lg.interaction.menus.guild.recruitmentAdmissionFeedback(lang, result))
+                openLfgBrowser()
+            }
             is LfgJoinResult.Success -> {
                 player.sendMessage(lang.msg("bedrock.join_requirements.feedback.success", "guild" to guild.name))
                 player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)

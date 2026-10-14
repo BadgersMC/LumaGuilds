@@ -10,6 +10,7 @@ import net.lumalyte.lg.application.persistence.GuildRecruitmentRepository
 import net.lumalyte.lg.application.persistence.RecruitmentDirectoryRepository
 import net.lumalyte.lg.application.services.GuildRecruitmentService
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.LfgJoinResult
 import net.lumalyte.lg.application.services.LfgService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
@@ -45,6 +46,8 @@ internal class RecruitmentControllerFlowTest {
     private val lfg = mockk<LfgService>(relaxed = true)
     private val lang = mockk<LangService>(relaxed = true)
     private val player = mockk<Player>(relaxed = true)
+    private val factory = mockk<net.lumalyte.lg.interaction.menus.MenuFactory>(relaxed = true)
+    private val override = mockk<net.lumalyte.lg.application.services.AdminOverrideService>(relaxed = true)
     private var allowed = true
     private var published = RecruitmentProfile(guild.id, RecruitmentMode.IN_GAME, ORIGINAL_PITCH)
     private val controller = RecruitmentController(player, {})
@@ -78,6 +81,8 @@ internal class RecruitmentControllerFlowTest {
                     single { directory }
                     single { lfg }
                     single { lang }
+                    single { factory }
+                    single { override }
                 },
             )
         }
@@ -150,5 +155,36 @@ internal class RecruitmentControllerFlowTest {
                 Member(hiddenId, hiddenGuild.id, UUID.randomUUID(), Instant.EPOCH),
             )
         every { members.hasPermission(hiddenId, hiddenGuild.id, RankPermission.MANAGE_RECRUITMENT) } returns true
+    }
+
+    @Test
+    fun commandPreviewDoesNotAdmitUntilConfirmation() {
+        val quote = net.lumalyte.lg.domain.values.JoinRequirement(100, true, "RAW_GOLD")
+        val payable = guild.copy(joinFeeEnabled = true, joinFeeAmount = 100)
+        every { guilds.getGuild(guild.id) } returns payable
+        every { lfg.getJoinRequirement(payable) } returns quote
+        controller.previewJoin(payable)
+        assertEquals(RecruitmentScreen.CONFIRM, controller.screen)
+        assertEquals(quote, controller.quotedFee)
+        assertEquals(null, controller.selectedApplication)
+        io.mockk.verify(exactly = 0) { lfg.joinGuild(any(), any()) }
+        every { lfg.joinGuild(actor, payable) } returns LfgJoinResult.Success("Joined")
+        controller.confirm()[1].action()
+        io.mockk.verify(exactly = 1) { lfg.joinGuild(actor, payable) }
+    }
+
+    @Test
+    fun paidJoinCommandOpensPreviewWithoutCharging() {
+        val payable = guild.copy(joinFeeEnabled = true, joinFeeAmount = 100)
+        published = published.copy(mode = RecruitmentMode.JOIN_IMMEDIATELY)
+        every { guilds.getPlayerGuilds(actor) } returns emptySet()
+        every { guilds.getGuildByName(guild.name) } returns payable
+        every { player.server.logger } returns java.util.logging.Logger.getAnonymousLogger()
+        val menu = mockk<net.lumalyte.lg.interaction.menus.Menu>(relaxed = true)
+        every { factory.createLfgBrowserMenu(any(), player) } returns menu
+        net.lumalyte.lg.interaction.commands.GuildCommand().onJoin(player, guild.name)
+        verify { menu.passData(payable) }
+        verify { menu.open() }
+        verify(exactly = 0) { lfg.joinGuild(any(), any()) }
     }
 }

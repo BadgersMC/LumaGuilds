@@ -99,4 +99,8 @@ internal class BedrockGuildRecruitmentMenu(
 
     /** Responses are processed by the typed Cumulus handlers. */
     override fun handleResponse(player: Player, response: Any?) = Unit
+
+    override fun passData(data: Any?) {
+        if (data is net.lumalyte.lg.domain.entities.Guild) controller.previewJoin(data)
+    }
 }

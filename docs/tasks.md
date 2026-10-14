@@ -1006,3 +1006,8 @@ Menu audit follow-up (REQ-063):
   - Tag: `TDD`
   - References: REQ-149.
   - Evidence: the historical TEST branch reproduced stale-provider behavior and recorded 24 focused cases plus a 1,752-test full suite with zero failures/errors and 20 optional skips. This sanitized rebuild contains only the provider lifecycle source/test correction and evidence; fresh exact-head hosted checks remain required. See `docs/test-startup-cleanup.md`. Production remains unchanged.
+
+- [x] **RECRUITMENT-PAYMENT-REVIEW** Confirm paid command joins, preserve typed recovery outcomes and release only proven-safe reservations.
+  - Tag: `TDD`
+  - References: REC-018 in `docs/plans/guild-recruitment.md`.
+  - Evidence: two reproduced regressions; full local 1,839-case check with zero failures/errors and 16 existing optional skips; final focused checks and 22 native MariaDB cases pass. Hosted checks and client acceptance remain separate gates. No TEST or production changes.

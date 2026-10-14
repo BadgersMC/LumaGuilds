@@ -7761,6 +7761,9 @@ recruitment:
     closed: Recruitment Closed
   feedback:
     guild_full: "<yellow>This guild has no available member space. Refresh its listing or choose another guild."
+    payment_rejected: "<yellow>No payment was taken. Resolve the guild bank or payment restrictions, then reopen the listing or offer to review the current fee."
+    payment_refunded: "<yellow>Joining failed, but your payment was returned. Reopen the listing or offer before retrying. Reference: <reference>"
+    payment_uncertain: "<red>Your joining payment needs staff review. Do not pay again. Reference: <reference>"
     already_member: "<yellow>You already belong to a guild. Open your guild menu or review My Applications."
     insufficient_funds: "<yellow>Joining requires <required> <currency>; you currently have <current>. Review the offer again after obtaining enough currency."
     edit_denied: "<red>You need Edit Recruitment Settings permission. Ask your guild owner to grant it, then reopen the menu."

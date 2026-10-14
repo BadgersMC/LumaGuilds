@@ -12,6 +12,7 @@ import net.lumalyte.lg.domain.recruitment.GuildApplication
 import net.lumalyte.lg.domain.recruitment.RecruitmentMode
 import net.lumalyte.lg.domain.recruitment.RecruitmentPolicy
 import net.lumalyte.lg.domain.recruitment.RecruitmentProfile
+import net.lumalyte.lg.infrastructure.services.admissionFeedback
 import org.junit.jupiter.api.Test
 import java.time.Clock
 import java.time.Instant
@@ -24,29 +25,7 @@ private const val APPLICATION_WINDOW_SECONDS = 604_800L
 private const val MEMBER_CAPACITY = 10
 private const val JOIN_FEE_QUOTE = 100
 
-internal class GuildRecruitmentServiceTest {
-    private val now = Instant.parse("2026-10-14T12:00:00Z")
-    private val guild = Guild(UUID.randomUUID(), "Builders", createdAt = now)
-    private val player = UUID.randomUUID()
-    private val actor = UUID.randomUUID()
-    private val applications = mockk<GuildRecruitmentRepository>(relaxed = true)
-    private val directory = mockk<RecruitmentDirectoryRepository>(relaxed = true)
-    private val guilds = mockk<GuildService>(relaxed = true)
-    private val members = mockk<MemberService>(relaxed = true)
-    private val lfg = mockk<LfgService>(relaxed = true)
-    private val profile = RecruitmentProfile(guild.id, RecruitmentMode.IN_GAME)
-    private val application =
-        GuildApplication(
-            UUID.randomUUID(),
-            guild.id,
-            player,
-            "I build",
-            now,
-            now.plusSeconds(APPLICATION_WINDOW_SECONDS),
-        )
-    private var current = application
-    private var eligible = true
-
+internal class GuildRecruitmentServiceTest : GuildRecruitmentFixture() {
     @org.junit.jupiter.api.DisplayName("Recruiters can decline applicants who became ineligible")
     @Test
     fun declineIneligibleApplicant() {
@@ -55,22 +34,6 @@ internal class GuildRecruitmentServiceTest {
         service.review(actor, application.id, false, "Recruitment unavailable")
         assertEquals(ApplicationStatus.DECLINED, current.status)
         verify(exactly = 0) { lfg.joinApprovedGuild(any(), any(), any()) }
-    }
-
-    private fun service(): GuildRecruitmentService {
-        every { guilds.getGuild(guild.id) } returns guild
-        every { directory.profile(guild.id) } returns profile
-        every { members.getMemberLimit(guild.id) } returns MEMBER_CAPACITY
-        every { members.hasPermission(actor, guild.id, RankPermission.MANAGE_RECRUITMENT) } returns true
-        applications.stubRecruitmentState(application.id, { current }, { current = it })
-        return GuildRecruitmentService(
-            applications,
-            GuildRecruitmentListings(directory, guilds, members),
-            guilds,
-            members,
-            lfg,
-            GuildRecruitmentRules({ RecruitmentPolicy() }, { _, _ -> eligible }, Clock.fixed(now, ZoneOffset.UTC)),
-        )
     }
 
     @org.junit.jupiter.api.DisplayName("review is an offer and never calls admission")
@@ -165,6 +128,77 @@ internal class GuildRecruitmentServiceTest {
         assertEquals(ApplicationStatus.ADMISSION_PENDING, current.status)
         assertFailsWith<IllegalArgumentException> { service.confirm(player, application.id, guild) }
         verify(exactly = 1) { lfg.joinApprovedGuild(player, guild, any()) }
+    }
+}
+
+internal class GuildRecruitmentPaymentReservationTest : GuildRecruitmentFixture() {
+    @Test
+    fun definitiveRejectionRestoresOffer() {
+        val service = service()
+        current = application.offer(actor, now, RecruitmentPolicy().offerLifetime)
+        val offer = current
+        every { lfg.canJoinGuild(player, guild) } returns LfgJoinResult.Success("Eligible")
+        every { lfg.joinApprovedGuild(player, guild, any()) } returns
+            net.lumalyte.lg.domain.gold.GuildGoldResult.Rejected(
+                net.lumalyte.lg.domain.gold.GuildGoldRejection.FROZEN,
+            ).admissionFeedback(guild, mockk(relaxed = true))
+        service.confirm(player, application.id, guild)
+        assertEquals(offer, current)
+    }
+
+    @Test
+    fun confirmedRefundRestoresOfferButUncertainPaymentDoesNot() {
+        val service = service()
+        current = application.offer(actor, now, RecruitmentPolicy().offerLifetime)
+        val offer = current
+        every { lfg.canJoinGuild(player, guild) } returns LfgJoinResult.Success("Eligible")
+        every { lfg.joinApprovedGuild(player, guild, any()) } returns LfgJoinResult.PaymentRefunded(UUID.randomUUID())
+        service.confirm(player, application.id, guild)
+        assertEquals(offer, current)
+        every { lfg.joinApprovedGuild(player, guild, any()) } returns LfgJoinResult.PaymentUncertain(UUID.randomUUID())
+        service.confirm(player, application.id, guild)
+        assertEquals(ApplicationStatus.ADMISSION_PENDING, current.status)
+        assertFailsWith<IllegalArgumentException> { service.confirm(player, application.id, guild) }
+    }
+}
+
+internal abstract class GuildRecruitmentFixture {
+    protected val now = Instant.parse("2026-10-14T12:00:00Z")
+    protected val guild = Guild(UUID.randomUUID(), "Builders", createdAt = now)
+    protected val player = UUID.randomUUID()
+    protected val actor = UUID.randomUUID()
+    protected val applications = mockk<GuildRecruitmentRepository>(relaxed = true)
+    protected val directory = mockk<RecruitmentDirectoryRepository>(relaxed = true)
+    protected val guilds = mockk<GuildService>(relaxed = true)
+    protected val members = mockk<MemberService>(relaxed = true)
+    protected val lfg = mockk<LfgService>(relaxed = true)
+    protected val profile = RecruitmentProfile(guild.id, RecruitmentMode.IN_GAME)
+    protected val application =
+        GuildApplication(
+            UUID.randomUUID(),
+            guild.id,
+            player,
+            "I build",
+            now,
+            now.plusSeconds(APPLICATION_WINDOW_SECONDS),
+        )
+    protected var current = application
+    protected var eligible = true
+
+    protected fun service(): GuildRecruitmentService {
+        every { guilds.getGuild(guild.id) } returns guild
+        every { directory.profile(guild.id) } returns profile
+        every { members.getMemberLimit(guild.id) } returns MEMBER_CAPACITY
+        every { members.hasPermission(actor, guild.id, RankPermission.MANAGE_RECRUITMENT) } returns true
+        applications.stubRecruitmentState(application.id, { current }, { current = it })
+        return GuildRecruitmentService(
+            applications,
+            GuildRecruitmentListings(directory, guilds, members),
+            guilds,
+            members,
+            lfg,
+            GuildRecruitmentRules({ RecruitmentPolicy() }, { _, _ -> eligible }, Clock.fixed(now, ZoneOffset.UTC)),
+        )
     }
 }
 

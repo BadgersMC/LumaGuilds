@@ -1589,12 +1589,16 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val recruitment: net.lumalyte.lg.application.services.GuildRecruitmentService by inject()
         if (recruitment.listings.profile(guild).mode == net.lumalyte.lg.domain.recruitment.RecruitmentMode.JOIN_IMMEDIATELY) {
             // Open guild - no invitation required
-            val result = lfgService.joinGuild(player.uniqueId, guild)
-            if (result is net.lumalyte.lg.application.services.LfgJoinResult.Success) {
-                player.sendMessage(lang.msg("recruitment.feedback.joined"))
-            } else {
-                player.sendMessage(lang.msg("recruitment.feedback.failed"))
+            if (guild.joinFeeEnabled && guild.joinFeeAmount > 0) {
+                val factory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+                val navigator = net.lumalyte.lg.interaction.menus.MenuNavigator(player)
+                val menu = factory.createLfgBrowserMenu(navigator, player)
+                menu.passData(guild)
+                navigator.openMenu(menu)
+                return
             }
+            val result = lfgService.joinGuild(player.uniqueId, guild)
+            player.sendMessage(net.lumalyte.lg.interaction.menus.guild.recruitmentAdmissionFeedback(lang, result))
             return
         }
 
