@@ -20,7 +20,7 @@ private fun readerRows(line: String): List<String> {
             val space = (start until end).lastOrNull { Character.isWhitespace(points[it]) }
             if (space != null) end = space + 1
         }
-        rows += buildString { (start until end).forEach { appendCodePoint(points[it]) } }
+        rows += buildString { for (index in start until end) appendCodePoint(points[index]) }
         start = end
     }
     return rows

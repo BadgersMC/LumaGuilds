@@ -36,26 +36,42 @@ internal class RecruitmentReader(
 
     private fun show(page: Int) {
         val revision = state.beginPage()
-        val actions = RecruitmentReaderActions(
-            previousLabel = lang.raw("recruitment.previous"),
-            nextLabel = lang.raw("recruitment.next"),
-            previous = if (page > 0) ({ dispatch(revision) { show(page - 1) } }) else null,
-            next = if (page + 1 < pages.size) ({ dispatch(revision) { show(page + 1) } }) else null,
-            back = { dispatch(revision) { state.close(); back() } },
-            dismissed = {
-                dispatch(revision) {
-                    state.close()
-                    val top: org.bukkit.inventory.Inventory? = player.openInventory.topInventory
-                    if (top == null || top.type == org.bukkit.event.inventory.InventoryType.CRAFTING) back()
-                }
-            },
-        )
+        val actions = pageActions(page, revision)
         when {
             bedrock -> showBedrock(page, actions)
             dialog -> showDialog(page, actions)
             else -> RecruitmentReaderInventory.show(
-                player, content, RecruitmentReaderPage(pages[page], page + 1, pages.size), actions,
+                player,
+                content,
+                RecruitmentReaderPage(pages[page], page + 1, pages.size),
+                actions,
             )
+        }
+    }
+
+    private fun pageActions(page: Int, revision: Int): RecruitmentReaderActions =
+        RecruitmentReaderActions(
+            previousLabel = lang.raw("recruitment.previous"),
+            nextLabel = lang.raw("recruitment.next"),
+            previous = if (page > 0) {
+                { dispatch(revision) { show(page - 1) } }
+            } else {
+                null
+            },
+            next = if (page + 1 < pages.size) {
+                { dispatch(revision) { show(page + 1) } }
+            } else {
+                null
+            },
+            back = { returnToMenu(revision, false) },
+            dismissed = { returnToMenu(revision, true) },
+        )
+
+    private fun returnToMenu(revision: Int, dismissed: Boolean) {
+        dispatch(revision) {
+            state.close()
+            val top: org.bukkit.inventory.Inventory? = player.openInventory.topInventory
+            if (!dismissed || top == null || top.type == org.bukkit.event.inventory.InventoryType.CRAFTING) back()
         }
     }
 
@@ -77,54 +93,70 @@ internal class RecruitmentReader(
         )
     }
 
-    private fun heading(page: Int): Component = Component.text(
-        "${content.title} ${page + 1}/${pages.size}",
-        content.accent(),
-    )
+    private fun heading(page: Int): Component =
+        Component.text(
+            "${content.title} ${page + 1}/${pages.size}",
+            content.accent(),
+        )
 
     private fun showDialog(page: Int, actions: RecruitmentReaderActions) {
-        fun button(label: String, action: () -> Unit): ActionButton = ActionButton.builder(Component.text(label))
-            .action(
+        fun button(label: String, action: () -> Unit): ActionButton =
+            ActionButton.builder(Component.text(label)).action(
                 DialogAction.customClick({ _, audience ->
                     if (audience is Player && audience.uniqueId == player.uniqueId) action()
                 }, ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(2)).build()),
-            ).build()
-        val buttons = buildList {
-            actions.previous?.let { add(button(actions.previousLabel, it)) }
-            actions.next?.let { add(button(actions.nextLabel, it)) }
-        }
+            )
+                .build()
+        val buttons =
+            buildList {
+                actions.previous?.let { add(button(actions.previousLabel, it)) }
+                actions.next?.let { add(button(actions.nextLabel, it)) }
+            }
         val exit = button(content.returnLabel, actions.back)
         player.showDialog(
             Dialog.create { factory ->
                 factory.empty().base(
                     DialogBase.builder(heading(page)).canCloseWithEscape(true)
                         .afterAction(DialogBase.DialogAfterAction.CLOSE)
-                        .body(dialogBody(page)).build(),
+                        .body(dialogBody(page))
+                        .build(),
                 ).type(if (buttons.isEmpty()) DialogType.notice(exit) else DialogType.multiAction(buttons, exit, 1))
             },
         )
     }
 
-    private fun dialogBody(page: Int): List<DialogBody> = buildList {
-        content.guild?.let {
-            val banner = net.lumalyte.lg.interaction.menus.GuildBannerItemResolver.resolveForDisplay(it)
-            add(DialogBody.item(banner).description(DialogBody.plainMessage(Component.text(it.name))).build())
+    private fun dialogBody(page: Int): List<DialogBody> =
+        buildList {
+            content.guild?.let {
+                val banner = net.lumalyte.lg.interaction.menus.GuildBannerItemResolver.resolveForDisplay(it)
+                add(DialogBody.item(banner).description(DialogBody.plainMessage(Component.text(it.name))).build())
+            }
+            if (content.context.isNotBlank()) {
+                add(DialogBody.plainMessage(Component.text(content.context).color(content.accent())))
+            }
+            add(DialogBody.plainMessage(Component.text(pages[page])))
         }
-        if (content.context.isNotBlank()) {
-            add(DialogBody.plainMessage(Component.text(content.context).color(content.accent())))
-        }
-        add(DialogBody.plainMessage(Component.text(pages[page])))
-    }
 
     private fun showBedrock(page: Int, actions: RecruitmentReaderActions) {
         val callbacks = mutableListOf(actions.back)
-        val text = listOfNotNull(content.guild?.name, content.context.takeIf(String::isNotBlank), pages[page])
-            .joinToString("\n")
-        val form = org.geysermc.cumulus.form.SimpleForm.builder()
-            .title("${content.title} ${page + 1}/${pages.size}")
-            .content(text).button(content.returnLabel)
-        actions.previous?.let { form.button(actions.previousLabel); callbacks += it }
-        actions.next?.let { form.button(actions.nextLabel); callbacks += it }
+        val text =
+            listOfNotNull(
+                content.guild?.name,
+                content.context.takeIf(String::isNotBlank),
+                pages[page],
+            ).joinToString("\n")
+        val form =
+            org.geysermc.cumulus.form.SimpleForm.builder().title("${content.title} ${page + 1}/${pages.size}")
+                .content(text)
+                .button(content.returnLabel)
+        actions.previous?.let {
+            form.button(actions.previousLabel)
+            callbacks += it
+        }
+        actions.next?.let {
+            form.button(actions.nextLabel)
+            callbacks += it
+        }
         form.validResultHandler { response -> (callbacks.getOrNull(response.clickedButtonId()) ?: actions.back)() }
             .closedOrInvalidResultHandler { _, _ -> actions.back() }
         val sent = org.geysermc.floodgate.api.FloodgateApi.getInstance().sendForm(player.uniqueId, form.build())

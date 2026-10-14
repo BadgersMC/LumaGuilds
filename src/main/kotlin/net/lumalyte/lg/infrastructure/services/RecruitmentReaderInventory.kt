@@ -21,6 +21,9 @@ internal object RecruitmentReaderInventory {
     private const val ROWS = 6
     private const val COLUMNS = 9
     private const val FOOTER = 5
+    private const val CENTER_COLUMN = 4
+    private const val DETAILS_ROW = 2
+    private const val LAST_COLUMN = COLUMNS - 1
 
     fun show(
         player: Player,
@@ -38,17 +41,17 @@ internal object RecruitmentReaderInventory {
             if (event.reason == InventoryCloseEvent.Reason.PLAYER) actions.dismissed()
         }
         val banner = content.guild?.let(GuildBannerItemResolver::resolveForDisplay)
-        banner?.let { pane.addItem(GuiItem(it.name(Component.text(content.guild.name))), 4, 0) }
+        banner?.let { pane.addItem(GuiItem(it.name(Component.text(content.guild.name))), CENTER_COLUMN, 0) }
         val details = item("lg_description", content.title)
         if (content.context.isNotBlank()) details.lore(Component.text(content.context).color(content.accent()))
         page.text.lines().forEach { details.lore(Component.text(it).color(NamedTextColor.GRAY)) }
-        pane.addItem(GuiItem(details), 4, 2)
-        pane.addItem(GuiItem(item("lg_back", content.returnLabel)) { actions.back() }, 4, FOOTER)
+        pane.addItem(GuiItem(details), CENTER_COLUMN, DETAILS_ROW)
+        pane.addItem(GuiItem(item("lg_back", content.returnLabel)) { actions.back() }, CENTER_COLUMN, FOOTER)
         actions.previous?.let { previous ->
             pane.addItem(GuiItem(item("lg_page_prev", actions.previousLabel)) { previous() }, 0, FOOTER)
         }
         actions.next?.let { next ->
-            pane.addItem(GuiItem(item("lg_page_next", actions.nextLabel)) { next() }, 8, FOOTER)
+            pane.addItem(GuiItem(item("lg_page_next", actions.nextLabel)) { next() }, LAST_COLUMN, FOOTER)
         }
         gui.addPane(pane)
         gui.show(player)

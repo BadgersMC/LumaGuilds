@@ -17,25 +17,32 @@ import org.koin.dsl.module
 import org.mockbukkit.mockbukkit.MockBukkit
 import kotlin.test.assertEquals
 
+private const val READER_INVENTORY_SIZE = 54
+private const val OTHER_INVENTORY_SIZE = 27
+
 internal class RecruitmentReaderInventoryTest {
-    private lateinit var server: org.mockbukkit.mockbukkit.ServerMock
-    private lateinit var player: org.mockbukkit.mockbukkit.entity.PlayerMock
+    private var fixture: Pair<org.mockbukkit.mockbukkit.ServerMock, org.mockbukkit.mockbukkit.entity.PlayerMock>? = null
+    private val server get() = requireNotNull(fixture).first
+    private val player get() = requireNotNull(fixture).second
+    private val content = RecruitmentBookContent("Details", listOf("Answer"), "Back")
 
     @BeforeEach
     fun setup() {
         stopKoin()
-        server = MockBukkit.mock()
+        val mockServer = MockBukkit.mock()
+        fixture = mockServer to mockServer.addPlayer()
         // InventoryFramework caches listener registration across disposable mock servers.
         com.github.stefvanschie.inventoryframework.gui.type.util.Gui::class.java
-            .getDeclaredField("hasRegisteredListeners").apply { isAccessible = true }.setBoolean(null, false)
-        player = server.addPlayer()
+            .getDeclaredField("hasRegisteredListeners")
+            .apply { isAccessible = true }
+            .setBoolean(null, false)
         val plugin = MockBukkit.createMockPlugin()
         PluginKeys.initialize(plugin)
         mockkStatic(JavaPlugin::class)
         every { JavaPlugin.getProvidingPlugin(any<Class<*>>()) } returns plugin
         val lang = mockk<LangService>()
         every { lang.raw(any()) } answers { firstArg() }
-        every { lang.msg(any(), *anyVararg()) } returns net.kyori.adventure.text.Component.empty()
+        every { lang.msg("recruitment.feedback.failed") } returns net.kyori.adventure.text.Component.empty()
         startKoin { modules(module { single { lang } }) }
     }
 
@@ -49,10 +56,10 @@ internal class RecruitmentReaderInventoryTest {
     @Test
     fun escapeReturnsOnce() {
         var returns = 0
-        RecruitmentReader(player, RecruitmentBookContent("Details", listOf("Answer"), "Back"), { true }) {
+        RecruitmentReader(player, content, { true }) {
             returns++
         }.open(false, false)
-        assertEquals(54, player.openInventory.topInventory.size)
+        assertEquals(READER_INVENTORY_SIZE, player.openInventory.topInventory.size)
         player.closeInventory(InventoryCloseEvent.Reason.PLAYER)
         server.scheduler.performOneTick()
         assertEquals(1, returns)
@@ -63,7 +70,7 @@ internal class RecruitmentReaderInventoryTest {
     @Test
     fun replacementDoesNotReopen() {
         var returns = 0
-        RecruitmentReader(player, RecruitmentBookContent("Details", listOf("Answer"), "Back"), { true }) {
+        RecruitmentReader(player, content, { true }) {
             returns++
         }.open(false, false)
         player.closeInventory(InventoryCloseEvent.Reason.OPEN_NEW)
@@ -75,7 +82,7 @@ internal class RecruitmentReaderInventoryTest {
     fun revokedAccessCannotReturn() {
         var authorized = true
         var returns = 0
-        RecruitmentReader(player, RecruitmentBookContent("Details", listOf("Answer"), "Back"), { authorized }) {
+        RecruitmentReader(player, content, { authorized }) {
             returns++
         }.open(false, false)
         player.closeInventory(InventoryCloseEvent.Reason.PLAYER)
@@ -87,13 +94,13 @@ internal class RecruitmentReaderInventoryTest {
     @Test
     fun delayedReturnRespectsNewMenu() {
         var returns = 0
-        RecruitmentReader(player, RecruitmentBookContent("Details", listOf("Answer"), "Back"), { true }) {
+        RecruitmentReader(player, content, { true }) {
             returns++
         }.open(false, false)
         player.closeInventory(InventoryCloseEvent.Reason.PLAYER)
-        player.openInventory(server.createInventory(null, 27))
+        player.openInventory(server.createInventory(null, OTHER_INVENTORY_SIZE))
         server.scheduler.performOneTick()
         assertEquals(0, returns)
-        assertEquals(27, player.openInventory.topInventory.size)
+        assertEquals(OTHER_INVENTORY_SIZE, player.openInventory.topInventory.size)
     }
 }
