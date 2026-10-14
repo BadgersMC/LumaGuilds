@@ -171,7 +171,8 @@ internal class GuildRecruitmentService(
     fun closeGuildApplications(guild: UUID) {
         applications.forGuild(
             guild,
-        ).filter { it.status in setOf(ApplicationStatus.SUBMITTED, ApplicationStatus.OFFERED) }
+        )
+            .filter { it.status in setOf(ApplicationStatus.SUBMITTED, ApplicationStatus.OFFERED) }
             .forEach { applications.transition(it, it.close()) }
     }
 
