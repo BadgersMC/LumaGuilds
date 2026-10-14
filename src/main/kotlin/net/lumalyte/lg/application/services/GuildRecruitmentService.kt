@@ -101,9 +101,11 @@ internal class GuildRecruitmentService(
             GuildRecruitmentPermissions.canReview(members, actor, current.guildId),
         ) { "Recruitment permission required" }
         val guild = requireNotNull(guilds.getGuild(current.guildId)) { "Guild no longer exists" }
-        require(profile(guild).mode == RecruitmentMode.IN_GAME) { "Recruitment method has changed" }
-        require(eligible(current.applicantId, guild.id) && members.getPlayerGuilds(current.applicantId).isEmpty()) {
-            "Applicant is no longer eligible"
+        if (accept) {
+            require(profile(guild).mode == RecruitmentMode.IN_GAME) { "Recruitment method has changed" }
+            require(eligible(current.applicantId, guild.id) && members.getPlayerGuilds(current.applicantId).isEmpty()) {
+                "Applicant is no longer eligible"
+            }
         }
         val next =
             if (accept) {

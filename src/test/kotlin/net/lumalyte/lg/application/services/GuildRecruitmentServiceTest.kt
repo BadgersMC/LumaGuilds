@@ -21,6 +21,16 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 internal class GuildRecruitmentServiceTest {
+    @org.junit.jupiter.api.DisplayName("Recruiters can decline applicants who became ineligible")
+    @Test
+    fun declineIneligibleApplicant() {
+        val service = service()
+        eligible = false
+        service.review(actor, application.id, false, "Recruitment unavailable")
+        assertEquals(ApplicationStatus.DECLINED, current.status)
+        verify(exactly = 0) { lfg.joinApprovedGuild(any(), any(), any()) }
+    }
+
     private val now = Instant.parse("2026-10-14T12:00:00Z")
     private val guild = Guild(UUID.randomUUID(), "Builders", createdAt = now)
     private val player = UUID.randomUUID()
