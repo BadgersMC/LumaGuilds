@@ -68,5 +68,4 @@ internal class RecruitmentReaderDialog(
             add(DialogBody.plainMessage(Component.text(page.text)))
         }
     }
-
 }
