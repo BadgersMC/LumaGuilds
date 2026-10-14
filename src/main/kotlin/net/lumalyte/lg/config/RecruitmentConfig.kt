@@ -23,10 +23,10 @@ class RecruitmentConfig(
 ) {
     /** Produces bounded domain policy while failing startup/config reload for invalid values. */
     internal fun policy(): RecruitmentPolicy = RecruitmentPolicy(
-            maxApplications = maximumApplications,
-            applicationLifetime = Duration.ofDays(applicationDays.toLong()),
-            offerLifetime = Duration.ofHours(offerHours.toLong()),
-        )
+        maxApplications = maximumApplications,
+        applicationLifetime = Duration.ofDays(applicationDays.toLong()),
+        offerLifetime = Duration.ofHours(offerHours.toLong()),
+    )
 
     init {
         require(onboardingDelaySeconds in 30..3600 && reminderMinutes in 0..1440)

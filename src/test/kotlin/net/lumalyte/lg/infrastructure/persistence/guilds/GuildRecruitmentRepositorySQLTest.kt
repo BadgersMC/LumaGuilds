@@ -22,13 +22,13 @@ internal class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
     private val policy = RecruitmentPolicy()
 
     private fun application() = GuildApplication(
-            UUID.randomUUID(),
-            guild,
-            player,
-            "I enjoy building",
-            now,
-            now.plus(policy.applicationLifetime),
-        )
+        UUID.randomUUID(),
+        guild,
+        player,
+        "I enjoy building",
+        now,
+        now.plus(policy.applicationLifetime),
+    )
 
     @org.junit.jupiter.api.DisplayName("applications and decision actor survive a new repository instance")
     @Test
@@ -66,7 +66,8 @@ internal class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
     fun concurrentSubmissionsEnfor3() {
         val storage = openStorage()
         val repositories = listOf(GuildRecruitmentRepositorySQL(storage), GuildRecruitmentRepositorySQL(storage))
-        val attempts = (0..7).map { n ->
+        val attempts =
+            (0..7).map { n ->
                 CompletableFuture.supplyAsync {
                     repositories[n % 2].submit(application(), policy, now)
                 }

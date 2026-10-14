@@ -126,7 +126,7 @@ internal data class GuildApplication(
 
     /** Pending payments remain active until staff reconcile their outcome. */
     fun isActive(at: Instant): Boolean = status == ApplicationStatus.ADMISSION_PENDING ||
-            (status in setOf(ApplicationStatus.SUBMITTED, ApplicationStatus.OFFERED) && at < expiresAt)
+        (status in setOf(ApplicationStatus.SUBMITTED, ApplicationStatus.OFFERED) && at < expiresAt)
 
     /** Approval records an offer only. No payment or member mutation occurs here. */
     fun offer(actor: UUID, at: Instant, lifetime: Duration): GuildApplication {

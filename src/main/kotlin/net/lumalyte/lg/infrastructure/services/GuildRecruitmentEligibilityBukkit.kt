@@ -16,8 +16,10 @@ internal class GuildRecruitmentEligibilityBukkit(
     /** Banned players and players refusing any member of a guild cannot enter through recruitment. */
     override fun allows(player: UUID, guild: UUID): Boolean {
         if (banned(player)) return false
-        val blocked = storage.connection.connection.use { connection ->
-                val exists = connection.metaData.getTables(
+        val blocked =
+            storage.connection.connection.use { connection ->
+                val exists =
+                    connection.metaData.getTables(
                         connection.catalog,
                         null,
                         "player_invite_blocks",

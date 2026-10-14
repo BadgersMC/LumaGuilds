@@ -11,6 +11,7 @@ import net.lumalyte.lg.application.services.GuildRecruitmentPermissions
 import net.lumalyte.lg.application.services.GuildRecruitmentService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.domain.recruitment.ApplicationStatus
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -136,21 +137,23 @@ internal class GuildRecruitmentListener(
     private fun deliverChanges(player: Player) {
         if (!player.hasPermission("lumaguilds.guild.lfg")) return
         val own = recruitment.mine(player.uniqueId)
-        val inbox = guilds.getPlayerGuilds(player.uniqueId).filter {
+        val inbox =
+            guilds.getPlayerGuilds(player.uniqueId).filter {
                 GuildRecruitmentPermissions.canReview(members, player.uniqueId, it.id)
             }.flatMap { recruitment.inbox(player.uniqueId, it.id) }
         val records = (own + inbox).distinctBy { it.id }.sortedBy { it.id.toString() }
         if (records.isNotEmpty()) {
             val text = records.joinToString(";") { "${it.id}:${it.status}" }
-            val signature = MessageDigest.getInstance(
+            val signature =
+                MessageDigest.getInstance(
                     "SHA-256",
                 ).digest(text.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
             if (directory.consumeNotification(player.uniqueId, signature)) {
                 player.sendMessage(
                     lang.msg(
                         "recruitment.discovery.updated",
-                        "offers" to own.count { it.status == net.lumalyte.lg.domain.recruitment.ApplicationStatus.OFFERED },
-                        "pending" to inbox.count { it.status == net.lumalyte.lg.domain.recruitment.ApplicationStatus.SUBMITTED },
+                        "offers" to own.count { it.status == ApplicationStatus.OFFERED },
+                        "pending" to inbox.count { it.status == ApplicationStatus.SUBMITTED },
                     ).clickEvent(ClickEvent.runCommand("/g recruitment")),
                 )
             }

@@ -91,13 +91,15 @@ class GuildControlPanelMenu(
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
+        val backItem =
+            NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
                 .name(lang.gui("menu.common.item.back.name"))
         pane.addItem(GuiItem(backItem) { menuNavigator.goBack() }, x, y)
     }
 
     private fun addPartyManagementButton(pane: StaticPane, x: Int, y: Int) {
-        val partyItem = NexoItemProvider.getItemStackOrFallback("lg_party") { ItemStack.of(Material.FIREWORK_ROCKET) }
+        val partyItem =
+            NexoItemProvider.getItemStackOrFallback("lg_party") { ItemStack.of(Material.FIREWORK_ROCKET) }
                 .name(lang.gui("menu.control_panel.item.party.name"))
                 .lore(lang.gui("menu.control_panel.item.party.lore.description"))
                 .lore(lang.gui("menu.control_panel.item.party.lore.details"))
@@ -166,7 +168,8 @@ class GuildControlPanelMenu(
     }
 
     private fun addDisbandGuildButton(pane: StaticPane, x: Int, y: Int) {
-        val disbandItem = NexoItemProvider.getItemStackOrFallback("lg_disband") { ItemStack.of(Material.TNT) }
+        val disbandItem =
+            NexoItemProvider.getItemStackOrFallback("lg_disband") { ItemStack.of(Material.TNT) }
                 .name(lang.gui("menu.control_panel.item.disband.name"))
                 .lore(lang.gui("menu.control_panel.item.disband.lore.warning"))
                 .lore(lang.gui("menu.control_panel.item.disband.lore.description"))
@@ -178,7 +181,8 @@ class GuildControlPanelMenu(
     }
 
     private fun addLeaveGuildButton(pane: StaticPane, x: Int, y: Int) {
-        val leaveItem = NexoItemProvider.getItemStackOrFallback("lg_leave") { ItemStack.of(Material.DARK_OAK_DOOR) }
+        val leaveItem =
+            NexoItemProvider.getItemStackOrFallback("lg_leave") { ItemStack.of(Material.DARK_OAK_DOOR) }
                 .name(lang.gui("menu.control_panel.item.leave.name"))
                 .lore(lang.gui("menu.control_panel.item.leave.lore.description"))
                 .lore(lang.gui("menu.control_panel.item.leave.lore.rejoin"))

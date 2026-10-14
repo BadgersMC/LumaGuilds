@@ -151,7 +151,8 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         pane.addItem(iconGuiItem, 3, 0)
 
         // Permission count
-        val countItem = ItemStack
+        val countItem =
+            ItemStack
                 .of(Material.BOOK)
                 .name(lang.gui("menu.rank_creation.summary.name"))
                 .lore(lang.gui("menu.rank_creation.summary.count", "count" to selectedPermissions.size))
@@ -260,7 +261,8 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
             categoryItem.lore(lang.gui("menu.common.blank"))
             categoryItem.lore(lang.gui("community.rank.open_category"))
 
-            val categoryGuiItem = GuiItem(categoryItem) {
+            val categoryGuiItem =
+                GuiItem(categoryItem) {
                     openPermissionCategorySelection(categoryName, permissions)
                 }
             pane.addItem(categoryGuiItem, col, row)
@@ -385,7 +387,8 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     }
 
     private fun permissionGui(categoryName: String): ChestGui {
-        val gui = ChestGui(
+        val gui =
+            ChestGui(
                 6,
                 MenuTitleBuilder.build(
                     guild.guiTheme,
@@ -415,7 +418,8 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         val enabled = permission in selectedPermissions
         val material = if (!allowed) Material.BARRIER else permissionMaterial(enabled)
         val description = if (!allowed) lang.gui("community.rank.unavailable") else permissionDescription(enabled)
-        val item = ItemStack
+        val item =
+            ItemStack
                 .of(material)
                 .name(lang.gui("community.rank.permission", "permission" to localizedPermissionName(permission)))
                 .lore(description)
