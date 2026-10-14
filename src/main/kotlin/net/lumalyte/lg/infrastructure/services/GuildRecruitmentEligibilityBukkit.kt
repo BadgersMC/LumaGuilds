@@ -21,12 +21,13 @@ internal class GuildRecruitmentEligibilityBukkit(
     }
 
     private fun blockedPlayers(connection: java.sql.Connection, player: UUID): Set<UUID> {
-        val exists = connection.metaData.getTables(
-            connection.catalog,
-            null,
-            "player_invite_blocks",
-            arrayOf("TABLE"),
-        ).use { it.next() }
+        val exists =
+            connection.metaData.getTables(
+                connection.catalog,
+                null,
+                "player_invite_blocks",
+                arrayOf("TABLE"),
+            ).use { it.next() }
         return if (exists) readBlockedPlayers(connection, player) else emptySet()
     }
 
