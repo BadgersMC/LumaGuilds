@@ -21,8 +21,7 @@ internal class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
     private val guild = UUID.randomUUID()
     private val policy = RecruitmentPolicy()
 
-    private fun application() =
-        GuildApplication(
+    private fun application() = GuildApplication(
             UUID.randomUUID(),
             guild,
             player,
@@ -67,8 +66,7 @@ internal class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
     fun concurrentSubmissionsEnfor3() {
         val storage = openStorage()
         val repositories = listOf(GuildRecruitmentRepositorySQL(storage), GuildRecruitmentRepositorySQL(storage))
-        val attempts =
-            (0..7).map { n ->
+        val attempts = (0..7).map { n ->
                 CompletableFuture.supplyAsync {
                     repositories[n % 2].submit(application(), policy, now)
                 }

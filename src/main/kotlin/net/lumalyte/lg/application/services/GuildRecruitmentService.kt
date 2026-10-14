@@ -38,10 +38,7 @@ internal class GuildRecruitmentService(
         (minOf(members.getMemberLimit(guild), maximumMembers()) - members.getMemberCount(guild)).coerceAtLeast(0)
 
     /** Requires settings authority at write time; does not modify fees or any other guild field. */
-    fun saveProfile(
-        actor: UUID,
-        profile: RecruitmentProfile,
-    ) {
+    fun saveProfile(actor: UUID, profile: RecruitmentProfile) {
         require(guilds.getGuild(profile.guildId) != null)
         require(GuildRecruitmentPermissions.canEditSettings(members, actor, profile.guildId)) {
             "Recruitment settings permission required"
@@ -50,11 +47,7 @@ internal class GuildRecruitmentService(
     }
 
     /** Submission is private and charges nothing; the repository enforces duplicate/limit checks atomically. */
-    fun submit(
-        player: UUID,
-        guildId: UUID,
-        answers: String,
-    ): GuildApplication {
+    fun submit(player: UUID, guildId: UUID, answers: String): GuildApplication {
         val guild = requireNotNull(guilds.getGuild(guildId)) { "Guild no longer exists" }
         require(profile(guild).mode == RecruitmentMode.IN_GAME) { "This guild does not accept in-game applications" }
         require(
@@ -62,8 +55,7 @@ internal class GuildRecruitmentService(
         ) { "You are not eligible to apply" }
         val at = now()
         val policy = policy()
-        val application =
-            GuildApplication(
+        val application = GuildApplication(
                 UUID.randomUUID(),
                 guildId,
                 player,
@@ -81,21 +73,13 @@ internal class GuildRecruitmentService(
     fun mine(player: UUID): List<GuildApplication> = applications.forApplicant(player).map(::expire)
 
     /** Inbox authorization is checked every time the screen is opened or refreshed. */
-    fun inbox(
-        actor: UUID,
-        guild: UUID,
-    ): List<GuildApplication> {
+    fun inbox(actor: UUID, guild: UUID): List<GuildApplication> {
         require(GuildRecruitmentPermissions.canReview(members, actor, guild)) { "Recruitment permission required" }
         return applications.forGuild(guild).map(::expire)
     }
 
     /** A decision records its actor and creates an offer rather than adding or charging a member. */
-    fun review(
-        actor: UUID,
-        id: UUID,
-        accept: Boolean,
-        reason: String,
-    ): GuildApplication {
+    fun review(actor: UUID, id: UUID, accept: Boolean, reason: String): GuildApplication {
         val current = requireNotNull(applications.get(id)) { "Application no longer exists" }
         require(
             GuildRecruitmentPermissions.canReview(members, actor, current.guildId),
@@ -122,10 +106,7 @@ internal class GuildRecruitmentService(
     }
 
     /** Only the applicant can withdraw; stale transitions cannot undo a confirmed admission. */
-    fun withdraw(
-        player: UUID,
-        id: UUID,
-    ) {
+    fun withdraw(player: UUID, id: UUID) {
         val current = requireNotNull(applications.get(id))
         require(applications.transition(current, current.withdraw(player, now()))) {
             "Application changed; refresh your applications"
@@ -158,8 +139,7 @@ internal class GuildRecruitmentService(
         if (validation !is LfgJoinResult.Success) return validation
         val pending = current.confirm(player, now())
         require(applications.transition(current, pending)) { "Offer already changed; refresh your applications" }
-        val result =
-            lfg.joinApprovedGuild(player, guild) {
+        val result = lfg.joinApprovedGuild(player, guild) {
                 val latest = guilds.getGuild(guild.id)
                 latest != null && profile(latest).mode == RecruitmentMode.IN_GAME && eligible(player, guild.id) &&
                     lfg.getJoinRequirement(latest) == quotedFee &&
@@ -174,10 +154,7 @@ internal class GuildRecruitmentService(
     }
 
     /** Membership events close other offers without changing rewards or charging again. */
-    fun closeOtherApplications(
-        player: UUID,
-        joinedGuild: UUID,
-    ) {
+    fun closeOtherApplications(player: UUID, joinedGuild: UUID) {
         if (joinedGuild !in members.getPlayerGuilds(player)) return
         applications.forApplicant(player).forEach { application ->
             if (application.status in setOf(ApplicationStatus.SUBMITTED, ApplicationStatus.OFFERED)) {

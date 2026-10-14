@@ -17,8 +17,7 @@ internal class RecruitmentPolicyTest {
     private val recruiter = UUID.randomUUID()
     private val policy = RecruitmentPolicy()
 
-    private fun application() =
-        GuildApplication(
+    private fun application() = GuildApplication(
             UUID.randomUUID(),
             guild,
             player,

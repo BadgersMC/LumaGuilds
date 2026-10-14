@@ -35,8 +35,7 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
                 "recruitment_applicant_idx" to "applicant_id",
                 "recruitment_guild_idx" to "guild_id",
             )) {
-                val exists =
-                    connection.metaData.getIndexInfo(
+                val exists = connection.metaData.getIndexInfo(
                         connection.catalog,
                         null,
                         "guild_recruitment_applications",
@@ -59,11 +58,7 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         }
     }
 
-    override fun submit(
-        application: GuildApplication,
-        policy: RecruitmentPolicy,
-        at: Instant,
-    ): SubmissionDenial? {
+    override fun submit(application: GuildApplication, policy: RecruitmentPolicy, at: Instant): SubmissionDenial? {
         require(
             application.status == ApplicationStatus.SUBMITTED &&
                 application.reviewedBy == null && application.reviewedAt == null,
@@ -71,8 +66,7 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         require(application.createdAt == at && application.expiresAt == at.plus(policy.applicationLifetime))
         return transaction { connection ->
             lockApplicant(connection, application.applicantId)
-            val denial =
-                policy.canSubmit(
+            val denial = policy.canSubmit(
                     application.guildId,
                     application.applicantId,
                     query(
@@ -98,28 +92,22 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         }
     }
 
-    override fun get(id: UUID): GuildApplication? =
-        read(
+    override fun get(id: UUID): GuildApplication? = read(
             "SELECT * FROM guild_recruitment_applications WHERE id = ?",
             id,
         ).firstOrNull()
 
-    override fun forApplicant(applicant: UUID): List<GuildApplication> =
-        read(
+    override fun forApplicant(applicant: UUID): List<GuildApplication> = read(
             "SELECT * FROM guild_recruitment_applications WHERE applicant_id = ? ORDER BY created_at, id",
             applicant,
         )
 
-    override fun forGuild(guild: UUID): List<GuildApplication> =
-        read(
+    override fun forGuild(guild: UUID): List<GuildApplication> = read(
             "SELECT * FROM guild_recruitment_applications WHERE guild_id = ? ORDER BY created_at, id",
             guild,
         )
 
-    override fun transition(
-        expected: GuildApplication,
-        updated: GuildApplication,
-    ): Boolean {
+    override fun transition(expected: GuildApplication, updated: GuildApplication): Boolean {
         require(
             expected.id == updated.id && expected.guildId == updated.guildId &&
                 expected.applicantId == updated.applicantId &&
@@ -128,14 +116,12 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         require(expected.status != updated.status)
         return transaction { connection ->
             lockApplicant(connection, expected.applicantId)
-            val current =
-                query(
+            val current = query(
                     connection,
                     "SELECT * FROM guild_recruitment_applications WHERE id = ?",
                     expected.id,
                 ).firstOrNull()
-            if (current !=
-                expected.copy(
+            if (current != expected.copy(
                     createdAt = millis(expected.createdAt), expiresAt = millis(expected.expiresAt),
                     reviewedAt = expected.reviewedAt?.let(::millis),
                 )
@@ -168,11 +154,7 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
 
     private fun millis(at: Instant): Instant = Instant.ofEpochMilli(at.toEpochMilli())
 
-    private fun query(
-        connection: Connection,
-        sql: String,
-        id: UUID,
-    ): List<GuildApplication> =
+    private fun query(connection: Connection, sql: String, id: UUID): List<GuildApplication> =
         connection.prepareStatement(sql).use { statement ->
             statement.setString(1, id.toString())
             statement.executeQuery().use { rows -> buildList { while (rows.next()) add(map(rows)) } }
@@ -189,10 +171,7 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         )
     }
 
-    private fun lockApplicant(
-        connection: Connection,
-        player: UUID,
-    ) {
+    private fun lockApplicant(connection: Connection, player: UUID) {
         val suffix =
             if (maria) {
                 "ON DUPLICATE KEY UPDATE player_id = VALUES(player_id)"
@@ -203,11 +182,7 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         execute(connection, "UPDATE guild_recruitment_applicants SET player_id = player_id WHERE player_id = ?", player)
     }
 
-    private fun execute(
-        connection: Connection,
-        sql: String,
-        vararg values: Any?,
-    ): Int =
+    private fun execute(connection: Connection, sql: String, vararg values: Any?): Int =
         connection.prepareStatement(sql).use { statement ->
             values.forEachIndexed {
                     index,
@@ -218,8 +193,8 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
             statement.executeUpdate()
         }
 
-    private fun <T> transaction(operation: (Connection) -> T): T =
-        storage.connection.connection.use { connection ->
+    @Suppress("TooGenericExceptionCaught") // Transaction boundary rolls back every failure and preserves rollback errors.
+    private fun <T> transaction(operation: (Connection) -> T): T = storage.connection.connection.use { connection ->
             connection.autoCommit = false
             try {
                 val result = operation(connection)

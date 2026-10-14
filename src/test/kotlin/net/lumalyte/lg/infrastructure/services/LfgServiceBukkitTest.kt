@@ -195,8 +195,7 @@ class LfgServiceBukkitTest {
         }
     }
 
-    // ===== getAvailableGuilds Tests =====
-
+    // ===== getAvailableGuilds Tests ===== 
     @Test
     fun `approved offer can admit to a closed guild through existing fee admission`() {
         val player = UUID.randomUUID()
@@ -403,8 +402,7 @@ class LfgServiceBukkitTest {
         assertEquals("Charlie Guild", result[2].name)
     }
 
-    // ===== getJoinRequirement Tests =====
-
+    // ===== getJoinRequirement Tests ===== 
     @Test
     fun `getJoinRequirement should return null when joinFeeEnabled is false`() {
         // Given: Guild with join fee disabled
@@ -515,8 +513,7 @@ class LfgServiceBukkitTest {
         assertEquals(12345, result!!.amount)
     }
 
-    // ===== canJoinGuild Tests =====
-
+    // ===== canJoinGuild Tests ===== 
     @Test
     fun `canJoinGuild should return AlreadyInGuild when player is already in a guild`() {
         // Given: Player is already in a guild
@@ -710,8 +707,7 @@ class LfgServiceBukkitTest {
         assertTrue(result is LfgJoinResult.Success)
     }
 
-    // ===== joinGuild Tests =====
-
+    // ===== joinGuild Tests ===== 
     @Test
     fun `joinGuild should return AlreadyInGuild when player is already in a guild`() {
         // Given: Player is already in a guild

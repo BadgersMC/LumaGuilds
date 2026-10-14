@@ -109,13 +109,32 @@ internal class RecruitmentController(
         }
     }
 
+    private val renderers: Map<RecruitmentScreen, () -> List<RecruitmentButton>> by lazy {
+        mapOf(
+            RecruitmentScreen.SETUP to ::setupMethods,
+            RecruitmentScreen.SETUP_PREVIEW to ::setupPreview,
+            RecruitmentScreen.REVIEW_CONFIRM to ::reviewConfirmation,
+            RecruitmentScreen.MANAGE to ::management,
+            RecruitmentScreen.BROWSE to ::browse,
+            RecruitmentScreen.FILTER to ::filters,
+            RecruitmentScreen.PROFILE to ::profile,
+            RecruitmentScreen.MINE to { service.mine(player.uniqueId).map(::applicationButton) },
+            RecruitmentScreen.APPLICATION to ::applicantActions,
+            RecruitmentScreen.INBOX to ::inbox,
+            RecruitmentScreen.REVIEW to ::review,
+            RecruitmentScreen.SETTINGS to ::settings,
+            RecruitmentScreen.METHOD to ::methodSettings,
+            RecruitmentScreen.CONFIRM to ::confirm,
+            RecruitmentScreen.DISCORD to ::discord,
+        )
+    }
+
     fun view(): RecruitmentView {
         if (!initialized) {
             initialized = true
             if (ownGuild() != null) screen = RecruitmentScreen.MANAGE
         }
-        val navigation =
-            mutableListOf(
+        val navigation = mutableListOf(
                 RecruitmentButton(lang.raw("recruitment.browse"), icon = "lg_back") { go(RecruitmentScreen.BROWSE) },
                 RecruitmentButton(lang.raw("recruitment.mine"), icon = "lg_description") { go(RecruitmentScreen.MINE) },
                 RecruitmentButton(lang.raw("recruitment.search"), listOf(query), "lg_tag") {
@@ -146,36 +165,17 @@ internal class RecruitmentController(
                 },
             )
             if (GuildRecruitmentPermissions.canReview(members, player.uniqueId, guild.id)) {
-                navigation +=
-                    RecruitmentButton(lang.raw("recruitment.inbox"), icon = "lg_nav_members") {
+                navigation += RecruitmentButton(lang.raw("recruitment.inbox"), icon = "lg_nav_members") {
                         go(RecruitmentScreen.INBOX)
                     }
             }
             if (GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id)) {
-                navigation +=
-                    RecruitmentButton(lang.raw("recruitment.settings"), icon = "lg_nav_settings") {
+                navigation += RecruitmentButton(lang.raw("recruitment.settings"), icon = "lg_nav_settings") {
                         go(RecruitmentScreen.SETTINGS)
                     }
             }
         }
-        val items =
-            when (screen) {
-                RecruitmentScreen.SETUP -> setupMethods()
-                RecruitmentScreen.SETUP_PREVIEW -> setupPreview()
-                RecruitmentScreen.REVIEW_CONFIRM -> reviewConfirmation()
-                RecruitmentScreen.MANAGE -> management()
-                RecruitmentScreen.BROWSE -> browse()
-                RecruitmentScreen.FILTER -> filters()
-                RecruitmentScreen.PROFILE -> profile()
-                RecruitmentScreen.MINE -> service.mine(player.uniqueId).map(::applicationButton)
-                RecruitmentScreen.APPLICATION -> applicantActions()
-                RecruitmentScreen.INBOX -> inbox()
-                RecruitmentScreen.REVIEW -> review()
-                RecruitmentScreen.SETTINGS -> settings()
-                RecruitmentScreen.METHOD -> methodSettings()
-                RecruitmentScreen.CONFIRM -> confirm()
-                RecruitmentScreen.DISCORD -> discord()
-            }
+        val items = requireNotNull(renderers[screen]).invoke()
         return RecruitmentView(
             if (screen == RecruitmentScreen.MANAGE) lang.raw("recruitment.manage") else lang.raw("recruitment.title"),
             items.ifEmpty {
@@ -193,6 +193,7 @@ internal class RecruitmentController(
             try {
                 current.accept(value.trim())
             } catch (error: IllegalArgumentException) {
+                org.slf4j.LoggerFactory.getLogger(javaClass).debug("Recruitment input validation failed", error)
                 input = current
                 player.sendMessage(lang.msg("recruitment.invalid_input"))
             }
@@ -252,8 +253,7 @@ internal class RecruitmentController(
         }
     }
 
-    private fun setupMethods(): List<RecruitmentButton> =
-        RecruitmentMode.entries.map { method ->
+    private fun setupMethods(): List<RecruitmentButton> = RecruitmentMode.entries.map { method ->
             RecruitmentButton(mode(method), icon = "lg_nav_settings") {
                 val guild = requireNotNull(ownGuild())
                 require(GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id))
@@ -264,8 +264,7 @@ internal class RecruitmentController(
 
     private fun setupInput(step: Int) {
         val draft = requireNotNull(setupDraft)
-        val fields =
-            listOf(
+        val fields = listOf(
                 lang.raw("recruitment.pitch") to draft.pitch,
                 lang.raw("recruitment.requirements") to draft.requirements,
                 lang.raw("recruitment.interests") to draft.interests.joinToString(","),
@@ -346,8 +345,7 @@ internal class RecruitmentController(
         refresh()
     }
 
-    private fun quickFilters(): List<RecruitmentButton> =
-        listOf(
+    private fun quickFilters(): List<RecruitmentButton> = listOf(
             RecruitmentButton(
                 lang.raw("recruitment.filter_recruiting"),
                 listOf(enabled(recruitingOnly)),
@@ -408,11 +406,7 @@ internal class RecruitmentController(
             },
         )
 
-    private fun ask(
-        label: String,
-        value: String = "",
-        accept: (String) -> Unit,
-    ) {
+    private fun ask(label: String, value: String = "", accept: (String) -> Unit) {
         input = RecruitmentInput(label, value, accept)
         refresh()
     }
@@ -449,8 +443,7 @@ internal class RecruitmentController(
             ApplicationStatus.CLOSED -> lang.raw("recruitment.status.closed")
         }
 
-    private fun answers(application: GuildApplication): RecruitmentButton =
-        RecruitmentButton(
+    private fun answers(application: GuildApplication): RecruitmentButton = RecruitmentButton(
             status(application.status),
             listOf(application.answers, application.decisionReason),
             "lg_description",
@@ -477,8 +470,7 @@ internal class RecruitmentController(
 
     private fun selectedGuild(): Guild = requireNotNull(selected?.let(guilds::getGuild))
 
-    private fun selectedOwnApplication(): GuildApplication =
-        requireNotNull(
+    private fun selectedOwnApplication(): GuildApplication = requireNotNull(
             service.mine(player.uniqueId).firstOrNull {
                 it.id == selectedApplication
             },
@@ -492,16 +484,20 @@ internal class RecruitmentController(
             RecruitmentMode.CLOSED -> lang.raw("recruitment.mode.closed")
         }
 
-    private fun browse(): List<RecruitmentButton> =
-        service.browse().filter { guild ->
+    private fun matchesAvailability(guild: Guild, profile: RecruitmentProfile): Boolean =
+        (peaceful == null || peaceful == (guild.mode == GuildMode.PEACEFUL)) &&
+            (!recruitingOnly || (profile.mode != RecruitmentMode.CLOSED && service.spaces(guild.id) > 0)) &&
+            (joiningMethod == null || joiningMethod == profile.mode)
+
+    private fun matchesPreferences(guild: Guild, profile: RecruitmentProfile): Boolean =
+        (!beginnersOnly || profile.beginnerFriendly) &&
+            profile.language.contains(languageFilter, true) && profile.preferredTimes.contains(timeFilter, true) &&
+            (interest == null || profile.interests.any { it.equals(interest, true) }) &&
+            (guild.name + " " + profile.pitch + " " + profile.interests.joinToString(" ")).contains(query, true)
+
+    private fun browse(): List<RecruitmentButton> = service.browse().filter { guild ->
             val profile = service.profile(guild)
-            (peaceful == null || peaceful == (guild.mode == GuildMode.PEACEFUL)) &&
-                (!recruitingOnly || (profile.mode != RecruitmentMode.CLOSED && service.spaces(guild.id) > 0)) &&
-                (!beginnersOnly || profile.beginnerFriendly) &&
-                (joiningMethod == null || joiningMethod == profile.mode) &&
-                profile.language.contains(languageFilter, true) && profile.preferredTimes.contains(timeFilter, true) &&
-                (interest == null || profile.interests.any { it.equals(interest, true) }) &&
-                (guild.name + " " + profile.pitch + " " + profile.interests.joinToString(" ")).contains(query, true)
+            matchesAvailability(guild, profile) && matchesPreferences(guild, profile)
         }.sortedWith(
             when (sorting) {
                 1 -> compareByDescending<Guild> { it.level }.thenBy { it.name.lowercase() }
@@ -524,8 +520,7 @@ internal class RecruitmentController(
             }
         }
 
-    private fun filters(): List<RecruitmentButton> =
-        listOf(
+    private fun filters(): List<RecruitmentButton> = listOf(
             RecruitmentButton(lang.raw("recruitment.filter"), listOf(guildMode()), "lg_nav_settings") {
                 peaceful =
                     when (peaceful) {
@@ -610,8 +605,7 @@ internal class RecruitmentController(
         val guild = selectedGuild()
         val profile = service.profile(guild)
         val items = mutableListOf(RecruitmentButton(guild.name, details(guild), "lg_nav_info", guild))
-        items +=
-            RecruitmentButton(lang.raw("recruitment.guide"), icon = "lg_description") {
+        items += RecruitmentButton(lang.raw("recruitment.guide"), icon = "lg_description") {
                 val current = selectedGuild()
                 val navigationValid = returnGuard()
                 net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.book(
@@ -622,15 +616,13 @@ internal class RecruitmentController(
         if (service.spaces(guild.id) > 0 && members.getPlayerGuilds(player.uniqueId).isEmpty()) {
             when (profile.mode) {
                 RecruitmentMode.JOIN_IMMEDIATELY ->
-                    items +=
-                        RecruitmentButton(mode(profile.mode), icon = "lg_confirm") {
+                    items += RecruitmentButton(mode(profile.mode), icon = "lg_confirm") {
                             quotedGuild = guild
                             quotedFee = lfg.getJoinRequirement(guild)
                             go(RecruitmentScreen.CONFIRM)
                         }
                 RecruitmentMode.IN_GAME ->
-                    items +=
-                        RecruitmentButton(mode(profile.mode), icon = "lg_description") {
+                    items += RecruitmentButton(mode(profile.mode), icon = "lg_description") {
                             ask(lang.raw("recruitment.introduction")) {
                                 service.submit(player.uniqueId, guild.id, it)
                                 go(RecruitmentScreen.MINE)
@@ -642,8 +634,7 @@ internal class RecruitmentController(
             }
         }
         if (profile.discordInvite != null) {
-            items +=
-                RecruitmentButton(lang.raw("recruitment.discord"), icon = "lg_invite") {
+            items += RecruitmentButton(lang.raw("recruitment.discord"), icon = "lg_invite") {
                     go(RecruitmentScreen.DISCORD)
                 }
         }
@@ -670,18 +661,15 @@ internal class RecruitmentController(
 
     private fun applicantActions(): List<RecruitmentButton> {
         val application = selectedOwnApplication()
-        val items =
-            mutableListOf(answers(application))
+        val items = mutableListOf(answers(application))
         if (application.status in setOf(ApplicationStatus.SUBMITTED, ApplicationStatus.OFFERED)) {
-            items +=
-                RecruitmentButton(lang.raw("recruitment.withdraw"), icon = "lg_cancel") {
+            items += RecruitmentButton(lang.raw("recruitment.withdraw"), icon = "lg_cancel") {
                     service.withdraw(player.uniqueId, application.id)
                     go(RecruitmentScreen.MINE)
                 }
         }
         if (application.status == ApplicationStatus.OFFERED) {
-            items +=
-                RecruitmentButton(lang.raw("recruitment.offer"), icon = "lg_confirm") {
+            items += RecruitmentButton(lang.raw("recruitment.offer"), icon = "lg_confirm") {
                     quotedGuild = selectedGuild()
                     quotedFee = lfg.getJoinRequirement(requireNotNull(quotedGuild))
                     go(RecruitmentScreen.CONFIRM)
@@ -860,8 +848,7 @@ internal class RecruitmentController(
                 profile.discordInvite ?: "",
             ) { current, value ->
                 current.copy(
-                    discordInvite =
-                        value.ifBlank {
+                    discordInvite = value.ifBlank {
                             null
                         },
                 )
@@ -873,8 +860,7 @@ internal class RecruitmentController(
         )
     }
 
-    private fun methodSettings(): List<RecruitmentButton> =
-        RecruitmentMode.entries.map { method ->
+    private fun methodSettings(): List<RecruitmentButton> = RecruitmentMode.entries.map { method ->
             RecruitmentButton(mode(method), icon = "lg_nav_settings") {
                 val guild = requireNotNull(ownGuild())
                 val profile = service.profile(guild)

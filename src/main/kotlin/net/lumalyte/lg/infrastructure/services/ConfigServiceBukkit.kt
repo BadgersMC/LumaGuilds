@@ -78,8 +78,7 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
         )
     }
 
-    private fun loadGuildListConfig(): GuildListConfig =
-        GuildListConfig(
+    private fun loadGuildListConfig(): GuildListConfig = GuildListConfig(
             pageSize = config.getInt("guild_list.page_size", 18).coerceIn(1, 36),
         )
 

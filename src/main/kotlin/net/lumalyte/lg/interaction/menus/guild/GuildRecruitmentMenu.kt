@@ -39,8 +39,7 @@ internal class GuildRecruitmentMenu(
     private val emojis: NexoEmojiService by inject()
 
     /** Refreshes from current service state; failures never open a stale private inbox. */
-    override fun open(): Unit =
-        controller.run {
+    override fun open(): Unit = controller.run {
             val input = controller.input
             if (input != null) {
                 if (net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.supportsDialog(player)) {
@@ -61,12 +60,8 @@ internal class GuildRecruitmentMenu(
                 player.closeInventory()
                 player.sendMessage(lang.msg("recruitment.feedback.input", "field" to input.label))
                 val navigation = navigator.currentNavigationToken()
-                val handler =
-                    object : ChatInputHandler {
-                        override fun onChatInput(
-                            player: Player,
-                            input: String,
-                        ) {
+                val handler = object : ChatInputHandler {
+                        override fun onChatInput(player: Player, input: String) {
                             if (player.isOnline && navigator.isNavigationCurrent(navigation)) {
                                 controller.acceptInput(
                                     input,
@@ -94,8 +89,7 @@ internal class GuildRecruitmentMenu(
                 val offset = if (view.quickFilters.isEmpty()) 0 else 1
                 val pages = maxOf(1, (view.items.size + capacity - 1) / capacity)
                 controller.page = controller.page.coerceIn(0, pages - 1)
-                val gui =
-                    ChestGui(
+                val gui = ChestGui(
                         6,
                         MenuTitleBuilder.build(controller.theme(), 6, "${view.title} ${controller.page + 1}/$pages"),
                     )
@@ -138,17 +132,10 @@ internal class GuildRecruitmentMenu(
             }
         }
 
-    private fun add(
-        pane: StaticPane,
-        button: RecruitmentButton,
-        x: Int,
-        y: Int,
-    ) {
-        val base =
-            button.guild?.let(GuildBannerItemResolver::resolveForDisplay)
+    private fun add(pane: StaticPane, button: RecruitmentButton, x: Int, y: Int) {
+        val base = button.guild?.let(GuildBannerItemResolver::resolveForDisplay)
                 ?: NexoItemProvider.getItemStackOrFallback(button.icon) { ItemStack.of(Material.BOOK) }
-        val emoji =
-            button.guild?.let {
+        val emoji = button.guild?.let {
                 MiniMessage.miniMessage().deserialize(emojis.emojiToFontTag(it.emoji)).append(Component.space())
             } ?: Component.empty()
         val item = base.name(emoji.append(GuiTextStyler.style(Component.text(button.label))))

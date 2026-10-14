@@ -66,10 +66,7 @@ class LfgServiceBukkit internal constructor(
             .sortedBy { it.name.lowercase() }
     }
 
-    override fun canJoinGuild(
-        playerId: UUID,
-        guild: Guild,
-    ): LfgJoinResult {
+    override fun canJoinGuild(playerId: UUID, guild: Guild): LfgJoinResult {
         if (recruitmentEligibility?.allows(playerId, guild.id) == false) {
             return LfgJoinResult.Error("You are not eligible to join this guild")
         }
@@ -91,8 +88,7 @@ class LfgServiceBukkit internal constructor(
         // Check join fee requirements
         if (guild.joinFeeEnabled && guild.joinFeeAmount > 0) {
             val vaultConfig = config.vault
-            val charge =
-                bankService.quoteJoinFee(guild.id, guild.joinFeeAmount)
+            val charge = bankService.quoteJoinFee(guild.id, guild.joinFeeAmount)
                     ?: return LfgJoinResult.Error("Join fee is not supported by the current bank limits")
 
             if (vaultConfig.usePhysicalCurrency) {
@@ -122,39 +118,25 @@ class LfgServiceBukkit internal constructor(
     }
 
     @Synchronized
-    override fun joinGuild(
-        playerId: UUID,
-        guild: Guild,
-    ): LfgJoinResult {
+    override fun joinGuild(playerId: UUID, guild: Guild): LfgJoinResult {
         return admit(playerId, guild) { current -> isImmediate(current) }
     }
 
     /** Approved offers use the same compensated fee transaction without opening the guild publicly. */
     @Synchronized
-    override fun joinApprovedGuild(
-        playerId: UUID,
-        guild: Guild,
-        eligible: () -> Boolean,
-    ): LfgJoinResult {
+    override fun joinApprovedGuild(playerId: UUID, guild: Guild, eligible: () -> Boolean): LfgJoinResult {
         return admit(playerId, guild) { eligible() }
     }
 
-    private fun isImmediate(guild: Guild): Boolean =
-        recruitment?.profile(guild.id)?.let {
+    private fun isImmediate(guild: Guild): Boolean = recruitment?.profile(guild.id)?.let {
             it.mode == net.lumalyte.lg.domain.recruitment.RecruitmentMode.JOIN_IMMEDIATELY
         } ?: guild.isOpen
 
-    private fun admit(
-        playerId: UUID,
-        guild: Guild,
-        admissionAllowed: (Guild) -> Boolean,
-    ): LfgJoinResult {
-        val current =
-            guildRepository.getById(guild.id)
+    private fun admit(playerId: UUID, guild: Guild, admissionAllowed: (Guild) -> Boolean): LfgJoinResult {
+        val current = guildRepository.getById(guild.id)
                 ?: return LfgJoinResult.Error("This guild is no longer available")
         if (!admissionAllowed(current) || !sameFee(current, guild)) return recruitmentChanged()
-        val rank =
-            rankService.getDefaultRank(guild.id)
+        val rank = rankService.getDefaultRank(guild.id)
                 ?: return LfgJoinResult.Error("Guild configuration error: No default rank found")
         val validation = canJoinGuild(playerId, current)
         if (validation !is LfgJoinResult.Success) return validation
@@ -196,8 +178,7 @@ class LfgServiceBukkit internal constructor(
         val quote = getJoinRequirement(guild) ?: return LfgJoinResult.Error("Joining fee is unavailable")
         val request =
             PersonalGoldRequest(UUID.randomUUID(), guild.id, playerId, guild.joinFeeAmount.toLong(), "LFG join fee")
-        val admission =
-            object : PaidGuildAdmission {
+        val admission = object : PaidGuildAdmission {
                 override fun isEligible(): Boolean =
                     eligibleForAdmission(playerId, guild, rank, admissionAllowed) && getJoinRequirement(guild) == quote
 
@@ -207,10 +188,7 @@ class LfgServiceBukkit internal constructor(
         return paymentResult(bankService.collectJoinFee(request, quote.isPhysicalCurrency, admission), guild)
     }
 
-    private fun paymentResult(
-        result: GuildGoldResult,
-        guild: Guild,
-    ): LfgJoinResult =
+    private fun paymentResult(result: GuildGoldResult, guild: Guild): LfgJoinResult =
         when (result) {
             is GuildGoldResult.Applied -> LfgJoinResult.Success("You have joined ${guild.name}!")
             is GuildGoldResult.Rejected -> LfgJoinResult.Error("Join fee was not accepted (${result.reason})")

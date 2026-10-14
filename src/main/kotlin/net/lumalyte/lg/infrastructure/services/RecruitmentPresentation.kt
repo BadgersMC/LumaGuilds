@@ -21,8 +21,7 @@ import java.time.Duration
 internal object RecruitmentPresentation : org.koin.core.component.KoinComponent {
     private val platforms: net.lumalyte.lg.application.services.PlatformDetectionService by inject()
 
-    fun supportsDialog(player: Player): Boolean =
-        Bukkit.getPluginManager().isPluginEnabled("packetevents") &&
+    fun supportsDialog(player: Player): Boolean = Bukkit.getPluginManager().isPluginEnabled("packetevents") &&
             PacketEvents.getAPI().playerManager.getUser(player)?.clientVersion
                 ?.isNewerThanOrEquals(ClientVersion.V_1_21_6) == true
 
@@ -38,8 +37,7 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
     ) {
         val options = ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(2)).build()
 
-        fun action(callback: (String?) -> Unit) =
-            DialogAction.customClick({ response, audience ->
+        fun action(callback: (String?) -> Unit) = DialogAction.customClick({ response, audience ->
                 if (audience is Player && audience.uniqueId == player.uniqueId) {
                     Bukkit.getScheduler().runTask(
                         net.lumalyte.lg.common.PluginKeys.getPlugin(),
@@ -96,8 +94,7 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
             return
         }
         val options = ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(2)).build()
-        val returnLink =
-            Component.text(backLabel).clickEvent(
+        val returnLink = Component.text(backLabel).clickEvent(
                 ClickEvent.callback({ audience ->
                     if (audience is Player && audience.uniqueId == player.uniqueId) {
                         Bukkit.getScheduler().runTask(
@@ -109,8 +106,7 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
                     }
                 }, options),
             )
-        val pages =
-            lines.flatMap { it.chunked(24) }.chunked(10).take(30).map { page ->
+        val pages = lines.flatMap { it.chunked(24) }.chunked(10).take(30).map { page ->
                 Component.text(page.joinToString("\n")).append(Component.newline()).append(returnLink)
             }.ifEmpty { listOf(returnLink) }
         player.closeInventory()
