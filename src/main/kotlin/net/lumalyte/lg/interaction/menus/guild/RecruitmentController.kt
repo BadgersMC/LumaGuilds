@@ -23,6 +23,9 @@ import org.koin.core.component.inject
 import java.util.UUID
 
 internal enum class RecruitmentScreen {
+    SETUP,
+    SETUP_PREVIEW,
+    REVIEW_CONFIRM,
     MANAGE,
     BROWSE,
     FILTER,
@@ -68,6 +71,10 @@ internal class RecruitmentController(private val player: Player, private val ref
     private var browsePage = 0
     private var interest: String? = null
     private var sorting = 0
+    private var setupDraft: RecruitmentProfile? = null
+    private var setupMode = RecruitmentMode.CLOSED
+    private var reviewApprove = false
+    private var reviewReason = ""
     private var selected: UUID? = null
     private var selectedApplication: UUID? = null
     private var quotedGuild: Guild? = null
@@ -144,6 +151,9 @@ internal class RecruitmentController(private val player: Player, private val ref
         }
         val items =
             when (screen) {
+                RecruitmentScreen.SETUP -> setupMethods()
+                RecruitmentScreen.SETUP_PREVIEW -> setupPreview()
+                RecruitmentScreen.REVIEW_CONFIRM -> reviewConfirmation()
                 RecruitmentScreen.MANAGE -> management()
                 RecruitmentScreen.BROWSE -> browse()
                 RecruitmentScreen.FILTER -> filters()
@@ -197,10 +207,76 @@ internal class RecruitmentController(private val player: Player, private val ref
                 add(RecruitmentButton(lang.raw("recruitment.inbox"), icon = "lg_nav_members") { go(RecruitmentScreen.INBOX) })
             }
             if (GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id)) {
+                add(RecruitmentButton(lang.raw("recruitment.setup"), icon = "lg_tag") {
+                    setupDraft = service.profile(guild).copy(mode = RecruitmentMode.CLOSED)
+                    go(RecruitmentScreen.SETUP)
+                })
                 add(RecruitmentButton(lang.raw("recruitment.settings"), icon = "lg_nav_settings") { go(RecruitmentScreen.SETTINGS) })
             }
             add(RecruitmentButton(lang.raw("recruitment.browse"), icon = "lg_nav_info") { go(RecruitmentScreen.BROWSE) })
         }
+    }
+
+    private fun setupMethods(): List<RecruitmentButton> = RecruitmentMode.entries.map { method ->
+        RecruitmentButton(mode(method), icon = "lg_nav_settings") {
+            val guild = requireNotNull(ownGuild())
+            require(GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id))
+            setupMode = method
+            setupInput(0)
+        }
+    }
+
+    private fun setupInput(step: Int) {
+        val draft = requireNotNull(setupDraft)
+        val fields = listOf(
+            lang.raw("recruitment.pitch") to draft.pitch,
+            lang.raw("recruitment.requirements") to draft.requirements,
+            lang.raw("recruitment.interests") to draft.interests.joinToString(","),
+            lang.raw("recruitment.times") to draft.preferredTimes,
+            lang.raw("recruitment.language") to draft.language,
+            lang.raw("recruitment.discord") to (draft.discordInvite ?: ""),
+            lang.raw("recruitment.instructions") to draft.discordInstructions,
+        )
+        val count = if (setupMode == RecruitmentMode.DISCORD) 7 else 5
+        if (step == count) { go(RecruitmentScreen.SETUP_PREVIEW); return }
+        ask("${step + 1}/$count ${fields[step].first}", fields[step].second) { value ->
+            val current = requireNotNull(setupDraft)
+            setupDraft = when (step) {
+                0 -> current.copy(pitch = value)
+                1 -> current.copy(requirements = value)
+                2 -> current.copy(interests = value.split(',').map(String::trim).filter(String::isNotBlank).toSet())
+                3 -> current.copy(preferredTimes = value)
+                4 -> current.copy(language = value)
+                5 -> current.copy(discordInvite = value.ifBlank { null })
+                else -> current.copy(discordInstructions = value)
+            }
+            setupInput(step + 1)
+        }
+    }
+
+    private fun setupPreview(): List<RecruitmentButton> {
+        val guild = requireNotNull(ownGuild())
+        require(GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id))
+        val draft = requireNotNull(setupDraft)
+        return listOf(
+            RecruitmentButton(lang.raw("recruitment.preview"), listOf(mode(setupMode), draft.pitch,
+                draft.requirements, draft.interests.joinToString(", "), draft.preferredTimes, draft.language,
+                draft.discordInvite ?: "", draft.discordInstructions).filter(String::isNotBlank), "lg_nav_info", guild),
+            RecruitmentButton(lang.raw("recruitment.beginner"), listOf(enabled(draft.beginnerFriendly)), "lg_toggle_on") {
+                setupDraft = draft.copy(beginnerFriendly = !draft.beginnerFriendly); refresh()
+            },
+            RecruitmentButton(lang.raw("recruitment.publish"), icon = "lg_confirm") {
+                if (setupMode == RecruitmentMode.DISCORD && (draft.discordInvite == null || draft.discordInstructions.isBlank())) {
+                    player.sendMessage(lang.msg("recruitment.discord_setup")); setupInput(5)
+                } else {
+                    service.saveProfile(player.uniqueId, draft.copy(mode = setupMode))
+                    setupDraft = null; go(RecruitmentScreen.MANAGE)
+                }
+            },
+            RecruitmentButton(lang.raw("recruitment.discard"), icon = "lg_cancel") {
+                setupDraft = null; go(RecruitmentScreen.MANAGE)
+            },
+        )
     }
 
     private fun resetBrowse() {
@@ -444,7 +520,8 @@ internal class RecruitmentController(private val player: Player, private val ref
         val name = guilds.getGuild(application.guildId)?.name ?: application.guildId.toString()
         return RecruitmentButton(
             name,
-            listOf(status(application.status), application.expiresAt.toString(), application.decisionReason),
+            listOf(status(application.status), lang.raw("recruitment.submitted_at") + application.createdAt,
+                lang.raw("recruitment.expires_at") + application.expiresAt, application.decisionReason),
             "lg_description",
         ) {
             selectedApplication = application.id
@@ -484,7 +561,8 @@ internal class RecruitmentController(private val player: Player, private val ref
                 application ->
             RecruitmentButton(
                 org.bukkit.Bukkit.getOfflinePlayer(application.applicantId).name ?: application.applicantId.toString(),
-                listOf(application.createdAt.toString()),
+                listOf(status(application.status), lang.raw("recruitment.submitted_at") + application.createdAt,
+                    lang.raw("recruitment.expires_at") + application.expiresAt),
                 "lg_nav_members",
             ) {
                 selectedApplication = application.id
@@ -500,16 +578,30 @@ internal class RecruitmentController(private val player: Player, private val ref
             requireNotNull(service.inbox(player.uniqueId, guild.id).firstOrNull { it.id == selectedApplication })
         return listOf(
             answers(application),
+            RecruitmentButton(lang.raw("recruitment.submitted_at") + application.createdAt,
+                listOf(status(application.status), lang.raw("recruitment.expires_at") + application.expiresAt), "lg_history"),
             RecruitmentButton(lang.raw("recruitment.send_offer"), icon = "lg_confirm") {
-                service.review(player.uniqueId, application.id, true, "")
-                go(RecruitmentScreen.INBOX)
+                reviewApprove = true; reviewReason = ""; go(RecruitmentScreen.REVIEW_CONFIRM)
             },
             RecruitmentButton(lang.raw("recruitment.decline"), icon = "lg_cancel") {
                 ask(lang.raw("recruitment.reason")) {
-                    service.review(player.uniqueId, application.id, false, it)
-                    go(RecruitmentScreen.INBOX)
+                    reviewApprove = false; reviewReason = it; go(RecruitmentScreen.REVIEW_CONFIRM)
                 }
             },
+        )
+    }
+
+    private fun reviewConfirmation(): List<RecruitmentButton> {
+        val guild = requireNotNull(ownGuild())
+        val application = requireNotNull(service.inbox(player.uniqueId, guild.id).firstOrNull { it.id == selectedApplication })
+        return listOf(
+            answers(application),
+            RecruitmentButton(if (reviewApprove) lang.raw("recruitment.send_offer") else lang.raw("recruitment.decline"),
+                listOf(reviewReason), "lg_confirm") {
+                service.review(player.uniqueId, application.id, reviewApprove, reviewReason)
+                go(RecruitmentScreen.INBOX)
+            },
+            RecruitmentButton(lang.raw("recruitment.cancel_review"), icon = "lg_back") { go(RecruitmentScreen.REVIEW) },
         )
     }
 

@@ -7678,6 +7678,12 @@ onboarding:
     stalls: "Guild Stalls shows authoritative ownership and member access, or explains unavailable Market data."
 
 recruitment:
+  setup: Guided Recruitment Setup
+  publish: Publish Recruitment Listing
+  discard: Discard Draft
+  submitted_at: "Submitted (UTC): "
+  expires_at: "Expires (UTC): "
+  cancel_review: Back Without Sending
   manage: Manage Recruitment
   preview: Preview Our Listing
   building: Building
