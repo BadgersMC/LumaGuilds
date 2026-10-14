@@ -61,11 +61,7 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         }
     }
 
-    override fun submit(
-        application: GuildApplication,
-        policy: RecruitmentPolicy,
-        at: Instant,
-    ): SubmissionDenial? {
+    override fun submit(application: GuildApplication, policy: RecruitmentPolicy, at: Instant): SubmissionDenial? {
         require(
             application.status == ApplicationStatus.SUBMITTED &&
                 application.reviewedBy == null && application.reviewedAt == null,
@@ -120,10 +116,7 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
             guild,
         )
 
-    override fun transition(
-        expected: GuildApplication,
-        updated: GuildApplication,
-    ): Boolean {
+    override fun transition(expected: GuildApplication, updated: GuildApplication): Boolean {
         require(
             expected.id == updated.id && expected.guildId == updated.guildId &&
                 expected.applicantId == updated.applicantId &&
@@ -167,18 +160,12 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         }
     }
 
-    private fun read(
-        sql: String,
-        id: UUID,
-    ): List<GuildApplication> = storage.connection.connection.use { query(it, sql, id) }
+    private fun read(sql: String, id: UUID): List<GuildApplication> =
+        storage.connection.connection.use { query(it, sql, id) }
 
     private fun millis(at: Instant): Instant = Instant.ofEpochMilli(at.toEpochMilli())
 
-    private fun query(
-        connection: Connection,
-        sql: String,
-        id: UUID,
-    ): List<GuildApplication> =
+    private fun query(connection: Connection, sql: String, id: UUID): List<GuildApplication> =
         connection.prepareStatement(sql).use { statement ->
             statement.setString(1, id.toString())
             statement.executeQuery().use { rows -> buildList { while (rows.next()) add(map(rows)) } }
@@ -195,10 +182,7 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         )
     }
 
-    private fun lockApplicant(
-        connection: Connection,
-        player: UUID,
-    ) {
+    private fun lockApplicant(connection: Connection, player: UUID) {
         val suffix =
             if (maria) {
                 "ON DUPLICATE KEY UPDATE player_id = VALUES(player_id)"
@@ -209,11 +193,7 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         execute(connection, "UPDATE guild_recruitment_applicants SET player_id = player_id WHERE player_id = ?", player)
     }
 
-    private fun execute(
-        connection: Connection,
-        sql: String,
-        vararg values: Any?,
-    ): Int =
+    private fun execute(connection: Connection, sql: String, vararg values: Any?): Int =
         connection.prepareStatement(sql).use { statement ->
             values.forEachIndexed {
                     index,

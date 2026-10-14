@@ -117,7 +117,7 @@ internal class RecruitmentController(
             org.slf4j.LoggerFactory.getLogger(
                 javaClass,
             ).warn("Recruitment action failed for {}", player.uniqueId, error)
-            player.sendMessage(lang.msg("recruitment.feedback.failed"))
+            player.sendMessage(recruitmentRejectionMessage(lang, error))
         }
     }
 
@@ -147,7 +147,7 @@ internal class RecruitmentController(
             } catch (error: IllegalArgumentException) {
                 org.slf4j.LoggerFactory.getLogger(javaClass).debug("Recruitment input validation failed", error)
                 input = current
-                player.sendMessage(lang.msg("recruitment.invalid_input"))
+                player.sendMessage(recruitmentRejectionMessage(lang, error, input = true))
             }
         }
         refresh()

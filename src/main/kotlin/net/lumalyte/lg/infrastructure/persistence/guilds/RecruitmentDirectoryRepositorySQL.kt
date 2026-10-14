@@ -92,10 +92,7 @@ internal class RecruitmentDirectoryRepositorySQL(
     }
 
     /** Enables or disables personal discovery prompts without resetting prompt history. */
-    override fun setReminders(
-        player: UUID,
-        enabled: Boolean,
-    ) {
+    override fun setReminders(player: UUID, enabled: Boolean) {
         val suffix =
             if (maria) {
                 "ON DUPLICATE KEY UPDATE enabled = VALUES(enabled)"
@@ -116,11 +113,7 @@ internal class RecruitmentDirectoryRepositorySQL(
         )?.getInt("enabled") != 0
 
     /** One conditional update makes reconnects and competing schedulers unable to replay a prompt. */
-    override fun consumePrompt(
-        player: UUID,
-        at: Instant,
-        repeatAfter: Duration?,
-    ): Boolean {
+    override fun consumePrompt(player: UUID, at: Instant, repeatAfter: Duration?): Boolean {
         require(repeatAfter == null || repeatAfter > Duration.ZERO)
         val suffix =
             if (maria) {
@@ -146,10 +139,7 @@ internal class RecruitmentDirectoryRepositorySQL(
     }
 
     /** A digest is delivered once until its private application or inbox state changes. */
-    override fun consumeNotification(
-        player: UUID,
-        signature: String,
-    ): Boolean {
+    override fun consumeNotification(player: UUID, signature: String): Boolean {
         require(signature.matches(Regex("[0-9a-f]{64}")))
         val suffix =
             if (maria) {

@@ -7,18 +7,12 @@ import net.lumalyte.lg.domain.recruitment.RecruitmentMode
 import net.lumalyte.lg.domain.recruitment.RecruitmentProfile
 
 /** Browse presentation builders share the current authorized navigation session. */
-internal fun RecruitmentController.matchesAvailability(
-    guild: Guild,
-    profile: RecruitmentProfile,
-): Boolean =
+internal fun RecruitmentController.matchesAvailability(guild: Guild, profile: RecruitmentProfile): Boolean =
     (peaceful == null || peaceful == (guild.mode == GuildMode.PEACEFUL)) &&
         (!recruitingOnly || profile.mode != RecruitmentMode.CLOSED && service.spaces(guild.id) > 0) &&
         (joiningMethod == null || joiningMethod == profile.mode)
 
-internal fun RecruitmentController.matchesPreferences(
-    guild: Guild,
-    profile: RecruitmentProfile,
-): Boolean =
+internal fun RecruitmentController.matchesPreferences(guild: Guild, profile: RecruitmentProfile): Boolean =
     (!beginnersOnly || profile.beginnerFriendly) &&
         profile.language.contains(languageFilter, true) && profile.preferredTimes.contains(timeFilter, true) &&
         (interest == null || profile.interests.any { it.equals(interest, true) }) &&

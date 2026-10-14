@@ -120,10 +120,7 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
     }
 
     /** Retains complete validated text and wraps at Unicode code-point boundaries. */
-    internal fun bookPages(
-        lines: List<String>,
-        returnLink: Component,
-    ): List<Component> {
+    internal fun bookPages(lines: List<String>, returnLink: Component): List<Component> {
         val rows =
             lines.flatMap { value ->
                 value.lines().flatMap { line ->

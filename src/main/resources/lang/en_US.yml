@@ -7774,6 +7774,19 @@ recruitment:
     discord: Apply Through Discord
     closed: Recruitment Closed
   feedback:
+    guild_full: "<yellow>This guild has no available member space. Refresh its listing or choose another guild."
+    already_member: "<yellow>You already belong to a guild. Open your guild menu or review My Applications."
+    insufficient_funds: "<yellow>Joining requires <required> <currency>; you currently have <current>. Review the offer again after obtaining enough currency."
+    edit_denied: "<red>You need Edit Recruitment Settings permission. Ask your guild owner to grant it, then reopen the menu."
+    review_denied: "<red>You need Manage Recruitment permission to view or decide applications. Reopen the menu after your rank is updated."
+    guild_removed: "<yellow>This guild is no longer available. Return to the recruitment board."
+    method_changed: "<yellow>This guild changed its application method. Reopen its listing for the current joining options."
+    application_limit: "<yellow>You already have an active application for this guild or reached your application limit. Review My Applications before applying again."
+    application_removed: "<yellow>This application is no longer available. Refresh My Applications or the recruitment inbox."
+    stale_application: "<yellow>This application or offer changed. Refresh the menu before trying again. Do not repeat a payment marked pending."
+    fee_changed: "<yellow>The joining fee or currency changed. Reopen the offer and review the current price before confirming."
+    ineligible: "<yellow>The applicant is no longer eligible or the guild has no available space. Refresh the listing and check current membership and requirements."
+    invite_changed: "<yellow>The guild Discord invite changed. Reopen the guild listing to see its current link."
     failed: "<red>Could not complete recruitment. Refresh the menu and check your permissions, eligibility, space, joining fee or Discord invite. If admission is pending, contact staff before paying again."
     input_expired: "<gray>Your recruitment input expired. Reopen recruitment to try again."
     joined: "<green>You joined the guild. Your other active applications will be closed."

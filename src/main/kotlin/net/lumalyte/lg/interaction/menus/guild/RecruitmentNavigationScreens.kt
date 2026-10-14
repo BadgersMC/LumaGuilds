@@ -14,11 +14,7 @@ internal fun RecruitmentController.go(next: RecruitmentScreen) {
     refresh()
 }
 
-internal fun RecruitmentController.ask(
-    label: String,
-    value: String = "",
-    accept: (String) -> Unit,
-) {
+internal fun RecruitmentController.ask(label: String, value: String = "", accept: (String) -> Unit) {
     input = RecruitmentInput(label, value, accept)
     refresh()
 }

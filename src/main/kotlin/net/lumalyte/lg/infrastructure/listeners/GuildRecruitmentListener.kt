@@ -119,10 +119,7 @@ internal class GuildRecruitmentListener(
         }
     }
 
-    private fun prompt(
-        player: Player,
-        repeat: Boolean,
-    ) {
+    private fun prompt(player: Player, repeat: Boolean) {
         if (!player.isOnline || !player.hasPermission(RECRUITMENT_PERMISSION)) return
         if (members.getPlayerGuilds(player.uniqueId).isNotEmpty()) return
         val joined = sessions[player.uniqueId] ?: return
