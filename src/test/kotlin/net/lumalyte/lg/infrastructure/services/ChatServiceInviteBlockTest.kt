@@ -43,9 +43,9 @@ internal class ChatServiceInviteBlockTest {
         mockk<PartyRepository> {
             every { getById(partyId) } returns
                 mockk {
-                every { isActive() } returns true
-                every { id } returns partyId
-            }
+                    every { isActive() } returns true
+                    every { id } returns partyId
+                }
         }
 
     /** Verifies party chat skips members who blocked the sender. */
