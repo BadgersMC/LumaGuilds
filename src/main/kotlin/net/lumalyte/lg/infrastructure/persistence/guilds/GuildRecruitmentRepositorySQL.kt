@@ -9,7 +9,6 @@ import net.lumalyte.lg.domain.recruitment.SubmissionDenial
 import net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import java.sql.Connection
-import java.sql.ResultSet
 import java.time.Instant
 import java.util.UUID
 
@@ -18,15 +17,18 @@ private enum class RecruitmentSelect { ID, APPLICANT, APPLICANT_ORDERED, GUILD_O
 private fun Connection.recruitmentStatement(query: RecruitmentSelect): java.sql.PreparedStatement {
     return when (query) {
         RecruitmentSelect.ID -> prepareStatement("SELECT * FROM guild_recruitment_applications WHERE id = ?")
-        RecruitmentSelect.APPLICANT -> prepareStatement(
-            "SELECT * FROM guild_recruitment_applications WHERE applicant_id = ?",
-        )
-        RecruitmentSelect.APPLICANT_ORDERED -> prepareStatement(
-            "SELECT * FROM guild_recruitment_applications WHERE applicant_id = ? ORDER BY created_at, id",
-        )
-        RecruitmentSelect.GUILD_ORDERED -> prepareStatement(
-            "SELECT * FROM guild_recruitment_applications WHERE guild_id = ? ORDER BY created_at, id",
-        )
+        RecruitmentSelect.APPLICANT ->
+            prepareStatement(
+                "SELECT * FROM guild_recruitment_applications WHERE applicant_id = ?",
+            )
+        RecruitmentSelect.APPLICANT_ORDERED ->
+            prepareStatement(
+                "SELECT * FROM guild_recruitment_applications WHERE applicant_id = ? ORDER BY created_at, id",
+            )
+        RecruitmentSelect.GUILD_ORDERED ->
+            prepareStatement(
+                "SELECT * FROM guild_recruitment_applications WHERE guild_id = ? ORDER BY created_at, id",
+            )
     }
 }
 
@@ -86,7 +88,7 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
                 application.reviewedBy == null && application.reviewedAt == null,
         )
         require(application.createdAt == at && application.expiresAt == at.plus(policy.applicationLifetime))
-        return transaction { connection ->
+        return storage.recruitmentTransaction { connection ->
             lockApplicant(connection, application.applicantId)
             val denial =
                 policy.canSubmit(
@@ -100,23 +102,23 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
                     at,
                 )
             if (denial == null) {
-                execute(
-                    connection.prepareStatement(
-                        """
-                        INSERT INTO guild_recruitment_applications
-                        (id, guild_id, applicant_id, answers, created_at, expires_at,
-                         status, reviewed_by, reviewed_at, decision_reason)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """
-                            .trimIndent(),
-                    ),
-                    application.id, application.guildId, application.applicantId,
-                    application.answers, application.createdAt.toEpochMilli(), application.expiresAt.toEpochMilli(),
-                    application.status.name, null, null, "",
-                )
+                insertApplication(connection, application)
             }
             denial
         }
+    }
+
+    private fun insertApplication(connection: Connection, application: GuildApplication) {
+        executeRecruitmentWrite(
+            connection.prepareStatement(
+                "INSERT INTO guild_recruitment_applications " +
+                    "(id, guild_id, applicant_id, answers, created_at, expires_at, " +
+                    "status, reviewed_by, reviewed_at, decision_reason) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            ),
+            application.id, application.guildId, application.applicantId,
+            application.answers, application.createdAt.toEpochMilli(), application.expiresAt.toEpochMilli(),
+            application.status.name, null, null, "",
+        )
     }
 
     override fun get(id: UUID): GuildApplication? {
@@ -148,120 +150,75 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
                 expected.createdAt == updated.createdAt && expected.answers == updated.answers,
         )
         require(expected.status != updated.status)
-        return transaction { connection ->
+        return storage.recruitmentTransaction { connection ->
             lockApplicant(connection, expected.applicantId)
-            val current =
-                query(
-                    connection,
-                    RecruitmentSelect.ID,
-                    expected.id,
-                )
-                    .firstOrNull()
-            if (current !=
-                expected.copy(
-                    createdAt = millis(expected.createdAt), expiresAt = millis(expected.expiresAt),
-                    reviewedAt = expected.reviewedAt?.let(::millis),
-                )
-            ) {
-                return@transaction false
-            }
-            if (updated.status == ApplicationStatus.ADMISSION_PENDING &&
-                query(
-                    connection, RecruitmentSelect.APPLICANT,
-                    expected.applicantId,
-                )
-                    .any { it.id != expected.id && it.status == ApplicationStatus.ADMISSION_PENDING }
-            ) {
-                return@transaction false
-            }
-            execute(
-                connection.prepareStatement(
-                    """
-                    UPDATE guild_recruitment_applications SET expires_at = ?, status = ?,
-                    reviewed_by = ?, reviewed_at = ?, decision_reason = ? WHERE id = ?
-                """
-                        .trimIndent(),
-                ),
-                updated.expiresAt.toEpochMilli(), updated.status.name, updated.reviewedBy,
-                updated.reviewedAt?.toEpochMilli(), updated.decisionReason, updated.id,
-            ) == 1
+            val current = query(connection, RecruitmentSelect.ID, expected.id).firstOrNull()
+            current == expected.persistedTimestamps() &&
+                reservationAvailable(connection, expected, updated) && writeTransition(connection, updated) == 1
         }
     }
 
-    private fun read(query: RecruitmentSelect, id: UUID): List<GuildApplication> =
-        storage.connection.connection.use { query(it, query, id) }
+    private fun reservationAvailable(
+        connection: Connection,
+        expected: GuildApplication,
+        updated: GuildApplication,
+    ): Boolean {
+        return updated.status != ApplicationStatus.ADMISSION_PENDING ||
+            query(connection, RecruitmentSelect.APPLICANT, expected.applicantId)
+                .none { it.id != expected.id && it.status == ApplicationStatus.ADMISSION_PENDING }
+    }
 
-    private fun millis(at: Instant): Instant = Instant.ofEpochMilli(at.toEpochMilli())
+    private fun writeTransition(connection: Connection, updated: GuildApplication): Int {
+        return executeRecruitmentWrite(
+            connection.prepareStatement(
+                "UPDATE guild_recruitment_applications SET expires_at = ?, status = ?, " +
+                    "reviewed_by = ?, reviewed_at = ?, decision_reason = ? WHERE id = ?",
+            ),
+            updated.expiresAt.toEpochMilli(),
+            updated.status.name,
+            updated.reviewedBy,
+            updated.reviewedAt?.toEpochMilli(),
+            updated.decisionReason,
+            updated.id,
+        )
+    }
+
+    private fun read(query: RecruitmentSelect, id: UUID): List<GuildApplication> =
+        storage.connection.connection.use {
+            query(it, query, id)
+        }
 
     private fun query(connection: Connection, query: RecruitmentSelect, id: UUID): List<GuildApplication> {
         return connection.recruitmentStatement(query).use { statement ->
             statement.setString(1, id.toString())
-            statement.executeQuery().use { rows -> buildList { while (rows.next()) add(map(rows)) } }
+            statement.executeQuery().use { rows ->
+                buildList {
+                    while (rows.next()) add(
+                        mapRecruitmentApplication(rows),
+                    )
+                }
+            }
         }
-    }
-
-    private fun map(rows: ResultSet): GuildApplication {
-        val reviewedAt = rows.getLong("reviewed_at").let { if (rows.wasNull()) null else Instant.ofEpochMilli(it) }
-        return GuildApplication(
-            UUID.fromString(rows.getString("id")), UUID.fromString(rows.getString("guild_id")),
-            UUID.fromString(rows.getString("applicant_id")), rows.getString("answers"),
-            Instant.ofEpochMilli(rows.getLong("created_at")), Instant.ofEpochMilli(rows.getLong("expires_at")),
-            ApplicationStatus.valueOf(rows.getString("status")), rows.getString("reviewed_by")?.let(UUID::fromString),
-            reviewedAt, rows.getString("decision_reason"),
-        )
     }
 
     private fun lockApplicant(connection: Connection, player: UUID) {
-        val insert = if (maria) {
-            connection.prepareStatement(
-                "INSERT INTO guild_recruitment_applicants (player_id) VALUES (?) " +
-                    "ON DUPLICATE KEY UPDATE player_id = VALUES(player_id)",
-            )
-        } else {
-            connection.prepareStatement(
-                "INSERT INTO guild_recruitment_applicants (player_id) VALUES (?) ON CONFLICT(player_id) DO NOTHING",
-            )
-        }
-        execute(insert, player)
-        execute(
+        val insert =
+            if (maria) {
+                connection.prepareStatement(
+                    "INSERT INTO guild_recruitment_applicants (player_id) VALUES (?) " +
+                        "ON DUPLICATE KEY UPDATE player_id = VALUES(player_id)",
+                )
+            } else {
+                connection.prepareStatement(
+                    "INSERT INTO guild_recruitment_applicants (player_id) VALUES (?) ON CONFLICT(player_id) DO NOTHING",
+                )
+            }
+        executeRecruitmentWrite(insert, player)
+        executeRecruitmentWrite(
             connection.prepareStatement(
                 "UPDATE guild_recruitment_applicants SET player_id = player_id WHERE player_id = ?",
             ),
             player,
         )
-    }
-
-    private fun execute(prepared: java.sql.PreparedStatement, vararg values: Any?): Int {
-        return prepared.use { statement ->
-            values.forEachIndexed {
-                    index,
-                    value,
-                ->
-                statement.setObject(index + 1, if (value is UUID) value.toString() else value)
-            }
-            statement.executeUpdate()
-        }
-    }
-
-    @Suppress(
-        "TooGenericExceptionCaught",
-    ) // Transaction boundary rolls back every failure and preserves rollback errors.
-    private fun <T> transaction(operation: (Connection) -> T): T {
-        return storage.connection.connection.use { connection ->
-            connection.autoCommit = false
-            try {
-                val result = operation(connection)
-                connection.commit()
-                result
-            } catch (failure: Throwable) {
-                try {
-                    connection.rollback()
-                } catch (rollback: Throwable) {
-                    failure.addSuppressed(rollback)
-                }
-                // Never restore autoCommit after a failed rollback, which could commit partial writes.
-                throw failure
-            }
-        }
     }
 }

@@ -58,29 +58,23 @@ internal class GuildRecruitmentServiceTest {
     }
 
     private fun service(): GuildRecruitmentService {
+        stubReads()
+        stubTransitions()
+        return GuildRecruitmentService(
+            applications,
+            GuildRecruitmentListings(directory, guilds, members),
+            guilds,
+            members,
+            lfg,
+            GuildRecruitmentRules({ RecruitmentPolicy() }, { _, _ -> eligible }, Clock.fixed(now, ZoneOffset.UTC)),
+        )
+    }
+
+    private fun stubReads() {
         every { guilds.getGuild(guild.id) } returns guild
         every { directory.profile(guild.id) } returns profile
         every { members.getMemberLimit(guild.id) } returns MEMBER_CAPACITY
         every { members.hasPermission(actor, guild.id, RankPermission.MANAGE_RECRUITMENT) } returns true
-        every { applications.get(application.id) } answers { current }
-        every { applications.transition(any(), any()) } answers {
-            if (firstArg<GuildApplication>() != current) {
-                false
-            } else {
-                current = secondArg()
-                true
-            }
-        }
-        return GuildRecruitmentService(
-            applications,
-            directory,
-            guilds,
-            members,
-            lfg,
-            { RecruitmentPolicy() },
-            { _, _ -> eligible },
-            Clock.fixed(now, ZoneOffset.UTC),
-        )
     }
 
     @org.junit.jupiter.api.DisplayName("review is an offer and never calls admission")
@@ -175,5 +169,17 @@ internal class GuildRecruitmentServiceTest {
         assertEquals(ApplicationStatus.ADMISSION_PENDING, current.status)
         assertFailsWith<IllegalArgumentException> { service.confirm(player, application.id, guild) }
         verify(exactly = 1) { lfg.joinApprovedGuild(player, guild, any()) }
+    }
+    private fun stubTransitions() {
+        every { applications.get(application.id) } answers { current }
+        every { applications.transition(any(), any()) } answers {
+            transitionCurrent(firstArg(), secondArg())
+        }
+    }
+
+    private fun transitionCurrent(expected: GuildApplication, updated: GuildApplication): Boolean {
+        if (expected != current) return false
+        current = updated
+        return true
     }
 }

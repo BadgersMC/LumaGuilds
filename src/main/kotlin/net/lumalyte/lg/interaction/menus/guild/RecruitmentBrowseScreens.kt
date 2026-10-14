@@ -9,7 +9,7 @@ import net.lumalyte.lg.domain.recruitment.RecruitmentProfile
 /** Browse presentation builders share the current authorized navigation session. */
 internal fun RecruitmentController.matchesAvailability(guild: Guild, profile: RecruitmentProfile): Boolean {
     return (peaceful == null || peaceful == (guild.mode == GuildMode.PEACEFUL)) &&
-        (!recruitingOnly || profile.mode != RecruitmentMode.CLOSED && service.spaces(guild.id) > 0) &&
+        (!recruitingOnly || profile.mode != RecruitmentMode.CLOSED && service.listings.spaces(guild.id) > 0) &&
         (joiningMethod == null || joiningMethod == profile.mode)
 }
 
@@ -21,8 +21,8 @@ internal fun RecruitmentController.matchesPreferences(guild: Guild, profile: Rec
 }
 
 internal fun RecruitmentController.browse(): List<RecruitmentButton> {
-    return service.browse().filter { guild ->
-        val profile = service.profile(guild)
+    return service.listings.browse().filter { guild ->
+        val profile = service.listings.profile(guild)
         matchesAvailability(guild, profile) && matchesPreferences(guild, profile)
     }
         .sortedWith(
@@ -31,7 +31,8 @@ internal fun RecruitmentController.browse(): List<RecruitmentButton> {
                 2 -> compareBy<Guild> { it.name.lowercase() }
                 else ->
                     compareByDescending<Guild> {
-                        service.profile(it).mode != RecruitmentMode.CLOSED && service.spaces(it.id) > 0
+                        service.listings.profile(it).mode != RecruitmentMode.CLOSED &&
+                            service.listings.spaces(it.id) > 0
                     }
                         .thenByDescending { guild ->
                             members.getGuildMembers(guild.id).count { member ->
@@ -52,4 +53,6 @@ internal fun RecruitmentController.browse(): List<RecruitmentButton> {
 }
 
 private fun RecruitmentController.visibleRecruiter(id: java.util.UUID): Boolean =
-    org.bukkit.Bukkit.getPlayer(id)?.let { it.isOnline && player.canSee(it) } == true
+    org.bukkit.Bukkit.getPlayer(id)?.let {
+        it.isOnline && player.canSee(it)
+    } == true

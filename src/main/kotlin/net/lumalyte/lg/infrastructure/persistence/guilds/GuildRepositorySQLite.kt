@@ -452,7 +452,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
 
         // Parse isOpen (default to false for existing guilds)
         val isOpen = try {
-            rs.get<Int?>("is_open")?.let { it == 1 } ?: false
+            rs.guildAccessFlag()
         } catch (e: Exception) {
             false
         }
@@ -577,7 +577,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     override fun refreshCachedAccess(guildId: UUID) {
         val cached = guilds[guildId] ?: return
         val row = storage.connection.getFirstRow("SELECT is_open FROM guilds WHERE id = ?", guildId.toString()) ?: return
-        guilds[guildId] = cached.copy(isOpen = row.getInt("is_open") == 1)
+        guilds[guildId] = cached.copy(isOpen = row.guildAccessFlag())
     }
 
     override fun updateAccess(guildId: UUID, isOpen: Boolean): Boolean {
@@ -1178,4 +1178,13 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     override fun isNameTaken(name: String): Boolean = getByName(name) != null
     
     override fun getCount(): Int = guilds.size
+}
+
+/** SQLite returns a numeric flag; MariaDB may expose TINYINT(1) as a Boolean. */
+private fun co.aikar.idb.DbRow.guildAccessFlag(): Boolean {
+    return when (val value = get<Any?>("is_open")) {
+        is Boolean -> value
+        is Number -> value.toInt() == 1
+        else -> false
+    }
 }

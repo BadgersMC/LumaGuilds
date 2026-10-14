@@ -1,15 +1,11 @@
 package net.lumalyte.lg.application.services
 
 import net.lumalyte.lg.application.persistence.GuildRecruitmentRepository
-import net.lumalyte.lg.application.persistence.RecruitmentDirectoryRepository
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.recruitment.ApplicationStatus
 import net.lumalyte.lg.domain.recruitment.GuildApplication
 import net.lumalyte.lg.domain.recruitment.RecruitmentMode
-import net.lumalyte.lg.domain.recruitment.RecruitmentPolicy
-import net.lumalyte.lg.domain.recruitment.RecruitmentProfile
 import net.lumalyte.lg.domain.values.JoinRequirement
-import java.time.Clock
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
@@ -19,53 +15,25 @@ private const val GUILD_REMOVED_MESSAGE = "Guild no longer exists"
 /** Shared Java/Bedrock recruitment use cases; repository reads are never a substitute for actor authorization. */
 internal class GuildRecruitmentService(
     private val applications: GuildRecruitmentRepository,
-    private val directory: RecruitmentDirectoryRepository,
+    val listings: GuildRecruitmentListings,
     private val guilds: GuildService,
     private val members: MemberService,
     private val lfg: LfgService,
-    private val policy: () -> RecruitmentPolicy,
-    private val eligible: (UUID, UUID) -> Boolean,
-    private val clock: Clock = Clock.systemUTC(),
-    private val maximumMembers: () -> Int = { Int.MAX_VALUE },
+    private val rules: GuildRecruitmentRules,
 ) {
-    /** Lists public guild identities; closed/full listings remain visible with joining disabled. */
-    fun browse(): List<Guild> = guilds.getAllGuilds().sortedBy { it.name.lowercase() }
-
-    /** Returns a public recruitment profile, preserving the legacy open flag when no profile exists. */
-    fun profile(guild: Guild): RecruitmentProfile =
-        directory.profile(guild.id) ?: RecruitmentProfile.legacy(guild.id, guild.isOpen)
-
-    /** Returns current capacity rather than only the global configured maximum. */
-    fun spaces(guild: UUID): Int =
-        (minOf(members.getMemberLimit(guild), maximumMembers()) - members.getMemberCount(guild)).coerceAtLeast(0)
-
-    /** Requires settings authority at write time; does not modify fees or any other guild field. */
-    fun saveProfile(actor: UUID, profile: RecruitmentProfile) {
-        require(guilds.getGuild(profile.guildId) != null)
-        require(GuildRecruitmentPermissions.canEditSettings(members, actor, profile.guildId)) {
-            "Recruitment settings permission required"
-        }
-        directory.save(profile)
-    }
-
     /** Submission is private and charges nothing; the repository enforces duplicate/limit checks atomically. */
     fun submit(player: UUID, guildId: UUID, answers: String): GuildApplication {
         val guild = requireNotNull(guilds.getGuild(guildId)) { GUILD_REMOVED_MESSAGE }
-        require(profile(guild).mode == RecruitmentMode.IN_GAME) { "This guild does not accept in-game applications" }
         require(
-            members.getPlayerGuilds(player).isEmpty() && spaces(guildId) > 0 && eligible(player, guildId),
+            listings.profile(guild).mode == RecruitmentMode.IN_GAME,
+        ) { "This guild does not accept in-game applications" }
+        require(
+            members.getPlayerGuilds(player).isEmpty() && listings.spaces(guildId) > 0 &&
+                rules.eligible(player, guildId),
         ) { "You are not eligible to apply" }
         val at = now()
-        val policy = policy()
-        val application =
-            GuildApplication(
-                UUID.randomUUID(),
-                guildId,
-                player,
-                answers.trim(),
-                at,
-                at.plus(policy.applicationLifetime),
-            )
+        val policy = rules.policy()
+        val application = newGuildApplication(player, guildId, answers, at, policy.applicationLifetime)
         require(
             applications.submit(application, policy, at) == null,
         ) { "An application is already active or your application limit was reached" }
@@ -89,18 +57,12 @@ internal class GuildRecruitmentService(
         ) { "Recruitment permission required" }
         val guild = requireNotNull(guilds.getGuild(current.guildId)) { GUILD_REMOVED_MESSAGE }
         if (accept) {
-            require(profile(guild).mode == RecruitmentMode.IN_GAME) { "Recruitment method has changed" }
-            require(eligible(current.applicantId, guild.id) && members.getPlayerGuilds(current.applicantId).isEmpty()) {
-                "Applicant is no longer eligible"
-            }
+            require(listings.profile(guild).mode == RecruitmentMode.IN_GAME) { "Recruitment method has changed" }
+            rules.requireApplicant(members, current.applicantId, guild.id)
         }
         val next =
             if (accept) {
-                current.offer(
-                    actor,
-                    now(),
-                    policy().offerLifetime,
-                )
+                current.offer(actor, now(), rules.policy().offerLifetime)
             } else {
                 current.decline(actor, reason, now())
             }
@@ -135,7 +97,7 @@ internal class GuildRecruitmentService(
         require(
             lfg.getJoinRequirement(guild) == quotedFee,
         ) { "Joining currency or quoted fee changed; review the offer again" }
-        require(profile(guild).mode == RecruitmentMode.IN_GAME && eligible(player, guild.id)) {
+        require(listings.profile(guild).mode == RecruitmentMode.IN_GAME && rules.eligible(player, guild.id)) {
             "You are no longer eligible to join"
         }
         val validation = lfg.canJoinGuild(player, guild)
@@ -145,7 +107,8 @@ internal class GuildRecruitmentService(
         val result =
             lfg.joinApprovedGuild(player, guild) {
                 val latest = guilds.getGuild(guild.id)
-                latest != null && profile(latest).mode == RecruitmentMode.IN_GAME && eligible(player, guild.id) &&
+                latest != null && listings.profile(latest).mode == RecruitmentMode.IN_GAME &&
+                    rules.eligible(player, guild.id) &&
                     lfg.getJoinRequirement(latest) == quotedFee &&
                     applications.get(id)?.status == ApplicationStatus.ADMISSION_PENDING
             }
@@ -191,5 +154,5 @@ internal class GuildRecruitmentService(
         }
     }
 
-    private fun now(): Instant = clock.instant().truncatedTo(ChronoUnit.MILLIS)
+    private fun now(): Instant = rules.clock.instant().truncatedTo(ChronoUnit.MILLIS)
 }

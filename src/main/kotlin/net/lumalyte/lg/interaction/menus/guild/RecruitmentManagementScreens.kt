@@ -30,7 +30,7 @@ internal fun RecruitmentController.management(): List<RecruitmentButton> {
         if (GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id)) {
             add(
                 RecruitmentButton(lang.raw("recruitment.setup"), icon = RecruitmentIcons.TAG) {
-                    setupDraft = service.profile(guild).copy(mode = RecruitmentMode.CLOSED)
+                    setupDraft = service.listings.profile(guild).copy(mode = RecruitmentMode.CLOSED)
                     showScreen(RecruitmentScreen.SETUP)
                 },
             )
@@ -105,45 +105,71 @@ internal fun RecruitmentController.setupPreview(): List<RecruitmentButton> {
     require(GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id))
     val draft = requireNotNull(setupDraft)
     return listOf(
-        RecruitmentButton(
-            lang.raw("recruitment.preview"),
-            listOf(
-                mode(setupMode),
-                draft.pitch,
-                draft.requirements,
-                draft.interests.joinToString(", "),
-                draft.preferredTimes,
-                draft.language,
-                draft.discordInvite ?: "",
-                draft.discordInstructions,
-            )
-                .filter(String::isNotBlank),
-            RecruitmentIcons.NAV_INFO,
-            guild,
-        ),
-        RecruitmentButton(
-            lang.raw("recruitment.beginner"),
-            listOf(enabled(draft.beginnerFriendly)),
-            RecruitmentIcons.TOGGLE_ON,
+        listingPreview(guild, draft),
+        setupBeginnerToggle(draft),
+        setupPublishButton(draft),
+        setupDiscardButton(),
+    )
+}
+
+private fun RecruitmentController.listingPreview(
+    guild: net.lumalyte.lg.domain.entities.Guild,
+    draft: net.lumalyte.lg.domain.recruitment.RecruitmentProfile,
+): RecruitmentButton {
+    return RecruitmentButton(
+        lang.raw("recruitment.preview"),
+        draft.setupDetails(mode(setupMode)),
+        RecruitmentIcons.NAV_INFO,
+        guild,
+    )
+}
+
+private fun net.lumalyte.lg.domain.recruitment.RecruitmentProfile.setupDetails(method: String): List<String> {
+    return listOf(
+        method,
+        pitch,
+        requirements,
+        interests.joinToString(", "),
+        preferredTimes,
+        language,
+        discordInvite ?: "",
+        discordInstructions,
+    ).filter(String::isNotBlank)
+}
+
+private fun RecruitmentController.setupBeginnerToggle(
+    draft: net.lumalyte.lg.domain.recruitment.RecruitmentProfile,
+): RecruitmentButton {
+    return RecruitmentButton(
+        lang.raw("recruitment.beginner"),
+        listOf(enabled(draft.beginnerFriendly)),
+        RecruitmentIcons.TOGGLE_ON,
+    ) {
+        setupDraft = draft.copy(beginnerFriendly = !draft.beginnerFriendly)
+        refresh()
+    }
+}
+
+private fun RecruitmentController.setupPublishButton(
+    draft: net.lumalyte.lg.domain.recruitment.RecruitmentProfile,
+): RecruitmentButton {
+    return RecruitmentButton(lang.raw("recruitment.publish"), icon = RecruitmentIcons.CONFIRM) {
+        if (setupMode == RecruitmentMode.DISCORD &&
+            (draft.discordInvite == null || draft.discordInstructions.isBlank())
         ) {
-            setupDraft = draft.copy(beginnerFriendly = !draft.beginnerFriendly)
-            refresh()
-        },
-        RecruitmentButton(lang.raw("recruitment.publish"), icon = RecruitmentIcons.CONFIRM) {
-            if (setupMode == RecruitmentMode.DISCORD &&
-                (draft.discordInvite == null || draft.discordInstructions.isBlank())
-            ) {
-                player.sendMessage(lang.msg("recruitment.discord_setup"))
-                setupInput(DISCORD_INVITE_STEP)
-            } else {
-                service.saveProfile(player.uniqueId, draft.copy(mode = setupMode))
-                setupDraft = null
-                showScreen(RecruitmentScreen.MANAGE)
-            }
-        },
-        RecruitmentButton(lang.raw("recruitment.discard"), icon = RecruitmentIcons.CANCEL) {
+            player.sendMessage(lang.msg("recruitment.discord_setup"))
+            setupInput(DISCORD_INVITE_STEP)
+        } else {
+            service.listings.saveProfile(player.uniqueId, draft.copy(mode = setupMode))
             setupDraft = null
             showScreen(RecruitmentScreen.MANAGE)
-        },
-    )
+        }
+    }
+}
+
+private fun RecruitmentController.setupDiscardButton(): RecruitmentButton {
+    return RecruitmentButton(lang.raw("recruitment.discard"), icon = RecruitmentIcons.CANCEL) {
+        setupDraft = null
+        showScreen(RecruitmentScreen.MANAGE)
+    }
 }

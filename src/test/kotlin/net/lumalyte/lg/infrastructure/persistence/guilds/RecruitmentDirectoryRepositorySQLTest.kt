@@ -41,18 +41,7 @@ internal class RecruitmentDirectoryRepositorySQLTest : RewardSqlTestFixture() {
         repository.save(profile)
         val at = requireNotNull(RecruitmentDirectoryRepositorySQL(storage).updatedAt(profile.guildId))
         assertTrue(at >= before && at <= Instant.now())
-        val row =
-            storage.connection.getFirstRow(
-                "SELECT profile FROM guild_recruitment_profiles WHERE guild_id = ?",
-                profile.guildId.toString(),
-            )
-        val legacy = org.json.JSONObject(requireNotNull(row).getString("profile"))
-        legacy.remove("updatedAt")
-        storage.connection.executeUpdate(
-            "UPDATE guild_recruitment_profiles SET profile = ? WHERE guild_id = ?",
-            legacy.toString(),
-            profile.guildId.toString(),
-        )
+        removeTimestamp(storage, profile.guildId)
         assertNull(repository.updatedAt(profile.guildId))
         assertEquals(profile, repository.profile(profile.guildId))
     }
@@ -98,30 +87,13 @@ internal class RecruitmentDirectoryRepositorySQLTest : RewardSqlTestFixture() {
     @Test
     fun optionalReminderWaitsForIt3() {
         val repository = RecruitmentDirectoryRepositorySQL(openStorage())
-        assertTrue(repository.consumePrompt(player, now, Duration.ofMinutes(REMINDER_INTERVAL_MINUTES)))
+        val interval = Duration.ofMinutes(REMINDER_INTERVAL_MINUTES)
+        assertTrue(repository.consumePrompt(player, now, interval))
         repository.setReminders(player, false)
         repository.setReminders(player, true)
-        assertFalse(
-            repository.consumePrompt(
-                player,
-                now.plusSeconds(REMINDER_INTERVAL_SECONDS - 1),
-                Duration.ofMinutes(REMINDER_INTERVAL_MINUTES),
-            ),
-        )
-        assertTrue(
-            repository.consumePrompt(
-                player,
-                now.plusSeconds(REMINDER_INTERVAL_SECONDS),
-                Duration.ofMinutes(REMINDER_INTERVAL_MINUTES),
-            ),
-        )
-        assertFalse(
-            repository.consumePrompt(
-                player,
-                now.plusSeconds(REMINDER_INTERVAL_SECONDS),
-                Duration.ofMinutes(REMINDER_INTERVAL_MINUTES),
-            ),
-        )
+        assertFalse(repository.consumePrompt(player, now.plusSeconds(REMINDER_INTERVAL_SECONDS - 1), interval))
+        assertTrue(repository.consumePrompt(player, now.plusSeconds(REMINDER_INTERVAL_SECONDS), interval))
+        assertFalse(repository.consumePrompt(player, now.plusSeconds(REMINDER_INTERVAL_SECONDS), interval))
     }
 
     @org.junit.jupiter.api.DisplayName("private notification digest survives reconnects without replay")
@@ -133,5 +105,22 @@ internal class RecruitmentDirectoryRepositorySQLTest : RewardSqlTestFixture() {
         assertTrue(first.consumeNotification(player, digest))
         assertFalse(RecruitmentDirectoryRepositorySQL(storage).consumeNotification(player, digest))
         assertTrue(first.consumeNotification(player, "b".repeat(SHA256_HEX_LENGTH)))
+    }
+    private fun removeTimestamp(
+        storage: net.lumalyte.lg.infrastructure.persistence.storage.Storage<co.aikar.idb.Database>,
+        guild: UUID,
+    ) {
+        val row =
+            storage.connection.getFirstRow(
+                "SELECT profile FROM guild_recruitment_profiles WHERE guild_id = ?",
+                guild.toString(),
+            )
+        val legacy = org.json.JSONObject(requireNotNull(row).getString("profile"))
+        legacy.remove("updatedAt")
+        storage.connection.executeUpdate(
+            "UPDATE guild_recruitment_profiles SET profile = ? WHERE guild_id = ?",
+            legacy.toString(),
+            guild.toString(),
+        )
     }
 }

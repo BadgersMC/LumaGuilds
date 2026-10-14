@@ -75,8 +75,10 @@ class ChatInputListener : Listener, KoinComponent {
     }
 
     /** Cancels only the expected prompt; an old timeout cannot remove a newer prompt. */
-    fun stopInputMode(player: Player, handler: ChatInputHandler): Boolean =
-        inputModePlayers.remove(player.uniqueId, handler)
+    fun stopInputMode(player: Player, handler: ChatInputHandler): Boolean {
+        val removed = inputModePlayers.remove(player.uniqueId, handler)
+        return removed
+    }
 
     /**
      * Checks if a player is in input mode

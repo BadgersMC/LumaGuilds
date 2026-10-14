@@ -105,28 +105,12 @@ internal class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
         val repository = GuildRecruitmentRepositorySQL(openStorage())
         val a = application()
         repository.submit(a, policy, now)
-        assertNull(
-            repository.submit(
-                application().copy(createdAt = a.expiresAt, expiresAt = a.expiresAt.plus(policy.applicationLifetime)),
-                policy,
-                a.expiresAt,
-            ),
-        )
+        assertNull(repository.submit(applicationAt(a.expiresAt), policy, a.expiresAt))
         val b = repository.forApplicant(player).first { it.id != a.id }
         val offered = b.offer(UUID.randomUUID(), b.createdAt, policy.offerLifetime)
         repository.transition(b, offered)
         repository.transition(offered, offered.confirm(player, b.createdAt))
-        assertEquals(
-            SubmissionDenial.DUPLICATE,
-            repository.submit(
-                application().copy(
-                    createdAt = b.expiresAt,
-                    expiresAt = b.expiresAt.plus(policy.applicationLifetime),
-                ),
-                policy,
-                b.expiresAt,
-            ),
-        )
+        assertEquals(SubmissionDenial.DUPLICATE, repository.submit(applicationAt(b.expiresAt), policy, b.expiresAt))
     }
 
     @org.junit.jupiter.api.DisplayName("database write failure never reports successful submission")
@@ -166,4 +150,6 @@ internal class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
         assertFalse(repository.transition(offer2, offer2.confirm(player, now)))
         assertEquals(ApplicationStatus.OFFERED, repository.get(second.id)?.status)
     }
+    private fun applicationAt(at: Instant): GuildApplication =
+        application().copy(createdAt = at, expiresAt = at.plus(policy.applicationLifetime))
 }

@@ -63,12 +63,11 @@ internal class RecruitmentControllerFlowTest {
         val service =
             GuildRecruitmentService(
                 applications,
-                directory,
+                net.lumalyte.lg.application.services.GuildRecruitmentListings(directory, guilds, members),
                 guilds,
                 members,
                 lfg,
-                { RecruitmentPolicy() },
-                { _, _ -> true },
+                net.lumalyte.lg.application.services.GuildRecruitmentRules({ RecruitmentPolicy() }, { _, _ -> true }),
             )
         startKoin {
             modules(
@@ -127,9 +126,19 @@ internal class RecruitmentControllerFlowTest {
 
     @Test
     fun hiddenRecruiterStaysPrivate() {
-        val hiddenGuild = Guild(UUID.randomUUID(), "Z Hidden", createdAt = Instant.EPOCH)
         val hiddenId = UUID.randomUUID()
         val hidden = mockk<Player>(relaxed = true)
+        stubHiddenRecruiter(hiddenId, hidden)
+        mockkStatic(Bukkit::class)
+        try {
+            every { Bukkit.getPlayer(hiddenId) } returns hidden
+            assertEquals(listOf("Builders", "Z Hidden"), controller.browse().map { it.label })
+        } finally {
+            unmockkStatic(Bukkit::class)
+        }
+    }
+    private fun stubHiddenRecruiter(hiddenId: UUID, hidden: Player) {
+        val hiddenGuild = Guild(UUID.randomUUID(), "Z Hidden", createdAt = Instant.EPOCH)
         every { hidden.isOnline } returns true
         every { player.canSee(hidden) } returns false
         every { guilds.getAllGuilds() } returns setOf(guild, hiddenGuild)
@@ -141,12 +150,5 @@ internal class RecruitmentControllerFlowTest {
                 Member(hiddenId, hiddenGuild.id, UUID.randomUUID(), Instant.EPOCH),
             )
         every { members.hasPermission(hiddenId, hiddenGuild.id, RankPermission.MANAGE_RECRUITMENT) } returns true
-        mockkStatic(Bukkit::class)
-        try {
-            every { Bukkit.getPlayer(hiddenId) } returns hidden
-            assertEquals(listOf("Builders", "Z Hidden"), controller.browse().map { it.label })
-        } finally {
-            unmockkStatic(Bukkit::class)
-        }
     }
 }

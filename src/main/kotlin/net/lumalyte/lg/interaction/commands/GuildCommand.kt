@@ -1587,7 +1587,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Check if guild is open - if so, allow direct joining without invitation
         val recruitment: net.lumalyte.lg.application.services.GuildRecruitmentService by inject()
-        if (recruitment.profile(guild).mode == net.lumalyte.lg.domain.recruitment.RecruitmentMode.JOIN_IMMEDIATELY) {
+        if (recruitment.listings.profile(guild).mode == net.lumalyte.lg.domain.recruitment.RecruitmentMode.JOIN_IMMEDIATELY) {
             // Open guild - no invitation required
             val result = lfgService.joinGuild(player.uniqueId, guild)
             if (result is net.lumalyte.lg.application.services.LfgJoinResult.Success) {

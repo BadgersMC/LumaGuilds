@@ -26,14 +26,7 @@ internal class GuildRecruitmentEligibilityTest : RewardSqlTestFixture() {
         every { members.getGuildMembers(guild) } returns setOf(Member(target, guild, UUID.randomUUID(), Instant.now()))
         val eligibility = GuildRecruitmentEligibilityBukkit(storage, members) { false }
         assertTrue(eligibility.allows(player, guild))
-        storage.connection.executeUpdate(
-            "CREATE TABLE player_invite_blocks (owner_id VARCHAR(36), target_id VARCHAR(36), created_at BIGINT)",
-        )
-        storage.connection.executeUpdate(
-            "INSERT INTO player_invite_blocks VALUES (?, ?, 0)",
-            player.toString(),
-            target.toString(),
-        )
+        insertBlock(storage, player, target)
         assertFalse(eligibility.allows(player, guild))
         assertTrue(eligibility.allows(player, UUID.randomUUID()))
         assertTrue(eligibility.allows(target, guild))
@@ -51,5 +44,19 @@ internal class GuildRecruitmentEligibilityTest : RewardSqlTestFixture() {
         storage.connection.executeUpdate("INSERT INTO player_invite_blocks VALUES (?, 'invalid')", player.toString())
         val eligibility = GuildRecruitmentEligibilityBukkit(storage, mockk(relaxed = true)) { false }
         assertFailsWith<IllegalArgumentException> { eligibility.allows(player, UUID.randomUUID()) }
+    }
+    private fun insertBlock(
+        storage: net.lumalyte.lg.infrastructure.persistence.storage.Storage<co.aikar.idb.Database>,
+        player: UUID,
+        target: UUID,
+    ) {
+        storage.connection.executeUpdate(
+            "CREATE TABLE player_invite_blocks (owner_id VARCHAR(36), target_id VARCHAR(36), created_at BIGINT)",
+        )
+        storage.connection.executeUpdate(
+            "INSERT INTO player_invite_blocks VALUES (?, ?, 0)",
+            player.toString(),
+            target.toString(),
+        )
     }
 }

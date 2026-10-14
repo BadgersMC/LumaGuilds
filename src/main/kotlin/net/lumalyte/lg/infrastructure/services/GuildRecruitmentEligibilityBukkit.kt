@@ -26,13 +26,16 @@ internal class GuildRecruitmentEligibilityBukkit(
                         arrayOf("TABLE"),
                     )
                         .use { it.next() }
-                if (!exists) return@use emptySet<UUID>() // Legacy main has no invite-block feature yet.
-                connection.prepareStatement("SELECT target_id FROM player_invite_blocks WHERE owner_id = ?").use {
-                        statement ->
-                    statement.setString(1, player.toString())
-                    statement.executeQuery().use {
-                            rows ->
-                        buildSet { while (rows.next()) add(UUID.fromString(rows.getString(1))) }
+                if (!exists) {
+                    emptySet<UUID>() // Legacy main has no invite-block feature yet.
+                } else {
+                    connection.prepareStatement("SELECT target_id FROM player_invite_blocks WHERE owner_id = ?").use {
+                            statement ->
+                        statement.setString(1, player.toString())
+                        statement.executeQuery().use {
+                                rows ->
+                            buildSet { while (rows.next()) add(UUID.fromString(rows.getString(1))) }
+                        }
                     }
                 }
             }

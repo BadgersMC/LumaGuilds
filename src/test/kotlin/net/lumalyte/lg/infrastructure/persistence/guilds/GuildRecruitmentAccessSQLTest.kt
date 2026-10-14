@@ -28,17 +28,13 @@ internal class GuildRecruitmentAccessSQLTest : RewardSqlTestFixture() {
     private val listings by lazy { RecruitmentDirectoryRepositorySQL(storage, cache) }
     private val access by lazy { GuildRecruitmentAccessSQL(storage) }
 
+    @org.junit.jupiter.api.DisplayName("committedPublicationRefreshesCacheAndStaleSettingsCannotReopenGuild")
     @Test
-    fun committedPublicationRefreshesCacheAndStaleSettingsCannotReopenGuild() {
+    fun staleSettingsPreserveAccess() {
         val database = openStorage()
         migrateProductionSchema(database)
         val repository = GuildRepositorySQLite(database)
-        val original = net.lumalyte.lg.domain.entities.Guild(
-            id = guild,
-            name = "Recruitment",
-            createdAt = java.time.Instant.now(),
-            isOpen = true,
-        )
+        val original = openGuild()
         assertTrue(repository.add(original))
         val profiles = RecruitmentDirectoryRepositorySQL(database, repository)
         profiles.save(RecruitmentProfile(guild, RecruitmentMode.IN_GAME))
@@ -48,10 +44,21 @@ internal class GuildRecruitmentAccessSQLTest : RewardSqlTestFixture() {
         assertTrue(repository.updateAccess(guild, true))
         assertTrue(requireNotNull(repository.getById(guild)).isOpen)
         assertEquals(RecruitmentMode.JOIN_IMMEDIATELY, profiles.profile(guild)?.mode)
+        assertTrue(requireNotNull(GuildRepositorySQLite(database).getById(guild)).isOpen)
     }
 
+    private fun openGuild(): net.lumalyte.lg.domain.entities.Guild {
+        return net.lumalyte.lg.domain.entities.Guild(
+            id = guild,
+            name = "Recruitment",
+            createdAt = java.time.Instant.now(),
+            isOpen = true,
+        )
+    }
+
+    @org.junit.jupiter.api.DisplayName("publishingEveryMethodSynchronizesAccess")
     @Test
-    fun publishingEveryMethodSynchronizesAccess() {
+    fun publishedMethodsMirrorAccess() {
         RecruitmentMode.entries.forEach { mode ->
             listings.save(
                 RecruitmentProfile(
@@ -67,8 +74,9 @@ internal class GuildRecruitmentAccessSQLTest : RewardSqlTestFixture() {
         verify(exactly = RecruitmentMode.entries.size) { cache.refreshCachedAccess(guild) }
     }
 
+    @org.junit.jupiter.api.DisplayName("legacyTogglePreservesListingFields")
     @Test
-    fun legacyTogglePreservesListingFields() {
+    fun legacyTogglePreservesFields() {
         val original =
             RecruitmentProfile(guild, RecruitmentMode.IN_GAME, pitch = "Builders welcome", language = "English")
         listings.save(original)
@@ -80,8 +88,9 @@ internal class GuildRecruitmentAccessSQLTest : RewardSqlTestFixture() {
         assertEquals(original.copy(mode = RecruitmentMode.CLOSED), listings.profile(guild))
     }
 
+    @org.junit.jupiter.api.DisplayName("legacyGuildKeepsFallbackWithoutInventingListing")
     @Test
-    fun legacyGuildKeepsFallbackWithoutInventingListing() {
+    fun legacyAccessKeepsFallback() {
         assertNull(listings.profile(guild))
         assertTrue(access.setOpen(guild, true))
         assertTrue(isOpen())
@@ -89,8 +98,9 @@ internal class GuildRecruitmentAccessSQLTest : RewardSqlTestFixture() {
         assertFalse(access.setOpen(UUID.randomUUID(), true))
     }
 
+    @org.junit.jupiter.api.DisplayName("rejectedProfileWriteRollsBackAccessAndDoesNotRefreshCache")
     @Test
-    fun rejectedProfileWriteRollsBackAccessAndDoesNotRefreshCache() {
+    fun profileFailureRollsBackAccess() {
         listings.save(RecruitmentProfile(guild, RecruitmentMode.CLOSED))
         rejectProfileUpdates()
         assertFails { listings.save(RecruitmentProfile(guild, RecruitmentMode.JOIN_IMMEDIATELY)) }
@@ -99,8 +109,9 @@ internal class GuildRecruitmentAccessSQLTest : RewardSqlTestFixture() {
         verify(exactly = 1) { cache.refreshCachedAccess(guild) }
     }
 
+    @org.junit.jupiter.api.DisplayName("rejectedLegacyProfileWriteRollsBackToggle")
     @Test
-    fun rejectedLegacyProfileWriteRollsBackToggle() {
+    fun toggleFailureRollsBackAccess() {
         listings.save(RecruitmentProfile(guild, RecruitmentMode.IN_GAME))
         rejectProfileUpdates()
         assertFails { access.setOpen(guild, true) }
@@ -117,11 +128,12 @@ internal class GuildRecruitmentAccessSQLTest : RewardSqlTestFixture() {
     }
 
     private fun rejectProfileUpdates() {
-        val body = if (storage.dialect == SqlDialect.MARIADB) {
-            "FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'injected write failure'"
-        } else {
-            "BEGIN SELECT RAISE(ABORT, 'injected write failure'); END"
-        }
+        val body =
+            if (storage.dialect == SqlDialect.MARIADB) {
+                "FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'injected write failure'"
+            } else {
+                "BEGIN SELECT RAISE(ABORT, 'injected write failure'); END"
+            }
         storage.connection.executeUpdate(
             "CREATE TRIGGER reject_profile_update BEFORE UPDATE ON guild_recruitment_profiles $body",
         )
