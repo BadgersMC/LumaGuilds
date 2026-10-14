@@ -86,21 +86,6 @@ internal class RecruitmentController(
     var page = 0
     var input: RecruitmentInput? = null
 
-    @Suppress(
-        "TooGenericExceptionCaught",
-    ) // UI boundary: arbitrary adapter failures must close private screens and report failure.
-    fun run(action: () -> Unit) {
-        try {
-            action()
-        } catch (error: Exception) {
-            player.closeInventory()
-            org.slf4j.LoggerFactory.getLogger(
-                javaClass,
-            ).warn("Recruitment action failed for {}", player.uniqueId, error)
-            player.sendMessage(lang.msg("recruitment.feedback.failed"))
-        }
-    }
-
     private val renderers: Map<RecruitmentScreen, () -> List<RecruitmentButton>> by lazy {
         mapOf(
             RecruitmentScreen.SETUP to ::setupMethods,
@@ -119,6 +104,21 @@ internal class RecruitmentController(
             RecruitmentScreen.CONFIRM to ::confirm,
             RecruitmentScreen.DISCORD to ::discord,
         )
+    }
+
+    @Suppress(
+        "TooGenericExceptionCaught",
+    ) // UI boundary: arbitrary adapter failures must close private screens and report failure.
+    fun run(action: () -> Unit) {
+        try {
+            action()
+        } catch (error: Exception) {
+            player.closeInventory()
+            org.slf4j.LoggerFactory.getLogger(
+                javaClass,
+            ).warn("Recruitment action failed for {}", player.uniqueId, error)
+            player.sendMessage(lang.msg("recruitment.feedback.failed"))
+        }
     }
 
     fun view(): RecruitmentView {

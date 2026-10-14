@@ -10,7 +10,7 @@ private const val MAX_TIMES = 100
 private const val MAX_LANGUAGE = 40
 private const val MAX_INTERESTS = 8
 private const val MAX_INTEREST_LENGTH = 32
-private const val MAX_ANSWERS = 2000
+private const val MAX_ANSWERS = 2_000
 private const val MAX_REASON = 300
 private const val MAX_APPLICATIONS = 20
 private const val MAX_APPLICATION_DAYS = 90L
@@ -56,16 +56,18 @@ internal data class RecruitmentProfile(
 
 /** Exact HTTPS invite destinations only; links cannot contain redirects or formatting. */
 internal object DiscordInvite {
-    private val pattern = Regex("https://(?:discord\\.gg/|discord\\.com/invite/)[A-Za-z0-9-]{2,64}/?")
+    private val INVITE_PATTERN = Regex("https://(?:discord\\.gg/|discord\\.com/invite/)[A-Za-z0-9-]{2,64}/?")
 
     /** Accepts only direct HTTPS invites on Discord owned hosts. */
-    fun isValid(value: String): Boolean = pattern.matches(value)
+    fun isValid(value: String): Boolean = INVITE_PATTERN.matches(value)
 }
 
 /** Explains a duplicate or player application limit denial. */
 internal enum class SubmissionDenial { DUPLICATE, LIMIT }
 
 /** Configurable defaults; the persistence adapter must enforce the check and insert atomically. */
+// Domain value object: immutable policy behavior belongs with its validated values.
+@Suppress("DataClassContainsFunctions")
 internal data class RecruitmentPolicy(
     val maxApplications: Int = 3,
     val applicationLifetime: Duration = Duration.ofDays(7),
@@ -106,6 +108,8 @@ internal enum class ApplicationStatus {
 }
 
 /** Pure state transitions; adapters must independently authorize recruiters and revalidate admission. */
+// Immutable state machine: transitions return validated copies; data equality is required by persistence.
+@Suppress("DataClassContainsFunctions")
 internal data class GuildApplication(
     val id: UUID,
     val guildId: UUID,
@@ -126,7 +130,7 @@ internal data class GuildApplication(
 
     /** Pending payments remain active until staff reconcile their outcome. */
     fun isActive(at: Instant): Boolean = status == ApplicationStatus.ADMISSION_PENDING ||
-        (status in setOf(ApplicationStatus.SUBMITTED, ApplicationStatus.OFFERED) && at < expiresAt)
+        status in setOf(ApplicationStatus.SUBMITTED, ApplicationStatus.OFFERED) && at < expiresAt
 
     /** Approval records an offer only. No payment or member mutation occurs here. */
     fun offer(actor: UUID, at: Instant, lifetime: Duration): GuildApplication {

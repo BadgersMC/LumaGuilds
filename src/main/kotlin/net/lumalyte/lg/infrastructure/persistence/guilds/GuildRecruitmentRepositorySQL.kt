@@ -27,7 +27,8 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
             id VARCHAR(36) PRIMARY KEY, guild_id VARCHAR(36) NOT NULL, applicant_id VARCHAR(36) NOT NULL,
             answers TEXT NOT NULL, created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL,
             status VARCHAR(32) NOT NULL, reviewed_by VARCHAR(36) NULL, reviewed_at BIGINT NULL,
-            decision_reason TEXT NOT NULL)$engine""",
+            decision_reason TEXT NOT NULL)$engine
+            """.trimIndent(),
         )
         // Inline index syntax differs between SQLite and MariaDB; create only if absent via metadata.
         storage.connection.connection.use { connection ->
@@ -84,7 +85,8 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
                     """INSERT INTO guild_recruitment_applications
                 (id, guild_id, applicant_id, answers, created_at, expires_at,
                  status, reviewed_by, reviewed_at, decision_reason)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """.trimIndent(),
                     application.id, application.guildId, application.applicantId,
                     application.answers, application.createdAt.toEpochMilli(), application.expiresAt.toEpochMilli(),
                     application.status.name, null, null, "",
@@ -143,7 +145,8 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
             execute(
                 connection,
                 """UPDATE guild_recruitment_applications SET expires_at = ?, status = ?,
-                reviewed_by = ?, reviewed_at = ?, decision_reason = ? WHERE id = ?""",
+                reviewed_by = ?, reviewed_at = ?, decision_reason = ? WHERE id = ?
+                """.trimIndent(),
                 updated.expiresAt.toEpochMilli(), updated.status.name, updated.reviewedBy,
                 updated.reviewedAt?.toEpochMilli(), updated.decisionReason, updated.id,
             ) == 1

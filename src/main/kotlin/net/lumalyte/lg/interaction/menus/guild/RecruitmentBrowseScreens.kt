@@ -9,7 +9,7 @@ import net.lumalyte.lg.domain.recruitment.RecruitmentProfile
 /** Browse presentation builders share the current authorized navigation session. */
 internal fun RecruitmentController.matchesAvailability(guild: Guild, profile: RecruitmentProfile): Boolean =
     (peaceful == null || peaceful == (guild.mode == GuildMode.PEACEFUL)) &&
-        (!recruitingOnly || (profile.mode != RecruitmentMode.CLOSED && service.spaces(guild.id) > 0)) &&
+        (!recruitingOnly || profile.mode != RecruitmentMode.CLOSED && service.spaces(guild.id) > 0) &&
         (joiningMethod == null || joiningMethod == profile.mode)
 
 internal fun RecruitmentController.matchesPreferences(guild: Guild, profile: RecruitmentProfile): Boolean =

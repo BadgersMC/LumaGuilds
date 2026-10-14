@@ -24,6 +24,16 @@ import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
+private const val BOARD_COLUMNS = 9
+private const val BOARD_ROWS = 6
+private const val BOARD_CAPACITY = 45
+private const val FILTERED_CAPACITY = 36
+private const val NAVIGATION_ROW = 5
+private const val NAVIGATION_CAPACITY = 7
+private const val INPUT_LIFETIME_TICKS = 2_400L
+private const val LORE_COLUMNS = 44
+private const val LORE_ROWS = 16
+
 /** Inventory recruitment board with stable pagination and private chat input. */
 internal class GuildRecruitmentMenu(
     private val navigator: MenuNavigator,
@@ -38,99 +48,103 @@ internal class GuildRecruitmentMenu(
     private val lang: LangService by inject()
     private val emojis: NexoEmojiService by inject()
 
-    /** Refreshes from current service state; failures never open a stale private inbox. */
-    override fun open(): Unit = controller.run {
-        val input = controller.input
-        if (input != null) {
-            if (net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.supportsDialog(player)) {
-                player.closeInventory()
-                val navigation = navigator.currentNavigationToken()
-                net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.input(
-                    player,
-                    input.label,
-                    input.value,
-                    lang.raw("recruitment.submit_input"),
-                    lang.raw("recruitment.cancel_input"),
-                    { navigator.isNavigationCurrent(navigation) && controller.input === input },
-                    { controller.acceptInput(it) },
-                    { controller.cancelInput() },
-                )
-                return@run
-            }
-            player.closeInventory()
-            player.sendMessage(lang.msg("recruitment.feedback.input", "field" to input.label))
-            val navigation = navigator.currentNavigationToken()
-            val handler =
-                object : ChatInputHandler {
-                    override fun onChatInput(player: Player, input: String) {
-                        if (player.isOnline && navigator.isNavigationCurrent(navigation)) {
-                            controller.acceptInput(
-                                input,
-                            )
-                        }
-                    }
+    /** Refreshes current state without exposing a stale private inbox. */
+    override fun open() {
+        controller.run {
+            val input = controller.input
+            if (input == null) showBoard(controller.view()) else showInput(input)
+        }
+    }
 
-                    override fun onCancel(player: Player) {
-                        if (player.isOnline && navigator.isNavigationCurrent(navigation)) controller.cancelInput()
-                    }
-                }
-            inputListener.startInputMode(player, handler)
-            org.bukkit.Bukkit.getScheduler().runTaskLater(
-                net.lumalyte.lg.common.PluginKeys.getPlugin(),
-                Runnable {
-                    if (inputListener.stopInputMode(player, handler) && player.isOnline) {
-                        player.sendMessage(lang.msg("recruitment.feedback.input_expired"))
-                    }
-                },
-                2400L,
+    private fun showInput(input: RecruitmentInput) {
+        player.closeInventory()
+        val navigation = navigator.currentNavigationToken()
+        if (net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.supportsDialog(player)) {
+            net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.input(
+                player,
+                input.label,
+                input.value,
+                lang.raw("recruitment.submit_input"),
+                lang.raw("recruitment.cancel_input"),
+                { navigator.isNavigationCurrent(navigation) && controller.input === input },
+                { controller.acceptInput(it) },
+                { controller.cancelInput() },
             )
         } else {
-            val view = controller.view()
-            val capacity = if (view.quickFilters.isEmpty()) 45 else 36
-            val offset = if (view.quickFilters.isEmpty()) 0 else 1
-            val pages = maxOf(1, (view.items.size + capacity - 1) / capacity)
-            controller.page = controller.page.coerceIn(0, pages - 1)
-            val gui =
-                ChestGui(
-                    6,
-                    MenuTitleBuilder.build(controller.theme(), 6, "${view.title} ${controller.page + 1}/$pages"),
-                )
-            gui.setOnTopClick { it.isCancelled = true }
-            gui.setOnBottomClick { it.isCancelled = true }
-            gui.setOnGlobalDrag { it.isCancelled = true }
-            val pane = StaticPane(0, 0, 9, 6)
-            view.quickFilters.forEachIndexed { index, button -> add(pane, button, index, 0) }
-            view.items.drop(controller.page * capacity).take(capacity).forEachIndexed {
-                    index,
-                    button,
-                ->
-                add(pane, button, index % 9, index / 9 + offset)
+            showChatInput(input, navigation)
+        }
+    }
+
+    private fun showChatInput(input: RecruitmentInput, navigation: Long) {
+        player.sendMessage(lang.msg("recruitment.feedback.input", "field" to input.label))
+        val handler = object : ChatInputHandler {
+            override fun onChatInput(player: Player, input: String) {
+                if (player.isOnline && navigator.isNavigationCurrent(navigation)) controller.acceptInput(input)
             }
-            view.navigation.take(7).forEachIndexed { index, button -> add(pane, button, index + 1, 5) }
-            if (controller.page > 0) {
-                add(
-                    pane,
-                    RecruitmentButton(lang.raw("recruitment.previous"), icon = "lg_page_prev") {
-                        controller.page = (controller.page - 1).coerceAtLeast(0)
-                        open()
-                    },
-                    0,
-                    5,
-                )
+            override fun onCancel(player: Player) {
+                if (player.isOnline && navigator.isNavigationCurrent(navigation)) controller.cancelInput()
             }
-            if (controller.page + 1 < pages) {
-                add(
-                    pane,
-                    RecruitmentButton(lang.raw("recruitment.next"), icon = "lg_page_next") {
-                        controller.page = (controller.page + 1).coerceAtMost(pages - 1)
-                        open()
-                    },
-                    8,
-                    5,
-                )
-            }
-            gui.addPane(pane)
-            gui.show(player)
+        }
+        inputListener.startInputMode(player, handler)
+        org.bukkit.Bukkit.getScheduler().runTaskLater(
+            net.lumalyte.lg.common.PluginKeys.getPlugin(),
+            Runnable {
+                if (inputListener.stopInputMode(player, handler) && player.isOnline) {
+                    player.sendMessage(lang.msg("recruitment.feedback.input_expired"))
+                }
+            },
+            INPUT_LIFETIME_TICKS,
+        )
+    }
+
+    private fun showBoard(view: RecruitmentView) {
+        val filtered = view.quickFilters.isNotEmpty()
+        val capacity = if (filtered) FILTERED_CAPACITY else BOARD_CAPACITY
+        val offset = if (filtered) 1 else 0
+        val pages = maxOf(1, (view.items.size + capacity - 1) / capacity)
+        controller.page = controller.page.coerceIn(0, pages - 1)
+        val gui = ChestGui(
+            BOARD_ROWS,
+            MenuTitleBuilder.build(controller.theme(), BOARD_ROWS, "${view.title} ${controller.page + 1}/$pages"),
+        )
+        gui.setOnTopClick { it.isCancelled = true }
+        gui.setOnBottomClick { it.isCancelled = true }
+        gui.setOnGlobalDrag { it.isCancelled = true }
+        val pane = StaticPane(0, 0, BOARD_COLUMNS, BOARD_ROWS)
+        view.quickFilters.forEachIndexed { index, button -> add(pane, button, index, 0) }
+        view.items.drop(controller.page * capacity).take(capacity).forEachIndexed { index, button ->
+            add(pane, button, index % BOARD_COLUMNS, index / BOARD_COLUMNS + offset)
+        }
+        view.navigation.take(NAVIGATION_CAPACITY).forEachIndexed { index, button ->
+            add(pane, button, index + 1, NAVIGATION_ROW)
+        }
+        addPagination(pane, pages)
+        gui.addPane(pane)
+        gui.show(player)
+    }
+
+    private fun addPagination(pane: StaticPane, pages: Int) {
+        if (controller.page > 0) {
+            add(
+                pane,
+                RecruitmentButton(lang.raw("recruitment.previous"), icon = "lg_page_prev") {
+                    controller.page = (controller.page - 1).coerceAtLeast(0)
+                    open()
+                },
+                0,
+                NAVIGATION_ROW,
+            )
+        }
+        if (controller.page + 1 < pages) {
+            add(
+                pane,
+                RecruitmentButton(lang.raw("recruitment.next"), icon = "lg_page_next") {
+                    controller.page = (controller.page + 1).coerceAtMost(pages - 1)
+                    open()
+                },
+                BOARD_COLUMNS - 1,
+                NAVIGATION_ROW,
+            )
         }
     }
 
@@ -143,7 +157,7 @@ internal class GuildRecruitmentMenu(
                 MiniMessage.miniMessage().deserialize(emojis.emojiToFontTag(it.emoji)).append(Component.space())
             } ?: Component.empty()
         val item = base.name(emoji.append(GuiTextStyler.style(Component.text(button.label))))
-        button.details.flatMap { it.chunked(44) }.take(16).forEach {
+        button.details.flatMap { it.chunked(LORE_COLUMNS) }.take(LORE_ROWS).forEach {
             item.lore(Component.text(it).color(net.kyori.adventure.text.format.NamedTextColor.GRAY))
         }
         pane.addItem(GuiItem(item) { controller.run(button.action) }, x, y)

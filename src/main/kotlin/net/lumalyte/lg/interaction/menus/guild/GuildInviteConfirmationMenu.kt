@@ -26,6 +26,7 @@ import org.bukkit.inventory.meta.SkullMeta
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
+/** Confirms the quoted guild admission fee through the canonical admission service. */
 class GuildInviteConfirmationMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
