@@ -7,6 +7,14 @@ import java.util.UUID
  * A repository that handles the persistence of Guilds.
  */
 interface GuildRepository {
+    /** Read the committed recruitment access mirror into the cache. */
+    fun refreshCachedAccess(guildId: UUID) {}
+
+    /** Change legacy access together with any persisted recruitment method. */
+    fun updateAccess(guildId: UUID, isOpen: Boolean): Boolean {
+        val current = getById(guildId) ?: return false
+        return update(current.copy(isOpen = isOpen))
+    }
     /** Read the SQL level mirror into the cache after a committed external award; never write it. */
     fun refreshCachedLevel(guildId: UUID) {}
 

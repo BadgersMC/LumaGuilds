@@ -13,7 +13,6 @@ import net.lumalyte.lg.application.services.PersonalGoldRequest
 import net.lumalyte.lg.application.services.PhysicalCurrencyService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
-import net.lumalyte.lg.domain.gold.GuildGoldResult
 import net.lumalyte.lg.domain.values.JoinRequirement
 import org.slf4j.LoggerFactory
 import java.util.UUID
@@ -34,6 +33,7 @@ class LfgServiceBukkit internal constructor(
     private val recruitmentEligibility: net.lumalyte.lg.application.services.GuildRecruitmentEligibility? = null,
 ) : LfgService {
     /** Preserves the existing eight-argument integration constructor. */
+    @Suppress("LongParameterList") // Preserve the existing public eight-argument integration constructor.
     constructor(
         guildRepository: GuildRepository,
         guildService: GuildService,
@@ -49,17 +49,25 @@ class LfgServiceBukkit internal constructor(
     )
 
     private val logger = LoggerFactory.getLogger(LfgServiceBukkit::class.java)
+    private val admissionChecks = LfgAdmissionChecks(
+        guildRepository,
+        memberService,
+        rankService,
+        configService,
+        recruitmentEligibility,
+        this,
+    )
 
     override fun getAvailableGuilds(): List<Guild> {
         val config = configService.loadConfig()
         val maxMembers = config.guild.maxMembersPerGuild
 
-        val guilds = guildRepository.getAll().filter { it.isOpen }
+        val guilds = guildRepository.getAll().filter(::isImmediate)
         val limits = memberService.getMemberLimits(guilds.map { it.id }.toSet())
         return guilds
             .filter { guild ->
                 // Must be open for recruitment
-                guild.isOpen &&
+                isImmediate(guild) &&
                     // Must have available slots
                     memberService.getMemberCount(guild.id) < minOf(maxMembers, limits[guild.id] ?: 0)
             }
@@ -119,57 +127,29 @@ class LfgServiceBukkit internal constructor(
     }
 
     @Synchronized
-    override fun joinGuild(playerId: UUID, guild: Guild): LfgJoinResult {
-        return admit(playerId, guild) { current -> isImmediate(current) }
-    }
+    override fun joinGuild(playerId: UUID, guild: Guild): LfgJoinResult =
+        admit(playerId, guild) { current -> isImmediate(current) }
 
     /** Approved offers use the same compensated fee transaction without opening the guild publicly. */
     @Synchronized
-    override fun joinApprovedGuild(playerId: UUID, guild: Guild, eligible: () -> Boolean): LfgJoinResult {
-        return admit(playerId, guild) { eligible() }
-    }
+    override fun joinApprovedGuild(playerId: UUID, guild: Guild, eligible: () -> Boolean): LfgJoinResult =
+        admit(playerId, guild) { eligible() }
 
-    private fun isImmediate(guild: Guild): Boolean = recruitment?.profile(guild.id)?.let {
+    private fun isImmediate(guild: Guild): Boolean {
+        return recruitment?.profile(guild.id)?.let {
             it.mode == net.lumalyte.lg.domain.recruitment.RecruitmentMode.JOIN_IMMEDIATELY
         } ?: guild.isOpen
-
-    private fun admit(playerId: UUID, guild: Guild, admissionAllowed: (Guild) -> Boolean): LfgJoinResult {
-        val current =
-            guildRepository.getById(guild.id)
-                ?: return LfgJoinResult.Error("This guild is no longer available")
-        if (!admissionAllowed(current) || !sameFee(current, guild)) return recruitmentChanged()
-        val rank =
-            rankService.getDefaultRank(guild.id)
-                ?: return LfgJoinResult.Error("Guild configuration error: No default rank found")
-        val validation = canJoinGuild(playerId, current)
-        if (validation !is LfgJoinResult.Success) return validation
-        return if (guild.joinFeeEnabled && guild.joinFeeAmount > 0) {
-            paidAdmission(playerId, guild, rank.id, admissionAllowed)
-        } else {
-            freeAdmission(playerId, guild, rank.id, admissionAllowed)
-        }
     }
 
-    private fun sameFee(
-        current: Guild,
-        quoted: Guild,
-    ): Boolean = current.joinFeeEnabled == quoted.joinFeeEnabled && current.joinFeeAmount == quoted.joinFeeAmount
-
-    private fun recruitmentChanged(): LfgJoinResult =
-        LfgJoinResult.Error("Guild recruitment changed. Please reopen the guild browser")
-
-    private fun eligibleForAdmission(
-        playerId: UUID,
-        guild: Guild,
-        rank: UUID,
-        admissionAllowed: (Guild) -> Boolean,
-    ): Boolean {
-        val current = guildRepository.getById(guild.id) ?: return false
-        if (!admissionAllowed(current) || !sameFee(current, guild)) return false
-        if (recruitmentEligibility?.allows(playerId, guild.id) == false) return false
-        if (memberService.getPlayerGuilds(playerId).isNotEmpty()) return false
-        val limit = minOf(configService.loadConfig().guild.maxMembersPerGuild, memberService.getMemberLimit(guild.id))
-        return memberService.getMemberCount(guild.id) < limit && rankService.getDefaultRank(guild.id)?.id == rank
+    private fun admit(playerId: UUID, guild: Guild, admissionAllowed: (Guild) -> Boolean): LfgJoinResult {
+        return when (val checked = admissionChecks.prepare(playerId, guild, admissionAllowed)) {
+            is LfgAdmissionCheck.Denied -> checked.result
+            is LfgAdmissionCheck.Ready -> if (guild.joinFeeEnabled && guild.joinFeeAmount > 0) {
+                paidAdmission(playerId, guild, checked.rank, admissionAllowed)
+            } else {
+                freeAdmission(playerId, guild, checked.rank, admissionAllowed)
+            }
+        }
     }
 
     private fun paidAdmission(
@@ -183,34 +163,16 @@ class LfgServiceBukkit internal constructor(
             PersonalGoldRequest(UUID.randomUUID(), guild.id, playerId, guild.joinFeeAmount.toLong(), "LFG join fee")
         val admission =
             object : PaidGuildAdmission {
-                override fun isEligible(): Boolean =
-                    eligibleForAdmission(playerId, guild, rank, admissionAllowed) && getJoinRequirement(guild) == quote
+                override fun isEligible(): Boolean {
+                    return admissionChecks.allows(playerId, guild, rank, admissionAllowed) &&
+                        getJoinRequirement(guild) == quote
+                }
 
                 override fun complete(): Boolean =
                     isEligible() && memberService.addMember(playerId, guild.id, rank) != null
             }
-        return paymentResult(bankService.collectJoinFee(request, quote.isPhysicalCurrency, admission), guild)
+        return bankService.collectJoinFee(request, quote.isPhysicalCurrency, admission).admissionFeedback(guild, logger)
     }
-
-    private fun paymentResult(result: GuildGoldResult, guild: Guild): LfgJoinResult =
-        when (result) {
-            is GuildGoldResult.Applied -> LfgJoinResult.Success("You have joined ${guild.name}!")
-            is GuildGoldResult.Rejected -> LfgJoinResult.Error("Join fee was not accepted (${result.reason})")
-            is GuildGoldResult.Failed -> {
-                logger.error(
-                    "Paid guild admission {} did not complete; compensated={}",
-                    result.transactionId,
-                    result.compensationSucceeded,
-                )
-                LfgJoinResult.Error(
-                    if (result.compensationSucceeded) {
-                        "Join failed; your payment was returned"
-                    } else {
-                        "Join payment requires staff review. Do not pay again. Reference: ${result.transactionId}"
-                    },
-                )
-            }
-        }
 
     private fun freeAdmission(
         playerId: UUID,
@@ -218,16 +180,23 @@ class LfgServiceBukkit internal constructor(
         rank: UUID,
         admissionAllowed: (Guild) -> Boolean,
     ): LfgJoinResult {
-        if (!eligibleForAdmission(playerId, guild, rank, admissionAllowed)) return recruitmentChanged()
-        val latest = guildRepository.getById(guild.id) ?: return LfgJoinResult.Error("Guild no longer exists")
-        val validation = canJoinGuild(playerId, latest)
-        if (validation !is LfgJoinResult.Success) return validation
-        if (memberService.addMember(playerId, guild.id, rank) == null) {
-            logger.error("Failed to add player $playerId to guild ${guild.id}")
-            return LfgJoinResult.Error("Failed to add you to the guild")
+        val checked = if (admissionChecks.allows(playerId, guild, rank, admissionAllowed)) {
+            admissionChecks.prepare(playerId, guild, admissionAllowed)
+        } else {
+            LfgAdmissionCheck.Denied(LfgJoinResult.Error("Guild recruitment changed. Please reopen the guild browser"))
         }
-        logger.info("Player $playerId joined guild ${guild.name} via LFG")
-        return LfgJoinResult.Success("You have joined ${guild.name}!")
+        return when (checked) {
+            is LfgAdmissionCheck.Denied -> checked.result
+            is LfgAdmissionCheck.Ready -> {
+                if (memberService.addMember(playerId, guild.id, checked.rank) == null) {
+                    logger.error("Failed to add player $playerId to guild ${guild.id}")
+                    LfgJoinResult.Error("Failed to add you to the guild")
+                } else {
+                    logger.info("Player $playerId joined guild ${guild.name} via LFG")
+                    LfgJoinResult.Success("You have joined ${guild.name}!")
+                }
+            }
+        }
     }
 
     override fun getJoinRequirement(guild: Guild): JoinRequirement? {

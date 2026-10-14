@@ -20,11 +20,22 @@ internal class RecruitmentDirectoryRepositorySQLTest : RewardSqlTestFixture() {
     private val player = UUID.randomUUID()
     private val now = Instant.parse("2026-10-14T12:00:00Z")
 
+    private fun prepareGuild(
+        storage: net.lumalyte.lg.infrastructure.persistence.storage.Storage<co.aikar.idb.Database>,
+        id: UUID,
+    ) {
+        storage.connection.executeUpdate(
+            "CREATE TABLE IF NOT EXISTS guilds (id VARCHAR(36) PRIMARY KEY, is_open INTEGER NOT NULL)",
+        )
+        storage.connection.executeUpdate("INSERT INTO guilds (id, is_open) VALUES (?, 0)", id.toString())
+    }
+
     @Test
     fun listingTimestampPersists() {
         val storage = openStorage()
         val repository = RecruitmentDirectoryRepositorySQL(storage)
         val profile = RecruitmentProfile(UUID.randomUUID(), RecruitmentMode.IN_GAME)
+        prepareGuild(storage, profile.guildId)
         assertNull(repository.updatedAt(profile.guildId))
         val before = Instant.now()
         repository.save(profile)
@@ -57,6 +68,7 @@ internal class RecruitmentDirectoryRepositorySQLTest : RewardSqlTestFixture() {
                 setOf("Building", "Quests"), "Evenings", "English", true, "https://discord.gg/Example", "Open a ticket",
             )
         assertNull(first.profile(profile.guildId))
+        prepareGuild(storage, profile.guildId)
         first.save(profile)
         assertEquals(profile, RecruitmentDirectoryRepositorySQL(storage).profile(profile.guildId))
         first.save(profile.copy(mode = RecruitmentMode.CLOSED, pitch = "Paused"))

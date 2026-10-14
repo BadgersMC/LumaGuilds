@@ -28,6 +28,8 @@ import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
+private const val RECRUITMENT_COLUMN = 4
+
 // Locale keys stay literal so LocaleContractTest can see them.
 @Suppress("StringLiteralDuplication", "LibraryEntitiesShouldNotBePublic")
 class GuildControlPanelMenu(
@@ -71,9 +73,13 @@ class GuildControlPanelMenu(
         // Row 0: guild features
         addPartyManagementButton(pane, PARTY_SLOT, 0)
         addVaultButton(pane, VAULT_SLOT, 0)
-        pane.addItem(GuiItem(ItemStack.of(Material.BOOK).name(lang.gui("recruitment.manage"))) {
-            menuNavigator.openMenu(menuFactory.createLfgBrowserMenu(menuNavigator, player))
-        }, 4, 1)
+        pane.addItem(
+            GuiItem(ItemStack.of(Material.BOOK).name(lang.gui("recruitment.manage"))) {
+                menuNavigator.openMenu(menuFactory.createLfgBrowserMenu(menuNavigator, player))
+            },
+            RECRUITMENT_COLUMN,
+            1,
+        )
         pane.addItem(
             GuiItem(ItemStack.of(Material.BOOK).name(lang.gui("community.chat.settings"))) {
                 menuNavigator.openMenu(menuFactory.createPlayerChatSettingsMenu(menuNavigator, player))

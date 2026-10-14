@@ -13,6 +13,23 @@ import java.sql.ResultSet
 import java.time.Instant
 import java.util.UUID
 
+private enum class RecruitmentSelect { ID, APPLICANT, APPLICANT_ORDERED, GUILD_ORDERED }
+
+private fun Connection.recruitmentStatement(query: RecruitmentSelect): java.sql.PreparedStatement {
+    return when (query) {
+        RecruitmentSelect.ID -> prepareStatement("SELECT * FROM guild_recruitment_applications WHERE id = ?")
+        RecruitmentSelect.APPLICANT -> prepareStatement(
+            "SELECT * FROM guild_recruitment_applications WHERE applicant_id = ?",
+        )
+        RecruitmentSelect.APPLICANT_ORDERED -> prepareStatement(
+            "SELECT * FROM guild_recruitment_applications WHERE applicant_id = ? ORDER BY created_at, id",
+        )
+        RecruitmentSelect.GUILD_ORDERED -> prepareStatement(
+            "SELECT * FROM guild_recruitment_applications WHERE guild_id = ? ORDER BY created_at, id",
+        )
+    }
+}
+
 /** Portable additive tables, with database applicant locks rather than per-server cache authority. */
 internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Database>) : GuildRecruitmentRepository {
     private val maria = storage.dialect == SqlDialect.MARIADB
@@ -77,7 +94,7 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
                     application.applicantId,
                     query(
                         connection,
-                        "SELECT * FROM guild_recruitment_applications WHERE applicant_id = ?",
+                        RecruitmentSelect.APPLICANT,
                         application.applicantId,
                     ),
                     at,
@@ -103,7 +120,7 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
 
     override fun get(id: UUID): GuildApplication? {
         return read(
-            "SELECT * FROM guild_recruitment_applications WHERE id = ?",
+            RecruitmentSelect.ID,
             id,
         )
             .firstOrNull()
@@ -111,14 +128,14 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
 
     override fun forApplicant(applicant: UUID): List<GuildApplication> {
         return read(
-            "SELECT * FROM guild_recruitment_applications WHERE applicant_id = ? ORDER BY created_at, id",
+            RecruitmentSelect.APPLICANT_ORDERED,
             applicant,
         )
     }
 
     override fun forGuild(guild: UUID): List<GuildApplication> {
         return read(
-            "SELECT * FROM guild_recruitment_applications WHERE guild_id = ? ORDER BY created_at, id",
+            RecruitmentSelect.GUILD_ORDERED,
             guild,
         )
     }
@@ -135,7 +152,7 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
             val current =
                 query(
                     connection,
-                    "SELECT * FROM guild_recruitment_applications WHERE id = ?",
+                    RecruitmentSelect.ID,
                     expected.id,
                 )
                     .firstOrNull()
@@ -149,7 +166,7 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
             }
             if (updated.status == ApplicationStatus.ADMISSION_PENDING &&
                 query(
-                    connection, "SELECT * FROM guild_recruitment_applications WHERE applicant_id = ?",
+                    connection, RecruitmentSelect.APPLICANT,
                     expected.applicantId,
                 )
                     .any { it.id != expected.id && it.status == ApplicationStatus.ADMISSION_PENDING }
@@ -169,13 +186,13 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         }
     }
 
-    private fun read(sql: String, id: UUID): List<GuildApplication> =
-        storage.connection.connection.use { query(it, sql, id) }
+    private fun read(query: RecruitmentSelect, id: UUID): List<GuildApplication> =
+        storage.connection.connection.use { query(it, query, id) }
 
     private fun millis(at: Instant): Instant = Instant.ofEpochMilli(at.toEpochMilli())
 
-    private fun query(connection: Connection, sql: String, id: UUID): List<GuildApplication> {
-        return connection.prepareStatement(sql).use { statement ->
+    private fun query(connection: Connection, query: RecruitmentSelect, id: UUID): List<GuildApplication> {
+        return connection.recruitmentStatement(query).use { statement ->
             statement.setString(1, id.toString())
             statement.executeQuery().use { rows -> buildList { while (rows.next()) add(map(rows)) } }
         }

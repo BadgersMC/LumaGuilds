@@ -27,7 +27,8 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 /** Confirms the quoted guild admission fee through the canonical admission service. */
-@Suppress("StringLiteralDuplication", "LibraryEntitiesShouldNotBePublic") // Retain the public constructor API and literal arguments required by LocaleContractTest.
+@Suppress("StringLiteralDuplication", "LibraryEntitiesShouldNotBePublic")
+// Preserve the public constructor and the locale scanner's literal argument contract.
 class GuildInviteConfirmationMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
