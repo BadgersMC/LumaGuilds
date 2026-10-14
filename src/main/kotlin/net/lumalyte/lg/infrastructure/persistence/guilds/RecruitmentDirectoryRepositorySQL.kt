@@ -12,6 +12,8 @@ import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
+private const val DISCORD_INVITE_KEY = "discord"
+
 /** Additive listing and preference tables; SQL failures propagate instead of reporting a successful save. */
 internal class RecruitmentDirectoryRepositorySQL(
     private val storage: Storage<Database>,
@@ -50,7 +52,7 @@ internal class RecruitmentDirectoryRepositorySQL(
             preferredTimes = json.getString("times"),
             language = json.getString("language"),
             beginnerFriendly = json.getBoolean("beginner"),
-            discordInvite = if (json.isNull("discord")) null else json.getString("discord"),
+            discordInvite = if (json.isNull(DISCORD_INVITE_KEY)) null else json.getString(DISCORD_INVITE_KEY),
             discordInstructions = json.getString("instructions"),
         )
     }
@@ -64,7 +66,7 @@ internal class RecruitmentDirectoryRepositorySQL(
                 .put("interests", JSONArray(profile.interests.toList())).put("times", profile.preferredTimes)
                 .put("language", profile.language).put("beginner", profile.beginnerFriendly)
                 .put(
-                    "discord",
+                    DISCORD_INVITE_KEY,
                     profile.discordInvite ?: JSONObject.NULL,
                 ).put("instructions", profile.discordInstructions)
         val suffix =
@@ -90,7 +92,10 @@ internal class RecruitmentDirectoryRepositorySQL(
     }
 
     /** Enables or disables personal discovery prompts without resetting prompt history. */
-    override fun setReminders(player: UUID, enabled: Boolean) {
+    override fun setReminders(
+        player: UUID,
+        enabled: Boolean,
+    ) {
         val suffix =
             if (maria) {
                 "ON DUPLICATE KEY UPDATE enabled = VALUES(enabled)"
@@ -105,12 +110,17 @@ internal class RecruitmentDirectoryRepositorySQL(
     }
 
     /** New players can receive the one-time prompt; optional repeating prompts are globally disabled by default. */
-    override fun remindersEnabled(player: UUID): Boolean = storage.connection.getFirstRow(
-        "SELECT enabled FROM guild_recruitment_preferences WHERE player_id = ?", player.toString(),
-    )?.getInt("enabled") != 0
+    override fun remindersEnabled(player: UUID): Boolean =
+        storage.connection.getFirstRow(
+            "SELECT enabled FROM guild_recruitment_preferences WHERE player_id = ?", player.toString(),
+        )?.getInt("enabled") != 0
 
     /** One conditional update makes reconnects and competing schedulers unable to replay a prompt. */
-    override fun consumePrompt(player: UUID, at: Instant, repeatAfter: Duration?): Boolean {
+    override fun consumePrompt(
+        player: UUID,
+        at: Instant,
+        repeatAfter: Duration?,
+    ): Boolean {
         require(repeatAfter == null || repeatAfter > Duration.ZERO)
         val suffix =
             if (maria) {
@@ -136,7 +146,10 @@ internal class RecruitmentDirectoryRepositorySQL(
     }
 
     /** A digest is delivered once until its private application or inbox state changes. */
-    override fun consumeNotification(player: UUID, signature: String): Boolean {
+    override fun consumeNotification(
+        player: UUID,
+        signature: String,
+    ): Boolean {
         require(signature.matches(Regex("[0-9a-f]{64}")))
         val suffix =
             if (maria) {

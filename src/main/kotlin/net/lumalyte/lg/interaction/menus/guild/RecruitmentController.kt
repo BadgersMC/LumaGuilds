@@ -36,7 +36,7 @@ internal enum class RecruitmentScreen {
 internal data class RecruitmentButton(
     val label: String,
     val details: List<String> = emptyList(),
-    val icon: String = "lg_nav_members",
+    val icon: String = RecruitmentIcons.NAV_MEMBERS,
     val guild: Guild? = null,
     val action: () -> Unit = {
     },

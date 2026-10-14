@@ -21,14 +21,15 @@ internal class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
     private val guild = UUID.randomUUID()
     private val policy = RecruitmentPolicy()
 
-    private fun application() = GuildApplication(
-        UUID.randomUUID(),
-        guild,
-        player,
-        "I enjoy building",
-        now,
-        now.plus(policy.applicationLifetime),
-    )
+    private fun application() =
+        GuildApplication(
+            UUID.randomUUID(),
+            guild,
+            player,
+            "I enjoy building",
+            now,
+            now.plus(policy.applicationLifetime),
+        )
 
     @org.junit.jupiter.api.DisplayName("applications and decision actor survive a new repository instance")
     @Test

@@ -8,7 +8,7 @@ internal fun RecruitmentController.management(): List<RecruitmentButton> {
     val guild = ownGuild() ?: return browse()
     return buildList {
         add(
-            RecruitmentButton(lang.raw("recruitment.preview"), details(guild), "lg_nav_info", guild) {
+            RecruitmentButton(lang.raw("recruitment.preview"), details(guild), RecruitmentIcons.NAV_INFO, guild) {
                 selected = guild.id
                 go(RecruitmentScreen.PROFILE)
             },
@@ -17,13 +17,13 @@ internal fun RecruitmentController.management(): List<RecruitmentButton> {
             add(
                 RecruitmentButton(
                     lang.raw("recruitment.inbox"),
-                    icon = "lg_nav_members",
+                    icon = RecruitmentIcons.NAV_MEMBERS,
                 ) { go(RecruitmentScreen.INBOX) },
             )
         }
         if (GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id)) {
             add(
-                RecruitmentButton(lang.raw("recruitment.setup"), icon = "lg_tag") {
+                RecruitmentButton(lang.raw("recruitment.setup"), icon = RecruitmentIcons.TAG) {
                     setupDraft = service.profile(guild).copy(mode = RecruitmentMode.CLOSED)
                     go(RecruitmentScreen.SETUP)
                 },
@@ -31,28 +31,34 @@ internal fun RecruitmentController.management(): List<RecruitmentButton> {
             add(
                 RecruitmentButton(
                     lang.raw("recruitment.settings"),
-                    icon = "lg_nav_settings",
+                    icon = RecruitmentIcons.NAV_SETTINGS,
                 ) { go(RecruitmentScreen.SETTINGS) },
             )
         }
         add(
             RecruitmentButton(
                 lang.raw("recruitment.browse"),
-                icon = "lg_nav_info",
+                icon = RecruitmentIcons.NAV_INFO,
             ) { go(RecruitmentScreen.BROWSE) },
         )
-        add(RecruitmentButton(lang.raw("recruitment.mine"), icon = "lg_description") { go(RecruitmentScreen.MINE) })
+        add(
+            RecruitmentButton(
+                lang.raw("recruitment.mine"),
+                icon = RecruitmentIcons.DESCRIPTION,
+            ) { go(RecruitmentScreen.MINE) },
+        )
     }
 }
 
-internal fun RecruitmentController.setupMethods(): List<RecruitmentButton> = RecruitmentMode.entries.map { method ->
-    RecruitmentButton(mode(method), icon = "lg_nav_settings") {
-        val guild = requireNotNull(ownGuild())
-        require(GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id))
-        setupMode = method
-        setupInput(0)
+internal fun RecruitmentController.setupMethods(): List<RecruitmentButton> =
+    RecruitmentMode.entries.map { method ->
+        RecruitmentButton(mode(method), icon = RecruitmentIcons.NAV_SETTINGS) {
+            val guild = requireNotNull(ownGuild())
+            require(GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id))
+            setupMode = method
+            setupInput(0)
+        }
     }
-}
 
 internal fun RecruitmentController.setupInput(step: Int) {
     val draft = requireNotNull(setupDraft)
@@ -104,18 +110,18 @@ internal fun RecruitmentController.setupPreview(): List<RecruitmentButton> {
                 draft.discordInvite ?: "",
                 draft.discordInstructions,
             ).filter(String::isNotBlank),
-            "lg_nav_info",
+            RecruitmentIcons.NAV_INFO,
             guild,
         ),
         RecruitmentButton(
             lang.raw("recruitment.beginner"),
             listOf(enabled(draft.beginnerFriendly)),
-            "lg_toggle_on",
+            RecruitmentIcons.TOGGLE_ON,
         ) {
             setupDraft = draft.copy(beginnerFriendly = !draft.beginnerFriendly)
             refresh()
         },
-        RecruitmentButton(lang.raw("recruitment.publish"), icon = "lg_confirm") {
+        RecruitmentButton(lang.raw("recruitment.publish"), icon = RecruitmentIcons.CONFIRM) {
             if (setupMode == RecruitmentMode.DISCORD &&
                 (draft.discordInvite == null || draft.discordInstructions.isBlank())
             ) {
@@ -127,7 +133,7 @@ internal fun RecruitmentController.setupPreview(): List<RecruitmentButton> {
                 go(RecruitmentScreen.MANAGE)
             }
         },
-        RecruitmentButton(lang.raw("recruitment.discard"), icon = "lg_cancel") {
+        RecruitmentButton(lang.raw("recruitment.discard"), icon = RecruitmentIcons.CANCEL) {
             setupDraft = null
             go(RecruitmentScreen.MANAGE)
         },

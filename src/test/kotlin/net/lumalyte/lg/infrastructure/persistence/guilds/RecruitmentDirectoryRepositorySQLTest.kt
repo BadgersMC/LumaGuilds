@@ -13,7 +13,7 @@ import kotlin.test.assertTrue
 
 internal class RecruitmentDirectoryRepositorySQLTest : RewardSqlTestFixture() {
     @Test
-    fun listingTimestampSurvivesReopenAndLegacyRecordsRemainReadable() {
+    fun listingTimestampPersists() {
         val storage = openStorage()
         val repository = RecruitmentDirectoryRepositorySQL(storage)
         val profile = RecruitmentProfile(UUID.randomUUID(), RecruitmentMode.IN_GAME)

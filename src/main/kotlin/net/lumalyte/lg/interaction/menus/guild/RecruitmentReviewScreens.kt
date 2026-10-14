@@ -12,14 +12,14 @@ internal fun RecruitmentController.review(): List<RecruitmentButton> {
         RecruitmentButton(
             lang.raw("recruitment.submitted_at") + application.createdAt,
             listOf(status(application.status), lang.raw("recruitment.expires_at") + application.expiresAt),
-            "lg_history",
+            RecruitmentIcons.HISTORY,
         ),
-        RecruitmentButton(lang.raw("recruitment.send_offer"), icon = "lg_confirm") {
+        RecruitmentButton(lang.raw("recruitment.send_offer"), icon = RecruitmentIcons.CONFIRM) {
             reviewApprove = true
             reviewReason = ""
             go(RecruitmentScreen.REVIEW_CONFIRM)
         },
-        RecruitmentButton(lang.raw("recruitment.decline"), icon = "lg_cancel") {
+        RecruitmentButton(lang.raw("recruitment.decline"), icon = RecruitmentIcons.CANCEL) {
             ask(lang.raw("recruitment.reason")) {
                 reviewApprove = false
                 reviewReason = it
@@ -38,20 +38,23 @@ internal fun RecruitmentController.reviewConfirmation(): List<RecruitmentButton>
         RecruitmentButton(
             if (reviewApprove) lang.raw("recruitment.send_offer") else lang.raw("recruitment.decline"),
             listOf(reviewReason),
-            "lg_confirm",
+            RecruitmentIcons.CONFIRM,
         ) {
             service.review(player.uniqueId, application.id, reviewApprove, reviewReason)
             go(RecruitmentScreen.INBOX)
         },
-        RecruitmentButton(lang.raw("recruitment.cancel_review"), icon = "lg_back") { go(RecruitmentScreen.REVIEW) },
+        RecruitmentButton(
+            lang.raw("recruitment.cancel_review"),
+            icon = RecruitmentIcons.BACK,
+        ) { go(RecruitmentScreen.REVIEW) },
     )
 }
 
 internal fun RecruitmentController.confirm(): List<RecruitmentButton> {
     val quote = requireNotNull(quotedGuild)
     return listOf(
-        RecruitmentButton(quote.name, details(quote), "lg_nav_info", quote),
-        RecruitmentButton(lang.raw("recruitment.confirm"), icon = "lg_confirm") {
+        RecruitmentButton(quote.name, details(quote), RecruitmentIcons.NAV_INFO, quote),
+        RecruitmentButton(lang.raw("recruitment.confirm"), icon = RecruitmentIcons.CONFIRM) {
             require(lfg.getJoinRequirement(requireNotNull(guilds.getGuild(quote.id))) == quotedFee)
             val result =
                 if (selectedApplication != null) {

@@ -13,17 +13,26 @@ import org.geysermc.cumulus.form.SimpleForm
 import org.koin.core.component.inject
 import java.util.logging.Logger
 
+private const val BEDROCK_PAGE_SIZE = 8
+
 /** Native Bedrock recruitment screens use the identical use cases and authorization as Java. */
 internal class BedrockGuildRecruitmentMenu(
     navigator: MenuNavigator,
     player: Player,
     logger: Logger,
 ) : BaseBedrockMenu(navigator, player, logger) {
-    private val controller = RecruitmentController(player, ::open) {
-        val token = navigator.currentNavigationToken()
-        val guard: () -> Boolean = { navigator.isNavigationCurrent(token) }
-        guard
-    }
+    private val controller =
+        RecruitmentController(player, ::open) {
+            val token = navigator.currentNavigationToken()
+            val guard: () -> Boolean = { navigator.isNavigationCurrent(token) }
+            guard
+        }
+    private val responses =
+        net.lumalyte.lg.interaction.menus.guild.RecruitmentResponseSession {
+            val token = navigator.currentNavigationToken()
+            val guard: () -> Boolean = { navigator.isNavigationCurrent(token) }
+            guard
+        }
     private val plugin: Plugin by inject()
     private val lang: LangService by inject()
 
@@ -32,18 +41,24 @@ internal class BedrockGuildRecruitmentMenu(
 
     /** Builds a native text form or a paginated board from current authorized state. */
     override fun getForm(): Form {
+        val responseValid = responses.begin()
         val input = controller.input
         if (input != null) {
             return CustomForm.builder().title(input.label).input(input.label, "", input.value)
-                .validResultHandler { response -> onServer { controller.acceptInput(response.asInput(0) ?: "") } }
-                .closedOrInvalidResultHandler { _, _ -> onServer { controller.cancelInput() } }.build()
+                .validResultHandler {
+                        response ->
+                    onServer(responseValid) { controller.acceptInput(response.asInput(0) ?: "") }
+                }
+                .closedOrInvalidResultHandler { _, _ -> onServer(responseValid) { controller.cancelInput() } }.build()
         }
         val view = controller.view()
-        val pages = maxOf(1, (view.items.size + 7) / 8)
+        val pages = maxOf(1, (view.items.size + BEDROCK_PAGE_SIZE - 1) / BEDROCK_PAGE_SIZE)
         controller.page = controller.page.coerceIn(0, pages - 1)
         val actions = mutableListOf<() -> Unit>()
         val builder = SimpleForm.builder().title("${view.title} ${controller.page + 1}/$pages")
-        (view.quickFilters + view.items.drop(controller.page * 8).take(8) + view.navigation).forEach { button ->
+        val pageItems = view.items.drop(controller.page * BEDROCK_PAGE_SIZE).take(BEDROCK_PAGE_SIZE)
+        (view.quickFilters + pageItems + view.navigation).forEach {
+                button ->
             builder.button((listOf(button.label) + button.details).filter(String::isNotBlank).joinToString("\n"))
             actions += button.action
         }
@@ -63,16 +78,19 @@ internal class BedrockGuildRecruitmentMenu(
         }
         return builder.validResultHandler {
                 response ->
-            onServer { actions.getOrNull(response.clickedButtonId())?.invoke() }
+            onServer(responseValid) { actions.getOrNull(response.clickedButtonId())?.invoke() }
         }
-            .closedOrInvalidResultHandler { _, _ -> onServer { bedrockNavigator.goBack() } }.build()
+            .closedOrInvalidResultHandler { _, _ -> onServer(responseValid) { bedrockNavigator.goBack() } }.build()
     }
 
-    private fun onServer(action: () -> Unit) {
+    private fun onServer(
+        responseValid: () -> Boolean,
+        action: () -> Unit,
+    ) {
         Bukkit.getScheduler().runTask(
             plugin,
             Runnable {
-                if (player.isOnline) {
+                if (player.isOnline && responseValid()) {
                     onFormResponseReceived()
                     controller.run(action)
                 }
@@ -81,5 +99,8 @@ internal class BedrockGuildRecruitmentMenu(
     }
 
     /** Responses are processed by the typed Cumulus handlers. */
-    override fun handleResponse(player: Player, response: Any?) = Unit
+    override fun handleResponse(
+        player: Player,
+        response: Any?,
+    ) = Unit
 }

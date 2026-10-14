@@ -24,6 +24,11 @@ import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
+private const val TICKS_PER_SECOND = 20L
+
+private const val RECRUITMENT_COMMAND = "/g recruitment"
+private const val RECRUITMENT_PERMISSION = "lumaguilds.guild.lfg"
+
 /** Non-interrupting discovery and private digest notifications with durable replay protection. */
 internal class GuildRecruitmentListener(
     private val plugin: Plugin,
@@ -49,8 +54,8 @@ internal class GuildRecruitmentListener(
                     safe { deliverChanges(players[cursor++]) }
                 }
             },
-            20L,
-            20L,
+            TICKS_PER_SECOND,
+            TICKS_PER_SECOND,
         )
     }
 
@@ -60,7 +65,7 @@ internal class GuildRecruitmentListener(
         val id = event.player.uniqueId
         val session = Instant.now()
         sessions[id] = session
-        val delay = config.loadConfig().recruitment.onboardingDelaySeconds * 20L
+        val delay = config.loadConfig().recruitment.onboardingDelaySeconds * TICKS_PER_SECOND
         Bukkit.getScheduler().runTaskLater(
             plugin,
             Runnable {
@@ -105,17 +110,20 @@ internal class GuildRecruitmentListener(
             safe {
                 val guildless = members.getPlayerGuilds(player.uniqueId).isEmpty()
                 val enabled = directory.remindersEnabled(player.uniqueId)
-                if (guildless && enabled && player.hasPermission("lumaguilds.guild.lfg")) {
+                if (guildless && enabled && player.hasPermission(RECRUITMENT_PERMISSION)) {
                     player.sendMessage(
-                        lang.msg("recruitment.discovery.leave").clickEvent(ClickEvent.runCommand("/g recruitment")),
+                        lang.msg("recruitment.discovery.leave").clickEvent(ClickEvent.runCommand(RECRUITMENT_COMMAND)),
                     )
                 }
             }
         }
     }
 
-    private fun prompt(player: Player, repeat: Boolean) {
-        if (!player.isOnline || !player.hasPermission("lumaguilds.guild.lfg")) return
+    private fun prompt(
+        player: Player,
+        repeat: Boolean,
+    ) {
+        if (!player.isOnline || !player.hasPermission(RECRUITMENT_PERMISSION)) return
         if (members.getPlayerGuilds(player.uniqueId).isNotEmpty()) return
         val joined = sessions[player.uniqueId] ?: return
         if (Instant.now().isBefore(
@@ -129,13 +137,13 @@ internal class GuildRecruitmentListener(
         val interval = if (repeat) Duration.ofMinutes(minutes.toLong()) else null
         if (directory.consumePrompt(player.uniqueId, Instant.now(), interval)) {
             player.sendMessage(
-                lang.msg("recruitment.discovery.prompt").clickEvent(ClickEvent.runCommand("/g recruitment")),
+                lang.msg("recruitment.discovery.prompt").clickEvent(ClickEvent.runCommand(RECRUITMENT_COMMAND)),
             )
         }
     }
 
     private fun deliverChanges(player: Player) {
-        if (!player.hasPermission("lumaguilds.guild.lfg")) return
+        if (!player.hasPermission(RECRUITMENT_PERMISSION)) return
         val own = recruitment.mine(player.uniqueId)
         val inbox =
             guilds.getPlayerGuilds(player.uniqueId).filter {
@@ -154,7 +162,7 @@ internal class GuildRecruitmentListener(
                         "recruitment.discovery.updated",
                         "offers" to own.count { it.status == ApplicationStatus.OFFERED },
                         "pending" to inbox.count { it.status == ApplicationStatus.SUBMITTED },
-                    ).clickEvent(ClickEvent.runCommand("/g recruitment")),
+                    ).clickEvent(ClickEvent.runCommand(RECRUITMENT_COMMAND)),
                 )
             }
         }

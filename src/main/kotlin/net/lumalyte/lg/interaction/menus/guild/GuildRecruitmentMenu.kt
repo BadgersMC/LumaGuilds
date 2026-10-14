@@ -39,11 +39,12 @@ internal class GuildRecruitmentMenu(
     private val navigator: MenuNavigator,
     private val player: Player,
 ) : Menu, KoinComponent {
-    private val controller = RecruitmentController(player, ::open) {
-        val token = navigator.currentNavigationToken()
-        val guard: () -> Boolean = { navigator.isNavigationCurrent(token) }
-        guard
-    }
+    private val controller =
+        RecruitmentController(player, ::open) {
+            val token = navigator.currentNavigationToken()
+            val guard: () -> Boolean = { navigator.isNavigationCurrent(token) }
+            guard
+        }
     private val inputListener: ChatInputListener by inject()
     private val lang: LangService by inject()
     private val emojis: NexoEmojiService by inject()
@@ -75,16 +76,24 @@ internal class GuildRecruitmentMenu(
         }
     }
 
-    private fun showChatInput(input: RecruitmentInput, navigation: Long) {
+    private fun showChatInput(
+        input: RecruitmentInput,
+        navigation: Long,
+    ) {
         player.sendMessage(lang.msg("recruitment.feedback.input", "field" to input.label))
-        val handler = object : ChatInputHandler {
-            override fun onChatInput(player: Player, input: String) {
-                if (player.isOnline && navigator.isNavigationCurrent(navigation)) controller.acceptInput(input)
+        val handler =
+            object : ChatInputHandler {
+                override fun onChatInput(
+                    player: Player,
+                    input: String,
+                ) {
+                    if (player.isOnline && navigator.isNavigationCurrent(navigation)) controller.acceptInput(input)
+                }
+
+                override fun onCancel(player: Player) {
+                    if (player.isOnline && navigator.isNavigationCurrent(navigation)) controller.cancelInput()
+                }
             }
-            override fun onCancel(player: Player) {
-                if (player.isOnline && navigator.isNavigationCurrent(navigation)) controller.cancelInput()
-            }
-        }
         inputListener.startInputMode(player, handler)
         org.bukkit.Bukkit.getScheduler().runTaskLater(
             net.lumalyte.lg.common.PluginKeys.getPlugin(),
@@ -103,10 +112,11 @@ internal class GuildRecruitmentMenu(
         val offset = if (filtered) 1 else 0
         val pages = maxOf(1, (view.items.size + capacity - 1) / capacity)
         controller.page = controller.page.coerceIn(0, pages - 1)
-        val gui = ChestGui(
-            BOARD_ROWS,
-            MenuTitleBuilder.build(controller.theme(), BOARD_ROWS, "${view.title} ${controller.page + 1}/$pages"),
-        )
+        val gui =
+            ChestGui(
+                BOARD_ROWS,
+                MenuTitleBuilder.build(controller.theme(), BOARD_ROWS, "${view.title} ${controller.page + 1}/$pages"),
+            )
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick { it.isCancelled = true }
         gui.setOnGlobalDrag { it.isCancelled = true }
@@ -123,11 +133,14 @@ internal class GuildRecruitmentMenu(
         gui.show(player)
     }
 
-    private fun addPagination(pane: StaticPane, pages: Int) {
+    private fun addPagination(
+        pane: StaticPane,
+        pages: Int,
+    ) {
         if (controller.page > 0) {
             add(
                 pane,
-                RecruitmentButton(lang.raw("recruitment.previous"), icon = "lg_page_prev") {
+                RecruitmentButton(lang.raw("recruitment.previous"), icon = RecruitmentIcons.PAGE_PREV) {
                     controller.page = (controller.page - 1).coerceAtLeast(0)
                     open()
                 },
@@ -138,7 +151,7 @@ internal class GuildRecruitmentMenu(
         if (controller.page + 1 < pages) {
             add(
                 pane,
-                RecruitmentButton(lang.raw("recruitment.next"), icon = "lg_page_next") {
+                RecruitmentButton(lang.raw("recruitment.next"), icon = RecruitmentIcons.PAGE_NEXT) {
                     controller.page = (controller.page + 1).coerceAtMost(pages - 1)
                     open()
                 },
@@ -148,7 +161,12 @@ internal class GuildRecruitmentMenu(
         }
     }
 
-    private fun add(pane: StaticPane, button: RecruitmentButton, x: Int, y: Int) {
+    private fun add(
+        pane: StaticPane,
+        button: RecruitmentButton,
+        x: Int,
+        y: Int,
+    ) {
         val base =
             button.guild?.let(GuildBannerItemResolver::resolveForDisplay)
                 ?: NexoItemProvider.getItemStackOrFallback(button.icon) { ItemStack.of(Material.BOOK) }

@@ -21,7 +21,7 @@ internal fun RecruitmentController.details(guild: Guild): List<String> {
             } else {
                 "0"
             }
-            ),
+        ),
         profile.pitch, profile.requirements,
         profile.interests.joinToString(
             ", ",
@@ -36,40 +36,44 @@ internal fun RecruitmentController.details(guild: Guild): List<String> {
 internal fun RecruitmentController.profile(): List<RecruitmentButton> {
     val guild = selectedGuild()
     val profile = service.profile(guild)
-    val items = mutableListOf(RecruitmentButton(guild.name, details(guild), "lg_nav_info", guild))
-    items += RecruitmentButton(lang.raw("recruitment.guide"), icon = "lg_description") {
-        val current = selectedGuild()
-        val navigationValid = returnGuard()
-        net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.book(
-            player, current.name, details(current), lang.raw("recruitment.return_menu"),
-            { navigationValid() && selected == current.id && screen == RecruitmentScreen.PROFILE },
-            { run { refresh() } },
-        )
-    }
+    val items = mutableListOf(RecruitmentButton(guild.name, details(guild), RecruitmentIcons.NAV_INFO, guild))
+    items +=
+        RecruitmentButton(lang.raw("recruitment.guide"), icon = RecruitmentIcons.DESCRIPTION) {
+            val current = selectedGuild()
+            val navigationValid = returnGuard()
+            net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.book(
+                player, current.name, details(current), lang.raw("recruitment.return_menu"),
+                { navigationValid() && selected == current.id && screen == RecruitmentScreen.PROFILE },
+                { run { refresh() } },
+            )
+        }
     if (service.spaces(guild.id) > 0 && members.getPlayerGuilds(player.uniqueId).isEmpty()) {
         when (profile.mode) {
             RecruitmentMode.JOIN_IMMEDIATELY ->
-                items += RecruitmentButton(mode(profile.mode), icon = "lg_confirm") {
-                    quotedGuild = guild
-                    quotedFee = lfg.getJoinRequirement(guild)
-                    go(RecruitmentScreen.CONFIRM)
-                }
-            RecruitmentMode.IN_GAME ->
-                items += RecruitmentButton(mode(profile.mode), icon = "lg_description") {
-                    ask(lang.raw("recruitment.introduction")) {
-                        service.submit(player.uniqueId, guild.id, it)
-                        go(RecruitmentScreen.MINE)
+                items +=
+                    RecruitmentButton(mode(profile.mode), icon = RecruitmentIcons.CONFIRM) {
+                        quotedGuild = guild
+                        quotedFee = lfg.getJoinRequirement(guild)
+                        go(RecruitmentScreen.CONFIRM)
                     }
-                }
+            RecruitmentMode.IN_GAME ->
+                items +=
+                    RecruitmentButton(mode(profile.mode), icon = RecruitmentIcons.DESCRIPTION) {
+                        ask(lang.raw("recruitment.introduction")) {
+                            service.submit(player.uniqueId, guild.id, it)
+                            go(RecruitmentScreen.MINE)
+                        }
+                    }
             // The optional Discord button below opens exact-destination confirmation.
             RecruitmentMode.DISCORD -> Unit
             RecruitmentMode.CLOSED -> Unit
         }
     }
     if (profile.discordInvite != null) {
-        items += RecruitmentButton(lang.raw("recruitment.discord"), icon = "lg_invite") {
-            go(RecruitmentScreen.DISCORD)
-        }
+        items +=
+            RecruitmentButton(lang.raw("recruitment.discord"), icon = RecruitmentIcons.INVITE) {
+                go(RecruitmentScreen.DISCORD)
+            }
     }
     return items
 }
@@ -82,9 +86,9 @@ internal fun RecruitmentController.discord(): List<RecruitmentButton> {
         RecruitmentButton(
             lang.raw("recruitment.discord"),
             listOf(invite, profile.discordInstructions, lang.raw("recruitment.discord_notice")),
-            "lg_invite",
+            RecruitmentIcons.INVITE,
         ),
-        RecruitmentButton(lang.raw("recruitment.discord_confirm"), listOf(invite), "lg_confirm") {
+        RecruitmentButton(lang.raw("recruitment.discord_confirm"), listOf(invite), RecruitmentIcons.CONFIRM) {
             require(service.profile(selectedGuild()).discordInvite == invite) { "Invite changed" }
             player.closeInventory()
             player.sendMessage(Component.text(invite).clickEvent(ClickEvent.openUrl(invite)))

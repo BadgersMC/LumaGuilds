@@ -20,6 +20,7 @@ import java.util.logging.Logger
 /**
  * Bedrock Edition guild invite confirmation menu using Cumulus SimpleForm
  */
+@Suppress("StringLiteralDuplication") // LocaleContractTest requires literal argument names at each translation call.
 class BedrockGuildInviteConfirmationMenu(
     menuNavigator: MenuNavigator,
     player: Player,
