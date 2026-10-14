@@ -37,8 +37,9 @@ internal class InviteBlockChatListenerTest {
         val message =
             mockk<RoseMessage> {
                 every { channel } returns guild
-                every { this@mockk.sender } returns sender
+
             }
+        every { message.sender } returns sender
         val blocks = mockk<InviteBlockService>()
         every { blocks.hidesChat(viewerId, senderId) } returns true
         val listener = InviteBlockChatListener(blocks)

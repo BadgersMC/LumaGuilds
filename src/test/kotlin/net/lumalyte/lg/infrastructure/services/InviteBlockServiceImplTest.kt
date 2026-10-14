@@ -25,28 +25,21 @@ internal class InviteBlockServiceImplTest {
 
     private val store =
         object : InviteBlockRepository {
-            val blocks = mutableMapOf<UUID, MutableSet<UUID>>()
+            val BLOCKED_PLAYERS = mutableMapOf<UUID, MutableSet<UUID>>()
             override var isAvailable = true
 
-            override fun isBlocked(
-                ownerId: UUID,
-                targetId: UUID,
-            ) = blocks[ownerId]?.contains(targetId) == true
+            override fun isBlocked(ownerId: UUID, targetId: UUID) = BLOCKED_PLAYERS[ownerId]?.contains(targetId) == true
 
-            override fun blockedBy(ownerId: UUID) = blocks[ownerId].orEmpty().toSet()
+            override fun blockedBy(ownerId: UUID) = BLOCKED_PLAYERS[ownerId].orEmpty().toSet()
 
-            override fun setBlocked(
-                ownerId: UUID,
-                targetId: UUID,
-                blocked: Boolean,
-            ): Boolean {
+            override fun setBlocked(ownerId: UUID, targetId: UUID, blocked: Boolean): Boolean {
                 if (!isAvailable) return false
                 if (blocked) {
-                    blocks.getOrPut(
+                    BLOCKED_PLAYERS.getOrPut(
                         ownerId,
                     ) { mutableSetOf() }.add(targetId)
                 } else {
-                    blocks[ownerId]?.remove(targetId)
+                    BLOCKED_PLAYERS[ownerId]?.remove(targetId)
                 }
                 return true
             }
@@ -61,15 +54,9 @@ internal class InviteBlockServiceImplTest {
     private val invitations = mockk<GuildInvitationRepository>(relaxed = true)
     private val service = InviteBlockServiceImpl(store, members, invitations)
 
-    private fun member(
-        player: UUID,
-        guild: UUID,
-    ) = Member(player, guild, UUID.randomUUID(), Instant.EPOCH)
+    private fun member(player: UUID, guild: UUID) = Member(player, guild, UUID.randomUUID(), Instant.EPOCH)
 
-    private fun invite(
-        guild: UUID,
-        inviter: UUID,
-    ) = GuildInvitation(guild, "G", me, inviter, "inviter")
+    private fun invite(guild: UUID, inviter: UUID) = GuildInvitation(guild, "G", me, inviter, "inviter")
 
     /** Verifies a block refuses invites from them and from anyone in their guild, but not other guilds. */
     @Test

@@ -10,10 +10,7 @@ import java.util.UUID
  */
 interface InviteBlockService {
     /** Checks a personal block without accessing SQL. */
-    fun isBlocked(
-        ownerId: UUID,
-        targetId: UUID,
-    ): Boolean
+    fun isBlocked(ownerId: UUID, targetId: UUID): Boolean
 
     /** Returns a detached snapshot of personally blocked identities. */
     fun blockedBy(ownerId: UUID): Set<UUID>
@@ -22,25 +19,14 @@ interface InviteBlockService {
      * Blocks or unblocks [targetId] for [ownerId], saved durably; a new block also deletes the pending invites it
      * covers. False when it could not be saved. Idempotent.
      */
-    fun setBlocked(
-        ownerId: UUID,
-        targetId: UUID,
-        blocked: Boolean,
-    ): Boolean
+    fun setBlocked(ownerId: UUID, targetId: UUID, blocked: Boolean): Boolean
 
     /**
      * Whether [invitedId] refuses an invite to [guildId] sent by [inviterId]: they blocked the inviter or a member of
      * the guild. Also true when the blocks could not be loaded (fail closed).
      */
-    fun refusesGuildInvite(
-        invitedId: UUID,
-        guildId: UUID,
-        inviterId: UUID?,
-    ): Boolean
+    fun refusesGuildInvite(invitedId: UUID, guildId: UUID, inviterId: UUID?): Boolean
 
     /** Whether [viewerId] should not see [senderId]'s guild, ally and party chat messages. */
-    fun hidesChat(
-        viewerId: UUID,
-        senderId: UUID,
-    ): Boolean
+    fun hidesChat(viewerId: UUID, senderId: UUID): Boolean
 }

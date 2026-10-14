@@ -7,6 +7,7 @@ import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.slf4j.LoggerFactory
 import java.sql.Connection
 import java.sql.SQLException
+import java.sql.ResultSet
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -36,42 +37,34 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
             connection.prepareStatement(
                 "SELECT owner_id, target_id FROM ${InviteBlockSchema.TABLE}",
             ).use { statement ->
-                statement.executeQuery().use { rows ->
-                    while (rows.next()) {
-                        blockSet(
-                            readIdentity(rows.getString(OWNER_COLUMN)),
-                        ).add(readIdentity(rows.getString(TARGET_COLUMN)))
-                    }
-                }
+                statement.executeQuery().use { readBlocks(it) }
             }
         }
     }
 
-    override fun isBlocked(
-        ownerId: UUID,
-        targetId: UUID,
-    ): Boolean = blocks[ownerId]?.contains(targetId) == true
+    private fun readBlocks(rows: ResultSet) {
+        while (rows.next()) {
+            val owner = readIdentity(rows.getString(OWNER_COLUMN))
+            val target = readIdentity(rows.getString(TARGET_COLUMN))
+            blockSet(owner).add(target)
+        }
+    }
+
+    override fun isBlocked(ownerId: UUID, targetId: UUID): Boolean = blocks[ownerId]?.contains(targetId) == true
 
     override fun blockedBy(ownerId: UUID): Set<UUID> = blocks[ownerId]?.toSet().orEmpty()
 
     @Synchronized
-    override fun setBlocked(
-        ownerId: UUID,
-        targetId: UUID,
-        blocked: Boolean,
-    ): Boolean =
-        when {
+    override fun setBlocked(ownerId: UUID, targetId: UUID, blocked: Boolean): Boolean {
+        return when {
             !isAvailable || ownerId == targetId -> false
             isBlocked(ownerId, targetId) == blocked -> true
             else -> saveBlock(ownerId, targetId, blocked)
         }
+    }
 
-    private fun saveBlock(
-        ownerId: UUID,
-        targetId: UUID,
-        blocked: Boolean,
-    ): Boolean =
-        try {
+    private fun saveBlock(ownerId: UUID, targetId: UUID, blocked: Boolean): Boolean {
+        return try {
             storage.connection.connection.use { connection ->
                 if (blocked) insertBlock(connection, ownerId, targetId) else deleteBlock(connection, ownerId, targetId)
             }
@@ -80,12 +73,9 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
         } catch (_: SQLException) {
             false
         }
+    }
 
-    private fun insertBlock(
-        connection: Connection,
-        ownerId: UUID,
-        targetId: UUID,
-    ) {
+    private fun insertBlock(connection: Connection, ownerId: UUID, targetId: UUID) {
         try {
             connection.prepareStatement(
                 "INSERT INTO ${InviteBlockSchema.TABLE} (owner_id, target_id, created_at) VALUES (?, ?, ?)",
@@ -101,11 +91,7 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
         }
     }
 
-    private fun hasStoredBlock(
-        connection: Connection,
-        ownerId: UUID,
-        targetId: UUID,
-    ): Boolean =
+    private fun hasStoredBlock(connection: Connection, ownerId: UUID, targetId: UUID): Boolean =
         connection.prepareStatement(
             "SELECT 1 FROM ${InviteBlockSchema.TABLE} WHERE owner_id = ? AND target_id = ?",
         ).use { statement ->
@@ -114,11 +100,7 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
             statement.executeQuery().use { it.next() }
         }
 
-    private fun deleteBlock(
-        connection: Connection,
-        ownerId: UUID,
-        targetId: UUID,
-    ) {
+    private fun deleteBlock(connection: Connection, ownerId: UUID, targetId: UUID) {
         connection.prepareStatement(
             "DELETE FROM ${InviteBlockSchema.TABLE} WHERE owner_id = ? AND target_id = ?",
         ).use { statement ->
@@ -128,17 +110,17 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
         }
     }
 
-    private fun blockSet(owner: UUID): MutableSet<UUID> =
-        blocks.computeIfAbsent(
-            owner,
-        ) { ConcurrentHashMap.newKeySet() }
+    private fun blockSet(owner: UUID): MutableSet<UUID> {
+        return blocks.computeIfAbsent(owner) { ConcurrentHashMap.newKeySet() }
+    }
 
-    private fun readIdentity(value: String?): UUID =
-        try {
+    private fun readIdentity(value: String?): UUID {
+        return try {
             UUID.fromString(value)
         } catch (error: IllegalArgumentException) {
             throw SQLException("Invalid identity in invite block storage", error)
         }
+    }
 
     private companion object {
         const val OWNER_COLUMN = 1

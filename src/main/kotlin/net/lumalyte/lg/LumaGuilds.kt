@@ -161,7 +161,7 @@ class LumaGuilds : JavaPlugin() {
             this,
             ServicePriority.Normal
         )
-        logColored("✓ GuildInviteBlocks registered in ServicesManager for cross-plugin integration")
+        logColored("✓ GuildInviteBlocks registered in ServicesManager")
 
         // Initialize Apollo AFTER Koin is started (requires Koin DI)
         initialiseApolloIntegration()

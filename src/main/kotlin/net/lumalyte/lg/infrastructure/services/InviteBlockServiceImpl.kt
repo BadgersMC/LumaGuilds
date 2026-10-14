@@ -12,18 +12,11 @@ internal class InviteBlockServiceImpl(
     private val members: MemberService,
     private val invitations: GuildInvitationRepository,
 ) : InviteBlockService {
-    override fun isBlocked(
-        ownerId: UUID,
-        targetId: UUID,
-    ): Boolean = blocks.isBlocked(ownerId, targetId)
+    override fun isBlocked(ownerId: UUID, targetId: UUID): Boolean = blocks.isBlocked(ownerId, targetId)
 
     override fun blockedBy(ownerId: UUID): Set<UUID> = blocks.blockedBy(ownerId)
 
-    override fun setBlocked(
-        ownerId: UUID,
-        targetId: UUID,
-        blocked: Boolean,
-    ): Boolean {
+    override fun setBlocked(ownerId: UUID, targetId: UUID, blocked: Boolean): Boolean {
         if (!blocks.setBlocked(ownerId, targetId, blocked)) return false
         if (blocked) {
             // Pending invites the block now covers: sent by them, or from a guild they are in.
@@ -35,11 +28,7 @@ internal class InviteBlockServiceImpl(
         return true
     }
 
-    override fun refusesGuildInvite(
-        invitedId: UUID,
-        guildId: UUID,
-        inviterId: UUID?,
-    ): Boolean {
+    override fun refusesGuildInvite(invitedId: UUID, guildId: UUID, inviterId: UUID?): Boolean {
         val blocked = blocks.blockedBy(invitedId)
         return when {
             !blocks.isAvailable -> true
@@ -49,8 +38,5 @@ internal class InviteBlockServiceImpl(
         }
     }
 
-    override fun hidesChat(
-        viewerId: UUID,
-        senderId: UUID,
-    ): Boolean = blocks.isBlocked(viewerId, senderId)
+    override fun hidesChat(viewerId: UUID, senderId: UUID): Boolean = blocks.isBlocked(viewerId, senderId)
 }

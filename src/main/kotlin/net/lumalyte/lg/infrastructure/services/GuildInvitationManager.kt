@@ -20,10 +20,7 @@ object GuildInvitationManager {
      * Initialize the manager with a repository instance.
      * This must be called during plugin startup.
      */
-    fun initialize(
-        repo: GuildInvitationRepository,
-        blocks: InviteBlockService? = null,
-    ) {
+    fun initialize(repo: GuildInvitationRepository, blocks: InviteBlockService? = null) {
         repository = repo
         inviteBlocks = blocks
     }

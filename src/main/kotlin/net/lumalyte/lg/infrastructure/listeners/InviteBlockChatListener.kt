@@ -16,9 +16,14 @@ internal class InviteBlockChatListener(private val blocks: InviteBlockService) :
     /** Cancels only the blocking recipient's guild-channel parse event. */
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     fun onPreParseMessage(event: PreParseMessageEvent) {
-        if (event.message.channel !is LumaGuildsChannel) return
-        val viewer = event.viewer.asPlayer() ?: return
-        val sender = event.message.sender.asPlayer() ?: return
-        if (blocks.hidesChat(viewer.uniqueId, sender.uniqueId)) event.isCancelled = true
+        if (event.message.channel is LumaGuildsChannel && hidesForViewer(event)) {
+            event.isCancelled = true
+        }
+    }
+
+    private fun hidesForViewer(event: PreParseMessageEvent): Boolean {
+        val viewer = event.viewer.asPlayer() ?: return false
+        val sender = event.message.sender.asPlayer()
+        return sender != null && blocks.hidesChat(viewer.uniqueId, sender.uniqueId)
     }
 }

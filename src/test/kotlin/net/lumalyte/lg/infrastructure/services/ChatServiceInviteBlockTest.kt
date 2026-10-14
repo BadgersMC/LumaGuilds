@@ -24,26 +24,28 @@ internal class ChatServiceInviteBlockTest {
             mockk<ChatSettingsRepository> {
                 every { getVisibilitySettings(any()) } answers { mockk { every { partyChatVisible } returns true } }
             }
-        val preferences =
-            mockk<PlayerPartyPreferenceRepository> {
-                every { getByPlayerId(sender) } returns
-                    mockk { every { partyId } returns this@ChatServiceInviteBlockTest.partyId }
-            }
-        val parties =
-            mockk<PartyRepository> {
-                every { getById(partyId) } returns
-                    mockk {
-                        every { isActive() } returns true
-                        every { id } returns partyId
-                    }
-            }
         val partyService =
             mockk<PartyService> { every { getOnlinePartyMembers(partyId) } returns setOf(sender, blocker, other) }
         return ChatServiceBukkit(
             settings, mockk(), mockk(), mockk(), partyService, mockk(), mockk(), mockk(),
-            preferences, parties, mockk(), mockk(), blocks,
+            preferences(), parties(), mockk(), mockk(), blocks,
         )
     }
+
+    private fun preferences(): PlayerPartyPreferenceRepository {
+        val selectedPartyId = partyId
+        return mockk {
+            every { getByPlayerId(sender) } returns mockk { every { partyId } returns selectedPartyId }
+        }
+    }
+
+    private fun parties(): PartyRepository =
+        mockk {
+            every { getById(partyId) } returns mockk {
+                every { isActive() } returns true
+                every { id } returns partyId
+            }
+        }
 
     /** Verifies party chat skips members who blocked the sender. */
     @Test

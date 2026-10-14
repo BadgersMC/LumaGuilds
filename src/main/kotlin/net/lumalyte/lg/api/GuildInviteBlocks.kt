@@ -18,17 +18,10 @@ interface GuildInviteBlocks {
     fun apiVersion(): Int = 1
 
     /** Returns whether the owner personally blocked the target. */
-    fun isBlocked(
-        ownerId: UUID,
-        targetId: UUID,
-    ): Boolean
+    fun isBlocked(ownerId: UUID, targetId: UUID): Boolean
 
     /** True when the block is saved (or already in that state); false when it could not be saved. */
-    fun setBlocked(
-        ownerId: UUID,
-        targetId: UUID,
-        blocked: Boolean,
-    ): Boolean
+    fun setBlocked(ownerId: UUID, targetId: UUID, blocked: Boolean): Boolean
 
     /** Returns a detached set of personally blocked player identities. */
     fun getBlocked(ownerId: UUID): Set<UUID>
@@ -36,16 +29,11 @@ interface GuildInviteBlocks {
 
 /** Bridges the registered JDK-only API to the application service. */
 internal class GuildInviteBlocksImpl(private val blocks: InviteBlockService) : GuildInviteBlocks {
-    override fun isBlocked(
-        ownerId: UUID,
-        targetId: UUID,
-    ): Boolean = blocks.isBlocked(ownerId, targetId)
+    override fun isBlocked(ownerId: UUID, targetId: UUID): Boolean = blocks.isBlocked(ownerId, targetId)
 
-    override fun setBlocked(
-        ownerId: UUID,
-        targetId: UUID,
-        blocked: Boolean,
-    ): Boolean = blocks.setBlocked(ownerId, targetId, blocked)
+    override fun setBlocked(ownerId: UUID, targetId: UUID, blocked: Boolean): Boolean {
+        return blocks.setBlocked(ownerId, targetId, blocked)
+    }
 
     override fun getBlocked(ownerId: UUID): Set<UUID> = blocks.blockedBy(ownerId)
 }
