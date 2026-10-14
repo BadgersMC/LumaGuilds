@@ -76,17 +76,11 @@ internal class GuildRecruitmentMenu(
         }
     }
 
-    private fun showChatInput(
-        input: RecruitmentInput,
-        navigation: Long,
-    ) {
+    private fun showChatInput(input: RecruitmentInput, navigation: Long) {
         player.sendMessage(lang.msg("recruitment.feedback.input", "field" to input.label))
         val handler =
             object : ChatInputHandler {
-                override fun onChatInput(
-                    player: Player,
-                    input: String,
-                ) {
+                override fun onChatInput(player: Player, input: String) {
                     if (player.isOnline && navigator.isNavigationCurrent(navigation)) controller.acceptInput(input)
                 }
 
@@ -133,10 +127,7 @@ internal class GuildRecruitmentMenu(
         gui.show(player)
     }
 
-    private fun addPagination(
-        pane: StaticPane,
-        pages: Int,
-    ) {
+    private fun addPagination(pane: StaticPane, pages: Int) {
         if (controller.page > 0) {
             add(
                 pane,
@@ -161,12 +152,7 @@ internal class GuildRecruitmentMenu(
         }
     }
 
-    private fun add(
-        pane: StaticPane,
-        button: RecruitmentButton,
-        x: Int,
-        y: Int,
-    ) {
+    private fun add(pane: StaticPane, button: RecruitmentButton, x: Int, y: Int) {
         val base =
             button.guild?.let(GuildBannerItemResolver::resolveForDisplay)
                 ?: NexoItemProvider.getItemStackOrFallback(button.icon) { ItemStack.of(Material.BOOK) }

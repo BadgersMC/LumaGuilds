@@ -10,21 +10,18 @@ internal fun RecruitmentController.settings(): List<RecruitmentButton> {
     require(GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id))
     val profile = service.profile(guild)
 
-    fun edit(
-        label: String,
-        value: String,
-        change: (RecruitmentProfile, String) -> RecruitmentProfile,
-    ) = RecruitmentButton(label, listOf(value), RecruitmentIcons.TAG) {
-        ask(
-            label,
-            value,
-        ) {
-            service.saveProfile(
-                player.uniqueId,
-                change(service.profile(requireNotNull(guilds.getGuild(guild.id))), it),
-            )
+    fun edit(label: String, value: String, change: (RecruitmentProfile, String) -> RecruitmentProfile) =
+        RecruitmentButton(label, listOf(value), RecruitmentIcons.TAG) {
+            ask(
+                label,
+                value,
+            ) {
+                service.saveProfile(
+                    player.uniqueId,
+                    change(service.profile(requireNotNull(guilds.getGuild(guild.id))), it),
+                )
+            }
         }
-    }
     return listOf(
         RecruitmentButton(lang.raw("recruitment.method"), listOf(mode(profile.mode)), RecruitmentIcons.NAV_SETTINGS) {
             go(RecruitmentScreen.METHOD)
@@ -65,9 +62,9 @@ internal fun RecruitmentController.settings(): List<RecruitmentButton> {
         ) { current, value ->
             current.copy(
                 discordInvite =
-                    value.ifBlank {
-                        null
-                    },
+                value.ifBlank {
+                    null
+                },
             )
         },
         edit(

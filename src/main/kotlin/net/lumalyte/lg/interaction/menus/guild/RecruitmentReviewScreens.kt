@@ -62,16 +62,23 @@ internal fun RecruitmentController.confirm(): List<RecruitmentButton> {
                 } else {
                     lfg.joinGuild(player.uniqueId, quote)
                 }
-            when (result) {
-                is LfgJoinResult.Success -> {
-                    player.sendMessage(lang.msg("recruitment.feedback.joined"))
-                    go(RecruitmentScreen.MINE)
-                }
-                else -> {
-                    player.sendMessage(lang.msg("recruitment.feedback.failed"))
-                    go(RecruitmentScreen.MINE)
-                }
-            }
+            player.sendMessage(admissionFeedback(result))
+            go(RecruitmentScreen.MINE)
         },
     )
 }
+
+private fun RecruitmentController.admissionFeedback(result: LfgJoinResult): net.kyori.adventure.text.Component =
+    when (result) {
+        is LfgJoinResult.Success -> lang.msg("recruitment.feedback.joined")
+        is LfgJoinResult.GuildFull -> lang.msg("recruitment.feedback.guild_full")
+        is LfgJoinResult.AlreadyInGuild -> lang.msg("recruitment.feedback.already_member")
+        is LfgJoinResult.InsufficientFunds ->
+            lang.msg(
+                "recruitment.feedback.insufficient_funds",
+                "required" to result.required,
+                "current" to result.current,
+                "currency" to result.currencyType,
+            )
+        else -> lang.msg("recruitment.feedback.failed")
+    }

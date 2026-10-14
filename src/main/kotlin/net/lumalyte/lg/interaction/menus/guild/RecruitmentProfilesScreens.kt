@@ -21,7 +21,7 @@ internal fun RecruitmentController.details(guild: Guild): List<String> {
             } else {
                 "0"
             }
-        ),
+            ),
         profile.pitch, profile.requirements,
         profile.interests.joinToString(
             ", ",

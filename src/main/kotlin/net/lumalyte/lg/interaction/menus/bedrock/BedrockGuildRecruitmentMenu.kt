@@ -83,10 +83,7 @@ internal class BedrockGuildRecruitmentMenu(
             .closedOrInvalidResultHandler { _, _ -> onServer(responseValid) { bedrockNavigator.goBack() } }.build()
     }
 
-    private fun onServer(
-        responseValid: () -> Boolean,
-        action: () -> Unit,
-    ) {
+    private fun onServer(responseValid: () -> Boolean, action: () -> Unit) {
         Bukkit.getScheduler().runTask(
             plugin,
             Runnable {
@@ -99,8 +96,5 @@ internal class BedrockGuildRecruitmentMenu(
     }
 
     /** Responses are processed by the typed Cumulus handlers. */
-    override fun handleResponse(
-        player: Player,
-        response: Any?,
-    ) = Unit
+    override fun handleResponse(player: Player, response: Any?) = Unit
 }
