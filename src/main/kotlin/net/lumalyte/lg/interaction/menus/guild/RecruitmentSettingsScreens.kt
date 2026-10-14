@@ -8,7 +8,7 @@ import net.lumalyte.lg.domain.recruitment.RecruitmentProfile
 internal fun RecruitmentController.settings(): List<RecruitmentButton> {
     val guild = requireNotNull(ownGuild())
     require(GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id))
-    val profile = service.profile(guild)
+    val profile = service.listings.profile(guild)
 
     fun edit(label: String, value: String, change: (RecruitmentProfile, String) -> RecruitmentProfile) =
         RecruitmentButton(label, listOf(value), RecruitmentIcons.TAG) {
@@ -16,9 +16,9 @@ internal fun RecruitmentController.settings(): List<RecruitmentButton> {
                 label,
                 value,
             ) {
-                service.saveProfile(
+                service.listings.saveProfile(
                     player.uniqueId,
-                    change(service.profile(requireNotNull(guilds.getGuild(guild.id))), it),
+                    change(service.listings.profile(requireNotNull(guilds.getGuild(guild.id))), it),
                 )
             }
         }
@@ -52,8 +52,8 @@ internal fun RecruitmentController.settings(): List<RecruitmentButton> {
             listOf(enabled(profile.beginnerFriendly)),
             RecruitmentIcons.TOGGLE_ON,
         ) {
-            val current = service.profile(requireNotNull(guilds.getGuild(guild.id)))
-            service.saveProfile(player.uniqueId, current.copy(beginnerFriendly = !current.beginnerFriendly))
+            val current = service.listings.profile(requireNotNull(guilds.getGuild(guild.id)))
+            service.listings.saveProfile(player.uniqueId, current.copy(beginnerFriendly = !current.beginnerFriendly))
             refresh()
         },
         edit(
@@ -78,16 +78,16 @@ internal fun RecruitmentController.methodSettings(): List<RecruitmentButton> {
     return RecruitmentMode.entries.map { method ->
         RecruitmentButton(mode(method), icon = RecruitmentIcons.NAV_SETTINGS) {
             val guild = requireNotNull(ownGuild())
-            val profile = service.profile(guild)
+            val profile = service.listings.profile(guild)
             if (method == RecruitmentMode.DISCORD &&
                 (profile.discordInvite == null || profile.discordInstructions.isBlank())
             ) {
                 player.sendMessage(lang.msg("recruitment.discord_setup"))
                 showScreen(RecruitmentScreen.SETTINGS)
-                return@RecruitmentButton
+            } else {
+                service.listings.saveProfile(player.uniqueId, profile.copy(mode = method))
+                showScreen(RecruitmentScreen.SETTINGS)
             }
-            service.saveProfile(player.uniqueId, profile.copy(mode = method))
-            showScreen(RecruitmentScreen.SETTINGS)
         }
     }
 }

@@ -20,6 +20,7 @@ import java.util.UUID
 /**
  * Bukkit implementation of LfgService for Looking For Guild operations.
  */
+@Suppress("LongParameterList")
 class LfgServiceBukkit internal constructor(
     private val guildRepository: GuildRepository,
     private val guildService: GuildService,
@@ -32,6 +33,17 @@ class LfgServiceBukkit internal constructor(
     private val recruitment: net.lumalyte.lg.application.persistence.RecruitmentDirectoryRepository? = null,
     private val recruitmentEligibility: net.lumalyte.lg.application.services.GuildRecruitmentEligibility? = null,
 ) : LfgService {
+    private val logger = LoggerFactory.getLogger(LfgServiceBukkit::class.java)
+    private val admissionChecks =
+        LfgAdmissionChecks(
+            guildRepository,
+            memberService,
+            rankService,
+            configService,
+            recruitmentEligibility,
+            this,
+        )
+
     /** Preserves the existing eight-argument integration constructor. */
     @Suppress("LongParameterList") // Preserve the existing public eight-argument integration constructor.
     constructor(
@@ -46,16 +58,6 @@ class LfgServiceBukkit internal constructor(
     ) : this(
         guildRepository, guildService, memberService, physicalCurrencyService,
         configService, vaultService, bankService, rankService, null, null,
-    )
-
-    private val logger = LoggerFactory.getLogger(LfgServiceBukkit::class.java)
-    private val admissionChecks = LfgAdmissionChecks(
-        guildRepository,
-        memberService,
-        rankService,
-        configService,
-        recruitmentEligibility,
-        this,
     )
 
     override fun getAvailableGuilds(): List<Guild> {
@@ -144,11 +146,12 @@ class LfgServiceBukkit internal constructor(
     private fun admit(playerId: UUID, guild: Guild, admissionAllowed: (Guild) -> Boolean): LfgJoinResult {
         return when (val checked = admissionChecks.prepare(playerId, guild, admissionAllowed)) {
             is LfgAdmissionCheck.Denied -> checked.result
-            is LfgAdmissionCheck.Ready -> if (guild.joinFeeEnabled && guild.joinFeeAmount > 0) {
-                paidAdmission(playerId, guild, checked.rank, admissionAllowed)
-            } else {
-                freeAdmission(playerId, guild, checked.rank, admissionAllowed)
-            }
+            is LfgAdmissionCheck.Ready ->
+                if (guild.joinFeeEnabled && guild.joinFeeAmount > 0) {
+                    paidAdmission(playerId, guild, checked.rank, admissionAllowed)
+                } else {
+                    freeAdmission(playerId, guild, checked.rank, admissionAllowed)
+                }
         }
     }
 
@@ -180,22 +183,17 @@ class LfgServiceBukkit internal constructor(
         rank: UUID,
         admissionAllowed: (Guild) -> Boolean,
     ): LfgJoinResult {
-        val checked = if (admissionChecks.allows(playerId, guild, rank, admissionAllowed)) {
-            admissionChecks.prepare(playerId, guild, admissionAllowed)
-        } else {
-            LfgAdmissionCheck.Denied(LfgJoinResult.Error("Guild recruitment changed. Please reopen the guild browser"))
-        }
+        val checked =
+            if (admissionChecks.allows(playerId, guild, rank, admissionAllowed)) {
+                admissionChecks.prepare(playerId, guild, admissionAllowed)
+            } else {
+                LfgAdmissionCheck.Denied(
+                    LfgJoinResult.Error(RECRUITMENT_CHANGED_MESSAGE),
+                )
+            }
         return when (checked) {
             is LfgAdmissionCheck.Denied -> checked.result
-            is LfgAdmissionCheck.Ready -> {
-                if (memberService.addMember(playerId, guild.id, checked.rank) == null) {
-                    logger.error("Failed to add player $playerId to guild ${guild.id}")
-                    LfgJoinResult.Error("Failed to add you to the guild")
-                } else {
-                    logger.info("Player $playerId joined guild ${guild.name} via LFG")
-                    LfgJoinResult.Success("You have joined ${guild.name}!")
-                }
-            }
+            is LfgAdmissionCheck.Ready -> memberService.completeFreeAdmission(playerId, guild, checked.rank, logger)
         }
     }
 

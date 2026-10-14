@@ -20,8 +20,9 @@ internal class LfgAdmissionChecks(
     private val validation: LfgService,
 ) {
     fun prepare(player: UUID, quote: Guild, allowed: (Guild) -> Boolean): LfgAdmissionCheck {
-        val current = guilds.getById(quote.id)
-            ?: return LfgAdmissionCheck.Denied(LfgJoinResult.Error("This guild is no longer available"))
+        val current =
+            guilds.getById(quote.id)
+                ?: return LfgAdmissionCheck.Denied(LfgJoinResult.Error("This guild is no longer available"))
         return prepareCurrent(player, quote, current, allowed)
     }
 
@@ -39,8 +40,11 @@ internal class LfgAdmissionChecks(
     }
 
     private fun prepareRank(player: UUID, guild: Guild): LfgAdmissionCheck {
-        val rank = ranks.getDefaultRank(guild.id)
-            ?: return LfgAdmissionCheck.Denied(LfgJoinResult.Error("Guild configuration error: No default rank found"))
+        val rank =
+            ranks.getDefaultRank(guild.id)
+                ?: return LfgAdmissionCheck.Denied(
+                    LfgJoinResult.Error("Guild configuration error: No default rank found"),
+                )
         val result = validation.canJoinGuild(player, guild)
         return if (result is LfgJoinResult.Success) {
             LfgAdmissionCheck.Ready(guild, rank.id)
@@ -63,6 +67,5 @@ internal class LfgAdmissionChecks(
     private fun sameFee(current: Guild, quote: Guild): Boolean =
         current.joinFeeEnabled == quote.joinFeeEnabled && current.joinFeeAmount == quote.joinFeeAmount
 
-    private fun recruitmentChanged(): LfgJoinResult =
-        LfgJoinResult.Error("Guild recruitment changed. Please reopen the guild browser")
+    private fun recruitmentChanged(): LfgJoinResult = LfgJoinResult.Error(RECRUITMENT_CHANGED_MESSAGE)
 }

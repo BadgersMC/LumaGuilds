@@ -4,7 +4,7 @@ Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` li
 
 - [~] **LG-RECRUITMENT** Approved LFG recruitment upgrade and discovery.
   - Tag: `TDD`
-  - References: REQ-150; REC-001 through REC-012 in `docs/plans/guild-recruitment.md`.
+  - References: REQ-150; REC-001 through REC-017 in `docs/plans/guild-recruitment.md`.
   - Evidence: runtime board/profile/private application/inbox/settings flows, canonical offer admission, durable notifications and discovery preferences are wired for Java and Bedrock. Local check: 1,807 cases, zero failures/errors, 16 existing optional skips; native disposable MariaDB: 13 cases, zero failures/errors/skips. Hosted review/checks, merged delivery and in-game acceptance remain gates. See the recruitment plan for failure evidence and integration boundaries. Private art is excluded; no production or TEST changes occurred.
 
 - [~] **LG-2010** Guild stall menus and optional read adapter.
@@ -1017,3 +1017,7 @@ Menu audit follow-up (REQ-063):
   - Tag: `TDD`
   - References: REQ-QUEST-DISCOVERY-1/2/3.
   - Evidence: current canonical main bfa6931 inspected. GuildCommand.onMenu gates management ranks; existing quest menus already check membership. Existing weekly quest placeholders cover objectives and own progress, but not top guild scores. No project EARS/state helpers or generic verification.md present. Local implementation complete: 1,643 tests passed, 14 optional/environment fixtures skipped; local unmerged shadow JAR built. See docs/plans/2026-10-11-quest-discovery-verification.md. No historical red/green claim; client/spawn acceptance remains deferred. No production modifications or PR.
+- [x] **RECRUITMENT-PAYMENT-REVIEW** Confirm paid command joins, preserve typed recovery outcomes and release only proven-safe reservations.
+  - Tag: `TDD`
+  - References: REC-018 in `docs/plans/guild-recruitment.md`.
+  - Evidence: two reproduced regressions; full local 1,839-case check with zero failures/errors and 16 existing optional skips; final focused checks and 22 native MariaDB cases pass. Hosted checks and client acceptance remain separate gates. No TEST or production changes.

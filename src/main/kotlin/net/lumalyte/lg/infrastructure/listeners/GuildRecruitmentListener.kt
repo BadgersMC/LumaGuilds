@@ -1,43 +1,28 @@
 package net.lumalyte.lg.infrastructure.listeners
 
-import net.badgersmc.nexus.i18n.LangService
-import net.kyori.adventure.text.event.ClickEvent
 import net.lumalyte.lg.api.events.GuildDisbandedEvent
 import net.lumalyte.lg.api.events.GuildMemberJoinEvent
 import net.lumalyte.lg.api.events.GuildMemberRemovedEvent
-import net.lumalyte.lg.application.persistence.RecruitmentDirectoryRepository
 import net.lumalyte.lg.application.services.ConfigService
-import net.lumalyte.lg.application.services.GuildRecruitmentPermissions
 import net.lumalyte.lg.application.services.GuildRecruitmentService
-import net.lumalyte.lg.application.services.GuildService
-import net.lumalyte.lg.application.services.MemberService
-import net.lumalyte.lg.domain.recruitment.ApplicationStatus
 import org.bukkit.Bukkit
-import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.plugin.Plugin
-import java.security.MessageDigest
-import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
 private const val TICKS_PER_SECOND = 20L
 
-private const val RECRUITMENT_COMMAND = "/g recruitment"
-private const val RECRUITMENT_PERMISSION = "lumaguilds.guild.lfg"
-
 /** Non-interrupting discovery and private digest notifications with durable replay protection. */
 internal class GuildRecruitmentListener(
     private val plugin: Plugin,
-    private val directory: RecruitmentDirectoryRepository,
     private val recruitment: GuildRecruitmentService,
-    private val guilds: GuildService,
-    private val members: MemberService,
     private val config: ConfigService,
-    private val lang: LangService,
+    private val notifications: GuildRecruitmentNotifications,
+    private val discovery: GuildRecruitmentDiscovery,
 ) : Listener {
     private val sessions = mutableMapOf<UUID, Instant>()
     private var cursor = 0
@@ -51,7 +36,11 @@ internal class GuildRecruitmentListener(
                 val players = Bukkit.getOnlinePlayers().toList()
                 if (players.isNotEmpty()) {
                     cursor %= players.size
-                    safe { deliverChanges(players[cursor++]) }
+                    safe {
+                        val player = players[cursor++]
+                        notifications.deliver(player)
+                        discovery.prompt(player, sessions[player.uniqueId], true)
+                    }
                 }
             },
             TICKS_PER_SECOND,
@@ -69,7 +58,13 @@ internal class GuildRecruitmentListener(
         Bukkit.getScheduler().runTaskLater(
             plugin,
             Runnable {
-                if (sessions[id] == session) Bukkit.getPlayer(id)?.let { player -> safe { prompt(player, false) } }
+                if (sessions[id] == session) {
+                    Bukkit.getPlayer(id)?.let { player ->
+                        safe {
+                            discovery.prompt(player, sessions[player.uniqueId], false)
+                        }
+                    }
+                }
             },
             delay,
         )
@@ -82,12 +77,7 @@ internal class GuildRecruitmentListener(
             plugin,
             Runnable {
                 safe {
-                    if (event.guildId in members.getPlayerGuilds(event.playerId)) {
-                        recruitment.closeOtherApplications(
-                            event.playerId,
-                            event.guildId,
-                        )
-                    }
+                    recruitment.closeOtherApplications(event.playerId, event.guildId)
                 }
             },
         )
@@ -106,68 +96,7 @@ internal class GuildRecruitmentListener(
     /** Leaving provides one quiet shortcut without resetting the one-time onboarding marker. */
     @EventHandler
     fun onMemberRemoved(event: GuildMemberRemovedEvent) {
-        Bukkit.getPlayer(event.playerId)?.let { player ->
-            safe {
-                val guildless = members.getPlayerGuilds(player.uniqueId).isEmpty()
-                val enabled = directory.remindersEnabled(player.uniqueId)
-                if (guildless && enabled && player.hasPermission(RECRUITMENT_PERMISSION)) {
-                    player.sendMessage(
-                        lang.msg("recruitment.discovery.leave").clickEvent(ClickEvent.runCommand(RECRUITMENT_COMMAND)),
-                    )
-                }
-            }
-        }
-    }
-
-    private fun prompt(player: Player, repeat: Boolean) {
-        if (!player.isOnline || !player.hasPermission(RECRUITMENT_PERMISSION)) return
-        if (members.getPlayerGuilds(player.uniqueId).isNotEmpty()) return
-        val joined = sessions[player.uniqueId] ?: return
-        if (Instant.now().isBefore(
-                joined.plusSeconds(config.loadConfig().recruitment.onboardingDelaySeconds.toLong()),
-            )
-        ) {
-            return
-        }
-        val minutes = config.loadConfig().recruitment.reminderMinutes
-        if (repeat && minutes == 0) return
-        val interval = if (repeat) Duration.ofMinutes(minutes.toLong()) else null
-        if (directory.consumePrompt(player.uniqueId, Instant.now(), interval)) {
-            player.sendMessage(
-                lang.msg("recruitment.discovery.prompt").clickEvent(ClickEvent.runCommand(RECRUITMENT_COMMAND)),
-            )
-        }
-    }
-
-    private fun deliverChanges(player: Player) {
-        if (!player.hasPermission(RECRUITMENT_PERMISSION)) return
-        val own = recruitment.mine(player.uniqueId)
-        val inbox =
-            guilds.getPlayerGuilds(player.uniqueId).filter {
-                GuildRecruitmentPermissions.canReview(members, player.uniqueId, it.id)
-            }
-                .flatMap { recruitment.inbox(player.uniqueId, it.id) }
-        val records = (own + inbox).distinctBy { it.id }.sortedBy { it.id.toString() }
-        if (records.isNotEmpty()) {
-            val text = records.joinToString(";") { "${it.id}:${it.status}" }
-            val signature =
-                MessageDigest.getInstance(
-                    "SHA-256",
-                )
-                    .digest(text.toByteArray(Charsets.UTF_8))
-                    .joinToString("") { "%02x".format(it) }
-            if (directory.consumeNotification(player.uniqueId, signature)) {
-                player.sendMessage(
-                    lang.msg(
-                        "recruitment.discovery.updated",
-                        "offers" to own.count { it.status == ApplicationStatus.OFFERED },
-                        "pending" to inbox.count { it.status == ApplicationStatus.SUBMITTED },
-                    )
-                        .clickEvent(ClickEvent.runCommand(RECRUITMENT_COMMAND)),
-                )
-            }
-        }
-        prompt(player, true)
+        Bukkit.getPlayer(event.playerId)?.let { player -> safe { discovery.onLeave(player) } }
     }
 
     @Suppress(

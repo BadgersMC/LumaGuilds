@@ -110,6 +110,16 @@ internal class GuildRecruitmentMenu(
         val offset = if (filtered) 1 else 0
         val pages = maxOf(1, (view.items.size + capacity - 1) / capacity)
         controller.page = controller.page.coerceIn(0, pages - 1)
+        val gui = boardGui(view, pages)
+        val pane = StaticPane(0, 0, BOARD_COLUMNS, BOARD_ROWS)
+        view.quickFilters.forEachIndexed { index, button -> add(pane, button, index, 0) }
+        addBoardItems(pane, view, capacity, offset)
+        addPagination(pane, pages)
+        gui.addPane(pane)
+        gui.show(player)
+    }
+
+    private fun boardGui(view: RecruitmentView, pages: Int): ChestGui {
         val gui =
             ChestGui(
                 BOARD_ROWS,
@@ -118,41 +128,29 @@ internal class GuildRecruitmentMenu(
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick { it.isCancelled = true }
         gui.setOnGlobalDrag { it.isCancelled = true }
-        val pane = StaticPane(0, 0, BOARD_COLUMNS, BOARD_ROWS)
-        view.quickFilters.forEachIndexed { index, button -> add(pane, button, index, 0) }
+        return gui
+    }
+
+    private fun addBoardItems(pane: StaticPane, view: RecruitmentView, capacity: Int, offset: Int) {
         view.items.drop(controller.page * capacity).take(capacity).forEachIndexed { index, button ->
             add(pane, button, index % BOARD_COLUMNS, index / BOARD_COLUMNS + offset)
         }
         view.navigation.take(NAVIGATION_CAPACITY).forEachIndexed { index, button ->
             add(pane, button, index + 1, NAVIGATION_ROW)
         }
-        addPagination(pane, pages)
-        gui.addPane(pane)
-        gui.show(player)
     }
 
     private fun addPagination(pane: StaticPane, pages: Int) {
-        if (controller.page > 0) {
-            add(
-                pane,
-                RecruitmentButton(lang.raw("recruitment.previous"), icon = RecruitmentIcons.PAGE_PREV) {
-                    controller.page = (controller.page - 1).coerceAtLeast(0)
-                    open()
-                },
-                0,
-                NAVIGATION_ROW,
-            )
-        }
-        if (controller.page + 1 < pages) {
-            add(
-                pane,
-                RecruitmentButton(lang.raw("recruitment.next"), icon = RecruitmentIcons.PAGE_NEXT) {
-                    controller.page = (controller.page + 1).coerceAtMost(pages - 1)
-                    open()
-                },
-                BOARD_COLUMNS - 1,
-                NAVIGATION_ROW,
-            )
+        if (controller.page > 0) add(pane, pageButton(-1, pages), 0, NAVIGATION_ROW)
+        if (controller.page + 1 < pages) add(pane, pageButton(1, pages), BOARD_COLUMNS - 1, NAVIGATION_ROW)
+    }
+
+    private fun pageButton(delta: Int, pages: Int): RecruitmentButton {
+        val label = if (delta < 0) lang.raw("recruitment.previous") else lang.raw("recruitment.next")
+        val icon = if (delta < 0) RecruitmentIcons.PAGE_PREV else RecruitmentIcons.PAGE_NEXT
+        return RecruitmentButton(label, icon = icon) {
+            controller.page = (controller.page + delta).coerceIn(0, pages - 1)
+            open()
         }
     }
 
@@ -172,5 +170,7 @@ internal class GuildRecruitmentMenu(
     }
 
     /** This menu has no external mutable payload. */
-    override fun passData(data: Any?) = Unit
+    override fun passData(data: Any?) {
+        if (data is net.lumalyte.lg.domain.entities.Guild) controller.previewJoin(data)
+    }
 }

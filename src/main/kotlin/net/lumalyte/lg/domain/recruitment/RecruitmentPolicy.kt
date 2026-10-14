@@ -175,6 +175,12 @@ internal data class GuildApplication(
         return copy(status = ApplicationStatus.JOINED)
     }
 
+    /** Only a proven rejection or refund permits releasing a payment reservation. */
+    fun releaseAdmission(at: Instant): GuildApplication {
+        require(status == ApplicationStatus.ADMISSION_PENDING && at >= createdAt)
+        return copy(status = if (at < expiresAt) ApplicationStatus.OFFERED else ApplicationStatus.EXPIRED)
+    }
+
     /** Closes unconfirmed requests once their deadline is reached. */
     fun expire(at: Instant): GuildApplication {
         require(status in setOf(ApplicationStatus.SUBMITTED, ApplicationStatus.OFFERED) && at >= expiresAt)

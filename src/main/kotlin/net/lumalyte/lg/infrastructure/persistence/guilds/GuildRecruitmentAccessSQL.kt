@@ -20,26 +20,17 @@ internal class GuildRecruitmentAccessSQL(private val storage: Storage<Database>)
 
     /** Unrelated settings writes must not restore an old screen's access flag. */
     fun publishedAccess(guild: UUID): Boolean? {
-        val row = storage.connection.getFirstRow(
-            "SELECT profile FROM guild_recruitment_profiles WHERE guild_id = ?", guild.toString(),
-        ) ?: return null
+        val row =
+            storage.connection.getFirstRow(
+                "SELECT profile FROM guild_recruitment_profiles WHERE guild_id = ?", guild.toString(),
+            ) ?: return null
         return JSONObject(row.getString("profile")).getString("mode") == RecruitmentMode.JOIN_IMMEDIATELY.name
     }
     fun save(guild: UUID, mode: RecruitmentMode, profile: String) {
-        transaction { connection ->
+        storage.recruitmentTransaction { connection ->
             check(exists(connection, guild)) { "This guild is no longer available" }
             writeAccess(connection, guild, mode == RecruitmentMode.JOIN_IMMEDIATELY)
-            val statement = if (storage.dialect == SqlDialect.MARIADB) {
-                connection.prepareStatement(
-                    "INSERT INTO guild_recruitment_profiles (guild_id, profile) VALUES (?, ?) " +
-                        "ON DUPLICATE KEY UPDATE profile = VALUES(profile)",
-                )
-            } else {
-                connection.prepareStatement(
-                    "INSERT INTO guild_recruitment_profiles (guild_id, profile) VALUES (?, ?) " +
-                        "ON CONFLICT(guild_id) DO UPDATE SET profile = excluded.profile",
-                )
-            }
+            val statement = profileStatement(connection)
             statement.use {
                 it.setString(1, guild.toString())
                 it.setString(2, profile)
@@ -48,8 +39,22 @@ internal class GuildRecruitmentAccessSQL(private val storage: Storage<Database>)
         }
     }
 
+    private fun profileStatement(connection: Connection): java.sql.PreparedStatement {
+        return if (storage.dialect == SqlDialect.MARIADB) {
+            connection.prepareStatement(
+                "INSERT INTO guild_recruitment_profiles (guild_id, profile) VALUES (?, ?) " +
+                    "ON DUPLICATE KEY UPDATE profile = VALUES(profile)",
+            )
+        } else {
+            connection.prepareStatement(
+                "INSERT INTO guild_recruitment_profiles (guild_id, profile) VALUES (?, ?) " +
+                    "ON CONFLICT(guild_id) DO UPDATE SET profile = excluded.profile",
+            )
+        }
+    }
+
     fun setOpen(guild: UUID, open: Boolean): Boolean {
-        return transaction { connection ->
+        return storage.recruitmentTransaction { connection ->
             if (exists(connection, guild)) {
                 writeAccess(connection, guild, open)
                 updateMethod(connection, guild, open)
@@ -61,16 +66,18 @@ internal class GuildRecruitmentAccessSQL(private val storage: Storage<Database>)
     }
 
     private fun updateMethod(connection: Connection, guild: UUID, open: Boolean) {
-        val profile = connection.prepareStatement(
-            "SELECT profile FROM guild_recruitment_profiles WHERE guild_id = ?",
-        ).use { statement ->
-            statement.setString(1, guild.toString())
-            statement.executeQuery().use { rows -> if (rows.next()) rows.getString(1) else null }
-        }
+        val profile =
+            connection.prepareStatement(
+                "SELECT profile FROM guild_recruitment_profiles WHERE guild_id = ?",
+            ).use { statement ->
+                statement.setString(1, guild.toString())
+                statement.executeQuery().use { rows -> if (rows.next()) rows.getString(1) else null }
+            }
         if (profile != null) {
-            val json = JSONObject(profile)
-                .put("mode", if (open) RecruitmentMode.JOIN_IMMEDIATELY.name else RecruitmentMode.CLOSED.name)
-                .put("updatedAt", Instant.now().toString())
+            val json =
+                JSONObject(profile)
+                    .put("mode", if (open) RecruitmentMode.JOIN_IMMEDIATELY.name else RecruitmentMode.CLOSED.name)
+                    .put("updatedAt", Instant.now().toString())
             connection.prepareStatement(
                 "UPDATE guild_recruitment_profiles SET profile = ? WHERE guild_id = ?",
             ).use { statement ->
@@ -82,11 +89,12 @@ internal class GuildRecruitmentAccessSQL(private val storage: Storage<Database>)
     }
 
     private fun exists(connection: Connection, guild: UUID): Boolean {
-        val statement = if (storage.dialect == SqlDialect.MARIADB) {
-            connection.prepareStatement("SELECT id FROM guilds WHERE id = ? FOR UPDATE")
-        } else {
-            connection.prepareStatement("SELECT id FROM guilds WHERE id = ?")
-        }
+        val statement =
+            if (storage.dialect == SqlDialect.MARIADB) {
+                connection.prepareStatement("SELECT id FROM guilds WHERE id = ? FOR UPDATE")
+            } else {
+                connection.prepareStatement("SELECT id FROM guilds WHERE id = ?")
+            }
         return statement.use {
             it.setString(1, guild.toString())
             it.executeQuery().use { rows -> rows.next() }
@@ -98,25 +106,6 @@ internal class GuildRecruitmentAccessSQL(private val storage: Storage<Database>)
             it.setInt(1, if (open) 1 else 0)
             it.setString(2, guild.toString())
             it.executeUpdate()
-        }
-    }
-
-    @Suppress("TooGenericExceptionCaught") // Roll back every failure, preserving rollback errors.
-    private fun <T> transaction(operation: (Connection) -> T): T {
-        return storage.connection.connection.use { connection ->
-            connection.autoCommit = false
-            try {
-                val result = operation(connection)
-                connection.commit()
-                result
-            } catch (failure: Throwable) {
-                try {
-                    connection.rollback()
-                } catch (rollback: Throwable) {
-                    failure.addSuppressed(rollback)
-                }
-                throw failure
-            }
         }
     }
 }

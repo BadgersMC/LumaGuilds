@@ -26,8 +26,7 @@ import org.bukkit.inventory.meta.SkullMeta
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
-/** Confirms the quoted guild admission fee through the canonical admission service. */
-// Preserve the public constructor and the locale scanner's literal argument contract.
+/** Confirms canonical admission; retains the public constructor and literal locale arguments. */
 @Suppress("StringLiteralDuplication", "LibraryEntitiesShouldNotBePublic")
 class GuildInviteConfirmationMenu(
     private val menuNavigator: MenuNavigator,

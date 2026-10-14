@@ -160,4 +160,15 @@ internal class RecruitmentController(
     }
 
     fun theme(): net.lumalyte.lg.utils.GuiTheme = ownGuild()?.guiTheme ?: net.lumalyte.lg.utils.GuiTheme.DEFAULT
+
+    /** Command entry uses the same fee snapshot and explicit confirmation as browsing. */
+    fun previewJoin(guild: Guild) {
+        initialized = true
+        selected = guild.id
+        selectedApplication = null
+        quotedGuild = guild
+        quotedFee = lfg.getJoinRequirement(guild)
+        screen = RecruitmentScreen.CONFIRM
+        page = 0
+    }
 }

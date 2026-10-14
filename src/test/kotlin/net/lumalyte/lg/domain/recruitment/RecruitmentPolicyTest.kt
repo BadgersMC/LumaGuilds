@@ -52,6 +52,10 @@ internal class RecruitmentPolicyTest {
                 discordInstructions = "Open a ticket",
             )
         }
+    }
+
+    @Test
+    fun validDiscordInvitesRoundTrip() {
         for (link in listOf("https://discord.gg/Example-1", "https://discord.com/invite/Example-1/")) {
             assertEquals(
                 link,
@@ -64,6 +68,10 @@ internal class RecruitmentPolicyTest {
                     .discordInvite,
             )
         }
+    }
+
+    @Test
+    fun unsafeDiscordInvitesRejected() {
         for (link in listOf(
             "http://discord.gg/test",
             "https://discord.gg/test?redirect=x",

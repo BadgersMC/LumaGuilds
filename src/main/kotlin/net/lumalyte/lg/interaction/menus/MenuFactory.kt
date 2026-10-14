@@ -1119,39 +1119,7 @@ class MenuFactory(
      */
     @Suppress("UNCHECKED_CAST")
     inline fun <reified T : Menu> createMenu(menuNavigator: MenuNavigator, player: Player, vararg args: Any?): Menu {
-        return when (T::class) {
-            ConfirmationMenu::class -> createConfirmationMenu(
-                menuNavigator,
-                player,
-                args[0] as String,
-                args[1] as () -> Unit
-            )
-            GuildSelectionMenu::class -> createGuildSelectionMenu(
-                menuNavigator,
-                player,
-                args[0] as net.lumalyte.lg.domain.entities.Guild,
-                args[1] as MutableSet<java.util.UUID>
-            )
-            GuildInfoMenu::class -> createGuildInfoMenu(
-                menuNavigator,
-                player,
-                args[0] as net.lumalyte.lg.domain.entities.Guild
-            )
-            GuildMemberListMenu::class -> createGuildMemberListMenu(
-                menuNavigator,
-                player,
-                args[0] as net.lumalyte.lg.domain.entities.Guild
-            )
-            PartyCreationMenu::class -> createPartyCreationMenu(
-                menuNavigator,
-                player,
-                args[0] as net.lumalyte.lg.domain.entities.Guild
-            )
-            else -> {
-                // Fallback to Java implementation
-                throw IllegalArgumentException("Unsupported menu type: ${T::class.simpleName}")
-            }
-        }
+        return createKnownMenu(T::class, menuNavigator, player, args)
     }
 
     /**

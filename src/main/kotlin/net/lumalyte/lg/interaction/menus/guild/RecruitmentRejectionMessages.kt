@@ -34,19 +34,20 @@ private val REJECTION_REASONS =
 internal fun recruitmentRejectionReason(error: Exception): RecruitmentRejection? =
     if (error is IllegalArgumentException) REJECTION_REASONS[error.message] else null
 
-private val REJECTION_MESSAGES: Map<RecruitmentRejection, (LangService) -> Component> = mapOf(
-    RecruitmentRejection.APPLICATION_LIMIT to { lang -> lang.msg("recruitment.feedback.application_limit") },
-    RecruitmentRejection.STALE_APPLICATION to { lang -> lang.msg("recruitment.feedback.stale_application") },
-    RecruitmentRejection.INELIGIBLE to { lang -> lang.msg("recruitment.feedback.ineligible") },
-    RecruitmentRejection.EDIT_DENIED to { lang -> lang.msg("recruitment.feedback.edit_denied") },
-    RecruitmentRejection.REVIEW_DENIED to { lang -> lang.msg("recruitment.feedback.review_denied") },
-    RecruitmentRejection.GUILD_REMOVED to { lang -> lang.msg("recruitment.feedback.guild_removed") },
-    RecruitmentRejection.METHOD_CHANGED to { lang -> lang.msg("recruitment.feedback.method_changed") },
-    RecruitmentRejection.APPLICATION_REMOVED to { lang -> lang.msg("recruitment.feedback.application_removed") },
-    RecruitmentRejection.FEE_CHANGED to { lang -> lang.msg("recruitment.feedback.fee_changed") },
-    RecruitmentRejection.INVITE_CHANGED to { lang -> lang.msg("recruitment.feedback.invite_changed") },
-    RecruitmentRejection.DISCORD_SETUP to { lang -> lang.msg("recruitment.discord_setup") },
-)
+private val REJECTION_MESSAGES: Map<RecruitmentRejection, (LangService) -> Component> =
+    mapOf(
+        RecruitmentRejection.APPLICATION_LIMIT to { lang -> lang.msg("recruitment.feedback.application_limit") },
+        RecruitmentRejection.STALE_APPLICATION to { lang -> lang.msg("recruitment.feedback.stale_application") },
+        RecruitmentRejection.INELIGIBLE to { lang -> lang.msg("recruitment.feedback.ineligible") },
+        RecruitmentRejection.EDIT_DENIED to { lang -> lang.msg("recruitment.feedback.edit_denied") },
+        RecruitmentRejection.REVIEW_DENIED to { lang -> lang.msg("recruitment.feedback.review_denied") },
+        RecruitmentRejection.GUILD_REMOVED to { lang -> lang.msg("recruitment.feedback.guild_removed") },
+        RecruitmentRejection.METHOD_CHANGED to { lang -> lang.msg("recruitment.feedback.method_changed") },
+        RecruitmentRejection.APPLICATION_REMOVED to { lang -> lang.msg("recruitment.feedback.application_removed") },
+        RecruitmentRejection.FEE_CHANGED to { lang -> lang.msg("recruitment.feedback.fee_changed") },
+        RecruitmentRejection.INVITE_CHANGED to { lang -> lang.msg("recruitment.feedback.invite_changed") },
+        RecruitmentRejection.DISCORD_SETUP to { lang -> lang.msg("recruitment.discord_setup") },
+    )
 
 internal fun recruitmentRejectionMessage(lang: LangService, error: Exception, input: Boolean = false): Component {
     val reason = recruitmentRejectionReason(error)

@@ -49,14 +49,15 @@ class BedrockGuildInviteConfirmationMenu(
                 Bukkit.getScheduler().runTask(
                     plugin,
                     Runnable {
-                        if (!player.isOnline) return@Runnable
-                        onFormResponseReceived()
-                        when (response.clickedButtonId()) {
-                            0 -> sendInvite()
-                            1 ->
-                                bedrockNavigator.createBackHandler {
-                                    player.sendMessage(lang.msg("bedrock.invite_confirmation.feedback.cancelled"))
-                                }.run()
+                        if (player.isOnline) {
+                            onFormResponseReceived()
+                            when (response.clickedButtonId()) {
+                                0 -> sendInvite()
+                                1 ->
+                                    bedrockNavigator.createBackHandler {
+                                        player.sendMessage(lang.msg("bedrock.invite_confirmation.feedback.cancelled"))
+                                    }.run()
+                            }
                         }
                     },
                 )

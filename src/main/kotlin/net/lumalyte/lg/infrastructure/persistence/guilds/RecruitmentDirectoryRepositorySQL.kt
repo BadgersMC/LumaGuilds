@@ -114,16 +114,7 @@ internal class RecruitmentDirectoryRepositorySQL(
     /** One conditional update makes reconnects and competing schedulers unable to replay a prompt. */
     override fun consumePrompt(player: UUID, at: Instant, repeatAfter: Duration?): Boolean {
         require(repeatAfter == null || repeatAfter > Duration.ZERO)
-        val suffix =
-            if (maria) {
-                "ON DUPLICATE KEY UPDATE player_id = VALUES(player_id)"
-            } else {
-                "ON CONFLICT(player_id) DO NOTHING"
-            }
-        storage.connection.executeUpdate(
-            "INSERT INTO guild_recruitment_preferences (player_id) VALUES (?) $suffix",
-            player.toString(),
-        )
+        insertPromptPreference(player)
         val due = if (repeatAfter == null) "prompted_at IS NULL" else "(prompted_at IS NULL OR prompted_at <= ?)"
         val query =
             "UPDATE guild_recruitment_preferences SET prompted_at = ? " +
@@ -135,6 +126,19 @@ internal class RecruitmentDirectoryRepositorySQL(
                 query, at.toEpochMilli(), player.toString(), at.minus(repeatAfter).toEpochMilli(),
             ) == 1
         }
+    }
+
+    private fun insertPromptPreference(player: UUID) {
+        val suffix =
+            if (maria) {
+                "ON DUPLICATE KEY UPDATE player_id = VALUES(player_id)"
+            } else {
+                "ON CONFLICT(player_id) DO NOTHING"
+            }
+        storage.connection.executeUpdate(
+            "INSERT INTO guild_recruitment_preferences (player_id) VALUES (?) $suffix",
+            player.toString(),
+        )
     }
 
     /** A digest is delivered once until its private application or inbox state changes. */

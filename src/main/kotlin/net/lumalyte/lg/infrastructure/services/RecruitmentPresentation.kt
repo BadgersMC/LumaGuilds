@@ -80,42 +80,40 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
 
     fun book(player: Player, content: RecruitmentBookContent, valid: () -> Boolean, back: () -> Unit) {
         if (PLATFORMS.isBedrockPlayer(player)) {
-            org.geysermc.floodgate.api.FloodgateApi.getInstance().sendForm(
-                player.uniqueId,
-                org.geysermc.cumulus.form.SimpleForm.builder().title(
-                    content.title,
-                )
-                    .content(content.lines.joinToString("\n"))
-                    .button(content.returnLabel)
-                    .validResultHandler { _ ->
-                        Bukkit.getScheduler().runTask(
-                            net.lumalyte.lg.common.PluginKeys.getPlugin(),
-                            Runnable {
-                                if (player.isOnline && valid()) back()
-                            },
-                        )
-                    }
-                    .build(),
-            )
-            return
+            bedrockBook(player, content, valid, back)
+        } else {
+            javaBook(player, content, valid, back)
         }
+    }
+
+    private fun bedrockBook(player: Player, content: RecruitmentBookContent, valid: () -> Boolean, back: () -> Unit) {
+        val form =
+            org.geysermc.cumulus.form.SimpleForm.builder().title(content.title)
+                .content(content.lines.joinToString("\n"))
+                .button(content.returnLabel)
+                .validResultHandler { _ -> returnToMenu(player, valid, back) }
+                .build()
+        org.geysermc.floodgate.api.FloodgateApi.getInstance().sendForm(player.uniqueId, form)
+    }
+
+    private fun javaBook(player: Player, content: RecruitmentBookContent, valid: () -> Boolean, back: () -> Unit) {
         val options = ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(2)).build()
         val returnLink =
             Component.text(content.returnLabel).clickEvent(
                 ClickEvent.callback({ audience ->
-                    if (audience is Player && audience.uniqueId == player.uniqueId) {
-                        Bukkit.getScheduler().runTask(
-                            net.lumalyte.lg.common.PluginKeys.getPlugin(),
-                            Runnable {
-                                if (player.isOnline && valid()) back()
-                            },
-                        )
-                    }
+                    if (audience is Player && audience.uniqueId == player.uniqueId) returnToMenu(player, valid, back)
                 }, options),
             )
         val pages = bookPages(content.lines, returnLink)
         player.closeInventory()
         player.openBook(Book.book(Component.text(content.title), Component.text("LumaGuilds"), pages))
+    }
+
+    private fun returnToMenu(player: Player, valid: () -> Boolean, back: () -> Unit) {
+        Bukkit.getScheduler().runTask(
+            net.lumalyte.lg.common.PluginKeys.getPlugin(),
+            Runnable { if (player.isOnline && valid()) back() },
+        )
     }
 
     /** Retains complete validated text and wraps at Unicode code-point boundaries. */
