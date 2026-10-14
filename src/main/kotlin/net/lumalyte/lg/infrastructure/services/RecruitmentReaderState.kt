@@ -13,9 +13,9 @@ internal class RecruitmentReaderState(private val valid: () -> Boolean) {
 
     fun consume(page: Int): Boolean {
         if (closed || consumed || page != revision) return false
-        if (!valid()) return false
-        consumed = true
-        return true
+        val authorized = valid()
+        consumed = authorized
+        return authorized
     }
 
     fun close() {

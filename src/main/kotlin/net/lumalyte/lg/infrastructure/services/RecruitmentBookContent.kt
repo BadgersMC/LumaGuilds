@@ -14,11 +14,13 @@ internal data class RecruitmentBookContent(
 )
 
 /** Native titles can use the selected palette, although the client owns the dialog frame. */
-internal fun RecruitmentBookContent.accent(): NamedTextColor = when (theme.resolved()) {
-    GuiTheme.FROSTBOUND -> NamedTextColor.AQUA
-    GuiTheme.VERDANT -> NamedTextColor.GREEN
-    GuiTheme.VOIDLIGHT -> NamedTextColor.LIGHT_PURPLE
-    GuiTheme.OBSIDIAN -> NamedTextColor.GRAY
-    GuiTheme.CHRISTMAS -> NamedTextColor.RED
-    else -> NamedTextColor.GOLD
+internal fun RecruitmentBookContent.accent(): NamedTextColor {
+    return when (theme.resolved()) {
+        GuiTheme.FROSTBOUND -> NamedTextColor.AQUA
+        GuiTheme.VERDANT -> NamedTextColor.GREEN
+        GuiTheme.VOIDLIGHT -> NamedTextColor.LIGHT_PURPLE
+        GuiTheme.OBSIDIAN -> NamedTextColor.GRAY
+        GuiTheme.CHRISTMAS -> NamedTextColor.RED
+        else -> NamedTextColor.GOLD
+    }
 }

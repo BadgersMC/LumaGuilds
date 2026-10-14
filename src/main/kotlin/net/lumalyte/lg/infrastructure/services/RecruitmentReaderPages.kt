@@ -15,13 +15,20 @@ private fun readerRows(line: String): List<String> {
     val rows = mutableListOf<String>()
     var start = 0
     while (start < points.size) {
-        var end = minOf(start + READER_COLUMNS, points.size)
-        if (end < points.size) {
-            val space = (start until end).lastOrNull { Character.isWhitespace(points[it]) }
-            if (space != null) end = space + 1
-        }
+        val end = readerEnd(points, start)
         rows += buildString { for (index in start until end) appendCodePoint(points[index]) }
         start = end
     }
     return rows
+}
+
+private fun readerEnd(points: IntArray, start: Int): Int {
+    val hardEnd = minOf(start + READER_COLUMNS, points.size)
+    val space =
+        if (hardEnd < points.size) {
+            (start until hardEnd).lastOrNull { Character.isWhitespace(points[it]) }
+        } else {
+            null
+        }
+    return space?.plus(1) ?: hardEnd
 }
