@@ -34,7 +34,7 @@ internal class InviteBlockServiceImpl(
             !blocks.isAvailable -> true
             blocked.isEmpty() -> false
             inviterId != null && inviterId in blocked -> true
-            else -> members.getGuildMembers(guildId).any { it.playerId in blocked }
+            else -> blocked.any { members.isPlayerInGuild(it, guildId) }
         }
     }
 

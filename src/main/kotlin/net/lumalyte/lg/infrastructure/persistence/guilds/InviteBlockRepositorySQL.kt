@@ -74,7 +74,9 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
                 blocks[ownerId]?.remove(targetId)
             }
             true
-        } catch (_: SQLException) {
+        } catch (error: SQLException) {
+            LoggerFactory.getLogger(InviteBlockRepositorySQL::class.java)
+                .error("Unable to save invite block {} -> {}", ownerId, targetId, error)
             false
         }
     }
