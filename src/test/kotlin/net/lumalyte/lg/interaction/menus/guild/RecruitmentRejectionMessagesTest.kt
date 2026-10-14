@@ -3,7 +3,7 @@ package net.lumalyte.lg.interaction.menus.guild
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
-class RecruitmentRejectionMessagesTest {
+internal class RecruitmentRejectionMessagesTest {
     @Test
     fun editDenialHasActionableHint() {
         assertEquals(

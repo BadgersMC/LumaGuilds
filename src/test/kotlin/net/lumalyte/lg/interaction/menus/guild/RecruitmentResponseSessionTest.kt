@@ -3,7 +3,7 @@ package net.lumalyte.lg.interaction.menus.guild
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
-class RecruitmentResponseSessionTest {
+internal class RecruitmentResponseSessionTest {
     @Test
     fun replacedFormCannotSubmit() {
         val session = RecruitmentResponseSession { { true } }

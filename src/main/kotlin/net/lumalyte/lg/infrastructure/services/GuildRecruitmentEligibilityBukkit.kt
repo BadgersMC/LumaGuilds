@@ -24,7 +24,8 @@ internal class GuildRecruitmentEligibilityBukkit(
                         null,
                         "player_invite_blocks",
                         arrayOf("TABLE"),
-                    ).use { it.next() }
+                    )
+                        .use { it.next() }
                 if (!exists) return@use emptySet<UUID>() // Legacy main has no invite-block feature yet.
                 connection.prepareStatement("SELECT target_id FROM player_invite_blocks WHERE owner_id = ?").use {
                         statement ->

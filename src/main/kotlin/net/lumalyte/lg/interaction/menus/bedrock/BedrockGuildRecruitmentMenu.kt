@@ -49,7 +49,8 @@ internal class BedrockGuildRecruitmentMenu(
                         response ->
                     onServer(responseValid) { controller.acceptInput(response.asInput(0) ?: "") }
                 }
-                .closedOrInvalidResultHandler { _, _ -> onServer(responseValid) { controller.cancelInput() } }.build()
+                .closedOrInvalidResultHandler { _, _ -> onServer(responseValid) { controller.cancelInput() } }
+                .build()
         }
         val view = controller.view()
         val pages = maxOf(1, (view.items.size + BEDROCK_PAGE_SIZE - 1) / BEDROCK_PAGE_SIZE)
@@ -80,7 +81,8 @@ internal class BedrockGuildRecruitmentMenu(
                 response ->
             onServer(responseValid) { actions.getOrNull(response.clickedButtonId())?.invoke() }
         }
-            .closedOrInvalidResultHandler { _, _ -> onServer(responseValid) { bedrockNavigator.goBack() } }.build()
+            .closedOrInvalidResultHandler { _, _ -> onServer(responseValid) { bedrockNavigator.goBack() } }
+            .build()
     }
 
     private fun onServer(responseValid: () -> Boolean, action: () -> Unit) {

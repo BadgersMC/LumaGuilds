@@ -50,11 +50,12 @@ internal data class RecruitmentProfile(
 
     companion object {
         /** No stored profile means the original open/closed rule, without modifying fees. */
-        fun legacy(guildId: UUID, isOpen: Boolean) =
-            RecruitmentProfile(
+        fun legacy(guildId: UUID, isOpen: Boolean): RecruitmentProfile {
+            return RecruitmentProfile(
                 guildId,
                 if (isOpen) RecruitmentMode.JOIN_IMMEDIATELY else RecruitmentMode.CLOSED,
             )
+        }
     }
 }
 
@@ -131,9 +132,10 @@ internal data class GuildApplication(
     }
 
     /** Pending payments remain active until staff reconcile their outcome. */
-    fun isActive(at: Instant): Boolean =
-        status == ApplicationStatus.ADMISSION_PENDING ||
+    fun isActive(at: Instant): Boolean {
+        return status == ApplicationStatus.ADMISSION_PENDING ||
             status in setOf(ApplicationStatus.SUBMITTED, ApplicationStatus.OFFERED) && at < expiresAt
+    }
 
     /** Approval records an offer only. No payment or member mutation occurs here. */
     fun offer(actor: UUID, at: Instant, lifetime: Duration): GuildApplication {

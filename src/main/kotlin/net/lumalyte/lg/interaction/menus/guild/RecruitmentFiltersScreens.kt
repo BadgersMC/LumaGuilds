@@ -9,79 +9,88 @@ private const val PLAY_TIME_FILTER_LIMIT = 100
 private const val BUILDING_INTEREST = "building"
 private const val PVP_INTEREST = "pvp"
 
-/** Filters presentation builders share the current authorized navigation session. */
-internal fun RecruitmentController.quickFilters(): List<RecruitmentButton> =
-    listOf(
-        RecruitmentButton(
-            lang.raw("recruitment.filter_recruiting"),
-            listOf(enabled(recruitingOnly)),
-            RecruitmentIcons.CONFIRM,
-        ) {
-            recruitingOnly = !recruitingOnly
-            resetBrowse()
-        },
-        RecruitmentButton(
-            lang.raw("recruitment.filter_beginner"),
-            listOf(enabled(beginnersOnly)),
-            RecruitmentIcons.NAV_MEMBERS,
-        ) {
-            beginnersOnly = !beginnersOnly
-            resetBrowse()
-        },
-        RecruitmentButton(
-            lang.raw("recruitment.building"),
-            listOf(enabled(interest == BUILDING_INTEREST)),
-            RecruitmentIcons.HOME,
-        ) {
-            interest = if (interest == BUILDING_INTEREST) null else BUILDING_INTEREST
-            resetBrowse()
-        },
-        RecruitmentButton(
-            lang.raw("recruitment.pvp"),
-            listOf(enabled(interest == PVP_INTEREST)),
-            RecruitmentIcons.NAV_WARFARE,
-        ) {
-            interest = if (interest == PVP_INTEREST) null else PVP_INTEREST
-            resetBrowse()
-        },
-        RecruitmentButton(
-            lang.raw("recruitment.mode.discord"),
-            listOf(enabled(joiningMethod == RecruitmentMode.DISCORD)),
-            RecruitmentIcons.INVITE,
-        ) {
-            joiningMethod = if (joiningMethod == RecruitmentMode.DISCORD) null else RecruitmentMode.DISCORD
-            resetBrowse()
-        },
-        RecruitmentButton(
-            lang.raw("recruitment.sort"),
-            listOf(
-                when (sorting) {
-                    1 -> lang.raw("recruitment.sort_1")
-                    2 -> lang.raw("recruitment.sort_2")
-                    else -> lang.raw("recruitment.sort_0")
-                },
-            ),
-            RecruitmentIcons.SORT,
-        ) {
-            sorting = (sorting + 1) % SORT_MODE_COUNT
-            resetBrowse()
-        },
-        RecruitmentButton(lang.raw("recruitment.reset"), icon = RecruitmentIcons.CANCEL) {
-            query = ""
-            peaceful = null
-            recruitingOnly = true
-            beginnersOnly = false
-            joiningMethod = null
-            interest = null
-            sorting = 0
-            languageFilter = ""
-            timeFilter = ""
-            resetBrowse()
-        },
-    )
+private enum class QuickFilter(val icon: String) {
+    RECRUITING(RecruitmentIcons.CONFIRM),
+    BEGINNER(RecruitmentIcons.NAV_MEMBERS),
+    BUILDING(RecruitmentIcons.HOME),
+    PVP(RecruitmentIcons.NAV_WARFARE),
+    DISCORD(RecruitmentIcons.INVITE),
+}
 
-internal fun RecruitmentController.filters(): List<RecruitmentButton> =
-    listOf(
+/** Filters presentation builders share the current authorized navigation session. */
+internal fun RecruitmentController.quickFilters(): List<RecruitmentButton> {
+    return QuickFilter.entries.map { filter ->
+        RecruitmentButton(filterLabel(filter), listOf(enabled(filterActive(filter))), filter.icon) {
+            toggleFilter(filter)
+            resetBrowse()
+        }
+    } + listOf(sortButton(), resetButton())
+}
+
+private fun RecruitmentController.filterLabel(filter: QuickFilter): String {
+    return when (filter) {
+        QuickFilter.RECRUITING -> lang.raw("recruitment.filter_recruiting")
+        QuickFilter.BEGINNER -> lang.raw("recruitment.filter_beginner")
+        QuickFilter.BUILDING -> lang.raw("recruitment.building")
+        QuickFilter.PVP -> lang.raw("recruitment.pvp")
+        QuickFilter.DISCORD -> lang.raw("recruitment.mode.discord")
+    }
+}
+
+private fun RecruitmentController.filterActive(filter: QuickFilter): Boolean {
+    return when (filter) {
+        QuickFilter.RECRUITING -> recruitingOnly
+        QuickFilter.BEGINNER -> beginnersOnly
+        QuickFilter.BUILDING -> interest == BUILDING_INTEREST
+        QuickFilter.PVP -> interest == PVP_INTEREST
+        QuickFilter.DISCORD -> joiningMethod == RecruitmentMode.DISCORD
+    }
+}
+
+private fun RecruitmentController.toggleFilter(filter: QuickFilter) {
+    when (filter) {
+        QuickFilter.RECRUITING -> recruitingOnly = !recruitingOnly
+        QuickFilter.BEGINNER -> beginnersOnly = !beginnersOnly
+        QuickFilter.BUILDING -> interest = if (interest == BUILDING_INTEREST) null else BUILDING_INTEREST
+        QuickFilter.PVP -> interest = if (interest == PVP_INTEREST) null else PVP_INTEREST
+        QuickFilter.DISCORD -> toggleDiscordFilter()
+    }
+}
+
+private fun RecruitmentController.sortButton(): RecruitmentButton {
+    return RecruitmentButton(
+        lang.raw("recruitment.sort"),
+        listOf(
+            when (sorting) {
+                1 -> lang.raw("recruitment.sort_1")
+                2 -> lang.raw("recruitment.sort_2")
+                else -> lang.raw("recruitment.sort_0")
+            },
+        ),
+        RecruitmentIcons.SORT,
+    ) {
+        sorting = (sorting + 1) % SORT_MODE_COUNT
+        resetBrowse()
+    }
+}
+
+private fun RecruitmentController.resetButton(): RecruitmentButton {
+    return RecruitmentButton(lang.raw("recruitment.reset"), icon = RecruitmentIcons.CANCEL) {
+        query = ""
+        peaceful = null
+        recruitingOnly = true
+        beginnersOnly = false
+        joiningMethod = null
+        interest = null
+        sorting = 0
+        languageFilter = ""
+        timeFilter = ""
+        resetBrowse()
+    }
+}
+
+internal fun RecruitmentController.filters(): List<RecruitmentButton> {
+    return listOf(
         RecruitmentButton(lang.raw("recruitment.filter"), listOf(guildMode()), RecruitmentIcons.NAV_SETTINGS) {
             peaceful =
                 when (peaceful) {
@@ -135,3 +144,8 @@ internal fun RecruitmentController.filters(): List<RecruitmentButton> =
             }
         },
     )
+}
+
+private fun RecruitmentController.toggleDiscordFilter() {
+    joiningMethod = if (joiningMethod == RecruitmentMode.DISCORD) null else RecruitmentMode.DISCORD
+}

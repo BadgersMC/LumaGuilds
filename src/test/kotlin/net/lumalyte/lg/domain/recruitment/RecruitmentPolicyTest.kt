@@ -10,6 +10,11 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+private const val EXPECTED_APPLICATION_DAYS = 7L
+private const val EXPECTED_ACTIVE_LIMIT = 3
+private const val EXPECTED_OFFER_HOURS = 48L
+private const val UNCERTAIN_PAYMENT_AGE_DAYS = 20L
+
 internal class RecruitmentPolicyTest {
     private val now = Instant.parse("2026-10-14T12:00:00Z")
     private val guild = UUID.randomUUID()
@@ -17,15 +22,16 @@ internal class RecruitmentPolicyTest {
     private val recruiter = UUID.randomUUID()
     private val policy = RecruitmentPolicy()
 
-    private fun application() =
-        GuildApplication(
+    private fun application(): GuildApplication {
+        return GuildApplication(
             UUID.randomUUID(),
             guild,
             player,
             "I enjoy building",
             now,
-            now.plus(Duration.ofDays(7)),
+            now.plus(Duration.ofDays(EXPECTED_APPLICATION_DAYS)),
         )
+    }
 
     @org.junit.jupiter.api.DisplayName("legacy open flag migrates without guessing application mode")
     @Test
@@ -54,7 +60,8 @@ internal class RecruitmentPolicyTest {
                     RecruitmentMode.DISCORD,
                     discordInvite = link,
                     discordInstructions = "Open a ticket",
-                ).discordInvite,
+                )
+                    .discordInvite,
             )
         }
         for (link in listOf(
@@ -72,7 +79,7 @@ internal class RecruitmentPolicyTest {
     fun oneActiveApplicationPerGui3() {
         val a = application()
         assertEquals(SubmissionDenial.DUPLICATE, policy.canSubmit(guild, player, listOf(a), now))
-        val other = (1..3).map { a.copy(id = UUID.randomUUID(), guildId = UUID.randomUUID()) }
+        val other = (1..EXPECTED_ACTIVE_LIMIT).map { a.copy(id = UUID.randomUUID(), guildId = UUID.randomUUID()) }
         assertEquals(SubmissionDenial.LIMIT, policy.canSubmit(guild, player, other, now))
         assertNull(policy.canSubmit(guild, UUID.randomUUID(), other, now))
         assertNull(policy.canSubmit(guild, player, listOf(a.copy(expiresAt = now)), now))
@@ -84,7 +91,7 @@ internal class RecruitmentPolicyTest {
         val offered = application().offer(recruiter, now, policy.offerLifetime)
         assertEquals(ApplicationStatus.OFFERED, offered.status)
         assertEquals(recruiter, offered.reviewedBy)
-        assertEquals(now.plus(Duration.ofHours(48)), offered.expiresAt)
+        assertEquals(now.plus(Duration.ofHours(EXPECTED_OFFER_HOURS)), offered.expiresAt)
         assertFailsWith<IllegalArgumentException> { offered.confirm(UUID.randomUUID(), now) }
         assertEquals(ApplicationStatus.ADMISSION_PENDING, offered.confirm(player, now).status)
         assertFailsWith<IllegalArgumentException> { offered.confirm(player, offered.expiresAt) }
@@ -99,7 +106,8 @@ internal class RecruitmentPolicyTest {
             a.withdraw(
                 player,
                 now,
-            ).offer(recruiter, now, policy.offerLifetime)
+            )
+                .offer(recruiter, now, policy.offerLifetime)
         }
         assertFailsWith<IllegalArgumentException> {
             a.decline(recruiter, "Not a fit", now).offer(recruiter, now, policy.offerLifetime)
@@ -112,7 +120,7 @@ internal class RecruitmentPolicyTest {
     fun uncertainAdmissionsStayClo6() {
         val pending = application().offer(recruiter, now, policy.offerLifetime).confirm(player, now)
         assertTrue(pending.isActive(now))
-        assertTrue(pending.isActive(now.plus(Duration.ofDays(20))))
+        assertTrue(pending.isActive(now.plus(Duration.ofDays(UNCERTAIN_PAYMENT_AGE_DAYS))))
         assertFailsWith<IllegalArgumentException> { pending.confirm(player, now) }
         assertEquals(ApplicationStatus.JOINED, pending.completeAdmission().status)
         assertFailsWith<IllegalArgumentException> { pending.withdraw(player, now) }

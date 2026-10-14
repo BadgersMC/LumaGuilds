@@ -34,10 +34,11 @@ class RecruitmentConfig(
     }
 
     /** Produces bounded domain policy while failing startup/config reload for invalid values. */
-    internal fun policy(): RecruitmentPolicy =
-        RecruitmentPolicy(
+    internal fun policy(): RecruitmentPolicy {
+        return RecruitmentPolicy(
             maxApplications = maximumApplications,
             applicationLifetime = Duration.ofDays(applicationDays.toLong()),
             offerLifetime = Duration.ofHours(offerHours.toLong()),
         )
+    }
 }

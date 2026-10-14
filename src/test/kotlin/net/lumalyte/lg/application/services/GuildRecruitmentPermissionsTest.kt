@@ -12,10 +12,11 @@ internal class GuildRecruitmentPermissionsTest {
     private val actor = UUID.randomUUID()
     private val guild = UUID.randomUUID()
 
-    private fun members(vararg granted: RankPermission): MemberService =
-        mockk<MemberService>().also { service ->
+    private fun members(vararg granted: RankPermission): MemberService {
+        return mockk<MemberService>().also { service ->
             every { service.hasPermission(actor, guild, any()) } answers { thirdArg<RankPermission>() in granted }
         }
+    }
 
     @org.junit.jupiter.api.DisplayName("dedicated recruiter can invite and review but cannot edit settings")
     @Test

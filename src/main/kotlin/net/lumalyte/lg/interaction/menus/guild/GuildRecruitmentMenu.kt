@@ -63,13 +63,17 @@ internal class GuildRecruitmentMenu(
         if (net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.supportsDialog(player)) {
             net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.input(
                 player,
-                input.label,
-                input.value,
-                lang.raw("recruitment.submit_input"),
-                lang.raw("recruitment.cancel_input"),
-                { navigator.isNavigationCurrent(navigation) && controller.input === input },
-                { controller.acceptInput(it) },
-                { controller.cancelInput() },
+                net.lumalyte.lg.infrastructure.services.RecruitmentTextInput(
+                    input.label,
+                    input.value,
+                    lang.raw("recruitment.submit_input"),
+                    lang.raw("recruitment.cancel_input"),
+                ),
+                net.lumalyte.lg.infrastructure.services.RecruitmentInputActions(
+                    { navigator.isNavigationCurrent(navigation) && controller.input === input },
+                    { controller.acceptInput(it) },
+                    { controller.cancelInput() },
+                ),
             )
         } else {
             showChatInput(input, navigation)

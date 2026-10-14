@@ -17,13 +17,13 @@ internal fun RecruitmentController.review(): List<RecruitmentButton> {
         RecruitmentButton(lang.raw("recruitment.send_offer"), icon = RecruitmentIcons.CONFIRM) {
             reviewApprove = true
             reviewReason = ""
-            go(RecruitmentScreen.REVIEW_CONFIRM)
+            showScreen(RecruitmentScreen.REVIEW_CONFIRM)
         },
         RecruitmentButton(lang.raw("recruitment.decline"), icon = RecruitmentIcons.CANCEL) {
             ask(lang.raw("recruitment.reason")) {
                 reviewApprove = false
                 reviewReason = it
-                go(RecruitmentScreen.REVIEW_CONFIRM)
+                showScreen(RecruitmentScreen.REVIEW_CONFIRM)
             }
         },
     )
@@ -41,12 +41,12 @@ internal fun RecruitmentController.reviewConfirmation(): List<RecruitmentButton>
             RecruitmentIcons.CONFIRM,
         ) {
             service.review(player.uniqueId, application.id, reviewApprove, reviewReason)
-            go(RecruitmentScreen.INBOX)
+            showScreen(RecruitmentScreen.INBOX)
         },
         RecruitmentButton(
             lang.raw("recruitment.cancel_review"),
             icon = RecruitmentIcons.BACK,
-        ) { go(RecruitmentScreen.REVIEW) },
+        ) { showScreen(RecruitmentScreen.REVIEW) },
     )
 }
 
@@ -63,13 +63,13 @@ internal fun RecruitmentController.confirm(): List<RecruitmentButton> {
                     lfg.joinGuild(player.uniqueId, quote)
                 }
             player.sendMessage(admissionFeedback(result))
-            go(RecruitmentScreen.MINE)
+            showScreen(RecruitmentScreen.MINE)
         },
     )
 }
 
-private fun RecruitmentController.admissionFeedback(result: LfgJoinResult): net.kyori.adventure.text.Component =
-    when (result) {
+private fun RecruitmentController.admissionFeedback(result: LfgJoinResult): net.kyori.adventure.text.Component {
+    return when (result) {
         is LfgJoinResult.Success -> lang.msg("recruitment.feedback.joined")
         is LfgJoinResult.GuildFull -> lang.msg("recruitment.feedback.guild_full")
         is LfgJoinResult.AlreadyInGuild -> lang.msg("recruitment.feedback.already_member")
@@ -82,3 +82,4 @@ private fun RecruitmentController.admissionFeedback(result: LfgJoinResult): net.
             )
         else -> lang.msg("recruitment.feedback.failed")
     }
+}

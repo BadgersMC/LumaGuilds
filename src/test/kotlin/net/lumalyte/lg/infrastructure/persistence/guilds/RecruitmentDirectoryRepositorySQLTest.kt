@@ -11,7 +11,15 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+private const val AFTER_ONBOARDING_SECONDS = 999_999L
+private const val REMINDER_INTERVAL_MINUTES = 30L
+private const val REMINDER_INTERVAL_SECONDS = 1_800L
+private const val SHA256_HEX_LENGTH = 64
+
 internal class RecruitmentDirectoryRepositorySQLTest : RewardSqlTestFixture() {
+    private val player = UUID.randomUUID()
+    private val now = Instant.parse("2026-10-14T12:00:00Z")
+
     @Test
     fun listingTimestampPersists() {
         val storage = openStorage()
@@ -38,9 +46,6 @@ internal class RecruitmentDirectoryRepositorySQLTest : RewardSqlTestFixture() {
         assertEquals(profile, repository.profile(profile.guildId))
     }
 
-    private val player = UUID.randomUUID()
-    private val now = Instant.parse("2026-10-14T12:00:00Z")
-
     @org.junit.jupiter.api.DisplayName("profile round trips Discord instructions and optional filters")
     @Test
     fun profileRoundTripsDiscordIn1() {
@@ -65,22 +70,46 @@ internal class RecruitmentDirectoryRepositorySQLTest : RewardSqlTestFixture() {
         val first = RecruitmentDirectoryRepositorySQL(storage)
         assertTrue(first.consumePrompt(player, now, null))
         val reopened = RecruitmentDirectoryRepositorySQL(storage)
-        assertFalse(reopened.consumePrompt(player, now.plusSeconds(999999), null))
+        assertFalse(reopened.consumePrompt(player, now.plusSeconds(AFTER_ONBOARDING_SECONDS), null))
         reopened.setReminders(player, false)
         assertFalse(first.remindersEnabled(player))
-        assertFalse(first.consumePrompt(player, now.plusSeconds(999999), Duration.ofMinutes(30)))
+        assertFalse(
+            first.consumePrompt(
+                player,
+                now.plusSeconds(AFTER_ONBOARDING_SECONDS),
+                Duration.ofMinutes(REMINDER_INTERVAL_MINUTES),
+            ),
+        )
     }
 
     @org.junit.jupiter.api.DisplayName("Reminder timing survives preference changes")
     @Test
     fun optionalReminderWaitsForIt3() {
         val repository = RecruitmentDirectoryRepositorySQL(openStorage())
-        assertTrue(repository.consumePrompt(player, now, Duration.ofMinutes(30)))
+        assertTrue(repository.consumePrompt(player, now, Duration.ofMinutes(REMINDER_INTERVAL_MINUTES)))
         repository.setReminders(player, false)
         repository.setReminders(player, true)
-        assertFalse(repository.consumePrompt(player, now.plusSeconds(1799), Duration.ofMinutes(30)))
-        assertTrue(repository.consumePrompt(player, now.plusSeconds(1800), Duration.ofMinutes(30)))
-        assertFalse(repository.consumePrompt(player, now.plusSeconds(1800), Duration.ofMinutes(30)))
+        assertFalse(
+            repository.consumePrompt(
+                player,
+                now.plusSeconds(REMINDER_INTERVAL_SECONDS - 1),
+                Duration.ofMinutes(REMINDER_INTERVAL_MINUTES),
+            ),
+        )
+        assertTrue(
+            repository.consumePrompt(
+                player,
+                now.plusSeconds(REMINDER_INTERVAL_SECONDS),
+                Duration.ofMinutes(REMINDER_INTERVAL_MINUTES),
+            ),
+        )
+        assertFalse(
+            repository.consumePrompt(
+                player,
+                now.plusSeconds(REMINDER_INTERVAL_SECONDS),
+                Duration.ofMinutes(REMINDER_INTERVAL_MINUTES),
+            ),
+        )
     }
 
     @org.junit.jupiter.api.DisplayName("private notification digest survives reconnects without replay")
@@ -88,9 +117,9 @@ internal class RecruitmentDirectoryRepositorySQLTest : RewardSqlTestFixture() {
     fun privateNotificationDigestS4() {
         val storage = openStorage()
         val first = RecruitmentDirectoryRepositorySQL(storage)
-        val digest = "a".repeat(64)
+        val digest = "a".repeat(SHA256_HEX_LENGTH)
         assertTrue(first.consumeNotification(player, digest))
         assertFalse(RecruitmentDirectoryRepositorySQL(storage).consumeNotification(player, digest))
-        assertTrue(first.consumeNotification(player, "b".repeat(64)))
+        assertTrue(first.consumeNotification(player, "b".repeat(SHA256_HEX_LENGTH)))
     }
 }

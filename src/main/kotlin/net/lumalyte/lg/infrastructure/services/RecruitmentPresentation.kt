@@ -24,85 +24,84 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
     private const val BOOK_COLUMNS = 12
     private const val BOOK_ROWS = 12
     private const val MAX_BOOK_PAGES = 100
-    private val platforms: net.lumalyte.lg.application.services.PlatformDetectionService by inject()
+    private val PLATFORMS: net.lumalyte.lg.application.services.PlatformDetectionService by inject()
 
-    fun supportsDialog(player: Player): Boolean =
-        Bukkit.getPluginManager().isPluginEnabled("packetevents") &&
+    fun supportsDialog(player: Player): Boolean {
+        return Bukkit.getPluginManager().isPluginEnabled("packetevents") &&
             PacketEvents.getAPI().playerManager.getUser(player)?.clientVersion
                 ?.isNewerThanOrEquals(ClientVersion.V_1_21_6) == true
+    }
 
-    fun input(
-        player: Player,
-        title: String,
-        initial: String,
-        submitLabel: String,
-        cancelLabel: String,
-        valid: () -> Boolean,
-        accept: (String) -> Unit,
-        cancel: () -> Unit,
-    ) {
+    fun input(player: Player, fields: RecruitmentTextInput, actions: RecruitmentInputActions) {
         val options = ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(2)).build()
 
-        fun action(callback: (String?) -> Unit) =
-            DialogAction.customClick({ response, audience ->
+        fun action(callback: (String?) -> Unit): DialogAction {
+            return DialogAction.customClick({ response, audience ->
                 if (audience is Player && audience.uniqueId == player.uniqueId) {
                     Bukkit.getScheduler().runTask(
                         net.lumalyte.lg.common.PluginKeys.getPlugin(),
                         Runnable {
-                            if (player.isOnline && valid()) callback(response.getText("answer"))
+                            if (player.isOnline && actions.valid()) callback(response.getText("answer"))
                         },
                     )
                 }
             }, options)
+        }
         player.showDialog(
             Dialog.create { factory ->
                 factory.empty().base(
-                    DialogBase.builder(Component.text(title)).canCloseWithEscape(true)
+                    DialogBase.builder(Component.text(fields.title)).canCloseWithEscape(true)
                         .inputs(
                             listOf(
-                                DialogInput.text("answer", Component.text(title)).initial(initial)
-                                    .maxLength(MAX_INPUT_LENGTH).build(),
+                                DialogInput.text("answer", Component.text(fields.title)).initial(fields.initial)
+                                    .maxLength(MAX_INPUT_LENGTH)
+                                    .build(),
                             ),
-                        ).build(),
+                        )
+                        .build(),
                 )
                     .type(
                         DialogType.confirmation(
                             ActionButton.builder(
-                                Component.text(submitLabel),
-                            ).action(action { accept(it ?: "") }).build(),
-                            ActionButton.builder(Component.text(cancelLabel)).action(action { cancel() }).build(),
+                                Component.text(fields.submitLabel),
+                            )
+                                .action(action { actions.accept(it ?: "") })
+                                .build(),
+                            ActionButton.builder(
+                                Component.text(fields.cancelLabel),
+                            )
+                                .action(action { actions.cancel() })
+                                .build(),
                         ),
                     )
             },
         )
     }
 
-    fun book(
-        player: Player,
-        title: String,
-        lines: List<String>,
-        backLabel: String,
-        valid: () -> Boolean,
-        back: () -> Unit,
-    ) {
-        if (platforms.isBedrockPlayer(player)) {
+    fun book(player: Player, content: RecruitmentBookContent, valid: () -> Boolean, back: () -> Unit) {
+        if (PLATFORMS.isBedrockPlayer(player)) {
             org.geysermc.floodgate.api.FloodgateApi.getInstance().sendForm(
                 player.uniqueId,
-                org.geysermc.cumulus.form.SimpleForm.builder().title(title).content(lines.joinToString("\n"))
-                    .button(backLabel).validResultHandler { _ ->
+                org.geysermc.cumulus.form.SimpleForm.builder().title(
+                    content.title,
+                )
+                    .content(content.lines.joinToString("\n"))
+                    .button(content.returnLabel)
+                    .validResultHandler { _ ->
                         Bukkit.getScheduler().runTask(
                             net.lumalyte.lg.common.PluginKeys.getPlugin(),
                             Runnable {
                                 if (player.isOnline && valid()) back()
                             },
                         )
-                    }.build(),
+                    }
+                    .build(),
             )
             return
         }
         val options = ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(2)).build()
         val returnLink =
-            Component.text(backLabel).clickEvent(
+            Component.text(content.returnLabel).clickEvent(
                 ClickEvent.callback({ audience ->
                     if (audience is Player && audience.uniqueId == player.uniqueId) {
                         Bukkit.getScheduler().runTask(
@@ -114,9 +113,9 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
                     }
                 }, options),
             )
-        val pages = bookPages(lines, returnLink)
+        val pages = bookPages(content.lines, returnLink)
         player.closeInventory()
-        player.openBook(Book.book(Component.text(title), Component.text("LumaGuilds"), pages))
+        player.openBook(Book.book(Component.text(content.title), Component.text("LumaGuilds"), pages))
     }
 
     /** Retains complete validated text and wraps at Unicode code-point boundaries. */
@@ -125,7 +124,7 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
             lines.flatMap { value ->
                 value.lines().flatMap { line ->
                     line.codePoints().toArray().toList().chunked(BOOK_COLUMNS).map { points ->
-                        java.lang.String(points.toIntArray(), 0, points.size).toString()
+                        buildString { points.forEach { appendCodePoint(it) } }
                     }
                 }
             }
@@ -133,6 +132,7 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
         require(pages.size <= MAX_BOOK_PAGES) { "Book content exceeds the supported page count" }
         return pages.map { page ->
             Component.text(page.joinToString("\n")).append(Component.newline()).append(returnLink)
-        }.ifEmpty { listOf(returnLink) }
+        }
+            .ifEmpty { listOf(returnLink) }
     }
 }

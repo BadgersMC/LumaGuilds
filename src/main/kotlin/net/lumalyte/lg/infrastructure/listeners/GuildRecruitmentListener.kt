@@ -145,21 +145,25 @@ internal class GuildRecruitmentListener(
         val inbox =
             guilds.getPlayerGuilds(player.uniqueId).filter {
                 GuildRecruitmentPermissions.canReview(members, player.uniqueId, it.id)
-            }.flatMap { recruitment.inbox(player.uniqueId, it.id) }
+            }
+                .flatMap { recruitment.inbox(player.uniqueId, it.id) }
         val records = (own + inbox).distinctBy { it.id }.sortedBy { it.id.toString() }
         if (records.isNotEmpty()) {
             val text = records.joinToString(";") { "${it.id}:${it.status}" }
             val signature =
                 MessageDigest.getInstance(
                     "SHA-256",
-                ).digest(text.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+                )
+                    .digest(text.toByteArray(Charsets.UTF_8))
+                    .joinToString("") { "%02x".format(it) }
             if (directory.consumeNotification(player.uniqueId, signature)) {
                 player.sendMessage(
                     lang.msg(
                         "recruitment.discovery.updated",
                         "offers" to own.count { it.status == ApplicationStatus.OFFERED },
                         "pending" to inbox.count { it.status == ApplicationStatus.SUBMITTED },
-                    ).clickEvent(ClickEvent.runCommand(RECRUITMENT_COMMAND)),
+                    )
+                        .clickEvent(ClickEvent.runCommand(RECRUITMENT_COMMAND)),
                 )
             }
         }

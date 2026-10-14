@@ -62,13 +62,18 @@ internal class RecruitmentDirectoryRepositorySQL(
         val json =
             JSONObject()
                 .put("updatedAt", Instant.now().toString())
-                .put("mode", profile.mode.name).put("pitch", profile.pitch).put("requirements", profile.requirements)
-                .put("interests", JSONArray(profile.interests.toList())).put("times", profile.preferredTimes)
-                .put("language", profile.language).put("beginner", profile.beginnerFriendly)
+                .put("mode", profile.mode.name)
+                .put("pitch", profile.pitch)
+                .put("requirements", profile.requirements)
+                .put("interests", JSONArray(profile.interests.toList()))
+                .put("times", profile.preferredTimes)
+                .put("language", profile.language)
+                .put("beginner", profile.beginnerFriendly)
                 .put(
                     DISCORD_INVITE_KEY,
                     profile.discordInvite ?: JSONObject.NULL,
-                ).put("instructions", profile.discordInstructions)
+                )
+                .put("instructions", profile.discordInstructions)
         val suffix =
             if (maria) {
                 "ON DUPLICATE KEY UPDATE profile = VALUES(profile)"
@@ -107,10 +112,11 @@ internal class RecruitmentDirectoryRepositorySQL(
     }
 
     /** New players can receive the one-time prompt; optional repeating prompts are globally disabled by default. */
-    override fun remindersEnabled(player: UUID): Boolean =
-        storage.connection.getFirstRow(
+    override fun remindersEnabled(player: UUID): Boolean {
+        return storage.connection.getFirstRow(
             "SELECT enabled FROM guild_recruitment_preferences WHERE player_id = ?", player.toString(),
         )?.getInt("enabled") != 0
+    }
 
     /** One conditional update makes reconnects and competing schedulers unable to replay a prompt. */
     override fun consumePrompt(player: UUID, at: Instant, repeatAfter: Duration?): Boolean {

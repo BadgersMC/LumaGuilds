@@ -116,7 +116,8 @@ internal class RecruitmentController(
             player.closeInventory()
             org.slf4j.LoggerFactory.getLogger(
                 javaClass,
-            ).warn("Recruitment action failed for {}", player.uniqueId, error)
+            )
+                .warn("Recruitment action failed for {}", player.uniqueId, error)
             player.sendMessage(recruitmentRejectionMessage(lang, error))
         }
     }

@@ -7,7 +7,7 @@ import net.lumalyte.lg.domain.recruitment.GuildApplication
 private const val SEARCH_QUERY_LIMIT = 64
 
 /** Navigation presentation builders share the current authorized navigation session. */
-internal fun RecruitmentController.go(next: RecruitmentScreen) {
+internal fun RecruitmentController.showScreen(next: RecruitmentScreen) {
     if (screen == RecruitmentScreen.BROWSE) browsePage = page
     screen = next
     page = if (next == RecruitmentScreen.BROWSE) browsePage else 0
@@ -23,12 +23,13 @@ internal fun RecruitmentController.ownGuild(): Guild? = guilds.getPlayerGuilds(p
 
 internal fun RecruitmentController.selectedGuild(): Guild = requireNotNull(selected?.let(guilds::getGuild))
 
-internal fun RecruitmentController.selectedOwnApplication(): GuildApplication =
-    requireNotNull(
+internal fun RecruitmentController.selectedOwnApplication(): GuildApplication {
+    return requireNotNull(
         service.mine(player.uniqueId).firstOrNull {
             it.id == selectedApplication
         },
     )
+}
 
 internal fun RecruitmentController.resetBrowse() {
     page = 0
@@ -42,20 +43,20 @@ internal fun RecruitmentController.navigation(): List<RecruitmentButton> {
             RecruitmentButton(
                 lang.raw("recruitment.browse"),
                 icon = RecruitmentIcons.BACK,
-            ) { go(RecruitmentScreen.BROWSE) },
+            ) { showScreen(RecruitmentScreen.BROWSE) },
             RecruitmentButton(
                 lang.raw("recruitment.mine"),
                 icon = RecruitmentIcons.DESCRIPTION,
-            ) { go(RecruitmentScreen.MINE) },
+            ) { showScreen(RecruitmentScreen.MINE) },
             RecruitmentButton(lang.raw("recruitment.search"), listOf(query), RecruitmentIcons.TAG) {
                 ask(lang.raw("recruitment.search"), query) {
                     query = it.take(SEARCH_QUERY_LIMIT)
                     browsePage = 0
-                    go(RecruitmentScreen.BROWSE)
+                    showScreen(RecruitmentScreen.BROWSE)
                 }
             },
             RecruitmentButton(lang.raw("recruitment.filter"), listOf(guildMode()), RecruitmentIcons.NAV_SETTINGS) {
-                go(RecruitmentScreen.FILTER)
+                showScreen(RecruitmentScreen.FILTER)
             },
             RecruitmentButton(
                 lang.raw("recruitment.reminders"),
@@ -71,19 +72,19 @@ internal fun RecruitmentController.navigation(): List<RecruitmentButton> {
         navigation.add(
             1,
             RecruitmentButton(lang.raw("recruitment.manage"), icon = RecruitmentIcons.NAV_MEMBERS) {
-                go(RecruitmentScreen.MANAGE)
+                showScreen(RecruitmentScreen.MANAGE)
             },
         )
         if (GuildRecruitmentPermissions.canReview(members, player.uniqueId, guild.id)) {
             navigation +=
                 RecruitmentButton(lang.raw("recruitment.inbox"), icon = RecruitmentIcons.NAV_MEMBERS) {
-                    go(RecruitmentScreen.INBOX)
+                    showScreen(RecruitmentScreen.INBOX)
                 }
         }
         if (GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id)) {
             navigation +=
                 RecruitmentButton(lang.raw("recruitment.settings"), icon = RecruitmentIcons.NAV_SETTINGS) {
-                    go(RecruitmentScreen.SETTINGS)
+                    showScreen(RecruitmentScreen.SETTINGS)
                 }
         }
     }

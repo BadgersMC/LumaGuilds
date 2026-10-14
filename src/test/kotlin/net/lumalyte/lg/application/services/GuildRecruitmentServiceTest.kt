@@ -20,17 +20,11 @@ import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-internal class GuildRecruitmentServiceTest {
-    @org.junit.jupiter.api.DisplayName("Recruiters can decline applicants who became ineligible")
-    @Test
-    fun declineIneligibleApplicant() {
-        val service = service()
-        eligible = false
-        service.review(actor, application.id, false, "Recruitment unavailable")
-        assertEquals(ApplicationStatus.DECLINED, current.status)
-        verify(exactly = 0) { lfg.joinApprovedGuild(any(), any(), any()) }
-    }
+private const val APPLICATION_WINDOW_SECONDS = 604_800L
+private const val MEMBER_CAPACITY = 10
+private const val JOIN_FEE_QUOTE = 100
 
+internal class GuildRecruitmentServiceTest {
     private val now = Instant.parse("2026-10-14T12:00:00Z")
     private val guild = Guild(UUID.randomUUID(), "Builders", createdAt = now)
     private val player = UUID.randomUUID()
@@ -42,14 +36,31 @@ internal class GuildRecruitmentServiceTest {
     private val lfg = mockk<LfgService>(relaxed = true)
     private val profile = RecruitmentProfile(guild.id, RecruitmentMode.IN_GAME)
     private val application =
-        GuildApplication(UUID.randomUUID(), guild.id, player, "I build", now, now.plusSeconds(604800))
+        GuildApplication(
+            UUID.randomUUID(),
+            guild.id,
+            player,
+            "I build",
+            now,
+            now.plusSeconds(APPLICATION_WINDOW_SECONDS),
+        )
     private var current = application
     private var eligible = true
+
+    @org.junit.jupiter.api.DisplayName("Recruiters can decline applicants who became ineligible")
+    @Test
+    fun declineIneligibleApplicant() {
+        val service = service()
+        eligible = false
+        service.review(actor, application.id, false, "Recruitment unavailable")
+        assertEquals(ApplicationStatus.DECLINED, current.status)
+        verify(exactly = 0) { lfg.joinApprovedGuild(any(), any(), any()) }
+    }
 
     private fun service(): GuildRecruitmentService {
         every { guilds.getGuild(guild.id) } returns guild
         every { directory.profile(guild.id) } returns profile
-        every { members.getMemberLimit(guild.id) } returns 10
+        every { members.getMemberLimit(guild.id) } returns MEMBER_CAPACITY
         every { members.hasPermission(actor, guild.id, RankPermission.MANAGE_RECRUITMENT) } returns true
         every { applications.get(application.id) } answers { current }
         every { applications.transition(any(), any()) } answers {
@@ -135,7 +146,7 @@ internal class GuildRecruitmentServiceTest {
     fun changedQuotedCurrencyRejec6() {
         val service = service()
         current = application.offer(actor, now, RecruitmentPolicy().offerLifetime)
-        val quote = net.lumalyte.lg.domain.values.JoinRequirement(100, true, "RAW_GOLD")
+        val quote = net.lumalyte.lg.domain.values.JoinRequirement(JOIN_FEE_QUOTE, true, "RAW_GOLD")
         every { lfg.getJoinRequirement(guild) } returns quote.copy(isPhysicalCurrency = false, currencyName = "Coins")
         assertFailsWith<IllegalArgumentException> { service.confirm(player, application.id, guild, quote) }
         assertEquals(ApplicationStatus.OFFERED, current.status)
