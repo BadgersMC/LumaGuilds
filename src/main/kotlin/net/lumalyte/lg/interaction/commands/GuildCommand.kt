@@ -1761,7 +1761,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
         player.sendMessage(lang.msg("command.migrated.guild.block.list", "players" to names.joinToString(", ")))
     }
 
-    /** Resolves an online/cached target and reports durable block-save results without changing membership. */
     private fun changeBlock(player: Player, targetPlayerName: String, blocked: Boolean) {
         val target = findPlayerByName(targetPlayerName)?.let { it.uniqueId to it.name }
             ?: Bukkit.getOfflinePlayerIfCached(targetPlayerName)?.let { it.uniqueId to (it.name ?: targetPlayerName) }

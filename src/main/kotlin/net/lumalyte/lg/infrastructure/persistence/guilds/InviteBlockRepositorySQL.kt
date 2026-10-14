@@ -32,7 +32,6 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
         }
     }
 
-    /** Loads the persisted startup snapshot; SQL failure leaves invite protection unavailable. */
     private fun loadBlocks() {
         storage.connection.connection.use { connection ->
             connection.prepareStatement(
@@ -43,7 +42,6 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
         }
     }
 
-    /** Validates each persisted UUID before adding its directional block to the startup cache. */
     private fun readBlocks(rows: ResultSet) {
         while (rows.next()) {
             val owner = readBlockIdentity(rows.getString(OWNER_COLUMN))
@@ -68,7 +66,6 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
         }
     }
 
-    /** Persists the requested state before publishing it; a SQL failure retains the prior cache. */
     private fun saveBlock(ownerId: UUID, targetId: UUID, blocked: Boolean): Boolean {
         return try {
             storage.connection.connection.use { connection ->
@@ -87,7 +84,6 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
         }
     }
 
-    /** Inserts one directional block and accepts a duplicate only when that exact row exists. */
     private fun insertBlock(connection: Connection, ownerId: UUID, targetId: UUID) {
         try {
             connection.prepareStatement(
@@ -104,7 +100,6 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
         }
     }
 
-    /** Verifies the exact composite key before treating an insert constraint failure as idempotent. */
     private fun hasStoredBlock(connection: Connection, ownerId: UUID, targetId: UUID): Boolean =
         connection.prepareStatement(
             "SELECT 1 FROM ${InviteBlockSchema.TABLE} WHERE owner_id = ? AND target_id = ?",
@@ -114,7 +109,6 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
             statement.executeQuery().use { it.next() }
         }
 
-    /** Removes only the owner/target composite key, preserving reverse-direction blocks. */
     private fun deleteBlock(connection: Connection, ownerId: UUID, targetId: UUID) {
         connection.prepareStatement(
             "DELETE FROM ${InviteBlockSchema.TABLE} WHERE owner_id = ? AND target_id = ?",
@@ -133,7 +127,6 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
     }
 }
 
-/** Converts a stored identity or raises a SQL error so malformed snapshots fail closed. */
 private fun readBlockIdentity(value: String?): UUID {
     try {
         return UUID.fromString(value)

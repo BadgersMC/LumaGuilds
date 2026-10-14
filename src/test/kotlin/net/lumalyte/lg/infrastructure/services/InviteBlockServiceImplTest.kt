@@ -54,7 +54,6 @@ internal class InviteBlockServiceImplTest {
     private val invitations = mockk<GuildInvitationRepository>(relaxed = true)
     private val service = InviteBlockServiceImpl(store, members, invitations)
 
-    /** Creates a pending invitation for this fixture blocking player. */
     private fun invite(guild: UUID, inviter: UUID) = GuildInvitation(guild, "G", me, inviter, "inviter")
 
     /** Verifies a block refuses invites from them and from anyone in their guild, but not other guilds. */
