@@ -120,6 +120,7 @@ class GuildProgressionMenu(
 
         // ---- Back (bottom centre, same spot as every guild menu) ----
         addBackButton(pane, 4, 5)
+        addQuestsButton(pane, 2, 5)
 
         // ---- Page navigation (row 5) ----
         if (currentPage > 0) addPreviousPageButton(pane, 0, 5)
@@ -136,6 +137,22 @@ class GuildProgressionMenu(
         }
 
         gui.show(player)
+    }
+
+    private fun addQuestsButton(pane: StaticPane, x: Int, y: Int) {
+        val item = NexoItemProvider.getItemStackOrFallback("lg_nav_quests") {
+            ItemStack.of(Material.BOOK)
+        }.also { it.editMeta { meta ->
+            meta.displayName(lang.gui("quest_discovery.menu_name"))
+            meta.lore(listOf(lang.gui("quest_discovery.menu_description")))
+        } }
+        pane.addItem(GuiItem(item) { event ->
+            event.isCancelled = true
+            if (memberService.getMember(player.uniqueId, guild.id) != null &&
+                player.hasPermission("lumaguilds.guild.quests")) {
+                menuNavigator.openMenu(menuFactory.createGuildQuestsMenu(menuNavigator, player, guild))
+            } else player.sendMessage(lang.msg("quest_discovery.denied"))
+        }, x, y)
     }
 
     private fun repoProgression(): GuildProgressionDisplay? {

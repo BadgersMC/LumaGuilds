@@ -1462,7 +1462,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     }
 
     /** Direct member access; deliberately independent of management-menu permissions. */
-    @Subcommand("quests|quest|quest menu")
+    @Subcommand("quests|quest")
     @CommandPermission("lumaguilds.guild.quests")
     fun onQuests(player: Player) {
         val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
@@ -1473,6 +1473,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val navigator = MenuNavigator(player)
         navigator.openMenu(menuFactory.createGuildQuestsMenu(navigator, player, guild))
     }
+
+    @Subcommand("quests|quest menu")
+    @CommandPermission("lumaguilds.guild.quests")
+    fun onQuestMenu(player: Player) = onQuests(player)
 
     @Subcommand("menu")
     @CommandPermission("lumaguilds.guild.menu")

@@ -3,6 +3,9 @@
 # All values are MiniMessage strings. Placeholders use <name> syntax.
 #
 quest_discovery:
+  menu_name: '<gold>Guild Quests</gold>'
+  menu_description: '<gray>View weekly objectives, rewards and guild progress.</gray>'
+  denied: '<red>You must be a current guild member with quest access.</red>'
   available: '<gold>Guild quests:</gold> <yellow><count> objectives available.</yellow> <green>Click here or use /g quests to view them.</green>'
 
 bedrock:

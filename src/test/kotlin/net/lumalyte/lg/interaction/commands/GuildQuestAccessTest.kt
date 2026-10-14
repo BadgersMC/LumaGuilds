@@ -56,7 +56,10 @@ class GuildQuestAccessTest {
     @Test fun `command exposes aliases and dedicated default true permission`() {
         val method = GuildCommand::class.java.getMethod("onQuests", Player::class.java)
         assertEquals("lumaguilds.guild.quests", method.getAnnotation(CommandPermission::class.java).value)
-        assertEquals(setOf("quests", "quest", "quest menu"), method.getAnnotation(Subcommand::class.java).value.split('|').toSet())
+        assertEquals("quests|quest", method.getAnnotation(Subcommand::class.java).value)
+        val menuMethod = GuildCommand::class.java.getMethod("onQuestMenu", Player::class.java)
+        assertEquals("quests|quest menu", menuMethod.getAnnotation(Subcommand::class.java).value)
+        assertEquals("lumaguilds.guild.quests", menuMethod.getAnnotation(CommandPermission::class.java).value)
         val yaml = YamlConfiguration().also {
             it.options().pathSeparator('/')
             it.load(File("src/main/resources/plugin.yml"))

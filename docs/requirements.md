@@ -574,3 +574,9 @@ WHEN a player opens or interacts with a guild vault THE SYSTEM SHALL recheck cur
 
 ### REQ-QUEST-DISCOVERY-3
 **Ubiquitous.** THE SYSTEM SHALL expose active quest descriptions, targets, rewards, availability, own-guild scores/ranks and top guild names/scores through PlaceholderAPI for spawn displays, including playerless global fields. Leaderboard positions SHALL be bounded to 1..100 and cached for 30 seconds per weekly set, and missing entries SHALL return empty strings.
+
+### REQ-QUEST-DISCOVERY-4
+**Event-driven.** WHEN a guild member selects Quests from the progression menu THEN THE SYSTEM SHALL open the existing quest menu after rechecking current membership and the dedicated quest permission. THE SYSTEM SHALL preserve progression, reward, prestige and navigation controls on Java and Bedrock. Both short quest aliases and both aliases followed by menu SHALL route to the same member-authorized presentation.
+
+### REQ-STALL-ICONS-1
+**Ubiquitous.** THE SYSTEM SHALL give stall entries, member entries, navigation, status and authorized manager controls distinct semantic icons using the existing themed provider with vanilla fallbacks, while preserving all membership, navigation-token and manager authorization checks. Custom private artwork SHALL remain outside the public plugin repository.
