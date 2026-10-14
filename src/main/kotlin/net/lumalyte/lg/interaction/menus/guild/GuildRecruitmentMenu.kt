@@ -29,7 +29,11 @@ internal class GuildRecruitmentMenu(
     private val navigator: MenuNavigator,
     private val player: Player,
 ) : Menu, KoinComponent {
-    private val controller = RecruitmentController(player, ::open)
+    private val controller = RecruitmentController(player, ::open) {
+        val token = navigator.currentNavigationToken()
+        val guard: () -> Boolean = { navigator.isNavigationCurrent(token) }
+        guard
+    }
     private val inputListener: ChatInputListener by inject()
     private val lang: LangService by inject()
     private val emojis: NexoEmojiService by inject()
@@ -39,6 +43,21 @@ internal class GuildRecruitmentMenu(
         controller.run {
             val input = controller.input
             if (input != null) {
+                if (net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.supportsDialog(player)) {
+                    player.closeInventory()
+                    val navigation = navigator.currentNavigationToken()
+                    net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.input(
+                        player,
+                        input.label,
+                        input.value,
+                        lang.raw("recruitment.submit_input"),
+                        lang.raw("recruitment.cancel_input"),
+                        { navigator.isNavigationCurrent(navigation) && controller.input === input },
+                        { controller.acceptInput(it) },
+                        { controller.cancelInput() },
+                    )
+                    return@run
+                }
                 player.closeInventory()
                 player.sendMessage(lang.msg("recruitment.feedback.input", "field" to input.label))
                 val navigation = navigator.currentNavigationToken()
@@ -71,38 +90,49 @@ internal class GuildRecruitmentMenu(
                 )
             } else {
                 val view = controller.view()
-                val pages = maxOf(1, (view.items.size + 44) / 45)
+                val capacity = if (view.quickFilters.isEmpty()) 45 else 36
+                val offset = if (view.quickFilters.isEmpty()) 0 else 1
+                val pages = maxOf(1, (view.items.size + capacity - 1) / capacity)
                 controller.page = controller.page.coerceIn(0, pages - 1)
-                val gui = ChestGui(6, MenuTitleBuilder.build(controller.theme(), 6, view.title))
+                val gui =
+                    ChestGui(
+                        6,
+                        MenuTitleBuilder.build(controller.theme(), 6, "${view.title} ${controller.page + 1}/$pages"),
+                    )
                 gui.setOnTopClick { it.isCancelled = true }
                 gui.setOnBottomClick { it.isCancelled = true }
                 gui.setOnGlobalDrag { it.isCancelled = true }
                 val pane = StaticPane(0, 0, 9, 6)
-                view.items.drop(controller.page * 45).take(45).forEachIndexed {
+                view.quickFilters.forEachIndexed { index, button -> add(pane, button, index, 0) }
+                view.items.drop(controller.page * capacity).take(capacity).forEachIndexed {
                         index,
                         button,
                     ->
-                    add(pane, button, index % 9, index / 9)
+                    add(pane, button, index % 9, index / 9 + offset)
                 }
                 view.navigation.take(7).forEachIndexed { index, button -> add(pane, button, index + 1, 5) }
-                add(
-                    pane,
-                    RecruitmentButton(lang.raw("recruitment.previous"), icon = "lg_page_prev") {
-                        controller.page = (controller.page - 1).coerceAtLeast(0)
-                        open()
-                    },
-                    0,
-                    5,
-                )
-                add(
-                    pane,
-                    RecruitmentButton(lang.raw("recruitment.next"), icon = "lg_page_next") {
-                        controller.page = (controller.page + 1).coerceAtMost(pages - 1)
-                        open()
-                    },
-                    8,
-                    5,
-                )
+                if (controller.page > 0) {
+                    add(
+                        pane,
+                        RecruitmentButton(lang.raw("recruitment.previous"), icon = "lg_page_prev") {
+                            controller.page = (controller.page - 1).coerceAtLeast(0)
+                            open()
+                        },
+                        0,
+                        5,
+                    )
+                }
+                if (controller.page + 1 < pages) {
+                    add(
+                        pane,
+                        RecruitmentButton(lang.raw("recruitment.next"), icon = "lg_page_next") {
+                            controller.page = (controller.page + 1).coerceAtMost(pages - 1)
+                            open()
+                        },
+                        8,
+                        5,
+                    )
+                }
                 gui.addPane(pane)
                 gui.show(player)
             }
@@ -122,7 +152,9 @@ internal class GuildRecruitmentMenu(
                 MiniMessage.miniMessage().deserialize(emojis.emojiToFontTag(it.emoji)).append(Component.space())
             } ?: Component.empty()
         val item = base.name(emoji.append(GuiTextStyler.style(Component.text(button.label))))
-        button.details.flatMap { it.chunked(44) }.take(16).forEach { item.lore(Component.text(it)) }
+        button.details.flatMap { it.chunked(44) }.take(16).forEach {
+            item.lore(Component.text(it).color(net.kyori.adventure.text.format.NamedTextColor.GRAY))
+        }
         pane.addItem(GuiItem(item) { controller.run(button.action) }, x, y)
     }
 

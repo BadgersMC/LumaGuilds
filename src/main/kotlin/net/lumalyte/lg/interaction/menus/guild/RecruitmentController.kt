@@ -23,6 +23,10 @@ import org.koin.core.component.inject
 import java.util.UUID
 
 internal enum class RecruitmentScreen {
+    SETUP,
+    SETUP_PREVIEW,
+    REVIEW_CONFIRM,
+    MANAGE,
     BROWSE,
     FILTER,
     PROFILE,
@@ -39,7 +43,7 @@ internal enum class RecruitmentScreen {
 internal data class RecruitmentButton(
     val label: String,
     val details: List<String> = emptyList(),
-    val icon: String = "lg_members",
+    val icon: String = "lg_nav_members",
     val guild: Guild? = null,
     val action: () -> Unit = {
     },
@@ -49,12 +53,17 @@ internal data class RecruitmentView(
     val title: String,
     val items: List<RecruitmentButton>,
     val navigation: List<RecruitmentButton>,
+    val quickFilters: List<RecruitmentButton> = emptyList(),
 )
 
 internal data class RecruitmentInput(val label: String, val value: String, val accept: (String) -> Unit)
 
 /** Shared interaction state; every private read and mutation is authorized in the application service. */
-internal class RecruitmentController(private val player: Player, private val refresh: () -> Unit) : KoinComponent {
+internal class RecruitmentController(
+    private val player: Player,
+    private val refresh: () -> Unit,
+    private val returnGuard: () -> (() -> Boolean) = { { true } },
+) : KoinComponent {
     private val service: GuildRecruitmentService by inject()
     private val guilds: GuildService by inject()
     private val members: MemberService by inject()
@@ -62,6 +71,16 @@ internal class RecruitmentController(private val player: Player, private val ref
     private val directory: RecruitmentDirectoryRepository by inject()
     private val lang: LangService by inject()
     private var screen = RecruitmentScreen.BROWSE
+    private var initialized = false
+    private var browsePage = 0
+    private var interest: String? = null
+    private var sorting = 0
+    private var languageFilter = ""
+    private var timeFilter = ""
+    private var setupDraft: RecruitmentProfile? = null
+    private var setupMode = RecruitmentMode.CLOSED
+    private var reviewApprove = false
+    private var reviewReason = ""
     private var selected: UUID? = null
     private var selectedApplication: UUID? = null
     private var quotedGuild: Guild? = null
@@ -91,17 +110,22 @@ internal class RecruitmentController(private val player: Player, private val ref
     }
 
     fun view(): RecruitmentView {
+        if (!initialized) {
+            initialized = true
+            if (ownGuild() != null) screen = RecruitmentScreen.MANAGE
+        }
         val navigation =
             mutableListOf(
                 RecruitmentButton(lang.raw("recruitment.browse"), icon = "lg_back") { go(RecruitmentScreen.BROWSE) },
-                RecruitmentButton(lang.raw("recruitment.mine"), icon = "lg_scroll") { go(RecruitmentScreen.MINE) },
-                RecruitmentButton(lang.raw("recruitment.search"), listOf(query), "lg_rename") {
+                RecruitmentButton(lang.raw("recruitment.mine"), icon = "lg_description") { go(RecruitmentScreen.MINE) },
+                RecruitmentButton(lang.raw("recruitment.search"), listOf(query), "lg_tag") {
                     ask(lang.raw("recruitment.search"), query) {
                         query = it.take(64)
+                        browsePage = 0
                         go(RecruitmentScreen.BROWSE)
                     }
                 },
-                RecruitmentButton(lang.raw("recruitment.filter"), listOf(guildMode()), "lg_settings") {
+                RecruitmentButton(lang.raw("recruitment.filter"), listOf(guildMode()), "lg_nav_settings") {
                     go(RecruitmentScreen.FILTER)
                 },
                 RecruitmentButton(
@@ -114,21 +138,32 @@ internal class RecruitmentController(private val player: Player, private val ref
                 },
             )
         ownGuild()?.let { guild ->
+            navigation.removeAt(1)
+            navigation.add(
+                1,
+                RecruitmentButton(lang.raw("recruitment.manage"), icon = "lg_nav_members") {
+                    go(RecruitmentScreen.MANAGE)
+                },
+            )
             if (GuildRecruitmentPermissions.canReview(members, player.uniqueId, guild.id)) {
                 navigation +=
-                    RecruitmentButton(lang.raw("recruitment.inbox"), icon = "lg_members") {
+                    RecruitmentButton(lang.raw("recruitment.inbox"), icon = "lg_nav_members") {
                         go(RecruitmentScreen.INBOX)
                     }
             }
             if (GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id)) {
                 navigation +=
-                    RecruitmentButton(lang.raw("recruitment.settings"), icon = "lg_settings") {
+                    RecruitmentButton(lang.raw("recruitment.settings"), icon = "lg_nav_settings") {
                         go(RecruitmentScreen.SETTINGS)
                     }
             }
         }
         val items =
             when (screen) {
+                RecruitmentScreen.SETUP -> setupMethods()
+                RecruitmentScreen.SETUP_PREVIEW -> setupPreview()
+                RecruitmentScreen.REVIEW_CONFIRM -> reviewConfirmation()
+                RecruitmentScreen.MANAGE -> management()
                 RecruitmentScreen.BROWSE -> browse()
                 RecruitmentScreen.FILTER -> filters()
                 RecruitmentScreen.PROFILE -> profile()
@@ -142,18 +177,26 @@ internal class RecruitmentController(private val player: Player, private val ref
                 RecruitmentScreen.DISCORD -> discord()
             }
         return RecruitmentView(
-            lang.raw("recruitment.title"),
+            if (screen == RecruitmentScreen.MANAGE) lang.raw("recruitment.manage") else lang.raw("recruitment.title"),
             items.ifEmpty {
                 listOf(RecruitmentButton(lang.raw("recruitment.empty")))
             },
             navigation,
+            if (screen == RecruitmentScreen.BROWSE) quickFilters() else emptyList(),
         )
     }
 
     fun acceptInput(value: String) {
         val current = input ?: return
         input = null
-        run { current.accept(value.trim()) }
+        run {
+            try {
+                current.accept(value.trim())
+            } catch (error: IllegalArgumentException) {
+                input = current
+                player.sendMessage(lang.msg("recruitment.invalid_input"))
+            }
+        }
         refresh()
     }
 
@@ -163,10 +206,207 @@ internal class RecruitmentController(private val player: Player, private val ref
     }
 
     private fun go(next: RecruitmentScreen) {
+        if (screen == RecruitmentScreen.BROWSE) browsePage = page
         screen = next
-        page = 0
+        page = if (next == RecruitmentScreen.BROWSE) browsePage else 0
         refresh()
     }
+
+    private fun management(): List<RecruitmentButton> {
+        val guild = ownGuild() ?: return browse()
+        return buildList {
+            add(
+                RecruitmentButton(lang.raw("recruitment.preview"), details(guild), "lg_nav_info", guild) {
+                    selected = guild.id
+                    go(RecruitmentScreen.PROFILE)
+                },
+            )
+            if (GuildRecruitmentPermissions.canReview(members, player.uniqueId, guild.id)) {
+                add(
+                    RecruitmentButton(
+                        lang.raw("recruitment.inbox"),
+                        icon = "lg_nav_members",
+                    ) { go(RecruitmentScreen.INBOX) },
+                )
+            }
+            if (GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id)) {
+                add(
+                    RecruitmentButton(lang.raw("recruitment.setup"), icon = "lg_tag") {
+                        setupDraft = service.profile(guild).copy(mode = RecruitmentMode.CLOSED)
+                        go(RecruitmentScreen.SETUP)
+                    },
+                )
+                add(
+                    RecruitmentButton(
+                        lang.raw("recruitment.settings"),
+                        icon = "lg_nav_settings",
+                    ) { go(RecruitmentScreen.SETTINGS) },
+                )
+            }
+            add(
+                RecruitmentButton(
+                    lang.raw("recruitment.browse"),
+                    icon = "lg_nav_info",
+                ) { go(RecruitmentScreen.BROWSE) },
+            )
+        }
+    }
+
+    private fun setupMethods(): List<RecruitmentButton> =
+        RecruitmentMode.entries.map { method ->
+            RecruitmentButton(mode(method), icon = "lg_nav_settings") {
+                val guild = requireNotNull(ownGuild())
+                require(GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id))
+                setupMode = method
+                setupInput(0)
+            }
+        }
+
+    private fun setupInput(step: Int) {
+        val draft = requireNotNull(setupDraft)
+        val fields =
+            listOf(
+                lang.raw("recruitment.pitch") to draft.pitch,
+                lang.raw("recruitment.requirements") to draft.requirements,
+                lang.raw("recruitment.interests") to draft.interests.joinToString(","),
+                lang.raw("recruitment.times") to draft.preferredTimes,
+                lang.raw("recruitment.language") to draft.language,
+                lang.raw("recruitment.discord") to (draft.discordInvite ?: ""),
+                lang.raw("recruitment.instructions") to draft.discordInstructions,
+            )
+        val count = if (setupMode == RecruitmentMode.DISCORD) 7 else 5
+        if (step == count) {
+            go(RecruitmentScreen.SETUP_PREVIEW)
+            return
+        }
+        ask("${step + 1}/$count ${fields[step].first}", fields[step].second) { value ->
+            val current = requireNotNull(setupDraft)
+            setupDraft =
+                when (step) {
+                    0 -> current.copy(pitch = value)
+                    1 -> current.copy(requirements = value)
+                    2 -> current.copy(interests = value.split(',').map(String::trim).filter(String::isNotBlank).toSet())
+                    3 -> current.copy(preferredTimes = value)
+                    4 -> current.copy(language = value)
+                    5 -> current.copy(discordInvite = value.ifBlank { null })
+                    else -> current.copy(discordInstructions = value)
+                }
+            setupInput(step + 1)
+        }
+    }
+
+    private fun setupPreview(): List<RecruitmentButton> {
+        val guild = requireNotNull(ownGuild())
+        require(GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id))
+        val draft = requireNotNull(setupDraft)
+        return listOf(
+            RecruitmentButton(
+                lang.raw("recruitment.preview"),
+                listOf(
+                    mode(setupMode),
+                    draft.pitch,
+                    draft.requirements,
+                    draft.interests.joinToString(", "),
+                    draft.preferredTimes,
+                    draft.language,
+                    draft.discordInvite ?: "",
+                    draft.discordInstructions,
+                ).filter(String::isNotBlank),
+                "lg_nav_info",
+                guild,
+            ),
+            RecruitmentButton(
+                lang.raw("recruitment.beginner"),
+                listOf(enabled(draft.beginnerFriendly)),
+                "lg_toggle_on",
+            ) {
+                setupDraft = draft.copy(beginnerFriendly = !draft.beginnerFriendly)
+                refresh()
+            },
+            RecruitmentButton(lang.raw("recruitment.publish"), icon = "lg_confirm") {
+                if (setupMode == RecruitmentMode.DISCORD && (draft.discordInvite == null || draft.discordInstructions.isBlank())) {
+                    player.sendMessage(lang.msg("recruitment.discord_setup"))
+                    setupInput(5)
+                } else {
+                    service.saveProfile(player.uniqueId, draft.copy(mode = setupMode))
+                    setupDraft = null
+                    go(RecruitmentScreen.MANAGE)
+                }
+            },
+            RecruitmentButton(lang.raw("recruitment.discard"), icon = "lg_cancel") {
+                setupDraft = null
+                go(RecruitmentScreen.MANAGE)
+            },
+        )
+    }
+
+    private fun resetBrowse() {
+        page = 0
+        browsePage = 0
+        refresh()
+    }
+
+    private fun quickFilters(): List<RecruitmentButton> =
+        listOf(
+            RecruitmentButton(
+                lang.raw("recruitment.filter_recruiting"),
+                listOf(enabled(recruitingOnly)),
+                "lg_confirm",
+            ) {
+                recruitingOnly = !recruitingOnly
+                resetBrowse()
+            },
+            RecruitmentButton(
+                lang.raw("recruitment.filter_beginner"),
+                listOf(enabled(beginnersOnly)),
+                "lg_nav_members",
+            ) {
+                beginnersOnly = !beginnersOnly
+                resetBrowse()
+            },
+            RecruitmentButton(lang.raw("recruitment.building"), listOf(enabled(interest == "building")), "lg_home") {
+                interest = if (interest == "building") null else "building"
+                resetBrowse()
+            },
+            RecruitmentButton(lang.raw("recruitment.pvp"), listOf(enabled(interest == "pvp")), "lg_nav_warfare") {
+                interest = if (interest == "pvp") null else "pvp"
+                resetBrowse()
+            },
+            RecruitmentButton(
+                lang.raw("recruitment.mode.discord"),
+                listOf(enabled(joiningMethod == RecruitmentMode.DISCORD)),
+                "lg_invite",
+            ) {
+                joiningMethod = if (joiningMethod == RecruitmentMode.DISCORD) null else RecruitmentMode.DISCORD
+                resetBrowse()
+            },
+            RecruitmentButton(
+                lang.raw("recruitment.sort"),
+                listOf(
+                    when (sorting) {
+                        1 -> lang.raw("recruitment.sort_1")
+                        2 -> lang.raw("recruitment.sort_2")
+                        else -> lang.raw("recruitment.sort_0")
+                    },
+                ),
+                "lg_sort",
+            ) {
+                sorting = (sorting + 1) % 3
+                resetBrowse()
+            },
+            RecruitmentButton(lang.raw("recruitment.reset"), icon = "lg_cancel") {
+                query = ""
+                peaceful = null
+                recruitingOnly = true
+                beginnersOnly = false
+                joiningMethod = null
+                interest = null
+                sorting = 0
+                languageFilter = ""
+                timeFilter = ""
+                resetBrowse()
+            },
+        )
 
     private fun ask(
         label: String,
@@ -213,7 +453,7 @@ internal class RecruitmentController(private val player: Player, private val ref
         RecruitmentButton(
             status(application.status),
             listOf(application.answers, application.decisionReason),
-            "lg_scroll",
+            "lg_description",
         ) {
             // The visible lore is a summary. Fetch and authorize again before revealing the complete private answer.
             val fresh =
@@ -222,7 +462,17 @@ internal class RecruitmentController(private val player: Player, private val ref
                 } else {
                     service.inbox(player.uniqueId, application.guildId).firstOrNull { it.id == application.id }
                 }
-            player.sendMessage(Component.text(requireNotNull(fresh).answers))
+            val current = requireNotNull(fresh)
+            val expectedScreen = screen
+            val navigationValid = returnGuard()
+            net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.book(
+                player,
+                status(current.status),
+                listOf(current.answers, current.decisionReason),
+                lang.raw("recruitment.return_menu"),
+                { navigationValid() && selectedApplication == current.id && screen == expectedScreen },
+                { run { refresh() } },
+            )
         }
 
     private fun selectedGuild(): Guild = requireNotNull(selected?.let(guilds::getGuild))
@@ -249,9 +499,25 @@ internal class RecruitmentController(private val player: Player, private val ref
                 (!recruitingOnly || (profile.mode != RecruitmentMode.CLOSED && service.spaces(guild.id) > 0)) &&
                 (!beginnersOnly || profile.beginnerFriendly) &&
                 (joiningMethod == null || joiningMethod == profile.mode) &&
+                profile.language.contains(languageFilter, true) && profile.preferredTimes.contains(timeFilter, true) &&
+                (interest == null || profile.interests.any { it.equals(interest, true) }) &&
                 (guild.name + " " + profile.pitch + " " + profile.interests.joinToString(" ")).contains(query, true)
-        }.map { guild ->
-            RecruitmentButton(guild.name, details(guild), "lg_banner", guild) {
+        }.sortedWith(
+            when (sorting) {
+                1 -> compareByDescending<Guild> { it.level }.thenBy { it.name.lowercase() }
+                2 -> compareBy<Guild> { it.name.lowercase() }
+                else ->
+                    compareByDescending<Guild> {
+                        service.profile(it).mode != RecruitmentMode.CLOSED && service.spaces(it.id) > 0
+                    }.thenByDescending { guild ->
+                        members.getGuildMembers(guild.id).count { member ->
+                            org.bukkit.Bukkit.getPlayer(member.playerId)?.isOnline == true &&
+                                GuildRecruitmentPermissions.canReview(members, member.playerId, guild.id)
+                        }
+                    }.thenBy { it.name.lowercase() }
+            },
+        ).map { guild ->
+            RecruitmentButton(guild.name, details(guild), "lg_nav_info", guild) {
                 selectedApplication = null
                 selected = guild.id
                 go(RecruitmentScreen.PROFILE)
@@ -260,7 +526,7 @@ internal class RecruitmentController(private val player: Player, private val ref
 
     private fun filters(): List<RecruitmentButton> =
         listOf(
-            RecruitmentButton(lang.raw("recruitment.filter"), listOf(guildMode()), "lg_settings") {
+            RecruitmentButton(lang.raw("recruitment.filter"), listOf(guildMode()), "lg_nav_settings") {
                 peaceful =
                     when (peaceful) {
                         null -> true
@@ -272,19 +538,23 @@ internal class RecruitmentController(private val player: Player, private val ref
             RecruitmentButton(
                 lang.raw("recruitment.filter_recruiting"),
                 listOf(enabled(recruitingOnly)),
-                "lg_settings",
+                "lg_nav_settings",
             ) {
                 recruitingOnly = !recruitingOnly
                 refresh()
             },
-            RecruitmentButton(lang.raw("recruitment.filter_beginner"), listOf(enabled(beginnersOnly)), "lg_settings") {
+            RecruitmentButton(
+                lang.raw("recruitment.filter_beginner"),
+                listOf(enabled(beginnersOnly)),
+                "lg_nav_settings",
+            ) {
                 beginnersOnly = !beginnersOnly
                 refresh()
             },
             RecruitmentButton(
                 lang.raw("recruitment.method"),
                 listOf(joiningMethod?.let(::mode) ?: lang.raw("recruitment.any")),
-                "lg_settings",
+                "lg_nav_settings",
             ) {
                 joiningMethod =
                     when (joiningMethod) {
@@ -293,6 +563,20 @@ internal class RecruitmentController(private val player: Player, private val ref
                         else -> RecruitmentMode.entries[requireNotNull(joiningMethod).ordinal + 1]
                     }
                 refresh()
+            },
+            RecruitmentButton(lang.raw("recruitment.filter_language"), listOf(languageFilter), "lg_tag") {
+                ask(lang.raw("recruitment.filter_language"), languageFilter) {
+                    languageFilter = it.take(40)
+                    browsePage = 0
+                    refresh()
+                }
+            },
+            RecruitmentButton(lang.raw("recruitment.filter_times"), listOf(timeFilter), "lg_created") {
+                ask(lang.raw("recruitment.filter_times"), timeFilter) {
+                    timeFilter = it.take(100)
+                    browsePage = 0
+                    refresh()
+                }
             },
         )
 
@@ -317,6 +601,7 @@ internal class RecruitmentController(private val player: Player, private val ref
                 ", ",
             ),
             profile.preferredTimes, profile.language,
+            lang.raw("recruitment.listing_updated") + (directory.updatedAt(guild.id)?.toString() ?: lang.raw("recruitment.unknown")),
             if (profile.beginnerFriendly) lang.raw("recruitment.beginner") else "",
         ).filter(String::isNotBlank)
     }
@@ -324,19 +609,28 @@ internal class RecruitmentController(private val player: Player, private val ref
     private fun profile(): List<RecruitmentButton> {
         val guild = selectedGuild()
         val profile = service.profile(guild)
-        val items = mutableListOf(RecruitmentButton(guild.name, details(guild), "lg_banner"))
+        val items = mutableListOf(RecruitmentButton(guild.name, details(guild), "lg_nav_info", guild))
+        items +=
+            RecruitmentButton(lang.raw("recruitment.guide"), icon = "lg_description") {
+                val current = selectedGuild()
+                val navigationValid = returnGuard()
+                net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.book(
+                    player, current.name, details(current), lang.raw("recruitment.return_menu"),
+                    { navigationValid() && selected == current.id && screen == RecruitmentScreen.PROFILE }, { run { refresh() } },
+                )
+            }
         if (service.spaces(guild.id) > 0 && members.getPlayerGuilds(player.uniqueId).isEmpty()) {
             when (profile.mode) {
                 RecruitmentMode.JOIN_IMMEDIATELY ->
                     items +=
-                        RecruitmentButton(mode(profile.mode), icon = "lg_accept") {
+                        RecruitmentButton(mode(profile.mode), icon = "lg_confirm") {
                             quotedGuild = guild
                             quotedFee = lfg.getJoinRequirement(guild)
                             go(RecruitmentScreen.CONFIRM)
                         }
                 RecruitmentMode.IN_GAME ->
                     items +=
-                        RecruitmentButton(mode(profile.mode), icon = "lg_scroll") {
+                        RecruitmentButton(mode(profile.mode), icon = "lg_description") {
                             ask(lang.raw("recruitment.introduction")) {
                                 service.submit(player.uniqueId, guild.id, it)
                                 go(RecruitmentScreen.MINE)
@@ -349,7 +643,7 @@ internal class RecruitmentController(private val player: Player, private val ref
         }
         if (profile.discordInvite != null) {
             items +=
-                RecruitmentButton(lang.raw("recruitment.discord"), icon = "lg_announcement") {
+                RecruitmentButton(lang.raw("recruitment.discord"), icon = "lg_invite") {
                     go(RecruitmentScreen.DISCORD)
                 }
         }
@@ -360,8 +654,13 @@ internal class RecruitmentController(private val player: Player, private val ref
         val name = guilds.getGuild(application.guildId)?.name ?: application.guildId.toString()
         return RecruitmentButton(
             name,
-            listOf(status(application.status), application.expiresAt.toString(), application.decisionReason),
-            "lg_scroll",
+            listOf(
+                status(application.status),
+                lang.raw("recruitment.submitted_at") + application.createdAt,
+                lang.raw("recruitment.expires_at") + application.expiresAt,
+                application.decisionReason,
+            ),
+            "lg_description",
         ) {
             selectedApplication = application.id
             selected = application.guildId
@@ -382,14 +681,14 @@ internal class RecruitmentController(private val player: Player, private val ref
         }
         if (application.status == ApplicationStatus.OFFERED) {
             items +=
-                RecruitmentButton(lang.raw("recruitment.offer"), icon = "lg_accept") {
+                RecruitmentButton(lang.raw("recruitment.offer"), icon = "lg_confirm") {
                     quotedGuild = selectedGuild()
                     quotedFee = lfg.getJoinRequirement(requireNotNull(quotedGuild))
                     go(RecruitmentScreen.CONFIRM)
                 }
         }
         if (application.status == ApplicationStatus.ADMISSION_PENDING) {
-            items += RecruitmentButton(lang.raw("recruitment.pending"), icon = "lg_scroll")
+            items += RecruitmentButton(lang.raw("recruitment.pending"), icon = "lg_description")
         }
         return items
     }
@@ -400,8 +699,12 @@ internal class RecruitmentController(private val player: Player, private val ref
                 application ->
             RecruitmentButton(
                 org.bukkit.Bukkit.getOfflinePlayer(application.applicantId).name ?: application.applicantId.toString(),
-                listOf(application.createdAt.toString()),
-                "lg_members",
+                listOf(
+                    status(application.status),
+                    lang.raw("recruitment.submitted_at") + application.createdAt,
+                    lang.raw("recruitment.expires_at") + application.expiresAt,
+                ),
+                "lg_nav_members",
             ) {
                 selectedApplication = application.id
                 selected = guild.id
@@ -416,24 +719,49 @@ internal class RecruitmentController(private val player: Player, private val ref
             requireNotNull(service.inbox(player.uniqueId, guild.id).firstOrNull { it.id == selectedApplication })
         return listOf(
             answers(application),
-            RecruitmentButton(lang.raw("recruitment.send_offer"), icon = "lg_accept") {
-                service.review(player.uniqueId, application.id, true, "")
-                go(RecruitmentScreen.INBOX)
+            RecruitmentButton(
+                lang.raw("recruitment.submitted_at") + application.createdAt,
+                listOf(status(application.status), lang.raw("recruitment.expires_at") + application.expiresAt),
+                "lg_history",
+            ),
+            RecruitmentButton(lang.raw("recruitment.send_offer"), icon = "lg_confirm") {
+                reviewApprove = true
+                reviewReason = ""
+                go(RecruitmentScreen.REVIEW_CONFIRM)
             },
             RecruitmentButton(lang.raw("recruitment.decline"), icon = "lg_cancel") {
                 ask(lang.raw("recruitment.reason")) {
-                    service.review(player.uniqueId, application.id, false, it)
-                    go(RecruitmentScreen.INBOX)
+                    reviewApprove = false
+                    reviewReason = it
+                    go(RecruitmentScreen.REVIEW_CONFIRM)
                 }
             },
+        )
+    }
+
+    private fun reviewConfirmation(): List<RecruitmentButton> {
+        val guild = requireNotNull(ownGuild())
+        val application =
+            requireNotNull(service.inbox(player.uniqueId, guild.id).firstOrNull { it.id == selectedApplication })
+        return listOf(
+            answers(application),
+            RecruitmentButton(
+                if (reviewApprove) lang.raw("recruitment.send_offer") else lang.raw("recruitment.decline"),
+                listOf(reviewReason),
+                "lg_confirm",
+            ) {
+                service.review(player.uniqueId, application.id, reviewApprove, reviewReason)
+                go(RecruitmentScreen.INBOX)
+            },
+            RecruitmentButton(lang.raw("recruitment.cancel_review"), icon = "lg_back") { go(RecruitmentScreen.REVIEW) },
         )
     }
 
     private fun confirm(): List<RecruitmentButton> {
         val quote = requireNotNull(quotedGuild)
         return listOf(
-            RecruitmentButton(quote.name, details(quote), "lg_scroll"),
-            RecruitmentButton(lang.raw("recruitment.confirm"), icon = "lg_accept") {
+            RecruitmentButton(quote.name, details(quote), "lg_nav_info", quote),
+            RecruitmentButton(lang.raw("recruitment.confirm"), icon = "lg_confirm") {
                 require(lfg.getJoinRequirement(requireNotNull(guilds.getGuild(quote.id))) == quotedFee)
                 val result =
                     if (selectedApplication != null) {
@@ -463,9 +791,9 @@ internal class RecruitmentController(private val player: Player, private val ref
             RecruitmentButton(
                 lang.raw("recruitment.discord"),
                 listOf(invite, profile.discordInstructions, lang.raw("recruitment.discord_notice")),
-                "lg_announcement",
+                "lg_invite",
             ),
-            RecruitmentButton(lang.raw("recruitment.discord_confirm"), listOf(invite), "lg_accept") {
+            RecruitmentButton(lang.raw("recruitment.discord_confirm"), listOf(invite), "lg_confirm") {
                 require(service.profile(selectedGuild()).discordInvite == invite) { "Invite changed" }
                 player.closeInventory()
                 player.sendMessage(Component.text(invite).clickEvent(ClickEvent.openUrl(invite)))
@@ -482,7 +810,7 @@ internal class RecruitmentController(private val player: Player, private val ref
             label: String,
             value: String,
             change: (RecruitmentProfile, String) -> RecruitmentProfile,
-        ) = RecruitmentButton(label, listOf(value), "lg_rename") {
+        ) = RecruitmentButton(label, listOf(value), "lg_tag") {
             ask(
                 label,
                 value,
@@ -494,7 +822,7 @@ internal class RecruitmentController(private val player: Player, private val ref
             }
         }
         return listOf(
-            RecruitmentButton(lang.raw("recruitment.method"), listOf(mode(profile.mode)), "lg_settings") {
+            RecruitmentButton(lang.raw("recruitment.method"), listOf(mode(profile.mode)), "lg_nav_settings") {
                 go(RecruitmentScreen.METHOD)
             },
             edit(lang.raw("recruitment.pitch"), profile.pitch) { current, value -> current.copy(pitch = value) },
@@ -547,9 +875,15 @@ internal class RecruitmentController(private val player: Player, private val ref
 
     private fun methodSettings(): List<RecruitmentButton> =
         RecruitmentMode.entries.map { method ->
-            RecruitmentButton(mode(method), icon = "lg_settings") {
+            RecruitmentButton(mode(method), icon = "lg_nav_settings") {
                 val guild = requireNotNull(ownGuild())
-                service.saveProfile(player.uniqueId, service.profile(guild).copy(mode = method))
+                val profile = service.profile(guild)
+                if (method == RecruitmentMode.DISCORD && (profile.discordInvite == null || profile.discordInstructions.isBlank())) {
+                    player.sendMessage(lang.msg("recruitment.discord_setup"))
+                    go(RecruitmentScreen.SETTINGS)
+                    return@RecruitmentButton
+                }
+                service.saveProfile(player.uniqueId, profile.copy(mode = method))
                 go(RecruitmentScreen.SETTINGS)
             }
         }

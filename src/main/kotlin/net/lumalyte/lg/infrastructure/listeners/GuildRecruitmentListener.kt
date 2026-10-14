@@ -152,7 +152,11 @@ internal class GuildRecruitmentListener(
                 ).digest(text.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
             if (directory.consumeNotification(player.uniqueId, signature)) {
                 player.sendMessage(
-                    lang.msg("recruitment.discovery.updated").clickEvent(ClickEvent.runCommand("/g recruitment")),
+                    lang.msg(
+                        "recruitment.discovery.updated",
+                        "offers" to own.count { it.status == net.lumalyte.lg.domain.recruitment.ApplicationStatus.OFFERED },
+                        "pending" to inbox.count { it.status == net.lumalyte.lg.domain.recruitment.ApplicationStatus.SUBMITTED },
+                    ).clickEvent(ClickEvent.runCommand("/g recruitment")),
                 )
             }
         }

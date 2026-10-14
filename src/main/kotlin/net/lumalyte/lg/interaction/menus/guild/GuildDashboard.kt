@@ -86,7 +86,7 @@ class GuildDashboard(
         addGuildInfoDisplay(pane, 4, 0)
 
         addNavButton(pane, 6, 0, "lg_members", Material.PLAYER_HEAD,
-            lang.gui("recruitment.title"), lang.gui("recruitment.browse")) {
+            lang.gui("recruitment.title"), lang.gui("recruitment.manage")) {
             menuNavigator.openMenu(menuFactory.createLfgBrowserMenu(menuNavigator, player))
         }
 
