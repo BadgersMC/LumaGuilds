@@ -17,6 +17,7 @@ Ktlint1.0.1 targeted new-file formatting at120 columns passed using an external 
 Hosted exact-head checks pending after publication. TEST remains on prior local combined5176e7f build; no further server operations or production changes.
 
 ## Hosted refinement
+
 Codacy original detail count136 was reduced to51 then17. Follow-up preserves public compatibility service/API signatures while keeping internal persistence/types private, shortens fixture methods, extracts SQL row iteration, and aligns compact parameters and expression wrapping with hosted analyzers. Plain SQL strings avoid contradictory raw-string indentation rules; the table remains owner_id/target_id/created_at with the same composite key and dialect options. No quality-gate configuration changes. Local full suite at bfd2fea passed1785 tests, zero failures/errors,16 optional skips. Final style/helper refinements passed focused invite/schema tests and shadowJar. Exact latest hosted full-suite and Codacy results remain pending.
 
 GitHub connector write scope denied PR metadata changes; signed-in GitHub UI successfully updated description and marked existing PR ready for review. CodeRabbit now reports automatic reviews disabled because repository has fewer than10 stars; manual comment trigger requires user authorization. No external review message posted.
