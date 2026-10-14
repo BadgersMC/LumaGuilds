@@ -1004,6 +1004,7 @@ Menu audit follow-up (REQ-063):
 
 ## Personal invite block delivery (REQ-150/151)
 - [x] Refine PR #232 persistence, filtered lookup/counts, routing and viewer filtering; run focused/full checks and publish source fixes.
+- [x] Address all three manual CodeRabbit findings; prove native MariaDB repair and verify the installed TEST Friends connector against the current Guilds API. Cross-server caches remain startup snapshots; real-client acceptance is deferred.
 - [ ] Complete exact-head hosted quality/review gates and maintainer review; merge and real-client acceptance remain separate. Current main inspected at283d75f1; existing fork head db53a274. Project EARS/state helpers absent; manual evidence in docs/plans/2026-10-13-invite-block-review.md. No merge or production authorization.
 ## Local quest discovery - no PR requested
 - [x] **QUEST-STALL-REFINEMENT** Verify all short/menu quest routes, add progression quest navigation and semantic stall icons (REQ-QUEST-DISCOVERY-4, REQ-STALL-ICONS-1). Local Java 25 full test/shadowJar passed 1,789 cases with zero failures/errors and 16 optional environment skips. Real ACF routing and Java/Bedrock permission checks execute without skips. Private artwork and local preview remain outside the public repository; no deployment or PR. Evidence: docs/plans/2026-10-13-quest-stall-refinement.md.

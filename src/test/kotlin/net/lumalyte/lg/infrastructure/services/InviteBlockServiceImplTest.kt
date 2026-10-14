@@ -7,9 +7,7 @@ import net.lumalyte.lg.application.persistence.GuildInvitationRepository
 import net.lumalyte.lg.application.persistence.InviteBlockRepository
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.GuildInvitation
-import net.lumalyte.lg.domain.entities.Member
 import org.junit.jupiter.api.Test
-import java.time.Instant
 import java.util.UUID
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -47,14 +45,11 @@ internal class InviteBlockServiceImplTest {
     private val members =
         mockk<MemberService> {
             every { getPlayerGuilds(blocked) } returns setOf(theirGuild)
-            every { getGuildMembers(theirGuild) } returns
-                setOf(member(blocked, theirGuild), member(guildmate, theirGuild))
-            every { getGuildMembers(otherGuild) } returns setOf(member(stranger, otherGuild))
+            every { isPlayerInGuild(blocked, theirGuild) } returns true
+            every { isPlayerInGuild(blocked, otherGuild) } returns false
         }
     private val invitations = mockk<GuildInvitationRepository>(relaxed = true)
     private val service = InviteBlockServiceImpl(store, members, invitations)
-
-    private fun member(player: UUID, guild: UUID) = Member(player, guild, UUID.randomUUID(), Instant.EPOCH)
 
     private fun invite(guild: UUID, inviter: UUID) = GuildInvitation(guild, "G", me, inviter, "inviter")
 
