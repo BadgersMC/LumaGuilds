@@ -38,7 +38,7 @@ class BedrockGuildControlPanelMenu(
 
         // Build button list conditionally
         val buttons = mutableListOf<MenuButton>()
-        buttons.add(MenuButton(lang.bedrock("recruitment.browse"), config.guildMembersIconUrl, config.guildMembersIconPath) {
+        buttons.add(MenuButton(lang.bedrock("recruitment.manage"), config.guildMembersIconUrl, config.guildMembersIconPath) {
             bedrockNavigator.openMenu(menuFactory.createLfgBrowserMenu(menuNavigator, player))
         })
 

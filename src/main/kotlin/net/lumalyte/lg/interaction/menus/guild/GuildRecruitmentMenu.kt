@@ -71,21 +71,24 @@ internal class GuildRecruitmentMenu(
                 )
             } else {
                 val view = controller.view()
-                val pages = maxOf(1, (view.items.size + 44) / 45)
+                val capacity = if (view.quickFilters.isEmpty()) 45 else 36
+                val offset = if (view.quickFilters.isEmpty()) 0 else 1
+                val pages = maxOf(1, (view.items.size + capacity - 1) / capacity)
                 controller.page = controller.page.coerceIn(0, pages - 1)
-                val gui = ChestGui(6, MenuTitleBuilder.build(controller.theme(), 6, view.title))
+                val gui = ChestGui(6, MenuTitleBuilder.build(controller.theme(), 6, "${view.title} ${controller.page + 1}/$pages"))
                 gui.setOnTopClick { it.isCancelled = true }
                 gui.setOnBottomClick { it.isCancelled = true }
                 gui.setOnGlobalDrag { it.isCancelled = true }
                 val pane = StaticPane(0, 0, 9, 6)
-                view.items.drop(controller.page * 45).take(45).forEachIndexed {
+                view.quickFilters.forEachIndexed { index, button -> add(pane, button, index, 0) }
+                view.items.drop(controller.page * capacity).take(capacity).forEachIndexed {
                         index,
                         button,
                     ->
-                    add(pane, button, index % 9, index / 9)
+                    add(pane, button, index % 9, index / 9 + offset)
                 }
                 view.navigation.take(7).forEachIndexed { index, button -> add(pane, button, index + 1, 5) }
-                add(
+                if (controller.page > 0) add(
                     pane,
                     RecruitmentButton(lang.raw("recruitment.previous"), icon = "lg_page_prev") {
                         controller.page = (controller.page - 1).coerceAtLeast(0)
@@ -94,7 +97,7 @@ internal class GuildRecruitmentMenu(
                     0,
                     5,
                 )
-                add(
+                if (controller.page + 1 < pages) add(
                     pane,
                     RecruitmentButton(lang.raw("recruitment.next"), icon = "lg_page_next") {
                         controller.page = (controller.page + 1).coerceAtMost(pages - 1)
@@ -122,7 +125,9 @@ internal class GuildRecruitmentMenu(
                 MiniMessage.miniMessage().deserialize(emojis.emojiToFontTag(it.emoji)).append(Component.space())
             } ?: Component.empty()
         val item = base.name(emoji.append(GuiTextStyler.style(Component.text(button.label))))
-        button.details.flatMap { it.chunked(44) }.take(16).forEach { item.lore(Component.text(it)) }
+        button.details.flatMap { it.chunked(44) }.take(16).forEach {
+            item.lore(Component.text(it).color(net.kyori.adventure.text.format.NamedTextColor.GRAY))
+        }
         pane.addItem(GuiItem(item) { controller.run(button.action) }, x, y)
     }
 

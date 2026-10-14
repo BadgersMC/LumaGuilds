@@ -38,8 +38,8 @@ internal class BedrockGuildRecruitmentMenu(
         val pages = maxOf(1, (view.items.size + 7) / 8)
         controller.page = controller.page.coerceIn(0, pages - 1)
         val actions = mutableListOf<() -> Unit>()
-        val builder = SimpleForm.builder().title(view.title)
-        (view.items.drop(controller.page * 8).take(8) + view.navigation).forEach { button ->
+        val builder = SimpleForm.builder().title("${view.title} ${controller.page + 1}/$pages")
+        (view.quickFilters + view.items.drop(controller.page * 8).take(8) + view.navigation).forEach { button ->
             builder.button((listOf(button.label) + button.details).filter(String::isNotBlank).joinToString("\n"))
             actions += button.action
         }

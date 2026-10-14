@@ -7678,10 +7678,20 @@ onboarding:
     stalls: "Guild Stalls shows authoritative ownership and member access, or explains unavailable Market data."
 
 recruitment:
+  manage: Manage Recruitment
+  preview: Preview Our Listing
+  building: Building
+  pvp: PvP
+  sort: Sort Guilds
+  sort_0: Recruiting and Recruiters Online
+  sort_1: Guild Level
+  sort_2: Alphabetical
+  reset: Reset Filters
+  discord_setup: "<yellow>Add a Guild Discord Invite and application instructions in Recruitment Settings before choosing Discord.</yellow>"
   title: Guild Recruitment
   browse: Find a Guild
   mine: My Applications
-  search: Search Guilds
+  search: Search by Name or Interest
   filter: "Guild Mode Filter (Any / Peaceful / Hostile)"
   any: Any
   enabled: Enabled
