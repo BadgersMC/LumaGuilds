@@ -31,6 +31,8 @@ import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
+private const val ORIGINAL_PITCH = "Existing listing"
+
 /** Exercises screen actions against the real permission-checking application service. */
 internal class RecruitmentControllerFlowTest {
     private val actor = UUID.randomUUID()
@@ -43,7 +45,7 @@ internal class RecruitmentControllerFlowTest {
     private val lang = mockk<LangService>(relaxed = true)
     private val player = mockk<Player>(relaxed = true)
     private var allowed = true
-    private var published = RecruitmentProfile(guild.id, RecruitmentMode.IN_GAME, "Existing listing")
+    private var published = RecruitmentProfile(guild.id, RecruitmentMode.IN_GAME, ORIGINAL_PITCH)
     private lateinit var controller: RecruitmentController
 
     @BeforeEach
@@ -58,15 +60,16 @@ internal class RecruitmentControllerFlowTest {
             Unit
         }
         every { lang.raw(any()) } answers { firstArg() }
-        val service = GuildRecruitmentService(
-            applications,
-            directory,
-            guilds,
-            members,
-            lfg,
-            { RecruitmentPolicy() },
-            { _, _ -> true },
-        )
+        val service =
+            GuildRecruitmentService(
+                applications,
+                directory,
+                guilds,
+                members,
+                lfg,
+                { RecruitmentPolicy() },
+                { _, _ -> true },
+            )
         startKoin {
             modules(
                 module {
@@ -95,17 +98,17 @@ internal class RecruitmentControllerFlowTest {
     }
 
     @Test
-    fun draftAndDiscardNeverModifyPublishedListing() {
+    fun discardPreservesListing() {
         val preview = completeDraft()
         verify(exactly = 0) { directory.save(any()) }
-        assertEquals("Existing listing", published.pitch)
+        assertEquals(ORIGINAL_PITCH, published.pitch)
         preview.single { it.label == "recruitment.discard" }.action()
-        assertEquals("Existing listing", published.pitch)
+        assertEquals(ORIGINAL_PITCH, published.pitch)
         verify(exactly = 0) { directory.save(any()) }
     }
 
     @Test
-    fun publicationPersistsOnlyAfterExplicitConfirmation() {
+    fun draftRequiresPublication() {
         val preview = completeDraft()
         preview.single { it.label == "recruitment.publish" }.action()
         assertEquals("Welcome", published.pitch)
@@ -115,16 +118,16 @@ internal class RecruitmentControllerFlowTest {
     }
 
     @Test
-    fun publicationRechecksPermissionsAfterPreview() {
+    fun revokedEditorCannotPublish() {
         val preview = completeDraft()
         allowed = false
         assertFailsWith<IllegalArgumentException> { preview.single { it.label == "recruitment.publish" }.action() }
-        assertEquals("Existing listing", published.pitch)
+        assertEquals(ORIGINAL_PITCH, published.pitch)
         verify(exactly = 0) { directory.save(any()) }
     }
 
     @Test
-    fun hiddenRecruiterPresenceDoesNotPromoteAListingForOtherPlayers() {
+    fun hiddenRecruiterStaysPrivate() {
         val hiddenGuild = Guild(UUID.randomUUID(), "Z Hidden", createdAt = Instant.EPOCH)
         val hiddenId = UUID.randomUUID()
         val hidden = mockk<Player>(relaxed = true)
@@ -134,9 +137,10 @@ internal class RecruitmentControllerFlowTest {
         every { directory.profile(hiddenGuild.id) } returns RecruitmentProfile(hiddenGuild.id, RecruitmentMode.IN_GAME)
         every { members.getMemberLimit(any()) } returns 10
         every { members.getGuildMembers(guild.id) } returns emptySet()
-        every { members.getGuildMembers(hiddenGuild.id) } returns setOf(
-            Member(hiddenId, hiddenGuild.id, UUID.randomUUID(), Instant.EPOCH),
-        )
+        every { members.getGuildMembers(hiddenGuild.id) } returns
+            setOf(
+                Member(hiddenId, hiddenGuild.id, UUID.randomUUID(), Instant.EPOCH),
+            )
         every { members.hasPermission(hiddenId, hiddenGuild.id, RankPermission.MANAGE_RECRUITMENT) } returns true
         mockkStatic(Bukkit::class)
         try {

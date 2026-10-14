@@ -16,6 +16,9 @@ private const val MAX_APPLICATIONS = 20
 private const val MAX_APPLICATION_DAYS = 90L
 private const val MAX_OFFER_DAYS = 30L
 
+private const val DEFAULT_APPLICATION_DAYS = 7L
+private const val DEFAULT_OFFER_HOURS = 48L
+
 /** Joining method; Discord application state is deliberately never inferred in game. */
 internal enum class RecruitmentMode { JOIN_IMMEDIATELY, IN_GAME, DISCORD, CLOSED }
 
@@ -47,7 +50,10 @@ internal data class RecruitmentProfile(
 
     companion object {
         /** No stored profile means the original open/closed rule, without modifying fees. */
-        fun legacy(guildId: UUID, isOpen: Boolean) = RecruitmentProfile(
+        fun legacy(
+            guildId: UUID,
+            isOpen: Boolean,
+        ) = RecruitmentProfile(
             guildId,
             if (isOpen) RecruitmentMode.JOIN_IMMEDIATELY else RecruitmentMode.CLOSED,
         )
@@ -65,13 +71,12 @@ internal object DiscordInvite {
 /** Explains a duplicate or player application limit denial. */
 internal enum class SubmissionDenial { DUPLICATE, LIMIT }
 
-/** Configurable defaults; the persistence adapter must enforce the check and insert atomically. */
-// Domain value object: immutable policy behavior belongs with its validated values.
+/** Immutable policy value object; persistence enforces its checks atomically. */
 @Suppress("DataClassContainsFunctions")
 internal data class RecruitmentPolicy(
     val maxApplications: Int = 3,
-    val applicationLifetime: Duration = Duration.ofDays(7),
-    val offerLifetime: Duration = Duration.ofHours(48),
+    val applicationLifetime: Duration = Duration.ofDays(DEFAULT_APPLICATION_DAYS),
+    val offerLifetime: Duration = Duration.ofHours(DEFAULT_OFFER_HOURS),
 ) {
     init {
         require(maxApplications in 1..MAX_APPLICATIONS)
@@ -107,8 +112,7 @@ internal enum class ApplicationStatus {
     CLOSED,
 }
 
-/** Pure state transitions; adapters must independently authorize recruiters and revalidate admission. */
-// Immutable state machine: transitions return validated copies; data equality is required by persistence.
+/** Immutable state transitions retain data equality; adapters authorize actors and revalidate admission. */
 @Suppress("DataClassContainsFunctions")
 internal data class GuildApplication(
     val id: UUID,
@@ -129,11 +133,16 @@ internal data class GuildApplication(
     }
 
     /** Pending payments remain active until staff reconcile their outcome. */
-    fun isActive(at: Instant): Boolean = status == ApplicationStatus.ADMISSION_PENDING ||
-        status in setOf(ApplicationStatus.SUBMITTED, ApplicationStatus.OFFERED) && at < expiresAt
+    fun isActive(at: Instant): Boolean =
+        status == ApplicationStatus.ADMISSION_PENDING ||
+            status in setOf(ApplicationStatus.SUBMITTED, ApplicationStatus.OFFERED) && at < expiresAt
 
     /** Approval records an offer only. No payment or member mutation occurs here. */
-    fun offer(actor: UUID, at: Instant, lifetime: Duration): GuildApplication {
+    fun offer(
+        actor: UUID,
+        at: Instant,
+        lifetime: Duration,
+    ): GuildApplication {
         require(status == ApplicationStatus.SUBMITTED && at >= createdAt && at < expiresAt)
         require(lifetime > Duration.ZERO && lifetime <= Duration.ofDays(MAX_OFFER_DAYS))
         return copy(
@@ -146,20 +155,30 @@ internal data class GuildApplication(
     }
 
     /** Records a recruiter decision and optional reason without enrolling the applicant. */
-    fun decline(actor: UUID, reason: String, at: Instant): GuildApplication {
+    fun decline(
+        actor: UUID,
+        reason: String,
+        at: Instant,
+    ): GuildApplication {
         require(status == ApplicationStatus.SUBMITTED && at >= createdAt && at < expiresAt)
         return copy(status = ApplicationStatus.DECLINED, reviewedBy = actor, reviewedAt = at, decisionReason = reason)
     }
 
     /** Allows only the applicant to withdraw an unexpired, unconfirmed request. */
-    fun withdraw(actor: UUID, at: Instant): GuildApplication {
+    fun withdraw(
+        actor: UUID,
+        at: Instant,
+    ): GuildApplication {
         require(actor == applicantId && status in setOf(ApplicationStatus.SUBMITTED, ApplicationStatus.OFFERED))
         require(at >= createdAt && at < expiresAt)
         return copy(status = ApplicationStatus.WITHDRAWN)
     }
 
     /** The adapter first commits this reservation, then invokes canonical admission once. */
-    fun confirm(actor: UUID, at: Instant): GuildApplication {
+    fun confirm(
+        actor: UUID,
+        at: Instant,
+    ): GuildApplication {
         require(actor == applicantId && status == ApplicationStatus.OFFERED && at >= createdAt && at < expiresAt)
         return copy(status = ApplicationStatus.ADMISSION_PENDING)
     }

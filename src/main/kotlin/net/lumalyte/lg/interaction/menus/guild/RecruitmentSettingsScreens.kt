@@ -10,20 +10,23 @@ internal fun RecruitmentController.settings(): List<RecruitmentButton> {
     require(GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id))
     val profile = service.profile(guild)
 
-    fun edit(label: String, value: String, change: (RecruitmentProfile, String) -> RecruitmentProfile) =
-        RecruitmentButton(label, listOf(value), "lg_tag") {
-            ask(
-                label,
-                value,
-            ) {
-                service.saveProfile(
-                    player.uniqueId,
-                    change(service.profile(requireNotNull(guilds.getGuild(guild.id))), it),
-                )
-            }
+    fun edit(
+        label: String,
+        value: String,
+        change: (RecruitmentProfile, String) -> RecruitmentProfile,
+    ) = RecruitmentButton(label, listOf(value), RecruitmentIcons.TAG) {
+        ask(
+            label,
+            value,
+        ) {
+            service.saveProfile(
+                player.uniqueId,
+                change(service.profile(requireNotNull(guilds.getGuild(guild.id))), it),
+            )
         }
+    }
     return listOf(
-        RecruitmentButton(lang.raw("recruitment.method"), listOf(mode(profile.mode)), "lg_nav_settings") {
+        RecruitmentButton(lang.raw("recruitment.method"), listOf(mode(profile.mode)), RecruitmentIcons.NAV_SETTINGS) {
             go(RecruitmentScreen.METHOD)
         },
         edit(lang.raw("recruitment.pitch"), profile.pitch) { current, value -> current.copy(pitch = value) },
@@ -50,7 +53,7 @@ internal fun RecruitmentController.settings(): List<RecruitmentButton> {
         RecruitmentButton(
             lang.raw("recruitment.beginner"),
             listOf(enabled(profile.beginnerFriendly)),
-            "lg_toggle_on",
+            RecruitmentIcons.TOGGLE_ON,
         ) {
             val current = service.profile(requireNotNull(guilds.getGuild(guild.id)))
             service.saveProfile(player.uniqueId, current.copy(beginnerFriendly = !current.beginnerFriendly))
@@ -61,9 +64,10 @@ internal fun RecruitmentController.settings(): List<RecruitmentButton> {
             profile.discordInvite ?: "",
         ) { current, value ->
             current.copy(
-                discordInvite = value.ifBlank {
-                    null
-                },
+                discordInvite =
+                    value.ifBlank {
+                        null
+                    },
             )
         },
         edit(
@@ -73,18 +77,19 @@ internal fun RecruitmentController.settings(): List<RecruitmentButton> {
     )
 }
 
-internal fun RecruitmentController.methodSettings(): List<RecruitmentButton> = RecruitmentMode.entries.map { method ->
-    RecruitmentButton(mode(method), icon = "lg_nav_settings") {
-        val guild = requireNotNull(ownGuild())
-        val profile = service.profile(guild)
-        if (method == RecruitmentMode.DISCORD &&
-            (profile.discordInvite == null || profile.discordInstructions.isBlank())
-        ) {
-            player.sendMessage(lang.msg("recruitment.discord_setup"))
+internal fun RecruitmentController.methodSettings(): List<RecruitmentButton> =
+    RecruitmentMode.entries.map { method ->
+        RecruitmentButton(mode(method), icon = RecruitmentIcons.NAV_SETTINGS) {
+            val guild = requireNotNull(ownGuild())
+            val profile = service.profile(guild)
+            if (method == RecruitmentMode.DISCORD &&
+                (profile.discordInvite == null || profile.discordInstructions.isBlank())
+            ) {
+                player.sendMessage(lang.msg("recruitment.discord_setup"))
+                go(RecruitmentScreen.SETTINGS)
+                return@RecruitmentButton
+            }
+            service.saveProfile(player.uniqueId, profile.copy(mode = method))
             go(RecruitmentScreen.SETTINGS)
-            return@RecruitmentButton
         }
-        service.saveProfile(player.uniqueId, profile.copy(mode = method))
-        go(RecruitmentScreen.SETTINGS)
     }
-}

@@ -17,6 +17,8 @@ import org.bukkit.entity.Player
 import org.koin.core.component.inject
 import java.time.Duration
 
+private const val MAX_INPUT_LENGTH = 2_000
+
 /** Native presentation only; all input and private reads are reauthorized by the caller. */
 internal object RecruitmentPresentation : org.koin.core.component.KoinComponent {
     private const val BOOK_COLUMNS = 12
@@ -24,9 +26,10 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
     private const val MAX_BOOK_PAGES = 100
     private val platforms: net.lumalyte.lg.application.services.PlatformDetectionService by inject()
 
-    fun supportsDialog(player: Player): Boolean = Bukkit.getPluginManager().isPluginEnabled("packetevents") &&
-        PacketEvents.getAPI().playerManager.getUser(player)?.clientVersion
-            ?.isNewerThanOrEquals(ClientVersion.V_1_21_6) == true
+    fun supportsDialog(player: Player): Boolean =
+        Bukkit.getPluginManager().isPluginEnabled("packetevents") &&
+            PacketEvents.getAPI().playerManager.getUser(player)?.clientVersion
+                ?.isNewerThanOrEquals(ClientVersion.V_1_21_6) == true
 
     fun input(
         player: Player,
@@ -40,16 +43,17 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
     ) {
         val options = ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(2)).build()
 
-        fun action(callback: (String?) -> Unit) = DialogAction.customClick({ response, audience ->
-            if (audience is Player && audience.uniqueId == player.uniqueId) {
-                Bukkit.getScheduler().runTask(
-                    net.lumalyte.lg.common.PluginKeys.getPlugin(),
-                    Runnable {
-                        if (player.isOnline && valid()) callback(response.getText("answer"))
-                    },
-                )
-            }
-        }, options)
+        fun action(callback: (String?) -> Unit) =
+            DialogAction.customClick({ response, audience ->
+                if (audience is Player && audience.uniqueId == player.uniqueId) {
+                    Bukkit.getScheduler().runTask(
+                        net.lumalyte.lg.common.PluginKeys.getPlugin(),
+                        Runnable {
+                            if (player.isOnline && valid()) callback(response.getText("answer"))
+                        },
+                    )
+                }
+            }, options)
         player.showDialog(
             Dialog.create { factory ->
                 factory.empty().base(
@@ -57,7 +61,7 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
                         .inputs(
                             listOf(
                                 DialogInput.text("answer", Component.text(title)).initial(initial)
-                                    .maxLength(2000).build(),
+                                    .maxLength(MAX_INPUT_LENGTH).build(),
                             ),
                         ).build(),
                 )
@@ -116,14 +120,18 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
     }
 
     /** Retains complete validated text and wraps at Unicode code-point boundaries. */
-    internal fun bookPages(lines: List<String>, returnLink: Component): List<Component> {
-        val rows = lines.flatMap { value ->
-            value.lines().flatMap { line ->
-                line.codePoints().toArray().toList().chunked(BOOK_COLUMNS).map { points ->
-                    java.lang.String(points.toIntArray(), 0, points.size).toString()
+    internal fun bookPages(
+        lines: List<String>,
+        returnLink: Component,
+    ): List<Component> {
+        val rows =
+            lines.flatMap { value ->
+                value.lines().flatMap { line ->
+                    line.codePoints().toArray().toList().chunked(BOOK_COLUMNS).map { points ->
+                        java.lang.String(points.toIntArray(), 0, points.size).toString()
+                    }
                 }
             }
-        }
         val pages = rows.chunked(BOOK_ROWS)
         require(pages.size <= MAX_BOOK_PAGES) { "Book content exceeds the supported page count" }
         return pages.map { page ->

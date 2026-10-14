@@ -14,7 +14,10 @@ internal class GuildRecruitmentEligibilityBukkit(
     private val banned: (UUID) -> Boolean = { Bukkit.getOfflinePlayer(it).isBanned },
 ) : GuildRecruitmentEligibility {
     /** Banned players and players refusing any member of a guild cannot enter through recruitment. */
-    override fun allows(player: UUID, guild: UUID): Boolean {
+    override fun allows(
+        player: UUID,
+        guild: UUID,
+    ): Boolean {
         if (banned(player)) return false
         val blocked =
             storage.connection.connection.use { connection ->
