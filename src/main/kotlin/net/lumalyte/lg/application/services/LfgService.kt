@@ -35,6 +35,10 @@ interface LfgService {
      */
     fun joinGuild(playerId: UUID, guild: Guild): LfgJoinResult
 
+    /** Admits a durably reserved applicant through the same fee pipeline after each eligibility recheck. */
+    fun joinApprovedGuild(playerId: UUID, guild: Guild, eligible: () -> Boolean): LfgJoinResult =
+        LfgJoinResult.Error("Application admission is unavailable")
+
     /**
      * Gets the join requirement details for a guild.
      *

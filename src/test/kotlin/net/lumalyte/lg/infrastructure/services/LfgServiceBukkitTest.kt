@@ -198,6 +198,35 @@ class LfgServiceBukkitTest {
     // ===== getAvailableGuilds Tests =====
 
     @Test
+    fun `approved offer can admit to a closed guild through existing fee admission`() {
+        val player = UUID.randomUUID()
+        val guild = openGuildWithFee.copy(isOpen = false)
+        every { guildRepository.getById(guild.id) } returns guild
+        every { physicalCurrencyService.calculatePlayerInventoryValue(player) } returns 1000
+        every { memberService.addMember(player, guild.id, defaultRank.id) } returns mockk(relaxed = true)
+        assertTrue(lfgService.joinApprovedGuild(player, guild) { true } is LfgJoinResult.Success)
+        verify(exactly = 1) { bankService.collectJoinFee(any(), true, any()) }
+        verify(exactly = 1) { memberService.addMember(player, guild.id, defaultRank.id) }
+        assertTrue(lfgService.joinGuild(UUID.randomUUID(), guild) is LfgJoinResult.Error)
+    }
+
+    @Test
+    fun `offer eligibility revoked during payment cannot complete admission`() {
+        val player = UUID.randomUUID()
+        var allowed = true
+        every { physicalCurrencyService.calculatePlayerInventoryValue(player) } returns 1000
+        every { bankService.collectJoinFee(any(), any(), any()) } answers {
+            val admission = thirdArg<PaidGuildAdmission>()
+            assertTrue(admission.isEligible())
+            allowed = false
+            assertFalse(admission.complete())
+            GuildGoldResult.Failed(firstArg<PersonalGoldRequest>().transactionId, false)
+        }
+        assertTrue(lfgService.joinApprovedGuild(player, openGuildWithFee) { allowed } is LfgJoinResult.Error)
+        verify(exactly = 0) { memberService.addMember(any(), any(), any()) }
+    }
+
+    @Test
     fun `getAvailableGuilds should return guilds where isOpen is true and has slots`() {
         // Given: Mix of open and closed guilds
         every { guildRepository.getAll() } returns setOf(openGuild, closedGuild)

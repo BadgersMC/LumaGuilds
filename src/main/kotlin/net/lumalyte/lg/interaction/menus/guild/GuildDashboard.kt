@@ -85,6 +85,11 @@ class GuildDashboard(
         // Guild info display at top center
         addGuildInfoDisplay(pane, 4, 0)
 
+        addNavButton(pane, 6, 0, "lg_members", Material.PLAYER_HEAD,
+            lang.gui("recruitment.title"), lang.gui("recruitment.browse")) {
+            menuNavigator.openMenu(menuFactory.createLfgBrowserMenu(menuNavigator, player))
+        }
+
         addNavButton(pane, 0, 0, "lg_nav_stalls", Material.OAK_SIGN,
             lang.gui("guild_stall.title"), lang.gui("guild_stall.choose")) {
             menuNavigator.openMenu(menuFactory.createGuildStallMenu(menuNavigator, player, guild))

@@ -1,10 +1,14 @@
 package net.lumalyte.lg.domain.recruitment
 
 import org.junit.jupiter.api.Test
-import java.time.Instant
 import java.time.Duration
+import java.time.Instant
 import java.util.UUID
-import kotlin.test.*
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class RecruitmentPolicyTest {
     private val now = Instant.parse("2026-10-14T12:00:00Z")
@@ -12,8 +16,16 @@ class RecruitmentPolicyTest {
     private val player = UUID.randomUUID()
     private val recruiter = UUID.randomUUID()
     private val policy = RecruitmentPolicy()
-    private fun application() = GuildApplication(UUID.randomUUID(), guild, player, "I enjoy building", now,
-        now.plus(Duration.ofDays(7)))
+
+    private fun application() =
+        GuildApplication(
+            UUID.randomUUID(),
+            guild,
+            player,
+            "I enjoy building",
+            now,
+            now.plus(Duration.ofDays(7)),
+        )
 
     @Test fun `legacy open flag migrates without guessing application mode`() {
         assertEquals(RecruitmentMode.JOIN_IMMEDIATELY, RecruitmentProfile.legacy(guild, true).mode)
@@ -23,13 +35,30 @@ class RecruitmentPolicyTest {
     @Test fun `Discord mode requires a strict invite and instructions`() {
         assertFailsWith<IllegalArgumentException> { RecruitmentProfile(guild, RecruitmentMode.DISCORD) }
         assertFailsWith<IllegalArgumentException> {
-            RecruitmentProfile(guild, RecruitmentMode.DISCORD, discordInvite = "https://evil.example/discord.gg/test", discordInstructions = "Open a ticket")
+            RecruitmentProfile(
+                guild,
+                RecruitmentMode.DISCORD,
+                discordInvite = "https://evil.example/discord.gg/test",
+                discordInstructions = "Open a ticket",
+            )
         }
         for (link in listOf("https://discord.gg/Example-1", "https://discord.com/invite/Example-1/")) {
-            assertEquals(link, RecruitmentProfile(guild, RecruitmentMode.DISCORD, discordInvite = link,
-                discordInstructions = "Open a ticket").discordInvite)
+            assertEquals(
+                link,
+                RecruitmentProfile(
+                    guild,
+                    RecruitmentMode.DISCORD,
+                    discordInvite = link,
+                    discordInstructions = "Open a ticket",
+                ).discordInvite,
+            )
         }
-        for (link in listOf("http://discord.gg/test", "https://discord.gg/test?redirect=x", "https://discord.gg/test\n", "https://discord.com.evil/invite/test")) {
+        for (link in listOf(
+            "http://discord.gg/test",
+            "https://discord.gg/test?redirect=x",
+            "https://discord.gg/test\n",
+            "https://discord.com.evil/invite/test",
+        )) {
             assertFalse(DiscordInvite.isValid(link), link)
         }
     }

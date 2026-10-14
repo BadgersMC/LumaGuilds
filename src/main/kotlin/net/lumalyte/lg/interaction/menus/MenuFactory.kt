@@ -1192,13 +1192,13 @@ class MenuFactory(
         player: Player
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockLfgBrowserMenu(
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildRecruitmentMenu(
                 menuNavigator,
                 player,
                 logger
             )
         } else {
-            LfgBrowserMenu(menuNavigator, player)
+            net.lumalyte.lg.interaction.menus.guild.GuildRecruitmentMenu(menuNavigator, player)
         }
     }
 

@@ -20,12 +20,12 @@ Branch: codex/guild-recruitment. Production and TEST are untouched.
 
 ## Tasks and proof
 
-- [x] TDD REC-001/002: dedicated permission vocabulary, Java/Bedrock editor labels and invite reauthorization on confirmation. Existing Manage Members invitation access retained. Recruitment review/settings use-case wiring remains below.
-- [x] TDD REC-004/005/006/008/009: pure policy/lifecycle foundation and focused boundary tests. Not a running application/admission feature yet.
-- [ ] TDD REC-005/006/007/008: durable SQLite/MariaDB applications, transitions, audit and payment/admission orchestration; restart/race/failure tests.
-- [ ] TDD REC-003/009/012: shared board/profile/applicant/recruiter/settings models and Java/Bedrock menus, search/filter, safe external link confirmation.
-- [ ] TDD REC-010: durable prompt/opt-out/cooldown preferences and notification lifecycle.
-- [ ] INFRA REC-011: spawn discovery integration instructions. Proof/engine do not apply to placing documentation; runtime placement requires operator authorization.
+- [x] TDD REC-001/002: dedicated rank permissions and live invitation, inbox and settings reauthorization. Existing Manage Members invitation access retained.
+- [x] TDD REC-004/005/006/008/009: pure bounded policy, offer lifecycle and exact Discord invite validation.
+- [x] TDD REC-005/006/007/008: durable SQLite/MariaDB applications, applicant locking, stale transitions, audit and canonical admission integration. Uncertain payments remain reserved for staff review and cannot be paid twice through another offer.
+- [x] TDD REC-003/009/012: shared board/profile/applicant/recruiter/settings controller and native Java/Bedrock menus, search/filter, explicit joining confirmation and exact Discord destination confirmation. Custom banners/emojis remain public profile decoration; application answers stay private.
+- [x] TDD REC-010: durable one-time prompt, personal opt-out, optional cooldown and private notification digest. Session timers do not survive a reconnect; notification polling is limited to one online player per second.
+- [x] INFRA REC-011: spawn discovery integration instructions below. Proof/engine do not apply to placing documentation; runtime placement requires operator authorization.
 - [ ] DOC REC-012: update private interactive preview to implemented screens; mobile layout and hosted delivery validation.
 - [ ] TDD: full checks, architecture contracts, review/CI, reviewable source PR. No merge, deployment, restart or reload authorized in this task.
 
@@ -36,9 +36,16 @@ Project has SPEAR requirements/tasks/architecture documents but no project-local
 - New policy tests initially failed compilation because the recruitment policy/model did not exist; subsequent policy/permission/architecture tests passed. This is missing-feature proof, not a historical behavioral regression claim.
 - SQL tests initially failed compilation because the repository adapter did not exist. SQLite tests now cover durable decisions, concurrent duplicate/limit enforcement across repository instances, stale compare-and-set rejection, expired reapplication, uncertain admission reservations, failed writes and clock precision.
 - Final `check --offline` after the Bedrock server-thread refinement: 1,786 cases, zero failures/errors, 16 existing optional skips. This is local proof, not hosted CI, native MariaDB, activation or player acceptance. A duplicate locale mapping introduced during implementation was caught and corrected by the existing locale contracts.
-- SQL adapter is deliberately not registered with runtime DI yet. No recruitment tables are created in production/TEST. No new application state is treated as membership or payment authority until the admission use case is implemented and tested.
-- Native MariaDB verification remains pending; portable SQL syntax and InnoDB applicant locking alone are not native-engine proof.
-- Review integration with unmerged invite-block PR #232 before delivery of admission. This branch starts on main and does not import or replace that separate PR.
-- Private updated preview models separate permissions and offer-confirmation, but board/inbox/settings/discovery remain simulated. Private art remains outside the public repository.
+- Runtime DI now registers the repositories, application service, native menus and discovery listener. Additive tables will be created when this source is activated; no production/TEST instance was changed.
+- Local full `check --offline`: 1,806 cases, zero failures/errors, 16 existing optional skips. Native MariaDB 11.8.3 on disposable loopback port 33484: 13 recruitment persistence/eligibility cases, zero failures/errors/skips. The process was shut down after proof. These counts are local proof, not hosted CI or player acceptance.
+- Offer integration tests cover closed-guild paid admission, eligibility revocation before membership, quote/currency changes, repeated confirmation, uncertain admission and tentative membership events. Private input tests cover disconnect cleanup and stale timeout protection. Locale and architecture contracts run with the full suite.
+- Invite-block compatibility reads the reviewed PR #232 `player_invite_blocks` table only when present. Native contracts prove directionality, absent-table compatibility and malformed-row fail-closed behavior. This does not merge or replace that separate PR; the combined reviewed deployment still needs acceptance.
+- Public integration constructors remain compatible; recruitment-only types are internal. Private artwork stays outside the public repository. The interactive preview uses sample data and simulated actions; Java/Bedrock resource-pack and player journeys remain acceptance gates.
+
+## Operator discovery integration
+
+Use `guild recruitment` as a spawn NPC's player-executed command (do not execute as console or impersonate another player). Use `/g recruitment` in a hologram's command click action, where supported. Static text can say “Find a Guild — browse guilds and apply.” No new world placements or third-party plugin configuration are changed by this PR. All three aliases `/g lfg`, `/g browse` and `/g recruitment` use the same existing `lumaguilds.guild.lfg` permission. Existing `/g list` stays available as the separate full directory.
+
+Leaders grant Manage Recruitment to application reviewers and Edit Recruitment Settings to listing editors through the existing rank editor. Existing open flags remain the fallback until an explicit recruitment profile is saved. Joining fees remain the canonical configured fees; applying, reviewing and opening Discord charge nothing. Confirmed payment failures that cannot prove a refund remain pending for staff investigation; never instruct a player to pay again solely because membership is absent.
 
 Player advertisements under a Looking For Guild tab remain a future option: current LFG is guild discovery, not an existing player-advertisement service. No unsolicited public posting, Discord bot automation, promoted listings or fee policy changes are included.

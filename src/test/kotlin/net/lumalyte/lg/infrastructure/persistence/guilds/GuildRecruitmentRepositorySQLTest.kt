@@ -1,20 +1,35 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
-import net.lumalyte.lg.domain.recruitment.*
+import net.lumalyte.lg.domain.recruitment.ApplicationStatus
+import net.lumalyte.lg.domain.recruitment.GuildApplication
+import net.lumalyte.lg.domain.recruitment.RecruitmentPolicy
+import net.lumalyte.lg.domain.recruitment.SubmissionDenial
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
-import kotlin.test.*
+import kotlin.test.assertEquals
+import kotlin.test.assertFails
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
     private val now = Instant.parse("2026-10-14T12:00:00Z")
     private val player = UUID.randomUUID()
     private val guild = UUID.randomUUID()
     private val policy = RecruitmentPolicy()
-    private fun application() = GuildApplication(UUID.randomUUID(), guild, player, "I enjoy building", now,
-        now.plus(policy.applicationLifetime))
+
+    private fun application() =
+        GuildApplication(
+            UUID.randomUUID(),
+            guild,
+            player,
+            "I enjoy building",
+            now,
+            now.plus(policy.applicationLifetime),
+        )
 
     @Test fun `applications and decision actor survive a new repository instance`() {
         val storage = openStorage()
@@ -46,9 +61,12 @@ class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
     @Test fun `concurrent submissions enforce duplicate and global limits across instances`() {
         val storage = openStorage()
         val repositories = listOf(GuildRecruitmentRepositorySQL(storage), GuildRecruitmentRepositorySQL(storage))
-        val attempts = (0..7).map { n -> CompletableFuture.supplyAsync {
-            repositories[n % 2].submit(application(), policy, now)
-        } }
+        val attempts =
+            (0..7).map { n ->
+                CompletableFuture.supplyAsync {
+                    repositories[n % 2].submit(application(), policy, now)
+                }
+            }
         assertEquals(1, attempts.count { it.get(20, TimeUnit.SECONDS) == null })
         for (n in 1..2) assertNull(repositories[0].submit(application().copy(guildId = UUID.randomUUID()), policy, now))
         assertEquals(SubmissionDenial.LIMIT, repositories[1].submit(application().copy(guildId = UUID.randomUUID()), policy, now))
@@ -58,13 +76,28 @@ class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
         val repository = GuildRecruitmentRepositorySQL(openStorage())
         val a = application()
         repository.submit(a, policy, now)
-        assertNull(repository.submit(application().copy(createdAt = a.expiresAt, expiresAt = a.expiresAt.plus(policy.applicationLifetime)), policy, a.expiresAt))
+        assertNull(
+            repository.submit(
+                application().copy(createdAt = a.expiresAt, expiresAt = a.expiresAt.plus(policy.applicationLifetime)),
+                policy,
+                a.expiresAt,
+            ),
+        )
         val b = repository.forApplicant(player).first { it.id != a.id }
         val offered = b.offer(UUID.randomUUID(), b.createdAt, policy.offerLifetime)
         repository.transition(b, offered)
         repository.transition(offered, offered.confirm(player, b.createdAt))
-        assertEquals(SubmissionDenial.DUPLICATE, repository.submit(application().copy(createdAt = b.expiresAt,
-            expiresAt = b.expiresAt.plus(policy.applicationLifetime)), policy, b.expiresAt))
+        assertEquals(
+            SubmissionDenial.DUPLICATE,
+            repository.submit(
+                application().copy(
+                    createdAt = b.expiresAt,
+                    expiresAt = b.expiresAt.plus(policy.applicationLifetime),
+                ),
+                policy,
+                b.expiresAt,
+            ),
+        )
     }
 
     @Test fun `database write failure never reports successful submission`() {
@@ -82,5 +115,20 @@ class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
         val offered = a.offer(UUID.randomUUID(), precise, policy.offerLifetime)
         assertTrue(repository.transition(a, offered))
         assertTrue(repository.transition(offered, offered.confirm(player, precise)))
+    }
+
+    @Test fun `only one guild admission can be reserved for the same applicant`() {
+        val repository = GuildRecruitmentRepositorySQL(openStorage())
+        val first = application()
+        val second = application().copy(guildId = UUID.randomUUID())
+        repository.submit(first, policy, now)
+        repository.submit(second, policy, now)
+        val offer1 = first.offer(UUID.randomUUID(), now, policy.offerLifetime)
+        val offer2 = second.offer(UUID.randomUUID(), now, policy.offerLifetime)
+        repository.transition(first, offer1)
+        repository.transition(second, offer2)
+        assertTrue(repository.transition(offer1, offer1.confirm(player, now)))
+        assertFalse(repository.transition(offer2, offer2.confirm(player, now)))
+        assertEquals(ApplicationStatus.OFFERED, repository.get(second.id)?.status)
     }
 }

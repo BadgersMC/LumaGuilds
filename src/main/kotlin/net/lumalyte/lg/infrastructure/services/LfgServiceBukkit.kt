@@ -21,7 +21,7 @@ import java.util.UUID
 /**
  * Bukkit implementation of LfgService for Looking For Guild operations.
  */
-class LfgServiceBukkit(
+class LfgServiceBukkit internal constructor(
     private val guildRepository: GuildRepository,
     private val guildService: GuildService,
     private val memberService: MemberService,
@@ -29,8 +29,23 @@ class LfgServiceBukkit(
     private val configService: ConfigService,
     private val vaultService: GuildVaultService,
     private val bankService: BankService,
-    private val rankService: RankService
+    private val rankService: RankService,
+    private val recruitment: net.lumalyte.lg.application.persistence.RecruitmentDirectoryRepository? = null,
+    private val recruitmentEligibility: net.lumalyte.lg.application.services.GuildRecruitmentEligibility? = null,
 ) : LfgService {
+
+    /** Preserves the existing eight-argument integration constructor. */
+    constructor(
+        guildRepository: GuildRepository,
+        guildService: GuildService,
+        memberService: MemberService,
+        physicalCurrencyService: PhysicalCurrencyService,
+        configService: ConfigService,
+        vaultService: GuildVaultService,
+        bankService: BankService,
+        rankService: RankService,
+    ) : this(guildRepository, guildService, memberService, physicalCurrencyService,
+        configService, vaultService, bankService, rankService, null, null)
 
     private val logger = LoggerFactory.getLogger(LfgServiceBukkit::class.java)
 
@@ -51,6 +66,9 @@ class LfgServiceBukkit(
     }
 
     override fun canJoinGuild(playerId: UUID, guild: Guild): LfgJoinResult {
+        if (recruitmentEligibility?.allows(playerId, guild.id) == false) {
+            return LfgJoinResult.Error("You are not eligible to join this guild")
+        }
         val config = configService.loadConfig()
         val maxMembers = minOf(config.guild.maxMembersPerGuild, memberService.getMemberLimit(guild.id))
 
@@ -100,9 +118,23 @@ class LfgServiceBukkit(
 
     @Synchronized
     override fun joinGuild(playerId: UUID, guild: Guild): LfgJoinResult {
+        return admit(playerId, guild) { current -> isImmediate(current) }
+    }
+
+    /** Approved offers use the same compensated fee transaction without opening the guild publicly. */
+    @Synchronized
+    override fun joinApprovedGuild(playerId: UUID, guild: Guild, eligible: () -> Boolean): LfgJoinResult {
+        return admit(playerId, guild) { eligible() }
+    }
+
+    private fun isImmediate(guild: Guild): Boolean = recruitment?.profile(guild.id)?.let {
+        it.mode == net.lumalyte.lg.domain.recruitment.RecruitmentMode.JOIN_IMMEDIATELY
+    } ?: guild.isOpen
+
+    private fun admit(playerId: UUID, guild: Guild, admissionAllowed: (Guild) -> Boolean): LfgJoinResult {
         val currentGuild = guildRepository.getById(guild.id)
             ?: return LfgJoinResult.Error("This guild is no longer available")
-        if (!currentGuild.isOpen || currentGuild.joinFeeEnabled != guild.joinFeeEnabled ||
+        if (!admissionAllowed(currentGuild) || currentGuild.joinFeeEnabled != guild.joinFeeEnabled ||
             currentGuild.joinFeeAmount != guild.joinFeeAmount) {
             return LfgJoinResult.Error("Guild recruitment changed. Please reopen the guild browser")
         }
@@ -124,14 +156,15 @@ class LfgServiceBukkit(
             val result = bankService.collectJoinFee(request, vaultConfig.usePhysicalCurrency, object : PaidGuildAdmission {
                 override fun isEligible(): Boolean {
                     val latest = guildRepository.getById(guild.id) ?: return false
-                    return latest.isOpen && latest.joinFeeEnabled == guild.joinFeeEnabled &&
+                    return admissionAllowed(latest) && latest.joinFeeEnabled == guild.joinFeeEnabled &&
                         latest.joinFeeAmount == guild.joinFeeAmount &&
+                        recruitmentEligibility?.allows(playerId, guild.id) != false &&
                         memberService.getPlayerGuilds(playerId).isEmpty() &&
                         memberService.getMemberCount(guild.id) < minOf(configService.loadConfig().guild.maxMembersPerGuild,
                             memberService.getMemberLimit(guild.id)) &&
                         rankService.getDefaultRank(guild.id)?.id == defaultRank.id
                 }
-                override fun complete(): Boolean = memberService.addMember(playerId, guild.id, defaultRank.id) != null
+                override fun complete(): Boolean = isEligible() && memberService.addMember(playerId, guild.id, defaultRank.id) != null
             })
             return when (result) {
                 is GuildGoldResult.Applied -> LfgJoinResult.Success("You have joined ${guild.name}!")
@@ -145,6 +178,13 @@ class LfgServiceBukkit(
         }
 
         // Add the player as a member
+        val latest = guildRepository.getById(guild.id)
+            ?: return LfgJoinResult.Error("Guild no longer exists")
+        if (!admissionAllowed(latest) || latest.joinFeeEnabled != guild.joinFeeEnabled || latest.joinFeeAmount != guild.joinFeeAmount) {
+            return LfgJoinResult.Error("Guild recruitment changed; reopen the offer")
+        }
+        val finalValidation = canJoinGuild(playerId, latest)
+        if (finalValidation !is LfgJoinResult.Success) return finalValidation
         val member = memberService.addMember(playerId, guild.id, defaultRank.id)
         if (member == null) {
             logger.error("Failed to add player $playerId to guild ${guild.id}")

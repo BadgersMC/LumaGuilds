@@ -5,14 +5,17 @@ import io.mockk.mockk
 import net.lumalyte.lg.domain.entities.RankPermission
 import org.junit.jupiter.api.Test
 import java.util.UUID
-import kotlin.test.*
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class GuildRecruitmentPermissionsTest {
     private val actor = UUID.randomUUID()
     private val guild = UUID.randomUUID()
-    private fun members(vararg granted: RankPermission): MemberService = mockk<MemberService>().also { service ->
-        every { service.hasPermission(actor, guild, any()) } answers { thirdArg<RankPermission>() in granted }
-    }
+
+    private fun members(vararg granted: RankPermission): MemberService =
+        mockk<MemberService>().also { service ->
+            every { service.hasPermission(actor, guild, any()) } answers { thirdArg<RankPermission>() in granted }
+        }
 
     @Test fun `dedicated recruiter can invite and review but cannot edit settings`() {
         val members = members(RankPermission.MANAGE_RECRUITMENT)
