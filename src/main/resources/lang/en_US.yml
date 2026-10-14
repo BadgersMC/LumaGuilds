@@ -7678,6 +7678,7 @@ onboarding:
     stalls: "Guild Stalls shows authoritative ownership and member access, or explains unavailable Market data."
 
 recruitment:
+  age_hours: "Age (hours): "
   filter_language: Filter by Language (blank clears)
   filter_times: Filter by Play Times (blank clears)
   listing_updated: "Listing updated (UTC): "
