@@ -35,7 +35,8 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
                 "recruitment_applicant_idx" to "applicant_id",
                 "recruitment_guild_idx" to "guild_id",
             )) {
-                val exists = connection.metaData.getIndexInfo(
+                val exists =
+                    connection.metaData.getIndexInfo(
                         connection.catalog,
                         null,
                         "guild_recruitment_applications",
@@ -66,7 +67,8 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         require(application.createdAt == at && application.expiresAt == at.plus(policy.applicationLifetime))
         return transaction { connection ->
             lockApplicant(connection, application.applicantId)
-            val denial = policy.canSubmit(
+            val denial =
+                policy.canSubmit(
                     application.guildId,
                     application.applicantId,
                     query(
@@ -93,19 +95,19 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
     }
 
     override fun get(id: UUID): GuildApplication? = read(
-            "SELECT * FROM guild_recruitment_applications WHERE id = ?",
-            id,
-        ).firstOrNull()
+        "SELECT * FROM guild_recruitment_applications WHERE id = ?",
+        id,
+    ).firstOrNull()
 
     override fun forApplicant(applicant: UUID): List<GuildApplication> = read(
-            "SELECT * FROM guild_recruitment_applications WHERE applicant_id = ? ORDER BY created_at, id",
-            applicant,
-        )
+        "SELECT * FROM guild_recruitment_applications WHERE applicant_id = ? ORDER BY created_at, id",
+        applicant,
+    )
 
     override fun forGuild(guild: UUID): List<GuildApplication> = read(
-            "SELECT * FROM guild_recruitment_applications WHERE guild_id = ? ORDER BY created_at, id",
-            guild,
-        )
+        "SELECT * FROM guild_recruitment_applications WHERE guild_id = ? ORDER BY created_at, id",
+        guild,
+    )
 
     override fun transition(expected: GuildApplication, updated: GuildApplication): Boolean {
         require(
@@ -116,7 +118,8 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         require(expected.status != updated.status)
         return transaction { connection ->
             lockApplicant(connection, expected.applicantId)
-            val current = query(
+            val current =
+                query(
                     connection,
                     "SELECT * FROM guild_recruitment_applications WHERE id = ?",
                     expected.id,
@@ -147,10 +150,8 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         }
     }
 
-    private fun read(
-        sql: String,
-        id: UUID,
-    ): List<GuildApplication> = storage.connection.connection.use { query(it, sql, id) }
+    private fun read(sql: String, id: UUID): List<GuildApplication> =
+        storage.connection.connection.use { query(it, sql, id) }
 
     private fun millis(at: Instant): Instant = Instant.ofEpochMilli(at.toEpochMilli())
 
@@ -193,21 +194,23 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
             statement.executeUpdate()
         }
 
-    @Suppress("TooGenericExceptionCaught") // Transaction boundary rolls back every failure and preserves rollback errors.
+    @Suppress(
+        "TooGenericExceptionCaught",
+    ) // Transaction boundary rolls back every failure and preserves rollback errors.
     private fun <T> transaction(operation: (Connection) -> T): T = storage.connection.connection.use { connection ->
-            connection.autoCommit = false
+        connection.autoCommit = false
+        try {
+            val result = operation(connection)
+            connection.commit()
+            result
+        } catch (failure: Throwable) {
             try {
-                val result = operation(connection)
-                connection.commit()
-                result
-            } catch (failure: Throwable) {
-                try {
-                    connection.rollback()
-                } catch (rollback: Throwable) {
-                    failure.addSuppressed(rollback)
-                }
-                // Never restore autoCommit after a failed rollback, which could commit partial writes.
-                throw failure
+                connection.rollback()
+            } catch (rollback: Throwable) {
+                failure.addSuppressed(rollback)
             }
+            // Never restore autoCommit after a failed rollback, which could commit partial writes.
+            throw failure
         }
+    }
 }

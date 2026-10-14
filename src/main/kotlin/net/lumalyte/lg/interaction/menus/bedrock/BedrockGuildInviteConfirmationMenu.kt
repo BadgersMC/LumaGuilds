@@ -84,7 +84,8 @@ class BedrockGuildInviteConfirmationMenu(
             return
         }
 
-        val invitationStored = GuildInvitationManager.addInvite(
+        val invitationStored =
+            GuildInvitationManager.addInvite(
                 guildId = guild.id,
                 guildName = guild.name,
                 invitedPlayerId = targetPlayer.uniqueId,

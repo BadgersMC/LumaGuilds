@@ -18,13 +18,13 @@ internal class RecruitmentPolicyTest {
     private val policy = RecruitmentPolicy()
 
     private fun application() = GuildApplication(
-            UUID.randomUUID(),
-            guild,
-            player,
-            "I enjoy building",
-            now,
-            now.plus(Duration.ofDays(7)),
-        )
+        UUID.randomUUID(),
+        guild,
+        player,
+        "I enjoy building",
+        now,
+        now.plus(Duration.ofDays(7)),
+    )
 
     @org.junit.jupiter.api.DisplayName("legacy open flag migrates without guessing application mode")
     @Test

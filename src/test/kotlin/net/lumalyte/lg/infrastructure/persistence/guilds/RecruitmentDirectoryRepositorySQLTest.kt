@@ -22,7 +22,8 @@ internal class RecruitmentDirectoryRepositorySQLTest : RewardSqlTestFixture() {
         repository.save(profile)
         val at = requireNotNull(RecruitmentDirectoryRepositorySQL(storage).updatedAt(profile.guildId))
         assertTrue(at >= before && at <= Instant.now())
-        val row = storage.connection.getFirstRow(
+        val row =
+            storage.connection.getFirstRow(
                 "SELECT profile FROM guild_recruitment_profiles WHERE guild_id = ?",
                 profile.guildId.toString(),
             )
@@ -45,7 +46,8 @@ internal class RecruitmentDirectoryRepositorySQLTest : RewardSqlTestFixture() {
     fun profileRoundTripsDiscordIn1() {
         val storage = openStorage()
         val first = RecruitmentDirectoryRepositorySQL(storage)
-        val profile = RecruitmentProfile(
+        val profile =
+            RecruitmentProfile(
                 UUID.randomUUID(), RecruitmentMode.DISCORD, "Welcome", "Be kind",
                 setOf("Building", "Quests"), "Evenings", "English", true, "https://discord.gg/Example", "Open a ticket",
             )

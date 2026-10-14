@@ -55,7 +55,8 @@ internal class GuildRecruitmentService(
         ) { "You are not eligible to apply" }
         val at = now()
         val policy = policy()
-        val application = GuildApplication(
+        val application =
+            GuildApplication(
                 UUID.randomUUID(),
                 guildId,
                 player,
@@ -139,7 +140,8 @@ internal class GuildRecruitmentService(
         if (validation !is LfgJoinResult.Success) return validation
         val pending = current.confirm(player, now())
         require(applications.transition(current, pending)) { "Offer already changed; refresh your applications" }
-        val result = lfg.joinApprovedGuild(player, guild) {
+        val result =
+            lfg.joinApprovedGuild(player, guild) {
                 val latest = guilds.getGuild(guild.id)
                 latest != null && profile(latest).mode == RecruitmentMode.IN_GAME && eligible(player, guild.id) &&
                     lfg.getJoinRequirement(latest) == quotedFee &&

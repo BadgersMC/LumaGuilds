@@ -4,7 +4,8 @@ import net.lumalyte.lg.domain.entities.RankPermission
 
 /** Shared supported permission groups for creation and editing. */
 internal object RankPermissionCatalog {
-    private val CLAIM_PERMISSIONS = setOf(
+    private val CLAIM_PERMISSIONS =
+        setOf(
             RankPermission.MANAGE_CLAIMS,
             RankPermission.MANAGE_FLAGS,
             RankPermission.MANAGE_PERMISSIONS,

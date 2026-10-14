@@ -88,7 +88,8 @@ class LfgServiceBukkit internal constructor(
         // Check join fee requirements
         if (guild.joinFeeEnabled && guild.joinFeeAmount > 0) {
             val vaultConfig = config.vault
-            val charge = bankService.quoteJoinFee(guild.id, guild.joinFeeAmount)
+            val charge =
+                bankService.quoteJoinFee(guild.id, guild.joinFeeAmount)
                     ?: return LfgJoinResult.Error("Join fee is not supported by the current bank limits")
 
             if (vaultConfig.usePhysicalCurrency) {
@@ -133,10 +134,12 @@ class LfgServiceBukkit internal constructor(
         } ?: guild.isOpen
 
     private fun admit(playerId: UUID, guild: Guild, admissionAllowed: (Guild) -> Boolean): LfgJoinResult {
-        val current = guildRepository.getById(guild.id)
+        val current =
+            guildRepository.getById(guild.id)
                 ?: return LfgJoinResult.Error("This guild is no longer available")
         if (!admissionAllowed(current) || !sameFee(current, guild)) return recruitmentChanged()
-        val rank = rankService.getDefaultRank(guild.id)
+        val rank =
+            rankService.getDefaultRank(guild.id)
                 ?: return LfgJoinResult.Error("Guild configuration error: No default rank found")
         val validation = canJoinGuild(playerId, current)
         if (validation !is LfgJoinResult.Success) return validation
@@ -178,7 +181,8 @@ class LfgServiceBukkit internal constructor(
         val quote = getJoinRequirement(guild) ?: return LfgJoinResult.Error("Joining fee is unavailable")
         val request =
             PersonalGoldRequest(UUID.randomUUID(), guild.id, playerId, guild.joinFeeAmount.toLong(), "LFG join fee")
-        val admission = object : PaidGuildAdmission {
+        val admission =
+            object : PaidGuildAdmission {
                 override fun isEligible(): Boolean =
                     eligibleForAdmission(playerId, guild, rank, admissionAllowed) && getJoinRequirement(guild) == quote
 

@@ -19,11 +19,14 @@ import java.time.Duration
 
 /** Native presentation only; all input and private reads are reauthorized by the caller. */
 internal object RecruitmentPresentation : org.koin.core.component.KoinComponent {
+    private const val BOOK_COLUMNS = 12
+    private const val BOOK_ROWS = 12
+    private const val MAX_BOOK_PAGES = 100
     private val platforms: net.lumalyte.lg.application.services.PlatformDetectionService by inject()
 
     fun supportsDialog(player: Player): Boolean = Bukkit.getPluginManager().isPluginEnabled("packetevents") &&
-            PacketEvents.getAPI().playerManager.getUser(player)?.clientVersion
-                ?.isNewerThanOrEquals(ClientVersion.V_1_21_6) == true
+        PacketEvents.getAPI().playerManager.getUser(player)?.clientVersion
+            ?.isNewerThanOrEquals(ClientVersion.V_1_21_6) == true
 
     fun input(
         player: Player,
@@ -38,15 +41,15 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
         val options = ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(2)).build()
 
         fun action(callback: (String?) -> Unit) = DialogAction.customClick({ response, audience ->
-                if (audience is Player && audience.uniqueId == player.uniqueId) {
-                    Bukkit.getScheduler().runTask(
-                        net.lumalyte.lg.common.PluginKeys.getPlugin(),
-                        Runnable {
-                            if (player.isOnline && valid()) callback(response.getText("answer"))
-                        },
-                    )
-                }
-            }, options)
+            if (audience is Player && audience.uniqueId == player.uniqueId) {
+                Bukkit.getScheduler().runTask(
+                    net.lumalyte.lg.common.PluginKeys.getPlugin(),
+                    Runnable {
+                        if (player.isOnline && valid()) callback(response.getText("answer"))
+                    },
+                )
+            }
+        }, options)
         player.showDialog(
             Dialog.create { factory ->
                 factory.empty().base(
@@ -94,7 +97,8 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
             return
         }
         val options = ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(2)).build()
-        val returnLink = Component.text(backLabel).clickEvent(
+        val returnLink =
+            Component.text(backLabel).clickEvent(
                 ClickEvent.callback({ audience ->
                     if (audience is Player && audience.uniqueId == player.uniqueId) {
                         Bukkit.getScheduler().runTask(
@@ -106,10 +110,24 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
                     }
                 }, options),
             )
-        val pages = lines.flatMap { it.chunked(24) }.chunked(10).take(30).map { page ->
-                Component.text(page.joinToString("\n")).append(Component.newline()).append(returnLink)
-            }.ifEmpty { listOf(returnLink) }
+        val pages = bookPages(lines, returnLink)
         player.closeInventory()
         player.openBook(Book.book(Component.text(title), Component.text("LumaGuilds"), pages))
+    }
+
+    /** Retains complete validated text and wraps at Unicode code-point boundaries. */
+    internal fun bookPages(lines: List<String>, returnLink: Component): List<Component> {
+        val rows = lines.flatMap { value ->
+            value.lines().flatMap { line ->
+                line.codePoints().toArray().toList().chunked(BOOK_COLUMNS).map { points ->
+                    java.lang.String(points.toIntArray(), 0, points.size).toString()
+                }
+            }
+        }
+        val pages = rows.chunked(BOOK_ROWS)
+        require(pages.size <= MAX_BOOK_PAGES) { "Book content exceeds the supported page count" }
+        return pages.map { page ->
+            Component.text(page.joinToString("\n")).append(Component.newline()).append(returnLink)
+        }.ifEmpty { listOf(returnLink) }
     }
 }
