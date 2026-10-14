@@ -16,25 +16,18 @@ internal class LfgPaymentOutcomeTest {
     @Test
     fun paymentOutcomesRemainDistinct() {
         val reference = UUID.randomUUID()
-        assertEquals(
-            "PaymentRejected",
-            GuildGoldResult.Rejected(GuildGoldRejection.FROZEN)
-                .admissionFeedback(guild, logger)
-                .javaClass.simpleName,
+        kotlin.test.assertIs<net.lumalyte.lg.application.services.LfgJoinResult.PaymentRejected>(
+            outcome(GuildGoldResult.Rejected(GuildGoldRejection.FROZEN)),
         )
-        assertEquals(
-            "PaymentRefunded",
-            GuildGoldResult.Failed(reference, true)
-                .admissionFeedback(guild, logger)
-                .javaClass.simpleName,
+        kotlin.test.assertIs<net.lumalyte.lg.application.services.LfgJoinResult.PaymentRefunded>(
+            outcome(GuildGoldResult.Failed(reference, true)),
         )
-        assertEquals(
-            "PaymentUncertain",
-            GuildGoldResult.Failed(reference, false)
-                .admissionFeedback(guild, logger)
-                .javaClass.simpleName,
+        kotlin.test.assertIs<net.lumalyte.lg.application.services.LfgJoinResult.PaymentUncertain>(
+            outcome(GuildGoldResult.Failed(reference, false)),
         )
     }
+
+    private fun outcome(result: GuildGoldResult) = result.admissionFeedback(guild, logger)
 
     @Test
     fun paymentReferencePreserved() {

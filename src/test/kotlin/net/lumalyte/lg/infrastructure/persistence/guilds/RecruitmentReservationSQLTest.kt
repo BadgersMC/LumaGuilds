@@ -10,13 +10,12 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 internal class RecruitmentReservationSQLTest : RewardSqlTestFixture() {
-    @Test
-    fun reservationReleaseIsAtomic() {
-        val repository = GuildRecruitmentRepositorySQL(openStorage())
-        val now = Instant.EPOCH
-        val player = UUID.randomUUID()
-        val policy = RecruitmentPolicy()
-        val submitted = GuildApplication(
+    private val now = Instant.EPOCH
+    private val player = UUID.randomUUID()
+    private val policy = RecruitmentPolicy()
+
+    private fun submittedApplication(): GuildApplication {
+        return GuildApplication(
             UUID.randomUUID(),
             UUID.randomUUID(),
             player,
@@ -24,6 +23,12 @@ internal class RecruitmentReservationSQLTest : RewardSqlTestFixture() {
             now,
             now.plus(policy.applicationLifetime),
         )
+    }
+
+    @Test
+    fun reservationReleaseIsAtomic() {
+        val repository = GuildRecruitmentRepositorySQL(openStorage())
+        val submitted = submittedApplication()
         assertNull(repository.submit(submitted, policy, now))
         val offer = submitted.offer(UUID.randomUUID(), now, policy.offerLifetime)
         assertTrue(repository.transition(submitted, offer))
