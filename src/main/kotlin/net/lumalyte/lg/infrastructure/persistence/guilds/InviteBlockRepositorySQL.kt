@@ -6,8 +6,8 @@ import net.lumalyte.lg.infrastructure.persistence.migrations.InviteBlockSchema
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.slf4j.LoggerFactory
 import java.sql.Connection
-import java.sql.SQLException
 import java.sql.ResultSet
+import java.sql.SQLException
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -44,8 +44,8 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
 
     private fun readBlocks(rows: ResultSet) {
         while (rows.next()) {
-            val owner = readIdentity(rows.getString(OWNER_COLUMN))
-            val target = readIdentity(rows.getString(TARGET_COLUMN))
+            val owner = readBlockIdentity(rows.getString(OWNER_COLUMN))
+            val target = readBlockIdentity(rows.getString(TARGET_COLUMN))
             blockSet(owner).add(target)
         }
     }
@@ -110,16 +110,8 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
         }
     }
 
-    private fun blockSet(owner: UUID): MutableSet<UUID> {
-        return blocks.computeIfAbsent(owner) { ConcurrentHashMap.newKeySet() }
-    }
-
-    private fun readIdentity(value: String?): UUID {
-        return try {
-            UUID.fromString(value)
-        } catch (error: IllegalArgumentException) {
-            throw SQLException("Invalid identity in invite block storage", error)
-        }
+    private fun blockSet(owner: UUID): MutableSet<UUID> = blocks.computeIfAbsent(owner) {
+        ConcurrentHashMap.newKeySet()
     }
 
     private companion object {
@@ -128,4 +120,10 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
         const val CREATED_AT_COLUMN = 3
         val DUPLICATE_KEY_CODES = setOf(19, 1062, 1555, 2067)
     }
+}
+
+private fun readBlockIdentity(value: String?): UUID = try {
+    UUID.fromString(value)
+} catch (error: IllegalArgumentException) {
+    throw SQLException("Invalid identity in invite block storage", error)
 }

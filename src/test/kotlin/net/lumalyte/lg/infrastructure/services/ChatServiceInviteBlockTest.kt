@@ -28,7 +28,7 @@ internal class ChatServiceInviteBlockTest {
             mockk<PartyService> { every { getOnlinePartyMembers(partyId) } returns setOf(sender, blocker, other) }
         return ChatServiceBukkit(
             settings, mockk(), mockk(), mockk(), partyService, mockk(), mockk(), mockk(),
-            preferences(), parties(), mockk(), mockk(), blocks,
+            preferences(), parties, mockk(), mockk(), blocks,
         )
     }
 
@@ -39,9 +39,10 @@ internal class ChatServiceInviteBlockTest {
         }
     }
 
-    private fun parties(): PartyRepository =
-        mockk {
-            every { getById(partyId) } returns mockk {
+    private val parties =
+        mockk<PartyRepository> {
+            every { getById(partyId) } returns
+                mockk {
                 every { isActive() } returns true
                 every { id } returns partyId
             }

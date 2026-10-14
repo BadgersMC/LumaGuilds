@@ -31,9 +31,8 @@ interface GuildInviteBlocks {
 internal class GuildInviteBlocksImpl(private val blocks: InviteBlockService) : GuildInviteBlocks {
     override fun isBlocked(ownerId: UUID, targetId: UUID): Boolean = blocks.isBlocked(ownerId, targetId)
 
-    override fun setBlocked(ownerId: UUID, targetId: UUID, blocked: Boolean): Boolean {
-        return blocks.setBlocked(ownerId, targetId, blocked)
-    }
+    override fun setBlocked(ownerId: UUID, targetId: UUID, blocked: Boolean): Boolean =
+        blocks.setBlocked(ownerId, targetId, blocked)
 
     override fun getBlocked(ownerId: UUID): Set<UUID> = blocks.blockedBy(ownerId)
 }

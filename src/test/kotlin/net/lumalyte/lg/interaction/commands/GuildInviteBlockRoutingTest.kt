@@ -22,7 +22,9 @@ internal class GuildInviteBlockRoutingTest {
 
     /** Resets application injection before creating the mocked command fixture. */
     @BeforeEach
-    fun setup() = stopKoin()
+    fun setup() {
+        stopKoin()
+    }
 
     /** Releases singleton injection and Bukkit state after each test. */
     @AfterEach
@@ -65,10 +67,12 @@ internal class GuildInviteBlockRoutingTest {
             every { blocks.setBlocked(any(), any(), any()) } returns true
             val lang = mockk<LangService>(relaxed = true)
             startKoin {
-                modules(module {
-                    single { blocks }
-                    single { lang }
-                })
+                modules(
+                    module {
+                        single { blocks }
+                        single { lang }
+                    },
+                )
             }
             BukkitCommandManager(plugin).registerCommand(GuildCommand())
         }
