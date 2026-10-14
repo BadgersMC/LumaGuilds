@@ -47,7 +47,7 @@ internal class RecruitmentControllerFlowTest {
     private val player = mockk<Player>(relaxed = true)
     private var allowed = true
     private var published = RecruitmentProfile(guild.id, RecruitmentMode.IN_GAME, ORIGINAL_PITCH)
-    private lateinit var controller: RecruitmentController
+    private val controller = RecruitmentController(player, {})
 
     @BeforeEach
     fun prepare() {
@@ -58,7 +58,6 @@ internal class RecruitmentControllerFlowTest {
         every { directory.profile(guild.id) } answers { published }
         every { directory.save(any()) } answers {
             published = firstArg()
-            Unit
         }
         every { lang.raw(any()) } answers { firstArg() }
         val service =
@@ -83,7 +82,6 @@ internal class RecruitmentControllerFlowTest {
                 },
             )
         }
-        controller = RecruitmentController(player, {})
     }
 
     @AfterEach

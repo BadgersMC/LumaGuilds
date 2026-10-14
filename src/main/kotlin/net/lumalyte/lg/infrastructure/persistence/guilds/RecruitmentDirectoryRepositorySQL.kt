@@ -17,8 +17,10 @@ private const val DISCORD_INVITE_KEY = "discord"
 /** Additive listing and preference tables; SQL failures propagate instead of reporting a successful save. */
 internal class RecruitmentDirectoryRepositorySQL(
     private val storage: Storage<Database>,
+    private val guilds: net.lumalyte.lg.application.persistence.GuildRepository? = null,
 ) : RecruitmentDirectoryRepository {
     private val maria = storage.dialect == SqlDialect.MARIADB
+    private val access by lazy { GuildRecruitmentAccessSQL(storage) }
 
     init {
         storage.connection.executeUpdate(
@@ -74,17 +76,8 @@ internal class RecruitmentDirectoryRepositorySQL(
                     profile.discordInvite ?: JSONObject.NULL,
                 )
                 .put("instructions", profile.discordInstructions)
-        val suffix =
-            if (maria) {
-                "ON DUPLICATE KEY UPDATE profile = VALUES(profile)"
-            } else {
-                "ON CONFLICT(guild_id) DO UPDATE SET profile = excluded.profile"
-            }
-        storage.connection.executeUpdate(
-            "INSERT INTO guild_recruitment_profiles (guild_id, profile) VALUES (?, ?) $suffix",
-            profile.guildId.toString(),
-            json.toString(),
-        )
+        access.save(profile.guildId, profile.mode, json.toString())
+        guilds?.refreshCachedAccess(profile.guildId)
     }
 
     override fun updatedAt(guild: UUID): Instant? {

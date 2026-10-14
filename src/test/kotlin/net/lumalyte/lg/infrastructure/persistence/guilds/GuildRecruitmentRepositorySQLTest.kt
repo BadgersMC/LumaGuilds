@@ -25,6 +25,19 @@ internal class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
     private val guild = UUID.randomUUID()
     private val policy = RecruitmentPolicy()
 
+    @Test
+    fun quotedAnswersRemainData() {
+        val repository = GuildRecruitmentRepositorySQL(openStorage())
+        val text = "quoted 'answer'; DROP TABLE guild_recruitment_applications; --"
+        val submitted = application().copy(answers = text)
+        assertNull(repository.submit(submitted, policy, now))
+        assertEquals(text, repository.get(submitted.id)?.answers)
+        val declined = submitted.decline(UUID.randomUUID(), text, now)
+        assertTrue(repository.transition(submitted, declined))
+        assertEquals(text, repository.forApplicant(player).single().decisionReason)
+        assertEquals(declined, repository.forGuild(guild).single())
+    }
+
     private fun application(): GuildApplication {
         return GuildApplication(
             UUID.randomUUID(),

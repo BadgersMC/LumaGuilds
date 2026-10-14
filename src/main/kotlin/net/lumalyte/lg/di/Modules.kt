@@ -520,7 +520,7 @@ fun socialModule() = module {
         net.lumalyte.lg.infrastructure.persistence.guilds.GuildRecruitmentRepositorySQL(get())
     }
     single<net.lumalyte.lg.application.persistence.RecruitmentDirectoryRepository> {
-        net.lumalyte.lg.infrastructure.persistence.guilds.RecruitmentDirectoryRepositorySQL(get())
+        net.lumalyte.lg.infrastructure.persistence.guilds.RecruitmentDirectoryRepositorySQL(get(), get())
     }
     single<net.lumalyte.lg.application.services.GuildRecruitmentEligibility> {
         net.lumalyte.lg.infrastructure.services.GuildRecruitmentEligibilityBukkit(get(), get())
