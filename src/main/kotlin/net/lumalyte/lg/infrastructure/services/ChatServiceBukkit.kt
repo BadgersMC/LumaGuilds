@@ -222,6 +222,7 @@ class ChatServiceBukkit(
         }
     }
 
+    /** Resolves channel recipients with current visibility settings and personal party-chat blocks. */
     override fun getRecipientsForChannel(
         senderId: UUID,
         channel: ChatChannel,
@@ -231,6 +232,7 @@ class ChatServiceBukkit(
         return recipients.filterNot { inviteBlocks.hidesChat(it, senderId) }.toSet()
     }
 
+    /** Builds the channel-specific audience before applying the viewer-only party block filter. */
     private fun recipientsForChannel(
         senderId: UUID,
         channel: ChatChannel,

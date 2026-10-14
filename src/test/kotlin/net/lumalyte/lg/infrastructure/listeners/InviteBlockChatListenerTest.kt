@@ -43,6 +43,7 @@ internal class InviteBlockChatListenerTest {
         every { blocks.hidesChat(viewerId, senderId) } returns true
         val listener = InviteBlockChatListener(blocks)
 
+        /** Creates a fresh parse event for the configured sender and viewer. */
         fun event() = PreParseMessageEvent(message, viewer, MessageDirection.PLAYER_TO_SERVER)
         val hidden = event()
         listener.onPreParseMessage(hidden)

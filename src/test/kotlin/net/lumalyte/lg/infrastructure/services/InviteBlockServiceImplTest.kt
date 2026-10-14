@@ -26,10 +26,13 @@ internal class InviteBlockServiceImplTest {
             val BLOCKED_PLAYERS = mutableMapOf<UUID, MutableSet<UUID>>()
             override var isAvailable = true
 
+            /** Reads the fixture directional block without SQL. */
             override fun isBlocked(ownerId: UUID, targetId: UUID) = BLOCKED_PLAYERS[ownerId]?.contains(targetId) == true
 
+            /** Returns a detached fixture snapshot for the owner. */
             override fun blockedBy(ownerId: UUID) = BLOCKED_PLAYERS[ownerId].orEmpty().toSet()
 
+            /** Simulates durable-save availability before mutating fixture blocks. */
             override fun setBlocked(ownerId: UUID, targetId: UUID, blocked: Boolean): Boolean {
                 if (!isAvailable) return false
                 if (blocked) {
@@ -51,6 +54,7 @@ internal class InviteBlockServiceImplTest {
     private val invitations = mockk<GuildInvitationRepository>(relaxed = true)
     private val service = InviteBlockServiceImpl(store, members, invitations)
 
+    /** Creates a pending invitation for this fixture blocking player. */
     private fun invite(guild: UUID, inviter: UUID) = GuildInvitation(guild, "G", me, inviter, "inviter")
 
     /** Verifies a block refuses invites from them and from anyone in their guild, but not other guilds. */

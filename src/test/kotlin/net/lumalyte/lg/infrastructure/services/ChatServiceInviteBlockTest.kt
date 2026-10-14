@@ -28,6 +28,7 @@ internal class ChatServiceInviteBlockTest {
                 }
         }
 
+    /** Constructs a party-chat service with visible members and the optional block adapter. */
     private fun service(blocks: InviteBlockService?): ChatServiceBukkit {
         val settings =
             mockk<ChatSettingsRepository> {
@@ -41,6 +42,7 @@ internal class ChatServiceInviteBlockTest {
         )
     }
 
+    /** Selects the test sender active party without using platform persistence. */
     private fun preferences(): PlayerPartyPreferenceRepository {
         val selectedPartyId = partyId
         return mockk {

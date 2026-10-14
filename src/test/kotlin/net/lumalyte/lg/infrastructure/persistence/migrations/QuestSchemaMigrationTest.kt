@@ -41,6 +41,7 @@ class QuestSchemaMigrationTest {
         }
     }
 
+    /** Releases the quest-schema fixture after each scenario. */
     @AfterEach
     fun tearDown() {
         connection.close()

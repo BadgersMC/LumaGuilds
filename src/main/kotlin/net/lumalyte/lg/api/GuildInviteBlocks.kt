@@ -29,10 +29,13 @@ interface GuildInviteBlocks {
 
 /** Bridges the registered JDK-only API to the application service. */
 internal class GuildInviteBlocksImpl(private val blocks: InviteBlockService) : GuildInviteBlocks {
+    /** Delegates the directional block lookup to the application cache. */
     override fun isBlocked(ownerId: UUID, targetId: UUID): Boolean = blocks.isBlocked(ownerId, targetId)
 
+    /** Returns the application service durable-save result to the companion caller. */
     override fun setBlocked(ownerId: UUID, targetId: UUID, blocked: Boolean): Boolean =
         blocks.setBlocked(ownerId, targetId, blocked)
 
+    /** Returns the application service detached block snapshot. */
     override fun getBlocked(ownerId: UUID): Set<UUID> = blocks.blockedBy(ownerId)
 }

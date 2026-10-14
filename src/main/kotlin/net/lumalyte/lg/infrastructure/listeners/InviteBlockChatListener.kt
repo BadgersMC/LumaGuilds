@@ -21,6 +21,7 @@ internal class InviteBlockChatListener(private val blocks: InviteBlockService) :
         }
     }
 
+    /** Checks only player sender/viewer pairs; console messages have no personal block identity. */
     private fun hidesForViewer(event: PreParseMessageEvent): Boolean {
         val viewer = event.viewer.asPlayer() ?: return false
         val sender = event.message.sender.asPlayer()

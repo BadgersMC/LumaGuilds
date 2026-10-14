@@ -8,6 +8,7 @@ import java.sql.SQLException
 
 class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: Connection, private val claimsEnabled: Boolean = true) {
     private val componentLogger = plugin.getComponentLogger()
+    /** Applies SQLite migrations and validates/repairs required schema within the migration transaction. */
     fun migrate() {
         try {
             // Enable WAL mode BEFORE starting transaction (if needed for migration to v12)

@@ -37,6 +37,7 @@ class SpawnBannerMigrationTest {
         }
     }
 
+    /** Releases the spawn-banner migration fixture after each scenario. */
     @AfterEach
     fun tearDown() = connection.close()
 
