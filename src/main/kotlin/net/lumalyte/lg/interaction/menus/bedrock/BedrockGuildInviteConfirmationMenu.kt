@@ -1,21 +1,19 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
-import net.lumalyte.lg.infrastructure.i18n.bedrock
-
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.application.services.GuildRecruitmentPermissions
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.infrastructure.i18n.bedrock
 import net.lumalyte.lg.infrastructure.services.GuildInvitationManager
-import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
-import org.bukkit.Sound
 import org.bukkit.Bukkit
-import org.bukkit.plugin.Plugin
+import org.bukkit.Sound
 import org.bukkit.entity.Player
+import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
-import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.logging.Logger
 
@@ -27,9 +25,8 @@ class BedrockGuildInviteConfirmationMenu(
     player: Player,
     private val guild: Guild,
     private val targetPlayer: Player,
-    logger: Logger
+    logger: Logger,
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
-
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
     private val lang: LangService by inject()
@@ -38,47 +35,63 @@ class BedrockGuildInviteConfirmationMenu(
     override fun getForm(): Form {
         return SimpleForm.builder()
             .title(lang.bedrock("bedrock.invite_confirmation.title"))
-            .content(lang.bedrock("bedrock.invite_confirmation.content", "guild" to guild.name, "player" to targetPlayer.name))
+            .content(
+                lang.bedrock(
+                    "bedrock.invite_confirmation.content",
+                    "guild" to guild.name,
+                    "player" to targetPlayer.name,
+                ),
+            )
             .button(lang.bedrock("bedrock.invite_confirmation.button.send"))
             .button(lang.bedrock("bedrock.invite_confirmation.button.cancel"))
             .validResultHandler { response ->
-                Bukkit.getScheduler().runTask(plugin, Runnable {
-                    if (!player.isOnline) return@Runnable
-                    onFormResponseReceived()
-                    when (response.clickedButtonId()) {
-                        0 -> sendInvite()
-                        1 -> bedrockNavigator.createBackHandler {
-                            player.sendMessage(lang.msg("bedrock.invite_confirmation.feedback.cancelled"))
-                        }.run()
-                    }
-                })
+                Bukkit.getScheduler().runTask(
+                    plugin,
+                    Runnable {
+                        if (!player.isOnline) return@Runnable
+                        onFormResponseReceived()
+                        when (response.clickedButtonId()) {
+                            0 -> sendInvite()
+                            1 ->
+                                bedrockNavigator.createBackHandler {
+                                    player.sendMessage(lang.msg("bedrock.invite_confirmation.feedback.cancelled"))
+                                }.run()
+                        }
+                    },
+                )
             }
-            .closedOrInvalidResultHandler(bedrockNavigator.createBackHandler {
-                player.sendMessage(lang.msg("bedrock.invite_confirmation.feedback.cancelled"))
-            })
+            .closedOrInvalidResultHandler(
+                bedrockNavigator.createBackHandler {
+                    player.sendMessage(lang.msg("bedrock.invite_confirmation.feedback.cancelled"))
+                },
+            )
             .build()
     }
 
     private fun sendInvite() {
         if (guildService.getGuild(guild.id) == null ||
-            !net.lumalyte.lg.application.services.GuildRecruitmentPermissions.canInvite(memberService, player.uniqueId, guild.id)) {
+            !GuildRecruitmentPermissions.canInvite(memberService, player.uniqueId, guild.id)
+        ) {
             player.sendMessage(lang.msg("command.migrated.guild.invite.you_don_t_have_permission_to_invite"))
             return
         }
         // Check if player is already in a guild
         if (memberService.isPlayerInGuild(targetPlayer.uniqueId, guild.id)) {
-            player.sendMessage(lang.msg("bedrock.invite_confirmation.feedback.already_member", "player" to targetPlayer.name))
+            player.sendMessage(
+                lang.msg("bedrock.invite_confirmation.feedback.already_member", "player" to targetPlayer.name),
+            )
             menuNavigator.openMenu(menuFactory.createGuildInviteMenu(menuNavigator, player, guild))
             return
         }
 
-        val invitationStored = GuildInvitationManager.addInvite(
-            guildId = guild.id,
-            guildName = guild.name,
-            invitedPlayerId = targetPlayer.uniqueId,
-            inviterPlayerId = player.uniqueId,
-            inviterName = player.name
-        )
+        val invitationStored =
+            GuildInvitationManager.addInvite(
+                guildId = guild.id,
+                guildName = guild.name,
+                invitedPlayerId = targetPlayer.uniqueId,
+                inviterPlayerId = player.uniqueId,
+                inviterName = player.name,
+            )
         if (!invitationStored) {
             player.sendMessage(lang.msg("bedrock.invite_confirmation.feedback.failed"))
             return
@@ -90,7 +103,13 @@ class BedrockGuildInviteConfirmationMenu(
 
         targetPlayer.sendMessage(lang.msg("menu.common.blank"))
         targetPlayer.sendMessage(lang.msg("bedrock.invite_confirmation.notification.title"))
-        targetPlayer.sendMessage(lang.msg("bedrock.invite_confirmation.notification.invited", "player" to player.name, "guild" to guild.name))
+        targetPlayer.sendMessage(
+            lang.msg(
+                "bedrock.invite_confirmation.notification.invited",
+                "player" to player.name,
+                "guild" to guild.name,
+            ),
+        )
         targetPlayer.sendMessage(lang.msg("menu.common.blank"))
         targetPlayer.sendMessage(lang.msg("bedrock.invite_confirmation.notification.accept", "guild" to guild.name))
         targetPlayer.sendMessage(lang.msg("bedrock.invite_confirmation.notification.decline", "guild" to guild.name))
@@ -101,9 +120,11 @@ class BedrockGuildInviteConfirmationMenu(
         bedrockNavigator.goBack()
     }
 
-    override fun handleResponse(player: Player, response: Any?) {
+    override fun handleResponse(
+        player: Player,
+        response: Any?,
+    ) {
         // Response handling is done in the form builder's validResultHandler
         // This method is kept for interface compatibility
     }
 }
-

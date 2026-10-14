@@ -26,7 +26,7 @@ Branch: codex/guild-recruitment. Production and TEST are untouched.
 - [x] TDD REC-003/009/012: shared board/profile/applicant/recruiter/settings controller and native Java/Bedrock menus, search/filter, explicit joining confirmation and exact Discord destination confirmation. Custom banners/emojis remain public profile decoration; application answers stay private.
 - [x] TDD REC-010: durable one-time prompt, personal opt-out, optional cooldown and private notification digest. Session timers do not survive a reconnect; notification polling is limited to one online player per second.
 - [x] INFRA REC-011: spawn discovery integration instructions below. Proof/engine do not apply to placing documentation; runtime placement requires operator authorization.
-- [ ] DOC REC-012: update private interactive preview to implemented screens; mobile layout and hosted delivery validation.
+- [x] DOC REC-012: private interactive preview updated to implemented board/profile/application/review/settings/Discord screens, Java inventory and paged Bedrock forms. Local mobile widths 320/390 have no horizontal overflow; private Page embed receipt and readback verified. Sample actions are simulated; actual phone and Minecraft client acceptance remain separate.
 - [ ] TDD: full checks, architecture contracts, review/CI, reviewable source PR. No merge, deployment, restart or reload authorized in this task.
 
 Project has SPEAR requirements/tasks/architecture documents but no project-local EARS validator or state helper. This record is the manual requirement/task/state evidence; no automated SPEAR pass is claimed.
@@ -41,6 +41,7 @@ Project has SPEAR requirements/tasks/architecture documents but no project-local
 - Offer integration tests cover closed-guild paid admission, eligibility revocation before membership, quote/currency changes, repeated confirmation, uncertain admission and tentative membership events. Private input tests cover disconnect cleanup and stale timeout protection. Locale and architecture contracts run with the full suite.
 - Invite-block compatibility reads the reviewed PR #232 `player_invite_blocks` table only when present. Native contracts prove directionality, absent-table compatibility and malformed-row fail-closed behavior. This does not merge or replace that separate PR; the combined reviewed deployment still needs acceptance.
 - Public integration constructors remain compatible; recruitment-only types are internal. Private artwork stays outside the public repository. The interactive preview uses sample data and simulated actions; Java/Bedrock resource-pack and player journeys remain acceptance gates.
+- Hosted build and Wiki checks passed on implementation commit `3b4259ef`. CodeRabbit skipped the draft. Codacy's public issue list reported additional style/complexity findings while its GitHub check was still in progress. Admission complexity, public data-class compatibility and boundary exception handling were reviewed; follow-up refinements and 120-column formatting are separate from a confirmed clean hosted gate. The PR remains draft until the final head's review/checks and acceptance boundaries are resolved.
 
 ## Operator discovery integration
 

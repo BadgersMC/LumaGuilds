@@ -11,8 +11,10 @@ import java.time.Duration
  * @property onboardingDelaySeconds Delay before a guildless player's first discovery prompt.
  * @property reminderMinutes Optional repeat interval; zero disables repeating reminders.
  */
-@Suppress("LibraryEntitiesShouldNotBePublic") // MainConfig exposes this configuration as part of its existing public API.
-data class RecruitmentConfig(
+@Suppress(
+    "LibraryEntitiesShouldNotBePublic",
+) // MainConfig exposes this configuration as part of its existing public API.
+class RecruitmentConfig(
     val maximumApplications: Int = 3,
     val applicationDays: Int = 7,
     val offerHours: Int = 48,

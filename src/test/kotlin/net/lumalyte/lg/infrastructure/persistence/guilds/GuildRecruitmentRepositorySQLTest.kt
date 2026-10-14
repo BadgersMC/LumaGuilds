@@ -15,7 +15,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
+internal class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
     private val now = Instant.parse("2026-10-14T12:00:00Z")
     private val player = UUID.randomUUID()
     private val guild = UUID.randomUUID()
@@ -31,7 +31,9 @@ class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
             now.plus(policy.applicationLifetime),
         )
 
-    @Test fun `applications and decision actor survive a new repository instance`() {
+    @org.junit.jupiter.api.DisplayName("applications and decision actor survive a new repository instance")
+    @Test
+    fun applicationsAndDecisionAct1() {
         val storage = openStorage()
         val repository = GuildRecruitmentRepositorySQL(storage)
         val a = application()
@@ -45,7 +47,9 @@ class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
         assertTrue(reopened.forApplicant(UUID.randomUUID()).isEmpty())
     }
 
-    @Test fun `stale decisions and repeated admission reservation cannot overwrite state`() {
+    @org.junit.jupiter.api.DisplayName("stale decisions and repeated admission reservation cannot overwrite state")
+    @Test
+    fun staleDecisionsAndRepeatedA2() {
         val repository = GuildRecruitmentRepositorySQL(openStorage())
         val a = application()
         repository.submit(a, policy, now)
@@ -58,7 +62,9 @@ class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
         assertEquals(admitting, repository.get(a.id))
     }
 
-    @Test fun `concurrent submissions enforce duplicate and global limits across instances`() {
+    @org.junit.jupiter.api.DisplayName("concurrent submissions enforce duplicate and global limits across instances")
+    @Test
+    fun concurrentSubmissionsEnfor3() {
         val storage = openStorage()
         val repositories = listOf(GuildRecruitmentRepositorySQL(storage), GuildRecruitmentRepositorySQL(storage))
         val attempts =
@@ -69,10 +75,15 @@ class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
             }
         assertEquals(1, attempts.count { it.get(20, TimeUnit.SECONDS) == null })
         for (n in 1..2) assertNull(repositories[0].submit(application().copy(guildId = UUID.randomUUID()), policy, now))
-        assertEquals(SubmissionDenial.LIMIT, repositories[1].submit(application().copy(guildId = UUID.randomUUID()), policy, now))
+        assertEquals(
+            SubmissionDenial.LIMIT,
+            repositories[1].submit(application().copy(guildId = UUID.randomUUID()), policy, now),
+        )
     }
 
-    @Test fun `expired applications permit reapplication but uncertain admission does not`() {
+    @org.junit.jupiter.api.DisplayName("expired applications permit reapplication but uncertain admission does not")
+    @Test
+    fun expiredApplicationsPermitR4() {
         val repository = GuildRecruitmentRepositorySQL(openStorage())
         val a = application()
         repository.submit(a, policy, now)
@@ -100,14 +111,18 @@ class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
         )
     }
 
-    @Test fun `database write failure never reports successful submission`() {
+    @org.junit.jupiter.api.DisplayName("database write failure never reports successful submission")
+    @Test
+    fun databaseWriteFailureNeverR5() {
         val storage = openStorage()
         val repository = GuildRecruitmentRepositorySQL(storage)
         storage.connection.executeUpdate("DROP TABLE guild_recruitment_applications")
         assertFails { repository.submit(application(), policy, now) }
     }
 
-    @Test fun `nanosecond clock values do not cause false stale comparisons after persistence`() {
+    @org.junit.jupiter.api.DisplayName("nanosecond clock values do not cause false stale comparisons after persistence")
+    @Test
+    fun nanosecondClockValuesDoNot6() {
         val repository = GuildRecruitmentRepositorySQL(openStorage())
         val precise = now.plusNanos(123456)
         val a = application().copy(createdAt = precise, expiresAt = precise.plus(policy.applicationLifetime))
@@ -117,7 +132,9 @@ class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
         assertTrue(repository.transition(offered, offered.confirm(player, precise)))
     }
 
-    @Test fun `only one guild admission can be reserved for the same applicant`() {
+    @org.junit.jupiter.api.DisplayName("only one guild admission can be reserved for the same applicant")
+    @Test
+    fun onlyOneGuildAdmissionCanBe7() {
         val repository = GuildRecruitmentRepositorySQL(openStorage())
         val first = application()
         val second = application().copy(guildId = UUID.randomUUID())

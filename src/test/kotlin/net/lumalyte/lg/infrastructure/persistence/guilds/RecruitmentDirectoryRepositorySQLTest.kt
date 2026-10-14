@@ -11,11 +11,13 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class RecruitmentDirectoryRepositorySQLTest : RewardSqlTestFixture() {
+internal class RecruitmentDirectoryRepositorySQLTest : RewardSqlTestFixture() {
     private val player = UUID.randomUUID()
     private val now = Instant.parse("2026-10-14T12:00:00Z")
 
-    @Test fun `profile round trips Discord instructions and optional filters`() {
+    @org.junit.jupiter.api.DisplayName("profile round trips Discord instructions and optional filters")
+    @Test
+    fun profileRoundTripsDiscordIn1() {
         val storage = openStorage()
         val first = RecruitmentDirectoryRepositorySQL(storage)
         val profile =
@@ -30,7 +32,9 @@ class RecruitmentDirectoryRepositorySQLTest : RewardSqlTestFixture() {
         assertEquals("Paused", first.profile(profile.guildId)?.pitch)
     }
 
-    @Test fun `one time prompt and personal opt out survive repository reconstruction`() {
+    @org.junit.jupiter.api.DisplayName("one time prompt and personal opt out survive repository reconstruction")
+    @Test
+    fun oneTimePromptAndPersonalOp2() {
         val storage = openStorage()
         val first = RecruitmentDirectoryRepositorySQL(storage)
         assertTrue(first.consumePrompt(player, now, null))
@@ -41,7 +45,9 @@ class RecruitmentDirectoryRepositorySQLTest : RewardSqlTestFixture() {
         assertFalse(first.consumePrompt(player, now.plusSeconds(999999), Duration.ofMinutes(30)))
     }
 
-    @Test fun `optional reminder waits for its interval and enabling it preserves prior timing`() {
+    @org.junit.jupiter.api.DisplayName("Reminder timing survives preference changes")
+    @Test
+    fun optionalReminderWaitsForIt3() {
         val repository = RecruitmentDirectoryRepositorySQL(openStorage())
         assertTrue(repository.consumePrompt(player, now, Duration.ofMinutes(30)))
         repository.setReminders(player, false)
@@ -51,7 +57,9 @@ class RecruitmentDirectoryRepositorySQLTest : RewardSqlTestFixture() {
         assertFalse(repository.consumePrompt(player, now.plusSeconds(1800), Duration.ofMinutes(30)))
     }
 
-    @Test fun `private notification digest survives reconnects without replay`() {
+    @org.junit.jupiter.api.DisplayName("private notification digest survives reconnects without replay")
+    @Test
+    fun privateNotificationDigestS4() {
         val storage = openStorage()
         val first = RecruitmentDirectoryRepositorySQL(storage)
         val digest = "a".repeat(64)

@@ -31,9 +31,19 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         )
         // Inline index syntax differs between SQLite and MariaDB; create only if absent via metadata.
         storage.connection.connection.use { connection ->
-            for ((name, column) in listOf("recruitment_applicant_idx" to "applicant_id", "recruitment_guild_idx" to "guild_id")) {
+            for ((name, column) in listOf(
+                "recruitment_applicant_idx" to "applicant_id",
+                "recruitment_guild_idx" to "guild_id",
+            )) {
                 val exists =
-                    connection.metaData.getIndexInfo(connection.catalog, null, "guild_recruitment_applications", false, false).use { rows ->
+                    connection.metaData.getIndexInfo(
+                        connection.catalog,
+                        null,
+                        "guild_recruitment_applications",
+                        false,
+                        false,
+                    ).use {
+                            rows ->
                         var found = false
                         while (rows.next()) if (name.equals(rows.getString("INDEX_NAME"), true)) found = true
                         found
@@ -54,7 +64,10 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         policy: RecruitmentPolicy,
         at: Instant,
     ): SubmissionDenial? {
-        require(application.status == ApplicationStatus.SUBMITTED && application.reviewedBy == null && application.reviewedAt == null)
+        require(
+            application.status == ApplicationStatus.SUBMITTED &&
+                application.reviewedBy == null && application.reviewedAt == null,
+        )
         require(application.createdAt == at && application.expiresAt == at.plus(policy.applicationLifetime))
         return transaction { connection ->
             lockApplicant(connection, application.applicantId)
@@ -62,14 +75,19 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
                 policy.canSubmit(
                     application.guildId,
                     application.applicantId,
-                    query(connection, "SELECT * FROM guild_recruitment_applications WHERE applicant_id = ?", application.applicantId),
+                    query(
+                        connection,
+                        "SELECT * FROM guild_recruitment_applications WHERE applicant_id = ?",
+                        application.applicantId,
+                    ),
                     at,
                 )
             if (denial == null) {
                 execute(
                     connection,
                     """INSERT INTO guild_recruitment_applications
-                (id, guild_id, applicant_id, answers, created_at, expires_at, status, reviewed_by, reviewed_at, decision_reason)
+                (id, guild_id, applicant_id, answers, created_at, expires_at,
+                 status, reviewed_by, reviewed_at, decision_reason)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     application.id, application.guildId, application.applicantId,
                     application.answers, application.createdAt.toEpochMilli(), application.expiresAt.toEpochMilli(),
@@ -80,7 +98,11 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         }
     }
 
-    override fun get(id: UUID): GuildApplication? = read("SELECT * FROM guild_recruitment_applications WHERE id = ?", id).firstOrNull()
+    override fun get(id: UUID): GuildApplication? =
+        read(
+            "SELECT * FROM guild_recruitment_applications WHERE id = ?",
+            id,
+        ).firstOrNull()
 
     override fun forApplicant(applicant: UUID): List<GuildApplication> =
         read(
@@ -99,13 +121,19 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         updated: GuildApplication,
     ): Boolean {
         require(
-            expected.id == updated.id && expected.guildId == updated.guildId && expected.applicantId == updated.applicantId &&
+            expected.id == updated.id && expected.guildId == updated.guildId &&
+                expected.applicantId == updated.applicantId &&
                 expected.createdAt == updated.createdAt && expected.answers == updated.answers,
         )
         require(expected.status != updated.status)
         return transaction { connection ->
             lockApplicant(connection, expected.applicantId)
-            val current = query(connection, "SELECT * FROM guild_recruitment_applications WHERE id = ?", expected.id).firstOrNull()
+            val current =
+                query(
+                    connection,
+                    "SELECT * FROM guild_recruitment_applications WHERE id = ?",
+                    expected.id,
+                ).firstOrNull()
             if (current !=
                 expected.copy(
                     createdAt = millis(expected.createdAt), expiresAt = millis(expected.expiresAt),
@@ -115,7 +143,10 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
                 return@transaction false
             }
             if (updated.status == ApplicationStatus.ADMISSION_PENDING &&
-                query(connection, "SELECT * FROM guild_recruitment_applications WHERE applicant_id = ?", expected.applicantId)
+                query(
+                    connection, "SELECT * FROM guild_recruitment_applications WHERE applicant_id = ?",
+                    expected.applicantId,
+                )
                     .any { it.id != expected.id && it.status == ApplicationStatus.ADMISSION_PENDING }
             ) {
                 return@transaction false
@@ -162,7 +193,12 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         connection: Connection,
         player: UUID,
     ) {
-        val suffix = if (maria) "ON DUPLICATE KEY UPDATE player_id = VALUES(player_id)" else "ON CONFLICT(player_id) DO NOTHING"
+        val suffix =
+            if (maria) {
+                "ON DUPLICATE KEY UPDATE player_id = VALUES(player_id)"
+            } else {
+                "ON CONFLICT(player_id) DO NOTHING"
+            }
         execute(connection, "INSERT INTO guild_recruitment_applicants (player_id) VALUES (?) $suffix", player)
         execute(connection, "UPDATE guild_recruitment_applicants SET player_id = player_id WHERE player_id = ?", player)
     }
@@ -173,7 +209,12 @@ internal class GuildRecruitmentRepositorySQL(private val storage: Storage<Databa
         vararg values: Any?,
     ): Int =
         connection.prepareStatement(sql).use { statement ->
-            values.forEachIndexed { index, value -> statement.setObject(index + 1, if (value is UUID) value.toString() else value) }
+            values.forEachIndexed {
+                    index,
+                    value,
+                ->
+                statement.setObject(index + 1, if (value is UUID) value.toString() else value)
+            }
             statement.executeUpdate()
         }
 

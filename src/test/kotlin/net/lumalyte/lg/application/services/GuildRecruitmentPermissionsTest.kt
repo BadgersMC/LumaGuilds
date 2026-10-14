@@ -8,7 +8,7 @@ import java.util.UUID
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class GuildRecruitmentPermissionsTest {
+internal class GuildRecruitmentPermissionsTest {
     private val actor = UUID.randomUUID()
     private val guild = UUID.randomUUID()
 
@@ -17,7 +17,9 @@ class GuildRecruitmentPermissionsTest {
             every { service.hasPermission(actor, guild, any()) } answers { thirdArg<RankPermission>() in granted }
         }
 
-    @Test fun `dedicated recruiter can invite and review but cannot edit settings`() {
+    @org.junit.jupiter.api.DisplayName("dedicated recruiter can invite and review but cannot edit settings")
+    @Test
+    fun dedicatedRecruiterCanInvit1() {
         val members = members(RankPermission.MANAGE_RECRUITMENT)
         assertTrue(GuildRecruitmentPermissions.canInvite(members, actor, guild))
         assertTrue(GuildRecruitmentPermissions.canReview(members, actor, guild))
@@ -26,21 +28,27 @@ class GuildRecruitmentPermissionsTest {
         assertFalse(members.hasPermission(actor, guild, RankPermission.MANAGE_RANKS))
     }
 
-    @Test fun `existing member manager retains invitations without receiving new recruitment rights`() {
+    @org.junit.jupiter.api.DisplayName("Legacy member managers keep invitations only")
+    @Test
+    fun existingMemberManagerRetai2() {
         val members = members(RankPermission.MANAGE_MEMBERS)
         assertTrue(GuildRecruitmentPermissions.canInvite(members, actor, guild))
         assertFalse(GuildRecruitmentPermissions.canReview(members, actor, guild))
         assertFalse(GuildRecruitmentPermissions.canEditSettings(members, actor, guild))
     }
 
-    @Test fun `settings editor cannot invite or review without recruiter permission`() {
+    @org.junit.jupiter.api.DisplayName("settings editor cannot invite or review without recruiter permission")
+    @Test
+    fun settingsEditorCannotInvite3() {
         val members = members(RankPermission.EDIT_RECRUITMENT_SETTINGS)
         assertTrue(GuildRecruitmentPermissions.canEditSettings(members, actor, guild))
         assertFalse(GuildRecruitmentPermissions.canInvite(members, actor, guild))
         assertFalse(GuildRecruitmentPermissions.canReview(members, actor, guild))
     }
 
-    @Test fun `ordinary member has neither right`() {
+    @org.junit.jupiter.api.DisplayName("ordinary member has neither right")
+    @Test
+    fun ordinaryMemberHasNeitherRi4() {
         val members = members()
         assertFalse(GuildRecruitmentPermissions.canInvite(members, actor, guild))
         assertFalse(GuildRecruitmentPermissions.canReview(members, actor, guild))

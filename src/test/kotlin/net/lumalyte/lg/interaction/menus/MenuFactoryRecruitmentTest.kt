@@ -13,8 +13,10 @@ import org.junit.jupiter.api.Test
 import java.util.logging.Logger
 import kotlin.test.assertIs
 
-class MenuFactoryRecruitmentTest {
-    @Test fun `existing LFG entry point routes each platform to its native recruitment menu`() {
+internal class MenuFactoryRecruitmentTest {
+    @org.junit.jupiter.api.DisplayName("existing LFG entry point routes each platform to its native recruitment menu")
+    @Test
+    fun existingLfgEntryPointRoute1() {
         val player = mockk<Player>()
         val platform = mockk<PlatformDetectionService>()
         val config = mockk<ConfigService>()

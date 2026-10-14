@@ -35,7 +35,9 @@ internal data class RecruitmentProfile(
     init {
         require(pitch.length <= MAX_PITCH && requirements.length <= MAX_REQUIREMENTS)
         require(preferredTimes.length <= MAX_TIMES && language.length <= MAX_LANGUAGE)
-        require(interests.size <= MAX_INTERESTS && interests.all { it.isNotBlank() && it.length <= MAX_INTEREST_LENGTH })
+        require(
+            interests.size <= MAX_INTERESTS && interests.all { it.isNotBlank() && it.length <= MAX_INTEREST_LENGTH },
+        )
         require(discordInvite == null || DiscordInvite.isValid(discordInvite))
         require(discordInstructions.length <= MAX_REQUIREMENTS)
         require(mode != RecruitmentMode.DISCORD || discordInvite != null && discordInstructions.isNotBlank()) {
@@ -95,7 +97,16 @@ internal data class RecruitmentPolicy(
 }
 
 /** Pending admission is a durable fail-closed reservation, not proof of membership. */
-internal enum class ApplicationStatus { SUBMITTED, OFFERED, ADMISSION_PENDING, JOINED, DECLINED, WITHDRAWN, EXPIRED, CLOSED }
+internal enum class ApplicationStatus {
+    SUBMITTED,
+    OFFERED,
+    ADMISSION_PENDING,
+    JOINED,
+    DECLINED,
+    WITHDRAWN,
+    EXPIRED,
+    CLOSED,
+}
 
 /** Pure state transitions; adapters must independently authorize recruiters and revalidate admission. */
 internal data class GuildApplication(

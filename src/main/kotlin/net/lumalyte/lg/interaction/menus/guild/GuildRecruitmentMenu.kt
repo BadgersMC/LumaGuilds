@@ -25,7 +25,10 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
 /** Inventory recruitment board with stable pagination and private chat input. */
-internal class GuildRecruitmentMenu(private val navigator: MenuNavigator, private val player: Player) : Menu, KoinComponent {
+internal class GuildRecruitmentMenu(
+    private val navigator: MenuNavigator,
+    private val player: Player,
+) : Menu, KoinComponent {
     private val controller = RecruitmentController(player, ::open)
     private val inputListener: ChatInputListener by inject()
     private val lang: LangService by inject()
@@ -45,7 +48,11 @@ internal class GuildRecruitmentMenu(private val navigator: MenuNavigator, privat
                             player: Player,
                             input: String,
                         ) {
-                            if (player.isOnline && navigator.isNavigationCurrent(navigation)) controller.acceptInput(input)
+                            if (player.isOnline && navigator.isNavigationCurrent(navigation)) {
+                                controller.acceptInput(
+                                    input,
+                                )
+                            }
                         }
 
                         override fun onCancel(player: Player) {
@@ -71,7 +78,12 @@ internal class GuildRecruitmentMenu(private val navigator: MenuNavigator, privat
                 gui.setOnBottomClick { it.isCancelled = true }
                 gui.setOnGlobalDrag { it.isCancelled = true }
                 val pane = StaticPane(0, 0, 9, 6)
-                view.items.drop(controller.page * 45).take(45).forEachIndexed { index, button -> add(pane, button, index % 9, index / 9) }
+                view.items.drop(controller.page * 45).take(45).forEachIndexed {
+                        index,
+                        button,
+                    ->
+                    add(pane, button, index % 9, index / 9)
+                }
                 view.navigation.take(7).forEachIndexed { index, button -> add(pane, button, index + 1, 5) }
                 add(
                     pane,

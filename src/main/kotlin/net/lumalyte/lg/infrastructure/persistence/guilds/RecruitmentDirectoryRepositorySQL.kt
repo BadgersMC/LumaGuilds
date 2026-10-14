@@ -13,12 +13,15 @@ import java.time.Instant
 import java.util.UUID
 
 /** Additive listing and preference tables; SQL failures propagate instead of reporting a successful save. */
-internal class RecruitmentDirectoryRepositorySQL(private val storage: Storage<Database>) : RecruitmentDirectoryRepository {
+internal class RecruitmentDirectoryRepositorySQL(
+    private val storage: Storage<Database>,
+) : RecruitmentDirectoryRepository {
     private val maria = storage.dialect == SqlDialect.MARIADB
 
     init {
         storage.connection.executeUpdate(
-            "CREATE TABLE IF NOT EXISTS guild_recruitment_profiles (guild_id VARCHAR(36) PRIMARY KEY, profile TEXT NOT NULL)",
+            "CREATE TABLE IF NOT EXISTS guild_recruitment_profiles (guild_id VARCHAR(36) PRIMARY " +
+                "KEY, profile TEXT NOT NULL)",
         )
         storage.connection.executeUpdate(
             "CREATE TABLE IF NOT EXISTS guild_recruitment_preferences " +
@@ -59,7 +62,10 @@ internal class RecruitmentDirectoryRepositorySQL(private val storage: Storage<Da
                 .put("mode", profile.mode.name).put("pitch", profile.pitch).put("requirements", profile.requirements)
                 .put("interests", JSONArray(profile.interests.toList())).put("times", profile.preferredTimes)
                 .put("language", profile.language).put("beginner", profile.beginnerFriendly)
-                .put("discord", profile.discordInvite ?: JSONObject.NULL).put("instructions", profile.discordInstructions)
+                .put(
+                    "discord",
+                    profile.discordInvite ?: JSONObject.NULL,
+                ).put("instructions", profile.discordInstructions)
         val suffix =
             if (maria) {
                 "ON DUPLICATE KEY UPDATE profile = VALUES(profile)"
@@ -104,14 +110,26 @@ internal class RecruitmentDirectoryRepositorySQL(private val storage: Storage<Da
         repeatAfter: Duration?,
     ): Boolean {
         require(repeatAfter == null || repeatAfter > Duration.ZERO)
-        val suffix = if (maria) "ON DUPLICATE KEY UPDATE player_id = VALUES(player_id)" else "ON CONFLICT(player_id) DO NOTHING"
-        storage.connection.executeUpdate("INSERT INTO guild_recruitment_preferences (player_id) VALUES (?) $suffix", player.toString())
+        val suffix =
+            if (maria) {
+                "ON DUPLICATE KEY UPDATE player_id = VALUES(player_id)"
+            } else {
+                "ON CONFLICT(player_id) DO NOTHING"
+            }
+        storage.connection.executeUpdate(
+            "INSERT INTO guild_recruitment_preferences (player_id) VALUES (?) $suffix",
+            player.toString(),
+        )
         val due = if (repeatAfter == null) "prompted_at IS NULL" else "(prompted_at IS NULL OR prompted_at <= ?)"
-        val query = "UPDATE guild_recruitment_preferences SET prompted_at = ? WHERE player_id = ? AND enabled = 1 AND $due"
+        val query =
+            "UPDATE guild_recruitment_preferences SET prompted_at = ? " +
+                "WHERE player_id = ? AND enabled = 1 AND $due"
         return if (repeatAfter == null) {
             storage.connection.executeUpdate(query, at.toEpochMilli(), player.toString()) == 1
         } else {
-            storage.connection.executeUpdate(query, at.toEpochMilli(), player.toString(), at.minus(repeatAfter).toEpochMilli()) == 1
+            storage.connection.executeUpdate(
+                query, at.toEpochMilli(), player.toString(), at.minus(repeatAfter).toEpochMilli(),
+            ) == 1
         }
     }
 
@@ -121,7 +139,12 @@ internal class RecruitmentDirectoryRepositorySQL(private val storage: Storage<Da
         signature: String,
     ): Boolean {
         require(signature.matches(Regex("[0-9a-f]{64}")))
-        val suffix = if (maria) "ON DUPLICATE KEY UPDATE player_id = VALUES(player_id)" else "ON CONFLICT(player_id) DO NOTHING"
+        val suffix =
+            if (maria) {
+                "ON DUPLICATE KEY UPDATE player_id = VALUES(player_id)"
+            } else {
+                "ON CONFLICT(player_id) DO NOTHING"
+            }
         storage.connection.executeUpdate(
             "INSERT INTO guild_recruitment_notifications (player_id, signature) VALUES (?, '') $suffix",
             player.toString(),

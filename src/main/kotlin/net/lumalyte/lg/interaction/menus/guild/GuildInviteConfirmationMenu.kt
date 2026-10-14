@@ -1,20 +1,20 @@
 package net.lumalyte.lg.interaction.menus.guild
 
-import net.lumalyte.lg.utils.inventoryframework.addPane
-import net.badgersmc.nexus.i18n.LangService
-import net.lumalyte.lg.infrastructure.i18n.gui
-import net.lumalyte.lg.infrastructure.i18n.guiTitle
-import net.lumalyte.lg.utils.MenuTitleBuilder
-
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import net.lumalyte.lg.utils.inventoryframework.StaticPane
+import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.application.services.GuildRecruitmentPermissions
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.lumalyte.lg.infrastructure.services.GuildInvitationManager
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Material
@@ -25,11 +25,13 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.SkullMeta
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import java.util.*
 
-class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                                 private val guild: Guild, private val targetPlayer: Player): Menu, KoinComponent {
-
+class GuildInviteConfirmationMenu(
+    private val menuNavigator: MenuNavigator,
+    private val player: Player,
+    private val guild: Guild,
+    private val targetPlayer: Player,
+) : Menu, KoinComponent {
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
@@ -37,11 +39,15 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
 
     override fun open() {
         // Create 3x9 chest GUI
-        val gui = ChestGui(3, MenuTitleBuilder.build(
-            guild.guiTheme,
-            3,
-            lang.guiTitle("menu.guild_confirmation.invite.title", "guild" to guild.name),
-        ))
+        val gui =
+            ChestGui(
+                3,
+                MenuTitleBuilder.build(
+                    guild.guiTheme,
+                    3,
+                    lang.guiTitle("menu.guild_confirmation.invite.title", "guild" to guild.name),
+                ),
+            )
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -64,22 +70,31 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
         gui.show(player)
     }
 
-    private fun addInfoDisplay(pane: StaticPane, x: Int, y: Int) {
-        val infoItem = ItemStack.of(Material.BOOK)
-            .name(lang.gui("menu.guild_confirmation.invite.item.info.name"))
-            .lore(lang.gui("menu.guild_confirmation.invite.item.info.lore.line_1"))
-            .lore(lang.gui("menu.guild_confirmation.invite.item.info.lore.line_2"))
-            .lore("")
-            .lore(lang.gui("menu.guild_confirmation.invite.item.info.lore.instructions_line_1"))
-            .lore(lang.gui("menu.guild_confirmation.invite.item.info.lore.instructions_line_2"))
-            .lore("")
-            .lore(lang.gui("menu.guild_confirmation.invite.item.info.lore.command_label"))
-            .lore(lang.gui("menu.guild_confirmation.invite.item.info.lore.command", "guild" to guild.name))
+    private fun addInfoDisplay(
+        pane: StaticPane,
+        x: Int,
+        y: Int,
+    ) {
+        val infoItem =
+            ItemStack.of(Material.BOOK)
+                .name(lang.gui("menu.guild_confirmation.invite.item.info.name"))
+                .lore(lang.gui("menu.guild_confirmation.invite.item.info.lore.line_1"))
+                .lore(lang.gui("menu.guild_confirmation.invite.item.info.lore.line_2"))
+                .lore("")
+                .lore(lang.gui("menu.guild_confirmation.invite.item.info.lore.instructions_line_1"))
+                .lore(lang.gui("menu.guild_confirmation.invite.item.info.lore.instructions_line_2"))
+                .lore("")
+                .lore(lang.gui("menu.guild_confirmation.invite.item.info.lore.command_label"))
+                .lore(lang.gui("menu.guild_confirmation.invite.item.info.lore.command", "guild" to guild.name))
 
         pane.addItem(GuiItem(infoItem), x, y)
     }
 
-    private fun addPlayerInfo(pane: StaticPane, x: Int, y: Int) {
+    private fun addPlayerInfo(
+        pane: StaticPane,
+        x: Int,
+        y: Int,
+    ) {
         val head = ItemStack.of(Material.PLAYER_HEAD)
         val meta = head.itemMeta as SkullMeta
 
@@ -87,62 +102,79 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
         meta.owningPlayer = targetPlayer
         head.itemMeta = meta
 
-        val playerItem = head.name(lang.gui("menu.guild_confirmation.invite.item.player.name", "player" to targetPlayer.name))
-            .lore(lang.gui("menu.guild_confirmation.invite.item.player.lore.player", "player" to targetPlayer.name))
-            .lore(lang.gui("menu.guild_confirmation.invite.item.player.lore.status"))
-            .lore("")
-            .lore(lang.gui("menu.guild_confirmation.invite.item.player.lore.result"))
+        val playerItem =
+            head.name(lang.gui("menu.guild_confirmation.invite.item.player.name", "player" to targetPlayer.name))
+                .lore(lang.gui("menu.guild_confirmation.invite.item.player.lore.player", "player" to targetPlayer.name))
+                .lore(lang.gui("menu.guild_confirmation.invite.item.player.lore.status"))
+                .lore("")
+                .lore(lang.gui("menu.guild_confirmation.invite.item.player.lore.result"))
 
         pane.addItem(GuiItem(playerItem), x, y)
     }
 
-    private fun addConfirmButton(pane: StaticPane, x: Int, y: Int) {
-        val confirmItem = ItemStack.of(Material.GREEN_WOOL)
-            .name(lang.gui("menu.guild_confirmation.invite.item.confirm.name"))
-            .lore(lang.gui("menu.guild_confirmation.invite.item.confirm.lore.line_1"))
-            .lore(lang.gui("menu.guild_confirmation.invite.item.confirm.lore.line_2"))
+    private fun addConfirmButton(
+        pane: StaticPane,
+        x: Int,
+        y: Int,
+    ) {
+        val confirmItem =
+            ItemStack.of(Material.GREEN_WOOL)
+                .name(lang.gui("menu.guild_confirmation.invite.item.confirm.name"))
+                .lore(lang.gui("menu.guild_confirmation.invite.item.confirm.lore.line_1"))
+                .lore(lang.gui("menu.guild_confirmation.invite.item.confirm.lore.line_2"))
 
-        val confirmGuiItem = GuiItem(confirmItem) {
-            sendInvite()
-        }
+        val confirmGuiItem =
+            GuiItem(confirmItem) {
+                sendInvite()
+            }
         pane.addItem(confirmGuiItem, x, y)
     }
 
-    private fun addCancelButton(pane: StaticPane, x: Int, y: Int) {
-        val cancelItem = ItemStack.of(Material.RED_WOOL)
-            .name(lang.gui("menu.guild_confirmation.invite.item.cancel.name"))
-            .lore(lang.gui("menu.guild_confirmation.invite.item.cancel.lore.line_1"))
-            .lore(lang.gui("menu.guild_confirmation.invite.item.cancel.lore.line_2"))
+    private fun addCancelButton(
+        pane: StaticPane,
+        x: Int,
+        y: Int,
+    ) {
+        val cancelItem =
+            ItemStack.of(Material.RED_WOOL)
+                .name(lang.gui("menu.guild_confirmation.invite.item.cancel.name"))
+                .lore(lang.gui("menu.guild_confirmation.invite.item.cancel.lore.line_1"))
+                .lore(lang.gui("menu.guild_confirmation.invite.item.cancel.lore.line_2"))
 
-        val cancelGuiItem = GuiItem(cancelItem) {
-            menuNavigator.goBack()
-        }
+        val cancelGuiItem =
+            GuiItem(cancelItem) {
+                menuNavigator.goBack()
+            }
         pane.addItem(cancelGuiItem, x, y)
     }
 
     private fun sendInvite() {
         // Menu snapshots are not authority: rank or membership may have changed since opening.
         if (guildService.getGuild(guild.id) == null ||
-            !net.lumalyte.lg.application.services.GuildRecruitmentPermissions.canInvite(memberService, player.uniqueId, guild.id)) {
+            !GuildRecruitmentPermissions.canInvite(memberService, player.uniqueId, guild.id)
+        ) {
             player.sendMessage(lang.msg("command.migrated.guild.invite.you_don_t_have_permission_to_invite"))
             player.closeInventory()
             return
         }
         // Check if player is already in a guild
         if (memberService.isPlayerInGuild(targetPlayer.uniqueId, guild.id)) {
-            player.sendMessage(lang.msg("menu.guild_confirmation.invite.feedback.already_member", "player" to targetPlayer.name))
+            player.sendMessage(
+                lang.msg("menu.guild_confirmation.invite.feedback.already_member", "player" to targetPlayer.name),
+            )
             menuNavigator.goBack()
             return
         }
 
         // Store the invitation
-        val invitationStored = GuildInvitationManager.addInvite(
-            guildId = guild.id,
-            guildName = guild.name,
-            invitedPlayerId = targetPlayer.uniqueId,
-            inviterPlayerId = player.uniqueId,
-            inviterName = player.name
-        )
+        val invitationStored =
+            GuildInvitationManager.addInvite(
+                guildId = guild.id,
+                guildName = guild.name,
+                invitedPlayerId = targetPlayer.uniqueId,
+                inviterPlayerId = player.uniqueId,
+                inviterName = player.name,
+            )
         if (!invitationStored) {
             player.sendMessage(lang.msg("menu.guild_confirmation.invite.feedback.failed"))
             return
@@ -154,7 +186,13 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
 
         targetPlayer.sendMessage("")
         targetPlayer.sendMessage(lang.msg("menu.guild_confirmation.invite.feedback.received_header"))
-        targetPlayer.sendMessage(lang.msg("menu.guild_confirmation.invite.feedback.received", "player" to player.name, "guild" to guild.name))
+        targetPlayer.sendMessage(
+            lang.msg(
+                "menu.guild_confirmation.invite.feedback.received",
+                "player" to player.name,
+                "guild" to guild.name,
+            ),
+        )
         targetPlayer.sendMessage("")
         targetPlayer.sendMessage(lang.msg("menu.guild_confirmation.invite.feedback.accept", "guild" to guild.name))
         targetPlayer.sendMessage(lang.msg("menu.guild_confirmation.invite.feedback.decline", "guild" to guild.name))
@@ -169,4 +207,3 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
         // No data passing needed for confirmation menu
     }
 }
-

@@ -20,7 +20,7 @@ import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-class GuildRecruitmentServiceTest {
+internal class GuildRecruitmentServiceTest {
     private val now = Instant.parse("2026-10-14T12:00:00Z")
     private val guild = Guild(UUID.randomUUID(), "Builders", createdAt = now)
     private val player = UUID.randomUUID()
@@ -31,7 +31,8 @@ class GuildRecruitmentServiceTest {
     private val members = mockk<MemberService>(relaxed = true)
     private val lfg = mockk<LfgService>(relaxed = true)
     private val profile = RecruitmentProfile(guild.id, RecruitmentMode.IN_GAME)
-    private val application = GuildApplication(UUID.randomUUID(), guild.id, player, "I build", now, now.plusSeconds(604800))
+    private val application =
+        GuildApplication(UUID.randomUUID(), guild.id, player, "I build", now, now.plusSeconds(604800))
     private var current = application
     private var eligible = true
 
@@ -61,14 +62,18 @@ class GuildRecruitmentServiceTest {
         )
     }
 
-    @Test fun `review is an offer and never calls admission`() {
+    @org.junit.jupiter.api.DisplayName("review is an offer and never calls admission")
+    @Test
+    fun reviewIsAnOfferAndNeverCal1() {
         val service = service()
         service.review(actor, application.id, true, "")
         assertEquals(ApplicationStatus.OFFERED, current.status)
         verify(exactly = 0) { lfg.joinApprovedGuild(any(), any(), any()) }
     }
 
-    @Test fun `ordinary member cannot read private inbox or review applications`() {
+    @org.junit.jupiter.api.DisplayName("ordinary member cannot read private inbox or review applications")
+    @Test
+    fun ordinaryMemberCannotReadPr2() {
         val service = service()
         every { members.hasPermission(actor, guild.id, any()) } returns false
         assertFailsWith<IllegalArgumentException> { service.inbox(actor, guild.id) }
@@ -76,7 +81,9 @@ class GuildRecruitmentServiceTest {
         assertEquals(ApplicationStatus.SUBMITTED, current.status)
     }
 
-    @Test fun `confirmation reserves once and repeated clicks cannot pay twice`() {
+    @org.junit.jupiter.api.DisplayName("confirmation reserves once and repeated clicks cannot pay twice")
+    @Test
+    fun confirmationReservesOnceAn3() {
         val service = service()
         current = application.offer(actor, now, RecruitmentPolicy().offerLifetime)
         every { lfg.canJoinGuild(player, guild) } returns LfgJoinResult.Success("Eligible")
@@ -87,7 +94,9 @@ class GuildRecruitmentServiceTest {
         verify(exactly = 1) { lfg.joinApprovedGuild(player, guild, any()) }
     }
 
-    @Test fun `changed fee rejected before reserving or invoking payment`() {
+    @org.junit.jupiter.api.DisplayName("changed fee rejected before reserving or invoking payment")
+    @Test
+    fun changedFeeRejectedBeforeRe4() {
         val service = service()
         current = application.offer(actor, now, RecruitmentPolicy().offerLifetime)
         assertFailsWith<IllegalArgumentException> {
@@ -101,7 +110,9 @@ class GuildRecruitmentServiceTest {
         verify(exactly = 0) { lfg.joinApprovedGuild(any(), any(), any()) }
     }
 
-    @Test fun `blocked applicant cannot submit or accept an offer`() {
+    @org.junit.jupiter.api.DisplayName("blocked applicant cannot submit or accept an offer")
+    @Test
+    fun blockedApplicantCannotSubm5() {
         val service = service()
         eligible = false
         assertFailsWith<IllegalArgumentException> { service.submit(player, guild.id, "I build") }
@@ -109,7 +120,9 @@ class GuildRecruitmentServiceTest {
         assertFailsWith<IllegalArgumentException> { service.confirm(player, application.id, guild) }
     }
 
-    @Test fun `changed quoted currency rejects confirmation before reserving`() {
+    @org.junit.jupiter.api.DisplayName("changed quoted currency rejects confirmation before reserving")
+    @Test
+    fun changedQuotedCurrencyRejec6() {
         val service = service()
         current = application.offer(actor, now, RecruitmentPolicy().offerLifetime)
         val quote = net.lumalyte.lg.domain.values.JoinRequirement(100, true, "RAW_GOLD")
@@ -119,7 +132,9 @@ class GuildRecruitmentServiceTest {
         verify(exactly = 0) { lfg.joinApprovedGuild(any(), any(), any()) }
     }
 
-    @Test fun `tentative membership event cannot complete an uncertain admission`() {
+    @org.junit.jupiter.api.DisplayName("tentative membership event cannot complete an uncertain admission")
+    @Test
+    fun tentativeMembershipEventCa7() {
         val service = service()
         current = application.offer(actor, now, RecruitmentPolicy().offerLifetime).confirm(player, now)
         every { members.getPlayerGuilds(player) } returns setOf(guild.id)
@@ -128,7 +143,9 @@ class GuildRecruitmentServiceTest {
         assertEquals(ApplicationStatus.ADMISSION_PENDING, current.status)
     }
 
-    @Test fun `uncertain admission remains reserved and cannot be retried`() {
+    @org.junit.jupiter.api.DisplayName("uncertain admission remains reserved and cannot be retried")
+    @Test
+    fun uncertainAdmissionRemainsR8() {
         val service = service()
         current = application.offer(actor, now, RecruitmentPolicy().offerLifetime)
         every { lfg.canJoinGuild(player, guild) } returns LfgJoinResult.Success("Eligible")

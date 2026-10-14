@@ -30,10 +30,12 @@ internal class GuildRecruitmentService(
     fun browse(): List<Guild> = guilds.getAllGuilds().sortedBy { it.name.lowercase() }
 
     /** Returns a public recruitment profile, preserving the legacy open flag when no profile exists. */
-    fun profile(guild: Guild): RecruitmentProfile = directory.profile(guild.id) ?: RecruitmentProfile.legacy(guild.id, guild.isOpen)
+    fun profile(guild: Guild): RecruitmentProfile =
+        directory.profile(guild.id) ?: RecruitmentProfile.legacy(guild.id, guild.isOpen)
 
     /** Returns current capacity rather than only the global configured maximum. */
-    fun spaces(guild: UUID): Int = (minOf(members.getMemberLimit(guild), maximumMembers()) - members.getMemberCount(guild)).coerceAtLeast(0)
+    fun spaces(guild: UUID): Int =
+        (minOf(members.getMemberLimit(guild), maximumMembers()) - members.getMemberCount(guild)).coerceAtLeast(0)
 
     /** Requires settings authority at write time; does not modify fees or any other guild field. */
     fun saveProfile(
@@ -41,7 +43,9 @@ internal class GuildRecruitmentService(
         profile: RecruitmentProfile,
     ) {
         require(guilds.getGuild(profile.guildId) != null)
-        require(GuildRecruitmentPermissions.canEditSettings(members, actor, profile.guildId)) { "Recruitment settings permission required" }
+        require(GuildRecruitmentPermissions.canEditSettings(members, actor, profile.guildId)) {
+            "Recruitment settings permission required"
+        }
         directory.save(profile)
     }
 
@@ -58,7 +62,15 @@ internal class GuildRecruitmentService(
         ) { "You are not eligible to apply" }
         val at = now()
         val policy = policy()
-        val application = GuildApplication(UUID.randomUUID(), guildId, player, answers.trim(), at, at.plus(policy.applicationLifetime))
+        val application =
+            GuildApplication(
+                UUID.randomUUID(),
+                guildId,
+                player,
+                answers.trim(),
+                at,
+                at.plus(policy.applicationLifetime),
+            )
         require(
             applications.submit(application, policy, at) == null,
         ) { "An application is already active or your application limit was reached" }
@@ -85,13 +97,24 @@ internal class GuildRecruitmentService(
         reason: String,
     ): GuildApplication {
         val current = requireNotNull(applications.get(id)) { "Application no longer exists" }
-        require(GuildRecruitmentPermissions.canReview(members, actor, current.guildId)) { "Recruitment permission required" }
+        require(
+            GuildRecruitmentPermissions.canReview(members, actor, current.guildId),
+        ) { "Recruitment permission required" }
         val guild = requireNotNull(guilds.getGuild(current.guildId)) { "Guild no longer exists" }
         require(profile(guild).mode == RecruitmentMode.IN_GAME) { "Recruitment method has changed" }
         require(eligible(current.applicantId, guild.id) && members.getPlayerGuilds(current.applicantId).isEmpty()) {
             "Applicant is no longer eligible"
         }
-        val next = if (accept) current.offer(actor, now(), policy().offerLifetime) else current.decline(actor, reason, now())
+        val next =
+            if (accept) {
+                current.offer(
+                    actor,
+                    now(),
+                    policy().offerLifetime,
+                )
+            } else {
+                current.decline(actor, reason, now())
+            }
         require(applications.transition(current, next)) { "Application changed; reopen the inbox" }
         return next
     }
@@ -102,7 +125,9 @@ internal class GuildRecruitmentService(
         id: UUID,
     ) {
         val current = requireNotNull(applications.get(id))
-        require(applications.transition(current, current.withdraw(player, now()))) { "Application changed; refresh your applications" }
+        require(applications.transition(current, current.withdraw(player, now()))) {
+            "Application changed; refresh your applications"
+        }
     }
 
     /** Confirms the fee snapshot and reserves once before invoking canonical paid admission. */
@@ -116,11 +141,17 @@ internal class GuildRecruitmentService(
         val current = requireNotNull(applications.get(id)) { "Application no longer exists" }
         require(current.applicantId == player && current.guildId == quotedGuild.id)
         val guild = requireNotNull(guilds.getGuild(current.guildId)) { "Guild no longer exists" }
-        require(guild.joinFeeEnabled == quotedGuild.joinFeeEnabled && guild.joinFeeAmount == quotedGuild.joinFeeAmount) {
+        require(
+            guild.joinFeeEnabled == quotedGuild.joinFeeEnabled && guild.joinFeeAmount == quotedGuild.joinFeeAmount,
+        ) {
             "Joining fee changed; review the offer again"
         }
-        require(lfg.getJoinRequirement(guild) == quotedFee) { "Joining currency or quoted fee changed; review the offer again" }
-        require(profile(guild).mode == RecruitmentMode.IN_GAME && eligible(player, guild.id)) { "You are no longer eligible to join" }
+        require(
+            lfg.getJoinRequirement(guild) == quotedFee,
+        ) { "Joining currency or quoted fee changed; review the offer again" }
+        require(profile(guild).mode == RecruitmentMode.IN_GAME && eligible(player, guild.id)) {
+            "You are no longer eligible to join"
+        }
         val validation = lfg.canJoinGuild(player, guild)
         if (validation !is LfgJoinResult.Success) return validation
         val pending = current.confirm(player, now())
@@ -155,7 +186,9 @@ internal class GuildRecruitmentService(
 
     /** Disbanding closes unconfirmed requests but never guesses the outcome of an uncertain payment. */
     fun closeGuildApplications(guild: UUID) {
-        applications.forGuild(guild).filter { it.status in setOf(ApplicationStatus.SUBMITTED, ApplicationStatus.OFFERED) }
+        applications.forGuild(
+            guild,
+        ).filter { it.status in setOf(ApplicationStatus.SUBMITTED, ApplicationStatus.OFFERED) }
             .forEach { applications.transition(it, it.close()) }
     }
 
@@ -163,7 +196,15 @@ internal class GuildRecruitmentService(
         val active = application.status in setOf(ApplicationStatus.SUBMITTED, ApplicationStatus.OFFERED)
         if (!active || now() < application.expiresAt) return application
         val expired = application.expire(now())
-        return if (applications.transition(application, expired)) expired else applications.get(application.id) ?: expired
+        return if (applications.transition(
+                application,
+                expired,
+            )
+        ) {
+            expired
+        } else {
+            applications.get(application.id) ?: expired
+        }
     }
 
     private fun now(): Instant = clock.instant().truncatedTo(ChronoUnit.MILLIS)

@@ -10,7 +10,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class RecruitmentPolicyTest {
+internal class RecruitmentPolicyTest {
     private val now = Instant.parse("2026-10-14T12:00:00Z")
     private val guild = UUID.randomUUID()
     private val player = UUID.randomUUID()
@@ -27,12 +27,16 @@ class RecruitmentPolicyTest {
             now.plus(Duration.ofDays(7)),
         )
 
-    @Test fun `legacy open flag migrates without guessing application mode`() {
+    @org.junit.jupiter.api.DisplayName("legacy open flag migrates without guessing application mode")
+    @Test
+    fun legacyOpenFlagMigratesWith1() {
         assertEquals(RecruitmentMode.JOIN_IMMEDIATELY, RecruitmentProfile.legacy(guild, true).mode)
         assertEquals(RecruitmentMode.CLOSED, RecruitmentProfile.legacy(guild, false).mode)
     }
 
-    @Test fun `Discord mode requires a strict invite and instructions`() {
+    @org.junit.jupiter.api.DisplayName("Discord mode requires a strict invite and instructions")
+    @Test
+    fun discordModeRequiresAStrict2() {
         assertFailsWith<IllegalArgumentException> { RecruitmentProfile(guild, RecruitmentMode.DISCORD) }
         assertFailsWith<IllegalArgumentException> {
             RecruitmentProfile(
@@ -63,7 +67,9 @@ class RecruitmentPolicyTest {
         }
     }
 
-    @Test fun `one active application per guild and at most three per player`() {
+    @org.junit.jupiter.api.DisplayName("one active application per guild and at most three per player")
+    @Test
+    fun oneActiveApplicationPerGui3() {
         val a = application()
         assertEquals(SubmissionDenial.DUPLICATE, policy.canSubmit(guild, player, listOf(a), now))
         val other = (1..3).map { a.copy(id = UUID.randomUUID(), guildId = UUID.randomUUID()) }
@@ -72,7 +78,9 @@ class RecruitmentPolicyTest {
         assertNull(policy.canSubmit(guild, player, listOf(a.copy(expiresAt = now)), now))
     }
 
-    @Test fun `approval is an offer requiring applicant confirmation not membership`() {
+    @org.junit.jupiter.api.DisplayName("approval is an offer requiring applicant confirmation not membership")
+    @Test
+    fun approvalIsAnOfferRequiring4() {
         val offered = application().offer(recruiter, now, policy.offerLifetime)
         assertEquals(ApplicationStatus.OFFERED, offered.status)
         assertEquals(recruiter, offered.reviewedBy)
@@ -82,15 +90,26 @@ class RecruitmentPolicyTest {
         assertFailsWith<IllegalArgumentException> { offered.confirm(player, offered.expiresAt) }
     }
 
-    @Test fun `expired withdrawn and declined applications cannot be offered`() {
+    @org.junit.jupiter.api.DisplayName("expired withdrawn and declined applications cannot be offered")
+    @Test
+    fun expiredWithdrawnAndDecline5() {
         val a = application()
         assertFailsWith<IllegalArgumentException> { a.offer(recruiter, a.expiresAt, policy.offerLifetime) }
-        assertFailsWith<IllegalArgumentException> { a.withdraw(player, now).offer(recruiter, now, policy.offerLifetime) }
-        assertFailsWith<IllegalArgumentException> { a.decline(recruiter, "Not a fit", now).offer(recruiter, now, policy.offerLifetime) }
+        assertFailsWith<IllegalArgumentException> {
+            a.withdraw(
+                player,
+                now,
+            ).offer(recruiter, now, policy.offerLifetime)
+        }
+        assertFailsWith<IllegalArgumentException> {
+            a.decline(recruiter, "Not a fit", now).offer(recruiter, now, policy.offerLifetime)
+        }
         assertFailsWith<IllegalArgumentException> { a.withdraw(recruiter, now) }
     }
 
-    @Test fun `uncertain admissions stay closed to repeated confirmation`() {
+    @org.junit.jupiter.api.DisplayName("uncertain admissions stay closed to repeated confirmation")
+    @Test
+    fun uncertainAdmissionsStayClo6() {
         val pending = application().offer(recruiter, now, policy.offerLifetime).confirm(player, now)
         assertTrue(pending.isActive(now))
         assertTrue(pending.isActive(now.plus(Duration.ofDays(20))))
@@ -99,7 +118,9 @@ class RecruitmentPolicyTest {
         assertFailsWith<IllegalArgumentException> { pending.withdraw(player, now) }
     }
 
-    @Test fun `config bounds and empty answers are rejected`() {
+    @org.junit.jupiter.api.DisplayName("config bounds and empty answers are rejected")
+    @Test
+    fun configBoundsAndEmptyAnswer7() {
         assertFailsWith<IllegalArgumentException> { RecruitmentPolicy(maxApplications = 0) }
         assertFailsWith<IllegalArgumentException> { RecruitmentPolicy(offerLifetime = Duration.ZERO) }
         assertFailsWith<IllegalArgumentException> { application().copy(answers = " ") }

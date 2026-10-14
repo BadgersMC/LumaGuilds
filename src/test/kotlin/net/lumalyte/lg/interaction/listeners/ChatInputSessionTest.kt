@@ -9,8 +9,10 @@ import java.util.UUID
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class ChatInputSessionTest {
-    @Test fun `old prompt timeout cannot clear replacement prompt`() {
+internal class ChatInputSessionTest {
+    @org.junit.jupiter.api.DisplayName("old prompt timeout cannot clear replacement prompt")
+    @Test
+    fun oldPromptTimeoutCannotCle1() {
         val player = mockk<Player>()
         every { player.uniqueId } returns UUID.randomUUID()
         val listener = ChatInputListener()
@@ -24,7 +26,9 @@ class ChatInputSessionTest {
         assertFalse(listener.isInInputMode(player))
     }
 
-    @Test fun `disconnect clears private input before another session can submit`() {
+    @org.junit.jupiter.api.DisplayName("disconnect clears private input before another session can submit")
+    @Test
+    fun disconnectClearsPrivateIn2() {
         val player = mockk<Player>()
         every { player.uniqueId } returns UUID.randomUUID()
         val event = mockk<PlayerQuitEvent>()

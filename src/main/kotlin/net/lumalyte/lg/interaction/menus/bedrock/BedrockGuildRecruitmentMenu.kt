@@ -57,7 +57,10 @@ internal class BedrockGuildRecruitmentMenu(
                 open()
             }
         }
-        return builder.validResultHandler { response -> onServer { actions.getOrNull(response.clickedButtonId())?.invoke() } }
+        return builder.validResultHandler {
+                response ->
+            onServer { actions.getOrNull(response.clickedButtonId())?.invoke() }
+        }
             .closedOrInvalidResultHandler { _, _ -> onServer { bedrockNavigator.goBack() } }.build()
     }
 

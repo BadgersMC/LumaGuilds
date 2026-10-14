@@ -103,8 +103,11 @@ internal class GuildRecruitmentListener(
         Bukkit.getPlayer(event.playerId)?.let { player ->
             safe {
                 val guildless = members.getPlayerGuilds(player.uniqueId).isEmpty()
-                if (guildless && directory.remindersEnabled(player.uniqueId) && player.hasPermission("lumaguilds.guild.lfg")) {
-                    player.sendMessage(lang.msg("recruitment.discovery.leave").clickEvent(ClickEvent.runCommand("/g recruitment")))
+                val enabled = directory.remindersEnabled(player.uniqueId)
+                if (guildless && enabled && player.hasPermission("lumaguilds.guild.lfg")) {
+                    player.sendMessage(
+                        lang.msg("recruitment.discovery.leave").clickEvent(ClickEvent.runCommand("/g recruitment")),
+                    )
                 }
             }
         }
@@ -117,12 +120,19 @@ internal class GuildRecruitmentListener(
         if (!player.isOnline || !player.hasPermission("lumaguilds.guild.lfg")) return
         if (members.getPlayerGuilds(player.uniqueId).isNotEmpty()) return
         val joined = sessions[player.uniqueId] ?: return
-        if (Instant.now().isBefore(joined.plusSeconds(config.loadConfig().recruitment.onboardingDelaySeconds.toLong()))) return
+        if (Instant.now().isBefore(
+                joined.plusSeconds(config.loadConfig().recruitment.onboardingDelaySeconds.toLong()),
+            )
+        ) {
+            return
+        }
         val minutes = config.loadConfig().recruitment.reminderMinutes
         if (repeat && minutes == 0) return
         val interval = if (repeat) Duration.ofMinutes(minutes.toLong()) else null
         if (directory.consumePrompt(player.uniqueId, Instant.now(), interval)) {
-            player.sendMessage(lang.msg("recruitment.discovery.prompt").clickEvent(ClickEvent.runCommand("/g recruitment")))
+            player.sendMessage(
+                lang.msg("recruitment.discovery.prompt").clickEvent(ClickEvent.runCommand("/g recruitment")),
+            )
         }
     }
 
@@ -141,12 +151,17 @@ internal class GuildRecruitmentListener(
                     "SHA-256",
                 ).digest(text.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
             if (directory.consumeNotification(player.uniqueId, signature)) {
-                player.sendMessage(lang.msg("recruitment.discovery.updated").clickEvent(ClickEvent.runCommand("/g recruitment")))
+                player.sendMessage(
+                    lang.msg("recruitment.discovery.updated").clickEvent(ClickEvent.runCommand("/g recruitment")),
+                )
             }
         }
         prompt(player, true)
     }
 
+    @Suppress(
+        "TooGenericExceptionCaught",
+    ) // Scheduler boundary contains adapter failures without exposing private records or retrying payment.
     private fun safe(action: () -> Unit) {
         try {
             action()
