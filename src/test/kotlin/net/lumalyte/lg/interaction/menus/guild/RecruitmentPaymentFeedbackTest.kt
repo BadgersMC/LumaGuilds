@@ -26,13 +26,13 @@ internal class RecruitmentPaymentFeedbackTest {
     }
 
     @Test
-    fun definitiveRejectionExplainsNoPayment() {
+    fun rejectionHasNoPaymentHint() {
         recruitmentAdmissionFeedback(lang, LfgJoinResult.PaymentRejected(GuildGoldRejection.FROZEN))
         verify { lang.msg("recruitment.feedback.payment_rejected") }
     }
 
     @Test
-    fun genericAdapterDetailsRemainPrivate() {
+    fun adapterFailureStaysPrivate() {
         recruitmentAdmissionFeedback(lang, LfgJoinResult.Error("private SQL address"))
         verify { lang.msg("recruitment.feedback.failed") }
     }

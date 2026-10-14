@@ -21,12 +21,13 @@ private fun standardAdmissionFeedback(lang: LangService, result: LfgJoinResult):
         is LfgJoinResult.Success -> lang.msg("recruitment.feedback.joined")
         is LfgJoinResult.GuildFull -> lang.msg("recruitment.feedback.guild_full")
         is LfgJoinResult.AlreadyInGuild -> lang.msg("recruitment.feedback.already_member")
-        is LfgJoinResult.InsufficientFunds -> lang.msg(
-            "recruitment.feedback.insufficient_funds",
-            "required" to result.required,
-            "current" to result.current,
-            "currency" to result.currencyType,
-        )
+        is LfgJoinResult.InsufficientFunds ->
+            lang.msg(
+                "recruitment.feedback.insufficient_funds",
+                "required" to result.required,
+                "current" to result.current,
+                "currency" to result.currencyType,
+            )
         else -> lang.msg("recruitment.feedback.failed")
     }
 }

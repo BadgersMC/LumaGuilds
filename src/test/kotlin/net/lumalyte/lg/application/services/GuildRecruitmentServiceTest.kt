@@ -24,6 +24,7 @@ import kotlin.test.assertFailsWith
 private const val APPLICATION_WINDOW_SECONDS = 604_800L
 private const val MEMBER_CAPACITY = 10
 private const val JOIN_FEE_QUOTE = 100
+private const val ELIGIBLE_MESSAGE = "Eligible"
 
 internal class GuildRecruitmentServiceTest : GuildRecruitmentFixture() {
     @org.junit.jupiter.api.DisplayName("Recruiters can decline applicants who became ineligible")
@@ -60,7 +61,7 @@ internal class GuildRecruitmentServiceTest : GuildRecruitmentFixture() {
     fun confirmationReservesOnceAn3() {
         val service = service()
         current = application.offer(actor, now, RecruitmentPolicy().offerLifetime)
-        every { lfg.canJoinGuild(player, guild) } returns LfgJoinResult.Success("Eligible")
+        every { lfg.canJoinGuild(player, guild) } returns LfgJoinResult.Success(ELIGIBLE_MESSAGE)
         every { lfg.joinApprovedGuild(player, guild, any()) } returns LfgJoinResult.Success("Joined")
         service.confirm(player, application.id, guild)
         assertEquals(ApplicationStatus.JOINED, current.status)
@@ -122,7 +123,7 @@ internal class GuildRecruitmentServiceTest : GuildRecruitmentFixture() {
     fun uncertainAdmissionRemainsR8() {
         val service = service()
         current = application.offer(actor, now, RecruitmentPolicy().offerLifetime)
-        every { lfg.canJoinGuild(player, guild) } returns LfgJoinResult.Success("Eligible")
+        every { lfg.canJoinGuild(player, guild) } returns LfgJoinResult.Success(ELIGIBLE_MESSAGE)
         every { lfg.joinApprovedGuild(player, guild, any()) } throws IllegalStateException("uncertain payment")
         assertFailsWith<IllegalStateException> { service.confirm(player, application.id, guild) }
         assertEquals(ApplicationStatus.ADMISSION_PENDING, current.status)
@@ -133,11 +134,11 @@ internal class GuildRecruitmentServiceTest : GuildRecruitmentFixture() {
 
 internal class GuildRecruitmentPaymentReservationTest : GuildRecruitmentFixture() {
     @Test
-    fun definitiveRejectionRestoresOffer() {
+    fun rejectionRestoresOffer() {
         val service = service()
         current = application.offer(actor, now, RecruitmentPolicy().offerLifetime)
         val offer = current
-        every { lfg.canJoinGuild(player, guild) } returns LfgJoinResult.Success("Eligible")
+        every { lfg.canJoinGuild(player, guild) } returns LfgJoinResult.Success(ELIGIBLE_MESSAGE)
         every { lfg.joinApprovedGuild(player, guild, any()) } returns
             net.lumalyte.lg.domain.gold.GuildGoldResult.Rejected(
                 net.lumalyte.lg.domain.gold.GuildGoldRejection.FROZEN,
@@ -147,11 +148,11 @@ internal class GuildRecruitmentPaymentReservationTest : GuildRecruitmentFixture(
     }
 
     @Test
-    fun confirmedRefundRestoresOfferButUncertainPaymentDoesNot() {
+    fun refundAndUncertainty() {
         val service = service()
         current = application.offer(actor, now, RecruitmentPolicy().offerLifetime)
         val offer = current
-        every { lfg.canJoinGuild(player, guild) } returns LfgJoinResult.Success("Eligible")
+        every { lfg.canJoinGuild(player, guild) } returns LfgJoinResult.Success(ELIGIBLE_MESSAGE)
         every { lfg.joinApprovedGuild(player, guild, any()) } returns LfgJoinResult.PaymentRefunded(UUID.randomUUID())
         service.confirm(player, application.id, guild)
         assertEquals(offer, current)

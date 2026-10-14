@@ -33,6 +33,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 private const val MEMBER_CAPACITY = 10
+private const val PAYMENT_QUOTE = 100
 private const val ORIGINAL_PITCH = "Existing listing"
 
 /** Exercises screen actions against the real permission-checking application service. */
@@ -158,9 +159,9 @@ internal class RecruitmentControllerFlowTest {
     }
 
     @Test
-    fun commandPreviewDoesNotAdmitUntilConfirmation() {
-        val quote = net.lumalyte.lg.domain.values.JoinRequirement(100, true, "RAW_GOLD")
-        val payable = guild.copy(joinFeeEnabled = true, joinFeeAmount = 100)
+    fun commandPreviewThenConfirm() {
+        val quote = net.lumalyte.lg.domain.values.JoinRequirement(PAYMENT_QUOTE, true, "RAW_GOLD")
+        val payable = guild.copy(joinFeeEnabled = true, joinFeeAmount = PAYMENT_QUOTE)
         every { guilds.getGuild(guild.id) } returns payable
         every { lfg.getJoinRequirement(payable) } returns quote
         controller.previewJoin(payable)
@@ -174,8 +175,8 @@ internal class RecruitmentControllerFlowTest {
     }
 
     @Test
-    fun paidJoinCommandOpensPreviewWithoutCharging() {
-        val payable = guild.copy(joinFeeEnabled = true, joinFeeAmount = 100)
+    fun paidCommandDoesNotCharge() {
+        val payable = guild.copy(joinFeeEnabled = true, joinFeeAmount = PAYMENT_QUOTE)
         published = published.copy(mode = RecruitmentMode.JOIN_IMMEDIATELY)
         every { guilds.getPlayerGuilds(actor) } returns emptySet()
         every { guilds.getGuildByName(guild.name) } returns payable

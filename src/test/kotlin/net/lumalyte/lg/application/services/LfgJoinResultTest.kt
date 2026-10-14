@@ -108,7 +108,7 @@ class LfgJoinResultTest {
             LfgJoinResult.Error("Error"),
             LfgJoinResult.PaymentRejected(net.lumalyte.lg.domain.gold.GuildGoldRejection.FROZEN),
             LfgJoinResult.PaymentRefunded(java.util.UUID.randomUUID()),
-            LfgJoinResult.PaymentUncertain(java.util.UUID.randomUUID())
+            LfgJoinResult.PaymentUncertain(java.util.UUID.randomUUID()),
         )
 
         // When/Then: All types should be matchable

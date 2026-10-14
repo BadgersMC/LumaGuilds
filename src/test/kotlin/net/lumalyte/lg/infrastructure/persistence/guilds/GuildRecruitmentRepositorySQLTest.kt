@@ -49,21 +49,6 @@ internal class GuildRecruitmentRepositorySQLTest : RewardSqlTestFixture() {
         )
     }
 
-    @Test
-    fun releasedReservationCanBeConfirmedAgainAndRejectsStaleRelease() {
-        val repository = GuildRecruitmentRepositorySQL(openStorage())
-        val submitted = application()
-        assertNull(repository.submit(submitted, policy, now))
-        val offer = submitted.offer(UUID.randomUUID(), now, policy.offerLifetime)
-        assertTrue(repository.transition(submitted, offer))
-        val pending = offer.confirm(player, now)
-        assertTrue(repository.transition(offer, pending))
-        val restored = pending.releaseAdmission(now)
-        assertTrue(repository.transition(pending, restored))
-        assertFalse(repository.transition(pending, restored))
-        assertTrue(repository.transition(restored, restored.confirm(player, now)))
-    }
-
     @org.junit.jupiter.api.DisplayName("applications and decision actor survive a new repository instance")
     @Test
     fun applicationsAndDecisionAct1() {

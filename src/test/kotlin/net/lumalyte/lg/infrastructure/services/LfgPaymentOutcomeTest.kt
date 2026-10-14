@@ -19,22 +19,25 @@ internal class LfgPaymentOutcomeTest {
         assertEquals(
             "PaymentRejected",
             GuildGoldResult.Rejected(GuildGoldRejection.FROZEN)
-                .admissionFeedback(guild, logger).javaClass.simpleName,
+                .admissionFeedback(guild, logger)
+                .javaClass.simpleName,
         )
         assertEquals(
             "PaymentRefunded",
             GuildGoldResult.Failed(reference, true)
-                .admissionFeedback(guild, logger).javaClass.simpleName,
+                .admissionFeedback(guild, logger)
+                .javaClass.simpleName,
         )
         assertEquals(
             "PaymentUncertain",
             GuildGoldResult.Failed(reference, false)
-                .admissionFeedback(guild, logger).javaClass.simpleName,
+                .admissionFeedback(guild, logger)
+                .javaClass.simpleName,
         )
     }
 
     @Test
-    fun paymentReferenceSurvivesMapping() {
+    fun paymentReferencePreserved() {
         val reference = UUID.randomUUID()
         assertEquals(
             reference,

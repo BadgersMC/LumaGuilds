@@ -118,10 +118,8 @@ class BedrockJoinRequirementsMenu(
         // Status section
         sb.appendLine()
         when (canJoinResult) {
-            is LfgJoinResult.PaymentRejected, is LfgJoinResult.PaymentRefunded, is LfgJoinResult.PaymentUncertain -> {
-                sb.appendLine(net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
-                    .serialize(net.lumalyte.lg.interaction.menus.guild.recruitmentAdmissionFeedback(lang, canJoinResult)))
-            }
+            is LfgJoinResult.PaymentRejected, is LfgJoinResult.PaymentRefunded, is LfgJoinResult.PaymentUncertain ->
+                sb.appendLine(paymentStatus(canJoinResult))
             is LfgJoinResult.Success -> {
                 sb.appendLine(lang.bedrock("bedrock.join_requirements.status.ready"))
             }
@@ -143,6 +141,11 @@ class BedrockJoinRequirementsMenu(
         }
 
         return sb.toString()
+    }
+
+    private fun paymentStatus(result: LfgJoinResult): String {
+        val message = net.lumalyte.lg.interaction.menus.guild.recruitmentAdmissionFeedback(lang, result)
+        return net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(message)
     }
 
     private fun processJoin() {
