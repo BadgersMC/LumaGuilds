@@ -47,6 +47,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val rankService: RankService by inject()
     private val chatRankSettings: net.lumalyte.lg.application.services.GuildChatRankSettingsService by inject()
     private val memberService: MemberService by inject()
+    private val inviteBlocks: net.lumalyte.lg.application.services.InviteBlockService by inject()
     private val vaultService: net.lumalyte.lg.application.services.GuildVaultService by inject()
     private val warService: net.lumalyte.lg.application.services.WarService by inject()
     private val getClaimAtPosition: GetClaimAtPosition by inject()
@@ -1709,6 +1710,53 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         player.sendMessage(lang.msg("command.migrated.guild.decline.you_declined_the_invitation_to_join", "actual_guild_name" to actualGuildName))
         player.playSound(player.location, org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 0.8f)
+    }
+
+    /**
+     * `/g block <player>`: no more guild invites from them or from any guild they are in, and their guild, ally and
+     * party chat messages are hidden from you. Memberships are not changed.
+     */
+    @Subcommand("block")
+    @CommandPermission("lumaguilds.guild.block")
+    @CommandCompletion("@allplayers")
+    fun onBlock(player: Player, targetPlayerName: String) = changeBlock(player, targetPlayerName, blocked = true)
+
+    @Subcommand("unblock")
+    @CommandPermission("lumaguilds.guild.block")
+    @CommandCompletion("@allplayers")
+    fun onUnblock(player: Player, targetPlayerName: String) = changeBlock(player, targetPlayerName, blocked = false)
+
+    @Subcommand("blocked")
+    @CommandPermission("lumaguilds.guild.block")
+    fun onBlocked(player: Player) {
+        val names = inviteBlocks.blockedBy(player.uniqueId)
+            .map { Bukkit.getOfflinePlayer(it).name ?: it.toString() }
+            .sortedBy { it.lowercase() }
+        if (names.isEmpty()) {
+            player.sendMessage(lang.msg("command.migrated.guild.block.none"))
+            return
+        }
+        player.sendMessage(lang.msg("command.migrated.guild.block.list", "players" to names.joinToString(", ")))
+    }
+
+    private fun changeBlock(player: Player, targetPlayerName: String, blocked: Boolean) {
+        val target = findPlayerByName(targetPlayerName)?.let { it.uniqueId to it.name }
+            ?: Bukkit.getOfflinePlayerIfCached(targetPlayerName)?.let { it.uniqueId to (it.name ?: targetPlayerName) }
+        if (target == null) {
+            player.sendMessage(lang.msg("command.migrated.guild.block.unknown_player", "player" to targetPlayerName))
+            return
+        }
+        val (targetId, targetName) = target
+        if (targetId == player.uniqueId) {
+            player.sendMessage(lang.msg("command.migrated.guild.block.yourself"))
+            return
+        }
+        if (!inviteBlocks.setBlocked(player.uniqueId, targetId, blocked)) {
+            player.sendMessage(lang.msg("command.migrated.guild.block.failed"))
+            return
+        }
+        if (blocked) player.sendMessage(lang.msg("command.migrated.guild.block.blocked", "player" to targetName))
+        else player.sendMessage(lang.msg("command.migrated.guild.block.unblocked", "player" to targetName))
     }
 
     @Subcommand("invites")

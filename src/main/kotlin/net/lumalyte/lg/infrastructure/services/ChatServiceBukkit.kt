@@ -35,6 +35,8 @@ class ChatServiceBukkit(
     private val partyRepository: PartyRepository,
     private val lang: LangService,
     private val chatRankSettings: GuildChatRankSettingsService,
+    /** Players who blocked the sender do not receive their guild, ally or party messages. */
+    private val inviteBlocks: net.lumalyte.lg.application.services.InviteBlockService? = null,
 ) : ChatService {
 
     private val logger = LoggerFactory.getLogger(ChatServiceBukkit::class.java)
@@ -221,6 +223,15 @@ class ChatServiceBukkit(
     }
 
     override fun getRecipientsForChannel(
+        senderId: UUID,
+        channel: ChatChannel,
+    ): Set<UUID> {
+        val recipients = recipientsForChannel(senderId, channel)
+        if (channel == ChatChannel.PUBLIC || inviteBlocks == null) return recipients
+        return recipients.filterNot { inviteBlocks.hidesChat(it, senderId) }.toSet()
+    }
+
+    private fun recipientsForChannel(
         senderId: UUID,
         channel: ChatChannel,
     ): Set<UUID> {

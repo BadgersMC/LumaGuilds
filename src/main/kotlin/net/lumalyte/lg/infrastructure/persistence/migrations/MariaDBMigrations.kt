@@ -179,6 +179,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(44)
                 currentDbVersion = 44
             }
+            if (currentDbVersion < 45) {
+                InviteBlockSchema.create(connection, mariaDb = true)
+                updateDatabaseVersion(45)
+                currentDbVersion = 45
+            }
             connection.commit()
 
             val finalVersion = getCurrentDatabaseVersion()

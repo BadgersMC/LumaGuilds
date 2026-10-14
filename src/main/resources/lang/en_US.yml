@@ -1987,6 +1987,14 @@ command:
         your_guild_has_home_slots: '<gray>Your guild has <white><size><gray>/<available_slots><gray> home slots:'
       info:
         no_guild_or_player_named_found: '<red>No guild or player named ''<target_guild>'' found.'
+      block:
+        blocked: '<green>Blocked <player>. You won''t get guild invites from them or their guild, or see their guild, ally and party chat.'
+        unblocked: '<green>Unblocked <player>.'
+        unknown_player: '<red>No player called ''<player>'' has played here.'
+        yourself: '<red>You cannot block yourself.'
+        failed: '<red>That could not be saved. Please try again.'
+        none: '<gray>You have not blocked anyone from guild invites.'
+        list: '<gray>Blocked from guild invites: <white><players>'
       invite:
         is_already_in_your_guild: '<red><player> is already in your guild!'
         player_is_not_online: '<red>Player ''<target_player_name>'' is not online.'

@@ -249,6 +249,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(44)
                 dbVersion = 44
             }
+            if (dbVersion < 45) {
+                InviteBlockSchema.create(connection, mariaDb = false)
+                updateDatabaseVersion(45)
+                dbVersion = 45
+            }
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
 
@@ -1442,7 +1447,8 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             "war_banners", "war_notifications", "player_notification_preferences", "guild_discord_roles",
             "spawn_banners", "rank_claim_permission_profiles",
             QuestCompletionNotificationSchema.TABLE, GuildChatRankSettingsSchema.TABLE,
-            GuildHomeActivationSchema.ACTIVATIONS_TABLE, GuildHomeActivationSchema.CREDITS_TABLE
+            GuildHomeActivationSchema.ACTIVATIONS_TABLE, GuildHomeActivationSchema.CREDITS_TABLE,
+            InviteBlockSchema.TABLE
         )
 
         // Add claim tables to required list if claims are enabled
@@ -1531,6 +1537,9 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             }
             if (GuildChatRankSettingsSchema.TABLE in missingTables) {
                 GuildChatRankSettingsSchema.create(connection, mariaDb = false)
+            }
+            if (InviteBlockSchema.TABLE in missingTables) {
+                InviteBlockSchema.create(connection, mariaDb = false)
             }
             if (GuildHomeActivationSchema.ACTIVATIONS_TABLE in missingTables ||
                 GuildHomeActivationSchema.CREDITS_TABLE in missingTables) {

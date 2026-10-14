@@ -12,13 +12,16 @@ import java.util.UUID
 object GuildInvitationManager {
 
     private lateinit var repository: GuildInvitationRepository
+    /** Personal invite blocks; an invite the invited player blocked is never stored. */
+    private var inviteBlocks: net.lumalyte.lg.application.services.InviteBlockService? = null
 
     /**
      * Initialize the manager with a repository instance.
      * This must be called during plugin startup.
      */
-    fun initialize(repo: GuildInvitationRepository) {
+    fun initialize(repo: GuildInvitationRepository, blocks: net.lumalyte.lg.application.services.InviteBlockService? = null) {
         repository = repo
+        inviteBlocks = blocks
     }
 
     /**
@@ -31,6 +34,10 @@ object GuildInvitationManager {
         inviterPlayerId: UUID,
         inviterName: String
     ): Boolean {
+        // Every guild invite passes here: refused, without saying why, when the invited player blocked the inviter or
+        // a member of the guild (and when the blocks could not be loaded).
+        if (inviteBlocks?.refusesGuildInvite(invitedPlayerId, guildId, inviterPlayerId) == true) return false
+
         val invitation = GuildInvitation(
             guildId = guildId,
             guildName = guildName,
@@ -55,7 +62,10 @@ object GuildInvitationManager {
      * Get all pending invites for a player
      */
     fun getInvites(playerId: UUID): List<Pair<UUID, String>> {
-        return repository.getByPlayer(playerId).map { it.guildId to it.guildName }
+        // An invite stops counting once the player blocks the inviter or someone who is now in that guild.
+        return repository.getByPlayer(playerId)
+            .filterNot { inviteBlocks?.refusesGuildInvite(playerId, it.guildId, it.inviterPlayerId) == true }
+            .map { it.guildId to it.guildName }
     }
 
     /**
@@ -64,6 +74,7 @@ object GuildInvitationManager {
     fun getInviteByGuildName(playerId: UUID, guildName: String): Pair<UUID, String>? {
         return repository.getByPlayer(playerId)
             .firstOrNull { it.guildName.equals(guildName, ignoreCase = true) }
+            ?.takeUnless { inviteBlocks?.refusesGuildInvite(playerId, it.guildId, it.inviterPlayerId) == true }
             ?.let { it.guildId to it.guildName }
     }
 
