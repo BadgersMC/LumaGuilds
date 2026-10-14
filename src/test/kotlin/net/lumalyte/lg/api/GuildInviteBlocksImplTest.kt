@@ -9,15 +9,19 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class GuildInviteBlocksImplTest {
+/** Regression coverage for personal invite blocking and compatibility boundaries. */
+internal class GuildInviteBlocksImplTest {
+    /** Verifies the API passes straight through to the invite block service. */
     @Test
-    fun `the API passes straight through to the invite block service`() {
-        val owner = UUID.randomUUID(); val target = UUID.randomUUID()
-        val service = mockk<InviteBlockService> {
-            every { isBlocked(owner, target) } returns true
-            every { setBlocked(owner, target, false) } returns false
-            every { blockedBy(owner) } returns setOf(target)
-        }
+    fun apiDelegatesToService() {
+        val owner = UUID.randomUUID()
+        val target = UUID.randomUUID()
+        val service =
+            mockk<InviteBlockService> {
+                every { isBlocked(owner, target) } returns true
+                every { setBlocked(owner, target, false) } returns false
+                every { blockedBy(owner) } returns setOf(target)
+            }
         val api: GuildInviteBlocks = GuildInviteBlocksImpl(service)
         assertEquals(1, api.apiVersion())
         assertTrue(api.isBlocked(owner, target))

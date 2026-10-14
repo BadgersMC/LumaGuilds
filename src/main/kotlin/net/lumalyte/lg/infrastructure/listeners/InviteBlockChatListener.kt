@@ -12,7 +12,8 @@ import org.bukkit.event.Listener
  * fires [PreParseMessageEvent] once per recipient, so cancelling it only skips that viewer. Registered only when
  * RoseChat is present; async-safe (blocks are read from memory).
  */
-class InviteBlockChatListener(private val blocks: InviteBlockService) : Listener {
+internal class InviteBlockChatListener(private val blocks: InviteBlockService) : Listener {
+    /** Cancels only the blocking recipient's guild-channel parse event. */
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     fun onPreParseMessage(event: PreParseMessageEvent) {
         if (event.message.channel !is LumaGuildsChannel) return

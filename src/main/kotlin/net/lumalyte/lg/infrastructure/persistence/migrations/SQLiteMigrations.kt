@@ -249,10 +249,10 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(44)
                 dbVersion = 44
             }
-            if (dbVersion < 45) {
+            if (dbVersion < InviteBlockSchema.VERSION) {
                 InviteBlockSchema.create(connection, mariaDb = false)
-                updateDatabaseVersion(45)
-                dbVersion = 45
+                updateDatabaseVersion(InviteBlockSchema.VERSION)
+                dbVersion = InviteBlockSchema.VERSION
             }
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()

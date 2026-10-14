@@ -169,7 +169,7 @@ class LumaGuilds : JavaPlugin() {
         // Initialize GuildInvitationManager with the repository from Koin
         net.lumalyte.lg.infrastructure.services.GuildInvitationManager.initialize(
             get().get<net.lumalyte.lg.application.persistence.GuildInvitationRepository>(),
-            get().get<net.lumalyte.lg.application.services.InviteBlockService>()
+            get().get<net.lumalyte.lg.application.services.InviteBlockService>(),
         )
 
         // Initialize Gold Balance Button

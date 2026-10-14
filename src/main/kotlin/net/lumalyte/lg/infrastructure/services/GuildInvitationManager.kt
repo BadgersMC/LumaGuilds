@@ -1,6 +1,7 @@
 package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.persistence.GuildInvitationRepository
+import net.lumalyte.lg.application.services.InviteBlockService
 import net.lumalyte.lg.domain.entities.GuildInvitation
 import java.time.Instant
 import java.util.UUID
@@ -12,14 +13,17 @@ import java.util.UUID
 object GuildInvitationManager {
 
     private lateinit var repository: GuildInvitationRepository
-    /** Personal invite blocks; an invite the invited player blocked is never stored. */
-    private var inviteBlocks: net.lumalyte.lg.application.services.InviteBlockService? = null
+
+    private var inviteBlocks: InviteBlockService? = null
 
     /**
      * Initialize the manager with a repository instance.
      * This must be called during plugin startup.
      */
-    fun initialize(repo: GuildInvitationRepository, blocks: net.lumalyte.lg.application.services.InviteBlockService? = null) {
+    fun initialize(
+        repo: GuildInvitationRepository,
+        blocks: InviteBlockService? = null,
+    ) {
         repository = repo
         inviteBlocks = blocks
     }
@@ -96,14 +100,16 @@ object GuildInvitationManager {
      * Check if player has a pending invite from a specific guild
      */
     fun hasInvite(playerId: UUID, guildId: UUID): Boolean {
-        return repository.hasInvitation(playerId, guildId)
+        if (inviteBlocks == null) return repository.hasInvitation(playerId, guildId)
+        return getInvites(playerId).any { it.first == guildId }
     }
 
     /**
      * Get the number of pending invites for a player
      */
     fun getInviteCount(playerId: UUID): Int {
-        return repository.getInvitationCount(playerId)
+        if (inviteBlocks == null) return repository.getInvitationCount(playerId)
+        return getInvites(playerId).size
     }
 
     /**

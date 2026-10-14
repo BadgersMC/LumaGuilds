@@ -9,8 +9,18 @@ import java.util.UUID
  */
 interface InviteBlockRepository {
     val isAvailable: Boolean
-    fun isBlocked(ownerId: UUID, targetId: UUID): Boolean
+
+    fun isBlocked(
+        ownerId: UUID,
+        targetId: UUID,
+    ): Boolean
+
     fun blockedBy(ownerId: UUID): Set<UUID>
+
     /** Saves the change durably before it takes effect; false when it could not be saved. Idempotent. */
-    fun setBlocked(ownerId: UUID, targetId: UUID, blocked: Boolean): Boolean
+    fun setBlocked(
+        ownerId: UUID,
+        targetId: UUID,
+        blocked: Boolean,
+    ): Boolean
 }

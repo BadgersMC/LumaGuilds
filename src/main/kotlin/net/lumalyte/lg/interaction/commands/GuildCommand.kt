@@ -1719,13 +1719,17 @@ class GuildCommand : BaseCommand(), KoinComponent {
     @Subcommand("block")
     @CommandPermission("lumaguilds.guild.block")
     @CommandCompletion("@allplayers")
-    fun onBlock(player: Player, targetPlayerName: String) = changeBlock(player, targetPlayerName, blocked = true)
+    fun onBlock(player: Player, targetPlayerName: String) =
+        changeBlock(player, targetPlayerName, blocked = true)
 
+    /** Removes a previously saved personal guild invite block. */
     @Subcommand("unblock")
     @CommandPermission("lumaguilds.guild.block")
     @CommandCompletion("@allplayers")
-    fun onUnblock(player: Player, targetPlayerName: String) = changeBlock(player, targetPlayerName, blocked = false)
+    fun onUnblock(player: Player, targetPlayerName: String) =
+        changeBlock(player, targetPlayerName, blocked = false)
 
+    /** Lists personal blocks without changing guild membership. */
     @Subcommand("blocked")
     @CommandPermission("lumaguilds.guild.block")
     fun onBlocked(player: Player) {
@@ -1755,8 +1759,11 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage(lang.msg("command.migrated.guild.block.failed"))
             return
         }
-        if (blocked) player.sendMessage(lang.msg("command.migrated.guild.block.blocked", "player" to targetName))
-        else player.sendMessage(lang.msg("command.migrated.guild.block.unblocked", "player" to targetName))
+        if (blocked) {
+            player.sendMessage(lang.msg("command.migrated.guild.block.blocked", "player" to targetName))
+        } else {
+            player.sendMessage(lang.msg("command.migrated.guild.block.unblocked", "player" to targetName))
+        }
     }
 
     @Subcommand("invites")

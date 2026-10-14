@@ -14,7 +14,8 @@ import java.util.UUID
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class InviteBlockServiceImplTest {
+/** Regression coverage for personal invite blocking and compatibility boundaries. */
+internal class InviteBlockServiceImplTest {
     private val me = UUID.randomUUID()
     private val blocked = UUID.randomUUID()
     private val guildmate = UUID.randomUUID()
@@ -22,30 +23,57 @@ class InviteBlockServiceImplTest {
     private val theirGuild = UUID.randomUUID()
     private val otherGuild = UUID.randomUUID()
 
-    private val store = object : InviteBlockRepository {
-        val blocks = mutableMapOf<UUID, MutableSet<UUID>>()
-        override var isAvailable = true
-        override fun isBlocked(ownerId: UUID, targetId: UUID) = blocks[ownerId]?.contains(targetId) == true
-        override fun blockedBy(ownerId: UUID) = blocks[ownerId].orEmpty().toSet()
-        override fun setBlocked(ownerId: UUID, targetId: UUID, blocked: Boolean): Boolean {
-            if (!isAvailable) return false
-            if (blocked) blocks.getOrPut(ownerId) { mutableSetOf() }.add(targetId) else blocks[ownerId]?.remove(targetId)
-            return true
+    private val store =
+        object : InviteBlockRepository {
+            val blocks = mutableMapOf<UUID, MutableSet<UUID>>()
+            override var isAvailable = true
+
+            override fun isBlocked(
+                ownerId: UUID,
+                targetId: UUID,
+            ) = blocks[ownerId]?.contains(targetId) == true
+
+            override fun blockedBy(ownerId: UUID) = blocks[ownerId].orEmpty().toSet()
+
+            override fun setBlocked(
+                ownerId: UUID,
+                targetId: UUID,
+                blocked: Boolean,
+            ): Boolean {
+                if (!isAvailable) return false
+                if (blocked) {
+                    blocks.getOrPut(
+                        ownerId,
+                    ) { mutableSetOf() }.add(targetId)
+                } else {
+                    blocks[ownerId]?.remove(targetId)
+                }
+                return true
+            }
         }
-    }
-    private val members = mockk<MemberService> {
-        every { getPlayerGuilds(blocked) } returns setOf(theirGuild)
-        every { getGuildMembers(theirGuild) } returns setOf(member(blocked, theirGuild), member(guildmate, theirGuild))
-        every { getGuildMembers(otherGuild) } returns setOf(member(stranger, otherGuild))
-    }
+    private val members =
+        mockk<MemberService> {
+            every { getPlayerGuilds(blocked) } returns setOf(theirGuild)
+            every { getGuildMembers(theirGuild) } returns
+                setOf(member(blocked, theirGuild), member(guildmate, theirGuild))
+            every { getGuildMembers(otherGuild) } returns setOf(member(stranger, otherGuild))
+        }
     private val invitations = mockk<GuildInvitationRepository>(relaxed = true)
     private val service = InviteBlockServiceImpl(store, members, invitations)
 
-    private fun member(player: UUID, guild: UUID) = Member(player, guild, UUID.randomUUID(), Instant.EPOCH)
-    private fun invite(guild: UUID, inviter: UUID) = GuildInvitation(guild, "G", me, inviter, "inviter")
+    private fun member(
+        player: UUID,
+        guild: UUID,
+    ) = Member(player, guild, UUID.randomUUID(), Instant.EPOCH)
 
+    private fun invite(
+        guild: UUID,
+        inviter: UUID,
+    ) = GuildInvitation(guild, "G", me, inviter, "inviter")
+
+    /** Verifies a block refuses invites from them and from anyone in their guild, but not other guilds. */
     @Test
-    fun `a block refuses invites from them and from anyone in their guild, but not other guilds`() {
+    fun blocksCoverCurrentGuild() {
         assertFalse(service.refusesGuildInvite(me, theirGuild, guildmate))
         assertTrue(service.setBlocked(me, blocked, true))
         assertTrue(service.refusesGuildInvite(me, theirGuild, blocked))
@@ -56,17 +84,26 @@ class InviteBlockServiceImplTest {
         assertFalse(service.refusesGuildInvite(stranger, theirGuild, guildmate))
     }
 
+    /** Verifies blocking deletes the pending invites it covers and nothing else. */
     @Test
-    fun `blocking deletes the pending invites it covers and nothing else`() {
-        every { invitations.getByPlayer(me) } returns listOf(invite(theirGuild, guildmate), invite(otherGuild, blocked), invite(UUID.randomUUID(), stranger))
+    fun coveredInvitesRemoved() {
+        every {
+            invitations.getByPlayer(me)
+        } returns
+            listOf(
+                invite(theirGuild, guildmate),
+                invite(otherGuild, blocked),
+                invite(UUID.randomUUID(), stranger),
+            )
         assertTrue(service.setBlocked(me, blocked, true))
         verify(exactly = 1) { invitations.remove(me, theirGuild) }
         verify(exactly = 1) { invitations.remove(me, otherGuild) }
         verify(exactly = 2) { invitations.remove(me, any()) }
     }
 
+    /** Verifies unknown blocks fail closed for invites, and chat hides only the blocked sender. */
     @Test
-    fun `unknown blocks fail closed for invites, and chat hides only the blocked sender`() {
+    fun unavailableBlocksFailClosed() {
         service.setBlocked(me, blocked, true)
         assertTrue(service.hidesChat(me, blocked))
         assertFalse(service.hidesChat(me, guildmate))
