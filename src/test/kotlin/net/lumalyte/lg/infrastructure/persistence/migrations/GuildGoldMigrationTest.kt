@@ -50,6 +50,7 @@ class GuildGoldMigrationTest {
         }
     }
 
+    /** Releases the guild-gold migration fixture after each scenario. */
     @AfterEach
     fun tearDown() {
         connection.close()

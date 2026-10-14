@@ -61,6 +61,7 @@ class LumaGuilds : JavaPlugin() {
     private val componentLogger = getComponentLogger()
 
 
+    /** Initializes persistence, services and optional integrations before registering player-facing listeners. */
     override fun onEnable() {
         enabledAtMillis = System.currentTimeMillis()
 

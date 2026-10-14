@@ -1684,6 +1684,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         player.playSound(player.location, org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
     }
 
+    /** Declines an invitation still visible to this player after personal block filtering. */
     @Subcommand("decline")
     @CommandPermission("lumaguilds.guild.decline")
     @CommandCompletion("@pendinginvites")
@@ -1743,6 +1744,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         player.sendMessage(lang.msg("command.migrated.guild.block.list", "players" to names.joinToString(", ")))
     }
 
+    /** Resolves an online/cached target and reports durable block-save results without changing membership. */
     private fun changeBlock(player: Player, targetPlayerName: String, blocked: Boolean) {
         val target = findPlayerByName(targetPlayerName)?.let { it.uniqueId to it.name }
             ?: Bukkit.getOfflinePlayerIfCached(targetPlayerName)?.let { it.uniqueId to (it.name ?: targetPlayerName) }

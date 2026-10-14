@@ -21,6 +21,7 @@ class InvitationStatisticsMigrationTest {
     private lateinit var connection: Connection
     private lateinit var plugin: JavaPlugin
 
+    /** Opens an isolated SQLite fixture for invitation-statistics schema migrations. */
     @BeforeEach
     fun setUp() {
         connection = DriverManager.getConnection("jdbc:sqlite:${tempDir.resolve("invite-stats.db")}")

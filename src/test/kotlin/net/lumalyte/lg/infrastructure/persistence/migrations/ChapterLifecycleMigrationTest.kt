@@ -52,6 +52,7 @@ class ChapterLifecycleMigrationTest {
         }
     }
 
+    /** Releases the SQLite migration fixture after each scenario. */
     @AfterEach
     fun tearDown() {
         connection.close()
