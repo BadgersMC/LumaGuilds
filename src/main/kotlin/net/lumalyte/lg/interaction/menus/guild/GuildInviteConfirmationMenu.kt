@@ -39,8 +39,7 @@ class GuildInviteConfirmationMenu(
 
     override fun open() {
         // Create 3x9 chest GUI
-        val gui =
-            ChestGui(
+        val gui = ChestGui(
                 3,
                 MenuTitleBuilder.build(
                     guild.guiTheme,
@@ -70,13 +69,8 @@ class GuildInviteConfirmationMenu(
         gui.show(player)
     }
 
-    private fun addInfoDisplay(
-        pane: StaticPane,
-        x: Int,
-        y: Int,
-    ) {
-        val infoItem =
-            ItemStack.of(Material.BOOK)
+    private fun addInfoDisplay(pane: StaticPane, x: Int, y: Int) {
+        val infoItem = ItemStack.of(Material.BOOK)
                 .name(lang.gui("menu.guild_confirmation.invite.item.info.name"))
                 .lore(lang.gui("menu.guild_confirmation.invite.item.info.lore.line_1"))
                 .lore(lang.gui("menu.guild_confirmation.invite.item.info.lore.line_2"))
@@ -90,11 +84,7 @@ class GuildInviteConfirmationMenu(
         pane.addItem(GuiItem(infoItem), x, y)
     }
 
-    private fun addPlayerInfo(
-        pane: StaticPane,
-        x: Int,
-        y: Int,
-    ) {
+    private fun addPlayerInfo(pane: StaticPane, x: Int, y: Int) {
         val head = ItemStack.of(Material.PLAYER_HEAD)
         val meta = head.itemMeta as SkullMeta
 
@@ -112,37 +102,25 @@ class GuildInviteConfirmationMenu(
         pane.addItem(GuiItem(playerItem), x, y)
     }
 
-    private fun addConfirmButton(
-        pane: StaticPane,
-        x: Int,
-        y: Int,
-    ) {
-        val confirmItem =
-            ItemStack.of(Material.GREEN_WOOL)
+    private fun addConfirmButton(pane: StaticPane, x: Int, y: Int) {
+        val confirmItem = ItemStack.of(Material.GREEN_WOOL)
                 .name(lang.gui("menu.guild_confirmation.invite.item.confirm.name"))
                 .lore(lang.gui("menu.guild_confirmation.invite.item.confirm.lore.line_1"))
                 .lore(lang.gui("menu.guild_confirmation.invite.item.confirm.lore.line_2"))
 
-        val confirmGuiItem =
-            GuiItem(confirmItem) {
+        val confirmGuiItem = GuiItem(confirmItem) {
                 sendInvite()
             }
         pane.addItem(confirmGuiItem, x, y)
     }
 
-    private fun addCancelButton(
-        pane: StaticPane,
-        x: Int,
-        y: Int,
-    ) {
-        val cancelItem =
-            ItemStack.of(Material.RED_WOOL)
+    private fun addCancelButton(pane: StaticPane, x: Int, y: Int) {
+        val cancelItem = ItemStack.of(Material.RED_WOOL)
                 .name(lang.gui("menu.guild_confirmation.invite.item.cancel.name"))
                 .lore(lang.gui("menu.guild_confirmation.invite.item.cancel.lore.line_1"))
                 .lore(lang.gui("menu.guild_confirmation.invite.item.cancel.lore.line_2"))
 
-        val cancelGuiItem =
-            GuiItem(cancelItem) {
+        val cancelGuiItem = GuiItem(cancelItem) {
                 menuNavigator.goBack()
             }
         pane.addItem(cancelGuiItem, x, y)
@@ -167,8 +145,7 @@ class GuildInviteConfirmationMenu(
         }
 
         // Store the invitation
-        val invitationStored =
-            GuildInvitationManager.addInvite(
+        val invitationStored = GuildInvitationManager.addInvite(
                 guildId = guild.id,
                 guildName = guild.name,
                 invitedPlayerId = targetPlayer.uniqueId,

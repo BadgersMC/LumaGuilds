@@ -266,10 +266,7 @@ class MenuFactory(
         }
     }
 
-    fun createGuildListMenu(
-        menuNavigator: MenuNavigator,
-        player: Player,
-    ): Menu {
+    fun createGuildListMenu(menuNavigator: MenuNavigator, player: Player): Menu {
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildListMenu(
                 menuNavigator,
@@ -932,10 +929,7 @@ class MenuFactory(
     /**
      * Creates a claim list menu appropriate for the player's platform
      */
-    fun createClaimListMenu(
-        menuNavigator: MenuNavigator,
-        player: Player
-    ): Menu {
+    fun createClaimListMenu(menuNavigator: MenuNavigator, player: Player): Menu {
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimListMenu(menuNavigator, player, logger)
         } else {
@@ -1082,11 +1076,7 @@ class MenuFactory(
     /**
      * Creates a claim creation menu appropriate for the player's platform
      */
-    fun createClaimCreationMenu(
-        player: Player,
-        menuNavigator: MenuNavigator,
-        location: org.bukkit.Location
-    ): Menu {
+    fun createClaimCreationMenu(player: Player, menuNavigator: MenuNavigator, location: org.bukkit.Location): Menu {
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimCreationMenu(menuNavigator, player, logger)
         } else {
@@ -1128,11 +1118,7 @@ class MenuFactory(
      * Generic method to create any menu type based on platform
      */
     @Suppress("UNCHECKED_CAST")
-    inline fun <reified T : Menu> createMenu(
-        menuNavigator: MenuNavigator,
-        player: Player,
-        vararg args: Any?
-    ): Menu {
+    inline fun <reified T : Menu> createMenu(menuNavigator: MenuNavigator, player: Player, vararg args: Any?): Menu {
         return when (T::class) {
             ConfirmationMenu::class -> createConfirmationMenu(
                 menuNavigator,
@@ -1187,10 +1173,7 @@ class MenuFactory(
     /**
      * Creates an LFG browser menu for browsing available open guilds.
      */
-    fun createLfgBrowserMenu(
-        menuNavigator: MenuNavigator,
-        player: Player
-    ): Menu {
+    fun createLfgBrowserMenu(menuNavigator: MenuNavigator, player: Player): Menu {
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildRecruitmentMenu(
                 menuNavigator,

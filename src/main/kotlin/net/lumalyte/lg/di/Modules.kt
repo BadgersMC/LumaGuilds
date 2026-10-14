@@ -1240,8 +1240,7 @@ fun integrationModule(plugin: LumaGuilds) = module {
  * Main application module that combines all feature modules
  * This is the entry point for Koin dependency injection
  */
-fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = true) =
-    listOf(
+fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = true) = listOf(
         coreModule(plugin, storage),
         guildsModule(),
         socialModule(),

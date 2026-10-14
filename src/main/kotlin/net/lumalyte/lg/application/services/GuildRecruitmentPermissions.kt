@@ -6,11 +6,7 @@ import java.util.UUID
 /** Existing member managers retain invite access; dedicated recruiters gain no member mutation rights. */
 internal object GuildRecruitmentPermissions {
     /** Grants invites through either dedicated recruitment authority or the legacy member-manager permission. */
-    fun canInvite(
-        members: MemberService,
-        actor: UUID,
-        guild: UUID,
-    ): Boolean =
+    fun canInvite(members: MemberService, actor: UUID, guild: UUID): Boolean =
         members.hasPermission(actor, guild, RankPermission.MANAGE_RECRUITMENT) ||
             members.hasPermission(actor, guild, RankPermission.MANAGE_MEMBERS)
 

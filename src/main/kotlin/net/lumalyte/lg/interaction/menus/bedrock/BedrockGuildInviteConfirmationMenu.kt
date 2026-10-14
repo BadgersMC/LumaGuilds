@@ -84,8 +84,7 @@ class BedrockGuildInviteConfirmationMenu(
             return
         }
 
-        val invitationStored =
-            GuildInvitationManager.addInvite(
+        val invitationStored = GuildInvitationManager.addInvite(
                 guildId = guild.id,
                 guildName = guild.name,
                 invitedPlayerId = targetPlayer.uniqueId,
@@ -120,10 +119,7 @@ class BedrockGuildInviteConfirmationMenu(
         bedrockNavigator.goBack()
     }
 
-    override fun handleResponse(
-        player: Player,
-        response: Any?,
-    ) {
+    override fun handleResponse(player: Player, response: Any?) {
         // Response handling is done in the form builder's validResultHandler
         // This method is kept for interface compatibility
     }

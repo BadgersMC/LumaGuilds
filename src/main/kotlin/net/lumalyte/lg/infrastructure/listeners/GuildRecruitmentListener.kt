@@ -113,10 +113,7 @@ internal class GuildRecruitmentListener(
         }
     }
 
-    private fun prompt(
-        player: Player,
-        repeat: Boolean,
-    ) {
+    private fun prompt(player: Player, repeat: Boolean) {
         if (!player.isOnline || !player.hasPermission("lumaguilds.guild.lfg")) return
         if (members.getPlayerGuilds(player.uniqueId).isNotEmpty()) return
         val joined = sessions[player.uniqueId] ?: return
@@ -139,15 +136,13 @@ internal class GuildRecruitmentListener(
     private fun deliverChanges(player: Player) {
         if (!player.hasPermission("lumaguilds.guild.lfg")) return
         val own = recruitment.mine(player.uniqueId)
-        val inbox =
-            guilds.getPlayerGuilds(player.uniqueId).filter {
+        val inbox = guilds.getPlayerGuilds(player.uniqueId).filter {
                 GuildRecruitmentPermissions.canReview(members, player.uniqueId, it.id)
             }.flatMap { recruitment.inbox(player.uniqueId, it.id) }
         val records = (own + inbox).distinctBy { it.id }.sortedBy { it.id.toString() }
         if (records.isNotEmpty()) {
             val text = records.joinToString(";") { "${it.id}:${it.status}" }
-            val signature =
-                MessageDigest.getInstance(
+            val signature = MessageDigest.getInstance(
                     "SHA-256",
                 ).digest(text.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
             if (directory.consumeNotification(player.uniqueId, signature)) {
