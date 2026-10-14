@@ -23,11 +23,23 @@ internal fun RecruitmentController.answers(application: GuildApplication): Recru
         net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.book(
             player,
             net.lumalyte.lg.infrastructure.services.RecruitmentBookContent(
-                status(current.status),
+                lang.raw("recruitment.application_details"),
                 listOf(current.answers, current.decisionReason),
-                lang.raw("recruitment.return_menu"),
+                lang.raw("recruitment.return_application"),
+                theme(),
+                guilds.getGuild(current.guildId),
+                org.bukkit.Bukkit.getOfflinePlayer(current.applicantId).name ?: current.applicantId.toString(),
             ),
-            { navigationValid() && selectedApplication == current.id && screen == expectedScreen },
+            {
+                navigationValid() && selectedApplication == current.id && screen == expectedScreen &&
+                    if (current.applicantId == player.uniqueId) {
+                        service.mine(player.uniqueId).any { it.id == current.id }
+                    } else {
+                        net.lumalyte.lg.application.services.GuildRecruitmentPermissions.canReview(
+                            members, player.uniqueId, current.guildId,
+                        ) && service.inbox(player.uniqueId, current.guildId).any { it.id == current.id }
+                    }
+            },
             { run { refresh() } },
         )
     }

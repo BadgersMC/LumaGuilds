@@ -1011,3 +1011,8 @@ Menu audit follow-up (REQ-063):
   - Tag: `TDD`
   - References: REC-018 in `docs/plans/guild-recruitment.md`.
   - Evidence: two reproduced regressions; full local 1,839-case check with zero failures/errors and 16 existing optional skips; final focused checks and 22 native MariaDB cases pass. Hosted checks and client acceptance remain separate gates. No TEST or production changes.
+
+- [x] **RECRUITMENT-READERS** Preserve recruitment context when reading application details and guild guides.
+  - Tag: `TDD`
+  - References: REC-019 in `docs/plans/guild-recruitment.md`.
+  - Evidence: page ownership, authorization revocation, Unicode/word wrapping and inventory dismissal regressions; full local check passes. Modern Java dialog and Bedrock native form serialization compile against existing APIs; real client acceptance remains outstanding. Private interactive preview checked at 320, 390 and 760 pixels with all three client presentations. No server upload, reload or restart.
