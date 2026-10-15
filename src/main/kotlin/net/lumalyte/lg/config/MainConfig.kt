@@ -43,6 +43,7 @@ data class MainConfig(
     var warBanner: WarBannerConfig = WarBannerConfig(),
     var discordGuildRoles: DiscordGuildRolesConfig = DiscordGuildRolesConfig(),
     var guildList: GuildListConfig = GuildListConfig(),
+    var recruitment: RecruitmentConfig = RecruitmentConfig(),
     // Runtime feature gates. Legacy staging defaults are upgraded by ConfigCompatibilityMigrator.
     var chapterTwoRewardsEnabled: Boolean = true,
     var chapterTwoGoldCostsEnabled: Boolean = false

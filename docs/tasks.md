@@ -2,6 +2,11 @@
 
 Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` line, and an `Evidence:` block that MUST be filled with real source citations before any downstream SPEAR phase runs on it.
 
+- [~] **LG-RECRUITMENT** Approved LFG recruitment upgrade and discovery.
+  - Tag: `TDD`
+  - References: REQ-150; REC-001 through REC-017 in `docs/plans/guild-recruitment.md`.
+  - Evidence: runtime board/profile/private application/inbox/settings flows, canonical offer admission, durable notifications and discovery preferences are wired for Java and Bedrock. Local check: 1,807 cases, zero failures/errors, 16 existing optional skips; native disposable MariaDB: 13 cases, zero failures/errors/skips. Hosted review/checks, merged delivery and in-game acceptance remain gates. See the recruitment plan for failure evidence and integration boundaries. Private art is excluded; no production or TEST changes occurred.
+
 - [~] **LG-2010** Guild stall menus and optional read adapter.
   - Tag: `TDD`
   - References: REQ-124/125; Market REQ-340/341.
@@ -1001,3 +1006,18 @@ Menu audit follow-up (REQ-063):
   - Tag: `TDD`
   - References: REQ-149.
   - Evidence: the historical TEST branch reproduced stale-provider behavior and recorded 24 focused cases plus a 1,752-test full suite with zero failures/errors and 20 optional skips. This sanitized rebuild contains only the provider lifecycle source/test correction and evidence; fresh exact-head hosted checks remain required. See `docs/test-startup-cleanup.md`. Production remains unchanged.
+
+- [x] **RECRUITMENT-PAYMENT-REVIEW** Confirm paid command joins, preserve typed recovery outcomes and release only proven-safe reservations.
+  - Tag: `TDD`
+  - References: REC-018 in `docs/plans/guild-recruitment.md`.
+  - Evidence: two reproduced regressions; full local 1,839-case check with zero failures/errors and 16 existing optional skips; final focused checks and 22 native MariaDB cases pass. Hosted checks and client acceptance remain separate gates. No TEST or production changes.
+
+- [x] **RECRUITMENT-READERS** Preserve recruitment context when reading application details and guild guides.
+  - Tag: `TDD`
+  - References: REC-019 in `docs/plans/guild-recruitment.md`.
+  - Evidence: page ownership, authorization revocation, Unicode/word wrapping and inventory dismissal regressions; full local check passes. Modern Java dialog and Bedrock native form serialization compile against existing APIs; real client acceptance remains outstanding. Private interactive preview checked at 320, 390 and 760 pixels with all three client presentations. No server upload, reload or restart.
+
+- [x] **MODERN-GUILD-PRESENTATION** Native recruitment pages, grouped settings, progression overview and per-quest rankings with guarded callbacks.
+  - Tag: `TDD`
+  - References: REC-020 through REC-023 in `docs/plans/2026-10-14-modern-guild-menus.md`.
+  - Evidence: clean 1,857-case standalone and 1,894-case combined TEST checks, zero failures/errors, 16 existing optional skips; architecture/localization checks pass. Nexo item models are reused without public artwork. The private implementation preview distinguishes native UI from the proposed frames/graphs; hosted CI, TEST staging and real client acceptance are separate gates.

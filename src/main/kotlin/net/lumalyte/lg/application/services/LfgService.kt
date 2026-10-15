@@ -35,6 +35,10 @@ interface LfgService {
      */
     fun joinGuild(playerId: UUID, guild: Guild): LfgJoinResult
 
+    /** Admits a durably reserved applicant through the same fee pipeline after each eligibility recheck. */
+    fun joinApprovedGuild(playerId: UUID, guild: Guild, eligible: () -> Boolean): LfgJoinResult =
+        LfgJoinResult.Error("Application admission is unavailable")
+
     /**
      * Gets the join requirement details for a guild.
      *
@@ -48,6 +52,21 @@ interface LfgService {
  * Sealed class representing the result of an LFG join operation.
  */
 sealed class LfgJoinResult {
+
+    /** Definitive rejection before payment.
+     * @property reason Canonical reason no payment was applied.
+     */
+    class PaymentRejected(val reason: net.lumalyte.lg.domain.gold.GuildGoldRejection) : LfgJoinResult()
+
+    /** Payment restoration is confirmed; no membership was completed.
+     * @property transactionId Reference for the confirmed restored payment.
+     */
+    class PaymentRefunded(val transactionId: UUID) : LfgJoinResult()
+
+    /** Payment or admission outcome needs reconciliation; never invite a retry.
+     * @property transactionId Reference staff must reconcile before another payment.
+     */
+    class PaymentUncertain(val transactionId: UUID) : LfgJoinResult()
 
     /**
      * Player successfully joined the guild.

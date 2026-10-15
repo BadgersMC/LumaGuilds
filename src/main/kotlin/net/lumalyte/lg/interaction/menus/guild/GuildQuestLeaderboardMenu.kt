@@ -1,12 +1,10 @@
 package net.lumalyte.lg.interaction.menus.guild
 
-import net.lumalyte.lg.utils.inventoryframework.addPane
-
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.JoinConfiguration
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.QuestService
@@ -14,6 +12,12 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildQuestProgress
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.lumalyte.lg.infrastructure.services.GuildDialogAction
+import net.lumalyte.lg.infrastructure.services.GuildDialogItem
+import net.lumalyte.lg.infrastructure.services.GuildDialogPage
+import net.lumalyte.lg.infrastructure.services.GuildMenuDialog
+import net.lumalyte.lg.infrastructure.services.RecruitmentPresentation
+import net.lumalyte.lg.interaction.menus.GuildBannerItemResolver
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.MenuTitleBuilder
@@ -21,6 +25,8 @@ import net.lumalyte.lg.utils.NexoItemProvider
 import net.lumalyte.lg.utils.QuestDisplayFormatter
 import net.lumalyte.lg.utils.QuestIconProvider
 import net.lumalyte.lg.utils.deserializeToItemStack
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.addPane
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
@@ -36,6 +42,8 @@ class GuildQuestLeaderboardMenu(
     private val lang: LangService,
 ) : Menu {
     private var page = 0
+    private var nativePage = 0
+    private val nativeDialog = GuildMenuDialog()
 
     override fun open() {
         if (memberService.getMember(player.uniqueId, viewingGuild.id) == null) {
@@ -111,6 +119,12 @@ class GuildQuestLeaderboardMenu(
             }
         }
         pane.addItem(GuiItem(header), 4, 0)
+        if (
+            RecruitmentPresentation.supportsDialog(player) &&
+            showNativeLeaderboard(header, orderedGuilds, progressByGuild, rankByGuild)
+        ) {
+            return
+        }
 
         orderedGuilds
             .drop(page * ITEMS_PER_PAGE)
@@ -207,7 +221,92 @@ class GuildQuestLeaderboardMenu(
         gui.show(player)
     }
 
+    private fun showNativeLeaderboard(
+        header: ItemStack,
+        guilds: List<Guild>,
+        progress: Map<java.util.UUID, GuildQuestProgress>,
+        ranks: Map<java.util.UUID, Int>,
+    ): Boolean {
+        val pages = maxOf(1, (guilds.size + NATIVE_PAGE_SIZE - 1) / NATIVE_PAGE_SIZE)
+        nativePage = nativePage.coerceIn(0, pages - 1)
+        val actions = nativeLeaderboardActions(pages)
+        val token = menuNavigator.currentNavigationToken()
+        return nativeDialog.show(
+            player,
+            GuildDialogPage(
+                lang.gui("menu.quests.leaderboard.page", "page" to nativePage + 1, "pages" to pages),
+                nativeLeaderboardItems(header, guilds, progress, ranks),
+                actions,
+                nativeAction(lang.gui("menu.quests.leaderboard.back")) { menuNavigator.goBack() },
+                theme = viewingGuild.guiTheme,
+            ),
+            {
+                player.isOnline && menuNavigator.isNavigationCurrent(token) &&
+                    memberService.getMember(player.uniqueId, viewingGuild.id) != null &&
+                    questService.activeQuestSet()?.quests?.any { it.id == questId } == true
+            },
+        ) { player.sendMessage(lang.msg("menu.quests.feedback.no_quests")) }
+    }
+
+    private fun nativeLeaderboardItems(
+        header: ItemStack,
+        guilds: List<Guild>,
+        progress: Map<java.util.UUID, GuildQuestProgress>,
+        ranks: Map<java.util.UUID, Int>,
+    ): List<GuildDialogItem> {
+        val items =
+            mutableListOf(
+                GuildDialogItem(
+                    header,
+                    Component.join(JoinConfiguration.newlines(), header.lore() ?: emptyList()),
+                ),
+            )
+        for (current in guilds.drop(nativePage * NATIVE_PAGE_SIZE).take(NATIVE_PAGE_SIZE)) {
+            items += nativeGuildItem(current, progress[current.id]?.currentCount ?: 0, ranks[current.id])
+        }
+        return items
+    }
+
+    private fun nativeGuildItem(current: Guild, score: Long, rank: Int?): GuildDialogItem {
+        return GuildDialogItem(
+            GuildBannerItemResolver.resolveForDisplay(current),
+            lang.gui(
+                "menu.quests.leaderboard.guild.name",
+                "guild" to current.name,
+                "rank" to (rank?.let { "#$it" } ?: "—"),
+            )
+                .append(Component.newline())
+                .append(
+                    lang.gui(
+                        "menu.quests.leaderboard.guild.score",
+                        "points" to score,
+                    ),
+                ),
+        )
+    }
+
+    private fun nativeAction(label: Component, callback: () -> Unit) =
+        GuildDialogAction(label, Component.empty(), callback)
+
+    private fun nativeLeaderboardActions(pages: Int): List<GuildDialogAction> {
+        return buildList {
+            if (nativePage > 0) add(nativeAction(lang.gui("recruitment.previous"), ::previousNativePage))
+            if (nativePage + 1 < pages) add(nativeAction(lang.gui("recruitment.next"), ::nextNativePage))
+        }
+    }
+
+    private fun previousNativePage() {
+        nativePage--
+        open()
+    }
+
+    private fun nextNativePage() {
+        nativePage++
+        open()
+    }
+
     companion object {
+        private const val NATIVE_PAGE_SIZE = 4
         private const val ITEMS_PER_PAGE = 36
     }
 }

@@ -451,7 +451,7 @@ fun guildsModule() = module {
         )
     }
     single<RelationService> { RelationServiceBukkit(get(), get(), get()) }
-    single<LfgService> { LfgServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<LfgService> { LfgServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<GuildBannerService> { GuildBannerServiceBukkit() }
     single<AuditService> { AuditServiceBukkit() }
     single<NexoEmojiService> { NexoEmojiService(get(), guildCosmetics = get()) }
@@ -515,6 +515,29 @@ fun guildClaimsIntegrationModule() = module {
  * Social module - Party system, chat, and LFG
  */
 fun socialModule() = module {
+    single { net.lumalyte.lg.infrastructure.listeners.GuildRecruitmentNotifications(get(), get(), get(), get(), get()) }
+    single { net.lumalyte.lg.infrastructure.listeners.GuildRecruitmentDiscovery(get(), get(), get(), get()) }
+    single { net.lumalyte.lg.infrastructure.listeners.GuildRecruitmentListener(get(), get(), get(), get(), get()) }
+    single<net.lumalyte.lg.application.persistence.GuildRecruitmentRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildRecruitmentRepositorySQL(get())
+    }
+    single<net.lumalyte.lg.application.persistence.RecruitmentDirectoryRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.RecruitmentDirectoryRepositorySQL(get(), get())
+    }
+    single<net.lumalyte.lg.application.services.GuildRecruitmentEligibility> {
+        net.lumalyte.lg.infrastructure.services.GuildRecruitmentEligibilityBukkit(get(), get())
+    }
+    single {
+        val config = get<ConfigService>()
+        val eligibility = get<net.lumalyte.lg.application.services.GuildRecruitmentEligibility>()
+        val listings = net.lumalyte.lg.application.services.GuildRecruitmentListings(
+            get(), get(), get(), maximumMembers = { config.loadConfig().guild.maxMembersPerGuild },
+        )
+        val rules = net.lumalyte.lg.application.services.GuildRecruitmentRules(
+            { config.loadConfig().recruitment.policy() }, eligibility::allows,
+        )
+        net.lumalyte.lg.application.services.GuildRecruitmentService(get(), listings, get(), get(), get(), rules)
+    }
     single<net.lumalyte.lg.application.persistence.GuildOnboardingRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.GuildOnboardingRepositorySQL(get())
     }
@@ -1208,8 +1231,7 @@ fun integrationModule(plugin: LumaGuilds) = module {
  * Main application module that combines all feature modules
  * This is the entry point for Koin dependency injection
  */
-fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = true) =
-    listOf(
+fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = true) = listOf(
         coreModule(plugin, storage),
         guildsModule(),
         socialModule(),

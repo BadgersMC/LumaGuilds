@@ -6695,6 +6695,8 @@ menu:
     description:
       manage_ranks: '<gray>Create, edit, and delete guild ranks'
       manage_members: '<gray>Invite, kick, and promote members'
+      manage_recruitment: '<gray>Send recruitment invites and review applications without member management'
+      edit_recruitment_settings: '<gray>Edit recruitment listings, joining method, requirements and Discord invite'
       manage_banner: '<gray>Change guild banner and appearance'
       manage_emoji: '<gray>Set guild emoji and icons'
       manage_description: '<gray>Set and edit guild description'
@@ -7007,6 +7009,8 @@ permission:
       bank: Deposit to Guild Bank
       vault: Deposit to Guild Vault
   edit:
+    recruitment:
+      settings: Edit Recruitment Settings
     shop:
       stock: Edit Shop Stock
   container:
@@ -7054,6 +7058,7 @@ permission:
     home: Manage Home
     integrations: Manage Integrations
     members: Manage Members
+    recruitment: Manage Recruitment
     mode: Manage Mode
     parties: Manage Parties
     permissions: Manage Permissions
@@ -7671,3 +7676,138 @@ onboarding:
     progression: "Earn guild XP through supported activities and quests. Review rewards, requirements and prices here."
     bank: "Bank deposits and withdrawals follow your rank permissions. Physical vault permissions are separate."
     stalls: "Guild Stalls shows authoritative ownership and member access, or explains unavailable Market data."
+
+recruitment:
+  category: "Activity"
+  category_quests: "Quests"
+  category_social: "Social"
+  update_results: "Update results"
+  open_guild: "View %guild%"
+  dialog:
+    navigation: Menu Navigation
+    back: Back to Parent Menu
+    close: Close Menus
+  age_hours: "Age (hours): "
+  filter_language: Filter by Language (blank clears)
+  filter_times: Filter by Play Times (blank clears)
+  listing_updated: "Listing updated (UTC): "
+  unknown: Not recorded
+  invalid_input: "<yellow>That value could not be accepted. Check the field length, Discord invite format, or current permissions and try again. Cancel returns to the menu.</yellow>"
+  submit_input: Submit
+  cancel_input: Cancel and Return
+  return_application: Back to Application
+  application_details: Application Details
+  return_profile: Back to Guild Profile
+  guide: Guild Guide
+  setup: Guided Recruitment Setup
+  publish: Publish Recruitment Listing
+  discard: Discard Draft
+  submitted_at: "Submitted (UTC): "
+  expires_at: "Expires (UTC): "
+  cancel_review: Back Without Sending
+  manage: Manage Recruitment
+  preview: Preview Our Listing
+  building: Building
+  pvp: PvP
+  sort: Sort Guilds
+  sort_0: Recruiting and Recruiters Online
+  sort_1: Guild Level
+  sort_2: Alphabetical
+  reset: Reset Filters
+  discord_setup: "<yellow>Add a Guild Discord Invite and application instructions in Recruitment Settings before choosing Discord.</yellow>"
+  title: Guild Recruitment
+  browse: Find a Guild
+  mine: My Applications
+  search: Search by Name or Interest
+  filter: "Guild Mode Filter (Any / Peaceful / Hostile)"
+  any: Any
+  enabled: Enabled
+  disabled: Disabled
+  peaceful: Peaceful
+  competitive: Hostile
+  status:
+    submitted: Awaiting Review
+    offered: Join Offer Available
+    declined: Declined
+    withdrawn: Withdrawn
+    expired: Expired
+    admission_pending: Admission Pending Staff Review
+    joined: Joined
+    closed: Closed
+  filter_recruiting: Only Guilds Recruiting With Space
+  filter_beginner: Only Beginner Friendly Guilds
+  reminders: Toggle Recruitment Reminders
+  inbox: Recruitment Inbox
+  settings: Recruitment Settings
+  spaces: Available Spaces
+  level: Guild Level
+  fee: Joining Fee
+  fee_unavailable: Unavailable
+  beginner: Beginners Welcome
+  introduction: "Introduce yourself (maximum 2000 characters)"
+  discord: Guild Discord Invite
+  withdraw: Withdraw Application
+  offer: Review Join Offer
+  pending: "Admission needs staff review. Do not pay again."
+  send_offer: Send Join Offer
+  decline: Decline Application
+  reason: "Decline reason (maximum 300 characters; optional)"
+  confirm: Confirm and Join
+  discord_notice: "Applications happen in Discord. Opening this invite does not submit an in-game application. Copy the invite on Bedrock if clicking is unavailable."
+  discord_confirm: Show Discord Link
+  method: Recruitment Method
+  pitch: "Recruitment Message (maximum 300 characters)"
+  requirements: "Requirements (maximum 500 characters)"
+  interests: "Interests (up to 8, comma separated)"
+  times: Preferred Play Times
+  language: Preferred Language
+  instructions: Discord Application Instructions
+  empty: No Entries Found
+  previous: Previous Page
+  next: Next Page
+  mode:
+    join: Join Immediately
+    apply: Apply In Game
+    discord: Apply Through Discord
+    closed: Recruitment Closed
+  feedback:
+    guild_full: "<yellow>This guild has no available member space. Refresh its listing or choose another guild."
+    payment_rejected: "<yellow>No payment was taken. Resolve the guild bank or payment restrictions, then reopen the listing or offer to review the current fee."
+    payment_refunded: "<yellow>Joining failed, but your payment was returned. Reopen the listing or offer before retrying. Reference: <reference>"
+    payment_uncertain: "<red>Your joining payment needs staff review. Do not pay again. Reference: <reference>"
+    already_member: "<yellow>You already belong to a guild. Open your guild menu or review My Applications."
+    insufficient_funds: "<yellow>Joining requires <required> <currency>; you currently have <current>. Review the offer again after obtaining enough currency."
+    edit_denied: "<red>You need Edit Recruitment Settings permission. Ask your guild owner to grant it, then reopen the menu."
+    review_denied: "<red>You need Manage Recruitment permission to view or decide applications. Reopen the menu after your rank is updated."
+    guild_removed: "<yellow>This guild is no longer available. Return to the recruitment board."
+    method_changed: "<yellow>This guild changed its application method. Reopen its listing for the current joining options."
+    application_limit: "<yellow>You already have an active application for this guild or reached your application limit. Review My Applications before applying again."
+    application_removed: "<yellow>This application is no longer available. Refresh My Applications or the recruitment inbox."
+    stale_application: "<yellow>This application or offer changed. Refresh the menu before trying again. Do not repeat a payment marked pending."
+    fee_changed: "<yellow>The joining fee or currency changed. Reopen the offer and review the current price before confirming."
+    ineligible: "<yellow>The applicant is no longer eligible or the guild has no available space. Refresh the listing and check current membership and requirements."
+    invite_changed: "<yellow>The guild Discord invite changed. Reopen the guild listing to see its current link."
+    failed: "<red>Could not complete recruitment. Refresh the menu and check your permissions, eligibility, space, joining fee or Discord invite. If admission is pending, contact staff before paying again."
+    input_expired: "<gray>Your recruitment input expired. Reopen recruitment to try again."
+    joined: "<green>You joined the guild. Your other active applications will be closed."
+    input: "<yellow><field><gray>. Enter your answer in chat, or type cancel."
+  discovery:
+    prompt: "<gold>Looking for people to play with? <yellow>Click to browse recruiting guilds. <gray>Use the reminder toggle to opt out."
+    leave: "<gray>Looking for another guild? <yellow>Click to browse recruiting guilds."
+    updated: "<gold>Recruitment updated: <offers> join offers and <pending> applications awaiting your review. <yellow>Click to open recruitment."
+
+guild_dialogs:
+  settings:
+    title: "<gold>Guild Settings"
+    description: "<gray>Choose a category. Guild editors retain their existing permissions; personal chat settings affect only you."
+    information: "<gold>Guild Information"
+    appearance: "<gold>Appearance"
+    access: "<gold>Homes, Access and Guild Chat"
+    chat: "<gold>Personal Chat Preferences"
+  progression:
+    title: "<gold>Guild Progression"
+    reward_states: "<gold>Chapter Rewards<newline><green>Owned: <purchased><newline><yellow>Available: <available><newline><gray>Locked: <locked>"
+    quests: "<gold>Guild Quests and Rankings"
+    quests_denied: "<red>You do not have permission to open guild quests."
+    sources: "<gold>XP Sources and Caps"
+    prestige_locked: "<yellow>Prestige is unavailable or its current requirements have not been met."

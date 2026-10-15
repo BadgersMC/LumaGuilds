@@ -43,6 +43,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
     private val lang: LangService by inject()
     private val guildService: GuildService by inject()
+    private val lfgService: net.lumalyte.lg.application.services.LfgService by inject()
     private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository by inject()
     private val rankService: RankService by inject()
     private val chatRankSettings: net.lumalyte.lg.application.services.GuildChatRankSettingsService by inject()
@@ -1468,7 +1469,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
+            onLfg(player)
             return
         }
 
@@ -1484,6 +1485,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 permission in setOf(
                     RankPermission.MANAGE_RANKS,
                     RankPermission.MANAGE_MEMBERS,
+                    RankPermission.MANAGE_RECRUITMENT,
+                    RankPermission.EDIT_RECRUITMENT_SETTINGS,
                     RankPermission.MANAGE_BANNER,
                     RankPermission.MANAGE_CLAIMS
                 )
@@ -1520,7 +1523,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val guild = guilds.first()
 
         // Check if player has member management permission
-        if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_MEMBERS)) {
+        if (!net.lumalyte.lg.application.services.GuildRecruitmentPermissions.canInvite(memberService, playerId, guild.id)) {
             player.sendMessage(lang.msg("command.migrated.guild.invite.you_don_t_have_permission_to_invite"))
             return
         }
@@ -1583,9 +1586,19 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         // Check if guild is open - if so, allow direct joining without invitation
-        if (guild.isOpen) {
+        val recruitment: net.lumalyte.lg.application.services.GuildRecruitmentService by inject()
+        if (recruitment.listings.profile(guild).mode == net.lumalyte.lg.domain.recruitment.RecruitmentMode.JOIN_IMMEDIATELY) {
             // Open guild - no invitation required
-            joinGuildDirectly(player, guild, isOpenGuild = true)
+            if (guild.joinFeeEnabled && guild.joinFeeAmount > 0) {
+                val factory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+                val navigator = net.lumalyte.lg.interaction.menus.MenuNavigator(player)
+                val menu = factory.createLfgBrowserMenu(navigator, player)
+                menu.passData(guild)
+                navigator.openMenu(menu)
+                return
+            }
+            val result = lfgService.joinGuild(player.uniqueId, guild)
+            player.sendMessage(net.lumalyte.lg.interaction.menus.guild.recruitmentAdmissionFeedback(lang, result))
             return
         }
 
@@ -1673,7 +1686,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         player.playSound(player.location, org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
     }
 
-    @Subcommand("lfg")
+    @Subcommand("lfg|browse|recruitment")
     @CommandPermission("lumaguilds.guild.lfg")
     fun onLfg(player: Player) {
         val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()

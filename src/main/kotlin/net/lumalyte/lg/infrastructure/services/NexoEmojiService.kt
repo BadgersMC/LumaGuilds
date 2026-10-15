@@ -31,7 +31,7 @@ internal fun interface NexoGlyphResolver {
     fun resolve(name: String): ResolvedNexoGlyph?
 }
 
-private object NexoPublicGlyphResolver : NexoGlyphResolver {
+internal object NexoPublicGlyphResolver : NexoGlyphResolver {
     override fun resolve(name: String): ResolvedNexoGlyph? {
         val manager = nexoFontManager() ?: return null
         val glyph = manager.glyphFromPlaceholder(":$name:") ?: manager.glyphFromName(name)
@@ -40,7 +40,7 @@ private object NexoPublicGlyphResolver : NexoGlyphResolver {
     }
 }
 
-private fun resolveOptionalGlyph(resolver: NexoGlyphResolver, name: String): ResolvedNexoGlyph? {
+internal fun resolveOptionalGlyph(resolver: NexoGlyphResolver, name: String): ResolvedNexoGlyph? {
     val glyph =
         try {
             resolver.resolve(name)

@@ -22,6 +22,7 @@ import java.util.UUID
 class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepository {
 
     private val guilds: MutableMap<UUID, Guild> = mutableMapOf()
+    private val recruitmentAccess by lazy { GuildRecruitmentAccessSQL(storage) }
 
     /**
      * Format Instant as SQL datetime string compatible with both SQLite and MariaDB.
@@ -451,7 +452,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
 
         // Parse isOpen (default to false for existing guilds)
         val isOpen = try {
-            rs.get<Int?>("is_open")?.let { it == 1 } ?: false
+            rs.guildAccessFlag()
         } catch (e: Exception) {
             false
         }
@@ -572,6 +573,22 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     }
 
     override fun getAll(): Set<Guild> = guilds.values.toSet()
+
+    override fun refreshCachedAccess(guildId: UUID) {
+        val cached = guilds[guildId] ?: return
+        val row = storage.connection.getFirstRow("SELECT is_open FROM guilds WHERE id = ?", guildId.toString()) ?: return
+        guilds[guildId] = cached.copy(isOpen = row.guildAccessFlag())
+    }
+
+    override fun updateAccess(guildId: UUID, isOpen: Boolean): Boolean {
+        return try {
+            val changed = recruitmentAccess.setOpen(guildId, isOpen)
+            if (changed) refreshCachedAccess(guildId)
+            changed
+        } catch (failure: SQLException) {
+            throw DatabaseOperationException("Could not synchronize guild access", failure)
+        }
+    }
     
     override fun getById(id: UUID): Guild? = guilds[id]
     
@@ -874,6 +891,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     }
 
     override fun update(guild: Guild): Boolean {
+        val currentAccess = recruitmentAccess.publishedAccess(guild.id) ?: guild.isOpen
         // Use cached column existence check
         val sql = if (hasLfgColumns && hasTrackingColumn && hasBankFrozenColumn) {
             """
@@ -948,7 +966,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.vaultChestLocation?.x,
                     guild.vaultChestLocation?.y,
                     guild.vaultChestLocation?.z,
-                    if (guild.isOpen) 1 else 0,
+                    if (currentAccess) 1 else 0,
                     if (guild.joinFeeEnabled) 1 else 0,
                     guild.joinFeeAmount,
                     if (guild.trackingEnabled) 1 else 0,
@@ -981,7 +999,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.vaultChestLocation?.x,
                     guild.vaultChestLocation?.y,
                     guild.vaultChestLocation?.z,
-                    if (guild.isOpen) 1 else 0,
+                    if (currentAccess) 1 else 0,
                     if (guild.joinFeeEnabled) 1 else 0,
                     guild.joinFeeAmount,
                     if (guild.trackingEnabled) 1 else 0,
@@ -1013,7 +1031,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.vaultChestLocation?.x,
                     guild.vaultChestLocation?.y,
                     guild.vaultChestLocation?.z,
-                    if (guild.isOpen) 1 else 0,
+                    if (currentAccess) 1 else 0,
                     if (guild.joinFeeEnabled) 1 else 0,
                     guild.joinFeeAmount,
                     *bannermanArg(guild),
@@ -1086,7 +1104,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             if (rowsAffected > 0) {
                 // Persist the full named-home map; legacy home_* columns above only cover the default home.
                 writeGuildHomes(guild)
-                guilds[guild.id] = guild
+                guilds[guild.id] = guild.copy(isOpen = currentAccess)
             }
             rowsAffected > 0
         } catch (e: SQLException) {
@@ -1160,4 +1178,13 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     override fun isNameTaken(name: String): Boolean = getByName(name) != null
     
     override fun getCount(): Int = guilds.size
+}
+
+/** SQLite returns a numeric flag; MariaDB may expose TINYINT(1) as a Boolean. */
+private fun co.aikar.idb.DbRow.guildAccessFlag(): Boolean {
+    return when (val value = get<Any?>("is_open")) {
+        is Boolean -> value
+        is Number -> value.toInt() == 1
+        else -> false
+    }
 }
