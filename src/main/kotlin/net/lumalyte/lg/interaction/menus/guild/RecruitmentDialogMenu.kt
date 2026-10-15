@@ -93,7 +93,6 @@ internal class RecruitmentDialogMenu(
         )
     }
 
-
     private fun showNavigation() {
         val view = controller.view()
         val actions = view.navigation.filter { it.isInteractive() }.map { action(it) } + navigationAction(true)
@@ -208,6 +207,5 @@ internal data class RecruitmentDialogCallbacks(
     val close: () -> Unit,
 )
 
-private fun List<RecruitmentButton>.nativeBodies(screen: RecruitmentScreen): List<GuildDialogItem> {
-    return filter { !it.isInteractive() || it.details.isNotEmpty() }.map { it.nativeBody(screen) }
-}
+private fun List<RecruitmentButton>.nativeBodies(screen: RecruitmentScreen): List<GuildDialogItem> =
+    filter { !it.isInteractive() || it.details.isNotEmpty() }.map { it.nativeBody(screen) }
