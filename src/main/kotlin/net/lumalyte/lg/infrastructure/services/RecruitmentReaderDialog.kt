@@ -51,7 +51,7 @@ internal class RecruitmentReaderDialog(
 
     private fun dialogBase(): DialogBase {
         return DialogBase.builder(heading()).canCloseWithEscape(true)
-            .afterAction(DialogBase.DialogAfterAction.CLOSE)
+            .afterAction(DialogBase.DialogAfterAction.NONE)
             .body(dialogBody())
             .build()
     }

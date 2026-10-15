@@ -19,9 +19,10 @@ internal class RecruitmentDialogMenu(
     private val dialog: GuildDialogPresenter = GuildMenuDialog(),
 ) {
     fun show(view: RecruitmentView): Boolean {
-        val pages = maxOf(1, (view.items.size + PAGE_SIZE - 1) / PAGE_SIZE)
+        val size = pageSize()
+        val pages = maxOf(1, (view.items.size + size - 1) / size)
         controller.page = controller.page.coerceIn(0, pages - 1)
-        val entries = view.items.drop(controller.page * PAGE_SIZE).take(PAGE_SIZE)
+        val entries = view.items.drop(controller.page * size).take(size)
         val back =
             GuildDialogAction(
                 Component.text(controller.lang.raw("recruitment.dialog.back")),
@@ -33,6 +34,7 @@ internal class RecruitmentDialogMenu(
                 searchContext() + entryBodies(entries),
                 pageActions(view, pages),
                 back,
+                columns = if (controller.screen == RecruitmentScreen.BROWSE) BROWSE_COLUMNS else 1,
             ),
         )
     }
@@ -49,8 +51,8 @@ internal class RecruitmentDialogMenu(
 
     private fun pageActions(view: RecruitmentView, pages: Int): List<GuildDialogAction> {
         val actions = mutableListOf<GuildDialogAction>()
-        val entries = view.items.drop(controller.page * PAGE_SIZE).take(PAGE_SIZE)
-        for ((index, button) in entries.withIndex()) actions += action(button, "${index + 1}. ")
+        val entries = view.items.drop(controller.page * pageSize()).take(pageSize())
+        for (button in entries.filter { it.isInteractive() }) actions += action(button)
         for (button in view.quickFilters) actions += action(button, detailsInLabel = true)
         if (controller.page > 0) {
             actions += pageAction(-1, Component.text(controller.lang.raw("recruitment.previous")))
@@ -77,28 +79,13 @@ internal class RecruitmentDialogMenu(
     }
 
     private fun entryBodies(entries: List<RecruitmentButton>): List<GuildDialogItem> {
-        return entries.mapIndexed { index, button ->
-            val details =
-                if (controller.screen == RecruitmentScreen.BROWSE) {
-                    button.details.take(
-                        BROWSE_DETAILS,
-                    )
-                } else {
-                    button.details
-                }
-            GuildDialogItem(
-                button.guild?.let(GuildBannerItemResolver::resolveForDisplay)
-                    ?: NexoItemProvider.getItemStackOrFallback(button.icon) { ItemStack.of(Material.BOOK) },
-                Component.text("${index + 1}. ${button.label}", NamedTextColor.GOLD)
-                    .append(Component.newline())
-                    .append(Component.text(details.joinToString("\n"), NamedTextColor.GRAY)),
-            )
-        }
+        return entries.filter { !it.isInteractive() || it.details.isNotEmpty() }
+            .map { it.nativeBody(controller.screen) }
     }
 
     private fun showNavigation() {
         val view = controller.view()
-        val actions = view.navigation.map { action(it) } + navigationAction(true)
+        val actions = view.navigation.filter { it.isInteractive() }.map { action(it) } + navigationAction(true)
         present(
             GuildDialogPage(
                 Component.text(controller.lang.raw("recruitment.dialog.navigation")),
@@ -115,6 +102,7 @@ internal class RecruitmentDialogMenu(
 
     private fun present(page: GuildDialogPage): Boolean {
         return dialog.show(controller.player, page, callbacks.valid) {
+            controller.player.closeDialog()
             controller.player.closeInventory()
             controller.player.sendMessage(controller.lang.msg("recruitment.feedback.failed"))
         }
@@ -144,9 +132,13 @@ internal class RecruitmentDialogMenu(
         controller.showScreen(PARENTS[controller.screen] ?: RecruitmentScreen.MANAGE)
     }
 
+    private fun pageSize(): Int = if (controller.screen in CHOICE_SCREENS) CHOICE_PAGE_SIZE else PAGE_SIZE
+
     private companion object {
         const val PAGE_SIZE = 3
-        const val BROWSE_DETAILS = 4
+        const val BROWSE_COLUMNS = 2
+        const val CHOICE_PAGE_SIZE = 8
+        val CHOICE_SCREENS = setOf(RecruitmentScreen.MANAGE, RecruitmentScreen.METHOD, RecruitmentScreen.SETUP)
         val ROOT_SCREENS = setOf(RecruitmentScreen.BROWSE, RecruitmentScreen.MANAGE)
         val PARENTS = parentScreens()
 
@@ -163,6 +155,23 @@ internal class RecruitmentDialogMenu(
             )
         }
     }
+}
+
+private const val BROWSE_DETAILS = 4
+
+private fun RecruitmentButton.nativeBody(screen: RecruitmentScreen): GuildDialogItem {
+    val lines = if (screen == RecruitmentScreen.BROWSE) details.take(BROWSE_DETAILS) else details
+    val heading =
+        if (!isInteractive() || guild != null) {
+            Component.text(guild?.name ?: label, NamedTextColor.GOLD).append(Component.newline())
+        } else {
+            Component.empty()
+        }
+    return GuildDialogItem(
+        guild?.let(GuildBannerItemResolver::resolveForDisplay)
+            ?: NexoItemProvider.getItemStackOrFallback(icon) { ItemStack.of(Material.BOOK) },
+        heading.append(Component.text(lines.joinToString("\n"), NamedTextColor.GRAY)),
+    )
 }
 
 internal data class RecruitmentDialogCallbacks(

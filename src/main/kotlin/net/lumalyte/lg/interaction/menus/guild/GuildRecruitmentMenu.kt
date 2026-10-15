@@ -56,6 +56,7 @@ internal class GuildRecruitmentMenu(
                 player.isOnline && activeNavigation == navigator.currentNavigationToken()
             }, { navigator.goBack() }, {
                 navigator.clearMenuStack()
+                player.closeDialog()
                 player.closeInventory()
             }),
         )
@@ -70,7 +71,6 @@ internal class GuildRecruitmentMenu(
     }
 
     private fun showInput(input: RecruitmentInput) {
-        player.closeInventory()
         val navigation = navigator.currentNavigationToken()
         if (RecruitmentPresentation.supportsDialog(player)) {
             RecruitmentPresentation.input(
@@ -88,6 +88,7 @@ internal class GuildRecruitmentMenu(
                 ),
             )
         } else {
+            player.closeInventory()
             showChatInput(input, navigation)
         }
     }

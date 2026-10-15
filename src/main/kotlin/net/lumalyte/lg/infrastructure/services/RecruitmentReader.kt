@@ -75,6 +75,7 @@ internal class RecruitmentReader(
                     if (state.consume(revision)) action()
                 } catch (error: Exception) {
                     state.close()
+                    if (dialog) player.closeDialog()
                     player.closeInventory()
                     org.slf4j.LoggerFactory.getLogger(javaClass)
                         .warn("Recruitment reader failed for {}", player.uniqueId, error)

@@ -29,7 +29,7 @@ internal data class GuildDialogPage(
     val items: List<GuildDialogItem>,
     val actions: List<GuildDialogAction>,
     val back: GuildDialogAction,
-    val columns: Int = 2,
+    val columns: Int = 1,
 )
 
 /** Uses public Paper dialog APIs; Nexo item models remain owned by the private pack. */
@@ -92,13 +92,14 @@ internal class GuildMenuDialog : GuildDialogPresenter {
     private fun dialogBase(page: GuildDialogPage): DialogBase {
         return DialogBase.builder(page.title.color(NamedTextColor.GOLD))
             .canCloseWithEscape(true)
-            .afterAction(DialogBase.DialogAfterAction.CLOSE)
+            .afterAction(DialogBase.DialogAfterAction.NONE)
             .body(page.items.map(::itemBody))
             .build()
     }
 
     private fun itemBody(item: GuildDialogItem): DialogBody {
         return DialogBody.item(item.item.clone()).width(ITEM_WIDTH).height(ITEM_HEIGHT)
+            .showDecorations(false).showTooltip(false)
             .description(DialogBody.plainMessage(item.text, TEXT_WIDTH))
             .build()
     }
@@ -129,6 +130,7 @@ internal class GuildMenuDialog : GuildDialogPresenter {
             if (callbacks.session.consume(actor.uniqueId, callbacks.revision, System.currentTimeMillis())) action()
         } catch (error: Exception) {
             callbacks.session.close()
+            actor.closeDialog()
             org.slf4j.LoggerFactory.getLogger(javaClass).warn(
                 "Guild dialog action failed for {}",
                 actor.uniqueId,

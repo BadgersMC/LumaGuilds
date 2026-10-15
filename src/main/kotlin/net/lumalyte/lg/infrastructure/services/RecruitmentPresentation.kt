@@ -49,6 +49,7 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
             Dialog.create { factory ->
                 factory.empty().base(
                     DialogBase.builder(Component.text(fields.title)).canCloseWithEscape(true)
+                        .afterAction(DialogBase.DialogAfterAction.NONE)
                         .inputs(
                             listOf(
                                 DialogInput.text("answer", Component.text(fields.title)).initial(fields.initial)

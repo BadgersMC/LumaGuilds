@@ -33,14 +33,17 @@ internal enum class RecruitmentScreen {
     DISCORD,
 }
 
+private val INFORMATION_ONLY: () -> Unit = {}
+
 internal data class RecruitmentButton(
     val label: String,
     val details: List<String> = emptyList(),
     val icon: String = RecruitmentIcons.NAV_MEMBERS,
     val guild: Guild? = null,
-    val action: () -> Unit = {
-    },
-)
+    val action: () -> Unit = INFORMATION_ONLY,
+) {
+    fun isInteractive(): Boolean = action !== INFORMATION_ONLY
+}
 
 internal data class RecruitmentView(
     val title: String,
@@ -113,6 +116,9 @@ internal class RecruitmentController(
         try {
             action()
         } catch (error: Exception) {
+            if (net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.supportsDialog(player)) {
+                player.closeDialog()
+            }
             player.closeInventory()
             org.slf4j.LoggerFactory.getLogger(
                 javaClass,

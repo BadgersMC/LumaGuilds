@@ -79,6 +79,7 @@ internal class RecruitmentDialogMenuTest {
         val text = PlainTextComponentSerializer.plainText().serialize(requireNotNull(renderedPage).items.single().text)
         assertTrue(text.contains("100 coins"))
         assertTrue(text.contains("Confirm this quote"))
+        assertTrue(!text.contains("Pay"))
         requireNotNull(renderedPage).actions.first().action()
         assertEquals(1, confirms)
     }
@@ -102,5 +103,37 @@ internal class RecruitmentDialogMenuTest {
         requireNotNull(renderedPage).back.action()
         assertEquals(1, exits)
         assertEquals(0, closes)
+    }
+
+    @Test
+    fun managementChoicesAppearOnce() {
+        controller.screen = RecruitmentScreen.MANAGE
+        val entries = (1..6).map { RecruitmentButton("Choice $it") { exits++ } }
+        menu().show(RecruitmentView("Manage", entries, emptyList()))
+        val page = requireNotNull(renderedPage)
+        assertTrue(page.items.isEmpty())
+        assertEquals(
+            entries.map { it.label },
+            page.actions.take(entries.size).map {
+                PlainTextComponentSerializer.plainText().serialize(it.label)
+            },
+        )
+        assertEquals(1, page.columns)
+        page.actions[5].action()
+        assertEquals(1, exits)
+    }
+
+    @Test
+    fun informationHasNoDeadButton() {
+        controller.screen = RecruitmentScreen.PROFILE
+        val entries = listOf(RecruitmentButton("Information", listOf("Full details")))
+        menu().show(RecruitmentView("Profile", entries, emptyList()))
+        val page = requireNotNull(renderedPage)
+        assertEquals(1, page.items.size)
+        assertTrue(
+            page.actions.none {
+                PlainTextComponentSerializer.plainText().serialize(it.label).contains("Information")
+            },
+        )
     }
 }
