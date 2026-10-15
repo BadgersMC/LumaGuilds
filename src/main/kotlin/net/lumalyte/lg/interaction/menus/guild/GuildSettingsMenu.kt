@@ -126,7 +126,7 @@ class GuildSettingsMenu(
         GuildSettingsGroup.entries.forEachIndexed { row, entry ->
             val item =
                 NexoItemProvider.getItemStackOrFallback(entry.icon) { ItemStack.of(Material.BOOK) }
-                .name(entry.label(lang))
+                    .name(entry.label(lang))
             pane.addItem(
                 GuiItem(item) {
                     settingsGroup = entry
@@ -141,8 +141,8 @@ class GuildSettingsMenu(
 
     private fun addGroupBack(pane: StaticPane) {
         val back =
-            NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
-            .name(lang.gui("recruitment.dialog.back"))
+            NexoItemProvider.getItemStackOrFallback(BACK_ICON) { ItemStack.of(Material.ARROW) }
+                .name(lang.gui("recruitment.dialog.back"))
         pane.addItem(
             GuiItem(back) {
                 settingsGroup = null
@@ -157,6 +157,7 @@ class GuildSettingsMenu(
         const val SETTINGS_ROWS = 6
         const val SETTINGS_COLUMNS = 9
         const val CATEGORY_COLUMN = 8
+        const val BACK_ICON = "lg_back"
     }
 
     private fun addReconnectControl(pane: StaticPane) {
@@ -592,7 +593,7 @@ class GuildSettingsMenu(
         }
 
         // Back button
-        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
+        val backItem = NexoItemProvider.getItemStackOrFallback(BACK_ICON) { ItemStack.of(Material.BARRIER) }
             .name(lang.gui("menu.guild_settings.item.back.name"))
             .lore(lang.gui("menu.guild_settings.item.back.lore"))
 
@@ -692,7 +693,7 @@ class GuildSettingsMenu(
             }, index % 9, index / 9)
         }
 
-        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
+        val backItem = NexoItemProvider.getItemStackOrFallback(BACK_ICON) { ItemStack.of(Material.BARRIER) }
             .name(lang.gui("menu.guild_settings.item.back.name"))
         pane.addItem(GuiItem(backItem) { open() }, 4, 2)
 

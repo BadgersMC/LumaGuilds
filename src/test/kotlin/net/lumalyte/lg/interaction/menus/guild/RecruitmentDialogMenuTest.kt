@@ -25,9 +25,9 @@ internal class RecruitmentDialogMenuTest {
     private val rendered get() = requireNotNull(renderedPage)
     private val presenter =
         GuildDialogPresenter { _, page, _, _ ->
-        renderedPage = page
-        true
-    }
+            renderedPage = page
+            true
+        }
     private val controller = RecruitmentController(player, {})
     private var exits = 0
     private var closes = 0
@@ -74,6 +74,15 @@ internal class RecruitmentDialogMenuTest {
         assertTrue(text.contains("Confirm this quote"))
         rendered.actions.first().action()
         assertEquals(1, confirms)
+    }
+
+    @Test
+    fun searchContextStaysVisible() {
+        controller.screen = RecruitmentScreen.BROWSE
+        controller.query = "Everlights"
+        menu().show(RecruitmentView("Browse", emptyList(), emptyList()))
+        val context = PlainTextComponentSerializer.plainText().serialize(rendered.items.single().text)
+        assertTrue(context.contains("Everlights"))
     }
 
     @Test

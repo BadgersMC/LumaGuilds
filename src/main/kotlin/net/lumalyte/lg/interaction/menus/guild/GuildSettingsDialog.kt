@@ -44,13 +44,12 @@ internal class GuildSettingsDialog(private val lang: LangService) {
     }
 
     private fun actions(callbacks: GuildSettingsActions): List<GuildDialogAction> {
-        val actions =
-            GuildSettingsGroup.entries.map { entry ->
-            GuildDialogAction(entry.label(lang), Component.empty()) { callbacks.group(entry) }
-        } + listOf(
-            GuildDialogAction(lang.msg("recruitment.manage"), Component.empty(), callbacks.recruitment),
-            GuildDialogAction(lang.msg("guild_dialogs.settings.chat"), Component.empty(), callbacks.chat),
-        )
+        val actions = mutableListOf<GuildDialogAction>()
+        for (entry in GuildSettingsGroup.entries) {
+            actions += GuildDialogAction(entry.label(lang), Component.empty()) { callbacks.group(entry) }
+        }
+        actions += GuildDialogAction(lang.msg("recruitment.manage"), Component.empty(), callbacks.recruitment)
+        actions += GuildDialogAction(lang.msg("guild_dialogs.settings.chat"), Component.empty(), callbacks.chat)
         return actions
     }
 
