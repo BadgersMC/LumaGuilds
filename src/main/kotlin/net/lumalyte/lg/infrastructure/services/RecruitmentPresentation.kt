@@ -31,6 +31,7 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
     }
 
     fun input(player: Player, fields: RecruitmentTextInput, actions: RecruitmentInputActions) {
+        val skin = GuildDialogTheme().resolve(fields.theme)
         val options = ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(2)).build()
 
         fun action(callback: (String?) -> Unit): DialogAction {
@@ -47,26 +48,16 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
         }
         player.showDialog(
             Dialog.create { factory ->
-                factory.empty().base(
-                    DialogBase.builder(Component.text(fields.title)).canCloseWithEscape(true)
-                        .inputs(
-                            listOf(
-                                DialogInput.text("answer", Component.text(fields.title)).initial(fields.initial)
-                                    .maxLength(MAX_INPUT_LENGTH)
-                                    .build(),
-                            ),
-                        )
-                        .build(),
-                )
+                factory.empty().base(inputBase(fields, skin))
                     .type(
                         DialogType.confirmation(
                             ActionButton.builder(
-                                Component.text(fields.submitLabel),
+                                skin?.label(Component.text(fields.submitLabel)) ?: Component.text(fields.submitLabel),
                             )
                                 .action(action { actions.accept(it ?: "") })
                                 .build(),
                             ActionButton.builder(
-                                Component.text(fields.cancelLabel),
+                                skin?.label(Component.text(fields.cancelLabel)) ?: Component.text(fields.cancelLabel),
                             )
                                 .action(action { actions.cancel() })
                                 .build(),
@@ -75,6 +66,20 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
             },
         )
     }
+
+    private fun inputBase(fields: RecruitmentTextInput, skin: GuildDialogSkin?): DialogBase =
+        DialogBase.builder(Component.text(fields.title, guildDialogAccent(fields.theme)))
+            .canCloseWithEscape(true)
+            .afterAction(DialogBase.DialogAfterAction.NONE)
+            .body(skin?.body(emptyList()) ?: emptyList())
+            .inputs(
+                listOf(
+                    DialogInput.text("answer", Component.text(fields.title)).initial(fields.initial)
+                        .maxLength(MAX_INPUT_LENGTH)
+                        .build(),
+                ),
+            )
+            .build()
 
     fun book(player: Player, content: RecruitmentBookContent, valid: () -> Boolean, back: () -> Unit) {
         RecruitmentReader(player, content, valid, back).open(

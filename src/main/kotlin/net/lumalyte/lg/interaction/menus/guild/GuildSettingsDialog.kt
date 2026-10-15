@@ -34,7 +34,10 @@ internal data class GuildSettingsActions(
     val back: () -> Unit,
 )
 
-internal class GuildSettingsDialog(private val lang: LangService) {
+internal class GuildSettingsDialog(
+    private val lang: LangService,
+    private val theme: () -> net.lumalyte.lg.utils.GuiTheme,
+) {
     private val presenter = GuildMenuDialog()
 
     fun show(player: Player, valid: () -> Boolean, callbacks: GuildSettingsActions): Boolean {
@@ -64,6 +67,7 @@ internal class GuildSettingsDialog(private val lang: LangService) {
             ),
             actions(callbacks),
             GuildDialogAction(lang.msg("recruitment.dialog.back"), Component.empty(), callbacks.back),
+            theme = theme(),
         )
     }
 }

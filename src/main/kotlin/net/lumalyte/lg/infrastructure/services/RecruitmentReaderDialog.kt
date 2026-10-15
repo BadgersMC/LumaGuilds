@@ -18,6 +18,7 @@ internal class RecruitmentReaderDialog(
     private val page: RecruitmentReaderPage,
     private val actions: RecruitmentReaderActions,
 ) {
+    private val skin = GuildDialogTheme().resolve(content.theme)
     private fun heading(): Component {
         return Component.text(
             "${content.title} ${page.number}/${page.count}",
@@ -27,7 +28,8 @@ internal class RecruitmentReaderDialog(
 
     fun show() {
         fun button(label: String, action: () -> Unit): ActionButton {
-            return ActionButton.builder(Component.text(label)).action(
+            val text = Component.text(label)
+            return ActionButton.builder(skin?.label(text) ?: text).action(
                 DialogAction.customClick({ _, audience ->
                     if (audience is Player && audience.uniqueId == player.uniqueId) action()
                 }, ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(2)).build()),
@@ -51,8 +53,8 @@ internal class RecruitmentReaderDialog(
 
     private fun dialogBase(): DialogBase {
         return DialogBase.builder(heading()).canCloseWithEscape(true)
-            .afterAction(DialogBase.DialogAfterAction.CLOSE)
-            .body(dialogBody())
+            .afterAction(DialogBase.DialogAfterAction.NONE)
+            .body(skin?.body(dialogBody()) ?: dialogBody())
             .build()
     }
 

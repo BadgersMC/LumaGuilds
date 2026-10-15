@@ -2,60 +2,15 @@ package net.lumalyte.lg.interaction.menus.guild
 
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.unmockkAll
-import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-import net.lumalyte.lg.infrastructure.services.GuildDialogPage
-import net.lumalyte.lg.infrastructure.services.GuildDialogPresenter
-import org.bukkit.entity.Player
-import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
-import org.koin.dsl.module
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 private const val BROWSE_TITLE = "Browse"
 
 @Suppress("MagicNumber") // Small explicit page fixtures keep boundary assertions readable.
-internal class RecruitmentDialogMenuTest {
-    private val player = mockk<Player>(relaxed = true)
-    private val lang = mockk<LangService>()
-    private var renderedPage: GuildDialogPage? = null
-    private val presenter =
-        GuildDialogPresenter { _, page, _, _ ->
-            renderedPage = page
-            true
-        }
-    private val controller = RecruitmentController(player, {})
-    private var exits = 0
-    private var closes = 0
-
-    @BeforeEach
-    fun setup() {
-        stopKoin()
-        org.mockbukkit.mockbukkit.MockBukkit.mock()
-        every { lang.raw(any()) } answers { firstArg() }
-        startKoin { modules(module { single { lang } }) }
-    }
-
-    @AfterEach
-    fun cleanup() {
-        stopKoin()
-        unmockkAll()
-        org.mockbukkit.mockbukkit.MockBukkit.unmock()
-    }
-
-    private fun menu(): RecruitmentDialogMenu {
-        return RecruitmentDialogMenu(
-            controller,
-            RecruitmentDialogCallbacks({ true }, { exits++ }, { closes++ }),
-            presenter,
-        )
-    }
-
+internal class RecruitmentDialogMenuTest : RecruitmentDialogFixture() {
     @Test
     fun boundedPagesKeepResults() {
         val entries = (1..8).map { RecruitmentButton("Guild $it", listOf("Mode", "Spaces", "Level", "Fee", "Pitch")) }
@@ -79,6 +34,7 @@ internal class RecruitmentDialogMenuTest {
         val text = PlainTextComponentSerializer.plainText().serialize(requireNotNull(renderedPage).items.single().text)
         assertTrue(text.contains("100 coins"))
         assertTrue(text.contains("Confirm this quote"))
+        assertTrue(!text.contains("Pay"))
         requireNotNull(renderedPage).actions.first().action()
         assertEquals(1, confirms)
     }
@@ -102,5 +58,46 @@ internal class RecruitmentDialogMenuTest {
         requireNotNull(renderedPage).back.action()
         assertEquals(1, exits)
         assertEquals(0, closes)
+    }
+
+    @Test
+    fun managementChoicesAppearOnce() {
+        controller.screen = RecruitmentScreen.MANAGE
+        val entries = (1..6).map { RecruitmentButton("Choice $it") { exits++ } }
+        menu().show(RecruitmentView("Manage", entries, emptyList()))
+        val page = requireNotNull(renderedPage)
+        assertTrue(page.items.isEmpty())
+        assertEquals(
+            entries.map { it.label },
+            page.actions.take(entries.size).map {
+                PlainTextComponentSerializer.plainText().serialize(it.label)
+            },
+        )
+        assertEquals(1, page.columns)
+        page.actions[5].action()
+        assertEquals(1, exits)
+    }
+
+    @Test
+    fun guildStyleReachesDialog() {
+        val guild = mockk<net.lumalyte.lg.domain.entities.Guild>()
+        every { guild.guiTheme } returns net.lumalyte.lg.utils.GuiTheme.VERDANT
+        every { guilds.getPlayerGuilds(any()) } returns setOf(guild)
+        menu().show(RecruitmentView(BROWSE_TITLE, emptyList(), emptyList()))
+        assertEquals(net.lumalyte.lg.utils.GuiTheme.VERDANT, requireNotNull(renderedPage).theme)
+    }
+
+    @Test
+    fun informationHasNoDeadButton() {
+        controller.screen = RecruitmentScreen.PROFILE
+        val entries = listOf(RecruitmentButton("Information", listOf("Full details")))
+        menu().show(RecruitmentView("Profile", entries, emptyList()))
+        val page = requireNotNull(renderedPage)
+        assertEquals(1, page.items.size)
+        assertTrue(
+            page.actions.none {
+                PlainTextComponentSerializer.plainText().serialize(it.label).contains("Information")
+            },
+        )
     }
 }

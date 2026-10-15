@@ -54,7 +54,7 @@ class GuildSettingsMenu(
     private val lang: LangService by inject()
     private val nexoEmojiService: NexoEmojiService by inject()
     private var settingsGroup: GuildSettingsGroup? = null
-    private val settingsDialog by lazy { GuildSettingsDialog(lang) }
+    private val settingsDialog by lazy { GuildSettingsDialog(lang) { guild.guiTheme } }
     // Holiday styles (REQ-121) are locked until earned; without the ledger they stay locked.
     private val themeAccess by lazy {
         getKoin().getOrNull<net.lumalyte.lg.application.services.GuildCosmeticUnlockService>()
