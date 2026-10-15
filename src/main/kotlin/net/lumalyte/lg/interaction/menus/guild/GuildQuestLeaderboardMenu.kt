@@ -1,5 +1,13 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.infrastructure.services.GuildDialogItem
+import net.lumalyte.lg.infrastructure.services.GuildDialogAction
+import net.lumalyte.lg.infrastructure.services.GuildDialogPage
+import net.lumalyte.lg.infrastructure.services.GuildMenuDialog
+import net.lumalyte.lg.infrastructure.services.RecruitmentPresentation
+import net.lumalyte.lg.interaction.menus.GuildBannerItemResolver
+import net.kyori.adventure.text.JoinConfiguration
+
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -37,7 +45,7 @@ class GuildQuestLeaderboardMenu(
 ) : Menu {
     private var page = 0
     private var nativePage = 0
-    private val nativeDialog = net.lumalyte.lg.infrastructure.services.GuildMenuDialog()
+    private val nativeDialog = GuildMenuDialog()
 
     override fun open() {
         if (memberService.getMember(player.uniqueId, viewingGuild.id) == null) {
@@ -113,8 +121,10 @@ class GuildQuestLeaderboardMenu(
             }
         }
         pane.addItem(GuiItem(header), 4, 0)
-        if (net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.supportsDialog(player) &&
-            showNativeLeaderboard(header, orderedGuilds, progressByGuild, rankByGuild)) return
+        if (RecruitmentPresentation.supportsDialog(player) &&
+            showNativeLeaderboard(header, orderedGuilds, progressByGuild, rankByGuild)) {
+            return
+        }
 
         orderedGuilds
             .drop(page * ITEMS_PER_PAGE)
@@ -219,33 +229,74 @@ class GuildQuestLeaderboardMenu(
     ): Boolean {
         val pages = maxOf(1, (guilds.size + NATIVE_PAGE_SIZE - 1) / NATIVE_PAGE_SIZE)
         nativePage = nativePage.coerceIn(0, pages - 1)
-        val body = listOf(net.lumalyte.lg.infrastructure.services.GuildDialogItem(
-            header, Component.join(net.kyori.adventure.text.JoinConfiguration.newlines(), header.lore() ?: emptyList()),
-        )) + guilds.drop(nativePage * NATIVE_PAGE_SIZE).take(NATIVE_PAGE_SIZE).map { current ->
-            net.lumalyte.lg.infrastructure.services.GuildDialogItem(
-                net.lumalyte.lg.interaction.menus.GuildBannerItemResolver.resolveForDisplay(current),
-                lang.gui("menu.quests.leaderboard.guild.name", "guild" to current.name,
-                    "rank" to (ranks[current.id]?.let { "#$it" } ?: "—"))
-                    .append(Component.newline()).append(lang.gui("menu.quests.leaderboard.guild.score",
-                        "points" to (progress[current.id]?.currentCount ?: 0))),
+        val actions = nativeLeaderboardActions(pages)
+        val token = menuNavigator.currentNavigationToken()
+        return nativeDialog.show(
+            player,
+            GuildDialogPage(
+                lang.gui("menu.quests.leaderboard.page", "page" to nativePage + 1, "pages" to pages),
+                nativeLeaderboardItems(header, guilds, progress, ranks),
+                actions,
+                nativeAction(lang.gui("menu.quests.leaderboard.back")) { menuNavigator.goBack() },
+            ),
+            {
+                player.isOnline && menuNavigator.isNavigationCurrent(token) &&
+                    memberService.getMember(player.uniqueId, viewingGuild.id) != null &&
+                    questService.activeQuestSet()?.quests?.any { it.id == questId } == true
+            },
+        ) { player.sendMessage(lang.msg("menu.quests.feedback.no_quests")) }
+    }
+
+    private fun nativeLeaderboardItems(
+        header: ItemStack,
+        guilds: List<Guild>,
+        progress: Map<java.util.UUID, GuildQuestProgress>,
+        ranks: Map<java.util.UUID, Int>,
+    ): List<GuildDialogItem> {
+        return listOf(
+            GuildDialogItem(
+                header, Component.join(JoinConfiguration.newlines(), header.lore() ?: emptyList()),
+            ),
+        ) + guilds.drop(nativePage * NATIVE_PAGE_SIZE).take(NATIVE_PAGE_SIZE).map { current ->
+            GuildDialogItem(
+                GuildBannerItemResolver.resolveForDisplay(current),
+                lang.gui(
+                    "menu.quests.leaderboard.guild.name", "guild" to current.name,
+                    "rank" to (ranks[current.id]?.let { "#$it" } ?: "—"),
+                )
+                    .append(Component.newline())
+                    .append(
+                        lang.gui(
+                            "menu.quests.leaderboard.guild.score",
+                            "points" to (progress[current.id]?.currentCount ?: 0),
+                        ),
+                    ),
             )
         }
-        fun action(label: Component, callback: () -> Unit) =
-            net.lumalyte.lg.infrastructure.services.GuildDialogAction(label, Component.empty(), callback)
-        val actions = buildList {
-            if (nativePage > 0) add(action(lang.gui("recruitment.previous")) { nativePage--; open() })
-            if (nativePage + 1 < pages) add(action(lang.gui("recruitment.next")) { nativePage++; open() })
-        }
-        val token = menuNavigator.currentNavigationToken()
-        return nativeDialog.show(player, net.lumalyte.lg.infrastructure.services.GuildDialogPage(
-            lang.gui("menu.quests.leaderboard.page", "page" to nativePage + 1, "pages" to pages),
-            body, actions, action(lang.gui("menu.quests.leaderboard.back")) { menuNavigator.goBack() },
-        ), {
-            player.isOnline && menuNavigator.isNavigationCurrent(token) &&
-                memberService.getMember(player.uniqueId, viewingGuild.id) != null &&
-                questService.activeQuestSet()?.quests?.any { it.id == questId } == true
-        }) { player.sendMessage(lang.msg("menu.quests.feedback.no_quests")) }
     }
+
+    private fun nativeAction(label: Component, callback: () -> Unit) =
+        GuildDialogAction(label, Component.empty(), callback)
+
+    private fun nativeLeaderboardActions(pages: Int) =
+        buildList {
+            if (nativePage > 0) {
+                add(
+                    nativeAction(lang.gui("recruitment.previous")) {
+                        nativePage--
+                        open()
+                    },
+                )
+            }
+            if (nativePage + 1 < pages) {
+                add(
+                    nativeAction(lang.gui("recruitment.next")) {
+                        nativePage++
+                        open()
+                    },
+                )
+            }
+        }
 
     companion object {
         private const val NATIVE_PAGE_SIZE = 4

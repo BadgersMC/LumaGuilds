@@ -4,7 +4,6 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
 import net.badgersmc.nexus.i18n.LangService
-import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import net.lumalyte.lg.infrastructure.services.GuildDialogPage
 import net.lumalyte.lg.infrastructure.services.GuildDialogPresenter
@@ -18,11 +17,16 @@ import org.koin.dsl.module
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+@Suppress("MagicNumber") // Small explicit page fixtures keep boundary assertions readable.
 internal class RecruitmentDialogMenuTest {
     private val player = mockk<Player>(relaxed = true)
     private val lang = mockk<LangService>()
-    private lateinit var rendered: GuildDialogPage
-    private val presenter = GuildDialogPresenter { _, page, _, _ -> rendered = page; true }
+    private var renderedPage: GuildDialogPage? = null
+    private val rendered get() = requireNotNull(renderedPage)
+    private val presenter = GuildDialogPresenter { _, page, _, _ ->
+        renderedPage = page
+        true
+    }
     private val controller = RecruitmentController(player, {})
     private var exits = 0
     private var closes = 0
@@ -45,7 +49,7 @@ internal class RecruitmentDialogMenuTest {
     private fun menu() = RecruitmentDialogMenu(controller, { true }, { exits++ }, { closes++ }, presenter)
 
     @Test
-    fun boundedPagesKeepAllResultsReachable() {
+    fun boundedPagesKeepResults() {
         val entries = (1..8).map { RecruitmentButton("Guild $it", listOf("Mode", "Spaces", "Level", "Fee", "Pitch")) }
         controller.page = 2
         controller.screen = RecruitmentScreen.BROWSE
@@ -58,7 +62,7 @@ internal class RecruitmentDialogMenuTest {
     }
 
     @Test
-    fun paidConfirmationRetainsCompleteQuoteAndDelegatesOnce() {
+    fun retainsCompletePaymentQuote() {
         var confirms = 0
         controller.screen = RecruitmentScreen.CONFIRM
         val details = listOf("Guild", "Mode", "Slots", "Level", "100 coins", "Confirm this quote")
@@ -72,7 +76,7 @@ internal class RecruitmentDialogMenuTest {
     }
 
     @Test
-    fun boardBackExitsWithoutClosingTheNavigationStack() {
+    fun backPreservesNavigation() {
         controller.screen = RecruitmentScreen.BROWSE
         menu().show(RecruitmentView("Browse", emptyList(), emptyList()))
         rendered.back.action()

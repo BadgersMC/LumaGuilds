@@ -5,11 +5,12 @@ import java.util.UUID
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+@Suppress("MagicNumber") // Explicit millisecond fixtures exercise expiry boundaries.
 internal class GuildDialogSessionTest {
     private val owner = UUID.randomUUID()
 
     @Test
-    fun consumesOnlyOnceForItsOwner() {
+    fun consumesOnceForOwner() {
         val state = GuildDialogSession(owner, 100L) { true }
         val page = state.beginPage(0L)
         assertFalse(state.consume(UUID.randomUUID(), page, 1L))
@@ -18,7 +19,7 @@ internal class GuildDialogSessionTest {
     }
 
     @Test
-    fun rejectsPreviousAndExpiredPages() {
+    fun rejectsExpiredPages() {
         val state = GuildDialogSession(owner, 100L) { true }
         val old = state.beginPage(0L)
         val current = state.beginPage(50L)
@@ -28,7 +29,7 @@ internal class GuildDialogSessionTest {
     }
 
     @Test
-    fun rejectsRevokedNavigationAndClosedSession() {
+    fun rejectsRevokedSession() {
         var valid = true
         val state = GuildDialogSession(owner, 100L) { valid }
         val page = state.beginPage(0L)

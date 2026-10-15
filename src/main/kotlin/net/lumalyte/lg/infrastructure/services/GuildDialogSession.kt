@@ -20,10 +20,14 @@ internal class GuildDialogSession(
     }
 
     fun consume(actor: UUID, page: Int, now: Long): Boolean {
-        if (closed || consumed || actor != owner || page != revision) return false
+        if (actor != owner || unavailable(page)) return false
         consumed = true
-        return now >= openedAt && now - openedAt < lifetimeMillis && valid()
+        return withinLifetime(now) && valid()
     }
+
+    private fun unavailable(page: Int): Boolean = closed || consumed || page != revision
+
+    private fun withinLifetime(now: Long): Boolean = now >= openedAt && now - openedAt < lifetimeMillis
 
     fun close() {
         closed = true

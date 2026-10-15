@@ -7,6 +7,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.lumalyte.lg.infrastructure.i18n.GuiTextStyler
 import net.lumalyte.lg.infrastructure.services.NexoEmojiService
+import net.lumalyte.lg.infrastructure.services.RecruitmentPresentation
 import net.lumalyte.lg.interaction.listeners.ChatInputHandler
 import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.interaction.menus.GuildBannerItemResolver
@@ -67,8 +68,8 @@ internal class GuildRecruitmentMenu(
     private fun showInput(input: RecruitmentInput) {
         player.closeInventory()
         val navigation = navigator.currentNavigationToken()
-        if (net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.supportsDialog(player)) {
-            net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.input(
+        if (RecruitmentPresentation.supportsDialog(player)) {
+            RecruitmentPresentation.input(
                 player,
                 net.lumalyte.lg.infrastructure.services.RecruitmentTextInput(
                     input.label,
@@ -113,7 +114,7 @@ internal class GuildRecruitmentMenu(
 
     private fun showBoard(view: RecruitmentView) {
         activeNavigation = navigator.currentNavigationToken()
-        if (net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.supportsDialog(player) && nativeMenu.show(view)) {
+        if (RecruitmentPresentation.supportsDialog(player) && nativeMenu.show(view)) {
             return
         }
         val filtered = view.quickFilters.isNotEmpty()
