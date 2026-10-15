@@ -48,21 +48,7 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
         }
         player.showDialog(
             Dialog.create { factory ->
-                factory.empty().base(
-                    DialogBase.builder(
-                        Component.text(fields.title, guildDialogAccent(fields.theme)),
-                    ).canCloseWithEscape(true)
-                        .afterAction(DialogBase.DialogAfterAction.NONE)
-                        .body(skin?.body(emptyList()) ?: emptyList())
-                        .inputs(
-                            listOf(
-                                DialogInput.text("answer", Component.text(fields.title)).initial(fields.initial)
-                                    .maxLength(MAX_INPUT_LENGTH)
-                                    .build(),
-                            ),
-                        )
-                        .build(),
-                )
+                factory.empty().base(inputBase(fields, skin))
                     .type(
                         DialogType.confirmation(
                             ActionButton.builder(
@@ -80,6 +66,20 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
             },
         )
     }
+
+    private fun inputBase(fields: RecruitmentTextInput, skin: GuildDialogSkin?): DialogBase =
+        DialogBase.builder(Component.text(fields.title, guildDialogAccent(fields.theme)))
+            .canCloseWithEscape(true)
+            .afterAction(DialogBase.DialogAfterAction.NONE)
+            .body(skin?.body(emptyList()) ?: emptyList())
+            .inputs(
+                listOf(
+                    DialogInput.text("answer", Component.text(fields.title)).initial(fields.initial)
+                        .maxLength(MAX_INPUT_LENGTH)
+                        .build(),
+                ),
+            )
+            .build()
 
     fun book(player: Player, content: RecruitmentBookContent, valid: () -> Boolean, back: () -> Unit) {
         RecruitmentReader(player, content, valid, back).open(
