@@ -49,7 +49,12 @@ internal class RecruitmentDialogMenuTest {
         org.mockbukkit.mockbukkit.MockBukkit.unmock()
     }
 
-    private fun menu() = RecruitmentDialogMenu(controller, { true }, { exits++ }, { closes++ }, presenter)
+    private fun menu() =
+        RecruitmentDialogMenu(
+            controller,
+            RecruitmentDialogCallbacks({ true }, { exits++ }, { closes++ }),
+            presenter,
+        )
 
     @Test
     fun boundedPagesKeepResults() {

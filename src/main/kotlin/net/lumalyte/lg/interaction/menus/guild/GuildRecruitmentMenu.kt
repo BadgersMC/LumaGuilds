@@ -50,12 +50,15 @@ internal class GuildRecruitmentMenu(
     private val lang: LangService by inject()
     private val emojis: NexoEmojiService by inject()
     private val nativeMenu =
-        RecruitmentDialogMenu(controller, {
-            player.isOnline && activeNavigation == navigator.currentNavigationToken()
-        }, { navigator.goBack() }, {
-            navigator.clearMenuStack()
-            player.closeInventory()
-        })
+        RecruitmentDialogMenu(
+            controller,
+            RecruitmentDialogCallbacks({
+                player.isOnline && activeNavigation == navigator.currentNavigationToken()
+            }, { navigator.goBack() }, {
+                navigator.clearMenuStack()
+                player.closeInventory()
+            }),
+        )
     private var activeNavigation = -1L
 
     /** Refreshes current state without exposing a stale private inbox. */
