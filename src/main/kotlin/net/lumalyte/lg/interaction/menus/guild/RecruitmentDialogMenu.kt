@@ -8,6 +8,7 @@ import net.lumalyte.lg.infrastructure.services.GuildDialogItem
 import net.lumalyte.lg.infrastructure.services.GuildDialogPage
 import net.lumalyte.lg.infrastructure.services.GuildDialogPresenter
 import net.lumalyte.lg.infrastructure.services.GuildMenuDialog
+import net.lumalyte.lg.infrastructure.services.guildDialogIconLabel
 import net.lumalyte.lg.interaction.menus.GuildBannerItemResolver
 import net.lumalyte.lg.utils.NexoItemProvider
 import org.bukkit.Material
@@ -30,7 +31,10 @@ internal class RecruitmentDialogMenu(
                 searchContext() + bodies(entries),
                 pageActions(view, pages),
                 GuildDialogAction(
-                    Component.text(controller.lang.raw("recruitment.dialog.back")),
+                    guildDialogIconLabel(
+                        Component.text(controller.lang.raw("recruitment.dialog.back")),
+                        RecruitmentIcons.BACK,
+                    ),
                     Component.empty(),
                     ::parent,
                 ),
@@ -57,7 +61,9 @@ internal class RecruitmentDialogMenu(
         val context = listOf(label, controller.query).filter(String::isNotBlank).joinToString(": ")
         return listOf(
             GuildDialogItem(
-                NexoItemProvider.getItemStackOrFallback(RecruitmentIcons.TAG) { ItemStack.of(Material.NAME_TAG) },
+                NexoItemProvider.getItemStackOrFallback(
+                    RecruitmentIcons.NAV_SETTINGS,
+                ) { ItemStack.of(Material.COMPASS) },
                 Component.text(context, NamedTextColor.GOLD),
                 onClick = if (clickableCards) filterAction(context) else null,
             ),
@@ -91,7 +97,9 @@ internal class RecruitmentDialogMenu(
         val mine = controller.lang.raw("recruitment.mine")
         val applications =
             view.navigation.firstOrNull { it.label == mine && it.isInteractive() }
-                ?: RecruitmentButton(mine) { controller.showScreen(RecruitmentScreen.MINE) }
+                ?: RecruitmentButton(mine, icon = RecruitmentIcons.DESCRIPTION) {
+                    controller.showScreen(RecruitmentScreen.MINE)
+                }
         return (if (clickableCards) emptyList() else listOf(filterAction())) + listOf(action(applications)) +
             view.navigation.filter {
                 it.label == controller.lang.raw("recruitment.manage") && it.isInteractive()
@@ -100,7 +108,10 @@ internal class RecruitmentDialogMenu(
 
     private fun filterAction(context: String = ""): GuildDialogAction =
         GuildDialogAction(
-            Component.text(controller.lang.raw("guild_dialogs.board.search_filters")),
+            guildDialogIconLabel(
+                Component.text(controller.lang.raw("guild_dialogs.board.search_filters")),
+                RecruitmentIcons.NAV_SETTINGS,
+            ),
             Component.text(context),
         ) { controller.showScreen(RecruitmentScreen.FILTER) }
 
@@ -112,7 +123,10 @@ internal class RecruitmentDialogMenu(
                 controller.lang.raw("recruitment.dialog.navigation")
             }
         return GuildDialogAction(
-            Component.text(label),
+            guildDialogIconLabel(
+                Component.text(label),
+                if (close) RecruitmentIcons.CANCEL else RecruitmentIcons.NAV_SETTINGS,
+            ),
             Component.empty(),
             if (close) callbacks.close else ::showNavigation,
         )
@@ -127,7 +141,10 @@ internal class RecruitmentDialogMenu(
                 emptyList(),
                 actions,
                 GuildDialogAction(
-                    Component.text(controller.lang.raw("recruitment.dialog.back")),
+                    guildDialogIconLabel(
+                        Component.text(controller.lang.raw("recruitment.dialog.back")),
+                        RecruitmentIcons.BACK,
+                    ),
                     Component.empty(),
                     controller.refresh,
                 ),
@@ -157,7 +174,7 @@ internal class RecruitmentDialogMenu(
                 prefix + button.label + state
             }
         return GuildDialogAction(
-            Component.text(label),
+            guildDialogIconLabel(Component.text(label), button.icon),
             Component.text(button.details.joinToString("\n")),
         ) { controller.run(button.action) }
     }
@@ -166,7 +183,8 @@ internal class RecruitmentDialogMenu(
         delta: Int,
         label: Component,
     ): GuildDialogAction {
-        return GuildDialogAction(label, Component.empty()) {
+        val icon = if (delta > 0) RecruitmentIcons.PAGE_NEXT else RecruitmentIcons.PAGE_PREV
+        return GuildDialogAction(guildDialogIconLabel(label, icon), Component.empty()) {
             controller.page += delta
             controller.refresh()
         }
