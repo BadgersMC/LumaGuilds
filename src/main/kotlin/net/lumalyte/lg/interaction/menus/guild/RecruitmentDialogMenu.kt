@@ -27,18 +27,17 @@ internal class RecruitmentDialogMenu(
                 Component.text("${view.title} ${controller.page + 1}/$pages"),
                 searchContext() + entryBodies(entries),
                 pageActions(view, pages),
-                parentAction(),
+                GuildDialogAction(
+                    Component.text(controller.lang.raw("recruitment.dialog.back")),
+                    Component.empty(),
+                    ::parent,
+                ),
                 columns = 1,
                 theme = controller.theme(),
                 search = if (controller.screen == RecruitmentScreen.BROWSE) controller.boardSearch() else null,
             ),
         )
     }
-
-    private fun parentAction(): GuildDialogAction = GuildDialogAction(
-        Component.text(controller.lang.raw("recruitment.dialog.back")),
-        Component.empty(),
-    ) { parent() }
 
     private fun searchContext(): List<GuildDialogItem> {
         if (controller.screen != RecruitmentScreen.BROWSE || controller.query.isBlank()) return emptyList()
@@ -50,7 +49,10 @@ internal class RecruitmentDialogMenu(
         )
     }
 
-    private fun pageActions(view: RecruitmentView, pages: Int): List<GuildDialogAction> {
+    private fun pageActions(
+        view: RecruitmentView,
+        pages: Int,
+    ): List<GuildDialogAction> {
         val actions = mutableListOf<GuildDialogAction>()
         val entries = view.items.drop(controller.page * controller.dialogPageSize()).take(controller.dialogPageSize())
         for (button in entries.filter { it.isInteractive() }) actions += action(button)
@@ -69,11 +71,12 @@ internal class RecruitmentDialogMenu(
         if (controller.screen != RecruitmentScreen.BROWSE) {
             return view.quickFilters.map { action(it, detailsInLabel = true) }
         }
-        val direct = setOf(
-            controller.lang.raw("recruitment.filter"),
-            controller.lang.raw("recruitment.mine"),
-            controller.lang.raw("recruitment.manage"),
-        )
+        val direct =
+            setOf(
+                controller.lang.raw("recruitment.filter"),
+                controller.lang.raw("recruitment.mine"),
+                controller.lang.raw("recruitment.manage"),
+            )
         val tools = setOf(controller.lang.raw("recruitment.sort"), controller.lang.raw("recruitment.reset"))
         return view.navigation.filter { it.label in direct && it.isInteractive() }.map { action(it) } +
             view.quickFilters.filter { it.label in tools }.map { action(it, detailsInLabel = true) }
@@ -130,18 +133,22 @@ internal class RecruitmentDialogMenu(
         detailsInLabel: Boolean = false,
     ): GuildDialogAction {
         val state = if (detailsInLabel) button.details.firstOrNull()?.let { ": $it" }.orEmpty() else ""
-        val label = if (controller.screen == RecruitmentScreen.BROWSE && button.guild != null) {
-            controller.lang.raw("recruitment.open_guild").replace("%guild%", button.guild.name)
-        } else {
-            prefix + button.label + state
-        }
+        val label =
+            if (controller.screen == RecruitmentScreen.BROWSE && button.guild != null) {
+                controller.lang.raw("recruitment.open_guild").replace("%guild%", button.guild.name)
+            } else {
+                prefix + button.label + state
+            }
         return GuildDialogAction(
             Component.text(label),
             Component.text(button.details.joinToString("\n")),
         ) { controller.run(button.action) }
     }
 
-    private fun pageAction(delta: Int, label: Component): GuildDialogAction {
+    private fun pageAction(
+        delta: Int,
+        label: Component,
+    ): GuildDialogAction {
         return GuildDialogAction(label, Component.empty()) {
             controller.page += delta
             controller.refresh()

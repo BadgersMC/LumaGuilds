@@ -7,33 +7,37 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+private const val CARD_TEST_FONT = "lumaguilds:dialogs"
+private const val CARD_TEST_CHARACTER = "\uE500"
+
 internal class GuildDialogCardsTest {
-    private val resolver = NexoGlyphResolver { id -> ResolvedNexoGlyph("\uE500", "lumaguilds:dialogs", false, id) }
+    private val resolver = NexoGlyphResolver { id -> ResolvedNexoGlyph(CARD_TEST_CHARACTER, CARD_TEST_FONT, false, id) }
 
     @Test
     fun panelRetainsEverySummaryLine() {
         val cards = assertNotNull(GuildDialogCards.resolve(resolver, "enthusia"))
-        val text = PlainTextComponentSerializer.plainText().serialize(
-            cards.render(listOf(Component.text("Everlights"), Component.text("Joining fee: 100 coins"))),
-        )
+        val text =
+            PlainTextComponentSerializer.plainText().serialize(
+                cards.render(listOf(Component.text("Everlights"), Component.text("Joining fee: 100 coins"))),
+            )
         assertTrue("Everlights" in text)
         assertTrue("Joining fee: 100 coins" in text)
         assertTrue(text.endsWith("\n\uE500"))
     }
 
     @Test
-    fun partialCardsFallBackWithoutDisablingExistingSkin() {
+    fun partialCardsKeepPlainContent() {
         val partial = NexoGlyphResolver { id -> if (id.endsWith("card_line")) null else resolver.resolve(id) }
         val skin = assertNotNull(GuildDialogTheme(partial).resolve(net.lumalyte.lg.utils.GuiTheme.ENTHUSIA))
         assertNull(skin.card(listOf(Component.text("Still readable"))))
     }
 
     @Test
-    fun invalidCardIdentityOrEmojiIsRejected() {
+    fun rejectsInvalidCards() {
         for (glyph in listOf(
-            ResolvedNexoGlyph("\uE500", "minecraft:default", false),
-            ResolvedNexoGlyph("\uE500", "lumaguilds:dialogs", true),
-            ResolvedNexoGlyph("\uE500", "lumaguilds:dialogs", false, "other"),
+            ResolvedNexoGlyph(CARD_TEST_CHARACTER, "minecraft:default", false),
+            ResolvedNexoGlyph(CARD_TEST_CHARACTER, CARD_TEST_FONT, true),
+            ResolvedNexoGlyph(CARD_TEST_CHARACTER, CARD_TEST_FONT, false, "other"),
         )) assertNull(GuildDialogCards.resolve({ glyph }, "enthusia"))
     }
 }

@@ -15,20 +15,24 @@ internal class GuildDialogCards(private val parts: Map<String, Component>) {
             result.append(parts.getValue("card_line"))
                 .append(Component.text("\uE000", NamedTextColor.WHITE).font(CARD_SPACING))
                 .append(Component.text("\uE001", NamedTextColor.WHITE).font(CARD_SPACING))
-                .append(line).append(Component.newline())
+                .append(line)
+                .append(Component.newline())
         }
         return result.append(parts.getValue("card_bottom")).build()
     }
 
     companion object {
-        fun resolve(resolver: NexoGlyphResolver, style: String): GuildDialogCards? {
+        fun resolve(
+            resolver: NexoGlyphResolver,
+            style: String,
+        ): GuildDialogCards? {
             val parts = mutableMapOf<String, Component>()
             for (part in listOf("card_top", "card_line", "card_bottom")) {
                 val id = "guild_dialog_${style}_$part"
-                val glyph = resolveOptionalGlyph(resolver, id) ?: return null
-                if (!glyph.isDialogArt() || !glyph.matchesId(id)) {
-                    return null
-                }
+                val glyph =
+                    resolveOptionalGlyph(resolver, id)?.takeIf {
+                        it.isDialogArt() && it.matchesId(id)
+                    } ?: return null
                 parts[part] = Component.text(glyph.character, NamedTextColor.WHITE).font(Key.key(CARD_FONT))
             }
             return GuildDialogCards(parts)
