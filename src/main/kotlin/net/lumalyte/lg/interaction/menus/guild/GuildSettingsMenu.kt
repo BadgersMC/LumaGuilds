@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.infrastructure.services.RecruitmentPresentation
+
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import net.lumalyte.lg.utils.NexoItemProvider
@@ -69,20 +71,38 @@ class GuildSettingsMenu(
         // Refresh guild data from database to ensure we have latest changes
         guild = guildService.getGuild(guild.id) ?: guild
 
-        if (settingsGroup == null && net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.supportsDialog(player)) {
+        if (settingsGroup == null && RecruitmentPresentation.supportsDialog(player)) {
             val token = menuNavigator.currentNavigationToken()
-            if (settingsDialog.show(player, {
-                player.isOnline && menuNavigator.isNavigationCurrent(token) &&
-                    guildService.getPlayerGuilds(player.uniqueId).any { it.id == guild.id }
-            }, { settingsGroup = it; open() }, {
-                menuNavigator.openMenu(menuFactory.createLfgBrowserMenu(menuNavigator, player))
-            }, {
-                menuNavigator.openMenu(menuFactory.createPlayerChatSettingsMenu(menuNavigator, player))
-            }, { menuNavigator.goBack() })) return
+            if (settingsDialog.show(
+                    player,
+                    {
+                        player.isOnline && menuNavigator.isNavigationCurrent(token) &&
+                            guildService.getPlayerGuilds(player.uniqueId).any { it.id == guild.id }
+                    },
+                    GuildSettingsActions({
+                        settingsGroup = it
+                        open()
+                    }, {
+                        menuNavigator.openMenu(menuFactory.createLfgBrowserMenu(menuNavigator, player))
+                    }, {
+                        menuNavigator.openMenu(menuFactory.createPlayerChatSettingsMenu(menuNavigator, player))
+                    }, { menuNavigator.goBack() }),
+                )
+            ) {
+                return
+            }
         }
 
         // Create 6x9 double chest GUI
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.guild_settings.title", "guild" to guild.name)))
+        val gui =
+            ChestGui(
+                6,
+                MenuTitleBuilder.build(
+                    guild.guiTheme,
+                    6,
+                    lang.guiTitle("menu.guild_settings.title", "guild" to guild.name),
+                ),
+            )
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -109,11 +129,25 @@ class GuildSettingsMenu(
         GuildSettingsGroup.entries.forEachIndexed { row, entry ->
             val item = NexoItemProvider.getItemStackOrFallback(entry.icon) { ItemStack.of(Material.BOOK) }
                 .name(entry.label(lang))
-            pane.addItem(GuiItem(item) { settingsGroup = entry; open() }, 8, row)
+            pane.addItem(
+                GuiItem(item) {
+                    settingsGroup = entry
+                    open()
+                },
+                8,
+                row,
+            )
         }
         val back = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("recruitment.dialog.back"))
-        pane.addItem(GuiItem(back) { settingsGroup = null; open() }, 8, 5)
+        pane.addItem(
+            GuiItem(back) {
+                settingsGroup = null
+                open()
+            },
+            8,
+            5,
+        )
     }
 
     private fun addReconnectControl(pane: StaticPane) {
@@ -554,7 +588,12 @@ class GuildSettingsMenu(
             .lore(lang.gui("menu.guild_settings.item.back.lore"))
 
         val backGuiItem = GuiItem(backItem) {
-            if (settingsGroup != null) { settingsGroup = null; open() } else menuNavigator.goBack()
+            if (settingsGroup != null) {
+                settingsGroup = null
+                open()
+            } else {
+                menuNavigator.goBack()
+            }
         }
         pane.addItem(backGuiItem, 4, 5)
     }

@@ -15,6 +15,11 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import java.time.Duration
 
+private const val ITEM_WIDTH = 24
+private const val ITEM_HEIGHT = 32
+private const val TEXT_WIDTH = 280
+private const val ACTION_WIDTH = 180
+
 internal data class GuildDialogItem(val item: ItemStack, val text: Component)
 
 internal data class GuildDialogAction(val label: Component, val tooltip: Component, val action: () -> Unit)
@@ -32,6 +37,13 @@ internal fun interface GuildDialogPresenter {
     fun show(player: Player, page: GuildDialogPage, valid: () -> Boolean, failure: () -> Unit): Boolean
 }
 
+private data class GuildDialogCallbacks(
+    val player: Player,
+    val session: GuildDialogSession,
+    val revision: Int,
+    val failure: () -> Unit,
+)
+
 internal class GuildMenuDialog : GuildDialogPresenter {
     private var session: GuildDialogSession? = null
 
@@ -45,22 +57,7 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         session = current
         val revision = current.beginPage(System.currentTimeMillis())
         return try {
-            player.showDialog(Dialog.create { factory ->
-                factory.empty().base(
-                    DialogBase.builder(page.title.color(NamedTextColor.GOLD))
-                        .canCloseWithEscape(true).afterAction(DialogBase.DialogAfterAction.CLOSE)
-                        .body(page.items.map {
-                            DialogBody.item(it.item.clone()).width(24).height(32)
-                                .description(DialogBody.plainMessage(it.text, 280)).build()
-                        }).build(),
-                ).type(
-                    DialogType.multiAction(
-                        page.actions.map { button(player, it, current, revision, failure) },
-                        button(player, page.back, current, revision, failure),
-                        page.columns,
-                    ),
-                )
-            })
+            player.showDialog(createDialog(page, GuildDialogCallbacks(player, current, revision, failure)))
             inventory = player.openInventory.topInventory
             true
         } catch (error: Exception) {
@@ -70,38 +67,64 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         }
     }
 
-    private fun button(
-        player: Player,
-        action: GuildDialogAction,
-        current: GuildDialogSession,
-        revision: Int,
-        failure: () -> Unit,
-    ): ActionButton {
-        return ActionButton.builder(action.label).width(180).tooltip(action.tooltip).action(
+    private fun createDialog(page: GuildDialogPage, callbacks: GuildDialogCallbacks): Dialog {
+        return Dialog.create { factory ->
+            factory.empty().base(dialogBase(page)).type(
+                DialogType.multiAction(
+                    page.actions.map { button(it, callbacks) },
+                    button(page.back, callbacks),
+                    page.columns,
+                ),
+            )
+        }
+    }
+
+    private fun dialogBase(page: GuildDialogPage): DialogBase {
+        return DialogBase.builder(page.title.color(NamedTextColor.GOLD))
+            .canCloseWithEscape(true)
+            .afterAction(DialogBase.DialogAfterAction.CLOSE)
+            .body(page.items.map(::itemBody))
+            .build()
+    }
+
+    private fun itemBody(item: GuildDialogItem): DialogBody {
+        return DialogBody.item(item.item.clone()).width(ITEM_WIDTH).height(ITEM_HEIGHT)
+            .description(DialogBody.plainMessage(item.text, TEXT_WIDTH))
+            .build()
+    }
+
+    private fun button(action: GuildDialogAction, callbacks: GuildDialogCallbacks): ActionButton {
+        return ActionButton.builder(action.label).width(ACTION_WIDTH).tooltip(action.tooltip).action(
             DialogAction.customClick({ _, audience ->
-                if (audience is Player && audience.uniqueId == player.uniqueId) {
-                    Bukkit.getScheduler().runTask(PluginKeys.getPlugin(), Runnable {
-                        dispatch(audience, current, revision, action.action, failure)
-                    })
+                if (audience is Player && audience.uniqueId == callbacks.player.uniqueId) {
+                    Bukkit.getScheduler().runTask(
+                        PluginKeys.getPlugin(),
+                        Runnable {
+                            dispatch(audience, callbacks, action.action)
+                        },
+                    )
                 }
             }, ClickCallback.Options.builder().uses(1).lifetime(LIFETIME).build()),
-        ).build()
+        )
+            .build()
     }
 
     @Suppress("TooGenericExceptionCaught") // Callback boundary fails closed instead of exposing private data.
     private fun dispatch(
         actor: Player,
-        current: GuildDialogSession,
-        revision: Int,
+        callbacks: GuildDialogCallbacks,
         action: () -> Unit,
-        failure: () -> Unit,
     ) {
         try {
-            if (current.consume(actor.uniqueId, revision, System.currentTimeMillis())) action()
+            if (callbacks.session.consume(actor.uniqueId, callbacks.revision, System.currentTimeMillis())) action()
         } catch (error: Exception) {
-            current.close()
-            org.slf4j.LoggerFactory.getLogger(javaClass).warn("Guild dialog action failed for {}", actor.uniqueId, error)
-            failure()
+            callbacks.session.close()
+            org.slf4j.LoggerFactory.getLogger(javaClass).warn(
+                "Guild dialog action failed for {}",
+                actor.uniqueId,
+                error,
+            )
+            callbacks.failure()
         }
     }
 

@@ -5,6 +5,7 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.lumalyte.lg.infrastructure.services.GuildDialogAction
 import net.lumalyte.lg.infrastructure.services.GuildDialogItem
 import net.lumalyte.lg.infrastructure.services.GuildDialogPage
+import net.lumalyte.lg.infrastructure.services.GuildDialogPresenter
 import net.lumalyte.lg.infrastructure.services.GuildMenuDialog
 import net.lumalyte.lg.interaction.menus.GuildBannerItemResolver
 import net.lumalyte.lg.utils.NexoItemProvider
@@ -17,20 +18,57 @@ internal class RecruitmentDialogMenu(
     private val navigationValid: () -> Boolean,
     private val exit: () -> Unit,
     private val closeMenus: () -> Unit,
-    private val dialog: net.lumalyte.lg.infrastructure.services.GuildDialogPresenter = GuildMenuDialog(),
+    private val dialog: GuildDialogPresenter = GuildMenuDialog(),
 ) {
-
     fun show(view: RecruitmentView): Boolean {
         val pages = maxOf(1, (view.items.size + PAGE_SIZE - 1) / PAGE_SIZE)
         controller.page = controller.page.coerceIn(0, pages - 1)
         val entries = view.items.drop(controller.page * PAGE_SIZE).take(PAGE_SIZE)
+        val back =
+            GuildDialogAction(
+                Component.text(controller.lang.raw("recruitment.dialog.back")),
+                Component.empty(),
+            ) { parent() }
+        return present(
+            GuildDialogPage(
+                Component.text("${view.title} ${controller.page + 1}/$pages"),
+                entryBodies(entries),
+                pageActions(view, entries, pages),
+                back,
+            ),
+        )
+    }
+
+    private fun pageActions(
+        view: RecruitmentView,
+        entries: List<RecruitmentButton>,
+        pages: Int,
+    ): List<GuildDialogAction> {
         val actions = entries.mapIndexed { index, button -> action(button, "${index + 1}. ") }.toMutableList()
         actions += view.quickFilters.map { action(it, detailsInLabel = true) }
-        if (controller.page > 0) actions += pageAction(-1, Component.text(controller.lang.raw("recruitment.previous")))
-        if (controller.page + 1 < pages) actions += pageAction(1, Component.text(controller.lang.raw("recruitment.next")))
-        actions += GuildDialogAction(Component.text(controller.lang.raw("recruitment.dialog.navigation")), Component.empty()) { showNavigation() }
-        val body = entries.mapIndexed { index, button ->
-            val details = if (controller.screen == RecruitmentScreen.BROWSE) button.details.take(4) else button.details
+        if (controller.page > 0) {
+            actions += pageAction(-1, Component.text(controller.lang.raw("recruitment.previous")))
+        }
+        if (controller.page + 1 < pages) {
+            actions += pageAction(1, Component.text(controller.lang.raw("recruitment.next")))
+        }
+        actions += GuildDialogAction(
+            Component.text(controller.lang.raw("recruitment.dialog.navigation")), Component.empty(),
+        ) {
+            showNavigation()
+        }
+        return actions
+    }
+
+    private fun entryBodies(entries: List<RecruitmentButton>): List<GuildDialogItem> {
+        return entries.mapIndexed { index, button ->
+            val details = if (controller.screen == RecruitmentScreen.BROWSE) {
+                button.details.take(
+                    BROWSE_DETAILS,
+                )
+            } else {
+                button.details
+            }
             GuildDialogItem(
                 button.guild?.let(GuildBannerItemResolver::resolveForDisplay)
                     ?: NexoItemProvider.getItemStackOrFallback(button.icon) { ItemStack.of(Material.BOOK) },
@@ -39,20 +77,26 @@ internal class RecruitmentDialogMenu(
                     .append(Component.text(details.joinToString("\n"), NamedTextColor.GRAY)),
             )
         }
-        val back = GuildDialogAction(Component.text(controller.lang.raw("recruitment.dialog.back")), Component.empty()) { parent() }
-        return present(
-            GuildDialogPage(Component.text("${view.title} ${controller.page + 1}/$pages"), body, actions, back),
-        )
     }
 
     private fun showNavigation() {
         val view = controller.view()
-        val actions = view.navigation.map { action(it) } +
-            GuildDialogAction(Component.text(controller.lang.raw("recruitment.dialog.close")), Component.empty(), closeMenus)
+        val close = GuildDialogAction(
+            Component.text(controller.lang.raw("recruitment.dialog.close")),
+            Component.empty(),
+            closeMenus,
+        )
+        val actions = view.navigation.map { action(it) } + close
         present(
             GuildDialogPage(
-                Component.text(controller.lang.raw("recruitment.dialog.navigation")), emptyList(), actions,
-                GuildDialogAction(Component.text(controller.lang.raw("recruitment.dialog.back")), Component.empty(), controller.refresh),
+                Component.text(controller.lang.raw("recruitment.dialog.navigation")),
+                emptyList(),
+                actions,
+                GuildDialogAction(
+                    Component.text(controller.lang.raw("recruitment.dialog.back")),
+                    Component.empty(),
+                    controller.refresh,
+                ),
             ),
         )
     }
@@ -64,7 +108,11 @@ internal class RecruitmentDialogMenu(
         }
     }
 
-    private fun action(button: RecruitmentButton, prefix: String = "", detailsInLabel: Boolean = false): GuildDialogAction {
+    private fun action(
+        button: RecruitmentButton,
+        prefix: String = "",
+        detailsInLabel: Boolean = false,
+    ): GuildDialogAction {
         val state = if (detailsInLabel) button.details.firstOrNull()?.let { ": $it" }.orEmpty() else ""
         return GuildDialogAction(
             Component.text(prefix + button.label + state),
@@ -80,20 +128,23 @@ internal class RecruitmentDialogMenu(
     }
 
     private fun parent() {
-        val next = when (controller.screen) {
-            RecruitmentScreen.BROWSE, RecruitmentScreen.MANAGE -> return exit()
-            RecruitmentScreen.FILTER, RecruitmentScreen.PROFILE -> RecruitmentScreen.BROWSE
-            RecruitmentScreen.DISCORD, RecruitmentScreen.CONFIRM -> RecruitmentScreen.PROFILE
-            RecruitmentScreen.APPLICATION -> RecruitmentScreen.MINE
-            RecruitmentScreen.REVIEW -> RecruitmentScreen.INBOX
-            RecruitmentScreen.REVIEW_CONFIRM -> RecruitmentScreen.REVIEW
-            RecruitmentScreen.METHOD -> RecruitmentScreen.SETTINGS
-            else -> RecruitmentScreen.MANAGE
-        }
-        controller.showScreen(next)
+        if (controller.screen in ROOT_SCREENS) return exit()
+        controller.showScreen(PARENTS[controller.screen] ?: RecruitmentScreen.MANAGE)
     }
 
     private companion object {
         const val PAGE_SIZE = 3
+        const val BROWSE_DETAILS = 4
+        val ROOT_SCREENS = setOf(RecruitmentScreen.BROWSE, RecruitmentScreen.MANAGE)
+        val PARENTS = mapOf(
+            RecruitmentScreen.FILTER to RecruitmentScreen.BROWSE,
+            RecruitmentScreen.PROFILE to RecruitmentScreen.BROWSE,
+            RecruitmentScreen.DISCORD to RecruitmentScreen.PROFILE,
+            RecruitmentScreen.CONFIRM to RecruitmentScreen.PROFILE,
+            RecruitmentScreen.APPLICATION to RecruitmentScreen.MINE,
+            RecruitmentScreen.REVIEW to RecruitmentScreen.INBOX,
+            RecruitmentScreen.REVIEW_CONFIRM to RecruitmentScreen.REVIEW,
+            RecruitmentScreen.METHOD to RecruitmentScreen.SETTINGS,
+        )
     }
 }

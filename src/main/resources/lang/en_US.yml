@@ -7817,5 +7817,6 @@ guild_dialogs:
     title: "<gold>Guild Progression"
     reward_states: "<gold>Chapter Rewards<newline><green>Owned: <purchased><newline><yellow>Available: <available><newline><gray>Locked: <locked>"
     quests: "<gold>Guild Quests and Rankings"
+    quests_denied: "<red>You do not have permission to open guild quests."
     sources: "<gold>XP Sources and Caps"
     prestige_locked: "<yellow>Prestige is unavailable or its current requirements have not been met."
