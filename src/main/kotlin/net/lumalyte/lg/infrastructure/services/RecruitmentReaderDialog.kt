@@ -18,7 +18,7 @@ internal class RecruitmentReaderDialog(
     private val page: RecruitmentReaderPage,
     private val actions: RecruitmentReaderActions,
 ) {
-    private val skin = GuildDialogTheme().resolve(content.theme, player.hasResourcePack())
+    private val skin = GuildDialogTheme().resolve(content.theme)
     private fun heading(): Component {
         return Component.text(
             "${content.title} ${page.number}/${page.count}",

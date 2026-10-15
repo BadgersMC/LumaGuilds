@@ -23,9 +23,9 @@ private val DIALOG_ACCENTS =
 internal class GuildDialogTheme(
     private val resolver: NexoGlyphResolver = NexoGlyphResolver { NexoPublicGlyphResolver.resolve(it) },
 ) {
-    fun resolve(theme: GuiTheme, packLoaded: Boolean): GuildDialogSkin? {
+    fun resolve(theme: GuiTheme): GuildDialogSkin? {
         val resolved = theme.resolved()
-        return if (packLoaded && resolved.hasBackground) {
+        return if (resolved.hasBackground) {
             parts(resolved)?.let { GuildDialogSkin(it, guildDialogAccent(resolved)) }
         } else {
             null

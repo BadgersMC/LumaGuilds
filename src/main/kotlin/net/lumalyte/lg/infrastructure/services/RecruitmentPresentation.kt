@@ -31,7 +31,7 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
     }
 
     fun input(player: Player, fields: RecruitmentTextInput, actions: RecruitmentInputActions) {
-        val skin = GuildDialogTheme().resolve(fields.theme, player.hasResourcePack())
+        val skin = GuildDialogTheme().resolve(fields.theme)
         val options = ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(2)).build()
 
         fun action(callback: (String?) -> Unit): DialogAction {

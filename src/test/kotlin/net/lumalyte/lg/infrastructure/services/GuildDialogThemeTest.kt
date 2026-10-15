@@ -24,7 +24,7 @@ internal class GuildDialogThemeTest {
 
     @Test
     fun resolvesSelectedArtwork() {
-        val skin = assertNotNull(GuildDialogTheme(resolver).resolve(GuiTheme.VOIDLIGHT, true))
+        val skin = assertNotNull(GuildDialogTheme(resolver).resolve(GuiTheme.VOIDLIGHT))
         val expected = listOf("header", "divider", "footer", "marker").map { "guild_dialog_voidlight_$it" }
         assertEquals(expected + SPACER_ID, names)
         assertEquals(NamedTextColor.LIGHT_PURPLE, skin.accent)
@@ -33,9 +33,8 @@ internal class GuildDialogThemeTest {
     }
 
     @Test
-    fun plainWithoutPack() {
-        assertNull(GuildDialogTheme(resolver).resolve(GuiTheme.VANILLA, true))
-        assertNull(GuildDialogTheme(resolver).resolve(GuiTheme.ENTHUSIA, false))
+    fun vanillaStaysPlain() {
+        assertNull(GuildDialogTheme(resolver).resolve(GuiTheme.VANILLA))
         assertTrue(names.isEmpty())
     }
 
@@ -45,7 +44,7 @@ internal class GuildDialogThemeTest {
             NexoGlyphResolver { name ->
                 if (name.endsWith("footer")) null else resolver.resolve(name)
             }
-        assertNull(GuildDialogTheme(partial).resolve(GuiTheme.ENTHUSIA, true))
+        assertNull(GuildDialogTheme(partial).resolve(GuiTheme.ENTHUSIA))
     }
 
     @Test
@@ -55,14 +54,14 @@ internal class GuildDialogThemeTest {
             ResolvedNexoGlyph(TEST_CHARACTER, TEST_FONT, true),
             ResolvedNexoGlyph("", TEST_FONT, false),
         )) {
-            assertNull(GuildDialogTheme { glyph }.resolve(GuiTheme.ENTHUSIA, true))
+            assertNull(GuildDialogTheme { glyph }.resolve(GuiTheme.ENTHUSIA))
         }
     }
 
     @Test
     fun pluginAndLegacyFallback() {
-        assertNull(GuildDialogTheme { throw NoClassDefFoundError("Nexo") }.resolve(GuiTheme.ENTHUSIA, true))
-        assertNotNull(GuildDialogTheme(resolver).resolve(GuiTheme.NEUTRAL, true))
+        assertNull(GuildDialogTheme { throw NoClassDefFoundError("Nexo") }.resolve(GuiTheme.ENTHUSIA))
+        assertNotNull(GuildDialogTheme(resolver).resolve(GuiTheme.NEUTRAL))
         assertTrue(names.filterNot { it == SPACER_ID }.all { it.startsWith("guild_dialog_enthusia_") })
     }
 
@@ -72,12 +71,11 @@ internal class GuildDialogThemeTest {
             NexoGlyphResolver { name ->
                 if (name == SPACER_ID) null else resolver.resolve(name)
             }
-        assertNull(GuildDialogTheme(missing).resolve(GuiTheme.ENTHUSIA, true))
+        assertNull(GuildDialogTheme(missing).resolve(GuiTheme.ENTHUSIA))
     }
 
     @Test
     fun defaultLookupFallsBack() {
-        assertNull(GuildDialogTheme().resolve(GuiTheme.ENTHUSIA, false))
-        assertNull(GuildDialogTheme().resolve(GuiTheme.ENTHUSIA, true))
+        assertNull(GuildDialogTheme().resolve(GuiTheme.ENTHUSIA))
     }
 }

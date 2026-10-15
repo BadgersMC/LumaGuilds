@@ -67,7 +67,7 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         session = current
         val revision = current.beginPage(System.currentTimeMillis())
         return try {
-            val skin = GuildDialogTheme().resolve(page.theme, player.hasResourcePack())
+            val skin = GuildDialogTheme().resolve(page.theme)
             player.showDialog(createDialog(page, GuildDialogCallbacks(player, current, revision, failure), skin))
             audience.captureInventory()
             true
