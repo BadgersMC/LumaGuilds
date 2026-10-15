@@ -7692,6 +7692,10 @@ onboarding:
     stalls: "Guild Stalls shows authoritative ownership and member access, or explains unavailable Market data."
 
 recruitment:
+  dialog:
+    navigation: Menu Navigation
+    back: Back to Parent Menu
+    close: Close Menus
   age_hours: "Age (hours): "
   filter_language: Filter by Language (blank clears)
   filter_times: Filter by Play Times (blank clears)
@@ -7800,3 +7804,18 @@ recruitment:
     prompt: "<gold>Looking for people to play with? <yellow>Click to browse recruiting guilds. <gray>Use the reminder toggle to opt out."
     leave: "<gray>Looking for another guild? <yellow>Click to browse recruiting guilds."
     updated: "<gold>Recruitment updated: <offers> join offers and <pending> applications awaiting your review. <yellow>Click to open recruitment."
+
+guild_dialogs:
+  settings:
+    title: "<gold>Guild Settings"
+    description: "<gray>Choose a category. Guild editors retain their existing permissions; personal chat settings affect only you."
+    information: "<gold>Guild Information"
+    appearance: "<gold>Appearance"
+    access: "<gold>Homes, Access and Guild Chat"
+    chat: "<gold>Personal Chat Preferences"
+  progression:
+    title: "<gold>Guild Progression"
+    reward_states: "<gold>Chapter Rewards<newline><green>Owned: <purchased><newline><yellow>Available: <available><newline><gray>Locked: <locked>"
+    quests: "<gold>Guild Quests and Rankings"
+    sources: "<gold>XP Sources and Caps"
+    prestige_locked: "<yellow>Prestige is unavailable or its current requirements have not been met."

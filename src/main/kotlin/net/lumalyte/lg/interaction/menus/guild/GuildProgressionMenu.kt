@@ -61,6 +61,8 @@ class GuildProgressionMenu(
     private var currentPage = 0
     private var rewardState: GuildRewardRead = GuildRewardRead.Disabled
     private val itemsPerPage = 24
+    private var sourceDetails = false
+    private val nativeDialog = net.lumalyte.lg.infrastructure.services.GuildMenuDialog()
 
     /** Six content columns; the sidebar, header and navigation never share these slots. */
     private val gridSlots = listOf(
@@ -97,6 +99,8 @@ class GuildProgressionMenu(
 
         val sourceUsage = progressionService.getSourceUsage(guild.id)
             .filter { it.source != ExperienceSource.ADMIN_BONUS }
+        if (!sourceDetails && net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.supportsDialog(player) &&
+            showProgressionDialog(progression)) return
         val totalPages = ((sourceUsage.size + itemsPerPage - 1) / itemsPerPage).coerceAtLeast(1)
         val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.guild_progression.title", "page" to currentPage + 1, "pages" to totalPages)))
         val pane = StaticPane(0, 0, 9, 6)
@@ -153,6 +157,56 @@ class GuildProgressionMenu(
                 menuNavigator.openMenu(menuFactory.createGuildQuestsMenu(menuNavigator, player, guild))
             } else player.sendMessage(lang.msg("quest_discovery.denied"))
         }, x, y)
+    }
+
+    private fun showProgressionDialog(progression: GuildProgressionDisplay): Boolean {
+        val token = menuNavigator.currentNavigationToken()
+        val header = net.lumalyte.lg.infrastructure.services.GuildDialogItem(
+            net.lumalyte.lg.interaction.menus.GuildBannerItemResolver.resolveForDisplay(guild),
+            lang.gui("menu.guild_progression.level.name", "level" to progression.level)
+                .append(Component.newline())
+                .append(lang.gui("menu.guild_progression.level.total", "xp" to progression.totalXp)),
+        )
+        val offers = (rewardState as? GuildRewardRead.Available)?.entitlements?.offers
+        val body = buildList {
+            add(header)
+            if (offers != null) add(net.lumalyte.lg.infrastructure.services.GuildDialogItem(
+                NexoItemProvider.getItemStackOrFallback("lg_reward") { ItemStack.of(Material.DIAMOND) },
+                lang.gui("guild_dialogs.progression.reward_states",
+                    "purchased" to offers.count { it.status == RewardOfferStatus.PURCHASED || it.status == RewardOfferStatus.PERMANENT },
+                    "available" to offers.count { it.status == RewardOfferStatus.AVAILABLE },
+                    "locked" to offers.count { it.status == RewardOfferStatus.LOCKED }),
+            ))
+        }
+        fun action(label: Component, callback: () -> Unit) =
+            net.lumalyte.lg.infrastructure.services.GuildDialogAction(label, Component.empty(), callback)
+        val actions = listOf(
+            action(lang.gui("guild_dialogs.progression.quests")) {
+                menuNavigator.openMenu(menuFactory.createGuildQuestsMenu(menuNavigator, player, guild))
+            },
+            action(lang.gui("guild_dialogs.progression.sources")) { sourceDetails = true; open() },
+            action(lang.gui("chapter_two_rewards.title")) {
+                if (rewardState is GuildRewardRead.Available) openRewardCatalog()
+                else { sourceDetails = true; open() }
+            },
+            action(lang.gui("menu.guild_progression.prestige.name")) {
+                val fresh = prestigeService.overview(guild.id)
+                if (fresh != null && fresh.enabled && fresh.currentLevel == 100 &&
+                    fresh.prestigeCount < fresh.maxPrestigeCount && fresh.choices.isNotEmpty()) {
+                    openPrestigeSelection()
+                } else {
+                    player.sendMessage(lang.msg("guild_dialogs.progression.prestige_locked"))
+                    open()
+                }
+            },
+        )
+        return nativeDialog.show(player, net.lumalyte.lg.infrastructure.services.GuildDialogPage(
+            lang.gui("guild_dialogs.progression.title"), body, actions,
+            action(lang.gui("recruitment.dialog.back")) { menuNavigator.goBack() },
+        ), {
+            player.isOnline && menuNavigator.isNavigationCurrent(token) &&
+                memberService.getMember(player.uniqueId, guild.id) != null
+        }) { player.sendMessage(lang.msg("menu.guild_progression.feedback.load_failed")) }
     }
 
     private fun repoProgression(): GuildProgressionDisplay? {
@@ -480,7 +534,9 @@ class GuildProgressionMenu(
         val item = NexoItemProvider.getItemStackOrFallback("lg_page_prev") {
             ItemStack.of(Material.ARROW).name(lang.gui("menu.guild_progression.navigation.back_fallback"))
         }.also { it.editMeta { meta -> meta.displayName(lang.gui("menu.guild_progression.navigation.back")) }}
-        pane.addItem(GuiItem(item) { menuNavigator.goBack() }, x, y)
+        pane.addItem(GuiItem(item) {
+            if (sourceDetails) { sourceDetails = false; open() } else menuNavigator.goBack()
+        }, x, y)
     }
 
     private fun addPreviousPageButton(pane: StaticPane, x: Int, y: Int) {

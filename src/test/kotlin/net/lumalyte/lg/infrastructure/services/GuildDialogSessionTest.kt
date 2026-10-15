@@ -1,0 +1,48 @@
+package net.lumalyte.lg.infrastructure.services
+
+import org.junit.jupiter.api.Test
+import java.util.UUID
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
+
+internal class GuildDialogSessionTest {
+    private val owner = UUID.randomUUID()
+
+    @Test
+    fun consumesOnlyOnceForItsOwner() {
+        val state = GuildDialogSession(owner, 100L) { true }
+        val page = state.beginPage(0L)
+        assertFalse(state.consume(UUID.randomUUID(), page, 1L))
+        assertTrue(state.consume(owner, page, 2L))
+        assertFalse(state.consume(owner, page, 3L))
+    }
+
+    @Test
+    fun rejectsPreviousAndExpiredPages() {
+        val state = GuildDialogSession(owner, 100L) { true }
+        val old = state.beginPage(0L)
+        val current = state.beginPage(50L)
+        assertFalse(state.consume(owner, old, 51L))
+        assertFalse(state.consume(owner, current, 150L))
+        assertFalse(state.consume(owner, current, 60L))
+    }
+
+    @Test
+    fun rejectsRevokedNavigationAndClosedSession() {
+        var valid = true
+        val state = GuildDialogSession(owner, 100L) { valid }
+        val page = state.beginPage(0L)
+        valid = false
+        assertFalse(state.consume(owner, page, 1L))
+        valid = true
+        assertFalse(state.consume(owner, page, 2L))
+        state.close()
+        assertFalse(state.consume(owner, state.beginPage(3L), 4L))
+    }
+
+    @Test
+    fun rejectsClockRollback() {
+        val state = GuildDialogSession(owner, 100L) { true }
+        assertFalse(state.consume(owner, state.beginPage(20L), 19L))
+    }
+}
