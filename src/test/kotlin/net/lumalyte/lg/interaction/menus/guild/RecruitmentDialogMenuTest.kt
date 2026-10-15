@@ -5,6 +5,7 @@ import io.mockk.mockk
 import io.mockk.unmockkAll
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.infrastructure.services.GuildDialogPage
 import net.lumalyte.lg.infrastructure.services.GuildDialogPresenter
 import org.bukkit.entity.Player
@@ -23,6 +24,7 @@ private const val BROWSE_TITLE = "Browse"
 internal class RecruitmentDialogMenuTest {
     private val player = mockk<Player>(relaxed = true)
     private val lang = mockk<LangService>()
+    private val guilds = mockk<GuildService>()
     private var renderedPage: GuildDialogPage? = null
     private val presenter =
         GuildDialogPresenter { _, page, _, _ ->
@@ -38,7 +40,15 @@ internal class RecruitmentDialogMenuTest {
         stopKoin()
         org.mockbukkit.mockbukkit.MockBukkit.mock()
         every { lang.raw(any()) } answers { firstArg() }
-        startKoin { modules(module { single { lang } }) }
+        every { guilds.getPlayerGuilds(any()) } returns emptySet()
+        startKoin {
+            modules(
+                module {
+                    single { lang }
+                    single { guilds }
+                },
+            )
+        }
     }
 
     @AfterEach
@@ -121,6 +131,15 @@ internal class RecruitmentDialogMenuTest {
         assertEquals(1, page.columns)
         page.actions[5].action()
         assertEquals(1, exits)
+    }
+
+    @Test
+    fun selectedGuildStyleReachesDialog() {
+        val guild = mockk<net.lumalyte.lg.domain.entities.Guild>()
+        every { guild.guiTheme } returns net.lumalyte.lg.utils.GuiTheme.VERDANT
+        every { guilds.getPlayerGuilds(any()) } returns setOf(guild)
+        menu().show(RecruitmentView(BROWSE_TITLE, emptyList(), emptyList()))
+        assertEquals(net.lumalyte.lg.utils.GuiTheme.VERDANT, requireNotNull(renderedPage).theme)
     }
 
     @Test

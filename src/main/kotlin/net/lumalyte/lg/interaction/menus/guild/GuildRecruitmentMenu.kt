@@ -80,6 +80,7 @@ internal class GuildRecruitmentMenu(
                     input.value,
                     lang.raw("recruitment.submit_input"),
                     lang.raw("recruitment.cancel_input"),
+                    controller.theme(),
                 ),
                 net.lumalyte.lg.infrastructure.services.RecruitmentInputActions(
                     { navigator.isNavigationCurrent(navigation) && controller.input === input },

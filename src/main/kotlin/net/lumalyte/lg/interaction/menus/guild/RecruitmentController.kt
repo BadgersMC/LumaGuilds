@@ -41,9 +41,9 @@ internal data class RecruitmentButton(
     val icon: String = RecruitmentIcons.NAV_MEMBERS,
     val guild: Guild? = null,
     val action: () -> Unit = INFORMATION_ONLY,
-) {
-    fun isInteractive(): Boolean = action !== INFORMATION_ONLY
-}
+)
+
+internal fun RecruitmentButton.isInteractive(): Boolean = action !== INFORMATION_ONLY
 
 internal data class RecruitmentView(
     val title: String,

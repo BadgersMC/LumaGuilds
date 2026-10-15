@@ -238,6 +238,7 @@ class GuildQuestLeaderboardMenu(
                 nativeLeaderboardItems(header, guilds, progress, ranks),
                 actions,
                 nativeAction(lang.gui("menu.quests.leaderboard.back")) { menuNavigator.goBack() },
+                theme = viewingGuild.guiTheme,
             ),
             {
                 player.isOnline && menuNavigator.isNavigationCurrent(token) &&

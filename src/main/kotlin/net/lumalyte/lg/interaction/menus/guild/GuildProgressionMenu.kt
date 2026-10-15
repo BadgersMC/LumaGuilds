@@ -155,6 +155,7 @@ class GuildProgressionMenu(
                 progressionDialogItems(progression),
                 progressionDialogActions(),
                 nativeAction(lang.gui("recruitment.dialog.back")) { menuNavigator.goBack() },
+                theme = guild.guiTheme,
             ),
             {
                 player.isOnline && menuNavigator.isNavigationCurrent(token) &&

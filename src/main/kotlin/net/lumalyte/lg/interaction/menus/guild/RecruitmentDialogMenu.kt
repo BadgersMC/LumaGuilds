@@ -19,10 +19,9 @@ internal class RecruitmentDialogMenu(
     private val dialog: GuildDialogPresenter = GuildMenuDialog(),
 ) {
     fun show(view: RecruitmentView): Boolean {
-        val size = pageSize()
-        val pages = maxOf(1, (view.items.size + size - 1) / size)
+        val pages = maxOf(1, (view.items.size + controller.dialogPageSize() - 1) / controller.dialogPageSize())
         controller.page = controller.page.coerceIn(0, pages - 1)
-        val entries = view.items.drop(controller.page * size).take(size)
+        val entries = view.items.drop(controller.page * controller.dialogPageSize()).take(controller.dialogPageSize())
         val back =
             GuildDialogAction(
                 Component.text(controller.lang.raw("recruitment.dialog.back")),
@@ -35,6 +34,7 @@ internal class RecruitmentDialogMenu(
                 pageActions(view, pages),
                 back,
                 columns = if (controller.screen == RecruitmentScreen.BROWSE) BROWSE_COLUMNS else 1,
+                theme = controller.theme(),
             ),
         )
     }
@@ -51,7 +51,7 @@ internal class RecruitmentDialogMenu(
 
     private fun pageActions(view: RecruitmentView, pages: Int): List<GuildDialogAction> {
         val actions = mutableListOf<GuildDialogAction>()
-        val entries = view.items.drop(controller.page * pageSize()).take(pageSize())
+        val entries = view.items.drop(controller.page * controller.dialogPageSize()).take(controller.dialogPageSize())
         for (button in entries.filter { it.isInteractive() }) actions += action(button)
         for (button in view.quickFilters) actions += action(button, detailsInLabel = true)
         if (controller.page > 0) {
@@ -96,6 +96,7 @@ internal class RecruitmentDialogMenu(
                     Component.empty(),
                     controller.refresh,
                 ),
+                theme = controller.theme(),
             ),
         )
     }
@@ -132,13 +133,8 @@ internal class RecruitmentDialogMenu(
         controller.showScreen(PARENTS[controller.screen] ?: RecruitmentScreen.MANAGE)
     }
 
-    private fun pageSize(): Int = if (controller.screen in CHOICE_SCREENS) CHOICE_PAGE_SIZE else PAGE_SIZE
-
     private companion object {
-        const val PAGE_SIZE = 3
         const val BROWSE_COLUMNS = 2
-        const val CHOICE_PAGE_SIZE = 8
-        val CHOICE_SCREENS = setOf(RecruitmentScreen.MANAGE, RecruitmentScreen.METHOD, RecruitmentScreen.SETUP)
         val ROOT_SCREENS = setOf(RecruitmentScreen.BROWSE, RecruitmentScreen.MANAGE)
         val PARENTS = parentScreens()
 
@@ -158,6 +154,11 @@ internal class RecruitmentDialogMenu(
 }
 
 private const val BROWSE_DETAILS = 4
+private const val PAGE_SIZE = 3
+private const val CHOICE_PAGE_SIZE = 8
+private val CHOICE_SCREENS = setOf(RecruitmentScreen.MANAGE, RecruitmentScreen.METHOD, RecruitmentScreen.SETUP)
+
+private fun RecruitmentController.dialogPageSize(): Int = if (screen in CHOICE_SCREENS) CHOICE_PAGE_SIZE else PAGE_SIZE
 
 private fun RecruitmentButton.nativeBody(screen: RecruitmentScreen): GuildDialogItem {
     val lines = if (screen == RecruitmentScreen.BROWSE) details.take(BROWSE_DETAILS) else details

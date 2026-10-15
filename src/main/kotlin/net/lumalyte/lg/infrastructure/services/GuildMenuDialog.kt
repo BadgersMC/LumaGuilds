@@ -8,7 +8,6 @@ import io.papermc.paper.registry.data.dialog.body.DialogBody
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickCallback
-import net.kyori.adventure.text.format.NamedTextColor
 import net.lumalyte.lg.common.PluginKeys
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
@@ -30,6 +29,7 @@ internal data class GuildDialogPage(
     val actions: List<GuildDialogAction>,
     val back: GuildDialogAction,
     val columns: Int = 1,
+    val theme: net.lumalyte.lg.utils.GuiTheme = net.lumalyte.lg.utils.GuiTheme.DEFAULT,
 )
 
 /** Uses public Paper dialog APIs; Nexo item models remain owned by the private pack. */
@@ -67,7 +67,8 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         session = current
         val revision = current.beginPage(System.currentTimeMillis())
         return try {
-            player.showDialog(createDialog(page, GuildDialogCallbacks(player, current, revision, failure)))
+            val skin = GuildDialogTheme().resolve(page.theme, player.hasResourcePack())
+            player.showDialog(createDialog(page, GuildDialogCallbacks(player, current, revision, failure), skin))
             audience.captureInventory()
             true
         } catch (error: Exception) {
@@ -77,23 +78,24 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         }
     }
 
-    private fun createDialog(page: GuildDialogPage, callbacks: GuildDialogCallbacks): Dialog {
+    private fun createDialog(page: GuildDialogPage, callbacks: GuildDialogCallbacks, skin: GuildDialogSkin?): Dialog {
         return Dialog.create { factory ->
-            factory.empty().base(dialogBase(page)).type(
+            factory.empty().base(dialogBase(page, skin)).type(
                 DialogType.multiAction(
-                    page.actions.map { button(it, callbacks) },
-                    button(page.back, callbacks),
+                    page.actions.map { button(it, callbacks, skin) },
+                    button(page.back, callbacks, skin),
                     page.columns,
                 ),
             )
         }
     }
 
-    private fun dialogBase(page: GuildDialogPage): DialogBase {
-        return DialogBase.builder(page.title.color(NamedTextColor.GOLD))
+    private fun dialogBase(page: GuildDialogPage, skin: GuildDialogSkin?): DialogBase {
+        val bodies = page.items.map(::itemBody)
+        return DialogBase.builder(page.title.color(guildDialogAccent(page.theme)))
             .canCloseWithEscape(true)
             .afterAction(DialogBase.DialogAfterAction.NONE)
-            .body(page.items.map(::itemBody))
+            .body(skin?.body(bodies) ?: bodies)
             .build()
     }
 
@@ -104,19 +106,24 @@ internal class GuildMenuDialog : GuildDialogPresenter {
             .build()
     }
 
-    private fun button(action: GuildDialogAction, callbacks: GuildDialogCallbacks): ActionButton {
-        return ActionButton.builder(action.label).width(ACTION_WIDTH).tooltip(action.tooltip).action(
-            DialogAction.customClick({ _, audience ->
-                if (audience is Player && audience.uniqueId == callbacks.player.uniqueId) {
-                    Bukkit.getScheduler().runTask(
-                        PluginKeys.getPlugin(),
-                        Runnable {
-                            dispatch(audience, callbacks, action.action)
-                        },
-                    )
-                }
-            }, ClickCallback.Options.builder().uses(1).lifetime(LIFETIME).build()),
-        )
+    private fun button(
+        action: GuildDialogAction,
+        callbacks: GuildDialogCallbacks,
+        skin: GuildDialogSkin?,
+    ): ActionButton {
+        return ActionButton.builder(skin?.label(action.label) ?: action.label)
+            .width(ACTION_WIDTH).tooltip(action.tooltip).action(
+                DialogAction.customClick({ _, audience ->
+                    if (audience is Player && audience.uniqueId == callbacks.player.uniqueId) {
+                        Bukkit.getScheduler().runTask(
+                            PluginKeys.getPlugin(),
+                            Runnable {
+                                dispatch(audience, callbacks, action.action)
+                            },
+                        )
+                    }
+                }, ClickCallback.Options.builder().uses(1).lifetime(LIFETIME).build()),
+            )
             .build()
     }
 
