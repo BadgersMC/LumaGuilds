@@ -40,6 +40,7 @@ internal data class RecruitmentButton(
     val details: List<String> = emptyList(),
     val icon: String = RecruitmentIcons.NAV_MEMBERS,
     val guild: Guild? = null,
+    val cardSummary: List<net.kyori.adventure.text.Component>? = null,
     val action: () -> Unit = INFORMATION_ONLY,
 )
 

@@ -34,9 +34,9 @@ internal class RecruitmentDialogMenu(
                     Component.empty(),
                     ::parent,
                 ),
-                columns = 1,
+                columns = if (controller.screen == RecruitmentScreen.BROWSE) 2 else 1,
                 theme = controller.theme(),
-                search = if (controller.screen == RecruitmentScreen.BROWSE) controller.boardSearch() else null,
+                search = if (controller.screen == RecruitmentScreen.FILTER) controller.boardSearch() else null,
             ),
         )
     }
@@ -52,11 +52,14 @@ internal class RecruitmentDialogMenu(
             }
 
     private fun searchContext(): List<GuildDialogItem> {
-        if (controller.screen != RecruitmentScreen.BROWSE || controller.query.isBlank()) return emptyList()
+        if (controller.screen != RecruitmentScreen.BROWSE) return emptyList()
+        val label = controller.lang.raw("guild_dialogs.board.search_filters")
+        val context = listOf(label, controller.query).filter(String::isNotBlank).joinToString(": ")
         return listOf(
             GuildDialogItem(
                 NexoItemProvider.getItemStackOrFallback(RecruitmentIcons.TAG) { ItemStack.of(Material.NAME_TAG) },
-                Component.text(controller.lang.raw("recruitment.search") + ": " + controller.query),
+                Component.text(context, NamedTextColor.GOLD),
+                onClick = if (clickableCards) filterAction(context) else null,
             ),
         )
     }
@@ -75,24 +78,31 @@ internal class RecruitmentDialogMenu(
         if (controller.page + 1 < pages) {
             actions += pageAction(1, Component.text(controller.lang.raw("recruitment.next")))
         }
-        actions += navigationAction()
+        if (controller.screen != RecruitmentScreen.BROWSE) actions += navigationAction()
         return actions
     }
 
     private fun extraActions(view: RecruitmentView): List<GuildDialogAction> {
         if (controller.screen != RecruitmentScreen.BROWSE) {
-            return view.quickFilters.map { action(it, detailsInLabel = true) }
+            val filters =
+                if (controller.screen == RecruitmentScreen.FILTER) controller.quickFilters() else view.quickFilters
+            return filters.map { action(it, detailsInLabel = true) }
         }
-        val direct =
-            setOf(
-                controller.lang.raw("recruitment.filter"),
-                controller.lang.raw("recruitment.mine"),
-                controller.lang.raw("recruitment.manage"),
-            )
-        val tools = setOf(controller.lang.raw("recruitment.sort"), controller.lang.raw("recruitment.reset"))
-        return view.navigation.filter { it.label in direct && it.isInteractive() }.map { action(it) } +
-            view.quickFilters.filter { it.label in tools }.map { action(it, detailsInLabel = true) }
+        val mine = controller.lang.raw("recruitment.mine")
+        val applications =
+            view.navigation.firstOrNull { it.label == mine && it.isInteractive() }
+                ?: RecruitmentButton(mine) { controller.showScreen(RecruitmentScreen.MINE) }
+        return (if (clickableCards) emptyList() else listOf(filterAction())) + listOf(action(applications)) +
+            view.navigation.filter {
+                it.label == controller.lang.raw("recruitment.manage") && it.isInteractive()
+            }.map { action(it) }
     }
+
+    private fun filterAction(context: String = ""): GuildDialogAction =
+        GuildDialogAction(
+            Component.text(controller.lang.raw("guild_dialogs.board.search_filters")),
+            Component.text(context),
+        ) { controller.showScreen(RecruitmentScreen.FILTER) }
 
     private fun navigationAction(close: Boolean = false): GuildDialogAction {
         val label =
@@ -188,10 +198,16 @@ internal class RecruitmentDialogMenu(
 
 private const val BROWSE_DETAILS = 4
 private const val PAGE_SIZE = 3
+private const val BROWSE_PAGE_SIZE = 4
 private const val CHOICE_PAGE_SIZE = 8
 private val CHOICE_SCREENS = setOf(RecruitmentScreen.MANAGE, RecruitmentScreen.METHOD, RecruitmentScreen.SETUP)
 
-private fun RecruitmentController.dialogPageSize(): Int = if (screen in CHOICE_SCREENS) CHOICE_PAGE_SIZE else PAGE_SIZE
+private fun RecruitmentController.dialogPageSize(): Int =
+    when {
+        screen == RecruitmentScreen.BROWSE -> BROWSE_PAGE_SIZE
+        screen in CHOICE_SCREENS -> CHOICE_PAGE_SIZE
+        else -> PAGE_SIZE
+    }
 
 private fun RecruitmentButton.nativeBody(screen: RecruitmentScreen): GuildDialogItem {
     val lines = if (screen == RecruitmentScreen.BROWSE) details.take(BROWSE_DETAILS) else details
@@ -205,7 +221,7 @@ private fun RecruitmentButton.nativeBody(screen: RecruitmentScreen): GuildDialog
         guild?.let(GuildBannerItemResolver::resolveForDisplay)
             ?: NexoItemProvider.getItemStackOrFallback(icon) { ItemStack.of(Material.BOOK) },
         heading.append(Component.text(lines.joinToString("\n"), NamedTextColor.GRAY)),
-        cardLines = if (screen == RecruitmentScreen.BROWSE && guild != null) cardLines(lines) else null,
+        cardLines = if (screen == RecruitmentScreen.BROWSE && guild != null) cardSummary ?: cardLines(lines) else null,
     )
 }
 

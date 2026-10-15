@@ -7,13 +7,19 @@ import net.lumalyte.lg.domain.recruitment.RecruitmentMode
 import net.lumalyte.lg.domain.recruitment.RecruitmentProfile
 
 /** Browse presentation builders share the current authorized navigation session. */
-internal fun RecruitmentController.matchesAvailability(guild: Guild, profile: RecruitmentProfile): Boolean {
+internal fun RecruitmentController.matchesAvailability(
+    guild: Guild,
+    profile: RecruitmentProfile,
+): Boolean {
     return (peaceful == null || peaceful == (guild.mode == GuildMode.PEACEFUL)) &&
         (!recruitingOnly || profile.mode != RecruitmentMode.CLOSED && service.listings.spaces(guild.id) > 0) &&
         (joiningMethod == null || joiningMethod == profile.mode)
 }
 
-internal fun RecruitmentController.matchesPreferences(guild: Guild, profile: RecruitmentProfile): Boolean {
+internal fun RecruitmentController.matchesPreferences(
+    guild: Guild,
+    profile: RecruitmentProfile,
+): Boolean {
     return (!beginnersOnly || profile.beginnerFriendly) &&
         profile.language.contains(languageFilter, true) && profile.preferredTimes.contains(timeFilter, true) &&
         (interest == null || profile.interests.any { it.equals(interest, true) }) &&
@@ -44,7 +50,7 @@ internal fun RecruitmentController.browse(): List<RecruitmentButton> {
             },
         )
         .map { guild ->
-            RecruitmentButton(guild.name, details(guild), RecruitmentIcons.NAV_INFO, guild) {
+            RecruitmentButton(guild.name, details(guild), RecruitmentIcons.NAV_INFO, guild, browseCardSummary(guild)) {
                 selectedApplication = null
                 selected = guild.id
                 showScreen(RecruitmentScreen.PROFILE)
@@ -52,7 +58,7 @@ internal fun RecruitmentController.browse(): List<RecruitmentButton> {
         }
 }
 
-private fun RecruitmentController.visibleRecruiter(id: java.util.UUID): Boolean {
+internal fun RecruitmentController.visibleRecruiter(id: java.util.UUID): Boolean {
     return org.bukkit.Bukkit.getPlayer(id)?.let {
         it.isOnline && player.canSee(it)
     } == true

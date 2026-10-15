@@ -7811,6 +7811,11 @@ recruitment:
     updated: "<gold>Recruitment updated: <offers> join offers and <pending> applications awaiting your review. <yellow>Click to open recruitment."
 
 guild_dialogs:
+  board:
+    search_filters: "Search & filters"
+    summary: "%activity% - %spaces% spaces - %online% online"
+    no_fee: "No joining fee"
+    fee: "%amount% %currency% to join"
   quests:
     rankings: "<gold>Weekly rankings"
     choose_ranking: "<gray>Choose a quest to view its weekly guild standings."

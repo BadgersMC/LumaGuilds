@@ -12,7 +12,7 @@ private const val SAMPLE_GUILD = "Everlights"
 internal class RecruitmentBoardDialogTest : RecruitmentDialogFixture() {
     @Test
     fun searchResetsPageKeepsFilters() {
-        controller.screen = RecruitmentScreen.BROWSE
+        controller.screen = RecruitmentScreen.FILTER
         controller.interest = "building"
         controller.page = 2
         controller.browsePage = 2
@@ -25,6 +25,7 @@ internal class RecruitmentBoardDialogTest : RecruitmentDialogFixture() {
         assertEquals("quests", controller.interest)
         assertEquals(0, controller.page)
         assertEquals(0, controller.browsePage)
+        assertEquals(RecruitmentScreen.BROWSE, controller.screen)
         assertTrue(controller.beginnersOnly)
     }
 
@@ -38,9 +39,10 @@ internal class RecruitmentBoardDialogTest : RecruitmentDialogFixture() {
         menu().show(RecruitmentView(BROWSE_TITLE, emptyList(), direct, quick))
         val page = requireNotNull(renderedPage)
         val labels = page.actions.map { PlainTextComponentSerializer.plainText().serialize(it.label) }
-        assertTrue(labels.containsAll(direct.map { it.label }))
+        assertTrue(labels.containsAll(listOf("recruitment.mine", "recruitment.manage")))
+        assertTrue("recruitment.filter" !in labels)
         assertTrue("Quick" !in labels)
-        assertEquals(1, page.columns)
+        assertEquals(2, page.columns)
         page.actions.first().action()
         assertEquals(1, exits)
     }
@@ -57,7 +59,7 @@ internal class RecruitmentBoardDialogTest : RecruitmentDialogFixture() {
         val fee = "Joining fee: 123456789 a currency name that spans multiple panel lines"
         val entry = RecruitmentButton(SAMPLE_GUILD, listOf("Apply", "Spaces: 6", "Level: 32", fee), guild = guild) {}
         menu().show(RecruitmentView(BROWSE_TITLE, listOf(entry), emptyList()))
-        val item = requireNotNull(renderedPage).items.single()
+        val item = requireNotNull(renderedPage).items.last()
         assertEquals(org.bukkit.Material.WHITE_BANNER, item.item.type)
         val panelText =
             requireNotNull(item.cardLines).drop(1).joinToString("") {

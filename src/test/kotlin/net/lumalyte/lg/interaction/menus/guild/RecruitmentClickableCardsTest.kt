@@ -19,7 +19,7 @@ internal class RecruitmentClickableCardsTest : RecruitmentDialogFixture() {
         val button = RecruitmentButton("Everlights", listOf("Apply in game", "100 coins"), guild = guild) { opens++ }
         menu().show(RecruitmentView("Browse", listOf(button), emptyList()))
         val page = assertNotNull(renderedPage)
-        val card = page.items.single()
+        val card = page.items.last()
         val click = assertNotNull(card.onClick)
         assertTrue(PlainTextComponentSerializer.plainText().serialize(click.tooltip).contains("100 coins"))
         assertTrue(page.actions.none { it.label == click.label })
@@ -33,7 +33,7 @@ internal class RecruitmentClickableCardsTest : RecruitmentDialogFixture() {
         RecruitmentDialogMenu(controller, RecruitmentDialogCallbacks({ true }, {}, {}), presenter, false)
             .show(RecruitmentView("Browse", listOf(button), emptyList()))
         val page = assertNotNull(renderedPage)
-        assertNull(page.items.single().onClick)
+        assertNull(page.items.last().onClick)
         page.actions.first().action()
         assertEquals(1, exits)
     }
@@ -43,7 +43,7 @@ internal class RecruitmentClickableCardsTest : RecruitmentDialogFixture() {
         menu().show(
             RecruitmentView("Browse", listOf(RecruitmentButton("Info", listOf("Details"), guild = guild)), emptyList()),
         )
-        assertNull(assertNotNull(renderedPage).items.single().onClick)
+        assertNull(assertNotNull(renderedPage).items.last().onClick)
         controller.screen = RecruitmentScreen.PROFILE
         menu().show(
             RecruitmentView("Profile", listOf(RecruitmentButton("Join", listOf("Fee"), guild = guild) {}), emptyList()),

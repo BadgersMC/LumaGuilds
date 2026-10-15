@@ -27,7 +27,8 @@ internal fun RecruitmentController.boardSearch(): GuildDialogSearch {
         run {
             query = value
             interest = category.takeUnless { it == "all" }
-            resetBrowse()
+            browsePage = 0
+            showScreen(RecruitmentScreen.BROWSE)
         }
     }
 }

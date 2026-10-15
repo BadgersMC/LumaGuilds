@@ -14,12 +14,12 @@ internal class RecruitmentDialogMenuTest : RecruitmentDialogFixture() {
     @Test
     fun boundedPagesKeepResults() {
         val entries = (1..8).map { RecruitmentButton("Guild $it", listOf("Mode", "Spaces", "Level", "Fee", "Pitch")) }
-        controller.page = 2
+        controller.page = 1
         controller.screen = RecruitmentScreen.BROWSE
         assertTrue(menu().show(RecruitmentView(BROWSE_TITLE, entries, emptyList())))
-        assertEquals(2, requireNotNull(renderedPage).items.size)
-        val text = PlainTextComponentSerializer.plainText().serialize(requireNotNull(renderedPage).items.first().text)
-        assertTrue(text.contains("Guild 7"))
+        assertEquals(5, requireNotNull(renderedPage).items.size)
+        val text = PlainTextComponentSerializer.plainText().serialize(requireNotNull(renderedPage).items[1].text)
+        assertTrue(text.contains("Guild 5"))
         assertTrue(text.contains("Fee"))
         assertTrue(!text.contains("Pitch"))
     }
