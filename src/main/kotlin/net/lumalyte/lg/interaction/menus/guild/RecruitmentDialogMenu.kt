@@ -13,11 +13,15 @@ import org.bukkit.Material
 import org.bukkit.inventory.ItemStack
 
 /** Native presentation delegates all actions to the same reauthorized controller as inventories. */
+internal data class RecruitmentDialogCallbacks(
+    val valid: () -> Boolean,
+    val back: () -> Unit,
+    val close: () -> Unit,
+)
+
 internal class RecruitmentDialogMenu(
     private val controller: RecruitmentController,
-    private val navigationValid: () -> Boolean,
-    private val exit: () -> Unit,
-    private val closeMenus: () -> Unit,
+    private val callbacks: RecruitmentDialogCallbacks,
     private val dialog: GuildDialogPresenter = GuildMenuDialog(),
 ) {
     fun show(view: RecruitmentView): Boolean {
@@ -65,15 +69,16 @@ internal class RecruitmentDialogMenu(
     }
 
     private fun navigationAction(close: Boolean = false): GuildDialogAction {
-        val label = if (close) {
-            controller.lang.raw("recruitment.dialog.close")
-        } else {
-            controller.lang.raw("recruitment.dialog.navigation")
-        }
+        val label =
+            if (close) {
+                controller.lang.raw("recruitment.dialog.close")
+            } else {
+                controller.lang.raw("recruitment.dialog.navigation")
+            }
         return GuildDialogAction(
             Component.text(label),
             Component.empty(),
-            if (close) closeMenus else ::showNavigation,
+            if (close) callbacks.close else ::showNavigation,
         )
     }
 
@@ -115,7 +120,7 @@ internal class RecruitmentDialogMenu(
     }
 
     private fun present(page: GuildDialogPage): Boolean {
-        return dialog.show(controller.player, page, navigationValid) {
+        return dialog.show(controller.player, page, callbacks.valid) {
             controller.player.closeInventory()
             controller.player.sendMessage(controller.lang.msg("recruitment.feedback.failed"))
         }
@@ -141,7 +146,7 @@ internal class RecruitmentDialogMenu(
     }
 
     private fun parent() {
-        if (controller.screen in ROOT_SCREENS) return exit()
+        if (controller.screen in ROOT_SCREENS) return callbacks.back()
         controller.showScreen(PARENTS[controller.screen] ?: RecruitmentScreen.MANAGE)
     }
 
