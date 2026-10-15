@@ -48,8 +48,8 @@ private class GuildDialogAudience(private val player: Player, valid: () -> Boole
     private var inventory: org.bukkit.inventory.Inventory? = null
     val session =
         GuildDialogSession(player.uniqueId, Duration.ofMinutes(2).toMillis()) {
-        player.isOnline && inventory != null && player.openInventory.topInventory === inventory && valid()
-    }
+            player.isOnline && inventory != null && player.openInventory.topInventory === inventory && valid()
+        }
 
     fun captureInventory() {
         inventory = player.openInventory.topInventory

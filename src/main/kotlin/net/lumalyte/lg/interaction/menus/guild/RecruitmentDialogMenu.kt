@@ -32,9 +32,19 @@ internal class RecruitmentDialogMenu(
         return present(
             GuildDialogPage(
                 Component.text("${view.title} ${controller.page + 1}/$pages"),
-                entryBodies(entries),
+                searchContext() + entryBodies(entries),
                 pageActions(view, entries, pages),
                 back,
+            ),
+        )
+    }
+
+    private fun searchContext(): List<GuildDialogItem> {
+        if (controller.screen != RecruitmentScreen.BROWSE || controller.query.isBlank()) return emptyList()
+        return listOf(
+            GuildDialogItem(
+                NexoItemProvider.getItemStackOrFallback(RecruitmentIcons.TAG) { ItemStack.of(Material.NAME_TAG) },
+                Component.text(controller.lang.raw("recruitment.search") + ": " + controller.query),
             ),
         )
     }
@@ -56,23 +66,24 @@ internal class RecruitmentDialogMenu(
         return actions
     }
 
-    private fun navigationAction() =
-        GuildDialogAction(
+    private fun navigationAction(): GuildDialogAction {
+        return GuildDialogAction(
             Component.text(controller.lang.raw("recruitment.dialog.navigation")),
             Component.empty(),
             ::showNavigation,
         )
+    }
 
     private fun entryBodies(entries: List<RecruitmentButton>): List<GuildDialogItem> {
         return entries.mapIndexed { index, button ->
             val details =
                 if (controller.screen == RecruitmentScreen.BROWSE) {
-                button.details.take(
-                    BROWSE_DETAILS,
-                )
-            } else {
-                button.details
-            }
+                    button.details.take(
+                        BROWSE_DETAILS,
+                    )
+                } else {
+                    button.details
+                }
             GuildDialogItem(
                 button.guild?.let(GuildBannerItemResolver::resolveForDisplay)
                     ?: NexoItemProvider.getItemStackOrFallback(button.icon) { ItemStack.of(Material.BOOK) },
@@ -100,12 +111,13 @@ internal class RecruitmentDialogMenu(
         )
     }
 
-    private fun closeAction() =
-        GuildDialogAction(
+    private fun closeAction(): GuildDialogAction {
+        return GuildDialogAction(
             Component.text(controller.lang.raw("recruitment.dialog.close")),
             Component.empty(),
             closeMenus,
         )
+    }
 
     private fun present(page: GuildDialogPage): Boolean {
         return dialog.show(controller.player, page, navigationValid) {
@@ -142,15 +154,19 @@ internal class RecruitmentDialogMenu(
         const val PAGE_SIZE = 3
         const val BROWSE_DETAILS = 4
         val ROOT_SCREENS = setOf(RecruitmentScreen.BROWSE, RecruitmentScreen.MANAGE)
-        val PARENTS = mapOf(
-            RecruitmentScreen.FILTER to RecruitmentScreen.BROWSE,
-            RecruitmentScreen.PROFILE to RecruitmentScreen.BROWSE,
-            RecruitmentScreen.DISCORD to RecruitmentScreen.PROFILE,
-            RecruitmentScreen.CONFIRM to RecruitmentScreen.PROFILE,
-            RecruitmentScreen.APPLICATION to RecruitmentScreen.MINE,
-            RecruitmentScreen.REVIEW to RecruitmentScreen.INBOX,
-            RecruitmentScreen.REVIEW_CONFIRM to RecruitmentScreen.REVIEW,
-            RecruitmentScreen.METHOD to RecruitmentScreen.SETTINGS,
-        )
+        val PARENTS = parentScreens()
+
+        private fun parentScreens(): Map<RecruitmentScreen, RecruitmentScreen> {
+            return mapOf(
+                RecruitmentScreen.FILTER to RecruitmentScreen.BROWSE,
+                RecruitmentScreen.PROFILE to RecruitmentScreen.BROWSE,
+                RecruitmentScreen.DISCORD to RecruitmentScreen.PROFILE,
+                RecruitmentScreen.CONFIRM to RecruitmentScreen.PROFILE,
+                RecruitmentScreen.APPLICATION to RecruitmentScreen.MINE,
+                RecruitmentScreen.REVIEW to RecruitmentScreen.INBOX,
+                RecruitmentScreen.REVIEW_CONFIRM to RecruitmentScreen.REVIEW,
+                RecruitmentScreen.METHOD to RecruitmentScreen.SETTINGS,
+            )
+        }
     }
 }

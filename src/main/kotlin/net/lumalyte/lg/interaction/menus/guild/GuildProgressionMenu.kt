@@ -166,11 +166,11 @@ class GuildProgressionMenu(
     private fun progressionDialogItems(progression: GuildProgressionDisplay): List<GuildDialogItem> {
         val header =
             GuildDialogItem(
-            GuildBannerItemResolver.resolveForDisplay(guild),
-            lang.gui("menu.guild_progression.level.name", "level" to progression.level)
-                .append(Component.newline())
-                .append(lang.gui("menu.guild_progression.level.total", "xp" to progression.totalXp)),
-        )
+                GuildBannerItemResolver.resolveForDisplay(guild),
+                lang.gui("menu.guild_progression.level.name", "level" to progression.level)
+                    .append(Component.newline())
+                    .append(lang.gui("menu.guild_progression.level.total", "xp" to progression.totalXp)),
+            )
         return listOfNotNull(header, nativeRewardItem())
     }
 
@@ -179,11 +179,11 @@ class GuildProgressionMenu(
         val owned = offers.count { it.status in OWNED_REWARD_STATES }
         val text =
             lang.gui(
-            "guild_dialogs.progression.reward_states",
-            "purchased" to owned,
-            "available" to offers.count { it.status == RewardOfferStatus.AVAILABLE },
-            "locked" to offers.count { it.status == RewardOfferStatus.LOCKED },
-        )
+                "guild_dialogs.progression.reward_states",
+                "purchased" to owned,
+                "available" to offers.count { it.status == RewardOfferStatus.AVAILABLE },
+                "locked" to offers.count { it.status == RewardOfferStatus.LOCKED },
+            )
         return GuildDialogItem(
             NexoItemProvider.getItemStackOrFallback("lg_reward") { ItemStack.of(Material.DIAMOND) },
             text,
