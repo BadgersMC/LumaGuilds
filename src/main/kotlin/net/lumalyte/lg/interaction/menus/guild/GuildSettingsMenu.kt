@@ -1,45 +1,42 @@
 package net.lumalyte.lg.interaction.menus.guild
 
-import net.lumalyte.lg.infrastructure.services.RecruitmentPresentation
-
-import net.lumalyte.lg.utils.inventoryframework.addPane
-
-import net.lumalyte.lg.utils.NexoItemProvider
-import net.badgersmc.nexus.i18n.LangService
-import net.lumalyte.lg.utils.MenuTitleBuilder
-import net.lumalyte.lg.infrastructure.i18n.gui
-import net.lumalyte.lg.infrastructure.i18n.guiTitle
-import net.lumalyte.lg.infrastructure.services.NexoEmojiService
-
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import net.lumalyte.lg.utils.inventoryframework.StaticPane
-import net.lumalyte.lg.application.services.GuildChatReconnectSettingsService
+import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.application.services.GuildChatReconnectSettingsService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.ProgressionService
-import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.lumalyte.lg.infrastructure.services.NexoEmojiService
+import net.lumalyte.lg.infrastructure.services.RecruitmentPresentation
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.GuildDescriptionContent
 import net.lumalyte.lg.utils.MenuItemBuilder
+import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.lumalyte.lg.utils.deserializeToItemStack
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 class GuildSettingsMenu(
     private val menuNavigator: MenuNavigator,
@@ -96,14 +93,14 @@ class GuildSettingsMenu(
         // Create 6x9 double chest GUI
         val gui =
             ChestGui(
-                6,
+                SETTINGS_ROWS,
                 MenuTitleBuilder.build(
                     guild.guiTheme,
-                    6,
+                    SETTINGS_ROWS,
                     lang.guiTitle("menu.guild_settings.title", "guild" to guild.name),
                 ),
             )
-        val pane = StaticPane(0, 0, 9, 6)
+        val pane = StaticPane(0, 0, SETTINGS_COLUMNS, SETTINGS_ROWS)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
             if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
@@ -127,27 +124,39 @@ class GuildSettingsMenu(
 
     private fun addGroupNavigation(pane: StaticPane) {
         GuildSettingsGroup.entries.forEachIndexed { row, entry ->
-            val item = NexoItemProvider.getItemStackOrFallback(entry.icon) { ItemStack.of(Material.BOOK) }
+            val item =
+                NexoItemProvider.getItemStackOrFallback(entry.icon) { ItemStack.of(Material.BOOK) }
                 .name(entry.label(lang))
             pane.addItem(
                 GuiItem(item) {
                     settingsGroup = entry
                     open()
                 },
-                8,
+                CATEGORY_COLUMN,
                 row,
             )
         }
-        val back = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
+        addGroupBack(pane)
+    }
+
+    private fun addGroupBack(pane: StaticPane) {
+        val back =
+            NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("recruitment.dialog.back"))
         pane.addItem(
             GuiItem(back) {
                 settingsGroup = null
                 open()
             },
-            8,
-            5,
+            CATEGORY_COLUMN,
+            SETTINGS_ROWS - 1,
         )
+    }
+
+    private companion object {
+        const val SETTINGS_ROWS = 6
+        const val SETTINGS_COLUMNS = 9
+        const val CATEGORY_COLUMN = 8
     }
 
     private fun addReconnectControl(pane: StaticPane) {

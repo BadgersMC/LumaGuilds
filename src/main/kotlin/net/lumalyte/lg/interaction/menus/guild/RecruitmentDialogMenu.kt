@@ -52,17 +52,21 @@ internal class RecruitmentDialogMenu(
         if (controller.page + 1 < pages) {
             actions += pageAction(1, Component.text(controller.lang.raw("recruitment.next")))
         }
-        actions += GuildDialogAction(
-            Component.text(controller.lang.raw("recruitment.dialog.navigation")), Component.empty(),
-        ) {
-            showNavigation()
-        }
+        actions += navigationAction()
         return actions
     }
 
+    private fun navigationAction() =
+        GuildDialogAction(
+            Component.text(controller.lang.raw("recruitment.dialog.navigation")),
+            Component.empty(),
+            ::showNavigation,
+        )
+
     private fun entryBodies(entries: List<RecruitmentButton>): List<GuildDialogItem> {
         return entries.mapIndexed { index, button ->
-            val details = if (controller.screen == RecruitmentScreen.BROWSE) {
+            val details =
+                if (controller.screen == RecruitmentScreen.BROWSE) {
                 button.details.take(
                     BROWSE_DETAILS,
                 )
@@ -81,12 +85,7 @@ internal class RecruitmentDialogMenu(
 
     private fun showNavigation() {
         val view = controller.view()
-        val close = GuildDialogAction(
-            Component.text(controller.lang.raw("recruitment.dialog.close")),
-            Component.empty(),
-            closeMenus,
-        )
-        val actions = view.navigation.map { action(it) } + close
+        val actions = view.navigation.map { action(it) } + closeAction()
         present(
             GuildDialogPage(
                 Component.text(controller.lang.raw("recruitment.dialog.navigation")),
@@ -100,6 +99,13 @@ internal class RecruitmentDialogMenu(
             ),
         )
     }
+
+    private fun closeAction() =
+        GuildDialogAction(
+            Component.text(controller.lang.raw("recruitment.dialog.close")),
+            Component.empty(),
+            closeMenus,
+        )
 
     private fun present(page: GuildDialogPage): Boolean {
         return dialog.show(controller.player, page, navigationValid) {

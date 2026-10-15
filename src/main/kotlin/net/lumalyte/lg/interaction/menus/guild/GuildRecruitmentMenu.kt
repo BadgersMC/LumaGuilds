@@ -49,7 +49,8 @@ internal class GuildRecruitmentMenu(
     private val inputListener: ChatInputListener by inject()
     private val lang: LangService by inject()
     private val emojis: NexoEmojiService by inject()
-    private val nativeMenu = RecruitmentDialogMenu(controller, {
+    private val nativeMenu =
+        RecruitmentDialogMenu(controller, {
         player.isOnline && activeNavigation == navigator.currentNavigationToken()
     }, { navigator.goBack() }, {
         navigator.clearMenuStack()

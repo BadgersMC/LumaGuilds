@@ -1,35 +1,32 @@
 package net.lumalyte.lg.interaction.menus.guild
 
-import net.lumalyte.lg.infrastructure.services.GuildDialogItem
-import net.lumalyte.lg.infrastructure.services.GuildDialogAction
-import net.lumalyte.lg.infrastructure.services.GuildDialogPage
-import net.lumalyte.lg.infrastructure.services.GuildMenuDialog
-import net.lumalyte.lg.infrastructure.services.RecruitmentPresentation
-import net.lumalyte.lg.interaction.menus.GuildBannerItemResolver
-
-import net.lumalyte.lg.utils.inventoryframework.addPane
-
-import net.lumalyte.lg.utils.MenuTitleBuilder
-import net.badgersmc.nexus.i18n.LangService
-import net.kyori.adventure.text.Component
-import net.lumalyte.lg.infrastructure.i18n.gui
-import net.lumalyte.lg.infrastructure.i18n.guiTitle
-import net.lumalyte.lg.infrastructure.i18n.rewardStatus
-
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import net.lumalyte.lg.utils.inventoryframework.StaticPane
+import net.badgersmc.nexus.i18n.LangService
+import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.rewards.GuildRewardRead
 import net.lumalyte.lg.domain.rewards.RewardOfferStatus
-import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.domain.values.CapPeriod
+import net.lumalyte.lg.domain.values.ExperienceSource
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.lumalyte.lg.infrastructure.i18n.rewardStatus
+import net.lumalyte.lg.infrastructure.services.GuildDialogAction
+import net.lumalyte.lg.infrastructure.services.GuildDialogItem
+import net.lumalyte.lg.infrastructure.services.GuildDialogPage
+import net.lumalyte.lg.infrastructure.services.GuildMenuDialog
+import net.lumalyte.lg.infrastructure.services.RecruitmentPresentation
+import net.lumalyte.lg.interaction.menus.GuildBannerItemResolver
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.MenuItemBuilder
+import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.utils.NexoItemProvider
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.lumalyte.lg.utils.name
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -167,31 +164,30 @@ class GuildProgressionMenu(
     }
 
     private fun progressionDialogItems(progression: GuildProgressionDisplay): List<GuildDialogItem> {
-        val header = GuildDialogItem(
+        val header =
+            GuildDialogItem(
             GuildBannerItemResolver.resolveForDisplay(guild),
             lang.gui("menu.guild_progression.level.name", "level" to progression.level)
                 .append(Component.newline())
                 .append(lang.gui("menu.guild_progression.level.total", "xp" to progression.totalXp)),
         )
-        val offers = (rewardState as? GuildRewardRead.Available)?.entitlements?.offers
-        return buildList {
-            add(header)
-            if (offers != null) {
-                add(
-                    GuildDialogItem(
-                        NexoItemProvider.getItemStackOrFallback("lg_reward") { ItemStack.of(Material.DIAMOND) },
-                        lang.gui(
-                            "guild_dialogs.progression.reward_states",
-                            "purchased" to offers.count {
-                                it.status == RewardOfferStatus.PURCHASED || it.status == RewardOfferStatus.PERMANENT
-                            },
-                            "available" to offers.count { it.status == RewardOfferStatus.AVAILABLE },
-                            "locked" to offers.count { it.status == RewardOfferStatus.LOCKED },
-                        ),
-                    ),
-                )
-            }
-        }
+        return listOfNotNull(header, nativeRewardItem())
+    }
+
+    private fun nativeRewardItem(): GuildDialogItem? {
+        val offers = (rewardState as? GuildRewardRead.Available)?.entitlements?.offers ?: return null
+        val owned = offers.count { it.status in OWNED_REWARD_STATES }
+        val text =
+            lang.gui(
+            "guild_dialogs.progression.reward_states",
+            "purchased" to owned,
+            "available" to offers.count { it.status == RewardOfferStatus.AVAILABLE },
+            "locked" to offers.count { it.status == RewardOfferStatus.LOCKED },
+        )
+        return GuildDialogItem(
+            NexoItemProvider.getItemStackOrFallback("lg_reward") { ItemStack.of(Material.DIAMOND) },
+            text,
+        )
     }
 
     private fun nativeAction(label: Component, callback: () -> Unit) =
@@ -225,14 +221,20 @@ class GuildProgressionMenu(
     }
 
     private fun openNativePrestige() {
-        val fresh = prestigeService.overview(guild.id) ?: return open()
-        val available = fresh.prestigeCount < fresh.maxPrestigeCount && fresh.choices.isNotEmpty()
-        if (fresh.enabled && fresh.currentLevel == PRESTIGE_LEVEL && available) {
+        val fresh = prestigeService.overview(guild.id)
+        if (fresh == null) return open()
+        val available = nativePrestigeChoices(fresh)
+        val ready = fresh.enabled && fresh.currentLevel == PRESTIGE_LEVEL
+        if (ready && available) {
             openPrestigeSelection()
         } else {
             player.sendMessage(lang.msg("guild_dialogs.progression.prestige_locked"))
             open()
         }
+    }
+
+    private fun nativePrestigeChoices(fresh: net.lumalyte.lg.domain.rewards.PrestigeOverview): Boolean {
+        return fresh.prestigeCount < fresh.maxPrestigeCount && fresh.choices.isNotEmpty()
     }
 
     private fun repoProgression(): GuildProgressionDisplay? {
@@ -729,6 +731,7 @@ class GuildProgressionMenu(
 
     private companion object {
         const val PRESTIGE_LEVEL = 100
+        val OWNED_REWARD_STATES = setOf(RewardOfferStatus.PURCHASED, RewardOfferStatus.PERMANENT)
     }
 }
 

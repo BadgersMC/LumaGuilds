@@ -44,21 +44,31 @@ private data class GuildDialogCallbacks(
     val failure: () -> Unit,
 )
 
+private class GuildDialogAudience(private val player: Player, valid: () -> Boolean) {
+    private var inventory: org.bukkit.inventory.Inventory? = null
+    val session =
+        GuildDialogSession(player.uniqueId, Duration.ofMinutes(2).toMillis()) {
+        player.isOnline && inventory != null && player.openInventory.topInventory === inventory && valid()
+    }
+
+    fun captureInventory() {
+        inventory = player.openInventory.topInventory
+    }
+}
+
 internal class GuildMenuDialog : GuildDialogPresenter {
     private var session: GuildDialogSession? = null
 
     @Suppress("TooGenericExceptionCaught") // Rendering failure retains the existing inventory fallback.
     override fun show(player: Player, page: GuildDialogPage, valid: () -> Boolean, failure: () -> Unit): Boolean {
         session?.close()
-        var inventory: org.bukkit.inventory.Inventory? = null
-        val current = GuildDialogSession(player.uniqueId, LIFETIME.toMillis()) {
-            player.isOnline && inventory != null && player.openInventory.topInventory === inventory && valid()
-        }
+        val audience = GuildDialogAudience(player, valid)
+        val current = audience.session
         session = current
         val revision = current.beginPage(System.currentTimeMillis())
         return try {
             player.showDialog(createDialog(page, GuildDialogCallbacks(player, current, revision, failure)))
-            inventory = player.openInventory.topInventory
+            audience.captureInventory()
             true
         } catch (error: Exception) {
             current.close()
