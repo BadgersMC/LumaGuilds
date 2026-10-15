@@ -1030,4 +1030,4 @@ Menu audit follow-up (REQ-063):
 - [x] **MODERN-GUILD-PRESENTATION** Native recruitment pages, grouped settings, progression overview and per-quest rankings with guarded callbacks.
   - Tag: `TDD`
   - References: REC-020 through REC-023 in `docs/plans/2026-10-14-modern-guild-menus.md`.
-  - Evidence: 1,856 local cases, zero failures/errors, 16 existing optional skips; architecture/localization checks pass. Nexo item models are reused without public artwork. Free-form frames/graphs remain proposed; hosted CI, TEST staging and real client acceptance are separate gates.
+  - Evidence: clean 1,857-case standalone and 1,894-case combined TEST checks, zero failures/errors, 16 existing optional skips; architecture/localization checks pass. Nexo item models are reused without public artwork. The private implementation preview distinguishes native UI from the proposed frames/graphs; hosted CI, TEST staging and real client acceptance are separate gates.

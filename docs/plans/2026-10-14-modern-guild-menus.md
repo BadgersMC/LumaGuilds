@@ -23,13 +23,13 @@ Project-local EARS/state helpers are absent (searched `tools` and `docs`); manua
 - [x] Prove callback ownership, expiry, duplicate and navigation rejection.
 - [x] Implement native recruitment presentation and grouped settings/progression entry.
 - [x] Compile and run focused/full regression checks.
-- [ ] Update the private interactive preview to distinguish native behavior from art direction.
+- [x] Update the private interactive preview to distinguish native behavior from art direction.
 - [ ] Inspect exact-head PR checks and stage the combined unmerged TEST artifact with backup and byte verification.
 - [ ] Deferred: real client acceptance and authorized activation.
 
 ## Local evidence
 
-New callback ownership tests first failed compilation because the implementation was absent; this is missing-feature proof, not a historical behavioral red run. Four session tests cover wrong identity, duplicate/replaced pages, expiry, navigation revocation, closure and clock rollback. Three presentation tests cover bounded result pages, complete fee-confirmation text, delegated actions and distinct Back behavior. After refining the native presenter test seam, full `check shadowJar --offline` passes: 1,856 cases, zero failures/errors and 16 existing optional skips. Localization baselines and architecture contracts pass without loosening their assertions.
+New callback ownership tests first failed compilation because the implementation was absent; this is missing-feature proof, not a historical behavioral red run. Four session tests cover wrong identity, duplicate/replaced pages, expiry, navigation revocation, closure and clock rollback. Four presentation tests cover bounded result pages, visible search context, complete fee-confirmation text, delegated actions and distinct Back behavior. A clean local `check shadowJar --offline` passes: 1,857 cases, zero failures/errors and 16 existing optional skips. The preserved combined TEST build passes 1,894 cases with the same optional skips. Localization baselines and architecture contracts pass without loosening their assertions. The native implementation preview passes navigation and overflow checks at 320/390/760/1024 pixels and is saved privately alongside the earlier art concept.
 
 Native recruitment uses three entries per page, real banners and Nexo item bodies, with visible quick-filter state and a separate navigation dialog. Native settings routes to themed category editors with a right-hand category rail; personal chat remains separate from the guild-wide reconnect reset. Progression uses current reward-state counts and existing quest/source/reward/prestige services; quest rankings display real per-quest scores and the viewing guild's standing. Discord confirmation retains the menu after sending its validated clickable chat link.
 

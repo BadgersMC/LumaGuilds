@@ -33,7 +33,7 @@ internal class RecruitmentDialogMenu(
             GuildDialogPage(
                 Component.text("${view.title} ${controller.page + 1}/$pages"),
                 searchContext() + entryBodies(entries),
-                pageActions(view, entries, pages),
+                pageActions(view, pages),
                 back,
             ),
         )
@@ -49,13 +49,11 @@ internal class RecruitmentDialogMenu(
         )
     }
 
-    private fun pageActions(
-        view: RecruitmentView,
-        entries: List<RecruitmentButton>,
-        pages: Int,
-    ): List<GuildDialogAction> {
-        val actions = entries.mapIndexed { index, button -> action(button, "${index + 1}. ") }.toMutableList()
-        actions += view.quickFilters.map { action(it, detailsInLabel = true) }
+    private fun pageActions(view: RecruitmentView, pages: Int): List<GuildDialogAction> {
+        val actions = mutableListOf<GuildDialogAction>()
+        val entries = view.items.drop(controller.page * PAGE_SIZE).take(PAGE_SIZE)
+        for ((index, button) in entries.withIndex()) actions += action(button, "${index + 1}. ")
+        for (button in view.quickFilters) actions += action(button, detailsInLabel = true)
         if (controller.page > 0) {
             actions += pageAction(-1, Component.text(controller.lang.raw("recruitment.previous")))
         }
@@ -66,11 +64,16 @@ internal class RecruitmentDialogMenu(
         return actions
     }
 
-    private fun navigationAction(): GuildDialogAction {
+    private fun navigationAction(close: Boolean = false): GuildDialogAction {
+        val label = if (close) {
+            controller.lang.raw("recruitment.dialog.close")
+        } else {
+            controller.lang.raw("recruitment.dialog.navigation")
+        }
         return GuildDialogAction(
-            Component.text(controller.lang.raw("recruitment.dialog.navigation")),
+            Component.text(label),
             Component.empty(),
-            ::showNavigation,
+            if (close) closeMenus else ::showNavigation,
         )
     }
 
@@ -96,7 +99,7 @@ internal class RecruitmentDialogMenu(
 
     private fun showNavigation() {
         val view = controller.view()
-        val actions = view.navigation.map { action(it) } + closeAction()
+        val actions = view.navigation.map { action(it) } + navigationAction(true)
         present(
             GuildDialogPage(
                 Component.text(controller.lang.raw("recruitment.dialog.navigation")),
@@ -108,14 +111,6 @@ internal class RecruitmentDialogMenu(
                     controller.refresh,
                 ),
             ),
-        )
-    }
-
-    private fun closeAction(): GuildDialogAction {
-        return GuildDialogAction(
-            Component.text(controller.lang.raw("recruitment.dialog.close")),
-            Component.empty(),
-            closeMenus,
         )
     }
 

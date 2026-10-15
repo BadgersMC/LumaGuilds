@@ -253,11 +253,13 @@ class GuildQuestLeaderboardMenu(
         progress: Map<java.util.UUID, GuildQuestProgress>,
         ranks: Map<java.util.UUID, Int>,
     ): List<GuildDialogItem> {
-        val items = mutableListOf(
-            GuildDialogItem(
-                header, Component.join(JoinConfiguration.newlines(), header.lore() ?: emptyList()),
-            ),
-        )
+        val items =
+            mutableListOf(
+                GuildDialogItem(
+                    header,
+                    Component.join(JoinConfiguration.newlines(), header.lore() ?: emptyList()),
+                ),
+            )
         for (current in guilds.drop(nativePage * NATIVE_PAGE_SIZE).take(NATIVE_PAGE_SIZE)) {
             items += nativeGuildItem(current, progress[current.id]?.currentCount ?: 0, ranks[current.id])
         }
