@@ -17,6 +17,8 @@ import org.koin.dsl.module
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+private const val BROWSE_TITLE = "Browse"
+
 @Suppress("MagicNumber") // Small explicit page fixtures keep boundary assertions readable.
 internal class RecruitmentDialogMenuTest {
     private val player = mockk<Player>(relaxed = true)
@@ -54,7 +56,7 @@ internal class RecruitmentDialogMenuTest {
         val entries = (1..8).map { RecruitmentButton("Guild $it", listOf("Mode", "Spaces", "Level", "Fee", "Pitch")) }
         controller.page = 2
         controller.screen = RecruitmentScreen.BROWSE
-        assertTrue(menu().show(RecruitmentView("Browse", entries, emptyList())))
+        assertTrue(menu().show(RecruitmentView(BROWSE_TITLE, entries, emptyList())))
         assertEquals(2, rendered.items.size)
         val text = PlainTextComponentSerializer.plainText().serialize(rendered.items.first().text)
         assertTrue(text.contains("Guild 7"))
@@ -80,7 +82,7 @@ internal class RecruitmentDialogMenuTest {
     fun searchContextStaysVisible() {
         controller.screen = RecruitmentScreen.BROWSE
         controller.query = "Everlights"
-        menu().show(RecruitmentView("Browse", emptyList(), emptyList()))
+        menu().show(RecruitmentView(BROWSE_TITLE, emptyList(), emptyList()))
         val context = PlainTextComponentSerializer.plainText().serialize(rendered.items.single().text)
         assertTrue(context.contains("Everlights"))
     }
@@ -88,7 +90,7 @@ internal class RecruitmentDialogMenuTest {
     @Test
     fun backPreservesNavigation() {
         controller.screen = RecruitmentScreen.BROWSE
-        menu().show(RecruitmentView("Browse", emptyList(), emptyList()))
+        menu().show(RecruitmentView(BROWSE_TITLE, emptyList(), emptyList()))
         rendered.back.action()
         assertEquals(1, exits)
         assertEquals(0, closes)

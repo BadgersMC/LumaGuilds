@@ -153,13 +153,6 @@ class GuildSettingsMenu(
         )
     }
 
-    private companion object {
-        const val SETTINGS_ROWS = 6
-        const val SETTINGS_COLUMNS = 9
-        const val CATEGORY_COLUMN = 8
-        const val BACK_ICON = "lg_back"
-    }
-
     private fun addReconnectControl(pane: StaticPane) {
         val rendered = reconnectSettings.resetOnJoin(guild.id)
         val item = NexoItemProvider.getItemStackOrFallback(if (rendered) "lg_toggle_on" else "lg_toggle_off") {
@@ -702,6 +695,13 @@ class GuildSettingsMenu(
 
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return
+    }
+
+    private companion object {
+        const val SETTINGS_ROWS = 6
+        const val SETTINGS_COLUMNS = 9
+        const val CATEGORY_COLUMN = 8
+        const val BACK_ICON = "lg_back"
     }
 }
 
