@@ -134,7 +134,7 @@ internal class RecruitmentDialogMenuTest {
     }
 
     @Test
-    fun selectedGuildStyleReachesDialog() {
+    fun guildStyleReachesDialog() {
         val guild = mockk<net.lumalyte.lg.domain.entities.Guild>()
         every { guild.guiTheme } returns net.lumalyte.lg.utils.GuiTheme.VERDANT
         every { guilds.getPlayerGuilds(any()) } returns setOf(guild)

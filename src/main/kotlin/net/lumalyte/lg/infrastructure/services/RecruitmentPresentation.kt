@@ -49,7 +49,9 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
         player.showDialog(
             Dialog.create { factory ->
                 factory.empty().base(
-                    DialogBase.builder(Component.text(fields.title, guildDialogAccent(fields.theme))).canCloseWithEscape(true)
+                    DialogBase.builder(
+                        Component.text(fields.title, guildDialogAccent(fields.theme)),
+                    ).canCloseWithEscape(true)
                         .afterAction(DialogBase.DialogAfterAction.NONE)
                         .body(skin?.body(emptyList()) ?: emptyList())
                         .inputs(

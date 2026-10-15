@@ -25,9 +25,11 @@ internal class GuildDialogTheme(
 ) {
     fun resolve(theme: GuiTheme, packLoaded: Boolean): GuildDialogSkin? {
         val resolved = theme.resolved()
-        if (!packLoaded || !resolved.hasBackground) return null
-        val parts = parts(resolved) ?: return null
-        return GuildDialogSkin(parts, guildDialogAccent(resolved))
+        return if (packLoaded && resolved.hasBackground) {
+            parts(resolved)?.let { GuildDialogSkin(it, guildDialogAccent(resolved)) }
+        } else {
+            null
+        }
     }
 
     private fun parts(theme: GuiTheme): Map<String, Component>? {
@@ -36,22 +38,28 @@ internal class GuildDialogTheme(
             val id = "guild_dialog_${theme.name.lowercase()}_$part"
             parts[part] = glyph(id) ?: return null
         }
-        parts["spacer"] = glyph("guild_dialog_spacer") ?: return null
-        return parts
+        return glyph("guild_dialog_spacer")?.let {
+            parts["spacer"] = it
+            parts
+        }
     }
 
     private fun glyph(id: String): Component? {
-        val glyph = resolveOptionalGlyph(resolver, id) ?: return null
-        if (!glyph.isDialogArt()) return null
-        if (glyph.id != null && glyph.id != id) return null
-        return Component.text(glyph.character, NamedTextColor.WHITE).font(Key.key(DIALOG_ART_FONT))
-            .decoration(TextDecoration.BOLD, false).decoration(TextDecoration.ITALIC, false)
+        val glyph = resolveOptionalGlyph(resolver, id)
+        return if (glyph != null && glyph.isDialogArt() && glyph.matchesId(id)) {
+            Component.text(glyph.character, NamedTextColor.WHITE).font(Key.key(DIALOG_ART_FONT))
+                .decoration(TextDecoration.BOLD, false)
+                .decoration(TextDecoration.ITALIC, false)
+        } else {
+            null
+        }
     }
 }
 
-private fun ResolvedNexoGlyph.isDialogArt(): Boolean {
-    return !isEmoji && font == DIALOG_ART_FONT && character.codePointCount(0, character.length) == 1
-}
+private fun ResolvedNexoGlyph.isDialogArt(): Boolean =
+    !isEmoji && font == DIALOG_ART_FONT && character.codePointCount(0, character.length) == 1
+
+private fun ResolvedNexoGlyph.matchesId(expected: String): Boolean = id == null || id == expected
 
 /** Art occupies explicit native text lines and never changes the action hitboxes. */
 internal class GuildDialogSkin(private val parts: Map<String, Component>, val accent: NamedTextColor) {
@@ -78,6 +86,5 @@ internal class GuildDialogSkin(private val parts: Map<String, Component>, val ac
     }
 }
 
-internal fun guildDialogAccent(theme: GuiTheme): NamedTextColor {
-    return DIALOG_ACCENTS.getOrDefault(theme.resolved(), NamedTextColor.GOLD)
-}
+internal fun guildDialogAccent(theme: GuiTheme): NamedTextColor =
+    DIALOG_ACCENTS.getOrDefault(theme.resolved(), NamedTextColor.GOLD)

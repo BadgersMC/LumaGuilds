@@ -101,7 +101,8 @@ internal class GuildMenuDialog : GuildDialogPresenter {
 
     private fun itemBody(item: GuildDialogItem): DialogBody {
         return DialogBody.item(item.item.clone()).width(ITEM_WIDTH).height(ITEM_HEIGHT)
-            .showDecorations(false).showTooltip(false)
+            .showDecorations(false)
+            .showTooltip(false)
             .description(DialogBody.plainMessage(item.text, TEXT_WIDTH))
             .build()
     }
@@ -112,7 +113,9 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         skin: GuildDialogSkin?,
     ): ActionButton {
         return ActionButton.builder(skin?.label(action.label) ?: action.label)
-            .width(ACTION_WIDTH).tooltip(action.tooltip).action(
+            .width(ACTION_WIDTH)
+            .tooltip(action.tooltip)
+            .action(
                 DialogAction.customClick({ _, audience ->
                     if (audience is Player && audience.uniqueId == callbacks.player.uniqueId) {
                         Bukkit.getScheduler().runTask(

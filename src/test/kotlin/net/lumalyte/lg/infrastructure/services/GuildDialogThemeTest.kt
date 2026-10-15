@@ -10,25 +10,30 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+private const val TEST_FONT = "lumaguilds:dialogs"
+private const val TEST_CHARACTER = "\uE400"
+private const val SPACER_ID = "guild_dialog_spacer"
+
 internal class GuildDialogThemeTest {
     private val names = mutableListOf<String>()
-    private val resolver = NexoGlyphResolver { name ->
-        names += name
-        ResolvedNexoGlyph("\uE400", "lumaguilds:dialogs", false, name)
-    }
+    private val resolver =
+        NexoGlyphResolver { name ->
+            names += name
+            ResolvedNexoGlyph(TEST_CHARACTER, TEST_FONT, false, name)
+        }
 
     @Test
     fun resolvesSelectedArtwork() {
         val skin = assertNotNull(GuildDialogTheme(resolver).resolve(GuiTheme.VOIDLIGHT, true))
         val expected = listOf("header", "divider", "footer", "marker").map { "guild_dialog_voidlight_$it" }
-        assertEquals(expected + "guild_dialog_spacer", names)
+        assertEquals(expected + SPACER_ID, names)
         assertEquals(NamedTextColor.LIGHT_PURPLE, skin.accent)
         val label = skin.label(Component.text("Confirm 100 coins"))
         assertTrue(PlainTextComponentSerializer.plainText().serialize(label).endsWith("Confirm 100 coins"))
     }
 
     @Test
-    fun vanillaAndUnloadedPackStayPlain() {
+    fun plainWithoutPack() {
         assertNull(GuildDialogTheme(resolver).resolve(GuiTheme.VANILLA, true))
         assertNull(GuildDialogTheme(resolver).resolve(GuiTheme.ENTHUSIA, false))
         assertTrue(names.isEmpty())
@@ -36,40 +41,42 @@ internal class GuildDialogThemeTest {
 
     @Test
     fun incompleteThemeStaysPlain() {
-        val partial = NexoGlyphResolver { name ->
-            if (name.endsWith("footer")) null else resolver.resolve(name)
-        }
+        val partial =
+            NexoGlyphResolver { name ->
+                if (name.endsWith("footer")) null else resolver.resolve(name)
+            }
         assertNull(GuildDialogTheme(partial).resolve(GuiTheme.ENTHUSIA, true))
     }
 
     @Test
     fun invalidOrEmojiGlyphStaysPlain() {
         for (glyph in listOf(
-            ResolvedNexoGlyph("\uE400", "bad font", false),
-            ResolvedNexoGlyph("\uE400", "lumaguilds:dialogs", true),
-            ResolvedNexoGlyph("", "lumaguilds:dialogs", false),
+            ResolvedNexoGlyph(TEST_CHARACTER, "bad font", false),
+            ResolvedNexoGlyph(TEST_CHARACTER, TEST_FONT, true),
+            ResolvedNexoGlyph("", TEST_FONT, false),
         )) {
             assertNull(GuildDialogTheme { glyph }.resolve(GuiTheme.ENTHUSIA, true))
         }
     }
 
     @Test
-    fun missingPluginAndRetiredStyleAreSafe() {
+    fun pluginAndLegacyFallback() {
         assertNull(GuildDialogTheme { throw NoClassDefFoundError("Nexo") }.resolve(GuiTheme.ENTHUSIA, true))
         assertNotNull(GuildDialogTheme(resolver).resolve(GuiTheme.NEUTRAL, true))
-        assertTrue(names.filterNot { it == "guild_dialog_spacer" }.all { it.startsWith("guild_dialog_enthusia_") })
+        assertTrue(names.filterNot { it == SPACER_ID }.all { it.startsWith("guild_dialog_enthusia_") })
     }
 
     @Test
     fun missingSpacerStaysPlain() {
-        val missing = NexoGlyphResolver { name ->
-            if (name == "guild_dialog_spacer") null else resolver.resolve(name)
-        }
+        val missing =
+            NexoGlyphResolver { name ->
+                if (name == SPACER_ID) null else resolver.resolve(name)
+            }
         assertNull(GuildDialogTheme(missing).resolve(GuiTheme.ENTHUSIA, true))
     }
 
     @Test
-    fun defaultLookupWithoutNexoStaysPlain() {
+    fun defaultLookupFallsBack() {
         assertNull(GuildDialogTheme().resolve(GuiTheme.ENTHUSIA, false))
         assertNull(GuildDialogTheme().resolve(GuiTheme.ENTHUSIA, true))
     }
