@@ -24,7 +24,6 @@ internal class RecruitmentDialogMenuTest {
     private val player = mockk<Player>(relaxed = true)
     private val lang = mockk<LangService>()
     private var renderedPage: GuildDialogPage? = null
-    private val rendered get() = requireNotNull(renderedPage)
     private val presenter =
         GuildDialogPresenter { _, page, _, _ ->
             renderedPage = page
@@ -49,12 +48,13 @@ internal class RecruitmentDialogMenuTest {
         org.mockbukkit.mockbukkit.MockBukkit.unmock()
     }
 
-    private fun menu() =
-        RecruitmentDialogMenu(
+    private fun menu(): RecruitmentDialogMenu {
+        return RecruitmentDialogMenu(
             controller,
             RecruitmentDialogCallbacks({ true }, { exits++ }, { closes++ }),
             presenter,
         )
+    }
 
     @Test
     fun boundedPagesKeepResults() {
@@ -62,8 +62,8 @@ internal class RecruitmentDialogMenuTest {
         controller.page = 2
         controller.screen = RecruitmentScreen.BROWSE
         assertTrue(menu().show(RecruitmentView(BROWSE_TITLE, entries, emptyList())))
-        assertEquals(2, rendered.items.size)
-        val text = PlainTextComponentSerializer.plainText().serialize(rendered.items.first().text)
+        assertEquals(2, requireNotNull(renderedPage).items.size)
+        val text = PlainTextComponentSerializer.plainText().serialize(requireNotNull(renderedPage).items.first().text)
         assertTrue(text.contains("Guild 7"))
         assertTrue(text.contains("Fee"))
         assertTrue(!text.contains("Pitch"))
@@ -76,10 +76,10 @@ internal class RecruitmentDialogMenuTest {
         val details = listOf("Guild", "Mode", "Slots", "Level", "100 coins", "Confirm this quote")
         val view = RecruitmentView("Confirm", listOf(RecruitmentButton("Pay", details) { confirms++ }), emptyList())
         menu().show(view)
-        val text = PlainTextComponentSerializer.plainText().serialize(rendered.items.single().text)
+        val text = PlainTextComponentSerializer.plainText().serialize(requireNotNull(renderedPage).items.single().text)
         assertTrue(text.contains("100 coins"))
         assertTrue(text.contains("Confirm this quote"))
-        rendered.actions.first().action()
+        requireNotNull(renderedPage).actions.first().action()
         assertEquals(1, confirms)
     }
 
@@ -88,7 +88,9 @@ internal class RecruitmentDialogMenuTest {
         controller.screen = RecruitmentScreen.BROWSE
         controller.query = "Everlights"
         menu().show(RecruitmentView(BROWSE_TITLE, emptyList(), emptyList()))
-        val context = PlainTextComponentSerializer.plainText().serialize(rendered.items.single().text)
+        val context = PlainTextComponentSerializer.plainText().serialize(
+            requireNotNull(renderedPage).items.single().text,
+        )
         assertTrue(context.contains("Everlights"))
     }
 
@@ -96,7 +98,7 @@ internal class RecruitmentDialogMenuTest {
     fun backPreservesNavigation() {
         controller.screen = RecruitmentScreen.BROWSE
         menu().show(RecruitmentView(BROWSE_TITLE, emptyList(), emptyList()))
-        rendered.back.action()
+        requireNotNull(renderedPage).back.action()
         assertEquals(1, exits)
         assertEquals(0, closes)
     }
