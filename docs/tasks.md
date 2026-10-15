@@ -1016,3 +1016,8 @@ Menu audit follow-up (REQ-063):
   - Tag: `TDD`
   - References: REC-019 in `docs/plans/guild-recruitment.md`.
   - Evidence: page ownership, authorization revocation, Unicode/word wrapping and inventory dismissal regressions; full local check passes. Modern Java dialog and Bedrock native form serialization compile against existing APIs; real client acceptance remains outstanding. Private interactive preview checked at 320, 390 and 760 pixels with all three client presentations. No server upload, reload or restart.
+
+- [x] **MODERN-GUILD-PRESENTATION** Native recruitment pages, grouped settings, progression overview and per-quest rankings with guarded callbacks.
+  - Tag: `TDD`
+  - References: REC-020 through REC-023 in `docs/plans/2026-10-14-modern-guild-menus.md`.
+  - Evidence: 1,856 local cases, zero failures/errors, 16 existing optional skips; architecture/localization checks pass. Nexo item models are reused without public artwork. Free-form frames/graphs remain proposed; hosted CI, TEST staging and real client acceptance are separate gates.

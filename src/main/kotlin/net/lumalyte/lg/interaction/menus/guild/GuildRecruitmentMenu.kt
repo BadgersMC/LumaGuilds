@@ -48,6 +48,13 @@ internal class GuildRecruitmentMenu(
     private val inputListener: ChatInputListener by inject()
     private val lang: LangService by inject()
     private val emojis: NexoEmojiService by inject()
+    private val nativeMenu = RecruitmentDialogMenu(controller, {
+        player.isOnline && activeNavigation == navigator.currentNavigationToken()
+    }, { navigator.goBack() }, {
+        navigator.clearMenuStack()
+        player.closeInventory()
+    })
+    private var activeNavigation = -1L
 
     /** Refreshes current state without exposing a stale private inbox. */
     override fun open() {
@@ -105,6 +112,10 @@ internal class GuildRecruitmentMenu(
     }
 
     private fun showBoard(view: RecruitmentView) {
+        activeNavigation = navigator.currentNavigationToken()
+        if (net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.supportsDialog(player) && nativeMenu.show(view)) {
+            return
+        }
         val filtered = view.quickFilters.isNotEmpty()
         val capacity = if (filtered) FILTERED_CAPACITY else BOARD_CAPACITY
         val offset = if (filtered) 1 else 0

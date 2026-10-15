@@ -54,14 +54,32 @@ class GuildSettingsMenu(
     private val reconnectSettings: GuildChatReconnectSettingsService by inject()
     private val lang: LangService by inject()
     private val nexoEmojiService: NexoEmojiService by inject()
+    private var settingsGroup: GuildSettingsGroup? = null
+    private val settingsDialog by lazy { GuildSettingsDialog(lang) }
     // Holiday styles (REQ-121) are locked until earned; without the ledger they stay locked.
     private val themeAccess by lazy {
         getKoin().getOrNull<net.lumalyte.lg.application.services.GuildCosmeticUnlockService>()
     }
 
     override fun open() {
+        if (guildService.getPlayerGuilds(player.uniqueId).none { it.id == guild.id }) {
+            menuNavigator.goBack()
+            return
+        }
         // Refresh guild data from database to ensure we have latest changes
         guild = guildService.getGuild(guild.id) ?: guild
+
+        if (settingsGroup == null && net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.supportsDialog(player)) {
+            val token = menuNavigator.currentNavigationToken()
+            if (settingsDialog.show(player, {
+                player.isOnline && menuNavigator.isNavigationCurrent(token) &&
+                    guildService.getPlayerGuilds(player.uniqueId).any { it.id == guild.id }
+            }, { settingsGroup = it; open() }, {
+                menuNavigator.openMenu(menuFactory.createLfgBrowserMenu(menuNavigator, player))
+            }, {
+                menuNavigator.openMenu(menuFactory.createPlayerChatSettingsMenu(menuNavigator, player))
+            }, { menuNavigator.goBack() })) return
+        }
 
         // Create 6x9 double chest GUI
         val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.guild_settings.title", "guild" to guild.name)))
@@ -75,15 +93,27 @@ class GuildSettingsMenu(
         gui.addPane(pane)
 
         // Row 0-1: Guild Information Section
-        addGuildInfoSection(pane)
+        if (settingsGroup == null || settingsGroup == GuildSettingsGroup.INFORMATION) addGuildInfoSection(pane)
 
         // Row 2-3: Appearance Section
-        addAppearanceSection(pane)
+        if (settingsGroup == null || settingsGroup == GuildSettingsGroup.APPEARANCE) addAppearanceSection(pane)
 
         // Row 4-5: Location & Mode Section
-        addLocationModeSection(pane)
+        if (settingsGroup == null || settingsGroup == GuildSettingsGroup.ACCESS) addLocationModeSection(pane)
+        if (settingsGroup != null) addGroupNavigation(pane)
 
         gui.show(player)
+    }
+
+    private fun addGroupNavigation(pane: StaticPane) {
+        GuildSettingsGroup.entries.forEachIndexed { row, entry ->
+            val item = NexoItemProvider.getItemStackOrFallback(entry.icon) { ItemStack.of(Material.BOOK) }
+                .name(entry.label(lang))
+            pane.addItem(GuiItem(item) { settingsGroup = entry; open() }, 8, row)
+        }
+        val back = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
+            .name(lang.gui("recruitment.dialog.back"))
+        pane.addItem(GuiItem(back) { settingsGroup = null; open() }, 8, 5)
     }
 
     private fun addReconnectControl(pane: StaticPane) {
@@ -524,7 +554,7 @@ class GuildSettingsMenu(
             .lore(lang.gui("menu.guild_settings.item.back.lore"))
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.goBack()
+            if (settingsGroup != null) { settingsGroup = null; open() } else menuNavigator.goBack()
         }
         pane.addItem(backGuiItem, 4, 5)
     }

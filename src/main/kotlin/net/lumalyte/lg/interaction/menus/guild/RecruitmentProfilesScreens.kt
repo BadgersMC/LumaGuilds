@@ -96,6 +96,7 @@ internal fun RecruitmentController.discord(): List<RecruitmentButton> {
             require(service.listings.profile(selectedGuild()).discordInvite == invite) { "Invite changed" }
             player.closeInventory()
             player.sendMessage(Component.text(invite).clickEvent(ClickEvent.openUrl(invite)))
+            refresh()
         },
     )
 }
