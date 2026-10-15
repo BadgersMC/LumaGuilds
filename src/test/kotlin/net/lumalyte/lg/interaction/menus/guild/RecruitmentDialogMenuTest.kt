@@ -88,9 +88,10 @@ internal class RecruitmentDialogMenuTest {
         controller.screen = RecruitmentScreen.BROWSE
         controller.query = "Everlights"
         menu().show(RecruitmentView(BROWSE_TITLE, emptyList(), emptyList()))
-        val context = PlainTextComponentSerializer.plainText().serialize(
-            requireNotNull(renderedPage).items.single().text,
-        )
+        val context =
+            PlainTextComponentSerializer.plainText().serialize(
+                requireNotNull(renderedPage).items.single().text,
+            )
         assertTrue(context.contains("Everlights"))
     }
 
