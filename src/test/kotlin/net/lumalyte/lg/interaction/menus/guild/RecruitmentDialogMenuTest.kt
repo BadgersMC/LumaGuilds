@@ -23,7 +23,8 @@ internal class RecruitmentDialogMenuTest {
     private val lang = mockk<LangService>()
     private var renderedPage: GuildDialogPage? = null
     private val rendered get() = requireNotNull(renderedPage)
-    private val presenter = GuildDialogPresenter { _, page, _, _ ->
+    private val presenter =
+        GuildDialogPresenter { _, page, _, _ ->
         renderedPage = page
         true
     }

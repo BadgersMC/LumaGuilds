@@ -44,7 +44,8 @@ internal class GuildSettingsDialog(private val lang: LangService) {
     }
 
     private fun actions(callbacks: GuildSettingsActions): List<GuildDialogAction> {
-        val actions = GuildSettingsGroup.entries.map { entry ->
+        val actions =
+            GuildSettingsGroup.entries.map { entry ->
             GuildDialogAction(entry.label(lang), Component.empty()) { callbacks.group(entry) }
         } + listOf(
             GuildDialogAction(lang.msg("recruitment.manage"), Component.empty(), callbacks.recruitment),
