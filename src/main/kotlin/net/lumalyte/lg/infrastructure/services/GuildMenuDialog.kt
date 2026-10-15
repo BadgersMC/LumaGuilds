@@ -19,7 +19,11 @@ private const val ITEM_HEIGHT = 32
 private const val TEXT_WIDTH = 280
 private const val ACTION_WIDTH = 180
 
-internal data class GuildDialogItem(val item: ItemStack, val text: Component)
+internal data class GuildDialogItem(
+    val item: ItemStack,
+    val text: Component,
+    val cardLines: List<Component>? = null,
+)
 
 internal data class GuildDialogAction(val label: Component, val tooltip: Component, val action: () -> Unit)
 
@@ -30,6 +34,7 @@ internal data class GuildDialogPage(
     val back: GuildDialogAction,
     val columns: Int = 1,
     val theme: net.lumalyte.lg.utils.GuiTheme = net.lumalyte.lg.utils.GuiTheme.DEFAULT,
+    val search: GuildDialogSearch? = null,
 )
 
 /** Uses public Paper dialog APIs; Nexo item models remain owned by the private pack. */
@@ -82,7 +87,8 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         return Dialog.create { factory ->
             factory.empty().base(dialogBase(page, skin)).type(
                 DialogType.multiAction(
-                    page.actions.map { button(it, callbacks, skin) },
+                    listOfNotNull(page.search?.let { searchButton(it, callbacks, skin) }) +
+                        page.actions.map { button(it, callbacks, skin, page.search != null) },
                     button(page.back, callbacks, skin),
                     page.columns,
                 ),
@@ -91,19 +97,21 @@ internal class GuildMenuDialog : GuildDialogPresenter {
     }
 
     private fun dialogBase(page: GuildDialogPage, skin: GuildDialogSkin?): DialogBase {
-        val bodies = page.items.map(::itemBody)
+        val bodies = page.items.map { itemBody(it, skin) }
         return DialogBase.builder(page.title.color(guildDialogAccent(page.theme)))
             .canCloseWithEscape(true)
             .afterAction(DialogBase.DialogAfterAction.NONE)
             .body(skin?.body(bodies) ?: bodies)
+            .inputs(page.search?.inputs() ?: emptyList())
             .build()
     }
 
-    private fun itemBody(item: GuildDialogItem): DialogBody {
+    private fun itemBody(item: GuildDialogItem, skin: GuildDialogSkin?): DialogBody {
+        val description = item.cardLines?.let { skin?.card(it) } ?: item.text
         return DialogBody.item(item.item.clone()).width(ITEM_WIDTH).height(ITEM_HEIGHT)
             .showDecorations(false)
             .showTooltip(false)
-            .description(DialogBody.plainMessage(item.text, TEXT_WIDTH))
+            .description(DialogBody.plainMessage(description, TEXT_WIDTH))
             .build()
     }
 
@@ -111,9 +119,10 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         action: GuildDialogAction,
         callbacks: GuildDialogCallbacks,
         skin: GuildDialogSkin?,
+        board: Boolean = false,
     ): ActionButton {
         return ActionButton.builder(skin?.label(action.label) ?: action.label)
-            .width(ACTION_WIDTH)
+            .width(if (board) BOARD_CONTROL_WIDTH else ACTION_WIDTH)
             .tooltip(action.tooltip)
             .action(
                 DialogAction.customClick({ _, audience ->
@@ -129,6 +138,29 @@ internal class GuildMenuDialog : GuildDialogPresenter {
             )
             .build()
     }
+
+    private fun searchButton(
+        search: GuildDialogSearch,
+        callbacks: GuildDialogCallbacks,
+        skin: GuildDialogSkin?,
+    ): ActionButton = ActionButton.builder(skin?.label(search.submitLabel) ?: search.submitLabel)
+        .width(BOARD_CONTROL_WIDTH)
+        .action(
+            DialogAction.customClick({ response, audience ->
+                if (audience is Player && audience.uniqueId == callbacks.player.uniqueId) {
+                    val query = response.getText(BOARD_QUERY_KEY)
+                    val category = response.getText(BOARD_CATEGORY_KEY)
+                    Bukkit.getScheduler().runTask(
+                        PluginKeys.getPlugin(),
+                        Runnable {
+                            dispatch(audience, callbacks) {
+                                if (!search.accept(query, category)) callbacks.failure()
+                            }
+                        },
+                    )
+                }
+            }, ClickCallback.Options.builder().uses(1).lifetime(LIFETIME).build()),
+        ).build()
 
     @Suppress("TooGenericExceptionCaught") // Callback boundary fails closed instead of exposing private data.
     private fun dispatch(

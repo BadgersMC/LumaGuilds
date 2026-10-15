@@ -26,7 +26,11 @@ internal class GuildDialogTheme(
     fun resolve(theme: GuiTheme): GuildDialogSkin? {
         val resolved = theme.resolved()
         return if (resolved.hasBackground) {
-            parts(resolved)?.let { GuildDialogSkin(it, guildDialogAccent(resolved)) }
+            parts(resolved)?.let {
+                GuildDialogSkin(it, guildDialogAccent(resolved)) {
+                    GuildDialogCards.resolve(resolver, resolved.name.lowercase())
+                }
+            }
         } else {
             null
         }
@@ -56,13 +60,21 @@ internal class GuildDialogTheme(
     }
 }
 
-private fun ResolvedNexoGlyph.isDialogArt(): Boolean =
+internal fun ResolvedNexoGlyph.isDialogArt(): Boolean =
     !isEmoji && font == DIALOG_ART_FONT && character.codePointCount(0, character.length) == 1
 
-private fun ResolvedNexoGlyph.matchesId(expected: String): Boolean = id == null || id == expected
+internal fun ResolvedNexoGlyph.matchesId(expected: String): Boolean = id == null || id == expected
 
 /** Art occupies explicit native text lines and never changes the action hitboxes. */
-internal class GuildDialogSkin(private val parts: Map<String, Component>, val accent: NamedTextColor) {
+internal class GuildDialogSkin(
+    private val parts: Map<String, Component>,
+    val accent: NamedTextColor,
+    cards: () -> GuildDialogCards? = { null },
+) {
+    private val cardArt by lazy(cards)
+
+    fun card(lines: List<Component>): Component? = cardArt?.render(lines)
+
     fun body(content: List<DialogBody>): List<DialogBody> {
         return buildList {
             add(band("header", true))

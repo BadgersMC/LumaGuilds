@@ -7678,6 +7678,11 @@ onboarding:
     stalls: "Guild Stalls shows authoritative ownership and member access, or explains unavailable Market data."
 
 recruitment:
+  category: "Activity"
+  category_quests: "Quests"
+  category_social: "Social"
+  update_results: "Update results"
+  open_guild: "View %guild%"
   dialog:
     navigation: Menu Navigation
     back: Back to Parent Menu
