@@ -8,8 +8,7 @@ import io.papermc.paper.registry.data.dialog.body.DialogBody
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickCallback
-import net.lumalyte.lg.common.PluginKeys
-import org.bukkit.Bukkit
+import net.kyori.adventure.text.event.ClickEvent
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import java.time.Duration
@@ -23,6 +22,7 @@ internal data class GuildDialogItem(
     val item: ItemStack,
     val text: Component,
     val cardLines: List<Component>? = null,
+    val onClick: GuildDialogAction? = null,
 )
 
 internal data class GuildDialogAction(val label: Component, val tooltip: Component, val action: () -> Unit)
@@ -39,15 +39,13 @@ internal data class GuildDialogPage(
 
 /** Uses public Paper dialog APIs; Nexo item models remain owned by the private pack. */
 internal fun interface GuildDialogPresenter {
-    fun show(player: Player, page: GuildDialogPage, valid: () -> Boolean, failure: () -> Unit): Boolean
+    fun show(
+        player: Player,
+        page: GuildDialogPage,
+        valid: () -> Boolean,
+        failure: () -> Unit,
+    ): Boolean
 }
-
-private data class GuildDialogCallbacks(
-    val player: Player,
-    val session: GuildDialogSession,
-    val revision: Int,
-    val failure: () -> Unit,
-)
 
 private class GuildDialogAudience(private val player: Player, valid: () -> Boolean) {
     private var inventory: org.bukkit.inventory.Inventory? = null
@@ -80,15 +78,22 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         }
     }
 
-    private fun renderFailed(current: GuildDialogSession, error: Exception): Boolean {
+    private fun renderFailed(
+        current: GuildDialogSession,
+        error: Exception,
+    ): Boolean {
         current.close()
         org.slf4j.LoggerFactory.getLogger(javaClass).warn("Guild dialog rendering failed", error)
         return false
     }
 
-    private fun createDialog(page: GuildDialogPage, callbacks: GuildDialogCallbacks, skin: GuildDialogSkin?): Dialog {
+    private fun createDialog(
+        page: GuildDialogPage,
+        callbacks: GuildDialogCallbacks,
+        skin: GuildDialogSkin?,
+    ): Dialog {
         return Dialog.create { factory ->
-            factory.empty().base(dialogBase(page, skin)).type(
+            factory.empty().base(dialogBase(page, callbacks, skin)).type(
                 DialogType.multiAction(
                     listOfNotNull(page.search?.let { searchButton(it, callbacks, skin) }) +
                         page.actions.map { button(it, callbacks, skin, page.search != null) },
@@ -99,22 +104,34 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         }
     }
 
-    private fun dialogBase(page: GuildDialogPage, skin: GuildDialogSkin?): DialogBase {
-        val bodies = page.items.map { itemBody(it, skin) }
+    private fun dialogBase(
+        page: GuildDialogPage,
+        callbacks: GuildDialogCallbacks,
+        skin: GuildDialogSkin?,
+    ): DialogBase {
+        val bodies = page.items.map { itemBody(it, callbacks, skin) }
         return DialogBase.builder(page.title.color(guildDialogAccent(page.theme)))
             .canCloseWithEscape(true)
-            .afterAction(DialogBase.DialogAfterAction.NONE)
+            .afterAction(DialogBase.DialogAfterAction.CLOSE)
             .body(skin?.body(bodies) ?: bodies)
             .inputs(page.search?.inputs() ?: emptyList())
             .build()
     }
 
-    private fun itemBody(item: GuildDialogItem, skin: GuildDialogSkin?): DialogBody {
+    private fun itemBody(
+        item: GuildDialogItem,
+        callbacks: GuildDialogCallbacks,
+        skin: GuildDialogSkin?,
+    ): DialogBody {
         val description = item.cardLines?.let { skin?.card(it) } ?: item.text
+        val linked =
+            clickableGuildDialogCard(description, item.onClick) { action ->
+                ClickEvent.callback({ audience -> callbacks.submit(audience, action.action) }, callbackOptions())
+            }
         return DialogBody.item(item.item.clone()).width(ITEM_WIDTH).height(ITEM_HEIGHT)
             .showDecorations(false)
             .showTooltip(false)
-            .description(DialogBody.plainMessage(description, TEXT_WIDTH))
+            .description(DialogBody.plainMessage(linked, TEXT_WIDTH))
             .build()
     }
 
@@ -129,15 +146,8 @@ internal class GuildMenuDialog : GuildDialogPresenter {
             .tooltip(action.tooltip)
             .action(
                 DialogAction.customClick({ _, audience ->
-                    if (audience is Player && audience.uniqueId == callbacks.player.uniqueId) {
-                        Bukkit.getScheduler().runTask(
-                            PluginKeys.getPlugin(),
-                            Runnable {
-                                dispatch(audience, callbacks, action.action)
-                            },
-                        )
-                    }
-                }, ClickCallback.Options.builder().uses(1).lifetime(LIFETIME).build()),
+                    callbacks.submit(audience, action.action)
+                }, callbackOptions()),
             )
             .build()
     }
@@ -153,38 +163,25 @@ internal class GuildMenuDialog : GuildDialogPresenter {
             .build()
     }
 
-    private fun searchAction(search: GuildDialogSearch, callbacks: GuildDialogCallbacks): DialogAction {
+    private fun searchAction(
+        search: GuildDialogSearch,
+        callbacks: GuildDialogCallbacks,
+    ): DialogAction {
         return DialogAction.customClick({ response, audience ->
             if (audience is Player && audience.uniqueId == callbacks.player.uniqueId) {
                 val query = response.getText(BOARD_QUERY_KEY)
                 val category = response.getText(BOARD_CATEGORY_KEY)
-                Bukkit.getScheduler().runTask(
-                    PluginKeys.getPlugin(),
-                    Runnable {
-                        dispatch(audience, callbacks) {
-                            if (!search.accept(query, category)) callbacks.failure()
-                        }
-                    },
-                )
+                callbacks.submit(audience) {
+                    if (!search.accept(query, category)) callbacks.failure()
+                }
             }
-        }, ClickCallback.Options.builder().uses(1).lifetime(LIFETIME).build())
+        }, callbackOptions())
     }
 
-    @Suppress("TooGenericExceptionCaught") // Callback boundary fails closed instead of exposing private data.
-    private fun dispatch(actor: Player, callbacks: GuildDialogCallbacks, action: () -> Unit) {
-        try {
-            if (callbacks.session.consume(actor.uniqueId, callbacks.revision, System.currentTimeMillis())) action()
-        } catch (error: Exception) {
-            callbacks.session.close()
-            actor.closeDialog()
-            org.slf4j.LoggerFactory.getLogger(javaClass).warn(
-                "Guild dialog action failed for {}",
-                actor.uniqueId,
-                error,
-            )
-            callbacks.failure()
-        }
-    }
+    private fun callbackOptions(): ClickCallback.Options =
+        ClickCallback.Options.builder().uses(
+            1,
+        ).lifetime(LIFETIME).build()
 
     private companion object {
         val LIFETIME: Duration = Duration.ofMinutes(2)

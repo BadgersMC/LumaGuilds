@@ -7811,6 +7811,9 @@ recruitment:
     updated: "<gold>Recruitment updated: <offers> join offers and <pending> applications awaiting your review. <yellow>Click to open recruitment."
 
 guild_dialogs:
+  quests:
+    rankings: "<gold>Weekly rankings"
+    choose_ranking: "<gray>Choose a quest to view its weekly guild standings."
   settings:
     title: "<gold>Guild Settings"
     description: "<gray>Choose a category. Guild editors retain their existing permissions; personal chat settings affect only you."

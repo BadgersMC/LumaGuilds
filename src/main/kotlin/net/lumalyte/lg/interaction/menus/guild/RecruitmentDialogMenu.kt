@@ -2,6 +2,7 @@ package net.lumalyte.lg.interaction.menus.guild
 
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.lumalyte.lg.infrastructure.services.CLICKABLE_CARDS
 import net.lumalyte.lg.infrastructure.services.GuildDialogAction
 import net.lumalyte.lg.infrastructure.services.GuildDialogItem
 import net.lumalyte.lg.infrastructure.services.GuildDialogPage
@@ -17,6 +18,7 @@ internal class RecruitmentDialogMenu(
     private val controller: RecruitmentController,
     private val callbacks: RecruitmentDialogCallbacks,
     private val dialog: GuildDialogPresenter = GuildMenuDialog(),
+    private val clickableCards: Boolean = CLICKABLE_CARDS,
 ) {
     fun show(view: RecruitmentView): Boolean {
         val pages = maxOf(1, (view.items.size + controller.dialogPageSize() - 1) / controller.dialogPageSize())
@@ -25,7 +27,7 @@ internal class RecruitmentDialogMenu(
         return present(
             GuildDialogPage(
                 Component.text("${view.title} ${controller.page + 1}/$pages"),
-                searchContext() + entries.nativeBodies(controller.screen),
+                searchContext() + bodies(entries),
                 pageActions(view, pages),
                 GuildDialogAction(
                     Component.text(controller.lang.raw("recruitment.dialog.back")),
@@ -39,6 +41,16 @@ internal class RecruitmentDialogMenu(
         )
     }
 
+    private fun isCardLink(button: RecruitmentButton): Boolean =
+        clickableCards && controller.screen == RecruitmentScreen.BROWSE &&
+            button.guild != null && button.isInteractive()
+
+    private fun bodies(entries: List<RecruitmentButton>): List<GuildDialogItem> =
+        entries.filter { !it.isInteractive() || it.details.isNotEmpty() || isCardLink(it) }
+            .map { button ->
+                button.nativeBody(controller.screen).copy(onClick = if (isCardLink(button)) action(button) else null)
+            }
+
     private fun searchContext(): List<GuildDialogItem> {
         if (controller.screen != RecruitmentScreen.BROWSE || controller.query.isBlank()) return emptyList()
         return listOf(
@@ -49,10 +61,13 @@ internal class RecruitmentDialogMenu(
         )
     }
 
-    private fun pageActions(view: RecruitmentView, pages: Int): List<GuildDialogAction> {
+    private fun pageActions(
+        view: RecruitmentView,
+        pages: Int,
+    ): List<GuildDialogAction> {
         val actions = mutableListOf<GuildDialogAction>()
         val entries = view.items.drop(controller.page * controller.dialogPageSize()).take(controller.dialogPageSize())
-        for (button in entries.filter { it.isInteractive() }) actions += action(button)
+        for (button in entries.filter { it.isInteractive() && !isCardLink(it) }) actions += action(button)
         actions += extraActions(view)
         if (controller.page > 0) {
             actions += pageAction(-1, Component.text(controller.lang.raw("recruitment.previous")))
@@ -137,7 +152,10 @@ internal class RecruitmentDialogMenu(
         ) { controller.run(button.action) }
     }
 
-    private fun pageAction(delta: Int, label: Component): GuildDialogAction {
+    private fun pageAction(
+        delta: Int,
+        label: Component,
+    ): GuildDialogAction {
         return GuildDialogAction(label, Component.empty()) {
             controller.page += delta
             controller.refresh()
@@ -206,6 +224,3 @@ internal data class RecruitmentDialogCallbacks(
     val back: () -> Unit,
     val close: () -> Unit,
 )
-
-private fun List<RecruitmentButton>.nativeBodies(screen: RecruitmentScreen): List<GuildDialogItem> =
-    filter { !it.isInteractive() || it.details.isNotEmpty() }.map { it.nativeBody(screen) }

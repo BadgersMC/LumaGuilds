@@ -15,6 +15,11 @@ import net.lumalyte.lg.domain.entities.QuestDefinition
 import net.lumalyte.lg.domain.entities.QuestRewardTier
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.lumalyte.lg.infrastructure.services.GuildDialogAction
+import net.lumalyte.lg.infrastructure.services.GuildDialogItem
+import net.lumalyte.lg.infrastructure.services.GuildDialogPage
+import net.lumalyte.lg.infrastructure.services.GuildMenuDialog
+import net.lumalyte.lg.infrastructure.services.RecruitmentPresentation
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.MenuTitleBuilder
@@ -35,6 +40,8 @@ class GuildQuestsMenu(
     private val lang: LangService
 ) : Menu {
     private var page = 0
+    private var nativePage = 0
+    private val nativeDialog = GuildMenuDialog()
     private val slots = listOf(20, 22, 24, 29, 31, 33)
 
     override fun open() {
@@ -66,6 +73,7 @@ class GuildQuestsMenu(
                     "status" to if (questService.isWeeklyBonusAwarded(guild.id)) "✓" else "…")
             ))
         }}
+        if (RecruitmentPresentation.supportsDialog(player) && showNativeQuests(active, header, progress)) return
         pane.addItem(GuiItem(header), 4, 0)
 
         val pageQuests = active.quests.drop(page * slots.size).take(slots.size)
@@ -100,6 +108,74 @@ class GuildQuestsMenu(
         gui.show(player)
     }
 
+    private fun openLeaderboard(quest: QuestDefinition) {
+        menuNavigator.openMenu(
+            GuildQuestLeaderboardMenu(menuNavigator, player, guild, quest.id, memberService, guildService, questService, lang),
+        )
+    }
+
+    private fun nativeAction(label: Component, action: () -> Unit): GuildDialogAction =
+        GuildDialogAction(label, Component.empty(), action)
+
+    private fun showNativeQuests(
+        active: net.lumalyte.lg.domain.entities.WeeklyQuestSet,
+        header: ItemStack,
+        progress: Map<String, net.lumalyte.lg.domain.entities.GuildQuestProgress>,
+    ): Boolean {
+        val pages = maxOf(1, (active.quests.size + NATIVE_PAGE_SIZE - 1) / NATIVE_PAGE_SIZE)
+        nativePage = nativePage.coerceIn(0, pages - 1)
+        val quests = active.quests.drop(nativePage * NATIVE_PAGE_SIZE).take(NATIVE_PAGE_SIZE).map { quest ->
+            val item = questItem(quest, progress[quest.id])
+            item to GuildDialogAction(
+                lang.gui("menu.quests.item.quest.name", "objective" to QuestDisplayFormatter.name(quest)),
+                Component.join(net.kyori.adventure.text.JoinConfiguration.newlines(), item.lore() ?: emptyList()),
+            ) { openLeaderboard(quest) }
+        }
+        val controls = buildList {
+            add(nativeAction(lang.gui("guild_dialogs.quests.rankings")) { showNativeRankings(active) })
+            if (nativePage > 0) add(nativeAction(lang.gui("recruitment.previous")) { nativePage--; open() })
+            if (nativePage + 1 < pages) add(nativeAction(lang.gui("recruitment.next")) { nativePage++; open() })
+        }
+        val title = lang.gui("menu.quests.title", "guild" to guild.name)
+            .append(Component.text(" ${nativePage + 1}/$pages"))
+        return presentNative(
+            guildQuestDialogPage(
+                title, header, quests, controls,
+                nativeAction(lang.gui("menu.quests.item.back.name")) { menuNavigator.goBack() }, guild.guiTheme,
+            ),
+            active.weekId,
+        )
+    }
+
+    private fun showNativeRankings(active: net.lumalyte.lg.domain.entities.WeeklyQuestSet) {
+        val description = GuildDialogItem(
+            NexoItemProvider.getItemStackOrFallback("lg_nav_quests") { ItemStack.of(Material.BOOK) },
+            lang.gui("guild_dialogs.quests.choose_ranking"),
+        )
+        val actions = active.quests.map { quest ->
+            nativeAction(lang.gui("menu.quests.item.quest.name", "objective" to QuestDisplayFormatter.name(quest))) {
+                openLeaderboard(quest)
+            }
+        }
+        val shown = presentNative(
+            GuildDialogPage(
+                lang.gui("guild_dialogs.quests.rankings"), listOf(description), actions,
+                nativeAction(lang.gui("menu.quests.item.back.name"), ::open), theme = guild.guiTheme,
+            ),
+            active.weekId,
+        )
+        if (!shown) open()
+    }
+
+    private fun presentNative(view: GuildDialogPage, weekId: String): Boolean {
+        val token = menuNavigator.currentNavigationToken()
+        return nativeDialog.show(player, view, {
+            player.isOnline && menuNavigator.isNavigationCurrent(token) &&
+                memberService.getMember(player.uniqueId, guild.id) != null &&
+                player.hasPermission("lumaguilds.guild.quests") && questService.activeQuestSet()?.weekId == weekId
+        }) { player.sendMessage(lang.msg("menu.quests.feedback.no_quests")) }
+    }
+
     private fun questItem(quest: QuestDefinition, progress: net.lumalyte.lg.domain.entities.GuildQuestProgress?): ItemStack {
         val count = progress?.currentCount ?: 0
         val percent = if (quest.targetCount > 0) ((count.coerceAtMost(quest.targetCount) * 100) / quest.targetCount).toInt() else 0
@@ -130,6 +206,10 @@ class GuildQuestsMenu(
         QuestRewardTier.CHALLENGING -> lang.gui("menu.quests.tier.challenging")
         QuestRewardTier.HEADLINE -> lang.gui("menu.quests.tier.headline")
         QuestRewardTier.CONDITIONED -> lang.gui("menu.quests.tier.conditioned")
+    }
+
+    private companion object {
+        const val NATIVE_PAGE_SIZE = 3
     }
 
 }
