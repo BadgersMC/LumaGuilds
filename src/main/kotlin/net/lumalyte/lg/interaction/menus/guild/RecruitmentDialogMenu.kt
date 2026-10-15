@@ -13,12 +13,6 @@ import org.bukkit.Material
 import org.bukkit.inventory.ItemStack
 
 /** Native presentation delegates all actions to the same reauthorized controller as inventories. */
-internal data class RecruitmentDialogCallbacks(
-    val valid: () -> Boolean,
-    val back: () -> Unit,
-    val close: () -> Unit,
-)
-
 internal class RecruitmentDialogMenu(
     private val controller: RecruitmentController,
     private val callbacks: RecruitmentDialogCallbacks,
@@ -170,3 +164,9 @@ internal class RecruitmentDialogMenu(
         }
     }
 }
+
+internal data class RecruitmentDialogCallbacks(
+    val valid: () -> Boolean,
+    val back: () -> Unit,
+    val close: () -> Unit,
+)
