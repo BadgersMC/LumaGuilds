@@ -91,10 +91,7 @@ internal class GuildDialogSkin(
             .append(text.colorIfAbsent(accent))
     }
 
-    private fun band(
-        name: String,
-        reserveLine: Boolean,
-    ): DialogBody {
+    private fun band(name: String, reserveLine: Boolean): DialogBody {
         val glyph = parts.getValue(name)
         val text = if (reserveLine) glyph.append(Component.newline()).append(parts.getValue("spacer")) else glyph
         return DialogBody.plainMessage(text, DIALOG_ART_WIDTH)

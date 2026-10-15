@@ -22,10 +22,7 @@ internal class GuildDialogCards(private val parts: Map<String, Component>) {
     }
 
     companion object {
-        fun resolve(
-            resolver: NexoGlyphResolver,
-            style: String,
-        ): GuildDialogCards? {
+        fun resolve(resolver: NexoGlyphResolver, style: String): GuildDialogCards? {
             val parts = mutableMapOf<String, Component>()
             for (part in listOf("card_top", "card_line", "card_bottom")) {
                 val id = "guild_dialog_${style}_$part"

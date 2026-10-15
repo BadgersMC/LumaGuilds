@@ -9,6 +9,7 @@ import kotlin.test.assertTrue
 private const val SEARCH_CATEGORY = "quests"
 private const val ALL_CATEGORY = "all"
 private const val QUERY_SIZE = 64
+private const val OVERSIZED_QUERY = 100
 
 internal class GuildDialogSearchTest {
     @Test
@@ -25,7 +26,7 @@ internal class GuildDialogSearchTest {
             ) { query, category -> submitted = query to category }
         assertFalse(search.accept("name", "forged"))
         assertEquals(null, submitted)
-        assertTrue(search.accept("  " + "a".repeat(100) + "  ", SEARCH_CATEGORY))
+        assertTrue(search.accept("  " + "a".repeat(OVERSIZED_QUERY) + "  ", SEARCH_CATEGORY))
         assertEquals("a".repeat(QUERY_SIZE) to SEARCH_CATEGORY, submitted)
         assertTrue(search.accept(" ", ALL_CATEGORY))
         assertEquals("" to ALL_CATEGORY, submitted)

@@ -25,7 +25,7 @@ internal class RecruitmentDialogMenu(
         return present(
             GuildDialogPage(
                 Component.text("${view.title} ${controller.page + 1}/$pages"),
-                searchContext() + entryBodies(entries),
+                searchContext() + entries.nativeBodies(controller.screen),
                 pageActions(view, pages),
                 GuildDialogAction(
                     Component.text(controller.lang.raw("recruitment.dialog.back")),
@@ -49,10 +49,7 @@ internal class RecruitmentDialogMenu(
         )
     }
 
-    private fun pageActions(
-        view: RecruitmentView,
-        pages: Int,
-    ): List<GuildDialogAction> {
+    private fun pageActions(view: RecruitmentView, pages: Int): List<GuildDialogAction> {
         val actions = mutableListOf<GuildDialogAction>()
         val entries = view.items.drop(controller.page * controller.dialogPageSize()).take(controller.dialogPageSize())
         for (button in entries.filter { it.isInteractive() }) actions += action(button)
@@ -96,10 +93,6 @@ internal class RecruitmentDialogMenu(
         )
     }
 
-    private fun entryBodies(entries: List<RecruitmentButton>): List<GuildDialogItem> {
-        return entries.filter { !it.isInteractive() || it.details.isNotEmpty() }
-            .map { it.nativeBody(controller.screen) }
-    }
 
     private fun showNavigation() {
         val view = controller.view()
@@ -145,10 +138,7 @@ internal class RecruitmentDialogMenu(
         ) { controller.run(button.action) }
     }
 
-    private fun pageAction(
-        delta: Int,
-        label: Component,
-    ): GuildDialogAction {
+    private fun pageAction(delta: Int, label: Component): GuildDialogAction {
         return GuildDialogAction(label, Component.empty()) {
             controller.page += delta
             controller.refresh()
@@ -217,3 +207,7 @@ internal data class RecruitmentDialogCallbacks(
     val back: () -> Unit,
     val close: () -> Unit,
 )
+
+private fun List<RecruitmentButton>.nativeBodies(screen: RecruitmentScreen): List<GuildDialogItem> {
+    return filter { !it.isInteractive() || it.details.isNotEmpty() }.map { it.nativeBody(screen) }
+}

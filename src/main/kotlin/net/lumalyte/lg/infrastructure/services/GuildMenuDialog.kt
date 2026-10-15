@@ -39,12 +39,7 @@ internal data class GuildDialogPage(
 
 /** Uses public Paper dialog APIs; Nexo item models remain owned by the private pack. */
 internal fun interface GuildDialogPresenter {
-    fun show(
-        player: Player,
-        page: GuildDialogPage,
-        valid: () -> Boolean,
-        failure: () -> Unit,
-    ): Boolean
+    fun show(player: Player, page: GuildDialogPage, valid: () -> Boolean, failure: () -> Unit): Boolean
 }
 
 private data class GuildDialogCallbacks(
@@ -91,11 +86,7 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         return false
     }
 
-    private fun createDialog(
-        page: GuildDialogPage,
-        callbacks: GuildDialogCallbacks,
-        skin: GuildDialogSkin?,
-    ): Dialog {
+    private fun createDialog(page: GuildDialogPage, callbacks: GuildDialogCallbacks, skin: GuildDialogSkin?): Dialog {
         return Dialog.create { factory ->
             factory.empty().base(dialogBase(page, skin)).type(
                 DialogType.multiAction(
@@ -108,10 +99,7 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         }
     }
 
-    private fun dialogBase(
-        page: GuildDialogPage,
-        skin: GuildDialogSkin?,
-    ): DialogBase {
+    private fun dialogBase(page: GuildDialogPage, skin: GuildDialogSkin?): DialogBase {
         val bodies = page.items.map { itemBody(it, skin) }
         return DialogBase.builder(page.title.color(guildDialogAccent(page.theme)))
             .canCloseWithEscape(true)
@@ -121,10 +109,7 @@ internal class GuildMenuDialog : GuildDialogPresenter {
             .build()
     }
 
-    private fun itemBody(
-        item: GuildDialogItem,
-        skin: GuildDialogSkin?,
-    ): DialogBody {
+    private fun itemBody(item: GuildDialogItem, skin: GuildDialogSkin?): DialogBody {
         val description = item.cardLines?.let { skin?.card(it) } ?: item.text
         return DialogBody.item(item.item.clone()).width(ITEM_WIDTH).height(ITEM_HEIGHT)
             .showDecorations(false)
@@ -161,33 +146,32 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         search: GuildDialogSearch,
         callbacks: GuildDialogCallbacks,
         skin: GuildDialogSkin?,
-    ): ActionButton =
-        ActionButton.builder(skin?.label(search.submitLabel) ?: search.submitLabel)
+    ): ActionButton {
+        return ActionButton.builder(skin?.label(search.submitLabel) ?: search.submitLabel)
             .width(BOARD_CONTROL_WIDTH)
-            .action(
-                DialogAction.customClick({ response, audience ->
-                    if (audience is Player && audience.uniqueId == callbacks.player.uniqueId) {
-                        val query = response.getText(BOARD_QUERY_KEY)
-                        val category = response.getText(BOARD_CATEGORY_KEY)
-                        Bukkit.getScheduler().runTask(
-                            PluginKeys.getPlugin(),
-                            Runnable {
-                                dispatch(audience, callbacks) {
-                                    if (!search.accept(query, category)) callbacks.failure()
-                                }
-                            },
-                        )
-                    }
-                }, ClickCallback.Options.builder().uses(1).lifetime(LIFETIME).build()),
-            )
+            .action(searchAction(search, callbacks))
             .build()
+    }
+
+    private fun searchAction(search: GuildDialogSearch, callbacks: GuildDialogCallbacks): DialogAction {
+        return DialogAction.customClick({ response, audience ->
+            if (audience is Player && audience.uniqueId == callbacks.player.uniqueId) {
+                val query = response.getText(BOARD_QUERY_KEY)
+                val category = response.getText(BOARD_CATEGORY_KEY)
+                Bukkit.getScheduler().runTask(
+                    PluginKeys.getPlugin(),
+                    Runnable {
+                        dispatch(audience, callbacks) {
+                            if (!search.accept(query, category)) callbacks.failure()
+                        }
+                    },
+                )
+            }
+        }, ClickCallback.Options.builder().uses(1).lifetime(LIFETIME).build())
+    }
 
     @Suppress("TooGenericExceptionCaught") // Callback boundary fails closed instead of exposing private data.
-    private fun dispatch(
-        actor: Player,
-        callbacks: GuildDialogCallbacks,
-        action: () -> Unit,
-    ) {
+    private fun dispatch(actor: Player, callbacks: GuildDialogCallbacks, action: () -> Unit) {
         try {
             if (callbacks.session.consume(actor.uniqueId, callbacks.revision, System.currentTimeMillis())) action()
         } catch (error: Exception) {
