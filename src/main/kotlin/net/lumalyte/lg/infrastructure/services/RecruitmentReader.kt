@@ -19,7 +19,10 @@ internal class RecruitmentReader(
     private var bedrock = false
     private var dialog = false
 
-    fun open(isBedrock: Boolean, supportsDialog: Boolean) {
+    fun open(
+        isBedrock: Boolean,
+        supportsDialog: Boolean,
+    ) {
         bedrock = isBedrock
         dialog = supportsDialog
         show(0)
@@ -42,7 +45,10 @@ internal class RecruitmentReader(
         }
     }
 
-    private fun pageActions(page: Int, revision: Int): RecruitmentReaderActions {
+    private fun pageActions(
+        page: Int,
+        revision: Int,
+    ): RecruitmentReaderActions {
         return RecruitmentReaderActions(
             previousLabel = lang.raw("recruitment.previous"),
             nextLabel = lang.raw("recruitment.next"),
@@ -53,12 +59,18 @@ internal class RecruitmentReader(
         )
     }
 
-    private fun pageAction(page: Int, revision: Int): (() -> Unit)? {
+    private fun pageAction(
+        page: Int,
+        revision: Int,
+    ): (() -> Unit)? {
         if (page !in pages.indices) return null
         return { dispatch(revision) { show(page) } }
     }
 
-    private fun returnToMenu(revision: Int, dismissed: Boolean) {
+    private fun returnToMenu(
+        revision: Int,
+        dismissed: Boolean,
+    ) {
         dispatch(revision) {
             state.close()
             val top: org.bukkit.inventory.Inventory? = player.openInventory.topInventory
@@ -72,7 +84,9 @@ internal class RecruitmentReader(
             net.lumalyte.lg.common.PluginKeys.getPlugin(),
             Runnable {
                 try {
-                    if (state.consume(revision)) action()
+                    if (state.consume(revision)) {
+                        if (dialog) GuildDialogTransitions.dispatch(player, action) else action()
+                    }
                 } catch (error: Exception) {
                     state.close()
                     if (dialog) player.closeDialog()
@@ -85,7 +99,10 @@ internal class RecruitmentReader(
         )
     }
 
-    private fun showBedrock(page: Int, actions: RecruitmentReaderActions) {
+    private fun showBedrock(
+        page: Int,
+        actions: RecruitmentReaderActions,
+    ) {
         val callbacks = mutableListOf(actions.back)
         val text =
             listOfNotNull(

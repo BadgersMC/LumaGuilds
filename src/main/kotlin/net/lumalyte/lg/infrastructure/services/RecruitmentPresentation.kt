@@ -30,7 +30,11 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
                 ?.isNewerThanOrEquals(ClientVersion.V_1_21_6) == true
     }
 
-    fun input(player: Player, fields: RecruitmentTextInput, actions: RecruitmentInputActions) {
+    fun input(
+        player: Player,
+        fields: RecruitmentTextInput,
+        actions: RecruitmentInputActions,
+    ) {
         val skin = GuildDialogTheme().resolve(fields.theme)
         val options = ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(2)).build()
 
@@ -40,7 +44,9 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
                     Bukkit.getScheduler().runTask(
                         net.lumalyte.lg.common.PluginKeys.getPlugin(),
                         Runnable {
-                            if (player.isOnline && actions.valid()) callback(response.getText("answer"))
+                            if (player.isOnline && actions.valid()) {
+                                GuildDialogTransitions.dispatch(player) { callback(response.getText("answer")) }
+                            }
                         },
                     )
                 }
@@ -65,9 +71,13 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
                     )
             },
         )
+        GuildDialogTransitions.shown(player)
     }
 
-    private fun inputBase(fields: RecruitmentTextInput, skin: GuildDialogSkin?): DialogBase =
+    private fun inputBase(
+        fields: RecruitmentTextInput,
+        skin: GuildDialogSkin?,
+    ): DialogBase =
         DialogBase.builder(Component.text(fields.title, guildDialogAccent(fields.theme)))
             .canCloseWithEscape(true)
             .afterAction(DialogBase.DialogAfterAction.NONE)
@@ -81,7 +91,12 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
             )
             .build()
 
-    fun book(player: Player, content: RecruitmentBookContent, valid: () -> Boolean, back: () -> Unit) {
+    fun book(
+        player: Player,
+        content: RecruitmentBookContent,
+        valid: () -> Boolean,
+        back: () -> Unit,
+    ) {
         RecruitmentReader(player, content, valid, back).open(
             PLATFORMS.isBedrockPlayer(player),
             supportsDialog(player),
@@ -89,7 +104,11 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
     }
 
     /** Retains complete validated text and wraps at Unicode code-point boundaries. */
-    internal fun bookPages(lines: List<String>, returnLink: Component, columns: Int = BOOK_COLUMNS): List<Component> {
+    internal fun bookPages(
+        lines: List<String>,
+        returnLink: Component,
+        columns: Int = BOOK_COLUMNS,
+    ): List<Component> {
         val rows =
             lines.flatMap { value ->
                 value.lines().flatMap { line ->

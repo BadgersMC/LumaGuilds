@@ -21,6 +21,15 @@ internal class GuildDialogCallbacksTest {
     private val callbacks = GuildDialogCallbacks(player, state, revision, { failures++ }, { queue += it }, { time })
 
     @Test
+    fun delayedReplacementDoesNotExposeTheUnderlyingInventory() {
+        GuildDialogTransitions.shown(player)
+        callbacks.submit(player) { GuildDialogTransitions.shown(player) }
+        verify(exactly = 0) { player.closeDialog() }
+        queue.single()()
+        verify(exactly = 0) { player.closeDialog() }
+    }
+
+    @Test
     fun schedulesBeforeCheckingAndConsumesOnlyOnceAcrossReplays() {
         var actions = 0
         repeat(2) { callbacks.submit(player) { actions++ } }

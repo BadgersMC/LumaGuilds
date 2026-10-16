@@ -74,6 +74,7 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         return try {
             val skin = GuildDialogTheme().resolve(page.theme)
             player.showDialog(createDialog(page, GuildDialogCallbacks(player, current, revision, failure), skin))
+            GuildDialogTransitions.shown(player)
             audience.captureInventory()
             true
         } catch (error: Exception) {
@@ -136,7 +137,7 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         val bodies = links + page.items.flatMap { itemBodies(it, callbacks, skin) }
         return DialogBase.builder(page.title.color(guildDialogAccent(page.theme)))
             .canCloseWithEscape(true)
-            .afterAction(DialogBase.DialogAfterAction.CLOSE)
+            .afterAction(DialogBase.DialogAfterAction.NONE)
             .body(
                 skin?.referenceBody(page.title, page.subtitle, bodies) ?: (
                     if (page.subtitle == Component.empty()) {

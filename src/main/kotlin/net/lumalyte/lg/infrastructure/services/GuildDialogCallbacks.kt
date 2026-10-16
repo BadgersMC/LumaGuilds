@@ -28,7 +28,7 @@ internal class GuildDialogCallbacks(
     @Suppress("TooGenericExceptionCaught") // Callback boundary closes private screens on adapter failure.
     private fun dispatch(actor: Player, action: () -> Unit) {
         try {
-            if (session.consume(actor.uniqueId, revision, now())) action()
+            if (session.consume(actor.uniqueId, revision, now())) GuildDialogTransitions.dispatch(actor, action)
         } catch (error: Exception) {
             session.close()
             actor.closeDialog()

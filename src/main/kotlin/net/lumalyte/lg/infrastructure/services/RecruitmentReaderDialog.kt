@@ -19,6 +19,7 @@ internal class RecruitmentReaderDialog(
     private val actions: RecruitmentReaderActions,
 ) {
     private val skin = GuildDialogTheme().resolve(content.theme)
+
     private fun heading(): Component {
         return Component.text(
             "${content.title} ${page.number}/${page.count}",
@@ -27,7 +28,10 @@ internal class RecruitmentReaderDialog(
     }
 
     fun show() {
-        fun button(label: String, action: () -> Unit): ActionButton {
+        fun button(
+            label: String,
+            action: () -> Unit,
+        ): ActionButton {
             val text = Component.text(label)
             return ActionButton.builder(skin?.label(text) ?: text).action(
                 DialogAction.customClick({ _, audience ->
@@ -49,6 +53,7 @@ internal class RecruitmentReaderDialog(
                 ).type(if (buttons.isEmpty()) DialogType.notice(exit) else DialogType.multiAction(buttons, exit, 1))
             },
         )
+        GuildDialogTransitions.shown(player)
     }
 
     private fun dialogBase(): DialogBase {
