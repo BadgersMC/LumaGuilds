@@ -58,7 +58,7 @@ internal class RecruitmentReaderDialog(
 
     private fun dialogBase(): DialogBase {
         return DialogBase.builder(heading()).canCloseWithEscape(true)
-            .afterAction(DialogBase.DialogAfterAction.NONE)
+            .apply { GuildDialogTransitions.configure(this) }
             .body(skin?.body(dialogBody()) ?: dialogBody())
             .build()
     }

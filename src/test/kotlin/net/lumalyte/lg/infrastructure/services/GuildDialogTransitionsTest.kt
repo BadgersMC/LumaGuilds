@@ -1,13 +1,28 @@
 package net.lumalyte.lg.infrastructure.services
 
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import io.mockk.verifyOrder
+import io.papermc.paper.registry.data.dialog.DialogBase
 import org.bukkit.entity.Player
 import org.junit.jupiter.api.Test
 import kotlin.test.assertFailsWith
 
 internal class GuildDialogTransitionsTest {
     private val player = mockk<Player>(relaxed = true)
+
+    @Test
+    fun keepOpenDialogsDisablePausingBeforeSettingTheAfterAction() {
+        val builder = mockk<DialogBase.Builder>()
+        every { builder.pause(false) } returns builder
+        every { builder.afterAction(DialogBase.DialogAfterAction.NONE) } returns builder
+        GuildDialogTransitions.configure(builder)
+        verifyOrder {
+            builder.pause(false)
+            builder.afterAction(DialogBase.DialogAfterAction.NONE)
+        }
+    }
 
     @Test
     fun replacingADialogNeverClearsTheReplacement() {

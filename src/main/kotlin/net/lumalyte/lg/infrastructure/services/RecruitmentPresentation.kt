@@ -80,7 +80,7 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
     ): DialogBase =
         DialogBase.builder(Component.text(fields.title, guildDialogAccent(fields.theme)))
             .canCloseWithEscape(true)
-            .afterAction(DialogBase.DialogAfterAction.NONE)
+            .apply { GuildDialogTransitions.configure(this) }
             .body(skin?.body(emptyList()) ?: emptyList())
             .inputs(
                 listOf(

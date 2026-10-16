@@ -1,11 +1,16 @@
 package net.lumalyte.lg.infrastructure.services
 
+import io.papermc.paper.registry.data.dialog.DialogBase
 import org.bukkit.entity.Player
 import java.util.WeakHashMap
 
 /** Keep the current dialog visible until a guarded callback supplies its replacement. */
 internal object GuildDialogTransitions {
     private val presentations = WeakHashMap<Player, Long>()
+
+    /** Paper rejects its default pause=true when afterAction is NONE. */
+    fun configure(builder: DialogBase.Builder): DialogBase.Builder =
+        builder.pause(false).afterAction(DialogBase.DialogAfterAction.NONE)
 
     fun shown(player: Player) {
         synchronized(presentations) {
