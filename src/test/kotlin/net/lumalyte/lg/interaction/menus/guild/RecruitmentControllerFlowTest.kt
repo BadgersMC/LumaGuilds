@@ -60,6 +60,7 @@ internal class RecruitmentControllerFlowTest {
         every { guilds.getPlayerGuilds(actor) } returns setOf(guild)
         every { members.hasPermission(actor, guild.id, any()) } answers { allowed }
         every { directory.profile(guild.id) } answers { published }
+        every { directory.updatedAt(any()) } returns Instant.EPOCH
         every { directory.save(any()) } answers {
             published = firstArg()
         }
@@ -143,7 +144,11 @@ internal class RecruitmentControllerFlowTest {
             unmockkStatic(Bukkit::class)
         }
     }
-    private fun stubHiddenRecruiter(hiddenId: UUID, hidden: Player) {
+
+    private fun stubHiddenRecruiter(
+        hiddenId: UUID,
+        hidden: Player,
+    ) {
         val hiddenGuild = Guild(UUID.randomUUID(), "Z Hidden", createdAt = Instant.EPOCH)
         every { hidden.isOnline } returns true
         every { player.canSee(hidden) } returns false

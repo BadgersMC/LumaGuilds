@@ -76,13 +76,17 @@ internal class GuildDialogSkin(
     fun card(lines: List<Component>): Component? = cardArt?.render(lines)
 
     fun referenceBody(
-        title: Component,
+        @Suppress("UNUSED_PARAMETER") title: Component,
         subtitle: Component,
         content: List<DialogBody>,
     ): List<DialogBody> {
-        val lines = listOf(title.colorIfAbsent(accent), subtitle)
-        val heading = card(lines) ?: Component.join(net.kyori.adventure.text.JoinConfiguration.newlines(), lines)
-        return listOf(DialogBody.plainMessage(heading, DIALOG_ART_WIDTH), band("divider", false)) + content
+        // The native dialog already renders its title. Avoid a duplicate framed
+        // heading and divider, which displace the useful content far below it.
+        return if (subtitle == Component.empty()) {
+            content
+        } else {
+            listOf(DialogBody.plainMessage(subtitle, DIALOG_ART_WIDTH)) + content
+        }
     }
 
     fun body(content: List<DialogBody>): List<DialogBody> {

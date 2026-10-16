@@ -9,35 +9,53 @@ import net.lumalyte.lg.domain.recruitment.RecruitmentMode
 internal fun RecruitmentController.details(guild: Guild): List<String> {
     val profile = service.listings.profile(guild)
     val fee = lfg.getJoinRequirement(guild)
-    return listOf(
-        mode(profile.mode),
-        lang.raw("recruitment.spaces") + ": " + service.listings.spaces(guild.id),
-        lang.raw("recruitment.level") + ": " + guild.level,
-        lang.raw("recruitment.fee") + ": " + (
-            fee?.let {
-                "${it.amount} ${it.currencyName}"
-            } ?: if (guild.joinFeeEnabled && guild.joinFeeAmount > 0) {
+    val feeText =
+        fee?.let { "${it.amount} ${it.currencyName}" }
+            ?: if (guild.joinFeeEnabled && guild.joinFeeAmount > 0) {
                 lang.raw("recruitment.fee_unavailable")
             } else {
-                "0"
+                lang.raw("guild_dialogs.board.no_fee")
             }
-            ),
-        profile.pitch, profile.requirements,
-        profile.interests.joinToString(
-            ", ",
-        ),
-        profile.preferredTimes, profile.language,
-        lang.raw("recruitment.listing_updated") +
-            (directory.updatedAt(guild.id)?.toString() ?: lang.raw("recruitment.unknown")),
-        if (profile.beginnerFriendly) lang.raw("recruitment.beginner") else "",
-    )
-        .filter(String::isNotBlank)
+    return buildList {
+        add(mode(profile.mode))
+        add(lang.raw("recruitment.spaces") + ": " + service.listings.spaces(guild.id))
+        add(lang.raw("recruitment.level") + ": " + guild.level)
+        add(lang.raw("recruitment.fee") + ": " + feeText)
+        if (profile.pitch.isNotBlank()) {
+            add("")
+            add(profile.pitch)
+        }
+        val fields =
+            listOf(
+                lang.raw("recruitment.profile_fields.requirements") to profile.requirements,
+                lang.raw("recruitment.profile_fields.interests") to profile.interests.joinToString(", "),
+                lang.raw("recruitment.profile_fields.times") to profile.preferredTimes,
+                lang.raw("recruitment.profile_fields.language") to profile.language,
+            ).filter { it.second.isNotBlank() }
+        if (fields.isNotEmpty()) add("")
+        fields.forEach { (key, value) -> add(key + ": " + value) }
+        if (profile.beginnerFriendly) add(lang.raw("recruitment.beginner"))
+        add("")
+        add(
+            lang.raw("recruitment.listing_updated") +
+                (directory.updatedAt(guild.id)?.let(::recruitmentListingTime) ?: lang.raw("recruitment.unknown")),
+        )
+    }
 }
 
 internal fun RecruitmentController.profile(): List<RecruitmentButton> {
     val guild = selectedGuild()
     val profile = service.listings.profile(guild)
-    val items = mutableListOf(RecruitmentButton(guild.name, details(guild), RecruitmentIcons.NAV_INFO, guild))
+    val items =
+        mutableListOf(
+            RecruitmentButton(
+                guild.name,
+                details(guild),
+                RecruitmentIcons.NAV_INFO,
+                guild,
+                showBanner = profile.showBanner,
+            ),
+        )
     items +=
         RecruitmentButton(lang.raw("recruitment.guide"), icon = RecruitmentIcons.DESCRIPTION) {
             val current = selectedGuild()
@@ -99,3 +117,8 @@ internal fun RecruitmentController.discord(): List<RecruitmentButton> {
         },
     )
 }
+
+/** Stable UTC display; retain the stored Instant without exposing nanosecond precision. */
+internal fun recruitmentListingTime(at: java.time.Instant): String =
+    java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm", java.util.Locale.ROOT)
+        .withZone(java.time.ZoneOffset.UTC).format(at)

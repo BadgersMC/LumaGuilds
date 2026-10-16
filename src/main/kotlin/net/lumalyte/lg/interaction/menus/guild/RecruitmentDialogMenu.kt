@@ -66,15 +66,11 @@ internal class RecruitmentDialogMenu(
                 theme = controller.theme(),
                 search = if (controller.screen == RecruitmentScreen.BROWSE) controller.boardSearch() else null,
                 subtitle =
-                    Component.text(
-                        controller.lang.raw(
-                            if (controller.screen == RecruitmentScreen.BROWSE) {
-                                "dialog_v2.board_subtitle"
-                            } else {
-                                "dialog_v2.action_subtitle"
-                            },
-                        ),
-                    ),
+                    if (controller.screen == RecruitmentScreen.BROWSE) {
+                        Component.text(controller.lang.raw("dialog_v2.board_subtitle"))
+                    } else {
+                        Component.empty()
+                    },
                 bodyActions =
                     when (controller.screen) {
                         RecruitmentScreen.BROWSE -> categoryActions()
@@ -368,7 +364,7 @@ private fun RecruitmentButton.nativeBody(screen: RecruitmentScreen): GuildDialog
             Component.empty()
         }
     return GuildDialogItem(
-        if (screen == RecruitmentScreen.BROWSE && !showBanner) {
+        if (guild != null && !showBanner) {
             ItemStack.of(Material.AIR)
         } else {
             guild?.let(GuildBannerItemResolver::resolveForDisplay)

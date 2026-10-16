@@ -493,7 +493,7 @@ class LocaleContractTest {
         const val BASELINE_MISSING_KEYS = 0
         const val BASELINE_UNUSED_KEYS = 0
         // Reference dialogs add thirteen finite state-dependent calls.
-        const val BASELINE_DYNAMIC_CALLS = 55
+        const val BASELINE_DYNAMIC_CALLS = 54
         const val BASELINE_HARDCODED_PLAYER_TEXT = 0
         const val BASELINE_PLACEHOLDER_MISMATCHES = 0
     }

@@ -13,8 +13,8 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import java.time.Duration
 
-private const val ITEM_WIDTH = 24
-private const val ITEM_HEIGHT = 32
+private const val ITEM_WIDTH = 16
+private const val ITEM_HEIGHT = 16
 private const val TEXT_WIDTH = 280
 private const val ACTION_WIDTH = 180
 
@@ -133,34 +133,52 @@ internal class GuildMenuDialog : GuildDialogPresenter {
                     ),
                 )
             }
-        val bodies = links + page.items.map { itemBody(it, callbacks, skin) }
+        val bodies = links + page.items.flatMap { itemBodies(it, callbacks, skin) }
         return DialogBase.builder(page.title.color(guildDialogAccent(page.theme)))
             .canCloseWithEscape(true)
             .afterAction(DialogBase.DialogAfterAction.CLOSE)
             .body(
-                skin?.referenceBody(page.title, page.subtitle, bodies) ?: listOf(
-                    DialogBody.plainMessage(page.title.append(Component.newline()).append(page.subtitle), TEXT_WIDTH),
-                ) + bodies,
+                skin?.referenceBody(page.title, page.subtitle, bodies) ?: (
+                    if (page.subtitle == Component.empty()) {
+                        bodies
+                    } else {
+                        listOf(DialogBody.plainMessage(page.subtitle, TEXT_WIDTH)) + bodies
+                    }
+                ),
             )
             .inputs(page.search?.inputs(page.showCategoryInput) ?: emptyList())
             .build()
     }
 
-    private fun itemBody(
+    private fun itemBodies(
         item: GuildDialogItem,
         callbacks: GuildDialogCallbacks,
         skin: GuildDialogSkin?,
-    ): DialogBody {
-        val description = item.cardLines?.let { skin?.card(it) } ?: item.text
-        val linked =
-            clickableGuildDialogCard(description, item.onClick) { action ->
+    ): List<DialogBody> {
+        fun linked(content: Component): Component =
+            clickableGuildDialogCard(content, item.onClick) { action ->
                 ClickEvent.callback({ audience -> callbacks.submit(audience, action.action) }, callbackOptions())
             }
-        return DialogBody.item(item.item.clone()).width(ITEM_WIDTH).height(ITEM_HEIGHT)
-            .showDecorations(false)
-            .showTooltip(false)
-            .description(DialogBody.plainMessage(linked, TEXT_WIDTH))
-            .build()
+        val lines = item.cardLines
+        if (skin != null && !lines.isNullOrEmpty()) {
+            val heading =
+                DialogBody.item(item.item.clone()).width(ITEM_WIDTH).height(ITEM_HEIGHT)
+                    .showDecorations(false).showTooltip(false)
+                    .description(DialogBody.plainMessage(linked(lines.first()), TEXT_WIDTH - ITEM_WIDTH - 4))
+                    .build()
+            val content = lines.drop(1)
+            if (content.isEmpty()) return listOf(heading)
+            val panel =
+                skin.card(content)
+                    ?: Component.join(net.kyori.adventure.text.JoinConfiguration.newlines(), content)
+            return listOf(heading, DialogBody.plainMessage(linked(panel), TEXT_WIDTH))
+        }
+        return listOf(
+            DialogBody.item(item.item.clone()).width(ITEM_WIDTH).height(ITEM_HEIGHT)
+                .showDecorations(false).showTooltip(false)
+                .description(DialogBody.plainMessage(linked(item.text), TEXT_WIDTH - ITEM_WIDTH - 4))
+                .build(),
+        )
     }
 
     private fun button(

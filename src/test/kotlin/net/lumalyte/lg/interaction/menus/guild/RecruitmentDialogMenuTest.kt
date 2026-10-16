@@ -85,6 +85,39 @@ internal class RecruitmentDialogMenuTest : RecruitmentDialogFixture() {
     }
 
     @Test
+    fun listingTimeDropsFractionalSecondsAndUsesUtc() {
+        assertEquals(
+            "2026-10-14 23:30",
+            recruitmentListingTime(java.time.Instant.parse("2026-10-14T23:30:16.198408669Z")),
+        )
+    }
+
+    @Test
+    fun nativeTitleIsNotRepeatedInTheBody() {
+        val skin =
+            net.lumalyte.lg.infrastructure.services.GuildDialogSkin(
+                emptyMap(),
+                net.kyori.adventure.text.format.NamedTextColor.GOLD,
+            )
+        val content = listOf(mockk<io.papermc.paper.registry.data.dialog.body.DialogBody>())
+        assertEquals(
+            content,
+            skin.referenceBody(
+                net.kyori.adventure.text.Component.text("Enthusiast"),
+                net.kyori.adventure.text.Component.empty(),
+                content,
+            ),
+        )
+    }
+
+    @Test
+    fun profileDoesNotRepeatTheGenericReviewInstruction() {
+        controller.screen = RecruitmentScreen.PROFILE
+        menu().show(RecruitmentView("Profile", emptyList(), emptyList()))
+        assertEquals("", PlainTextComponentSerializer.plainText().serialize(requireNotNull(renderedPage).subtitle))
+    }
+
+    @Test
     fun informationHasNoDeadButton() {
         controller.screen = RecruitmentScreen.PROFILE
         val entries = listOf(RecruitmentButton("Information", listOf("Full details")))

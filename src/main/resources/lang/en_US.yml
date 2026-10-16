@@ -7704,6 +7704,11 @@ recruitment:
   age_hours: "Age (hours): "
   filter_language: Filter by Language (blank clears)
   filter_times: Filter by Play Times (blank clears)
+  profile_fields:
+    requirements: "Requirements"
+    interests: "Activities"
+    times: "Play times"
+    language: "Language"
   listing_updated: "Listing updated (UTC): "
   unknown: Not recorded
   invalid_input: "<yellow>That value could not be accepted. Check the field length, Discord invite format, or current permissions and try again. Cancel returns to the menu.</yellow>"
