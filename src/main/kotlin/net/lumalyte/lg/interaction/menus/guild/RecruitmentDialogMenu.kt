@@ -379,15 +379,9 @@ private fun RecruitmentButton.nativeBody(screen: RecruitmentScreen): GuildDialog
     )
 }
 
-private const val CARD_LINE_LENGTH = 30
-
 private fun RecruitmentButton.cardLines(lines: List<String>): List<Component> =
     listOf(Component.text(guild?.name ?: label, NamedTextColor.GOLD)) +
-        lines.flatMap { line ->
-            line.codePoints().toArray().toList().chunked(CARD_LINE_LENGTH).map { points ->
-                Component.text(buildString { points.forEach(::appendCodePoint) }, NamedTextColor.GRAY)
-            }
-        }
+        lines.map { Component.text(it, NamedTextColor.GRAY) }
 
 internal data class RecruitmentDialogCallbacks(
     val valid: () -> Boolean,

@@ -18,7 +18,9 @@ internal class GuildDialogCardsTest {
         val cards = assertNotNull(GuildDialogCards.resolve(resolver, "enthusia"))
         val text =
             PlainTextComponentSerializer.plainText().serialize(
-                cards.render(listOf(Component.text("Everlights"), Component.text("Joining fee: 100 coins"))),
+                assertNotNull(
+                    cards.render(listOf(Component.text("Everlights"), Component.text("Joining fee: 100 coins"))),
+                ),
             )
         assertTrue("Everlights" in text)
         assertTrue("Joining fee: 100 coins" in text)

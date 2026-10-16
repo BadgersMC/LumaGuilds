@@ -169,9 +169,11 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         skin: GuildDialogSkin?,
         board: Boolean = false,
     ): ActionButton {
-        return ActionButton.builder(skin?.label(action.label) ?: action.label)
+        val width = if (board) BOARD_CONTROL_WIDTH else ACTION_WIDTH
+        val fullLabel = skin?.label(action.label) ?: action.label
+        return ActionButton.builder(GuildDialogText.buttonLabel(fullLabel, (width - 16) * 2))
             .width(if (board) BOARD_CONTROL_WIDTH else ACTION_WIDTH)
-            .tooltip(action.tooltip)
+            .tooltip(action.label.append(Component.newline()).append(action.tooltip))
             .action(
                 DialogAction.customClick({ _, audience ->
                     callbacks.submit(audience, action.action)

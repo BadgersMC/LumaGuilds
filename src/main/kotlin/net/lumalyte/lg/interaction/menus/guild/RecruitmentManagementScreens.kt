@@ -14,7 +14,7 @@ internal fun RecruitmentController.management(): List<RecruitmentButton> {
     val guild = ownGuild() ?: return browse()
     return buildList {
         val profile = service.listings.profile(guild)
-        add(RecruitmentButton(mode(profile.mode), details(guild).take(4), RecruitmentIcons.NAV_INFO))
+        add(RecruitmentButton(guild.name, details(guild).take(4), RecruitmentIcons.NAV_INFO))
         add(
             RecruitmentButton(lang.raw("recruitment.preview"), details(guild), RecruitmentIcons.NAV_INFO, guild) {
                 selected = guild.id
@@ -34,7 +34,7 @@ internal fun RecruitmentController.management(): List<RecruitmentButton> {
         if (GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id)) {
             add(
                 RecruitmentButton(
-                    lang.raw("recruitment.method") + ": " + mode(profile.mode),
+                    lang.raw("recruitment.method"),
                     icon = RecruitmentIcons.NAV_SETTINGS,
                 ) {
                     methodReturn = RecruitmentScreen.MANAGE
