@@ -13,6 +13,8 @@ private const val DISCORD_INVITE_STEP = 5
 internal fun RecruitmentController.management(): List<RecruitmentButton> {
     val guild = ownGuild() ?: return browse()
     return buildList {
+        val profile = service.listings.profile(guild)
+        add(RecruitmentButton(mode(profile.mode), details(guild).take(4), RecruitmentIcons.NAV_INFO))
         add(
             RecruitmentButton(lang.raw("recruitment.preview"), details(guild), RecruitmentIcons.NAV_INFO, guild) {
                 selected = guild.id
@@ -22,12 +24,64 @@ internal fun RecruitmentController.management(): List<RecruitmentButton> {
         if (GuildRecruitmentPermissions.canReview(members, player.uniqueId, guild.id)) {
             add(
                 RecruitmentButton(
-                    lang.raw("recruitment.inbox"),
+                    lang.raw("recruitment.inbox") + " (${service.inbox(player.uniqueId, guild.id).count {
+                        it.status == net.lumalyte.lg.domain.recruitment.ApplicationStatus.SUBMITTED
+                    }})",
                     icon = RecruitmentIcons.NAV_MEMBERS,
                 ) { showScreen(RecruitmentScreen.INBOX) },
             )
         }
         if (GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id)) {
+            add(
+                RecruitmentButton(
+                    lang.raw("recruitment.method") + ": " + mode(profile.mode),
+                    icon = RecruitmentIcons.NAV_SETTINGS,
+                ) {
+                    methodReturn = RecruitmentScreen.MANAGE
+                    showScreen(RecruitmentScreen.METHOD)
+                },
+            )
+            add(
+                RecruitmentButton(
+                    lang.raw(
+                        if (profile.mode == RecruitmentMode.CLOSED) {
+                            "dialog_v2.open_recruitment"
+                        } else {
+                            "dialog_v2.close_recruitment"
+                        },
+                    ),
+                    icon = RecruitmentIcons.TOGGLE_ON,
+                ) {
+                    val fresh = service.listings.profile(requireNotNull(guilds.getGuild(guild.id)))
+                    service.listings.saveProfile(
+                        player.uniqueId,
+                        fresh.copy(
+                            mode =
+                                if (fresh.mode == RecruitmentMode.CLOSED) {
+                                    RecruitmentMode.IN_GAME
+                                } else {
+                                    RecruitmentMode.CLOSED
+                                },
+                        ),
+                    )
+                    refresh()
+                },
+            )
+            add(
+                RecruitmentButton(lang.raw("recruitment.fee"), icon = RecruitmentIcons.HISTORY) {
+                    ask(lang.raw("recruitment.fee"), guild.joinFeeAmount.toString()) { value ->
+                        val amount = requireNotNull(value.toIntOrNull()) { "Enter a whole joining fee" }
+                        require(amount >= 0)
+                        check(guilds.setJoinFeeAmount(guild.id, amount, player.uniqueId))
+                        check(guilds.setJoinFeeEnabled(guild.id, amount > 0, player.uniqueId))
+                    }
+                },
+            )
+            add(
+                RecruitmentButton(lang.raw("recruitment.discord"), icon = RecruitmentIcons.INVITE) {
+                    settings().first { it.label == lang.raw("recruitment.discord") }.action()
+                },
+            )
             add(
                 RecruitmentButton(lang.raw("recruitment.setup"), icon = RecruitmentIcons.TAG) {
                     setupDraft = service.listings.profile(guild).copy(mode = RecruitmentMode.CLOSED)

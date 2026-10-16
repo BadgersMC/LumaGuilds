@@ -17,9 +17,9 @@ internal class RecruitmentDialogMenuTest : RecruitmentDialogFixture() {
         controller.page = 1
         controller.screen = RecruitmentScreen.BROWSE
         assertTrue(menu().show(RecruitmentView(BROWSE_TITLE, entries, emptyList())))
-        assertEquals(5, requireNotNull(renderedPage).items.size)
-        val text = PlainTextComponentSerializer.plainText().serialize(requireNotNull(renderedPage).items[1].text)
-        assertTrue(text.contains("Guild 5"))
+        assertEquals(3, requireNotNull(renderedPage).items.size)
+        val text = PlainTextComponentSerializer.plainText().serialize(requireNotNull(renderedPage).items.first().text)
+        assertTrue(text.contains("Guild 4"))
         assertTrue(text.contains("Fee"))
         assertTrue(!text.contains("Pitch"))
     }
@@ -44,10 +44,7 @@ internal class RecruitmentDialogMenuTest : RecruitmentDialogFixture() {
         controller.screen = RecruitmentScreen.BROWSE
         controller.query = "Everlights"
         menu().show(RecruitmentView(BROWSE_TITLE, emptyList(), emptyList()))
-        val context =
-            PlainTextComponentSerializer.plainText().serialize(
-                requireNotNull(renderedPage).items.single().text,
-            )
+        val context = requireNotNull(requireNotNull(renderedPage).search).initial
         assertTrue(context.contains("Everlights"))
     }
 
@@ -56,8 +53,8 @@ internal class RecruitmentDialogMenuTest : RecruitmentDialogFixture() {
         controller.screen = RecruitmentScreen.BROWSE
         menu().show(RecruitmentView(BROWSE_TITLE, emptyList(), emptyList()))
         requireNotNull(renderedPage).back.action()
-        assertEquals(1, exits)
-        assertEquals(0, closes)
+        assertEquals(0, exits)
+        assertEquals(1, closes)
     }
 
     @Test
@@ -73,7 +70,7 @@ internal class RecruitmentDialogMenuTest : RecruitmentDialogFixture() {
                 PlainTextComponentSerializer.plainText().serialize(it.label)
             },
         )
-        assertEquals(1, page.columns)
+        assertEquals(2, page.columns)
         page.actions[5].action()
         assertEquals(1, exits)
     }

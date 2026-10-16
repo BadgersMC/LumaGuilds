@@ -110,7 +110,7 @@ class GuildQuestsMenu(
 
     private fun openLeaderboard(quest: QuestDefinition) {
         menuNavigator.openMenu(
-            GuildQuestLeaderboardMenu(menuNavigator, player, guild, quest.id, memberService, guildService, questService, lang),
+            GuildQuestDetailMenu(menuNavigator, player, guild, quest.id, memberService, guildService, questService, lang),
         )
     }
 
@@ -148,23 +148,9 @@ class GuildQuestsMenu(
     }
 
     private fun showNativeRankings(active: net.lumalyte.lg.domain.entities.WeeklyQuestSet) {
-        val description = GuildDialogItem(
-            NexoItemProvider.getItemStackOrFallback("lg_nav_quests") { ItemStack.of(Material.BOOK) },
-            lang.gui("guild_dialogs.quests.choose_ranking"),
-        )
-        val actions = active.quests.map { quest ->
-            nativeAction(lang.gui("menu.quests.item.quest.name", "objective" to QuestDisplayFormatter.name(quest))) {
-                openLeaderboard(quest)
-            }
+        active.quests.firstOrNull()?.let { quest ->
+            menuNavigator.openMenu(GuildQuestLeaderboardMenu(menuNavigator, player, guild, quest.id, memberService, guildService, questService, lang))
         }
-        val shown = presentNative(
-            GuildDialogPage(
-                lang.gui("guild_dialogs.quests.rankings"), listOf(description), actions,
-                nativeAction(lang.gui("menu.quests.item.back.name"), ::open), theme = guild.guiTheme,
-            ),
-            active.weekId,
-        )
-        if (!shown) open()
     }
 
     private fun presentNative(view: GuildDialogPage, weekId: String): Boolean {
@@ -184,6 +170,7 @@ class GuildQuestsMenu(
                 meta.displayName(lang.gui("menu.quests.item.quest.name", "objective" to QuestDisplayFormatter.name(quest)))
                 val lore = mutableListOf<Component>(
                     tierLabel(quest.tier),
+                    questProgressBar(count, quest.targetCount),
                     lang.gui("menu.quests.item.quest.description", "objective" to QuestDisplayFormatter.description(quest)),
                     Component.empty(),
                     lang.gui("menu.quests.item.quest.progress", "count" to count, "target" to quest.targetCount, "percent" to percent),
@@ -196,7 +183,7 @@ class GuildQuestsMenu(
                     else -> lang.gui("menu.quests.item.quest.in_progress")
                 }
                 lore += Component.empty()
-                lore += lang.gui("menu.quests.item.quest.view_leaderboard")
+                lore += lang.gui("dialog_v2.view_quest")
                 meta.lore(lore)
             }}
     }

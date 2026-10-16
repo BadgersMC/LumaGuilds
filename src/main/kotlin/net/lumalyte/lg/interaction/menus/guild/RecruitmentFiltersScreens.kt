@@ -2,7 +2,7 @@ package net.lumalyte.lg.interaction.menus.guild
 
 import net.lumalyte.lg.domain.recruitment.RecruitmentMode
 
-private const val SORT_MODE_COUNT = 3
+private const val SORT_MODE_COUNT = 4
 private const val LANGUAGE_FILTER_LIMIT = 40
 private const val PLAY_TIME_FILTER_LIMIT = 100
 
@@ -64,6 +64,7 @@ private fun RecruitmentController.sortButton(): RecruitmentButton {
             when (sorting) {
                 1 -> lang.raw("recruitment.sort_1")
                 2 -> lang.raw("recruitment.sort_2")
+                3 -> lang.raw("dialog_v2.sort_online")
                 else -> lang.raw("recruitment.sort_0")
             },
         ),
@@ -83,6 +84,8 @@ private fun RecruitmentController.resetButton(): RecruitmentButton {
         joiningMethod = null
         interest = null
         sorting = 0
+        feeFilter = 0
+        levelFilter = 0
         languageFilter = ""
         timeFilter = ""
         resetBrowse()

@@ -35,6 +35,9 @@ internal data class GuildDialogPage(
     val columns: Int = 1,
     val theme: net.lumalyte.lg.utils.GuiTheme = net.lumalyte.lg.utils.GuiTheme.DEFAULT,
     val search: GuildDialogSearch? = null,
+    val subtitle: Component = Component.empty(),
+    val bodyActions: List<GuildDialogAction> = emptyList(),
+    val showCategoryInput: Boolean = true,
 )
 
 /** Uses public Paper dialog APIs; Nexo item models remain owned by the private pack. */
@@ -95,7 +98,7 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         return Dialog.create { factory ->
             factory.empty().base(dialogBase(page, callbacks, skin)).type(
                 DialogType.multiAction(
-                    listOfNotNull(page.search?.let { searchButton(it, callbacks, skin) }) +
+                    listOfNotNull(page.search?.let { searchButton(it, callbacks, skin, page.showCategoryInput) }) +
                         page.actions.map { button(it, callbacks, skin, page.search != null) },
                     button(page.back, callbacks, skin),
                     page.columns,
@@ -109,12 +112,37 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         callbacks: GuildDialogCallbacks,
         skin: GuildDialogSkin?,
     ): DialogBase {
-        val bodies = page.items.map { itemBody(it, callbacks, skin) }
+        val links =
+            if (page.bodyActions.isEmpty()) {
+                emptyList()
+            } else {
+                listOf(
+                    DialogBody.plainMessage(
+                        Component.join(
+                            net.kyori.adventure.text.JoinConfiguration.separator(Component.text("  ")),
+                            page.bodyActions.map { action ->
+                                clickableGuildDialogCard(action.label, action) {
+                                    ClickEvent.callback(
+                                        { audience -> callbacks.submit(audience, it.action) },
+                                        callbackOptions(),
+                                    )
+                                }
+                            },
+                        ),
+                        TEXT_WIDTH,
+                    ),
+                )
+            }
+        val bodies = links + page.items.map { itemBody(it, callbacks, skin) }
         return DialogBase.builder(page.title.color(guildDialogAccent(page.theme)))
             .canCloseWithEscape(true)
             .afterAction(DialogBase.DialogAfterAction.CLOSE)
-            .body(skin?.body(bodies) ?: bodies)
-            .inputs(page.search?.inputs() ?: emptyList())
+            .body(
+                skin?.referenceBody(page.title, page.subtitle, bodies) ?: listOf(
+                    DialogBody.plainMessage(page.title.append(Component.newline()).append(page.subtitle), TEXT_WIDTH),
+                ) + bodies,
+            )
+            .inputs(page.search?.inputs(page.showCategoryInput) ?: emptyList())
             .build()
     }
 
@@ -156,21 +184,23 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         search: GuildDialogSearch,
         callbacks: GuildDialogCallbacks,
         skin: GuildDialogSkin?,
+        showCategory: Boolean,
     ): ActionButton {
         return ActionButton.builder(skin?.label(search.submitLabel) ?: search.submitLabel)
             .width(BOARD_CONTROL_WIDTH)
-            .action(searchAction(search, callbacks))
+            .action(searchAction(search, callbacks, showCategory))
             .build()
     }
 
     private fun searchAction(
         search: GuildDialogSearch,
         callbacks: GuildDialogCallbacks,
+        showCategory: Boolean,
     ): DialogAction {
         return DialogAction.customClick({ response, audience ->
             if (audience is Player && audience.uniqueId == callbacks.player.uniqueId) {
                 val query = response.getText(BOARD_QUERY_KEY)
-                val category = response.getText(BOARD_CATEGORY_KEY)
+                val category = if (showCategory) response.getText(BOARD_CATEGORY_KEY) else search.category
                 callbacks.submit(audience) {
                     if (!search.accept(query, category)) callbacks.failure()
                 }

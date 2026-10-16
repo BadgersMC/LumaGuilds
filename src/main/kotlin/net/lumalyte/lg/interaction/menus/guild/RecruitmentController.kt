@@ -41,6 +41,7 @@ internal data class RecruitmentButton(
     val icon: String = RecruitmentIcons.NAV_MEMBERS,
     val guild: Guild? = null,
     val cardSummary: List<net.kyori.adventure.text.Component>? = null,
+    val showBanner: Boolean = true,
     val action: () -> Unit = INFORMATION_ONLY,
 )
 
@@ -68,10 +69,13 @@ internal class RecruitmentController(
     internal val directory: RecruitmentDirectoryRepository by inject()
     internal val lang: LangService by inject()
     internal var screen = RecruitmentScreen.BROWSE
+    internal var methodReturn = RecruitmentScreen.SETTINGS
     internal var initialized = false
     internal var browsePage = 0
     internal var interest: String? = null
-    internal var sorting = 0
+    internal var sorting = 2
+    internal var feeFilter = 0
+    internal var levelFilter = 0
     internal var languageFilter = ""
     internal var timeFilter = ""
     internal var setupDraft: RecruitmentProfile? = null

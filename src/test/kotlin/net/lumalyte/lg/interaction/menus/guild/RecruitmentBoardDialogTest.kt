@@ -12,7 +12,7 @@ private const val SAMPLE_GUILD = "Everlights"
 internal class RecruitmentBoardDialogTest : RecruitmentDialogFixture() {
     @Test
     fun searchResetsPageKeepsFilters() {
-        controller.screen = RecruitmentScreen.FILTER
+        controller.screen = RecruitmentScreen.BROWSE
         controller.interest = "building"
         controller.page = 2
         controller.browsePage = 2
@@ -40,7 +40,7 @@ internal class RecruitmentBoardDialogTest : RecruitmentDialogFixture() {
         val page = requireNotNull(renderedPage)
         val labels = page.actions.map { PlainTextComponentSerializer.plainText().serialize(it.label) }
         assertTrue(labels.containsAll(listOf("recruitment.mine", "recruitment.manage")))
-        assertTrue("recruitment.filter" !in labels)
+        assertTrue("recruitment.filter" in labels)
         assertTrue("Quick" !in labels)
         assertEquals(2, page.columns)
         page.actions.first().action()

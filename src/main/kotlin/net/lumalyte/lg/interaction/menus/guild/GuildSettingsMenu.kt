@@ -55,6 +55,14 @@ class GuildSettingsMenu(
     private val nexoEmojiService: NexoEmojiService by inject()
     private var settingsGroup: GuildSettingsGroup? = null
     private val settingsDialog by lazy { GuildSettingsDialog(lang) { guild.guiTheme } }
+    private fun presentationDialog(): GuildPresentationSettingsDialog {
+        val token = menuNavigator.currentNavigationToken()
+        return GuildPresentationSettingsDialog(player, { guildService.getGuild(guild.id) ?: guild }, guildService,
+            getKoin().get(), lang,
+            { menuNavigator.isNavigationCurrent(token) && guildService.getPlayerGuilds(player.uniqueId).any { it.id == guild.id } },
+            { theme -> !theme.requiresUnlock || themeAccess?.isThemeAvailable(guild.id, theme) == true },
+            { settingsGroup = GuildSettingsGroup.INFORMATION; open() }, { menuNavigator.goBack() })
+    }
     // Holiday styles (REQ-121) are locked until earned; without the ledger they stay locked.
     private val themeAccess by lazy {
         getKoin().getOrNull<net.lumalyte.lg.application.services.GuildCosmeticUnlockService>()
@@ -69,6 +77,7 @@ class GuildSettingsMenu(
         guild = guildService.getGuild(guild.id) ?: guild
 
         if (settingsGroup == null && RecruitmentPresentation.supportsDialog(player)) {
+            if (presentationDialog().open()) return
             val token = menuNavigator.currentNavigationToken()
             if (settingsDialog.show(
                     player,

@@ -16,15 +16,38 @@ internal interface RecruitmentDirectoryRepository {
     /** Replaces only recruitment fields; guild membership, fees and ranks are unchanged. */
     fun save(profile: RecruitmentProfile)
 
+    /** Only UI preferences change; production adapters merge them under the guild lock. */
+    fun savePresentation(
+        profile: RecruitmentProfile,
+        fields: Set<String> = setOf("publicListing", "joinAnnouncements", "showBanner", "questReminders"),
+    ) = save(profile)
+
     /** Personal opt-out persists across reconnects and restarts. */
-    fun setReminders(player: UUID, enabled: Boolean)
+    fun setReminders(
+        player: UUID,
+        enabled: Boolean,
+    )
 
     /** Reads the personal prompt preference, enabled for a player with no stored preference. */
     fun remindersEnabled(player: UUID): Boolean
 
     /** Atomically consumes either the one-time prompt or a due optional reminder. */
-    fun consumePrompt(player: UUID, at: Instant, repeatAfter: Duration?): Boolean
+    fun consumePrompt(
+        player: UUID,
+        at: Instant,
+        repeatAfter: Duration?,
+    ): Boolean
 
     /** Suppresses replay of the same private application/inbox digest across reconnects. */
-    fun consumeNotification(player: UUID, signature: String): Boolean
+    fun consumeNotification(
+        player: UUID,
+        signature: String,
+    ): Boolean
+
+    /** A distinct durable key prevents quest reminders from replaying recruitment digests. */
+    fun consumeQuestReminder(
+        player: UUID,
+        guild: UUID,
+        week: String,
+    ): Boolean = false
 }

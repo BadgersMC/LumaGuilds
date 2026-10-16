@@ -34,6 +34,10 @@ internal data class RecruitmentProfile(
     val beginnerFriendly: Boolean = false,
     val discordInvite: String? = null,
     val discordInstructions: String = "",
+    val publicListing: Boolean = true,
+    val joinAnnouncements: Boolean = true,
+    val showBanner: Boolean = true,
+    val questReminders: Boolean = false,
 ) {
     init {
         require(pitch.length <= MAX_PITCH && requirements.length <= MAX_REQUIREMENTS)
@@ -50,7 +54,10 @@ internal data class RecruitmentProfile(
 
     companion object {
         /** No stored profile means the original open/closed rule, without modifying fees. */
-        fun legacy(guildId: UUID, isOpen: Boolean): RecruitmentProfile {
+        fun legacy(
+            guildId: UUID,
+            isOpen: Boolean,
+        ): RecruitmentProfile {
             return RecruitmentProfile(
                 guildId,
                 if (isOpen) RecruitmentMode.JOIN_IMMEDIATELY else RecruitmentMode.CLOSED,
@@ -138,7 +145,11 @@ internal data class GuildApplication(
     }
 
     /** Approval records an offer only. No payment or member mutation occurs here. */
-    fun offer(actor: UUID, at: Instant, lifetime: Duration): GuildApplication {
+    fun offer(
+        actor: UUID,
+        at: Instant,
+        lifetime: Duration,
+    ): GuildApplication {
         require(status == ApplicationStatus.SUBMITTED && at >= createdAt && at < expiresAt)
         require(lifetime > Duration.ZERO && lifetime <= Duration.ofDays(MAX_OFFER_DAYS))
         return copy(
@@ -151,20 +162,30 @@ internal data class GuildApplication(
     }
 
     /** Records a recruiter decision and optional reason without enrolling the applicant. */
-    fun decline(actor: UUID, reason: String, at: Instant): GuildApplication {
+    fun decline(
+        actor: UUID,
+        reason: String,
+        at: Instant,
+    ): GuildApplication {
         require(status == ApplicationStatus.SUBMITTED && at >= createdAt && at < expiresAt)
         return copy(status = ApplicationStatus.DECLINED, reviewedBy = actor, reviewedAt = at, decisionReason = reason)
     }
 
     /** Allows only the applicant to withdraw an unexpired, unconfirmed request. */
-    fun withdraw(actor: UUID, at: Instant): GuildApplication {
+    fun withdraw(
+        actor: UUID,
+        at: Instant,
+    ): GuildApplication {
         require(actor == applicantId && status in setOf(ApplicationStatus.SUBMITTED, ApplicationStatus.OFFERED))
         require(at >= createdAt && at < expiresAt)
         return copy(status = ApplicationStatus.WITHDRAWN)
     }
 
     /** The adapter first commits this reservation, then invokes canonical admission once. */
-    fun confirm(actor: UUID, at: Instant): GuildApplication {
+    fun confirm(
+        actor: UUID,
+        at: Instant,
+    ): GuildApplication {
         require(actor == applicantId && status == ApplicationStatus.OFFERED && at >= createdAt && at < expiresAt)
         return copy(status = ApplicationStatus.ADMISSION_PENDING)
     }

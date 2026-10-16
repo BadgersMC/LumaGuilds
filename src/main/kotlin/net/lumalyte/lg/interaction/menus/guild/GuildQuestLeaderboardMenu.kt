@@ -35,7 +35,7 @@ class GuildQuestLeaderboardMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private val viewingGuild: Guild,
-    private val questId: String,
+    private var questId: String,
     private val memberService: MemberService,
     private val guildService: GuildService,
     private val questService: QuestService,
@@ -231,19 +231,26 @@ class GuildQuestLeaderboardMenu(
         nativePage = nativePage.coerceIn(0, pages - 1)
         val actions = nativeLeaderboardActions(pages)
         val token = menuNavigator.currentNavigationToken()
+        val active = questService.activeQuestSet()
         return nativeDialog.show(
             player,
             GuildDialogPage(
-                lang.gui("menu.quests.leaderboard.page", "page" to nativePage + 1, "pages" to pages),
+                lang.gui("menu.quests.leaderboard.title"),
                 nativeLeaderboardItems(header, guilds, progress, ranks),
                 actions,
                 nativeAction(lang.gui("menu.quests.leaderboard.back")) { menuNavigator.goBack() },
                 theme = viewingGuild.guiTheme,
+                subtitle = lang.gui("menu.quests.leaderboard.page", "page" to nativePage + 1, "pages" to pages),
+                bodyActions = active?.quests?.map { quest ->
+                    referenceAction(Component.text((if (quest.id == questId) "[" else "") + QuestDisplayFormatter.name(quest) + (if (quest.id == questId) "]" else "")), "lg_nav_quests") {
+                        questId = quest.id; nativePage = 0; open()
+                    }
+                } ?: emptyList(),
             ),
             {
                 player.isOnline && menuNavigator.isNavigationCurrent(token) &&
                     memberService.getMember(player.uniqueId, viewingGuild.id) != null &&
-                    questService.activeQuestSet()?.quests?.any { it.id == questId } == true
+                    questService.activeQuestSet()?.weekId == active?.weekId && player.hasPermission("lumaguilds.guild.quests")
             },
         ) { player.sendMessage(lang.msg("menu.quests.feedback.no_quests")) }
     }
@@ -268,20 +275,15 @@ class GuildQuestLeaderboardMenu(
     }
 
     private fun nativeGuildItem(current: Guild, score: Long, rank: Int?): GuildDialogItem {
+        val lines = listOf(
+            Component.text("${rank?.let { "#$it" } ?: "—"} ${current.name}${if (current.id == viewingGuild.id) " (you)" else ""}"),
+            questProgressBar(score, questService.activeQuestSet()?.quests?.firstOrNull { it.id == questId }?.targetCount ?: 0),
+            Component.text(score.toString()),
+        )
         return GuildDialogItem(
             GuildBannerItemResolver.resolveForDisplay(current),
-            lang.gui(
-                "menu.quests.leaderboard.guild.name",
-                "guild" to current.name,
-                "rank" to (rank?.let { "#$it" } ?: "—"),
-            )
-                .append(Component.newline())
-                .append(
-                    lang.gui(
-                        "menu.quests.leaderboard.guild.score",
-                        "points" to score,
-                    ),
-                ),
+            Component.join(JoinConfiguration.newlines(), lines),
+            cardLines = lines,
         )
     }
 

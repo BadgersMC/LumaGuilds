@@ -23,7 +23,9 @@ internal fun RecruitmentController.matchesPreferences(
     return (!beginnersOnly || profile.beginnerFriendly) &&
         profile.language.contains(languageFilter, true) && profile.preferredTimes.contains(timeFilter, true) &&
         (interest == null || profile.interests.any { it.equals(interest, true) }) &&
-        (guild.name + " " + profile.pitch + " " + profile.interests.joinToString(" ")).contains(query, true)
+        (feeFilter == 0 || (guild.joinFeeEnabled && guild.joinFeeAmount > 0) == (feeFilter == 2)) &&
+        (levelFilter == 0 || (guild.level >= 30) == (levelFilter == 1)) &&
+        guild.name.contains(query, true)
 }
 
 internal fun RecruitmentController.browse(): List<RecruitmentButton> {
@@ -35,6 +37,10 @@ internal fun RecruitmentController.browse(): List<RecruitmentButton> {
             when (sorting) {
                 1 -> compareByDescending<Guild> { it.level }.thenBy { it.name.lowercase() }
                 2 -> compareBy<Guild> { it.name.lowercase() }
+                3 ->
+                    compareByDescending<Guild> {
+                        members.getGuildMembers(it.id).count { member -> visibleRecruiter(member.playerId) }
+                    }.thenBy { it.name.lowercase() }
                 else ->
                     compareByDescending<Guild> {
                         service.listings.profile(it).mode != RecruitmentMode.CLOSED &&
@@ -50,7 +56,14 @@ internal fun RecruitmentController.browse(): List<RecruitmentButton> {
             },
         )
         .map { guild ->
-            RecruitmentButton(guild.name, details(guild), RecruitmentIcons.NAV_INFO, guild, browseCardSummary(guild)) {
+            RecruitmentButton(
+                guild.name,
+                details(guild),
+                RecruitmentIcons.NAV_INFO,
+                guild,
+                browseCardSummary(guild),
+                service.listings.profile(guild).showBanner,
+            ) {
                 selectedApplication = null
                 selected = guild.id
                 showScreen(RecruitmentScreen.PROFILE)

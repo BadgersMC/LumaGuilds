@@ -10,20 +10,24 @@ internal fun RecruitmentController.settings(): List<RecruitmentButton> {
     require(GuildRecruitmentPermissions.canEditSettings(members, player.uniqueId, guild.id))
     val profile = service.listings.profile(guild)
 
-    fun edit(label: String, value: String, change: (RecruitmentProfile, String) -> RecruitmentProfile) =
-        RecruitmentButton(label, listOf(value), RecruitmentIcons.TAG) {
-            ask(
-                label,
-                value,
-            ) {
-                service.listings.saveProfile(
-                    player.uniqueId,
-                    change(service.listings.profile(requireNotNull(guilds.getGuild(guild.id))), it),
-                )
-            }
+    fun edit(
+        label: String,
+        value: String,
+        change: (RecruitmentProfile, String) -> RecruitmentProfile,
+    ) = RecruitmentButton(label, listOf(value), RecruitmentIcons.TAG) {
+        ask(
+            label,
+            value,
+        ) {
+            service.listings.saveProfile(
+                player.uniqueId,
+                change(service.listings.profile(requireNotNull(guilds.getGuild(guild.id))), it),
+            )
         }
+    }
     return listOf(
         RecruitmentButton(lang.raw("recruitment.method"), listOf(mode(profile.mode)), RecruitmentIcons.NAV_SETTINGS) {
+            methodReturn = RecruitmentScreen.SETTINGS
             showScreen(RecruitmentScreen.METHOD)
         },
         edit(lang.raw("recruitment.pitch"), profile.pitch) { current, value -> current.copy(pitch = value) },
@@ -62,9 +66,9 @@ internal fun RecruitmentController.settings(): List<RecruitmentButton> {
         ) { current, value ->
             current.copy(
                 discordInvite =
-                value.ifBlank {
-                    null
-                },
+                    value.ifBlank {
+                        null
+                    },
             )
         },
         edit(
@@ -86,7 +90,7 @@ internal fun RecruitmentController.methodSettings(): List<RecruitmentButton> {
                 showScreen(RecruitmentScreen.SETTINGS)
             } else {
                 service.listings.saveProfile(player.uniqueId, profile.copy(mode = method))
-                showScreen(RecruitmentScreen.SETTINGS)
+                showScreen(methodReturn)
             }
         }
     }

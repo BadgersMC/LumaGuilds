@@ -21,60 +21,233 @@ internal class RecruitmentDialogMenu(
     private val dialog: GuildDialogPresenter = GuildMenuDialog(),
     private val clickableCards: Boolean = CLICKABLE_CARDS,
 ) {
-    fun show(view: RecruitmentView): Boolean {
+    fun show(rawView: RecruitmentView): Boolean {
+        val view =
+            if (controller.screen == RecruitmentScreen.MANAGE) {
+                rawView.copy(
+                    items =
+                        rawView.items.filterNot {
+                            it.label in managementToolLabels()
+                        },
+                )
+            } else {
+                rawView
+            }
         val pages = maxOf(1, (view.items.size + controller.dialogPageSize() - 1) / controller.dialogPageSize())
         controller.page = controller.page.coerceIn(0, pages - 1)
-        val entries = view.items.drop(controller.page * controller.dialogPageSize()).take(controller.dialogPageSize())
+        val entries =
+            if (controller.screen == RecruitmentScreen.FILTER) {
+                emptyList()
+            } else {
+                view.items.drop(controller.page * controller.dialogPageSize()).take(controller.dialogPageSize())
+            }
         return present(
             GuildDialogPage(
-                Component.text("${view.title} ${controller.page + 1}/$pages"),
-                searchContext() + bodies(entries),
+                Component.text("${pageTitle(view)} ${controller.page + 1}/$pages"),
+                bodies(entries),
                 pageActions(view, pages),
                 GuildDialogAction(
                     guildDialogIconLabel(
-                        Component.text(controller.lang.raw("recruitment.dialog.back")),
+                        Component.text(
+                            controller.lang.raw(
+                                if (controller.screen == RecruitmentScreen.BROWSE) {
+                                    "recruitment.dialog.close"
+                                } else {
+                                    "recruitment.dialog.back"
+                                },
+                            ),
+                        ),
                         RecruitmentIcons.BACK,
                     ),
                     Component.empty(),
-                    ::parent,
+                    if (controller.screen == RecruitmentScreen.BROWSE) callbacks.close else ::parent,
                 ),
-                columns = if (controller.screen == RecruitmentScreen.BROWSE) 2 else 1,
+                columns = 2,
                 theme = controller.theme(),
-                search = if (controller.screen == RecruitmentScreen.FILTER) controller.boardSearch() else null,
+                search = if (controller.screen == RecruitmentScreen.BROWSE) controller.boardSearch() else null,
+                subtitle =
+                    Component.text(
+                        controller.lang.raw(
+                            if (controller.screen == RecruitmentScreen.BROWSE) {
+                                "dialog_v2.board_subtitle"
+                            } else {
+                                "dialog_v2.action_subtitle"
+                            },
+                        ),
+                    ),
+                bodyActions =
+                    when (controller.screen) {
+                        RecruitmentScreen.BROWSE -> categoryActions()
+                        RecruitmentScreen.FILTER ->
+                            filterActions() +
+                                GuildDialogAction(
+                                    Component.text(controller.lang.raw("dialog_v2.more_filters")),
+                                    Component.empty(),
+                                ) {
+                                    advancedFilters(rawView)
+                                }
+                        RecruitmentScreen.MANAGE ->
+                            listOf(
+                                GuildDialogAction(
+                                    Component.text(controller.lang.raw("dialog_v2.more_listing_options")),
+                                    Component.empty(),
+                                ) {
+                                    managementTools(rawView)
+                                },
+                            )
+                        else -> emptyList()
+                    },
+                showCategoryInput = false,
+            ),
+        )
+    }
+
+    private fun pageTitle(view: RecruitmentView): String =
+        when (controller.screen) {
+            RecruitmentScreen.PROFILE -> controller.selected?.let { controller.guilds.getGuild(it)?.name } ?: view.title
+            RecruitmentScreen.FILTER -> controller.lang.raw("recruitment.filter")
+            RecruitmentScreen.INBOX -> controller.lang.raw("recruitment.inbox")
+            RecruitmentScreen.MINE -> controller.lang.raw("recruitment.mine")
+            RecruitmentScreen.CONFIRM -> controller.lang.raw("dialog_v2.confirm_fee")
+            else -> view.title
+        }
+
+    private fun managementToolLabels(): Set<String> =
+        setOf(
+            controller.lang.raw("recruitment.setup"),
+            controller.lang.raw("recruitment.settings"),
+            controller.lang.raw("recruitment.browse"),
+            controller.lang.raw("recruitment.mine"),
+        )
+
+    private fun managementTools(view: RecruitmentView) {
+        present(
+            GuildDialogPage(
+                Component.text(controller.lang.raw("dialog_v2.more_listing_options")),
+                emptyList(),
+                view.items.filter { it.label in managementToolLabels() && it.isInteractive() }.map { action(it) },
+                GuildDialogAction(
+                    Component.text(controller.lang.raw("recruitment.dialog.back")),
+                    Component.empty(),
+                    controller.refresh,
+                ),
+                columns = 2,
+                theme = controller.theme(),
+            ),
+        )
+    }
+
+    private fun advancedFilters(view: RecruitmentView) {
+        present(
+            GuildDialogPage(
+                Component.text(controller.lang.raw("dialog_v2.more_filters")),
+                emptyList(),
+                view.items.filter { it.isInteractive() }.map { action(it, detailsInLabel = true) } +
+                    view.navigation.filter {
+                        it.label == controller.lang.raw("recruitment.reminders") && it.isInteractive()
+                    }.map { action(it) },
+                GuildDialogAction(
+                    Component.text(controller.lang.raw("recruitment.dialog.back")),
+                    Component.empty(),
+                    controller.refresh,
+                ),
+                columns = 2,
+                theme = controller.theme(),
             ),
         )
     }
 
     private fun isCardLink(button: RecruitmentButton): Boolean =
-        clickableCards && controller.screen == RecruitmentScreen.BROWSE &&
-            button.guild != null && button.isInteractive()
+        clickableCards && button.isInteractive() && (
+            controller.screen == RecruitmentScreen.BROWSE && button.guild != null ||
+                controller.screen in setOf(RecruitmentScreen.INBOX, RecruitmentScreen.MINE)
+        )
 
     private fun bodies(entries: List<RecruitmentButton>): List<GuildDialogItem> =
-        entries.filter { !it.isInteractive() || it.details.isNotEmpty() || isCardLink(it) }
+        entries.filter {
+            !it.isInteractive() || isCardLink(it) ||
+                controller.screen == RecruitmentScreen.BROWSE && it.guild != null ||
+                controller.screen == RecruitmentScreen.CONFIRM && it.details.isNotEmpty()
+        }
             .map { button ->
                 button.nativeBody(controller.screen).copy(onClick = if (isCardLink(button)) action(button) else null)
             }
 
-    private fun searchContext(): List<GuildDialogItem> {
-        if (controller.screen != RecruitmentScreen.BROWSE) return emptyList()
-        val label = controller.lang.raw("guild_dialogs.board.search_filters")
-        val context = listOf(label, controller.query).filter(String::isNotBlank).joinToString(": ")
-        return listOf(
-            GuildDialogItem(
-                NexoItemProvider.getItemStackOrFallback(
-                    RecruitmentIcons.NAV_SETTINGS,
-                ) { ItemStack.of(Material.COMPASS) },
-                Component.text(context, NamedTextColor.GOLD),
-                onClick = if (clickableCards) filterAction(context) else null,
-            ),
-        )
-    }
+    private fun categoryActions(): List<GuildDialogAction> =
+        listOf("all", "building", "pvp", "quests", "social").map { category ->
+            val key =
+                when (category) {
+                    "all" -> "recruitment.any"
+                    "quests" -> "recruitment.category_quests"
+                    "social" -> "recruitment.category_social"
+                    else -> "recruitment.$category"
+                }
+            val label = controller.lang.raw(key)
+            val selected = (controller.interest ?: "all") == category
+            GuildDialogAction(Component.text(if (selected) "[$label]" else label), Component.empty()) {
+                controller.interest = category.takeUnless { it == "all" }
+                controller.resetBrowse()
+            }
+        }
+
+    private fun filterActions(): List<GuildDialogAction> =
+        buildList {
+            for ((key, values) in listOf(
+                "fee" to listOf("Any", "Free", "Paid"),
+                "level" to listOf("All", "30+", "Under 30"),
+                "sort" to listOf("Name", "Online", "Level"),
+            )) {
+                val filterKey = "dialog_v2.filter_$key"
+                values.forEachIndexed { index, value ->
+                    val selected =
+                        when (key) {
+                            "fee" -> controller.feeFilter == index
+                            "level" -> controller.levelFilter == index
+                            else -> controller.sorting == listOf(2, 3, 1)[index]
+                        }
+                    add(
+                        GuildDialogAction(
+                            Component.text(
+                                "${controller.lang.raw(
+                                    filterKey,
+                                )}: ${if (selected) "[$value]" else value}",
+                            ),
+                            Component.empty(),
+                        ) {
+                            when (key) {
+                                "fee" -> controller.feeFilter = index
+                                "level" -> controller.levelFilter = index
+                                else -> controller.sorting = listOf(2, 3, 1)[index]
+                            }
+                            controller.browsePage = 0
+                            controller.refresh()
+                        },
+                    )
+                }
+            }
+        }
 
     private fun pageActions(
         view: RecruitmentView,
         pages: Int,
     ): List<GuildDialogAction> {
         val actions = mutableListOf<GuildDialogAction>()
+        if (controller.screen == RecruitmentScreen.FILTER) {
+            return listOf(
+                GuildDialogAction(Component.text(controller.lang.raw("dialog_v2.show_results")), Component.empty()) {
+                    controller.showScreen(RecruitmentScreen.BROWSE)
+                },
+                GuildDialogAction(Component.text(controller.lang.raw("recruitment.reset")), Component.empty()) {
+                    controller.feeFilter = 0
+                    controller.levelFilter = 0
+                    controller.sorting = 2
+                    controller.query = ""
+                    controller.interest = null
+                    controller.browsePage = 0
+                    controller.refresh()
+                },
+            )
+        }
         val entries = view.items.drop(controller.page * controller.dialogPageSize()).take(controller.dialogPageSize())
         for (button in entries.filter { it.isInteractive() && !isCardLink(it) }) actions += action(button)
         actions += extraActions(view)
@@ -84,7 +257,6 @@ internal class RecruitmentDialogMenu(
         if (controller.page + 1 < pages) {
             actions += pageAction(1, Component.text(controller.lang.raw("recruitment.next")))
         }
-        if (controller.screen != RecruitmentScreen.BROWSE) actions += navigationAction()
         return actions
     }
 
@@ -100,57 +272,15 @@ internal class RecruitmentDialogMenu(
                 ?: RecruitmentButton(mine, icon = RecruitmentIcons.DESCRIPTION) {
                     controller.showScreen(RecruitmentScreen.MINE)
                 }
-        return (if (clickableCards) emptyList() else listOf(filterAction())) + listOf(action(applications)) +
+        val filter =
+            view.navigation.firstOrNull { it.label == controller.lang.raw("recruitment.filter") && it.isInteractive() }
+                ?: RecruitmentButton(controller.lang.raw("recruitment.filter")) {
+                    controller.showScreen(RecruitmentScreen.FILTER)
+                }
+        return listOf(action(filter), action(applications)) +
             view.navigation.filter {
                 it.label == controller.lang.raw("recruitment.manage") && it.isInteractive()
             }.map { action(it) }
-    }
-
-    private fun filterAction(context: String = ""): GuildDialogAction =
-        GuildDialogAction(
-            guildDialogIconLabel(
-                Component.text(controller.lang.raw("guild_dialogs.board.search_filters")),
-                RecruitmentIcons.NAV_SETTINGS,
-            ),
-            Component.text(context),
-        ) { controller.showScreen(RecruitmentScreen.FILTER) }
-
-    private fun navigationAction(close: Boolean = false): GuildDialogAction {
-        val label =
-            if (close) {
-                controller.lang.raw("recruitment.dialog.close")
-            } else {
-                controller.lang.raw("recruitment.dialog.navigation")
-            }
-        return GuildDialogAction(
-            guildDialogIconLabel(
-                Component.text(label),
-                if (close) RecruitmentIcons.CANCEL else RecruitmentIcons.NAV_SETTINGS,
-            ),
-            Component.empty(),
-            if (close) callbacks.close else ::showNavigation,
-        )
-    }
-
-    private fun showNavigation() {
-        val view = controller.view()
-        val actions = view.navigation.filter { it.isInteractive() }.map { action(it) } + navigationAction(true)
-        present(
-            GuildDialogPage(
-                Component.text(controller.lang.raw("recruitment.dialog.navigation")),
-                emptyList(),
-                actions,
-                GuildDialogAction(
-                    guildDialogIconLabel(
-                        Component.text(controller.lang.raw("recruitment.dialog.back")),
-                        RecruitmentIcons.BACK,
-                    ),
-                    Component.empty(),
-                    controller.refresh,
-                ),
-                theme = controller.theme(),
-            ),
-        )
     }
 
     private fun present(page: GuildDialogPage): Boolean {
@@ -191,6 +321,8 @@ internal class RecruitmentDialogMenu(
     }
 
     private fun parent() {
+        if (controller.screen == RecruitmentScreen.MANAGE) return controller.showScreen(RecruitmentScreen.BROWSE)
+        if (controller.screen == RecruitmentScreen.METHOD) return controller.showScreen(controller.methodReturn)
         if (controller.screen in ROOT_SCREENS) return callbacks.back()
         controller.showScreen(PARENTS[controller.screen] ?: RecruitmentScreen.MANAGE)
     }
@@ -216,7 +348,7 @@ internal class RecruitmentDialogMenu(
 
 private const val BROWSE_DETAILS = 4
 private const val PAGE_SIZE = 3
-private const val BROWSE_PAGE_SIZE = 4
+private const val BROWSE_PAGE_SIZE = 3
 private const val CHOICE_PAGE_SIZE = 8
 private val CHOICE_SCREENS = setOf(RecruitmentScreen.MANAGE, RecruitmentScreen.METHOD, RecruitmentScreen.SETUP)
 
@@ -236,10 +368,14 @@ private fun RecruitmentButton.nativeBody(screen: RecruitmentScreen): GuildDialog
             Component.empty()
         }
     return GuildDialogItem(
-        guild?.let(GuildBannerItemResolver::resolveForDisplay)
-            ?: NexoItemProvider.getItemStackOrFallback(icon) { ItemStack.of(Material.BOOK) },
+        if (screen == RecruitmentScreen.BROWSE && !showBanner) {
+            ItemStack.of(Material.AIR)
+        } else {
+            guild?.let(GuildBannerItemResolver::resolveForDisplay)
+                ?: NexoItemProvider.getItemStackOrFallback(icon) { ItemStack.of(Material.BOOK) }
+        },
         heading.append(Component.text(lines.joinToString("\n"), NamedTextColor.GRAY)),
-        cardLines = if (screen == RecruitmentScreen.BROWSE && guild != null) cardSummary ?: cardLines(lines) else null,
+        cardLines = cardSummary ?: cardLines(lines),
     )
 }
 

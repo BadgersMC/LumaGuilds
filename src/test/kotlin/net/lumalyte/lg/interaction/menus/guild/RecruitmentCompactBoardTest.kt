@@ -9,34 +9,40 @@ import kotlin.test.assertTrue
 
 internal class RecruitmentCompactBoardTest : RecruitmentDialogFixture() {
     @Test
-    fun boardMovesSearchToolsIntoFilterLinkAndKeepsCompactFooter() {
+    fun referenceBoardKeepsSearchCategoryLinksAndTwoColumnFooter() {
         val navigation =
             listOf(
                 RecruitmentButton("recruitment.manage") {},
-                RecruitmentButton("recruitment.filter") {},
+                RecruitmentButton("recruitment.filter") { controller.showScreen(RecruitmentScreen.FILTER) },
             )
         menu().show(RecruitmentView("Browse", emptyList(), navigation))
         val page = assertNotNull(renderedPage)
-        assertNull(page.search)
+        assertNotNull(page.search)
+        assertEquals(5, page.bodyActions.size)
+        assertEquals(false, page.showCategoryInput)
         assertEquals(2, page.columns)
         assertEquals(
-            listOf("recruitment.mine", "recruitment.manage"),
+            listOf("recruitment.filter", "recruitment.mine", "recruitment.manage"),
             page.actions.map {
                 PlainTextComponentSerializer.plainText().serialize(it.label)
             },
         )
-        assertNotNull(page.items.first().onClick).action()
+        page.actions.first().action()
         assertEquals(RecruitmentScreen.FILTER, controller.screen)
     }
 
     @Test
-    fun filterDialogOwnsSearchSortAndResetControls() {
+    fun filterDialogHasSegmentedChoicesAndExplicitResultsReset() {
         controller.screen = RecruitmentScreen.FILTER
         menu().show(RecruitmentView("Filters", emptyList(), emptyList()))
         val page = assertNotNull(renderedPage)
-        assertNotNull(page.search)
+        assertNull(page.search)
         val labels = page.actions.map { PlainTextComponentSerializer.plainText().serialize(it.label) }
-        assertTrue(labels.any { it.startsWith("recruitment.sort") })
+        assertTrue(page.bodyActions.size >= 9)
+        page.bodyActions[2].action()
+        assertEquals(2, controller.feeFilter)
+        page.bodyActions[7].action()
+        assertEquals(3, controller.sorting)
         assertTrue(labels.any { it.startsWith("recruitment.reset") })
         assertTrue(labels.none { it == "recruitment.manage" })
     }

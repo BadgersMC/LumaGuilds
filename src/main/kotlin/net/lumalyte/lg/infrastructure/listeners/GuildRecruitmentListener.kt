@@ -23,6 +23,11 @@ internal class GuildRecruitmentListener(
     private val config: ConfigService,
     private val notifications: GuildRecruitmentNotifications,
     private val discovery: GuildRecruitmentDiscovery,
+    private val directory: net.lumalyte.lg.application.persistence.RecruitmentDirectoryRepository? = null,
+    private val members: net.lumalyte.lg.application.services.MemberService? = null,
+    private val guilds: net.lumalyte.lg.application.services.GuildService? = null,
+    private val quests: net.lumalyte.lg.application.services.QuestService? = null,
+    private val lang: net.badgersmc.nexus.i18n.LangService? = null,
 ) : Listener {
     private val sessions = mutableMapOf<UUID, Instant>()
     private var cursor = 0
@@ -40,6 +45,7 @@ internal class GuildRecruitmentListener(
                         val player = players[cursor++]
                         notifications.deliver(player)
                         discovery.prompt(player, sessions[player.uniqueId], true)
+                        remindQuests(player)
                     }
                 }
             },
@@ -78,9 +84,35 @@ internal class GuildRecruitmentListener(
             Runnable {
                 safe {
                     recruitment.closeOtherApplications(event.playerId, event.guildId)
+                    announceJoin(event.playerId, event.guildId)
                 }
             },
         )
+    }
+
+    internal fun announceJoin(playerId: UUID, guildId: UUID) {
+        val joined = Bukkit.getPlayer(playerId)?.takeIf { it.isOnline } ?: return
+        val guild = guilds?.getGuild(guildId) ?: return
+        if (!recruitment.listings.profile(guild).joinAnnouncements) return
+        val message = lang?.msg("dialog_v2.join_announcement", "player" to joined.name, "guild" to guild.name) ?: return
+        members?.getGuildMembers(guildId)?.filter { it.playerId != playerId }?.forEach { member ->
+            Bukkit.getPlayer(member.playerId)?.takeIf { it.isOnline && it.canSee(joined) }?.sendMessage(message)
+        }
+    }
+
+    internal fun remindQuests(player: org.bukkit.entity.Player) {
+        if (!player.hasPermission("lumaguilds.guild.quests")) return
+        val own = members?.getPlayerGuilds(player.uniqueId) ?: return
+        for (id in own) {
+            val guild = guilds?.getGuild(id) ?: continue
+            if (!recruitment.listings.profile(guild).questReminders) continue
+            val week = quests?.activeQuestSet() ?: continue
+            val remaining = quests.timeRemaining()
+            if (remaining.isZero || remaining.isNegative || remaining > java.time.Duration.ofHours(1)) continue
+            val message = lang?.msg("dialog_v2.quest_reminder", "guild" to guild.name) ?: continue
+            if (directory?.consumeQuestReminder(player.uniqueId, id, week.weekId) != true) continue
+            player.sendMessage(message.clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/guild quests")))
+        }
     }
 
     /** Disconnected sessions cannot deliver an old onboarding timer after a reconnect. */

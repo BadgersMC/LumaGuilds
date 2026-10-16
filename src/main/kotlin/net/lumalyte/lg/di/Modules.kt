@@ -523,7 +523,7 @@ fun guildClaimsIntegrationModule() = module {
 fun socialModule() = module {
     single { net.lumalyte.lg.infrastructure.listeners.GuildRecruitmentNotifications(get(), get(), get(), get(), get()) }
     single { net.lumalyte.lg.infrastructure.listeners.GuildRecruitmentDiscovery(get(), get(), get(), get()) }
-    single { net.lumalyte.lg.infrastructure.listeners.GuildRecruitmentListener(get(), get(), get(), get(), get()) }
+    single { net.lumalyte.lg.infrastructure.listeners.GuildRecruitmentListener(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<net.lumalyte.lg.application.persistence.GuildRecruitmentRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.GuildRecruitmentRepositorySQL(get())
     }

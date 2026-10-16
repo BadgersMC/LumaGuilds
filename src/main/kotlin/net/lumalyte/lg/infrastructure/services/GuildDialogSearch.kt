@@ -20,23 +20,35 @@ internal data class GuildDialogSearch(
     val submit: (String, String) -> Unit,
 )
 
-internal fun GuildDialogSearch.inputs(): List<DialogInput> {
+internal fun GuildDialogSearch.inputs(showCategory: Boolean = true): List<DialogInput> {
     return listOf(
         DialogInput.text(BOARD_QUERY_KEY, label).width(BOARD_CONTROL_WIDTH)
             .initial(initial)
             .maxLength(QUERY_LIMIT)
             .build(),
-        DialogInput.singleOption(
-            BOARD_CATEGORY_KEY,
-            BOARD_CONTROL_WIDTH,
-            categories.map { (id, text) -> SingleOptionDialogInput.OptionEntry.create(id, text, id == category) },
-            categoryLabel,
-            true,
-        ),
-    )
+    ) +
+        if (!showCategory) {
+            emptyList()
+        } else {
+            listOf(
+                DialogInput.singleOption(
+                    BOARD_CATEGORY_KEY,
+                    BOARD_CONTROL_WIDTH,
+                    categories.map {
+                            (id, text) ->
+                        SingleOptionDialogInput.OptionEntry.create(id, text, id == category)
+                    },
+                    categoryLabel,
+                    true,
+                ),
+            )
+        }
 }
 
-internal fun GuildDialogSearch.accept(query: String?, selected: String?): Boolean {
+internal fun GuildDialogSearch.accept(
+    query: String?,
+    selected: String?,
+): Boolean {
     if (query == null || categories.none { it.first == selected }) return false
     submit(query.trim().take(QUERY_LIMIT), requireNotNull(selected))
     return true

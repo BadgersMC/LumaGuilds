@@ -75,6 +75,16 @@ internal class GuildDialogSkin(
 
     fun card(lines: List<Component>): Component? = cardArt?.render(lines)
 
+    fun referenceBody(
+        title: Component,
+        subtitle: Component,
+        content: List<DialogBody>,
+    ): List<DialogBody> {
+        val lines = listOf(title.colorIfAbsent(accent), subtitle)
+        val heading = card(lines) ?: Component.join(net.kyori.adventure.text.JoinConfiguration.newlines(), lines)
+        return listOf(DialogBody.plainMessage(heading, DIALOG_ART_WIDTH), band("divider", false)) + content
+    }
+
     fun body(content: List<DialogBody>): List<DialogBody> {
         return buildList {
             add(band("header", true))

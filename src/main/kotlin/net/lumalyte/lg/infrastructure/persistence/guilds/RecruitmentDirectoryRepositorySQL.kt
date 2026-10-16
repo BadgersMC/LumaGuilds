@@ -24,6 +24,11 @@ internal class RecruitmentDirectoryRepositorySQL(
 
     init {
         storage.connection.executeUpdate(
+            "CREATE TABLE IF NOT EXISTS guild_quest_reminder_receipts (" +
+                "player_id VARCHAR(36) NOT NULL, guild_id VARCHAR(36) NOT NULL, week_id VARCHAR(64) NOT NULL, " +
+                "PRIMARY KEY (player_id, guild_id, week_id))",
+        )
+        storage.connection.executeUpdate(
             "CREATE TABLE IF NOT EXISTS guild_recruitment_profiles (guild_id VARCHAR(36) PRIMARY " +
                 "KEY, profile TEXT NOT NULL)",
         )
@@ -35,6 +40,22 @@ internal class RecruitmentDirectoryRepositorySQL(
             "CREATE TABLE IF NOT EXISTS guild_recruitment_notifications " +
                 "(player_id VARCHAR(36) PRIMARY KEY, signature VARCHAR(64) NOT NULL)",
         )
+    }
+
+    override fun consumeQuestReminder(
+        player: UUID,
+        guild: UUID,
+        week: String,
+    ): Boolean {
+        require(week.isNotBlank() && week.length <= 64)
+        val sql =
+            if (maria) {
+                "INSERT IGNORE INTO guild_quest_reminder_receipts (player_id, guild_id, week_id) VALUES (?, ?, ?)"
+            } else {
+                "INSERT INTO guild_quest_reminder_receipts (player_id, guild_id, week_id) VALUES (?, ?, ?) " +
+                    "ON CONFLICT(player_id, guild_id, week_id) DO NOTHING"
+            }
+        return storage.connection.executeUpdate(sql, player.toString(), guild.toString(), week) == 1
     }
 
     /** Reads plain profile fields; JSON content never authorizes commands or rich links. */
@@ -56,29 +77,46 @@ internal class RecruitmentDirectoryRepositorySQL(
             beginnerFriendly = json.getBoolean("beginner"),
             discordInvite = if (json.isNull(DISCORD_INVITE_KEY)) null else json.getString(DISCORD_INVITE_KEY),
             discordInstructions = json.getString("instructions"),
+            publicListing = json.optBoolean("publicListing", true),
+            joinAnnouncements = json.optBoolean("joinAnnouncements", true),
+            showBanner = json.optBoolean("showBanner", true),
+            questReminders = json.optBoolean("questReminders", false),
         )
     }
 
     /** Stores only recruitment fields and preserves unrelated guild settings. */
     override fun save(profile: RecruitmentProfile) {
-        val json =
-            JSONObject()
-                .put("updatedAt", Instant.now().toString())
-                .put("mode", profile.mode.name)
-                .put("pitch", profile.pitch)
-                .put("requirements", profile.requirements)
-                .put("interests", JSONArray(profile.interests.toList()))
-                .put("times", profile.preferredTimes)
-                .put("language", profile.language)
-                .put("beginner", profile.beginnerFriendly)
-                .put(
-                    DISCORD_INVITE_KEY,
-                    profile.discordInvite ?: JSONObject.NULL,
-                )
-                .put("instructions", profile.discordInstructions)
+        val json = profileJson(profile)
         access.save(profile.guildId, profile.mode, json.toString())
         guilds?.refreshCachedAccess(profile.guildId)
     }
+
+    override fun savePresentation(
+        profile: RecruitmentProfile,
+        fields: Set<String>,
+    ) {
+        access.savePresentation(profile.guildId, profileJson(profile).toString(), fields)
+    }
+
+    private fun profileJson(profile: RecruitmentProfile): JSONObject =
+        JSONObject()
+            .put("updatedAt", Instant.now().toString())
+            .put("mode", profile.mode.name)
+            .put("pitch", profile.pitch)
+            .put("requirements", profile.requirements)
+            .put("interests", JSONArray(profile.interests.toList()))
+            .put("times", profile.preferredTimes)
+            .put("language", profile.language)
+            .put("beginner", profile.beginnerFriendly)
+            .put(
+                DISCORD_INVITE_KEY,
+                profile.discordInvite ?: JSONObject.NULL,
+            )
+            .put("instructions", profile.discordInstructions)
+            .put("publicListing", profile.publicListing)
+            .put("joinAnnouncements", profile.joinAnnouncements)
+            .put("showBanner", profile.showBanner)
+            .put("questReminders", profile.questReminders)
 
     override fun updatedAt(guild: UUID): Instant? {
         val row =
@@ -90,7 +128,10 @@ internal class RecruitmentDirectoryRepositorySQL(
     }
 
     /** Enables or disables personal discovery prompts without resetting prompt history. */
-    override fun setReminders(player: UUID, enabled: Boolean) {
+    override fun setReminders(
+        player: UUID,
+        enabled: Boolean,
+    ) {
         val suffix =
             if (maria) {
                 "ON DUPLICATE KEY UPDATE enabled = VALUES(enabled)"
@@ -112,7 +153,11 @@ internal class RecruitmentDirectoryRepositorySQL(
     }
 
     /** One conditional update makes reconnects and competing schedulers unable to replay a prompt. */
-    override fun consumePrompt(player: UUID, at: Instant, repeatAfter: Duration?): Boolean {
+    override fun consumePrompt(
+        player: UUID,
+        at: Instant,
+        repeatAfter: Duration?,
+    ): Boolean {
         require(repeatAfter == null || repeatAfter > Duration.ZERO)
         insertPromptPreference(player)
         val due = if (repeatAfter == null) "prompted_at IS NULL" else "(prompted_at IS NULL OR prompted_at <= ?)"
@@ -142,7 +187,10 @@ internal class RecruitmentDirectoryRepositorySQL(
     }
 
     /** A digest is delivered once until its private application or inbox state changes. */
-    override fun consumeNotification(player: UUID, signature: String): Boolean {
+    override fun consumeNotification(
+        player: UUID,
+        signature: String,
+    ): Boolean {
         require(signature.matches(Regex("[0-9a-f]{64}")))
         val suffix =
             if (maria) {

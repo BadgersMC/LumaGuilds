@@ -26,17 +26,58 @@ internal class GuildRecruitmentAccessSQL(private val storage: Storage<Database>)
             ) ?: return null
         return JSONObject(row.getString("profile")).getString("mode") == RecruitmentMode.JOIN_IMMEDIATELY.name
     }
-    fun save(guild: UUID, mode: RecruitmentMode, profile: String) {
+
+    fun save(
+        guild: UUID,
+        mode: RecruitmentMode,
+        profile: String,
+    ) {
         storage.recruitmentTransaction { connection ->
             check(exists(connection, guild)) { "This guild is no longer available" }
             writeAccess(connection, guild, mode == RecruitmentMode.JOIN_IMMEDIATELY)
+            val merged = JSONObject(profile)
+            readProfile(connection, guild)?.let { current ->
+                PRESENTATION_KEYS.forEach { key -> if (current.has(key)) merged.put(key, current.getBoolean(key)) }
+            }
             val statement = profileStatement(connection)
             statement.use {
                 it.setString(1, guild.toString())
-                it.setString(2, profile)
+                it.setString(2, merged.toString())
                 it.executeUpdate()
             }
         }
+    }
+
+    fun savePresentation(
+        guild: UUID,
+        fallback: String,
+        fields: Set<String>,
+    ) {
+        require(fields.all { it in PRESENTATION_KEYS })
+        storage.recruitmentTransaction { connection ->
+            check(exists(connection, guild)) { "This guild is no longer available" }
+            val proposed = JSONObject(fallback)
+            val current = readProfile(connection, guild) ?: proposed
+            fields.forEach { current.put(it, proposed.getBoolean(it)) }
+            profileStatement(connection).use {
+                it.setString(1, guild.toString())
+                it.setString(2, current.toString())
+                it.executeUpdate()
+            }
+        }
+    }
+
+    private fun readProfile(
+        connection: Connection,
+        guild: UUID,
+    ): JSONObject? =
+        connection.prepareStatement("SELECT profile FROM guild_recruitment_profiles WHERE guild_id = ?").use {
+            it.setString(1, guild.toString())
+            it.executeQuery().use { rows -> if (rows.next()) JSONObject(rows.getString(1)) else null }
+        }
+
+    private companion object {
+        val PRESENTATION_KEYS = listOf("publicListing", "joinAnnouncements", "showBanner", "questReminders")
     }
 
     private fun profileStatement(connection: Connection): java.sql.PreparedStatement {
@@ -53,7 +94,10 @@ internal class GuildRecruitmentAccessSQL(private val storage: Storage<Database>)
         }
     }
 
-    fun setOpen(guild: UUID, open: Boolean): Boolean {
+    fun setOpen(
+        guild: UUID,
+        open: Boolean,
+    ): Boolean {
         return storage.recruitmentTransaction { connection ->
             if (exists(connection, guild)) {
                 writeAccess(connection, guild, open)
@@ -65,7 +109,11 @@ internal class GuildRecruitmentAccessSQL(private val storage: Storage<Database>)
         }
     }
 
-    private fun updateMethod(connection: Connection, guild: UUID, open: Boolean) {
+    private fun updateMethod(
+        connection: Connection,
+        guild: UUID,
+        open: Boolean,
+    ) {
         val profile =
             connection.prepareStatement(
                 "SELECT profile FROM guild_recruitment_profiles WHERE guild_id = ?",
@@ -88,7 +136,10 @@ internal class GuildRecruitmentAccessSQL(private val storage: Storage<Database>)
         }
     }
 
-    private fun exists(connection: Connection, guild: UUID): Boolean {
+    private fun exists(
+        connection: Connection,
+        guild: UUID,
+    ): Boolean {
         val statement =
             if (storage.dialect == SqlDialect.MARIADB) {
                 connection.prepareStatement("SELECT id FROM guilds WHERE id = ? FOR UPDATE")
@@ -101,7 +152,11 @@ internal class GuildRecruitmentAccessSQL(private val storage: Storage<Database>)
         }
     }
 
-    private fun writeAccess(connection: Connection, guild: UUID, open: Boolean) {
+    private fun writeAccess(
+        connection: Connection,
+        guild: UUID,
+        open: Boolean,
+    ) {
         connection.prepareStatement("UPDATE guilds SET is_open = ? WHERE id = ?").use {
             it.setInt(1, if (open) 1 else 0)
             it.setString(2, guild.toString())

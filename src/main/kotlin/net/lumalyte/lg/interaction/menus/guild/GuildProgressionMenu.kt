@@ -67,6 +67,7 @@ class GuildProgressionMenu(
     private val itemsPerPage = 24
     private var sourceDetails = false
     private val nativeDialog = GuildMenuDialog()
+    private var rewardPage = 0
 
     /** Six content columns; the sidebar, header and navigation never share these slots. */
     private val gridSlots = listOf(
@@ -214,6 +215,10 @@ class GuildProgressionMenu(
     private fun progressionDialogActions() =
         listOf(
             nativeAction(lang.gui("guild_dialogs.progression.quests"), ::openNativeQuests),
+            nativeAction(lang.gui("dialog_v2.leaderboard")) {
+                menuNavigator.openMenu(GuildLeaderboardDialogMenu(menuNavigator, player, guild, guildService, memberService,
+                    getKoin().get(), lang))
+            },
             nativeAction(lang.gui("guild_dialogs.progression.sources")) {
                 sourceDetails = true
                 open()
@@ -222,8 +227,7 @@ class GuildProgressionMenu(
                 if (rewardState is GuildRewardRead.Available) {
                     openRewardCatalog()
                 } else {
-                    sourceDetails = true
-                    open()
+                    showLegacyPerks()
                 }
             },
             nativeAction(lang.gui("menu.guild_progression.prestige.name"), ::openNativePrestige),
@@ -433,6 +437,7 @@ class GuildProgressionMenu(
             player.sendMessage(lang.msg("chapter_two_rewards.unavailable"))
             return
         }
+        if (RecruitmentPresentation.supportsDialog(player) && showRewardDialog(state)) return
         val gui = ChestGui(6, lang.guiTitle("chapter_two_rewards.title"))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnGlobalClick { it.isCancelled = true }
@@ -467,6 +472,62 @@ class GuildProgressionMenu(
         pane.addItem(GuiItem(back) { it.isCancelled = true; open() }, 8, 5)
         gui.addPane(pane)
         gui.show(player)
+    }
+
+    private fun showRewardDialog(state: GuildRewardRead.Available): Boolean {
+        val offers = state.entitlements.offers.sortedBy { it.reward.level }
+        val pages = maxOf(1, (offers.size + 3) / 4)
+        rewardPage = rewardPage.coerceIn(0, pages - 1)
+        val token = menuNavigator.currentNavigationToken()
+        val authorized = guildService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_GUILD_SETTINGS) &&
+            guildService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.WITHDRAW_FROM_BANK)
+        val cards = offers.drop(rewardPage * 4).take(4).map { offer ->
+            val available = offer.status == RewardOfferStatus.AVAILABLE && authorized
+            val title = Component.text(offer.reward.name)
+            val icon = when (offer.status) {
+                RewardOfferStatus.AVAILABLE -> "lg_reward"
+                RewardOfferStatus.PURCHASED, RewardOfferStatus.PERMANENT -> "lg_confirm"
+                else -> "lg_cancel"
+            }
+            referenceItem(icon, listOf(title,
+                lang.gui("chapter_two_rewards.level_price", "level" to offer.reward.level, "price" to offer.reward.price),
+                lang.rewardStatus(offer.status)), if (!available) null else referenceAction(title, icon) {
+                val quote = rewardPurchases.quote(player.uniqueId, guild.id, offer.reward.id)
+                if (quote == null) { player.sendMessage(lang.msg("chapter_two_rewards.purchase.no_quote")); openRewardCatalog() }
+                else GuildRewardPurchaseMenu(player, quote, offer.reward.name, ::openRewardCatalog, guild.guiTheme,
+                    { menuNavigator.isNavigationCurrent(token) && memberService.getMember(player.uniqueId, guild.id) != null }).open()
+            })
+        }
+        val controls = buildList {
+            if (rewardPage > 0) add(referenceAction(lang.gui("recruitment.previous"), "lg_page_prev") { rewardPage--; openRewardCatalog() })
+            if (rewardPage + 1 < pages) add(referenceAction(lang.gui("recruitment.next"), "lg_page_next") { rewardPage++; openRewardCatalog() })
+        }
+        return nativeDialog.show(player, GuildDialogPage(lang.gui("dialog_v2.perks"), cards, controls,
+            referenceAction(lang.gui("recruitment.dialog.back"), "lg_back", ::open), theme = guild.guiTheme,
+            subtitle = Component.text("${guild.name} · ${lang.raw("dialog_v2.rank_level")} ${state.level} · ${rewardPage + 1}/$pages")), {
+            player.isOnline && menuNavigator.isNavigationCurrent(token) && memberService.getMember(player.uniqueId, guild.id) != null
+        }) { player.sendMessage(lang.msg("chapter_two_rewards.unavailable")) }
+    }
+
+    private fun showLegacyPerks() {
+        val unlocked = progressionService.getUnlockedPerks(guild.id)
+        val all = net.lumalyte.lg.domain.values.PerkType.entries
+        val pages = maxOf(1, (all.size + 3) / 4); rewardPage = rewardPage.coerceIn(0, pages - 1)
+        val cards = all.drop(rewardPage * 4).take(4).map { perk ->
+            referenceItem(if (perk in unlocked) "lg_confirm" else "lg_cancel", listOf(
+                perkToDisplayName(perk),
+                lang.gui(if (perk in unlocked) "dialog_v2.perk_unlocked" else "menu.guild_progression.perks.hint")))
+        }
+        val actions = buildList {
+            if (rewardPage > 0) add(referenceAction(lang.gui("recruitment.previous"), "lg_page_prev") { rewardPage--; showLegacyPerks() })
+            if (rewardPage + 1 < pages) add(referenceAction(lang.gui("recruitment.next"), "lg_page_next") { rewardPage++; showLegacyPerks() })
+        }
+        val token = menuNavigator.currentNavigationToken()
+        nativeDialog.show(player, GuildDialogPage(lang.gui("dialog_v2.perks"), cards, actions,
+            referenceAction(lang.gui("recruitment.dialog.back"), "lg_back", ::open), theme = guild.guiTheme,
+            subtitle = Component.text("${guild.name} · ${rewardPage + 1}/$pages")), {
+            player.isOnline && menuNavigator.isNavigationCurrent(token) && memberService.getMember(player.uniqueId, guild.id) != null
+        }) { player.sendMessage(lang.msg("chapter_two_rewards.unavailable")) }
     }
 
     private fun addPrestigeInfo(pane: StaticPane, x: Int, y: Int) {

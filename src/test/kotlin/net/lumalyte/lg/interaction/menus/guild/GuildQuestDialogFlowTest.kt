@@ -100,12 +100,10 @@ internal class GuildQuestDialogFlowTest {
         action("recruitment.next")()
         assertEquals(2, pages.last().items.size)
         action("guild_dialogs.quests.rankings")()
-        assertEquals(4, pages.last().actions.size)
-        assertTrue(pages.last().items.all { it.onClick == null })
-        pages.last().back.action()
+        verify(exactly = 1) { navigator.openMenu(match { it is GuildQuestLeaderboardMenu }) }
         assertEquals(2, pages.last().items.size)
         pages.last().items.last().onClick!!.action()
-        verify(exactly = 1) { navigator.openMenu(any<GuildQuestLeaderboardMenu>()) }
+        verify(exactly = 1) { navigator.openMenu(match { it is GuildQuestDetailMenu }) }
     }
 
     @Test

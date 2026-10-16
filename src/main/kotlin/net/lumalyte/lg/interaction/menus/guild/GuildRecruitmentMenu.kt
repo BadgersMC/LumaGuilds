@@ -39,12 +39,19 @@ private const val LORE_ROWS = 16
 internal class GuildRecruitmentMenu(
     private val navigator: MenuNavigator,
     private val player: Player,
+    initialGuild: java.util.UUID? = null,
 ) : Menu, KoinComponent {
     private val controller =
         RecruitmentController(player, ::open) {
             val token = navigator.currentNavigationToken()
             val guard: () -> Boolean = { navigator.isNavigationCurrent(token) }
             guard
+        }.apply {
+            if (initialGuild != null) {
+                initialized = true
+                selected = initialGuild
+                screen = RecruitmentScreen.PROFILE
+            }
         }
     private val inputListener: ChatInputListener by inject()
     private val lang: LangService by inject()
@@ -94,11 +101,17 @@ internal class GuildRecruitmentMenu(
         }
     }
 
-    private fun showChatInput(input: RecruitmentInput, navigation: Long) {
+    private fun showChatInput(
+        input: RecruitmentInput,
+        navigation: Long,
+    ) {
         player.sendMessage(lang.msg("recruitment.feedback.input", "field" to input.label))
         val handler =
             object : ChatInputHandler {
-                override fun onChatInput(player: Player, input: String) {
+                override fun onChatInput(
+                    player: Player,
+                    input: String,
+                ) {
                     if (player.isOnline && navigator.isNavigationCurrent(navigation)) controller.acceptInput(input)
                 }
 
@@ -137,7 +150,10 @@ internal class GuildRecruitmentMenu(
         gui.show(player)
     }
 
-    private fun boardGui(view: RecruitmentView, pages: Int): ChestGui {
+    private fun boardGui(
+        view: RecruitmentView,
+        pages: Int,
+    ): ChestGui {
         val gui =
             ChestGui(
                 BOARD_ROWS,
@@ -149,7 +165,12 @@ internal class GuildRecruitmentMenu(
         return gui
     }
 
-    private fun addBoardItems(pane: StaticPane, view: RecruitmentView, capacity: Int, offset: Int) {
+    private fun addBoardItems(
+        pane: StaticPane,
+        view: RecruitmentView,
+        capacity: Int,
+        offset: Int,
+    ) {
         view.items.drop(controller.page * capacity).take(capacity).forEachIndexed { index, button ->
             add(pane, button, index % BOARD_COLUMNS, index / BOARD_COLUMNS + offset)
         }
@@ -158,12 +179,18 @@ internal class GuildRecruitmentMenu(
         }
     }
 
-    private fun addPagination(pane: StaticPane, pages: Int) {
+    private fun addPagination(
+        pane: StaticPane,
+        pages: Int,
+    ) {
         if (controller.page > 0) add(pane, pageButton(-1, pages), 0, NAVIGATION_ROW)
         if (controller.page + 1 < pages) add(pane, pageButton(1, pages), BOARD_COLUMNS - 1, NAVIGATION_ROW)
     }
 
-    private fun pageButton(delta: Int, pages: Int): RecruitmentButton {
+    private fun pageButton(
+        delta: Int,
+        pages: Int,
+    ): RecruitmentButton {
         val label = if (delta < 0) lang.raw("recruitment.previous") else lang.raw("recruitment.next")
         val icon = if (delta < 0) RecruitmentIcons.PAGE_PREV else RecruitmentIcons.PAGE_NEXT
         return RecruitmentButton(label, icon = icon) {
@@ -172,7 +199,12 @@ internal class GuildRecruitmentMenu(
         }
     }
 
-    private fun add(pane: StaticPane, button: RecruitmentButton, x: Int, y: Int) {
+    private fun add(
+        pane: StaticPane,
+        button: RecruitmentButton,
+        x: Int,
+        y: Int,
+    ) {
         val base =
             button.guild?.let(GuildBannerItemResolver::resolveForDisplay)
                 ?: NexoItemProvider.getItemStackOrFallback(button.icon) { ItemStack.of(Material.BOOK) }

@@ -48,7 +48,7 @@ internal class RecruitmentClickableCardsTest : RecruitmentDialogFixture() {
         menu().show(
             RecruitmentView("Profile", listOf(RecruitmentButton("Join", listOf("Fee"), guild = guild) {}), emptyList()),
         )
-        assertNull(assertNotNull(renderedPage).items.single().onClick)
-        assertEquals(2, assertNotNull(renderedPage).actions.size)
+        assertTrue(assertNotNull(renderedPage).items.isEmpty())
+        assertEquals(1, assertNotNull(renderedPage).actions.size)
     }
 }
