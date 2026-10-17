@@ -50,7 +50,7 @@ their existing presentations and permissions. No new progression mechanics.
 
 - [x] Navigation/session regressions and meaningful failure paths.
 - [x] Shared detail/quote routes and refreshed theme contract.
-- [ ] Full checks and reviewable canonical PR.
+- [x] Full local checks and reviewable canonical PR #236.
 - [x] Responsive click-through preview and local Minecraft transition captures.
 - [x] Record simulation versus actual plugin/client proof boundaries.
 - [ ] Shared TEST player journeys after separately authorized activation.
