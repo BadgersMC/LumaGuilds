@@ -17,6 +17,10 @@ private const val ITEM_WIDTH = 16
 private const val ITEM_HEIGHT = 16
 private const val TEXT_WIDTH = 280
 private const val ACTION_WIDTH = 180
+// FocusableTextWidget subtracts 4px per side from description.maxWidth.
+// Preserve the intended text area after that inset so 257px card advances fit.
+internal const val GUILD_DIALOG_ITEM_DESCRIPTION_WIDTH = TEXT_WIDTH - ITEM_WIDTH - 4 + 8
+internal val GUILD_DIALOG_CLOSE_LABEL = Component.translatable("gui.close").fallback("Close")
 
 internal data class GuildDialogItem(
     val item: ItemStack,
@@ -124,7 +128,7 @@ internal class GuildMenuDialog : GuildDialogPresenter {
     }
 
     private fun closeButton(callbacks: GuildDialogCallbacks): ActionButton =
-        ActionButton.builder(Component.translatable("gui.close")).width(ACTION_WIDTH)
+        ActionButton.builder(GUILD_DIALOG_CLOSE_LABEL).width(ACTION_WIDTH)
             .action(DialogAction.customClick({ _, audience -> callbacks.dismiss(audience) },
                 ClickCallback.Options.builder().uses(1).lifetime(Duration.ofHours(1)).build()))
             .build()
@@ -188,14 +192,14 @@ internal class GuildMenuDialog : GuildDialogPresenter {
                 ?: Component.join(net.kyori.adventure.text.JoinConfiguration.newlines(), lines + item.rightLines)
             val row = DialogBody.item(item.item.clone()).width(ITEM_WIDTH).height(ITEM_HEIGHT)
                 .showDecorations(false).showTooltip(false)
-                .description(DialogBody.plainMessage(linked(panel), TEXT_WIDTH - ITEM_WIDTH - 4)).build()
+                .description(DialogBody.plainMessage(linked(panel), GUILD_DIALOG_ITEM_DESCRIPTION_WIDTH)).build()
             return listOfNotNull(item.section?.let { DialogBody.plainMessage(it, TEXT_WIDTH) }, row)
         }
         if (skin != null && !lines.isNullOrEmpty()) {
             val heading =
                 DialogBody.item(item.item.clone()).width(ITEM_WIDTH).height(ITEM_HEIGHT)
                     .showDecorations(false).showTooltip(false)
-                    .description(DialogBody.plainMessage(linked(lines.first()), TEXT_WIDTH - ITEM_WIDTH - 4))
+                    .description(DialogBody.plainMessage(linked(lines.first()), GUILD_DIALOG_ITEM_DESCRIPTION_WIDTH))
                     .build()
             val content = lines.drop(1)
             if (content.isEmpty()) return listOf(heading)
@@ -207,7 +211,7 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         return listOf(
             DialogBody.item(item.item.clone()).width(ITEM_WIDTH).height(ITEM_HEIGHT)
                 .showDecorations(false).showTooltip(false)
-                .description(DialogBody.plainMessage(linked(item.text), TEXT_WIDTH - ITEM_WIDTH - 4))
+                .description(DialogBody.plainMessage(linked(item.text), GUILD_DIALOG_ITEM_DESCRIPTION_WIDTH))
                 .build(),
         )
     }
