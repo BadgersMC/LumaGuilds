@@ -193,14 +193,14 @@ class BankServiceBukkitDelegationTest {
 
     @Test fun `failed paid membership blocks a second charge after recreation`() {
         val (lfg, guild) = paidJoin(physical = false, membershipSucceeds = false)
-        assertTrue(lfg.joinGuild(actorId, guild) is LfgJoinResult.Error)
+        assertTrue(lfg.joinGuild(actorId, guild) is LfgJoinResult.PaymentUncertain)
         assertEquals(900, personalBalance)
         assertEquals(100, gold.balance(guildId))
         val reopened = GuildGoldRepositorySQL(storage)
         assertTrue(reopened.prepare(GuildGoldMutation(UUID.randomUUID(), guildId, actorId,
             GuildGoldRoute.PERSONAL_ACCOUNT, GuildGoldDirection.CREDIT, 100, 0, "Retry admission")) is GuildGoldPreparation.Pending)
         val (retry, _) = paidJoin(physical = false, membershipSucceeds = false)
-        assertTrue(retry.joinGuild(actorId, guild) is LfgJoinResult.Error)
+        assertTrue(retry.joinGuild(actorId, guild) is LfgJoinResult.PaymentUncertain)
         assertEquals(900, personalBalance)
         assertEquals(100, gold.balance(guildId))
     }
@@ -208,7 +208,7 @@ class BankServiceBukkitDelegationTest {
     @Test fun `paid join rejects bank overflow without charging player`() {
         gold.creditSystem(UUID.randomUUID(), guildId, actorId, 450, GuildGoldRoute.SYSTEM, "seed")
         val (lfg, guild) = paidJoin(physical = false)
-        assertTrue(lfg.joinGuild(actorId, guild) is LfgJoinResult.Error)
+        assertTrue(lfg.joinGuild(actorId, guild) is LfgJoinResult.PaymentRejected)
         assertEquals(1_000, personalBalance)
         assertEquals(450, gold.balance(guildId))
     }
@@ -251,21 +251,21 @@ class BankServiceBukkitDelegationTest {
     @Test fun `provider exception after paid join debit is not refunded or retried`() {
         throwAfterPersonalDebit = true
         val (lfg, guild) = paidJoin(physical = false)
-        assertTrue(lfg.joinGuild(actorId, guild) is LfgJoinResult.Error)
+        assertTrue(lfg.joinGuild(actorId, guild) is LfgJoinResult.PaymentUncertain)
         assertEquals(900, personalBalance)
         assertEquals(0, gold.balance(guildId))
-        assertTrue(lfg.joinGuild(actorId, guild) is LfgJoinResult.Error)
+        assertTrue(lfg.joinGuild(actorId, guild) is LfgJoinResult.PaymentUncertain)
         assertEquals(900, personalBalance)
         assertEquals(0, gold.balance(guildId))
     }
 
     @Test fun `failed physical admission retains pending payment and blocks another item removal`() {
         val (lfg, guild) = paidJoin(physical = true, membershipSucceeds = false)
-        assertTrue(lfg.joinGuild(actorId, guild) is LfgJoinResult.Error)
+        assertTrue(lfg.joinGuild(actorId, guild) is LfgJoinResult.PaymentUncertain)
         assertEquals(900, physicalBalance)
         assertEquals(100, gold.balance(guildId))
         val (retry, _) = paidJoin(physical = true, membershipSucceeds = false)
-        assertTrue(retry.joinGuild(actorId, guild) is LfgJoinResult.Error)
+        assertTrue(retry.joinGuild(actorId, guild) is LfgJoinResult.PaymentUncertain)
         assertEquals(900, physicalBalance)
         assertEquals(100, gold.balance(guildId))
     }

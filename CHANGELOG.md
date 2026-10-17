@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased]
+
+### Personal invite blocks
+
+- `/guild block <player>`, `/guild unblock <player>` and `/guild blocked` (`lumaguilds.guild.block`, default true).
+  A block stops guild invites from that player and from any guild they are in (whoever sends it), deletes the pending
+  invites it covers, makes invites that already existed unusable for `/guild join`, and hides their guild, ally, mod and
+  party chat messages from you. It never changes memberships. The inviter only sees the usual "could not send" message.
+- Stored in `player_invite_blocks` (schema v45, SQLite and MariaDB) and kept in memory; if the blocks cannot be loaded,
+  guild invites to anyone are refused rather than skipping a block.
+- `GuildInviteBlocks` in Bukkit's ServicesManager (`isBlocked`, `setBlocked`, `getBlocked`) so other plugins
+  (EnthusiaFriends' Block Everywhere) can add and remove these blocks.
+
 ## [3.0.0] - 2026-09-28
 
 ### Major release

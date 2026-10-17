@@ -71,7 +71,7 @@ class LfgServiceBukkitTest {
             every { bankService.collectJoinFee(any(), any(), any()) } answers {
                 gold.collectJoinFee(firstArg(), secondArg(), thirdArg())
             }
-            assertTrue(lfgService.joinGuild(UUID.randomUUID(), openGuildWithFee) is LfgJoinResult.Error)
+            assertTrue(lfgService.joinGuild(UUID.randomUUID(), openGuildWithFee) is LfgJoinResult.PaymentUncertain)
             assertEquals(500L, personal)
             assertEquals(500L, sql.getBalance(openGuildWithFee.id))
             verify(exactly = 0) { memberService.addMember(any(), any(), any()) }
@@ -195,7 +195,35 @@ class LfgServiceBukkitTest {
         }
     }
 
-    // ===== getAvailableGuilds Tests =====
+    // ===== getAvailableGuilds Tests ===== 
+    @Test
+    fun `approved offer can admit to a closed guild through existing fee admission`() {
+        val player = UUID.randomUUID()
+        val guild = openGuildWithFee.copy(isOpen = false)
+        every { guildRepository.getById(guild.id) } returns guild
+        every { physicalCurrencyService.calculatePlayerInventoryValue(player) } returns 1000
+        every { memberService.addMember(player, guild.id, defaultRank.id) } returns mockk(relaxed = true)
+        assertTrue(lfgService.joinApprovedGuild(player, guild) { true } is LfgJoinResult.Success)
+        verify(exactly = 1) { bankService.collectJoinFee(any(), true, any()) }
+        verify(exactly = 1) { memberService.addMember(player, guild.id, defaultRank.id) }
+        assertTrue(lfgService.joinGuild(UUID.randomUUID(), guild) is LfgJoinResult.Error)
+    }
+
+    @Test
+    fun `offer eligibility revoked during payment cannot complete admission`() {
+        val player = UUID.randomUUID()
+        var allowed = true
+        every { physicalCurrencyService.calculatePlayerInventoryValue(player) } returns 1000
+        every { bankService.collectJoinFee(any(), any(), any()) } answers {
+            val admission = thirdArg<PaidGuildAdmission>()
+            assertTrue(admission.isEligible())
+            allowed = false
+            assertFalse(admission.complete())
+            GuildGoldResult.Failed(firstArg<PersonalGoldRequest>().transactionId, false)
+        }
+        assertTrue(lfgService.joinApprovedGuild(player, openGuildWithFee) { allowed } is LfgJoinResult.PaymentUncertain)
+        verify(exactly = 0) { memberService.addMember(any(), any(), any()) }
+    }
 
     @Test
     fun `getAvailableGuilds should return guilds where isOpen is true and has slots`() {
@@ -374,8 +402,7 @@ class LfgServiceBukkitTest {
         assertEquals("Charlie Guild", result[2].name)
     }
 
-    // ===== getJoinRequirement Tests =====
-
+    // ===== getJoinRequirement Tests ===== 
     @Test
     fun `getJoinRequirement should return null when joinFeeEnabled is false`() {
         // Given: Guild with join fee disabled
@@ -486,8 +513,7 @@ class LfgServiceBukkitTest {
         assertEquals(12345, result!!.amount)
     }
 
-    // ===== canJoinGuild Tests =====
-
+    // ===== canJoinGuild Tests ===== 
     @Test
     fun `canJoinGuild should return AlreadyInGuild when player is already in a guild`() {
         // Given: Player is already in a guild
@@ -681,8 +707,7 @@ class LfgServiceBukkitTest {
         assertTrue(result is LfgJoinResult.Success)
     }
 
-    // ===== joinGuild Tests =====
-
+    // ===== joinGuild Tests ===== 
     @Test
     fun `joinGuild should return AlreadyInGuild when player is already in a guild`() {
         // Given: Player is already in a guild

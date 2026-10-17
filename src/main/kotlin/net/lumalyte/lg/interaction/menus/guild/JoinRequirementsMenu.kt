@@ -173,6 +173,10 @@ class JoinRequirementsMenu(
         val result = lfgService.joinGuild(player.uniqueId, guild)
 
         when (result) {
+            is LfgJoinResult.PaymentRejected, is LfgJoinResult.PaymentRefunded, is LfgJoinResult.PaymentUncertain -> {
+                player.sendMessage(recruitmentAdmissionFeedback(lang, result))
+                player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+            }
             is LfgJoinResult.Success -> {
                 player.sendMessage(lang.msg("menu.join_requirements.feedback.success", "message" to result.message))
                 player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
@@ -204,6 +208,8 @@ class JoinRequirementsMenu(
         fun render(key: String, vararg placeholders: Pair<String, Any?>): Component =
             if (styled) lang.gui(key, *placeholders) else lang.msg(key, *placeholders)
         return when (result) {
+            is LfgJoinResult.PaymentRejected, is LfgJoinResult.PaymentRefunded, is LfgJoinResult.PaymentUncertain ->
+                recruitmentAdmissionFeedback(lang, result)
             is LfgJoinResult.InsufficientFunds -> render("menu.join_requirements.reason.insufficient_funds", "required" to result.required, "currency" to result.currencyType)
             is LfgJoinResult.GuildFull -> render("menu.join_requirements.reason.guild_full")
             is LfgJoinResult.AlreadyInGuild -> render("menu.join_requirements.reason.already_member")
