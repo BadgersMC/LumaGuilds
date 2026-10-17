@@ -35,6 +35,26 @@ class MenuNavigator(private val player: Player) {
     }
 
     /**
+     * Returns to a named parent without putting a duplicate parent above its child.
+     * Reuses the nearest parent instance (including its page/filter state). Direct
+     * entries replace the current screen with the fallback, so Back cannot revisit it.
+     * Only explicit parent-return actions use this; forward opens remain unchanged.
+     */
+    fun returnTo(parentType: Class<out Menu>, fallback: () -> Menu) {
+        navigationGeneration.incrementAndGet()
+        val parent = menuStack.firstOrNull { parentType.isInstance(it) }
+        if (parent != null) {
+            while (menuStack.first() !== parent) menuStack.removeFirst()
+            parent.open()
+        } else {
+            val replacement = fallback()
+            if (menuStack.isNotEmpty()) menuStack.removeFirst()
+            menuStack.addFirst(replacement)
+            replacement.open()
+        }
+    }
+
+    /**
      * Opens the previous menu in the navigation stack while also passing data.
      *
      * This closes the currently displayed menu and moves the menu display back

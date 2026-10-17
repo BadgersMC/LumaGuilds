@@ -484,7 +484,7 @@ class EmojiSelectionMenu(
 
         if (unlockedEmojis.isEmpty()) {
             player.sendMessage(lang.msg("menu.guild_emoji.feedback.none_unlocked"))
-            menuNavigator.openMenu(parentMenu)
+            menuNavigator.returnTo(GuildEmojiMenu::class.java) { parentMenu }
             return
         }
 
@@ -543,7 +543,7 @@ class EmojiSelectionMenu(
             // Set the emoji in the parent menu and return to it
             parentMenu.setEmojiInput(emojiPlaceholder)
             println("[LumaGuilds] GuildEmojiMenu: Set emoji input to: $emojiPlaceholder")
-            menuNavigator.openMenu(parentMenu)
+            menuNavigator.returnTo(GuildEmojiMenu::class.java) { parentMenu }
             player.sendMessage(lang.msg("menu.guild_emoji.feedback.selected", "emoji" to emojiPlaceholder))
         }
         pane.addItem(guiItem, x, y)
@@ -579,7 +579,7 @@ class EmojiSelectionMenu(
             .lore(lang.gui("menu.guild_emoji.selection.back.description"))
 
         val guiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(parentMenu)
+            menuNavigator.returnTo(GuildEmojiMenu::class.java) { parentMenu }
         }
         pane.addItem(guiItem, x, y)
     }

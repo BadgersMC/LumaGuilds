@@ -149,7 +149,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
                         player.sendMessage(lang.msg("menu.guild_mode.feedback.peaceful_success"))
                         // Refresh guild data and return to settings
                         guild = guildService.getGuild(guild.id) ?: guild
-                        menuNavigator.openMenu(menuFactory.createGuildSettingsMenu(menuNavigator, player, guild))
+                        menuNavigator.returnTo(GuildSettingsMenu::class.java) { menuFactory.createGuildSettingsMenu(menuNavigator, player, guild) }
                     } else {
                         player.sendMessage(lang.msg("menu.guild_mode.feedback.failed"))
                     }
@@ -197,7 +197,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
                         player.sendMessage(lang.msg("menu.guild_mode.feedback.hostile_success"))
                         // Refresh guild data and return to settings
                         guild = guildService.getGuild(guild.id) ?: guild
-                        menuNavigator.openMenu(menuFactory.createGuildSettingsMenu(menuNavigator, player, guild))
+                        menuNavigator.returnTo(GuildSettingsMenu::class.java) { menuFactory.createGuildSettingsMenu(menuNavigator, player, guild) }
                     } else {
                         player.sendMessage(lang.msg("menu.guild_mode.feedback.failed"))
                     }
@@ -228,7 +228,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
             .lore(lang.gui("menu.guild_mode.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildSettingsMenu(menuNavigator, player, guild))
+            menuNavigator.returnTo(GuildSettingsMenu::class.java) { menuFactory.createGuildSettingsMenu(menuNavigator, player, guild) }
         }
         pane.addItem(backGuiItem, 4, 2)
     }

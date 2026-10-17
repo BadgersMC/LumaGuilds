@@ -150,7 +150,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         if (!hasPermission) {
             player.sendMessage(lang.msg("menu.rank_edit.feedback.no_permission"))
             player.sendMessage(lang.msg("menu.rank_edit.feedback.required_permission"))
-            menuNavigator.openMenu(menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild))
+            menuNavigator.returnTo(GuildRankManagementMenu::class.java) { menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild) }
             return
         }
 
@@ -350,7 +350,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                 player.sendMessage(lang.msg("menu.rank_edit.feedback.save_failed"))
             }
 
-            menuNavigator.openMenu(menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild))
+            menuNavigator.returnTo(GuildRankManagementMenu::class.java) { menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild) }
         }
         pane.addItem(saveGuiItem, 1, 5)
 
@@ -458,7 +458,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                 player.sendMessage(lang.msg("menu.rank_edit.feedback.delete_failed"))
             }
 
-            menuNavigator.openMenu(menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild))
+            menuNavigator.returnTo(GuildRankManagementMenu::class.java) { menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild) }
         }
         pane.addItem(deleteGuiItem, 5, 5)
 
@@ -468,7 +468,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             .lore(lang.gui("menu.rank_edit.action.back.description"))
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild))
+            menuNavigator.returnTo(GuildRankManagementMenu::class.java) { menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild) }
         }
         pane.addItem(backGuiItem, 7, 5)
     }

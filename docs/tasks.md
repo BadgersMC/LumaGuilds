@@ -1036,3 +1036,5 @@ Menu audit follow-up (REQ-063):
   guild goal using versioned SQL compare-and-set. Tag: TDD. Requirements and
   local/SQLite/MariaDB evidence: `docs/plans/2026-10-16-guild-chronicle.md`.
   Hosted review and real multiplayer/client acceptance remain separate gates.
+
+- [x] **GUI-RETURN-ROUTING** Restore named GUI ancestors instead of pushing duplicate parents; reproduce diplomacy child -> Relations -> Dashboard and cover direct-entry fallback/state/token handling. Full local check: 1,991 cases, zero failures/errors, 16 optional skips. Manual SPEAR evidence: docs/plans/2026-10-17-gui-return-routing.md. Hosted CI and corrected TEST acceptance remain separate gates.
