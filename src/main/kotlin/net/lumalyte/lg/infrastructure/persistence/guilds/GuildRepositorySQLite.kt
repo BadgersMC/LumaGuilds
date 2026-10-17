@@ -1165,6 +1165,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     }
 
     private fun deleteRewardOwnershipState(connection: java.sql.Connection, guildId: UUID) {
+        net.lumalyte.lg.infrastructure.persistence.migrations.ChronicleGoalSchema.delete(connection, guildId)
         connection.prepareStatement("DELETE FROM guild_reward_ownership WHERE guild_id = ?").use {
             it.setString(1, guildId.toString())
             it.executeUpdate()

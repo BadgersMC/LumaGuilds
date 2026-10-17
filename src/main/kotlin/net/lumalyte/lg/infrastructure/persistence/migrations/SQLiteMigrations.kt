@@ -255,6 +255,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(InviteBlockSchema.VERSION)
                 dbVersion = InviteBlockSchema.VERSION
             }
+            ChronicleGoalSchema.create(connection, mariaDb = false)
+            if (dbVersion < ChronicleGoalSchema.VERSION) {
+                updateDatabaseVersion(ChronicleGoalSchema.VERSION)
+                dbVersion = ChronicleGoalSchema.VERSION
+            }
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
 

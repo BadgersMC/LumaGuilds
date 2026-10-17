@@ -195,3 +195,16 @@ The shared interaction permission catalog drives creation and editing; selection
 GuildGettingStartedService derives permission-aware read models through existing guild/member/home services. Shared interaction navigation rechecks the selected guild at every click and opens existing menus; Java uses a themed three-row inventory with bounded description lore, while Bedrock uses a native uncached form with a navigation-generation guard on scheduled responses. `/g start` and dashboard access supplement the existing `/g help` browser. No guide action grants rewards, changes prices or purchases homes.
 
 GuildOnboardingRepository is the application persistence port; its infrastructure SQL adapter owns an additive player/guild prompt table. Registration never resets consumption; one conditional update claims delivery atomically. Creation/join events enroll new memberships, and reconnects deliver only pending rows for current online members with help permission. SQL failure preserves pending delivery and does not report successful dismissal. Consumed IDs remain as tombstones so duplicate events or restored memberships cannot replay a first-time prompt. See [guild-onboarding.md](guild-onboarding.md) for evidence and release boundaries.
+
+## Guild Chronicle
+
+`GuildChronicleService` projects the active RewardCatalog and resolved offers into
+bounded ten-level windows. Treasury, travel and outpost branches are filters, not
+new prerequisites. `ChronicleGoalRepository` stores a guild-wide preference,
+separate from ownership, payments and XP; both SQL migration chains own schema
+v46. Monotonic revisions prevent stale menus from overwriting/clearing newer
+choices. Reads fail closed on storage/corrupt state; failed writes never report
+success. Manage Guild Settings controls edits, membership controls reads. Guild
+deletion removes the preference transactionally. Reopening any supported Java
+Chronicle reads the committed goal afresh; no process-local goal cache exists.
+Native details preserve the existing quote and purchase confirmation service.

@@ -661,6 +661,17 @@ fun socialModule() = module {
 fun progressionModule() = module {
     single { net.lumalyte.lg.application.services.GuildActionCoordinator() }
     single { net.lumalyte.lg.domain.rewards.RewardCatalog.chapterTwo() }
+    single<net.lumalyte.lg.application.persistence.ChronicleGoalRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.ChronicleGoalRepositorySQL(get())
+    }
+    single {
+        val members = get<MemberService>()
+        val rewards = get<net.lumalyte.lg.application.services.GuildRewardService>()
+        net.lumalyte.lg.application.services.GuildChronicleService(get(), get(),
+            { actor, guild -> members.getMember(actor, guild) != null },
+            { actor, guild -> members.hasPermission(actor, guild,
+                net.lumalyte.lg.domain.entities.RankPermission.MANAGE_GUILD_SETTINGS) }, rewards::read)
+    }
     single {
         net.lumalyte.lg.infrastructure.persistence.guilds.RewardPurchaseRepositorySQL(
             get(), get(), get(), get<net.lumalyte.lg.application.services.GuildActionCoordinator>()

@@ -213,7 +213,10 @@ class GuildProgressionMenu(
         GuildDialogAction(label, Component.empty(), callback)
 
     private fun progressionDialogActions() =
-        listOf(
+        listOfNotNull(
+            if (rewardState is GuildRewardRead.Available) nativeAction(lang.gui("chronicle.title")) {
+                menuNavigator.openMenu(GuildChronicleMenu(menuNavigator, player, guild))
+            } else null,
             nativeAction(lang.gui("guild_dialogs.progression.quests"), ::openNativeQuests),
             nativeAction(lang.gui("dialog_v2.leaderboard")) {
                 menuNavigator.openMenu(GuildLeaderboardDialogMenu(menuNavigator, player, guild, guildService, memberService,

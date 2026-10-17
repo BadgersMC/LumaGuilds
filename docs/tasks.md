@@ -1031,3 +1031,8 @@ Menu audit follow-up (REQ-063):
   - Tag: `TDD`
   - References: REC-020 through REC-023 in `docs/plans/2026-10-14-modern-guild-menus.md`.
   - Evidence: clean 1,857-case standalone and 1,894-case combined TEST checks, zero failures/errors, 16 existing optional skips; architecture/localization checks pass. Nexo item models are reused without public artwork. The private implementation preview distinguishes native UI from the proposed frames/graphs; hosted CI, TEST staging and real client acceptance are separate gates.
+
+- [x] **GUILD-CHRONICLE** Cover all catalog levels/rewards and persist a shared
+  guild goal using versioned SQL compare-and-set. Tag: TDD. Requirements and
+  local/SQLite/MariaDB evidence: `docs/plans/2026-10-16-guild-chronicle.md`.
+  Hosted review and real multiplayer/client acceptance remain separate gates.

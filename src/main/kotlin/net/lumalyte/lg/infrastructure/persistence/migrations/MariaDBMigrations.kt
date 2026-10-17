@@ -187,6 +187,12 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
             }
             connection.commit()
 
+            ChronicleGoalSchema.create(connection, mariaDb = true)
+            if (currentDbVersion < ChronicleGoalSchema.VERSION) {
+                updateDatabaseVersion(ChronicleGoalSchema.VERSION)
+                currentDbVersion = ChronicleGoalSchema.VERSION
+            }
+            connection.commit()
             val finalVersion = getCurrentDatabaseVersion()
             componentLogger.info(Component.text("✓ Database migrations completed (v$finalVersion)"))
         } catch (e: SQLException) {

@@ -584,3 +584,8 @@ The approved recruitment behavior, player/recruiter flows, discovery integration
 
 ### REQ-STALL-ICONS-1
 **Ubiquitous.** THE SYSTEM SHALL give stall entries, member entries, navigation, status and authorized manager controls distinct semantic icons using the existing themed provider with vanilla fallbacks, while preserving all membership, navigation-token and manager authorization checks. Custom private artwork SHALL remain outside the public plugin repository.
+
+## Guild Chronicle
+
+The catalog-backed Chronicle and durable guild goal follow CHR-001 through
+CHR-005 in [the Chronicle specification](plans/2026-10-16-guild-chronicle.md).
