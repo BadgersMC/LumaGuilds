@@ -75,9 +75,13 @@ internal class RecruitmentReaderDialog(
     }
 
     private fun dialogBase(): DialogBase {
-        return DialogBase.builder(heading()).canCloseWithEscape(true)
+        val body = dialogBody()
+        val surface = GuildDialogSurface.resolve(content.theme)?.heading(heading(), Component.empty(), body)
+        return DialogBase.builder(if (surface != null) Component.empty() else heading()).canCloseWithEscape(true)
+            .externalTitle(heading())
             .apply { GuildDialogTransitions.configure(this) }
-            .body(skin?.body(dialogBody()) ?: dialogBody())
+            .body(surface?.let { listOf(DialogBody.plainMessage(it, GuildDialogSurface.WIDTH)) + body }
+                ?: skin?.body(body) ?: body)
             .build()
     }
 

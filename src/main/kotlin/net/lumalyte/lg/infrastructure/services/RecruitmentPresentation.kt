@@ -6,6 +6,7 @@ import io.papermc.paper.dialog.Dialog
 import io.papermc.paper.registry.data.dialog.ActionButton
 import io.papermc.paper.registry.data.dialog.DialogBase
 import io.papermc.paper.registry.data.dialog.action.DialogAction
+import io.papermc.paper.registry.data.dialog.body.DialogBody
 import io.papermc.paper.registry.data.dialog.input.DialogInput
 import io.papermc.paper.registry.data.dialog.type.DialogType
 import net.kyori.adventure.text.Component
@@ -88,11 +89,15 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
     private fun inputBase(
         fields: RecruitmentTextInput,
         skin: GuildDialogSkin?,
-    ): DialogBase =
-        DialogBase.builder(Component.text(fields.title, guildDialogAccent(fields.theme)))
+    ): DialogBase {
+        val title = Component.text(fields.title, guildDialogAccent(fields.theme))
+        val surface = GuildDialogSurface.resolve(fields.theme)?.heading(title, Component.empty(), emptyList())
+        return DialogBase.builder(if (surface != null) Component.empty() else title)
+            .externalTitle(title)
             .canCloseWithEscape(true)
             .apply { GuildDialogTransitions.configure(this) }
-            .body(skin?.body(emptyList()) ?: emptyList())
+            .body(surface?.let { listOf(DialogBody.plainMessage(it, GuildDialogSurface.WIDTH)) }
+                ?: skin?.body(emptyList()) ?: emptyList())
             .inputs(
                 listOf(
                     DialogInput.text("answer", Component.text(fields.title)).initial(fields.initial)
@@ -101,6 +106,7 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
                 ),
             )
             .build()
+    }
 
     fun book(
         player: Player,

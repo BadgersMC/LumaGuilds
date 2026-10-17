@@ -161,11 +161,14 @@ internal class GuildMenuDialog : GuildDialogPresenter {
             }
         val bodies = links + page.items.flatMap { itemBodies(it, callbacks, skin) }
         val frame = if (page.framedHeading) skin?.referenceFrame(page.title, page.subtitle) else null
-        return DialogBase.builder(if (frame != null) Component.empty() else page.title.color(guildDialogAccent(page.theme)))
+        val surface = GuildDialogSurface.resolve(page.theme)?.heading(page.title, page.subtitle, bodies)
+        return DialogBase.builder(if (surface != null || frame != null) Component.empty() else page.title.color(guildDialogAccent(page.theme)))
+            .externalTitle(page.title)
             .canCloseWithEscape(true)
             .apply { GuildDialogTransitions.configure(this) }
             .body(
-                frame?.let { listOf(DialogBody.plainMessage(it, TEXT_WIDTH)) + bodies } ?: skin?.referenceBody(page.title, page.subtitle, bodies) ?: (
+                surface?.let { listOf(DialogBody.plainMessage(it, GuildDialogSurface.WIDTH)) + bodies }
+                    ?: frame?.let { listOf(DialogBody.plainMessage(it, TEXT_WIDTH)) + bodies } ?: skin?.referenceBody(page.title, page.subtitle, bodies) ?: (
                     if (page.subtitle == Component.empty()) {
                         bodies
                     } else {

@@ -21,6 +21,7 @@ internal object GuildDialogText {
     private fun flatten(
         component: Component,
         icons: Boolean = false,
+        extraAdvance: (String, Int) -> Int? = { _, _ -> null },
     ): List<Glyph>? {
         val result = mutableListOf<Glyph>()
 
@@ -38,7 +39,7 @@ internal object GuildDialogText {
                         code == '\n'.code -> 0
                         icons && font == "lumaguilds:dialog_icons" -> 22
                         font == null || font == "minecraft:default" -> advances[code]?.first ?: return false
-                        else -> return false
+                        else -> extraAdvance(font, code) ?: return false
                     }
                 val bold =
                     if (style.decoration(TextDecoration.BOLD) == TextDecoration.State.TRUE) {
@@ -57,8 +58,9 @@ internal object GuildDialogText {
     fun rows(
         component: Component,
         maximum: Int,
+        extraAdvance: (String, Int) -> Int? = { _, _ -> null },
     ): List<Pair<Component, Int>>? {
-        val glyphs = flatten(component) ?: return null
+        val glyphs = flatten(component, extraAdvance = extraAdvance) ?: return null
         val rows = mutableListOf<Pair<Component, Int>>()
         val pending = mutableListOf<Glyph>()
 
