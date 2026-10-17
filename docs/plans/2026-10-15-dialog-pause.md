@@ -6,6 +6,7 @@ with afterAction NONE. Previous callback tests and startup checks did not exerci
 real Paper dialog construction. This is a regression from the transition fix.
 
 ## Requirements and SPEAR evidence
+
 - DP-001: WHEN any guild menu, reader or text-input dialog keeps its screen open,
   explicitly set pause=false before building, preserving afterAction NONE.
 - DP-002: Preserve replacement tracking, terminal dismissal, callback guards,

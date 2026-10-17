@@ -6,6 +6,7 @@ confirms aligned frames, but exposes duplicate heading, detached native item,
 unlabelled profile fields, and raw fractional-second timestamp.
 
 ## Requirements (SPEAR)
+
 - DL-001: WHEN showing a dialog, render its title once through native dialog
   chrome, with no repeated framed heading or decorative divider before content.
 - DL-002: WHEN a themed item has card text, render the actual item beside a compact

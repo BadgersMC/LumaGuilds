@@ -6,6 +6,7 @@ non-dialog screen before the deferred server callback supplies the next dialog.
 Official Paper 26.2 DialogAfterAction docs confirm CLOSE and NONE semantics.
 
 ## Requirements and SPEAR evidence
+
 - FT-001: WHEN navigating between guild dialogs, keep the current dialog visible
   while the guarded callback is queued; do not emit an intermediate close packet.
 - FT-002: WHEN a guarded callback shows a replacement dialog, do not clear it.
