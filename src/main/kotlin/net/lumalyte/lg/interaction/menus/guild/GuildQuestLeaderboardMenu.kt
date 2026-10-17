@@ -34,7 +34,7 @@ import org.bukkit.inventory.ItemStack
 class GuildQuestLeaderboardMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
-    private val viewingGuild: Guild,
+    private var viewingGuild: Guild,
     private var questId: String,
     private val memberService: MemberService,
     private val guildService: GuildService,
@@ -46,6 +46,7 @@ class GuildQuestLeaderboardMenu(
     private val nativeDialog = GuildMenuDialog()
 
     override fun open() {
+        viewingGuild = guildService.getGuild(viewingGuild.id) ?: viewingGuild
         if (memberService.getMember(player.uniqueId, viewingGuild.id) == null) {
             player.sendMessage(lang.msg("menu.quests.feedback.not_member"))
             menuNavigator.goBack()

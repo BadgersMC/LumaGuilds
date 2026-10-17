@@ -53,8 +53,54 @@ internal class RecruitmentDialogMenuTest : RecruitmentDialogFixture() {
         controller.screen = RecruitmentScreen.BROWSE
         menu().show(RecruitmentView(BROWSE_TITLE, emptyList(), emptyList()))
         requireNotNull(renderedPage).back.action()
-        assertEquals(0, exits)
-        assertEquals(1, closes)
+        assertEquals(1, exits)
+        assertEquals(0, closes)
+    }
+
+    @Test fun `management preview Back restores management page instead of browsing`() {
+        controller.screen = RecruitmentScreen.MANAGE
+        controller.page = 1
+        controller.showScreen(RecruitmentScreen.PROFILE)
+        menu().show(RecruitmentView("Profile", emptyList(), emptyList()))
+        renderedPage!!.back.action()
+        assertEquals(RecruitmentScreen.MANAGE, controller.screen)
+        assertEquals(1, controller.page)
+    }
+
+    @Test fun `repeated non-root screens unwind visits instead of creating a Back cycle`() {
+        controller.rootScreen = RecruitmentScreen.BROWSE
+        controller.screen = RecruitmentScreen.MANAGE
+        controller.page = 1
+        controller.showScreen(RecruitmentScreen.PROFILE)
+        controller.showScreen(RecruitmentScreen.MANAGE)
+        controller.showScreen(RecruitmentScreen.PROFILE)
+        repeat(3) {
+            controller.returnToPrevious(RecruitmentScreen.BROWSE)
+        }
+        assertEquals(RecruitmentScreen.MANAGE, controller.screen)
+        assertEquals(1, controller.page)
+        controller.returnToPrevious(RecruitmentScreen.BROWSE)
+        assertEquals(RecruitmentScreen.BROWSE, controller.screen)
+    }
+
+    @Test fun `review Back restores inbox page and browse filters survive profile visit`() {
+        controller.screen = RecruitmentScreen.INBOX
+        controller.page = 2
+        controller.showScreen(RecruitmentScreen.REVIEW)
+        menu().show(RecruitmentView("Review", emptyList(), emptyList()))
+        renderedPage!!.back.action()
+        assertEquals(RecruitmentScreen.INBOX, controller.screen)
+        assertEquals(2, controller.page)
+        controller.screen = RecruitmentScreen.BROWSE
+        controller.page = 3
+        controller.query = "Ever"
+        controller.feeFilter = 1
+        controller.showScreen(RecruitmentScreen.PROFILE)
+        menu().show(RecruitmentView("Profile", emptyList(), emptyList()))
+        renderedPage!!.back.action()
+        assertEquals(3, controller.page)
+        assertEquals("Ever", controller.query)
+        assertEquals(1, controller.feeFilter)
     }
 
     @Test

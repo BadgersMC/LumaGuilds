@@ -55,13 +55,18 @@ internal fun interface GuildDialogPresenter {
 
 private class GuildDialogAudience(private val player: Player, valid: () -> Boolean) {
     private var inventory: org.bukkit.inventory.Inventory? = null
+    private val epoch = GuildMenuLifecycle.generation(player)
+    private val token = epoch.get()
+    private var presentation = -1L
     val session =
         GuildDialogSession(player.uniqueId, Duration.ofMinutes(2).toMillis()) {
-            player.isOnline && inventory != null && player.openInventory.topInventory === inventory && valid()
+            player.isOnline && epoch.get() == token && presentation == GuildDialogTransitions.revision(player) &&
+                inventory != null && player.openInventory.topInventory === inventory && valid()
         }
 
     fun captureInventory() {
         inventory = player.openInventory.topInventory
+        presentation = GuildDialogTransitions.revision(player)
     }
 }
 
@@ -74,15 +79,22 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         val audience = GuildDialogAudience(player, valid)
         val current = audience.session.also { session = it }
         val revision = current.beginPage(System.currentTimeMillis())
-        return try {
-            val skin = GuildDialogTheme().resolve(page.theme)
-            player.showDialog(createDialog(page, GuildDialogCallbacks(player, current, revision, failure), skin))
-            GuildDialogTransitions.shown(player)
-            audience.captureInventory()
-            true
-        } catch (error: Exception) {
-            renderFailed(current, error)
-        }
+        return GuildDialogTransitions.present(
+            player,
+            { session === current && valid() },
+            {
+                try {
+                    val skin = GuildDialogTheme().resolve(page.theme)
+                    player.showDialog(createDialog(page, GuildDialogCallbacks(player, current, revision, failure), skin))
+                    GuildDialogTransitions.shown(player)
+                    audience.captureInventory()
+                    true
+                } catch (error: Exception) {
+                    renderFailed(current, error)
+                }
+            },
+            failure,
+        )
     }
 
     private fun renderFailed(
@@ -103,13 +115,19 @@ internal class GuildMenuDialog : GuildDialogPresenter {
             factory.empty().base(dialogBase(page, callbacks, skin)).type(
                 DialogType.multiAction(
                     listOfNotNull(page.search?.let { searchButton(it, callbacks, skin, page.showCategoryInput) }) +
-                        page.actions.map { button(it, callbacks, skin, page.search != null) },
-                    button(page.back, callbacks, skin),
+                        page.actions.map { button(it, callbacks, skin, page.search != null) } + button(page.back, callbacks, skin),
+                    closeButton(callbacks),
                     page.columns,
                 ),
             )
         }
     }
+
+    private fun closeButton(callbacks: GuildDialogCallbacks): ActionButton =
+        ActionButton.builder(Component.translatable("gui.close")).width(ACTION_WIDTH)
+            .action(DialogAction.customClick({ _, audience -> callbacks.dismiss(audience) },
+                ClickCallback.Options.builder().uses(1).lifetime(Duration.ofHours(1)).build()))
+            .build()
 
     private fun dialogBase(
         page: GuildDialogPage,

@@ -10,11 +10,16 @@ import org.koin.core.component.inject
 internal class RecruitmentReader(
     private val player: Player,
     private val content: RecruitmentBookContent,
-    valid: () -> Boolean,
+    private val valid: () -> Boolean,
     private val back: () -> Unit,
 ) : KoinComponent {
     private val lang: LangService by inject()
-    private val state = RecruitmentReaderState { player.isOnline && valid() }
+    private val epoch = GuildMenuLifecycle.generation(player)
+    private val token = epoch.get()
+    private var presentation: Long? = null
+    private fun isCurrent(): Boolean = player.isOnline && epoch.get() == token && valid() &&
+        (presentation == null || presentation == GuildDialogTransitions.revision(player))
+    private val state = RecruitmentReaderState { isCurrent() }
     private val pages = recruitmentReaderPages(content.lines)
     private var bedrock = false
     private var dialog = false
@@ -29,6 +34,7 @@ internal class RecruitmentReader(
     }
 
     private fun show(page: Int) {
+        presentation = null
         val revision = state.beginPage()
         val actions = pageActions(page, revision)
         val current = RecruitmentReaderPage(pages[page], page + 1, pages.size)
@@ -56,6 +62,8 @@ internal class RecruitmentReader(
             next = pageAction(page + 1, revision),
             back = { returnToMenu(revision, false) },
             dismissed = { returnToMenu(revision, true) },
+            valid = ::isCurrent,
+            shown = { presentation = it },
         )
     }
 
@@ -136,6 +144,8 @@ internal data class RecruitmentReaderActions(
     val next: (() -> Unit)?,
     val back: () -> Unit,
     val dismissed: () -> Unit,
+    val valid: () -> Boolean = { true },
+    val shown: (Long) -> Unit = {},
 )
 
 internal data class RecruitmentReaderPage(val text: String, val number: Int, val count: Int)

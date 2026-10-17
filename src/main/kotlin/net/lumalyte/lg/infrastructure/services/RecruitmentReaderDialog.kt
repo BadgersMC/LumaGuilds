@@ -28,6 +28,9 @@ internal class RecruitmentReaderDialog(
     }
 
     fun show() {
+        val epoch = GuildMenuLifecycle.generation(player)
+        val token = epoch.get()
+        var presentation = -1L
         fun button(
             label: String,
             action: () -> Unit,
@@ -35,7 +38,7 @@ internal class RecruitmentReaderDialog(
             val text = Component.text(label)
             return ActionButton.builder(skin?.label(text) ?: text).action(
                 DialogAction.customClick({ _, audience ->
-                    if (audience is Player && audience.uniqueId == player.uniqueId) action()
+                    if (audience is Player && audience.uniqueId == player.uniqueId && actions.valid()) action()
                 }, ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(2)).build()),
             )
                 .build()
@@ -45,15 +48,30 @@ internal class RecruitmentReaderDialog(
                 actions.previous?.let { add(button(actions.previousLabel, it)) }
                 actions.next?.let { add(button(actions.nextLabel, it)) }
             }
-        val exit = button(content.returnLabel, actions.back)
-        player.showDialog(
-            Dialog.create { factory ->
-                factory.empty().base(
-                    dialogBase(),
-                ).type(if (buttons.isEmpty()) DialogType.notice(exit) else DialogType.multiAction(buttons, exit, 1))
-            },
-        )
-        GuildDialogTransitions.shown(player)
+        val back = button(content.returnLabel, actions.back)
+        val exit = ActionButton.builder(Component.translatable("gui.close")).action(
+            DialogAction.customClick({ _, audience ->
+                if (audience is Player && audience.uniqueId == player.uniqueId) {
+                    org.bukkit.Bukkit.getScheduler().runTask(net.lumalyte.lg.common.PluginKeys.getPlugin(), Runnable {
+                        if (epoch.get() == token && presentation == GuildDialogTransitions.revision(player) && actions.valid())
+                            GuildMenuLifecycle.dismiss(player)
+                    })
+                }
+            }, ClickCallback.Options.builder().uses(1).lifetime(Duration.ofHours(1)).build()),
+        ).build()
+        GuildDialogTransitions.present(player, { epoch.get() == token && actions.valid() }, {
+            player.showDialog(
+                Dialog.create { factory ->
+                    factory.empty().base(
+                        dialogBase(),
+                    ).type(DialogType.multiAction(buttons + back, exit, 2))
+                },
+            )
+            GuildDialogTransitions.shown(player)
+            presentation = GuildDialogTransitions.revision(player)
+            actions.shown(presentation)
+            true
+        }, { GuildMenuLifecycle.dismiss(player) })
     }
 
     private fun dialogBase(): DialogBase {

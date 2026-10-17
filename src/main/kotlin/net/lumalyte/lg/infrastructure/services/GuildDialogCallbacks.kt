@@ -16,6 +16,12 @@ internal class GuildDialogCallbacks(
     },
     private val now: () -> Long = System::currentTimeMillis,
 ) {
+    fun dismiss(audience: Audience) {
+        if (audience is Player && audience.uniqueId == player.uniqueId) schedule {
+            if (session.dismiss(audience.uniqueId, revision)) GuildMenuLifecycle.dismiss(player)
+        }
+    }
+
     fun submit(
         audience: Audience,
         action: () -> Unit,

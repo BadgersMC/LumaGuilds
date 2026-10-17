@@ -25,7 +25,8 @@ class GuildRewardPurchaseMenu(private val player: Player, private val quote: Rew
     private val lang: LangService by inject()
 
     internal fun createGui(): ChestGui {
-        val gui = ChestGui(3, lang.guiTitle("chapter_two_rewards.purchase.title"))
+        val gui = ChestGui(3, net.lumalyte.lg.utils.MenuTitleBuilder.build(theme, 3,
+            lang.guiTitle("chapter_two_rewards.purchase.title")))
         gui.setOnGlobalClick { it.isCancelled = true }
         val pane = StaticPane(0, 0, 9, 3)
         val confirm = ItemStack.of(Material.LIME_DYE).also { it.editMeta { meta ->
@@ -34,7 +35,7 @@ class GuildRewardPurchaseMenu(private val player: Player, private val quote: Rew
         } }
         pane.addItem(GuiItem(confirm) { event ->
             event.isCancelled = true
-            if (player.isOnline) {
+            if (player.isOnline && valid()) {
                 val result = purchases.confirm(player.uniqueId, quote)
                 player.sendMessage(lang.purchaseFeedback(result))
                 if (result !is RewardPurchaseResult.Failed) back()
@@ -43,7 +44,7 @@ class GuildRewardPurchaseMenu(private val player: Player, private val quote: Rew
         val cancel = ItemStack.of(Material.RED_DYE).also { it.editMeta { meta ->
             meta.displayName(lang.gui("chapter_two_rewards.purchase.cancel"))
         } }
-        pane.addItem(GuiItem(cancel) { it.isCancelled = true; back() }, 5, 1)
+        pane.addItem(GuiItem(cancel) { it.isCancelled = true; if (player.isOnline && valid()) back() }, 5, 1)
         gui.addPane(pane)
         return gui
     }

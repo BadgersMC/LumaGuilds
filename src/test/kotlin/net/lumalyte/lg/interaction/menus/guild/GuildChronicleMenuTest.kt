@@ -17,6 +17,7 @@ import kotlin.test.*
 internal class GuildChronicleMenuTest : RecruitmentDialogFixture() {
     @Test fun `new menu instance reads committed goal and branch and range actions stay in dialogs`() {
         val guild = Guild(UUID.randomUUID(), "Chronicle", createdAt = Instant.EPOCH)
+        every { guilds.getGuild(guild.id) } returns guild
         val actor = UUID.randomUUID()
         every { player.uniqueId } returns actor
         every { player.isOnline } returns true
@@ -58,5 +59,13 @@ internal class GuildChronicleMenuTest : RecruitmentDialogFixture() {
         assertEquals(1, renderedPage!!.actions.size) // Untrack only, no purchase authority.
         renderedPage!!.actions.first().action()
         assertNull(repository.saved.rewardId)
+        var returns = 0
+        every { guilds.getGuild(guild.id) } returns guild.copy(guiTheme = net.lumalyte.lg.utils.GuiTheme.FROSTBOUND)
+        GuildChronicleMenu(nav, player, guild, presenter, initialRewardId = "bank-1",
+            returnToBrowser = { returns++ }).open()
+        assertEquals(net.lumalyte.lg.utils.GuiTheme.FROSTBOUND, renderedPage!!.theme)
+        assertEquals(1, renderedPage!!.actions.size) // Track only; viewing grants no purchase permission.
+        renderedPage!!.back.action()
+        assertEquals(1, returns)
     }
 }

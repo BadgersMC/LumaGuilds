@@ -17,7 +17,7 @@ import net.lumalyte.lg.utils.QuestDisplayFormatter
 internal class GuildQuestDetailMenu(
     private val navigator: MenuNavigator,
     private val player: org.bukkit.entity.Player,
-    private val guild: Guild,
+    private var guild: Guild,
     private val questId: String,
     private val members: MemberService,
     private val guilds: GuildService,
@@ -27,6 +27,7 @@ internal class GuildQuestDetailMenu(
     private val dialog = GuildMenuDialog()
 
     override fun open() {
+        guild = guilds.getGuild(guild.id) ?: guild
         val week = quests.activeQuestSet()
         val quest = week?.quests?.firstOrNull { it.id == questId }
         if (quest == null || members.getMember(player.uniqueId, guild.id) == null ||

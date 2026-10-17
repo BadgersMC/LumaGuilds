@@ -33,7 +33,7 @@ import org.bukkit.inventory.ItemStack
 class GuildQuestsMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
-    private val guild: Guild,
+    private var guild: Guild,
     private val memberService: MemberService,
     private val guildService: GuildService,
     private val questService: QuestService,
@@ -45,6 +45,7 @@ class GuildQuestsMenu(
     private val slots = listOf(20, 22, 24, 29, 31, 33)
 
     override fun open() {
+        guild = guildService.getGuild(guild.id) ?: guild
         if (memberService.getMember(player.uniqueId, guild.id) == null) {
             player.sendMessage(lang.msg("menu.quests.feedback.not_member"))
             menuNavigator.goBack()

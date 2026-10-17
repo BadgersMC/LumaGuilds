@@ -32,4 +32,11 @@ internal class GuildDialogSession(
     fun close() {
         closed = true
     }
+
+    /** Closing never authorizes a business action and remains usable after page expiry. */
+    fun dismiss(actor: UUID, page: Int): Boolean {
+        if (actor != owner || closed || page != revision || !valid()) return false
+        closed = true
+        return true
+    }
 }

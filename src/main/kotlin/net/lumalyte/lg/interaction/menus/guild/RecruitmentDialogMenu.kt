@@ -50,17 +50,13 @@ internal class RecruitmentDialogMenu(
                     guildDialogIconLabel(
                         Component.text(
                             controller.lang.raw(
-                                if (controller.screen == RecruitmentScreen.BROWSE) {
-                                    "recruitment.dialog.close"
-                                } else {
-                                    "recruitment.dialog.back"
-                                },
+                                "recruitment.dialog.back",
                             ),
                         ),
                         RecruitmentIcons.BACK,
                     ),
                     Component.empty(),
-                    if (controller.screen == RecruitmentScreen.BROWSE) callbacks.close else ::parent,
+                    ::parent,
                 ),
                 columns = 2,
                 theme = controller.theme(),
@@ -317,14 +313,11 @@ internal class RecruitmentDialogMenu(
     }
 
     private fun parent() {
-        if (controller.screen == RecruitmentScreen.MANAGE) return controller.showScreen(RecruitmentScreen.BROWSE)
-        if (controller.screen == RecruitmentScreen.METHOD) return controller.showScreen(controller.methodReturn)
-        if (controller.screen in ROOT_SCREENS) return callbacks.back()
-        controller.showScreen(PARENTS[controller.screen] ?: RecruitmentScreen.MANAGE)
+        if (controller.screen == (controller.rootScreen ?: RecruitmentScreen.BROWSE)) return callbacks.back()
+        controller.returnToPrevious(PARENTS[controller.screen] ?: RecruitmentScreen.MANAGE)
     }
 
     private companion object {
-        val ROOT_SCREENS = setOf(RecruitmentScreen.BROWSE, RecruitmentScreen.MANAGE)
         val PARENTS = parentScreens()
 
         private fun parentScreens(): Map<RecruitmentScreen, RecruitmentScreen> {

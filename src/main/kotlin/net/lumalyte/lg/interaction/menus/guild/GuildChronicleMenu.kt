@@ -20,6 +20,8 @@ internal class GuildChronicleMenu(
     private val player: Player,
     private val guild: Guild,
     private val presenter: GuildDialogPresenter = GuildMenuDialog(),
+    private val initialRewardId: String? = null,
+    private val returnToBrowser: (() -> Unit)? = null,
 ) : Menu, KoinComponent {
     private val chronicle: GuildChronicleService by inject()
     private val members: MemberService by inject()
@@ -32,7 +34,7 @@ internal class GuildChronicleMenu(
     override fun open() {
         val snapshot = read() ?: return
         if (page == null) page = (snapshot.state.level - 1) / 10
-        tree()
+        if (initialRewardId != null) detail(initialRewardId) else tree()
     }
 
     private fun read(): GuildChronicle? = chronicle.read(player.uniqueId, guild.id, page ?: 0, branch)
@@ -106,12 +108,15 @@ internal class GuildChronicleMenu(
                 if (quote == null) { player.sendMessage(lang.msg("chapter_two_rewards.purchase.no_quote")); detail(id) }
                 else {
                     val token = navigator.currentNavigationToken()
-                    GuildRewardPurchaseMenu(player, quote, reward.name, { detail(id) }, guild.guiTheme,
+                    GuildRewardPurchaseMenu(player, quote, reward.name, { detail(id) },
+                        getKoin().getOrNull<GuildService>()?.getGuild(guild.id)?.guiTheme ?: guild.guiTheme,
                         { valid(token) }).open()
                 }
             })
         }
-        show(cards, actions, referenceAction(lang.gui("chronicle.back_tree"), "lg_back") { tree() },
+        show(cards, actions, referenceAction(lang.gui("recruitment.dialog.back"), "lg_back") {
+            returnToBrowser?.invoke() ?: tree()
+        },
             lang.gui("chronicle.detail", "guild" to guild.name, "level" to snapshot.state.level))
     }
 
@@ -131,7 +136,7 @@ internal class GuildChronicleMenu(
         val token = navigator.currentNavigationToken()
         if (!valid(token)) return
         if (!presenter.show(player, GuildDialogPage(lang.gui("chronicle.title"), items, actions, back,
-                columns = 2, theme = guild.guiTheme, subtitle = subtitle, bodyActions = tabs),
+                columns = 2, theme = getKoin().getOrNull<GuildService>()?.getGuild(guild.id)?.guiTheme ?: guild.guiTheme, subtitle = subtitle, bodyActions = tabs),
                 { valid(token) }, { player.sendMessage(lang.msg("chapter_two_rewards.unavailable")) })) {
             player.sendMessage(lang.msg("chapter_two_rewards.unavailable"))
         }

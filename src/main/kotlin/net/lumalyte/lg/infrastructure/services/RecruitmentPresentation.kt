@@ -35,43 +35,54 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
         fields: RecruitmentTextInput,
         actions: RecruitmentInputActions,
     ) {
+        val epoch = GuildMenuLifecycle.generation(player)
+        val token = epoch.get()
         val skin = GuildDialogTheme().resolve(fields.theme)
-        val options = ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(2)).build()
 
-        fun action(callback: (String?) -> Unit): DialogAction {
+        var consumed = false
+        var presentation = -1L
+        fun action(lifetime: Duration = Duration.ofMinutes(2), callback: (String?) -> Unit): DialogAction {
             return DialogAction.customClick({ response, audience ->
                 if (audience is Player && audience.uniqueId == player.uniqueId) {
                     Bukkit.getScheduler().runTask(
                         net.lumalyte.lg.common.PluginKeys.getPlugin(),
                         Runnable {
-                            if (player.isOnline && actions.valid()) {
+                            if (!consumed && player.isOnline && epoch.get() == token &&
+                                presentation == GuildDialogTransitions.revision(player) && actions.valid()) {
+                                consumed = true
                                 GuildDialogTransitions.dispatch(player) { callback(response.getText("answer")) }
                             }
                         },
                     )
                 }
-            }, options)
+            }, ClickCallback.Options.builder().uses(1).lifetime(lifetime).build())
         }
-        player.showDialog(
-            Dialog.create { factory ->
-                factory.empty().base(inputBase(fields, skin))
-                    .type(
-                        DialogType.confirmation(
-                            ActionButton.builder(
-                                skin?.label(Component.text(fields.submitLabel)) ?: Component.text(fields.submitLabel),
-                            )
-                                .action(action { actions.accept(it ?: "") })
-                                .build(),
-                            ActionButton.builder(
-                                skin?.label(Component.text(fields.cancelLabel)) ?: Component.text(fields.cancelLabel),
-                            )
-                                .action(action { actions.cancel() })
-                                .build(),
-                        ),
-                    )
-            },
-        )
-        GuildDialogTransitions.shown(player)
+        GuildDialogTransitions.present(player, { epoch.get() == token && actions.valid() }, {
+            player.showDialog(
+                Dialog.create { factory ->
+                    factory.empty().base(inputBase(fields, skin))
+                        .type(
+                            DialogType.multiAction(listOf(
+                                ActionButton.builder(
+                                    skin?.label(Component.text(fields.submitLabel)) ?: Component.text(fields.submitLabel),
+                                )
+                                    .action(action { actions.accept(it ?: "") })
+                                    .build(),
+                                ActionButton.builder(
+                                    skin?.label(Component.text(fields.cancelLabel)) ?: Component.text(fields.cancelLabel),
+                                )
+                                    .action(action { actions.cancel() })
+                                    .build()),
+                                ActionButton.builder(Component.translatable("gui.close"))
+                                    .action(action(Duration.ofHours(1)) { GuildMenuLifecycle.dismiss(player) }).build(), 2,
+                            ),
+                        )
+                },
+            )
+            GuildDialogTransitions.shown(player)
+            presentation = GuildDialogTransitions.revision(player)
+            true
+        }, { GuildMenuLifecycle.dismiss(player) })
     }
 
     private fun inputBase(

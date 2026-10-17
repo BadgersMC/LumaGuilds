@@ -21,7 +21,7 @@ import org.bukkit.entity.Player
 internal class GuildLeaderboardDialogMenu(
     private val navigator: MenuNavigator,
     private val player: Player,
-    private val own: Guild,
+    private var own: Guild,
     private val guilds: GuildService,
     private val members: MemberService,
     private val quests: QuestService,
@@ -33,6 +33,7 @@ internal class GuildLeaderboardDialogMenu(
     private var wins: Map<java.util.UUID, Int>? = null
 
     override fun open() {
+        own = guilds.getGuild(own.id) ?: own
         if (members.getMember(player.uniqueId, own.id) == null) {
             navigator.goBack()
             return

@@ -51,6 +51,24 @@ internal class GuildDialogCallbacksTest {
     }
 
     @Test
+    fun closeCancelsQueuedBusinessActionAndCannotReplay() {
+        var actions = 0
+        callbacks.dismiss(player)
+        callbacks.submit(player) { actions++ }
+        queue.forEach { it() }
+        assertEquals(0, actions)
+        verify(exactly = 1) { player.closeDialog() }
+        verify(exactly = 1) { player.closeInventory() }
+    }
+
+    @Test
+    fun foreignCloseCannotDismissOwnerPage() {
+        callbacks.dismiss(mockk<Player> { every { uniqueId } returns UUID.randomUUID() })
+        assertEquals(0, queue.size)
+        verify(exactly = 0) { player.closeDialog() }
+    }
+
+    @Test
     fun rechecksAuthorizationWhenScheduledWorkRuns() {
         callbacks.submit(player) { error("Revoked action") }
         valid = false

@@ -46,4 +46,20 @@ internal class GuildDialogSessionTest {
         val state = GuildDialogSession(owner, 100L) { true }
         assertFalse(state.consume(owner, state.beginPage(20L), 19L))
     }
+
+    @Test fun dismissalAfterExpiryCannotAuthorizeAnActionOrCloseAnotherPage() {
+        var valid = true
+        val state = GuildDialogSession(owner, 100L) { valid }
+        val page = state.beginPage(0)
+        assertFalse(state.consume(owner, page, 100))
+        assertFalse(state.dismiss(UUID.randomUUID(), page))
+        assertTrue(state.dismiss(owner, page))
+        assertFalse(state.consume(owner, page, 1))
+        val next = GuildDialogSession(owner, 100L) { valid }
+        val previous = next.beginPage(0)
+        val current = next.beginPage(1)
+        assertFalse(next.dismiss(owner, previous))
+        valid = false
+        assertFalse(next.dismiss(owner, current))
+    }
 }

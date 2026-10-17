@@ -49,7 +49,7 @@ import org.koin.core.component.inject
 class GuildProgressionMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
-    private val guild: Guild,
+    private var guild: Guild,
     private val guildService: GuildService,
     private val memberService: MemberService,
     private val progressionService: ProgressionService,
@@ -79,6 +79,7 @@ class GuildProgressionMenu(
 
     override fun open() {
         val playerId = player.uniqueId
+        guild = guildService.getGuild(guild.id) ?: guild
 
         if (memberService.getMember(playerId, guild.id) == null) {
             player.sendMessage(lang.msg("menu.guild_progression.feedback.no_access"))
@@ -434,6 +435,7 @@ class GuildProgressionMenu(
     }
 
     private fun openRewardCatalog() {
+        guild = guildService.getGuild(guild.id) ?: guild
         if (memberService.getMember(player.uniqueId, guild.id) == null) return
         val state = progressionService.getRewardState(guild.id) as? GuildRewardRead.Available
         if (state == null) {
@@ -482,22 +484,17 @@ class GuildProgressionMenu(
         val pages = maxOf(1, (offers.size + 3) / 4)
         rewardPage = rewardPage.coerceIn(0, pages - 1)
         val token = menuNavigator.currentNavigationToken()
-        val authorized = guildService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_GUILD_SETTINGS) &&
-            guildService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.WITHDRAW_FROM_BANK)
         val visible = offers.drop(rewardPage * 4).take(4)
         val cards = visible.mapIndexed { index, offer ->
-            val available = offer.status == RewardOfferStatus.AVAILABLE && authorized
             val title = Component.text(offer.reward.name)
             val icon = when (offer.status) {
                 RewardOfferStatus.AVAILABLE -> "lg_reward"
                 RewardOfferStatus.PURCHASED, RewardOfferStatus.PERMANENT -> "lg_confirm"
                 else -> "lg_cancel"
             }
-            referenceItem(icon, listOf(title, referenceRewardEffect(lang, offer.reward.effect)), if (!available) null else referenceAction(title, icon) {
-                val quote = rewardPurchases.quote(player.uniqueId, guild.id, offer.reward.id)
-                if (quote == null) { player.sendMessage(lang.msg("chapter_two_rewards.purchase.no_quote")); openRewardCatalog() }
-                else GuildRewardPurchaseMenu(player, quote, offer.reward.name, ::openRewardCatalog, guild.guiTheme,
-                    { menuNavigator.isNavigationCurrent(token) && memberService.getMember(player.uniqueId, guild.id) != null }).open()
+            referenceItem(icon, listOf(title, referenceRewardEffect(lang, offer.reward.effect)), referenceAction(title, icon) {
+                GuildChronicleMenu(menuNavigator, player, guild, initialRewardId = offer.reward.id,
+                    returnToBrowser = ::openRewardCatalog).open()
             }, right = listOf(lang.rewardStatus(offer.status),
                 lang.gui("chapter_two_rewards.level_price", "level" to offer.reward.level, "price" to offer.reward.price)),
                 section = if (index == 0 || visible[index - 1].reward.level != offer.reward.level)

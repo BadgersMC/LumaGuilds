@@ -57,6 +57,7 @@ internal class GuildQuestDialogFlowTest {
         player = server.addPlayer()
         permission = player.addAttachment(plugin, "lumaguilds.guild.quests", true)
         val guild = Guild(UUID.randomUUID(), "Guild", createdAt = Instant.EPOCH)
+        every { guilds.getGuild(guild.id) } returns guild
         val target =
             mockk<QuestTarget>(relaxed = true) {
                 every { id } returns "stone"

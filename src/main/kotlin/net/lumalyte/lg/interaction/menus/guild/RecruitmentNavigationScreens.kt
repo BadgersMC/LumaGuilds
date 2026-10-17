@@ -8,9 +8,20 @@ private const val SEARCH_QUERY_LIMIT = 64
 
 /** Navigation presentation builders share the current authorized navigation session. */
 internal fun RecruitmentController.showScreen(next: RecruitmentScreen) {
+    if (rootScreen == null) rootScreen = screen
+    if (next != screen) {
+        if (next == rootScreen) returnLocations.clear() else returnLocations.addLast(screen to page)
+    }
     if (screen == RecruitmentScreen.BROWSE) browsePage = page
     screen = next
     page = if (next == RecruitmentScreen.BROWSE) browsePage else 0
+    refresh()
+}
+
+internal fun RecruitmentController.returnToPrevious(fallback: RecruitmentScreen) {
+    val location = returnLocations.removeLastOrNull()
+    screen = location?.first ?: fallback
+    page = location?.second ?: if (screen == RecruitmentScreen.BROWSE) browsePage else 0
     refresh()
 }
 

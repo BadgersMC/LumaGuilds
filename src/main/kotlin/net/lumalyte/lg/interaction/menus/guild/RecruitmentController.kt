@@ -93,6 +93,8 @@ internal class RecruitmentController(
     internal var joiningMethod: RecruitmentMode? = null
     var page = 0
     var input: RecruitmentInput? = null
+    internal var rootScreen: RecruitmentScreen? = null
+    internal val returnLocations = ArrayDeque<Pair<RecruitmentScreen, Int>>()
 
     private val renderers: Map<RecruitmentScreen, () -> List<RecruitmentButton>> by lazy {
         mapOf(
@@ -139,6 +141,7 @@ internal class RecruitmentController(
             if (ownGuild() != null) screen = RecruitmentScreen.MANAGE
         }
         val navigation = navigation()
+        if (rootScreen == null) rootScreen = screen
         val items = requireNotNull(renderers[screen]).invoke()
         return RecruitmentView(
             if (screen == RecruitmentScreen.MANAGE) lang.raw("recruitment.manage") else lang.raw("recruitment.title"),
