@@ -78,3 +78,26 @@ If you believe a valid action is not counting, report the exact quest text and w
 - [Progression, Quests & Prestige](progression.md)
 - [Guilds](guilds.md)
 - [War](war.md)
+
+## Direct member access and spawn display configuration
+
+All guild members may use `/g quests`, `/guild quest`, or `/guild quest menu` (permission `lumaguilds.guild.quests`, default true). This opens the existing Java/Bedrock quest menu without granting management access. Clicking a quest opens its leaderboard; Back closes the directly opened menu.
+
+Both `/g` and `/guild` support `quest`, `quests`, `quest menu` and `quests menu`. Guild Progression includes a Guild Quests entry; the Java menu places it beside Back, and the Bedrock reward/progression presentation offers the same member-authorized route. Current membership and the quest permission are checked again when selecting it.
+
+Availability reminders are controlled in progression.yml by `quests.notifications.on_join` and `quests.notifications.on_reset`, both true by default. They show only while unfinished milestone objectives remain. Completion rewards/notifications are unchanged.
+
+For spawn holograms, use these PlaceholderAPI examples. Quest and leaderboard indexes start at 1:
+
+- `%lumaguilds_guild_weekly_quests_available%`
+- `%lumaguilds_guild_weekly_quests_time_remaining%`
+- `%lumaguilds_guild_weekly_quest_1_name%`
+- `%lumaguilds_guild_weekly_quest_1_description%`
+- `%lumaguilds_guild_weekly_quest_1_required%`
+- `%lumaguilds_guild_weekly_quest_1_reward_exp%`
+- `%lumaguilds_guild_weekly_quest_1_top_1_guild%`
+- `%lumaguilds_guild_weekly_quest_1_top_1_score%`
+- `%lumaguilds_guild_weekly_quest_1_score%` (viewer's guild)
+- `%lumaguilds_guild_weekly_quest_1_rank%` (viewer's guild)
+
+Top entries support positions 1..100 with a 30-second cache; absent entries return empty text. Global descriptions and top entries do not require a player. Viewer score/rank need player-context hologram support. This source change does not create or alter production holograms.

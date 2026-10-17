@@ -556,5 +556,36 @@ WHEN a player opens or interacts with a guild vault THE SYSTEM SHALL recheck cur
 **Event-driven.** WHEN a guild creation or new membership occurs THE SYSTEM SHALL persist one pending prompt per player/guild, consume it once only for an online current member, retain pending offline prompts and preserve consumption across duplicate events and restarts. Existing memberships SHALL NOT be retroactively enrolled. See `docs/guild-onboarding.md`.
 ### REQ-148
 **Event-driven.** WHEN a guild owns EMOJI:PUMPKIN_KING THE SYSTEM SHALL allow members with existing MANAGE_EMOJI authority to equip the existing pumpkin_king_icon glyph as its guild emoji through Java, Bedrock and command paths. Unowned guilds SHALL be rejected even with broad personal emoji permissions. Ordinary emojis SHALL preserve their prior permission rules. Only this existing glyph with its expected U+A0A0 character and minecraft:default font SHALL be admitted from non-emoji assets; all other non-emoji glyphs SHALL remain excluded. Revocation SHALL clear only the matching equipped emoji with a conditional field write, preserving unrelated guild fields.
+### REQ-150 — Guild recruitment upgrade
+
+The approved recruitment behavior, player/recruiter flows, discovery integration and delivery gates are specified as REC-001 through REC-012 in [Guild recruitment delivery](plans/guild-recruitment.md). This upgrade retains existing LFG access and fee policy, adds dedicated rank authority and requires explicit applicant confirmation before admission.
+
 ### REQ-149 — Dynamic Vault economy provider lifecycle
 **Event-driven.** WHEN Vault is present but no Economy provider is registered, personal-account guild-bank operations SHALL report the provider as unavailable without declaring the bank permanently broken. BEFORE each personal-account economy operation THE SYSTEM SHALL resolve the currently registered Vault Economy provider, SHALL discover a provider registered after LumaGuilds startup, and SHALL discard a cached provider that is unregistered or replaced. Physical guild-gold and ordinary vault storage SHALL retain their existing availability semantics.
+
+### REQ-150 — Personal guild invite blocking
+**Event-driven.** WHEN a player uses the block/unblock/list commands with `lumaguilds.guild.block` THE SYSTEM SHALL durably manage one-way player blocks, reject all invite paths from blocked players or their current guilds without revealing the block, remove covered pending invites, hide unusable invitation lookup/counts and filter blocked sender guild/ally/mod/party chat only for the blocking viewer. Memberships SHALL remain unchanged.
+
+### REQ-151 — Invite block persistence and API safety
+**Unwanted.** IF stored blocks cannot be loaded completely or a database write fails THEN THE SYSTEM SHALL respectively refuse invites or report failure without publishing unsaved cache state. Per-instance writes SHALL preserve durable/cache ordering. THE SYSTEM SHALL migrate/create/repair schema v45 for SQLite and migrate MariaDB, provide a JDK-only GuildInviteBlocks API, and use memory-only chat reads.
+## Member quest discovery (local only, 2026-10-11)
+
+### REQ-QUEST-DISCOVERY-1
+**Event-driven.** WHEN a guild member executes `/g quests`, `/guild quest`, or `/guild quest menu` THEN THE SYSTEM SHALL open the existing Java or Bedrock quest menu using `lumaguilds.guild.quests` (default true), without requiring management rank permissions, AND SHALL reject nonmembers without opening guild management controls.
+
+### REQ-QUEST-DISCOVERY-2
+**Event-driven.** WHEN a member joins or a new weekly set is generated AND the corresponding availability notification is enabled AND unfinished milestone quests remain THEN THE SYSTEM SHALL send a clickable `/g quests` reminder. THE SYSTEM SHALL NOT send periodic reminders or reminders for disabled, expired, future, or fully completed sets.
+
+### REQ-QUEST-DISCOVERY-3
+**Ubiquitous.** THE SYSTEM SHALL expose active quest descriptions, targets, rewards, availability, own-guild scores/ranks and top guild names/scores through PlaceholderAPI for spawn displays, including playerless global fields. Leaderboard positions SHALL be bounded to 1..100 and cached for 30 seconds per weekly set, and missing entries SHALL return empty strings.
+
+### REQ-QUEST-DISCOVERY-4
+**Event-driven.** WHEN a guild member selects Quests from the progression menu THEN THE SYSTEM SHALL open the existing quest menu after rechecking current membership and the dedicated quest permission. THE SYSTEM SHALL preserve progression, reward, prestige and navigation controls on Java and Bedrock. Both short quest aliases and both aliases followed by menu SHALL route to the same member-authorized presentation.
+
+### REQ-STALL-ICONS-1
+**Ubiquitous.** THE SYSTEM SHALL give stall entries, member entries, navigation, status and authorized manager controls distinct semantic icons using the existing themed provider with vanilla fallbacks, while preserving all membership, navigation-token and manager authorization checks. Custom private artwork SHALL remain outside the public plugin repository.
+
+## Guild Chronicle
+
+The catalog-backed Chronicle and durable guild goal follow CHR-001 through
+CHR-005 in [the Chronicle specification](plans/2026-10-16-guild-chronicle.md).

@@ -90,6 +90,9 @@ class MenuNavigator(private val player: Player) {
                 menuStack.first().passData(data)
                 menuStack.first().open()
             } else {
+                if (net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.supportsDialog(player)) {
+                    player.closeDialog()
+                }
                 player.closeInventory()
             }
         }

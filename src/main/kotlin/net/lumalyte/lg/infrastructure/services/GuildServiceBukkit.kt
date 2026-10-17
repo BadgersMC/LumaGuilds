@@ -645,8 +645,7 @@ class GuildServiceBukkit(
             return false
         }
 
-        val updatedGuild = guild.copy(isOpen = isOpen)
-        return guildRepository.update(updatedGuild)
+        return guildRepository.updateAccess(guild.id, isOpen)
     }
 
     override fun setJoinFeeEnabled(guildId: UUID, enabled: Boolean, actorId: UUID): Boolean {

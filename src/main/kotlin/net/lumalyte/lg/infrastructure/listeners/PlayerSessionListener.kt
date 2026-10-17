@@ -26,6 +26,7 @@ class PlayerSessionListener : Listener, KoinComponent {
     private val warNotificationService: WarNotificationService by inject()
     private val questCompletionNotifier: QuestCompletionNotifier by inject()
     private val guildLoginNotificationService: GuildLoginNotificationService by inject()
+    private val questAvailabilityNotifier: net.lumalyte.lg.infrastructure.services.QuestAvailabilityNotifierBukkit by inject()
 
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
@@ -33,6 +34,7 @@ class PlayerSessionListener : Listener, KoinComponent {
         warNotificationService.deliverUnread(playerId)
         questCompletionNotifier.deliverUnread(playerId)
         guildLoginNotificationService.onPlayerJoin(playerId)
+        questAvailabilityNotifier.onJoin(event.player)
     }
 
     @EventHandler
