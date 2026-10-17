@@ -23,6 +23,8 @@ internal data class GuildDialogItem(
     val text: Component,
     val cardLines: List<Component>? = null,
     val onClick: GuildDialogAction? = null,
+    val rightLines: List<Component>? = null,
+    val section: Component? = null,
 )
 
 internal data class GuildDialogAction(val label: Component, val tooltip: Component, val action: () -> Unit)
@@ -38,6 +40,7 @@ internal data class GuildDialogPage(
     val subtitle: Component = Component.empty(),
     val bodyActions: List<GuildDialogAction> = emptyList(),
     val showCategoryInput: Boolean = true,
+    val framedHeading: Boolean = false,
 )
 
 /** Uses public Paper dialog APIs; Nexo item models remain owned by the private pack. */
@@ -135,11 +138,12 @@ internal class GuildMenuDialog : GuildDialogPresenter {
                 )
             }
         val bodies = links + page.items.flatMap { itemBodies(it, callbacks, skin) }
-        return DialogBase.builder(page.title.color(guildDialogAccent(page.theme)))
+        val frame = if (page.framedHeading) skin?.referenceFrame(page.title, page.subtitle) else null
+        return DialogBase.builder(if (frame != null) Component.empty() else page.title.color(guildDialogAccent(page.theme)))
             .canCloseWithEscape(true)
             .apply { GuildDialogTransitions.configure(this) }
             .body(
-                skin?.referenceBody(page.title, page.subtitle, bodies) ?: (
+                frame?.let { listOf(DialogBody.plainMessage(it, TEXT_WIDTH)) + bodies } ?: skin?.referenceBody(page.title, page.subtitle, bodies) ?: (
                     if (page.subtitle == Component.empty()) {
                         bodies
                     } else {
@@ -161,6 +165,14 @@ internal class GuildMenuDialog : GuildDialogPresenter {
                 ClickEvent.callback({ audience -> callbacks.submit(audience, action.action) }, callbackOptions())
             }
         val lines = item.cardLines
+        if (!lines.isNullOrEmpty() && item.rightLines != null) {
+            val panel = skin?.columns(lines, item.rightLines)
+                ?: Component.join(net.kyori.adventure.text.JoinConfiguration.newlines(), lines + item.rightLines)
+            val row = DialogBody.item(item.item.clone()).width(ITEM_WIDTH).height(ITEM_HEIGHT)
+                .showDecorations(false).showTooltip(false)
+                .description(DialogBody.plainMessage(linked(panel), TEXT_WIDTH - ITEM_WIDTH - 4)).build()
+            return listOfNotNull(item.section?.let { DialogBody.plainMessage(it, TEXT_WIDTH) }, row)
+        }
         if (skin != null && !lines.isNullOrEmpty()) {
             val heading =
                 DialogBody.item(item.item.clone()).width(ITEM_WIDTH).height(ITEM_HEIGHT)

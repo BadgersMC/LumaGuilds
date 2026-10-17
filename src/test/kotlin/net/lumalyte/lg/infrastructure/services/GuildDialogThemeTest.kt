@@ -26,7 +26,7 @@ internal class GuildDialogThemeTest {
     fun resolvesSelectedArtwork() {
         val skin = assertNotNull(GuildDialogTheme(resolver).resolve(GuiTheme.VOIDLIGHT))
         val expected = listOf("header", "divider", "footer", "marker").map { "guild_dialog_voidlight_$it" }
-        assertEquals(expected + SPACER_ID, names)
+        assertEquals(expected + "guild_dialog_voidlight_reference_header" + SPACER_ID, names)
         assertEquals(NamedTextColor.LIGHT_PURPLE, skin.accent)
         val label = skin.label(Component.text("Confirm 100 coins"))
         assertTrue(PlainTextComponentSerializer.plainText().serialize(label).endsWith("Confirm 100 coins"))
@@ -36,6 +36,15 @@ internal class GuildDialogThemeTest {
     fun vanillaStaysPlain() {
         assertNull(GuildDialogTheme(resolver).resolve(GuiTheme.VANILLA))
         assertTrue(names.isEmpty())
+    }
+
+    @Test
+    fun referenceHeadingIsOptionalAndLongTranslationsUseTheNativeTitle() {
+        val skin = assertNotNull(GuildDialogTheme(resolver).resolve(GuiTheme.ENTHUSIA))
+        assertNotNull(skin.referenceFrame(Component.text("Guild Settings"), Component.text("Everlights")))
+        assertNull(skin.referenceFrame(Component.text("Very long translated heading ".repeat(12)), Component.text("Guild")))
+        val oldPack = GuildDialogTheme { name -> if (name.endsWith("reference_header")) null else resolver.resolve(name) }
+        assertNull(assertNotNull(oldPack.resolve(GuiTheme.ENTHUSIA)).referenceFrame(Component.text("Settings"), Component.empty()))
     }
 
     @Test

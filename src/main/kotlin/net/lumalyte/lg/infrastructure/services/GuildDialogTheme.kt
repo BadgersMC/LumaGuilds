@@ -42,6 +42,7 @@ internal class GuildDialogTheme(
             val id = "guild_dialog_${theme.name.lowercase()}_$part"
             parts[part] = glyph(id) ?: return null
         }
+        glyph("guild_dialog_${theme.name.lowercase()}_reference_header")?.let { parts["reference_header"] = it }
         return glyph("guild_dialog_spacer")?.let {
             parts["spacer"] = it
             parts
@@ -74,6 +75,27 @@ internal class GuildDialogSkin(
     private val cardArt by lazy(cards)
 
     fun card(lines: List<Component>): Component? = cardArt?.render(lines)
+
+    fun columns(left: List<Component>, right: List<Component>): Component? = cardArt?.renderColumns(left, right)
+
+    fun referenceFrame(title: Component, subtitle: Component): Component? {
+        val art = parts["reference_header"] ?: return null
+        val rows = (listOf(title.colorIfAbsent(accent), subtitle)).flatMap {
+            GuildDialogText.rows(it, 498) ?: return null
+        }
+        // Purpose-built header is 256x36. Longer localized text uses the native heading.
+        if (rows.size > 2) return null
+        val spacing = Key.key("lumaguilds:dialog_spacing_v2")
+        fun pad(value: Int): Component = Component.text(buildString {
+            for (bit in 0..9) if (value and (1 shl bit) != 0) append((0xE010 + bit).toChar())
+        }, NamedTextColor.WHITE).font(spacing)
+        val result = Component.text().append(art).append(Component.newline())
+        for ((line, width) in rows) {
+            val left = (514 - width) / 2
+            result.append(pad(left)).append(line).append(pad(514 - width - left)).append(Component.newline())
+        }
+        return result.append(pad(514)).build()
+    }
 
     fun referenceBody(
         @Suppress("UNUSED_PARAMETER") title: Component,

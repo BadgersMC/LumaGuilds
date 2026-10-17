@@ -71,7 +71,6 @@ internal class GuildPresentationSettingsDialog(
                     listOf(
                         title,
                         lang.gui(descriptionKey),
-                        lang.gui(if (enabled) "dialog_v2.on" else "dialog_v2.off"),
                     ),
                     if (!canEdit(current)) {
                         null
@@ -81,6 +80,7 @@ internal class GuildPresentationSettingsDialog(
                             open()
                         }
                     },
+                    right = listOf(lang.gui(if (enabled) "dialog_v2.on" else "dialog_v2.off")),
                 )
             }
         return GuildDialogPage(
@@ -97,13 +97,15 @@ internal class GuildPresentationSettingsDialog(
             referenceAction(lang.gui("recruitment.dialog.back"), "lg_back", back),
             theme = current.guiTheme,
             subtitle = Component.text(current.name),
+            columns = 2,
+            framedHeading = true,
         )
     }
 
     private fun frames(current: Guild): GuildDialogPage {
         val chosen = preview ?: current.guiTheme.resolved()
         val cards =
-            GuiTheme.SELECTABLE.map { theme ->
+            GuiTheme.SELECTABLE.filter { it != GuiTheme.VANILLA }.map { theme ->
                 val available = unlocked(theme)
                 val title = Component.text(theme.displayName)
                 val status =
@@ -113,9 +115,14 @@ internal class GuildPresentationSettingsDialog(
                         theme == chosen -> "dialog_v2.frame_preview"
                         else -> "dialog_v2.frame_choose"
                     }
+                val hint = when {
+                    !available -> lang.gui("dialog_v2.frame_locked")
+                    theme == current.guiTheme.resolved() -> lang.gui("dialog_v2.frame_current")
+                    else -> lang.gui("dialog_v2.frame_choose")
+                }
                 referenceItem(
                     "lg_theme_${theme.name.lowercase()}",
-                    listOf(title, lang.gui(status)),
+                    listOf(title, hint),
                     if (!available || theme == chosen) {
                         null
                     } else {
@@ -124,11 +131,15 @@ internal class GuildPresentationSettingsDialog(
                             open()
                         }
                     },
+                    right = listOf(if (theme == chosen || !available) lang.gui(status) else Component.empty()),
                 )
             }
         val actions =
             if (!canEdit(current) || preview == null || chosen == current.guiTheme.resolved()) {
-                emptyList()
+                listOf(referenceAction(Component.text(GuiTheme.VANILLA.displayName), "lg_tag") {
+                    preview = GuiTheme.VANILLA
+                    open()
+                })
             } else {
                 listOf(
                     referenceAction(lang.gui("dialog_v2.apply_frame"), "lg_confirm") {
@@ -153,6 +164,8 @@ internal class GuildPresentationSettingsDialog(
             },
             theme = chosen,
             subtitle = lang.gui("dialog_v2.frame_subtitle"),
+            columns = 2,
+            framedHeading = true,
         )
     }
 

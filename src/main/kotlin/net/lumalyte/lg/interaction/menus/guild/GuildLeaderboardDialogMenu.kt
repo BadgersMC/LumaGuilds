@@ -66,7 +66,7 @@ internal class GuildLeaderboardDialogMenu(
                         Component.text(
                             "${members.getMemberCount(
                                 guild.id,
-                            )} ${lang.raw("dialog_v2.members")} · ${values[guild.id]}",
+                            )} ${lang.raw("dialog_v2.members")}",
                         ),
                     )
                 GuildDialogItem(
@@ -76,6 +76,11 @@ internal class GuildLeaderboardDialogMenu(
                     referenceAction(Component.text(guild.name), "lg_nav_info") {
                         navigator.openMenu(GuildRecruitmentMenu(navigator, player, guild.id))
                     },
+                    rightLines = listOf(Component.text(values[guild.id].toString()), when (tab) {
+                        0 -> lang.gui("dialog_v2.rank_level")
+                        1 -> lang.gui("dialog_v2.rank_wins")
+                        else -> lang.gui("dialog_v2.sort_online")
+                    }),
                 )
             }
         val controls =
@@ -106,6 +111,8 @@ internal class GuildLeaderboardDialogMenu(
                 controls,
                 referenceAction(lang.gui("recruitment.dialog.back"), "lg_back") { navigator.goBack() },
                 theme = own.guiTheme,
+                columns = 2,
+                framedHeading = true,
                 subtitle =
                     Component.text(
                         "${page + 1}/$pages · ${lang.raw(

@@ -236,11 +236,14 @@ class GuildQuestLeaderboardMenu(
             player,
             GuildDialogPage(
                 lang.gui("menu.quests.leaderboard.title"),
-                nativeLeaderboardItems(header, guilds, progress, ranks),
+                nativeLeaderboardItems(guilds, progress, ranks),
                 actions,
                 nativeAction(lang.gui("menu.quests.leaderboard.back")) { menuNavigator.goBack() },
                 theme = viewingGuild.guiTheme,
-                subtitle = lang.gui("menu.quests.leaderboard.page", "page" to nativePage + 1, "pages" to pages),
+                columns = 2,
+                framedHeading = true,
+                subtitle = (header.itemMeta?.displayName() ?: Component.empty()).append(Component.text(" · "))
+                    .append(lang.gui("menu.quests.leaderboard.page", "page" to nativePage + 1, "pages" to pages)),
                 bodyActions = active?.quests?.map { quest ->
                     referenceAction(Component.text((if (quest.id == questId) "[" else "") + QuestDisplayFormatter.name(quest) + (if (quest.id == questId) "]" else "")), "lg_nav_quests") {
                         questId = quest.id; nativePage = 0; open()
@@ -256,18 +259,11 @@ class GuildQuestLeaderboardMenu(
     }
 
     private fun nativeLeaderboardItems(
-        header: ItemStack,
         guilds: List<Guild>,
         progress: Map<java.util.UUID, GuildQuestProgress>,
         ranks: Map<java.util.UUID, Int>,
     ): List<GuildDialogItem> {
-        val items =
-            mutableListOf(
-                GuildDialogItem(
-                    header,
-                    Component.join(JoinConfiguration.newlines(), header.lore() ?: emptyList()),
-                ),
-            )
+        val items = mutableListOf<GuildDialogItem>()
         for (current in guilds.drop(nativePage * NATIVE_PAGE_SIZE).take(NATIVE_PAGE_SIZE)) {
             items += nativeGuildItem(current, progress[current.id]?.currentCount ?: 0, ranks[current.id])
         }
@@ -278,12 +274,13 @@ class GuildQuestLeaderboardMenu(
         val lines = listOf(
             Component.text("${rank?.let { "#$it" } ?: "—"} ${current.name}${if (current.id == viewingGuild.id) " (you)" else ""}"),
             questProgressBar(score, questService.activeQuestSet()?.quests?.firstOrNull { it.id == questId }?.targetCount ?: 0),
-            Component.text(score.toString()),
         )
         return GuildDialogItem(
             GuildBannerItemResolver.resolveForDisplay(current),
             Component.join(JoinConfiguration.newlines(), lines),
             cardLines = lines,
+            rightLines = listOf(Component.text(score.toString()), Component.text("/ " +
+                (questService.activeQuestSet()?.quests?.firstOrNull { it.id == questId }?.targetCount ?: 0))),
         )
     }
 
