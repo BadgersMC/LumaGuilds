@@ -273,7 +273,9 @@ class OutgoingRequestsMenu(
             .lore(lang.gui("menu.outgoing_requests.navigation.back.description"))
 
         val guiItem = GuiItem(backItem) {
-            menuNavigator.returnTo(GuildRelationsMenu::class.java) { menuFactory.createGuildRelationsMenu(menuNavigator, player, guild) }
+            menuNavigator.returnTo(GuildRelationsMenu::class.java) {
+                menuFactory.createGuildRelationsMenu(menuNavigator, player, guild)
+            }
         }
         pane.addItem(guiItem, x, y)
     }

@@ -253,7 +253,9 @@ class GuildWarAcceptanceMenu(
                 
                 // Close menu and return to war management
                 player.closeInventory()
-                menuNavigator.returnTo(GuildWarManagementMenu::class.java) { menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild) }
+                menuNavigator.returnTo(GuildWarManagementMenu::class.java) {
+                    menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild)
+                }
                 
             } else {
                 player.sendMessage(lang.msg("menu.war_acceptance.feedback.accept_failed"))
@@ -276,7 +278,9 @@ class GuildWarAcceptanceMenu(
                 
                 // Close menu and return to war management
                 player.closeInventory()
-                menuNavigator.returnTo(GuildWarManagementMenu::class.java) { menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild) }
+                menuNavigator.returnTo(GuildWarManagementMenu::class.java) {
+                    menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild)
+                }
                 
                 // Notify declaring guild of rejection
                 notifyGuildOfWarRejection(warDeclaration.declaringGuildId)
@@ -298,7 +302,9 @@ class GuildWarAcceptanceMenu(
             .lore(lang.gui("menu.war_declaration.item.back.lore"))
 
         val guiItem = GuiItem(backItem) {
-            menuNavigator.returnTo(GuildWarManagementMenu::class.java) { menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild) }
+            menuNavigator.returnTo(GuildWarManagementMenu::class.java) {
+                menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild)
+            }
         }
         pane.addItem(guiItem, x, y)
     }

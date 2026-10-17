@@ -176,7 +176,9 @@ class GuildBankBudgetMenu(
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
-            menuNavigator.returnTo(GuildBankMenu::class.java) { menuFactory.createGuildBankMenu(menuNavigator, player, guild) }
+            menuNavigator.returnTo(GuildBankMenu::class.java) {
+                menuFactory.createGuildBankMenu(menuNavigator, player, guild)
+            }
         }
         mainPane.addItem(backGuiItem, 0, 0)
 

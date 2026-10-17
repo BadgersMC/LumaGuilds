@@ -57,7 +57,9 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         if (!hasPermission) {
             player.sendMessage(lang.msg("menu.rank_creation.feedback.no_permission"))
             player.sendMessage(lang.msg("menu.rank_edit.feedback.required_permission"))
-            menuNavigator.returnTo(GuildRankManagementMenu::class.java) { menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild) }
+            menuNavigator.returnTo(GuildRankManagementMenu::class.java) {
+                menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild)
+            }
             return
         }
 
@@ -332,7 +334,11 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
                     player.sendMessage(lang.msg("menu.rank_creation.feedback.create_failed"))
                 }
 
-                menuNavigator.returnTo(GuildRankManagementMenu::class.java) { menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild) }
+                menuNavigator.returnTo(GuildRankManagementMenu::class.java) {
+
+                    menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild)
+
+                }
             } else {
                 player.sendMessage(lang.msg("menu.rank_creation.feedback.missing_requirements"))
             }
@@ -363,7 +369,9 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
 
         val cancelGuiItem = GuiItem(cancelItem) {
             player.sendMessage(lang.msg("menu.rank_creation.feedback.cancelled"))
-            menuNavigator.returnTo(GuildRankManagementMenu::class.java) { GuildRankManagementMenu(menuNavigator, player, guild) }
+            menuNavigator.returnTo(GuildRankManagementMenu::class.java) {
+                GuildRankManagementMenu(menuNavigator, player, guild)
+            }
         }
         pane.addItem(cancelGuiItem, 7, 5)
     }
