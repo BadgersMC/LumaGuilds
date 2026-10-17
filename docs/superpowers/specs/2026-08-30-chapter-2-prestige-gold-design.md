@@ -15,7 +15,7 @@ Chapter 2 needs a progression reset that is meaningful without deleting the soci
 This design establishes three distinct kinds of state:
 
 1. **Current-run state**: level 1–100, XP, and non-permanent purchased perks. A successful prestige resets this state.
-2. **Permanent guild state**: identity, roster, ranks, relations, vault contents, canonical raw-gold balance, activated homes, permanent home capacity, prestige count, and selected permanent prestige perks. Prestige and chapter rollover preserve this state.
+2. **Permanent guild state**: identity, roster, ranks, relations, vault contents, canonical raw-gold balance, Chapter 2 paid home activations, permanent home capacity, prestige count, and selected permanent prestige perks. Prestige and later chapter rollover preserve this state. The Chapter 1→2 cutover is a one-time exception: saved Chapter 1 home locations and capacity survive, but their old activation entitlement does not.
 3. **Seasonal state**: Elo, rated-pair history, standings, and chapter metadata. Chapter rollover resets or archives this state; prestige does not.
 
 Prestige ships disabled because the community is divided on the mechanic. The complete contract is defined now so enabling it later cannot create an improvised or destructive reset.
@@ -113,8 +113,9 @@ For each guild, migration:
 - initializes prestige count to zero and no selected permanent perks;
 - initializes seasonal Elo to 1000;
 - preserves identity, members, ranks, relations, vault contents, and canonical guild gold;
-- preserves every canonical `guild_homes` location and its access rules;
-- sets permanent home capacity to `max(1, saved canonical home count)`;
+- preserves every canonical `guild_homes` location and its access rules, but migrates those Chapter 1 locations as inactive until the guild pays the Chapter 2 activation cost;
+- sets permanent home capacity to `max(1, saved canonical home count)` so no saved location is deleted merely because activation resets;
+- preserves already-applied Chapter 2 home-activation payments made during cutover testing as one-time activation credits, excluding compensated/failed charges;
 - grants no unused home entitlement based on legacy level;
 - converts no historical XP into Elo, prestige, perks, raw gold, or other value.
 
@@ -129,14 +130,19 @@ Prestige is configurable and ships disabled:
 ```yaml
 prestige:
   enabled: false
-  max_count: 3
+  max_count: 6
   costs:
     1: 10000
     2: 20000
     3: 30000
+    4: 30000
+    5: 30000
+    6: 30000
 ```
 
-Prestige count belongs to the guild and is never transferred to a player or another guild. Three is a lifetime maximum. After Prestige III, the guild may complete level 100 again and remain at the endgame permanently.
+Prestige IV–VI temporarily reuse the existing approved 30,000-gold fee ceiling. Increasing the lifetime cap to six is not an economy-retuning decision; the later tiers can be re-priced separately after Chapter 2 live data is reviewed.
+
+Prestige count belongs to the guild and is never transferred to a player or another guild. Six is a lifetime maximum. After Prestige VI, the guild may complete level 100 again and remain at the endgame permanently.
 
 ### 6.2 Eligibility
 
@@ -195,7 +201,7 @@ Prestige never grants a fresh daily allowance, a second weekly reward, or anothe
 
 The reward registry is the authority for prestige eligibility. A selected perk must already be purchased in the current run, may be selected only once, and retains exactly its configured effect across later resets. XP multipliers, source-cap increases, raw-gold generation, and home capacity are not selectable; prestige already grants its separate permanent home.
 
-The LG-1202 table must bound every selectable effect. Non-stackable perks remain non-stackable, and mutually exclusive perk families cannot both become permanent. Up to three selections are possible because prestige is capped at three.
+The LG-1202 table must bound every selectable effect. Non-stackable perks remain non-stackable, and mutually exclusive perk families cannot both become permanent. Up to six selections are possible because prestige is capped at six.
 
 ## 7. Elo and chapter interaction
 
@@ -229,7 +235,7 @@ Implementation follows SPEAR and must prove:
 - failed external or database legs compensate without duplication or loss;
 - missing Vault Economy disables only personal transfers;
 - ordinary vault-slot capacity is independent from guild-gold capacity;
-- migration preserves exact homes and gold while resetting level/XP;
+- migration preserves exact home locations/capacity and gold while resetting level/XP, and requires preserved Chapter 1 homes to be reactivated for Chapter 2 use;
 - prestige rejects every individual failed precondition;
 - prestige is rejected during active/accepted/unresolved wars;
 - post-fee capacity is calculated correctly with permanent benefits;

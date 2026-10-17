@@ -92,10 +92,14 @@ class RewardEntitlementsTest {
     }
 
     @Test
-    fun `three selections allow no further prestige choice`() {
-        val state = RewardOwnership(currentRun = setOf("bank-4"), permanent = setOf("bank-1", "bank-2", "bank-3"), prestigeCount = 3)
+    fun `six selections allow no further prestige choice`() {
+        val state = RewardOwnership(
+            currentRun = setOf("bank-7"),
+            permanent = setOf("bank-1", "bank-2", "bank-3", "bank-4", "bank-5", "bank-6"),
+            prestigeCount = 6,
+        )
         assertTrue(resolver.resolve(100, state).prestigeChoices.isEmpty())
-        assertEquals(11_000L, resolver.resolve(1, state.copy(currentRun = emptySet())).bankCapacity)
+        assertEquals(14_000L, resolver.resolve(1, state.copy(currentRun = emptySet())).bankCapacity)
     }
 
     @Test
@@ -131,7 +135,7 @@ class RewardEntitlementsTest {
         )
         invalid.forEach { state -> assertFailsWith<IllegalArgumentException> { resolver.resolve(100, state) } }
         assertFailsWith<IllegalArgumentException> { resolver.resolve(1, RewardOwnership(currentRun = setOf("bank-1"))) }
-        assertFailsWith<IllegalArgumentException> { RewardOwnership(prestigeCount = 4) }
+        assertFailsWith<IllegalArgumentException> { RewardOwnership(prestigeCount = 7) }
         assertFailsWith<IllegalArgumentException> { RewardOwnership(initialHomeCapacity = 0) }
         assertFailsWith<IllegalArgumentException> { resolver.resolve(0, RewardOwnership()) }
         assertFailsWith<IllegalArgumentException> { resolver.resolve(101, RewardOwnership()) }

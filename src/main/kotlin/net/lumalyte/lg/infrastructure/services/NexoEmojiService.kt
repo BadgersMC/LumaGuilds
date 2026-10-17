@@ -2,7 +2,9 @@ package net.lumalyte.lg.infrastructure.services
 
 import com.nexomc.nexo.NexoPlugin
 import net.lumalyte.lg.application.services.ConfigService
-import net.lumalyte.lg.utils.ColorCodeUtils
+import net.lumalyte.lg.application.services.GuildCosmeticUnlockService
+import net.lumalyte.lg.domain.entities.HolidayGuildEmoji
+import java.util.UUID
 import org.bukkit.entity.Player
 import org.slf4j.LoggerFactory
 
@@ -12,18 +14,46 @@ private const val DEFAULT_GLYPH_FONT = "nexo:default"
 /** Safe glyph id shape — rejects MiniMessage control characters (e.g. `x><reset>`). */
 private val VALID_GLYPH_ID = Regex("^[a-zA-Z0-9_-]+$")
 
-data class ResolvedNexoGlyph(val character: String, val font: String?)
+/** Snapshot of public Nexo glyph metadata used only by the infrastructure adapter. */
+internal data class ResolvedNexoGlyph(
+    /** Character sent to the client. */
+    val character: String,
+    /** Resource-pack font containing the character. */
+    val font: String?,
+    /** Whether Nexo explicitly registers the glyph as an emoji. */
+    val isEmoji: Boolean,
+    /** Canonical ID when resolving a placeholder alias. */
+    val id: String? = null,
+)
 
-fun interface NexoGlyphResolver {
+/** Optional-plugin resolution seam for infrastructure regression tests. */
+internal fun interface NexoGlyphResolver {
     fun resolve(name: String): ResolvedNexoGlyph?
 }
 
 private object NexoPublicGlyphResolver : NexoGlyphResolver {
     override fun resolve(name: String): ResolvedNexoGlyph? {
-        val glyph = nexoFontManager()?.glyphFromName(name) ?: return null
+        val manager = nexoFontManager() ?: return null
+        val glyph = manager.glyphFromPlaceholder(":$name:") ?: manager.glyphFromName(name)
         val character = glyph.chars.firstOrNull()?.toString() ?: return null
-        return ResolvedNexoGlyph(character, glyph.font.asString())
+        return ResolvedNexoGlyph(character, glyph.font.asString(), glyph.isEmoji, glyph.id)
     }
+}
+
+private fun resolveOptionalGlyph(resolver: NexoGlyphResolver, name: String): ResolvedNexoGlyph? {
+    val glyph =
+        try {
+            resolver.resolve(name)
+        } catch (_: IllegalStateException) {
+            null
+        } catch (_: IllegalArgumentException) {
+            null
+        } catch (_: NullPointerException) {
+            null
+        } catch (_: LinkageError) {
+            null
+        }
+    return glyph
 }
 
 private fun nexoFontManager() = try {
@@ -38,11 +68,20 @@ private fun nexoFontManager() = try {
  * Service for interacting with Nexo emojis.
  * Handles emoji validation and permission checking for guild emoji system.
  * JFS there is some really nasty shit going on here.
+ * Retains the existing public API used by commands, menus and integrations.
  */
-class NexoEmojiService(
+@Suppress("TooManyFunctions")
+class NexoEmojiService internal constructor(
     private val configService: ConfigService,
-    private val glyphResolver: NexoGlyphResolver = NexoPublicGlyphResolver
+    private val glyphResolver: NexoGlyphResolver = NexoPublicGlyphResolver,
+    private val guildCosmetics: GuildCosmeticUnlockService? = null,
 ) {
+
+    /** Creates the service using the optional installed Nexo plugin. */
+    constructor(configService: ConfigService) : this(configService, NexoPublicGlyphResolver)
+
+    constructor(configService: ConfigService, guildCosmetics: GuildCosmeticUnlockService) :
+        this(configService, NexoPublicGlyphResolver, guildCosmetics)
 
     private val logger = LoggerFactory.getLogger(NexoEmojiService::class.java)
 
@@ -61,7 +100,8 @@ class NexoEmojiService(
      * @return true if the emoji format is valid, false otherwise.
      */
     fun isValidEmojiFormat(emoji: String): Boolean {
-        return emoji.startsWith(":") && emoji.endsWith(":") && emoji.length > 2
+        return emoji.startsWith(":") && emoji.endsWith(":") && emoji.length > 2 &&
+            VALID_GLYPH_ID.matches(emoji.substring(1, emoji.length - 1))
     }
     
     /**
@@ -92,6 +132,17 @@ class NexoEmojiService(
         
         return hasPermission
     }
+
+    /** Selection entitlement belongs to this guild; ordinary emoji permissions are unchanged. */
+    fun hasGuildEmojiPermission(player: Player, emoji: String, guildId: UUID?): Boolean {
+        val canonical = validatedEmojiName(emoji) ?: return false
+        return if (canonical == HolidayGuildEmoji.GLYPH) {
+            emoji == HolidayGuildEmoji.PLACEHOLDER && guildId != null &&
+                guildCosmetics?.ownsPumpkinEmoji(guildId) == true
+        } else {
+            hasEmojiPermission(player, emoji)
+        }
+    }
     
     /**
      * Gets a formatted display name for the guild including the emoji if set.
@@ -101,11 +152,12 @@ class NexoEmojiService(
      * @return The formatted display name with emoji prefix.
      */
     fun formatGuildDisplayName(guildName: String, emoji: String?): String {
-        return if (emoji != null && isValidEmojiFormat(emoji)) {
-            "$emoji $guildName"
+        val renderedEmoji = if (emoji != null && isValidEmojiFormat(emoji)) {
+            emojiToFontTag(emoji)
         } else {
-            guildName
+            ""
         }
+        return if (renderedEmoji.isNotEmpty()) "$renderedEmoji $guildName" else guildName
     }
     
     /**
@@ -115,12 +167,34 @@ class NexoEmojiService(
      * @param emoji The emoji placeholder (e.g., ":catsmileysmile:").
      * @return The placeholder string, or empty string if invalid.
      */
-    fun getEmojiPlaceholder(emoji: String?): String {
-        return if (emoji != null && isValidEmojiFormat(emoji)) {
-            emoji
-        } else {
-            ""
+    fun getEmojiPlaceholder(emoji: String?): String = emoji?.takeIf { resolveEmoji(it) != null }.orEmpty()
+
+    /** Returns a validated PAPI glyph placeholder, or empty text for unsafe glyphs. */
+    fun emojiToNexoPlaceholder(emoji: String?): String {
+        val name = validatedEmojiName(emoji) ?: return ""
+        return "%nexo_$name%"
+    }
+
+    /** Returns a validated MiniMessage glyph tag, or empty text for unsafe glyphs. */
+    fun emojiToGlyphTag(emoji: String?): String {
+        val name = validatedEmojiName(emoji) ?: return ""
+        return "<glyph:$name>"
+    }
+
+    private fun resolveEmoji(emoji: String?): ResolvedNexoGlyph? {
+        val name = emoji?.let(::extractEmojiName) ?: return null
+        return resolveOptionalGlyph(glyphResolver, name)?.takeIf {
+            val pumpkin =
+                name == HolidayGuildEmoji.GLYPH && (it.id == null || it.id == name) &&
+                    it.character == HolidayGuildEmoji.CHARACTER && it.font == HolidayGuildEmoji.FONT
+            (it.isEmoji || pumpkin) && it.character.isNotBlank()
         }
+    }
+
+    private fun validatedEmojiName(emoji: String?): String? {
+        val glyph = resolveEmoji(emoji)
+        val name = glyph?.let { it.id ?: emoji?.let(::extractEmojiName) }
+        return name?.takeIf(VALID_GLYPH_ID::matches)
     }
     
     /**
@@ -156,20 +230,11 @@ class NexoEmojiService(
      * from the glyph's own font in the mandatory resource pack, so no glyph-tag registration
      * is needed. This is the renderable counterpart to `%lumaguilds_guild_emoji_minimessage%`.
      *
-     * Resolves the glyph char + font through Nexo's public FontManager API; falls back to
-     * the `<glyph:name>` tag when Nexo is absent or the
-     * char/font cannot be read (matching [ColorCodeUtils.emojiToGlyphTag] output).
-     *
-     * Non-`:name:` values pass through unchanged; null or blank return `""`.
+     * Resolves only registered emoji glyphs through Nexo's public FontManager API.
+     * Unknown, malformed, non-emoji and unavailable glyphs return an empty string.
      */
     fun emojiToFontTag(emoji: String?): String {
-        if (emoji.isNullOrBlank()) return ""
-        val emojiName = extractEmojiName(emoji) ?: return emoji
-        // Reject glyph ids containing MiniMessage control characters (e.g. ":x><reset>:")
-        // so they can never reach the generated tag — isValidEmojiFormat only checks delimiters.
-        if (!VALID_GLYPH_ID.matches(emojiName)) return emoji
-        val glyph = glyphResolver.resolve(emojiName) ?: return "<glyph:$emojiName>"
-        if (glyph.character.isBlank()) return "<glyph:$emojiName>"
+        val glyph = resolveEmoji(emoji) ?: return ""
         val font = glyph.font?.takeUnless { it.isBlank() || it == "minecraft" } ?: DEFAULT_GLYPH_FONT
         return "<font:$font>${glyph.character}</font>"
     }
@@ -197,29 +262,7 @@ class NexoEmojiService(
      * @param emoji The emoji placeholder to check.
      * @return true if the emoji exists in Nexo, false otherwise.
      */
-    fun doesEmojiExist(emoji: String): Boolean {
-        // First check format
-        if (!isValidEmojiFormat(emoji)) {
-            logger.debug("Emoji format invalid: '$emoji'")
-            return false
-        }
-
-        // If Nexo is not available, fall back to format validation
-        if (!isNexoAvailable()) {
-            logger.debug("Nexo unavailable, allowing emoji based on format validation only: $emoji")
-            return true
-        }
-
-        return try {
-            val fontManager = nexoFontManager() ?: return false
-            if (fontManager.glyphFromPlaceholder(emoji) != null) return true
-            val emojiName = extractEmojiName(emoji) ?: return false
-            fontManager.glyphFromID(emojiName) != null
-        } catch (e: RuntimeException) {
-            logger.warn("Error validating emoji '$emoji': ${e.message}")
-            false
-        }
-    }
+    fun doesEmojiExist(emoji: String): Boolean = resolveEmoji(emoji) != null
 
     /**
      * Checks if Nexo plugin is available and loaded.
@@ -240,7 +283,7 @@ class NexoEmojiService(
         return if (isNexoAvailable()) {
             "Available - Full emoji validation active"
         } else {
-            "Unavailable - Format-only validation active"
+            "Unavailable - Emoji selection and rendering disabled"
         }
     }
 
@@ -251,29 +294,23 @@ class NexoEmojiService(
      * @param player The player to check permissions for.
      * @return List of emoji names (without colons) that the player can use.
      */
-    fun getPlayerUnlockedEmojis(player: Player): List<String> {
+    fun getPlayerUnlockedEmojis(player: Player): List<String> = getPlayerUnlockedEmojis(player, null)
+
+    /** Lists personal emojis plus the pumpkin entitlement owned by this guild. */
+    fun getPlayerUnlockedEmojis(player: Player, guildId: UUID?): List<String> {
         if (!isNexoAvailable()) {
             logger.debug("Nexo not available, cannot get unlocked emojis for ${player.name}")
             return emptyList()
         }
-
-        val availableEmojis = getAvailableEmojisFromNexo()
-        if (availableEmojis == null) {
-            logger.debug("Could not retrieve available emojis from Nexo")
-            return emptyList()
-        }
-
-        // Filter emojis based on player permissions
-        val prefix = getEmojiPermissionPrefix()
-        return availableEmojis.filter { emojiName ->
-            val permission = "$prefix.$emojiName"
-            val hasPermission = player.hasPermission(permission)
-
-            if (!hasPermission) {
-                logger.debug("Player ${player.name} does not have permission for emoji: $permission")
+        val availableEmojis = getAvailableEmojisFromNexo().orEmpty()
+        val holidayEmojis =
+            if (doesEmojiExist(HolidayGuildEmoji.PLACEHOLDER)) {
+                listOf(HolidayGuildEmoji.GLYPH)
+            } else {
+                emptyList()
             }
-
-            hasPermission
+        return (availableEmojis + holidayEmojis).distinct().filter { emojiName ->
+            hasGuildEmojiPermission(player, createEmojiPlaceholder(emojiName), guildId)
         }
     }
 

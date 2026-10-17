@@ -39,35 +39,75 @@ data class MainConfig(
     var bedrock: BedrockConfig = BedrockConfig(),
     var webApi: WebApiConfig = WebApiConfig(),
     var strikes: StrikesConfig = StrikesConfig(),
-    // Rollout gate only; enabling never initializes or migrates guild reward accounts.
-    var chapterTwoRewardsEnabled: Boolean = false
+    var seasonalElo: SeasonalEloConfig = SeasonalEloConfig(),
+    var warBanner: WarBannerConfig = WarBannerConfig(),
+    var discordGuildRoles: DiscordGuildRolesConfig = DiscordGuildRolesConfig(),
+    var guildList: GuildListConfig = GuildListConfig(),
+    // Runtime feature gates. Legacy staging defaults are upgraded by ConfigCompatibilityMigrator.
+    var chapterTwoRewardsEnabled: Boolean = true,
+    var chapterTwoGoldCostsEnabled: Boolean = false
 )
 
 /**
  * Guild Strikes — LiteBans punishments attributed to guilds.
  */
+data class WarBannerConfig(
+    // One physical stack by default; nonpositive operator overrides fail closed.
+    var rawGoldCost: Int = 64,
+    // Re-deploy cooldown begins at placement. Default matches the 15-minute lifetime.
+    var cooldownMinutes: Int = 15,
+)
+
+data class GuildListConfig(
+    var pageSize: Int = 18,
+)
+
+data class DiscordGuildRolesConfig(
+    var enabled: Boolean = true,
+    var minimumLevel: Int = 50,
+    var roleNameFormat: String = "Guild • <guild>",
+) {
+    init {
+        require(minimumLevel in 1..100) { "discord.guild_roles.minimum_level must be between 1 and 100" }
+        require(roleNameFormat.isNotBlank()) { "discord.guild_roles.role_name_format cannot be blank" }
+        require("<guild>" in roleNameFormat) {
+            "discord.guild_roles.role_name_format must contain <guild>"
+        }
+    }
+}
+
+data class SeasonalEloConfig(
+    var enabled: Boolean = false,
+    var kFactor: Int = 40,
+    var upperDisplayRating: Int = 1600,
+    var rematchWindowDays: Int = 7,
+) {
+    fun settings() = net.lumalyte.lg.domain.values.SeasonalEloSettings(
+        kFactor = kFactor,
+        upperDisplayRating = upperDisplayRating,
+        rematchWindowMillis = Math.multiplyExact(rematchWindowDays.toLong(), 86_400_000L),
+    )
+}
+
 data class StrikesConfig(
     /** Master switch: if false, no punishments are recorded and /g strikes is disabled. */
     var enabled: Boolean = true,
     /** Punishments before a guild is "up for a penalty" (admin-triggered action). */
     var threshold: Int = 5,
-    /**
-     * Which LiteBans punishment types count as strikes. LiteBans types:
-     * WARN, KICK, MUTE, BAN (matching litebans.api.Entry#getType()).
-     */
+    /** Which normalized punishment categories count as strikes: WARN, KICK, MUTE, BAN. */
     var countedTypes: List<String> = listOf("WARN", "KICK", "MUTE", "BAN"),
     /** Admin penalty actions available once a guild crosses the threshold. */
     var penalties: StrikesPenaltiesConfig = StrikesPenaltiesConfig(),
-    /** One-shot backfill of pre-existing LiteBans punishments on startup. */
+    /** Historical LiteBans backfill/repair policy. */
     var backfill: StrikesBackfillConfig = StrikesBackfillConfig()
 )
 
 /**
- * Backfill settings — imports historical LiteBans punishments into the strike
- * ledger on startup so existing guilds get credit for past behaviour.
+ * Backfill settings for historical LiteBans punishments represented through
+ * EnthusiaStaff's imported sanction projection or the legacy LiteBans fallback.
  */
 data class StrikesBackfillConfig(
-    /** Run the backfill on startup (idempotent — deduped by LiteBans entry id). */
+    /** Allow creation of missing historical rows (idempotent by LiteBans entry id). */
     var enabled: Boolean = true,
     /**
      * When membership history cannot prove which guild the player was in at the
@@ -106,6 +146,8 @@ data class GuildConfig(
     var minNameLength: Int = 1,
     var maxGuildCount: Int = 1000,
     var createGuildCost: Int = 0,
+    var homeActivationBaseCost: Int = 0,
+    var homeActivationScale: Double = 2.0,
     var disbandRefundPercent: Double = 0.5,
     
     // Name filtering (profanity / inappropriate content)
@@ -275,7 +317,8 @@ data class CombatConfig(
     var warDurationHours: Int = 168, // 1 week
     var warEndGracePeriodMinutes: Int = 30,
     var maxSimultaneousWars: Int = 3,
-    
+    var warKillWinTarget: Int = 25,
+
     // Experience and Rewards
     var killExperience: Int = 10,
     var warWinExperience: Int = 500,
@@ -389,8 +432,28 @@ data class PartyConfig(
     var defaultToAllMembers: Boolean = true
 )
 
+data class PrestigeConfig(
+    var enabled: Boolean = true,
+    var maxCount: Int = 6,
+    var fees: List<Long> = listOf(10_000L, 20_000L, 30_000L, 30_000L, 30_000L, 30_000L),
+) {
+    init {
+        require(maxCount in 1..6) { "Prestige lifetime maximum must be between 1 and 6" }
+        require(fees.size >= maxCount && fees.take(maxCount).all { it > 0 }) {
+            "Prestige fees must define a positive fee for every allowed prestige"
+        }
+    }
+
+    fun feeFor(currentPrestigeCount: Int): Long {
+        require(currentPrestigeCount in 0 until maxCount)
+        return fees[currentPrestigeCount]
+    }
+}
+
 data class ProgressionConfig(
     var maxLevel: Int = 100,
+    val prestige: PrestigeConfig = PrestigeConfig(),
+    val shopXp: net.lumalyte.lg.domain.values.GuildShopXpPolicy = net.lumalyte.lg.domain.values.GuildShopXpPolicy(),
 
     // Experience values for different activities
     var bankDepositXpPer100: Int = 1,
@@ -504,6 +567,11 @@ data class BedrockConfig(
     var fallbackOnFloodgateUnavailable: Boolean = true,
     var fallbackOnCumulusUnavailable: Boolean = true,
 
+    // Java chest menus seen by Bedrock players (opt-in: Geyser custom-item mappings may already
+    // draw the lg_ icons and menu art for Bedrock, and these would override them)
+    var javaMenuVanillaIcons: Boolean = false, // send vanilla items instead of Nexo menu icons
+    var javaMenuPlainTitles: Boolean = false, // drop the font-glyph background from themed titles
+
     // Performance tuning
     var formCacheEnabled: Boolean = true,
     var formCacheSize: Int = 100,
@@ -552,7 +620,11 @@ data class BedrockConfig(
 
     // Debug and logging
     var debugBedrockMenus: Boolean = false,
-    var logFormInteractions: Boolean = false
+    var logFormInteractions: Boolean = false,
+
+    // Independent stall art; existing bank settings remain authoritative for the bank.
+    var guildStallsIconUrl: String = "",
+    var guildStallsIconPath: String = "textures/ui/stall.png"
 )
 
 data class MariaDBConfig(

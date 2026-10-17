@@ -1,5 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
@@ -8,7 +11,7 @@ import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.WarService
@@ -78,9 +81,11 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         // Current mode display
-        val currentModeItem = ItemStack.of(
-            if (guild.mode == GuildMode.PEACEFUL) Material.GREEN_WOOL else Material.RED_WOOL
-        )
+        val currentModeItem = NexoItemProvider.getItemStackOrFallback(
+            if (guild.mode == GuildMode.PEACEFUL) PEACEFUL_ICON else HOSTILE_ICON
+        ) {
+            ItemStack.of(if (guild.mode == GuildMode.PEACEFUL) Material.GREEN_WOOL else Material.RED_WOOL)
+        }
             .name(lang.gui("menu.guild_mode.current.name"))
             .lore(lang.gui("menu.guild_mode.current.mode", "mode" to modeDisplayName(guild.mode)))
             .lore(lang.gui("menu.common.blank"))
@@ -105,9 +110,10 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Peaceful Mode Option
         if (guild.mode != GuildMode.PEACEFUL) {
-            val peacefulItem = ItemStack.of(Material.GREEN_WOOL)
-                .name(lang.gui("menu.guild_mode.peaceful.name"))
-                .lore(lang.gui("menu.guild_mode.peaceful.benefits"))
+            val peacefulItem =
+                NexoItemProvider.getItemStackOrFallback(PEACEFUL_ICON) { ItemStack.of(Material.GREEN_WOOL) }
+                    .name(lang.gui("menu.guild_mode.peaceful.name"))
+                    .lore(lang.gui("menu.guild_mode.peaceful.benefits"))
 
             // Only show claim-related PvP benefit if claims are enabled
             if (claimsEnabled) {
@@ -160,9 +166,10 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
 
         // Hostile Mode Option
         if (guild.mode != GuildMode.HOSTILE) {
-            val hostileItem = ItemStack.of(Material.RED_WOOL)
-                .name(lang.gui("menu.guild_mode.hostile.name"))
-                .lore(lang.gui("menu.guild_mode.hostile.benefits"))
+            val hostileItem =
+                NexoItemProvider.getItemStackOrFallback(HOSTILE_ICON) { ItemStack.of(Material.RED_WOOL) }
+                    .name(lang.gui("menu.guild_mode.hostile.name"))
+                    .lore(lang.gui("menu.guild_mode.hostile.benefits"))
 
             // Only show claim-related PvP benefit if claims are enabled
             if (claimsEnabled) {
@@ -202,9 +209,11 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         // Current Mode Display
-        val currentModeItem = ItemStack.of(
-            if (guild.mode == GuildMode.PEACEFUL) Material.GREEN_WOOL else Material.RED_WOOL
-        )
+        val currentModeItem = NexoItemProvider.getItemStackOrFallback(
+            if (guild.mode == GuildMode.PEACEFUL) PEACEFUL_ICON else HOSTILE_ICON
+        ) {
+            ItemStack.of(if (guild.mode == GuildMode.PEACEFUL) Material.GREEN_WOOL else Material.RED_WOOL)
+        }
             .name(lang.gui("menu.guild_mode.current.name"))
             .lore(lang.gui("menu.guild_mode.current.mode", "mode" to modeDisplayName(guild.mode)))
             .lore(lang.gui("menu.common.blank"))
@@ -214,7 +223,7 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun addBackButton(pane: StaticPane) {
-        val backItem = ItemStack.of(Material.BARRIER)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
             .name(lang.gui("menu.guild_mode.back.name"))
             .lore(lang.gui("menu.guild_mode.back.description"))
 
@@ -296,5 +305,9 @@ class GuildModeMenu(private val menuNavigator: MenuNavigator, private val player
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return
     }
-}
 
+    private companion object {
+        const val PEACEFUL_ICON = "lg_mode_peaceful"
+        const val HOSTILE_ICON = "lg_mode_hostile"
+    }
+}

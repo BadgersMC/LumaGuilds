@@ -1,5 +1,10 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.RankNameContent
+
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -9,7 +14,7 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.PartyService
@@ -303,7 +308,8 @@ class PartyCreationMenu(
             val col = 1 + (index % 7)
 
             val isSelected = restrictedRoles.contains(rank.id)
-            val rankName = if (isSelected) lang.gui("menu.party.creation.roles.selected_name", "rank" to rank.name) else lang.gui("menu.party.creation.roles.available_name", "rank" to rank.name)
+            val formattedRankName = RankNameContent.miniMessage(rank.name)
+            val rankName = if (isSelected) lang.gui("menu.party.creation.roles.selected_name", "rank" to formattedRankName) else lang.gui("menu.party.creation.roles.available_name", "rank" to formattedRankName)
             val rankAction = if (isSelected) lang.gui("menu.party.creation.roles.remove") else lang.gui("menu.party.creation.roles.add")
             val rankItem = ItemStack.of(if (isSelected) Material.LIME_CONCRETE else Material.RED_CONCRETE)
                 .name(rankName)
@@ -315,10 +321,10 @@ class PartyCreationMenu(
             val rankGuiItem = GuiItem(rankItem) {
                 if (isSelected) {
                     restrictedRoles.remove(rank.id)
-                    player.sendMessage(lang.msg("menu.party.creation.feedback.role_removed", "rank" to rank.name))
+                    player.sendMessage(lang.msg("menu.party.creation.feedback.role_removed", "rank" to RankNameContent.miniMessage(rank.name)))
                 } else {
                     restrictedRoles.add(rank.id)
-                    player.sendMessage(lang.msg("menu.party.creation.feedback.role_added", "rank" to rank.name))
+                    player.sendMessage(lang.msg("menu.party.creation.feedback.role_added", "rank" to RankNameContent.miniMessage(rank.name)))
                 }
                 open() // Refresh menu
             }
@@ -368,7 +374,7 @@ class PartyCreationMenu(
         pane.addItem(clearGuiItem, 3, 5)
 
         // Back button
-        val backItem = ItemStack.of(Material.ARROW)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.party.creation.action.back"))
             .lore(lang.gui("menu.party.creation.action.back_lore"))
 

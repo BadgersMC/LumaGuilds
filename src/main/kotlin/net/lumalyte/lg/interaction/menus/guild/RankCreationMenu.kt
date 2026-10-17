@@ -1,13 +1,17 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.RankNameContent
+
+import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.lumalyte.lg.infrastructure.i18n.rankNameError
 import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.domain.entities.Guild
@@ -89,7 +93,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         // Rank name input
         val nameItem = ItemStack.of(Material.NAME_TAG)
             .name(lang.gui("menu.rank_creation.name.name"))
-            .lore(if (rankName.isNotEmpty()) lang.gui("menu.rank_creation.name.current", "rank" to rankName) else lang.gui("menu.rank_creation.name.not_set"))
+            .lore(if (rankName.isNotEmpty()) lang.gui("menu.rank_creation.name.current", "rank" to RankNameContent.miniMessage(rankName)) else lang.gui("menu.rank_creation.name.not_set"))
             .lore(lang.gui("menu.common.blank"))
             .lore(lang.gui("menu.rank_creation.name.requirements"))
             .lore(lang.gui("menu.rank_edit.input.name.length"))
@@ -147,11 +151,14 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         pane.addItem(iconGuiItem, 3, 0)
 
         // Permission count
-        val countItem = ItemStack.of(Material.BOOK)
-            .name(lang.gui("menu.rank_creation.summary.name"))
-            .lore(lang.gui("menu.rank_creation.summary.count", "count" to selectedPermissions.size))
-            .lore(lang.gui("menu.common.blank"))
-            .lore(lang.gui("menu.rank_creation.summary.select_below"))
+        val countItem =
+            ItemStack
+                .of(Material.BOOK)
+                .name(lang.gui("menu.rank_creation.summary.name"))
+                .lore(lang.gui("menu.rank_creation.summary.count", "count" to selectedPermissions.size))
+                .lore(lang.gui("menu.common.blank"))
+                .lore(lang.gui("menu.rank_creation.summary.select_below"))
+                .lore(lang.gui("community.rank.priority"))
 
         pane.addItem(GuiItem(countItem), 7, 0)
     }
@@ -224,39 +231,11 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     }
 
     private fun addPermissionCategories(pane: StaticPane) {
-        val baseCategories = mutableMapOf(
-            "Guild Management" to listOf(
-                RankPermission.MANAGE_RANKS, RankPermission.MANAGE_MEMBERS,
-                RankPermission.MANAGE_BANNER, RankPermission.MANAGE_EMOJI,
-                RankPermission.MANAGE_HOME, RankPermission.MANAGE_MODE,
-                RankPermission.MANAGE_GUILD_SETTINGS
-            ),
-            "Banking" to listOf(
-                RankPermission.DEPOSIT_TO_BANK, RankPermission.WITHDRAW_FROM_BANK,
-                RankPermission.VIEW_BANK_TRANSACTIONS,
-                RankPermission.MANAGE_BANK_SETTINGS
-            ),
-            "Diplomacy" to listOf(
-                RankPermission.MANAGE_RELATIONS, RankPermission.DECLARE_WAR,
-                RankPermission.ACCEPT_ALLIANCES, RankPermission.MANAGE_PARTIES,
-                RankPermission.SEND_PARTY_REQUESTS, RankPermission.ACCEPT_PARTY_INVITES
-            )
-        )
-
-        // Only add Claims category if claims are enabled
-        if (configService.loadConfig().claimsEnabled) {
-            baseCategories["Claims"] = listOf(
-                RankPermission.MANAGE_CLAIMS, RankPermission.MANAGE_FLAGS,
-                RankPermission.MANAGE_PERMISSIONS, RankPermission.CREATE_CLAIMS,
-                RankPermission.DELETE_CLAIMS
-            )
-        }
-
-        val categories = baseCategories
+        val categories = RankPermissionCatalog.categories(configService.loadConfig().claimsEnabled)
 
         categories.entries.forEachIndexed { index, (categoryName, permissions) ->
-            val row = 2
-            val col = index * 3 + 1
+            val row = 2 + index / 3
+            val col = (index % 3) * 3 + 1
 
             val hasAnyPermission = permissions.any { selectedPermissions.contains(it) }
             val enabledCount = permissions.count { selectedPermissions.contains(it) }
@@ -280,11 +259,12 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
             }
 
             categoryItem.lore(lang.gui("menu.common.blank"))
-            categoryItem.lore(lang.gui("menu.rank_creation.category.toggle", "category" to localizedCategoryGuiName(categoryName)))
+            categoryItem.lore(lang.gui("community.rank.open_category"))
 
-            val categoryGuiItem = GuiItem(categoryItem) {
-                openPermissionCategorySelection(categoryName, permissions)
-            }
+            val categoryGuiItem =
+                GuiItem(categoryItem) {
+                    openPermissionCategorySelection(categoryName, permissions)
+                }
             pane.addItem(categoryGuiItem, col, row)
         }
     }
@@ -292,7 +272,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     private fun addPreviewSection(pane: StaticPane) {
         val previewItem = ItemStack.of(if (rankIcon == Material.AIR) Material.DIAMOND_SWORD else rankIcon)
             .name(lang.gui("menu.rank_creation.preview.name"))
-            .lore(if (rankName.isNotEmpty()) lang.gui("menu.rank_creation.preview.rank_name", "rank" to rankName) else lang.gui("menu.rank_creation.preview.name_not_set"))
+            .lore(if (rankName.isNotEmpty()) lang.gui("menu.rank_creation.preview.rank_name", "rank" to RankNameContent.miniMessage(rankName)) else lang.gui("menu.rank_creation.preview.name_not_set"))
             .lore(lang.gui("menu.rank_creation.preview.icon", "icon" to rankIcon.name))
             .lore(lang.gui("menu.rank_creation.preview.priority", "priority" to rankPriority))
             .lore(lang.gui("menu.rank_creation.preview.permissions", "count" to selectedPermissions.size))
@@ -343,7 +323,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
                         rankService.updateRank(rankWithIcon, player.uniqueId)
                     }
 
-                    player.sendMessage(lang.msg("menu.rank_creation.feedback.created", "rank" to rankName))
+                    player.sendMessage(lang.msg("menu.rank_creation.feedback.created", "rank" to RankNameContent.miniMessage(rankName)))
                     player.sendMessage(lang.msg("menu.rank_creation.feedback.rank_permissions", "count" to selectedPermissions.size))
                     if (iconString != null) {
                         player.sendMessage(lang.msg("menu.rank_creation.feedback.rank_icon", "icon" to iconString))
@@ -389,28 +369,74 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     }
 
     private fun openPermissionCategorySelection(categoryName: String, permissions: List<RankPermission>) {
-        // Toggle individual permissions for this category during rank creation
-        val allSelected = permissions.all { it in selectedPermissions }
-        if (allSelected) {
-            // Remove all — toggle them off one by one
-            permissions.forEach { perm ->
-                selectedPermissions.remove(perm)
-                player.sendMessage(lang.msg("menu.rank_creation.feedback.permission_removed", "permission" to localizedPermissionName(perm)))
-            }
-            player.sendMessage(lang.msg("menu.rank_creation.feedback.category_removed", "category" to localizedCategoryName(categoryName)))
-        } else {
-            // Add only the ones not yet selected
-            val added = permissions.filter { it !in selectedPermissions }
-            added.forEach { perm ->
-                selectedPermissions.add(perm)
-                player.sendMessage(lang.msg("menu.rank_creation.feedback.permission_added", "permission" to localizedPermissionName(perm)))
-            }
-            if (added.size < permissions.size) {
-                player.sendMessage(lang.msg("menu.rank_creation.feedback.some_enabled", "category" to localizedCategoryName(categoryName)))
-            }
+        if (!rankService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RANKS)) return
+        val gui = permissionGui(categoryName)
+        gui.setOnTopClick { it.isCancelled = true }
+        gui.setOnBottomClick { if (it.click.isShiftClick) it.isCancelled = true }
+        val pane = StaticPane(0, 0, 9, 6)
+        permissions.forEachIndexed { index, permission ->
+            pane.addItem(
+                permissionItem(permission) {
+                    openPermissionCategorySelection(categoryName, permissions)
+                },
+                index % 9,
+                1 + index / 9,
+            )
         }
-        open() // Refresh the creation menu
+        showPermissionPane(gui, pane)
     }
+
+    private fun permissionGui(categoryName: String): ChestGui {
+        val gui =
+            ChestGui(
+                6,
+                MenuTitleBuilder.build(
+                    guild.guiTheme,
+                    6,
+                    lang.guiTitle(
+                        "menu.permission_category.title",
+                        "category" to localizedCategoryName(categoryName),
+                        "rank" to rankName,
+                    ),
+                ),
+            )
+        return gui
+    }
+
+    private fun showPermissionPane(gui: ChestGui, pane: StaticPane) {
+        pane.addItem(
+            GuiItem(ItemStack.of(Material.ARROW).name(lang.gui("menu.common.item.back.name"))) { open() },
+            4,
+            5,
+        )
+        gui.addPane(pane)
+        gui.show(player)
+    }
+
+    private fun permissionItem(permission: RankPermission, refresh: () -> Unit): GuiItem {
+        val allowed = rankService.hasPermission(player.uniqueId, guild.id, permission)
+        val enabled = permission in selectedPermissions
+        val material = if (!allowed) Material.BARRIER else permissionMaterial(enabled)
+        val description = if (!allowed) lang.gui("community.rank.unavailable") else permissionDescription(enabled)
+        val item =
+            ItemStack
+                .of(material)
+                .name(lang.gui("community.rank.permission", "permission" to localizedPermissionName(permission)))
+                .lore(description)
+        return GuiItem(item) { togglePermission(permission, refresh) }
+    }
+
+    private fun togglePermission(permission: RankPermission, refresh: () -> Unit) {
+        if (!rankService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RANKS)) return
+        if (!rankService.hasPermission(player.uniqueId, guild.id, permission)) return
+        if (!selectedPermissions.remove(permission)) selectedPermissions.add(permission)
+        refresh()
+    }
+
+    private fun permissionMaterial(enabled: Boolean) = if (enabled) Material.LIME_DYE else Material.GRAY_DYE
+
+    private fun permissionDescription(enabled: Boolean) =
+        if (enabled) lang.gui("community.rank.enabled") else lang.gui("community.rank.disabled")
 
     private fun groupPermissionsByCategory(permissions: Set<RankPermission>): Map<String, List<RankPermission>> {
         return permissions.groupBy { permission ->
@@ -421,6 +447,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
                 RankPermission.MANAGE_MODE, RankPermission.MANAGE_GUILD_SETTINGS -> "Guild Management"
                 
                 RankPermission.MANAGE_RELATIONS, RankPermission.DECLARE_WAR,
+                RankPermission.PLACE_WAR_BANNER,
                 RankPermission.ACCEPT_ALLIANCES, RankPermission.MANAGE_PARTIES,
                 RankPermission.SEND_PARTY_REQUESTS, RankPermission.ACCEPT_PARTY_INVITES,
                 RankPermission.USE_ALLY_HOMES -> "Diplomacy"
@@ -526,7 +553,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
                 lang.msg("menu.rank_edit.input.icon.link_action")
                     .color(NamedTextColor.AQUA)
                     .decorate(TextDecoration.UNDERLINED)
-                    .clickEvent(ClickEvent.openUrl("https://jd.papermc.io/paper/1.21.8/org/bukkit/Material.html"))
+                    .clickEvent(ClickEvent.openUrl("https://jd.papermc.io/paper/26.2/org/bukkit/Material.html"))
             )
         player.sendMessage(linkText)
         
@@ -536,10 +563,10 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
     }
 
     private fun validateRankName(name: String): Component? {
-        if (name.length !in 1..24) {
-            return lang.msg("menu.rank_edit.validation.length", "length" to name.length)
+        if (RankNameContent.plain(name).length !in 1..RankNameContent.MAX_VISIBLE_LENGTH) {
+            return lang.msg("menu.rank_edit.validation.length", "length" to RankNameContent.plain(name).length)
         }
-        if (!name.matches(Regex("^[a-zA-Z0-9 ]+$"))) {
+        if (!RankNameContent.valid(name)) {
             return lang.msg("menu.rank_edit.validation.characters")
         }
         // Check if name is unique in guild
@@ -564,13 +591,13 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
             "name" -> {
                 val error = validateRankName(input)
                 if (error != null) {
-                    player.sendMessage(lang.msg("menu.rank_edit.feedback.invalid_name", "error" to error))
+                    player.sendMessage(lang.rankNameError(error))
                     player.sendMessage(lang.msg("menu.rank_edit.feedback.try_again"))
                     // Keep input mode active and reopen menu for retry
                 } else {
                     rankName = input
                     inputMode = ""
-                    player.sendMessage(lang.msg("menu.rank_creation.feedback.name_set", "rank" to input))
+                    player.sendMessage(lang.msg("menu.rank_creation.feedback.name_set", "rank" to RankNameContent.miniMessage(input)))
                 }
             }
             "icon" -> {

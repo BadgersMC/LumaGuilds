@@ -1,5 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.infrastructure.i18n.gui
@@ -7,8 +10,8 @@ import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
-import com.github.stefvanschie.inventoryframework.pane.PaginatedPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.PaginatedPane
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.entities.BankTransaction
 import net.lumalyte.lg.domain.entities.*
@@ -39,10 +42,15 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val lang: LangService by inject()
     private val leaderboardService: LeaderboardService by inject()
+    private val invitationStatisticsService: InvitationStatisticsService by inject()
 
     private val logger = LoggerFactory.getLogger(GuildStatisticsMenu::class.java)
 
     private val decimalFormat = DecimalFormat("#.##")
+
+    companion object {
+        internal const val INVITERS_PER_PAGE = 10
+    }
 
     override fun open() {
         val gui = ChestGui(6, MenuTitleBuilder.build(
@@ -70,6 +78,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         addTopContributorsButton(pane, 1, 1)
         addKillDeathRatiosButton(pane, 2, 1)
         addRecentActivityButton(pane, 3, 1)
+        addTopInvitersButton(pane, 4, 1)
 
         // Row 3: Advanced Analytics
         addPeriodStatsButton(pane, 0, 2)
@@ -77,13 +86,11 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         addAchievementsButton(pane, 3, 2)
 
         // Row 4: Advanced Analytics
-        addTrendAnalysisButton(pane, 0, 3)
         addComparisonButton(pane, 1, 3)
-        addExportStatsButton(pane, 2, 3)
 
         // Row 5: Navigation
         addRefreshStatsButton(pane, 0, 4)
-        addBackButton(pane, 7, 4)
+        addBackButton(pane, 4, 5)
 
         gui.show(player)
     }
@@ -91,7 +98,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     private fun addKillStatsButton(pane: StaticPane, x: Int, y: Int) {
         val killStats = killService.getGuildKillStats(guild.id)
 
-        val item = ItemStack.of(Material.DIAMOND_SWORD)
+        val item = NexoItemProvider.getItemStackOrFallback("lg_stats_kills") { ItemStack.of(Material.DIAMOND_SWORD) }
             .name(lang.gui("menu.statistics.item.kills.name"))
             .lore(lang.gui("menu.statistics.common.total_kills", "count" to killStats.totalKills))
             .lore(lang.gui("menu.statistics.common.total_deaths", "count" to killStats.totalDeaths))
@@ -115,7 +122,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val losses = warHistory.count { it.winner != null && it.winner != guild.id }
             val draws = warHistory.count { it.winner == null }
 
-            val item = ItemStack.of(Material.WHITE_BANNER)
+            val item = NexoItemProvider.getItemStackOrFallback("lg_stats_wars") { ItemStack.of(Material.WHITE_BANNER) }
                 .name(lang.gui("menu.statistics.item.wars.name"))
                 .lore(lang.gui("menu.statistics.common.active_wars", "count" to activeWars.size))
                 .lore(lang.gui("menu.statistics.common.total_wars", "count" to warHistory.size))
@@ -130,23 +137,12 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             }
             pane.addItem(guiItem, x, y)
         } catch (e: Exception) {
-            // Menu operation - catching all exceptions to prevent UI failure
-            // Fallback to placeholder if war service fails
-            val item = ItemStack.of(Material.WHITE_BANNER)
+            logger.error("Unable to load war statistics for guild ${guild.id}", e)
+            val item = NexoItemProvider.getItemStackOrFallback("lg_stats_wars") { ItemStack.of(Material.BARRIER) }
                 .name(lang.gui("menu.statistics.item.wars.name"))
-                .lore(lang.gui("menu.statistics.common.active_wars", "count" to 0))
-                .lore(lang.gui("menu.statistics.common.total_wars", "count" to 0))
-                .lore(lang.gui("menu.statistics.common.wins", "count" to 0))
-                .lore(lang.gui("menu.statistics.common.losses", "count" to 0))
-                .lore(lang.gui("menu.statistics.common.draws", "count" to 0))
-                .lore(lang.gui("menu.common.blank"))
-                .lore(lang.gui("menu.statistics.common.win_rate", "rate" to decimalFormat.format(0)))
                 .lore(lang.gui("menu.statistics.item.wars.lore.unavailable"))
-
-            val guiItem = GuiItem(item) {
-                openWarStatsDetail()
-            }
-            pane.addItem(guiItem, x, y)
+                .lore(lang.gui("menu.statistics.common.unavailable"))
+            pane.addItem(GuiItem(item), x, y)
         }
     }
 
@@ -155,7 +151,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val memberCount = members.size
         val onlineMembers = Bukkit.getOnlinePlayers().count { p -> members.any { it.playerId == p.uniqueId } }
 
-        val item = ItemStack.of(Material.PLAYER_HEAD)
+        val item = NexoItemProvider.getItemStackOrFallback("lg_stats_members") { ItemStack.of(Material.PLAYER_HEAD) }
             .name(lang.gui("menu.statistics.item.members.name"))
             .lore(lang.gui("menu.statistics.common.total_members", "count" to memberCount))
             .lore(lang.gui("menu.statistics.common.online", "count" to onlineMembers))
@@ -176,7 +172,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val avgKillsPerMember = if (memberCount > 0) killStats.totalKills.toDouble() / memberCount else 0.0
         val avgDeathsPerMember = if (memberCount > 0) killStats.totalDeaths.toDouble() / memberCount else 0.0
 
-        val item = ItemStack.of(Material.EXPERIENCE_BOTTLE)
+        val item = NexoItemProvider.getItemStackOrFallback("lg_stats_performance") { ItemStack.of(Material.EXPERIENCE_BOTTLE) }
             .name(lang.gui("menu.statistics.item.performance.name"))
             .lore(lang.gui("menu.statistics.common.average_kills", "average" to decimalFormat.format(avgKillsPerMember)))
             .lore(lang.gui("menu.statistics.common.average_deaths", "average" to decimalFormat.format(avgDeathsPerMember)))
@@ -191,12 +187,11 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack.of(Material.ARROW)
-            .name(lang.gui("menu.statistics.item.back_control.name"))
-            .lore(lang.gui("menu.statistics.item.back_control.lore"))
+        val item = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
+            .name(lang.gui("menu.common.item.back.name"))
 
         val guiItem = GuiItem(item) {
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(guiItem, x, y)
     }
@@ -273,8 +268,8 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 .lore(lang.gui("menu.statistics.common.efficiency_white", "percent" to calculateEfficiency(killStats)))
             pane.addItem(GuiItem(summaryItem), 4, 1)
 
-            val backItem = ItemStack.of(Material.ARROW)
-                .name(lang.gui("menu.statistics.item.back.name"))
+            val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
+                .name(lang.gui("menu.common.item.back.name"))
                 .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 3)
 
@@ -554,8 +549,8 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 pane.addItem(GuiItem(moreItem), 4, 4)
             }
 
-            val backItem = ItemStack.of(Material.ARROW)
-                .name(lang.gui("menu.statistics.item.back.name"))
+            val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
+                .name(lang.gui("menu.common.item.back.name"))
                 .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 8, 4)
 
@@ -593,8 +588,8 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 .lore(performanceRatingLore(killStats, memberCount))
             pane.addItem(GuiItem(perfItem), 4, 1)
 
-            val backItem = ItemStack.of(Material.ARROW)
-                .name(lang.gui("menu.statistics.item.back.name"))
+            val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
+                .name(lang.gui("menu.common.item.back.name"))
                 .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 3)
 
@@ -609,14 +604,14 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val guildMembers = memberService.getGuildMembers(guild.id).map { it.playerId }
         val topKillers = killService.getTopKillers(guildMembers, 5)
 
-        val item = ItemStack.of(Material.TOTEM_OF_UNDYING)
+        val item = NexoItemProvider.getItemStackOrFallback("lg_stats_top_killers") { ItemStack.of(Material.TOTEM_OF_UNDYING) }
             .name(lang.gui("menu.statistics.item.top_killers.name"))
             .lore(lang.gui("menu.statistics.item.top_killers.lore.description"))
 
         if (topKillers.isNotEmpty()) {
             item.lore(lang.gui("menu.common.blank"))
             topKillers.take(3).forEachIndexed { index, (playerId, stats) ->
-                val playerName: Any = Bukkit.getPlayer(playerId)?.name ?: lang.gui("general.unknown")
+                val playerName: Any = Bukkit.getOfflinePlayer(playerId).name ?: playerId.toString().take(8)
                 item.lore(rankedKillsLore(index + 1, playerName, stats.totalKills))
             }
         } else {
@@ -636,7 +631,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             .sortedByDescending { it.netContribution }
             .take(3)
 
-        val item = ItemStack.of(Material.GOLD_BLOCK)
+        val item = NexoItemProvider.getItemStackOrFallback("lg_stats_top_contributors") { ItemStack.of(Material.GOLD_BLOCK) }
             .name(lang.gui("menu.statistics.item.top_contributors.name"))
             .lore(lang.gui("menu.statistics.item.top_contributors.lore.description"))
 
@@ -656,10 +651,31 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         pane.addItem(guiItem, x, y)
     }
 
+    private fun addTopInvitersButton(pane: StaticPane, x: Int, y: Int) {
+        val topInviters = invitationStatisticsService.getLeaderboard(guild.id, 3)
+        val totalInvitations = invitationStatisticsService.getTotalInvitations(guild.id)
+        val item = NexoItemProvider.getItemStackOrFallback("lg_stats_top_inviters") { ItemStack.of(Material.WRITABLE_BOOK) }
+            .name(lang.gui("menu.statistics.item.top_inviters.name"))
+            .lore(lang.gui("menu.statistics.item.top_inviters.lore.description"))
+            .lore(lang.gui("menu.statistics.common.total_invitations", "count" to totalInvitations))
+
+        if (topInviters.isNotEmpty()) {
+            item.lore(lang.gui("menu.common.blank"))
+            topInviters.forEachIndexed { index, entry ->
+                val playerName = Bukkit.getOfflinePlayer(entry.inviterPlayerId).name
+                    ?: entry.inviterPlayerId.toString().take(8)
+                item.lore(rankedInvitationsLore(index + 1, playerName, entry.inviteCount))
+            }
+        } else {
+            item.lore(lang.gui("menu.statistics.common.no_invitation_data"))
+        }
+
+        pane.addItem(GuiItem(item) { openTopInvitersDetail() }, x, y)
+    }
     private fun addKillDeathRatiosButton(pane: StaticPane, x: Int, y: Int) {
         val killStats = killService.getGuildKillStats(guild.id)
 
-        val item = ItemStack.of(Material.COMPARATOR)
+        val item = NexoItemProvider.getItemStackOrFallback("lg_stats_kd_analysis") { ItemStack.of(Material.COMPARATOR) }
             .name(lang.gui("menu.statistics.item.kd.name"))
             .lore(lang.gui("menu.statistics.common.kill_death_ratio", "ratio" to decimalFormat.format(killStats.killDeathRatio)))
             .lore(kdRatingLore(killStats.killDeathRatio))
@@ -676,7 +692,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val recentKills = killService.getRecentGuildKills(guild.id, 10)
         val recentActivity = recentKills.size
 
-        val item = ItemStack.of(Material.CLOCK)
+        val item = NexoItemProvider.getItemStackOrFallback("lg_stats_recent") { ItemStack.of(Material.CLOCK) }
             .name(lang.gui("menu.statistics.item.recent.name"))
             .lore(lang.gui("menu.statistics.item.recent.lore.latest"))
             .lore(lang.gui("menu.statistics.item.recent.lore.kills", "count" to recentActivity))
@@ -689,7 +705,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
     private fun addPeriodStatsButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack.of(Material.BOOK)
+        val item = NexoItemProvider.getItemStackOrFallback("lg_stats_periodic") { ItemStack.of(Material.BOOK) }
             .name(lang.gui("menu.statistics.item.period.name"))
             .lore(lang.gui("menu.statistics.item.period.lore.description"))
             .lore(lang.gui("menu.statistics.item.period.lore.periods"))
@@ -701,7 +717,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
     private fun addRivalryStatsButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack.of(Material.RED_BANNER)
+        val item = NexoItemProvider.getItemStackOrFallback("lg_stats_rivalry") { ItemStack.of(Material.RED_BANNER) }
             .name(lang.gui("menu.statistics.item.rivalry.name"))
             .lore(lang.gui("menu.statistics.item.rivalry.lore.description"))
             .lore(lang.gui("menu.statistics.item.rivalry.lore.rankings"))
@@ -717,7 +733,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val killStats = killService.getGuildKillStats(guild.id)
         val achievementCount = calculateAchievementCount(killStats)
 
-        val item = ItemStack.of(Material.TROPICAL_FISH_BUCKET)
+        val item = NexoItemProvider.getItemStackOrFallback("lg_stats_achievements") { ItemStack.of(Material.TROPICAL_FISH_BUCKET) }
             .name(lang.gui("menu.statistics.item.achievements.name"))
             .lore(lang.gui("menu.statistics.item.achievements.lore.count", "count" to achievementCount))
             .lore(achievementKillsLore(killStats.totalKills))
@@ -729,20 +745,9 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         pane.addItem(guiItem, x, y)
     }
 
-    private fun addTrendAnalysisButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack.of(Material.REPEATER)
-            .name(lang.gui("menu.statistics.item.kill_trends.name"))
-            .lore(lang.gui("menu.statistics.item.kill_trends.lore.description"))
-            .lore(lang.gui("menu.common.blank"))
-
-        val guiItem = GuiItem(item) {
-            openTrendAnalysis()
-        }
-        pane.addItem(guiItem, x, y)
-    }
 
     private fun addComparisonButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack.of(Material.COMPARATOR)
+        val item = NexoItemProvider.getItemStackOrFallback("lg_stats_comparison") { ItemStack.of(Material.COMPARATOR) }
             .name(lang.gui("menu.statistics.item.comparison.name"))
             .lore(lang.gui("menu.statistics.item.comparison.lore.description"))
             .lore(lang.gui("menu.common.blank"))
@@ -753,20 +758,9 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         pane.addItem(guiItem, x, y)
     }
 
-    private fun addExportStatsButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack.of(Material.WRITABLE_BOOK)
-            .name(lang.gui("menu.statistics.item.export.name"))
-            .lore(lang.gui("menu.statistics.item.export.lore.description"))
-            .lore(lang.gui("menu.statistics.item.export.lore.format"))
-
-        val guiItem = GuiItem(item) {
-            exportGuildStatistics()
-        }
-        pane.addItem(guiItem, x, y)
-    }
 
     private fun addRefreshStatsButton(pane: StaticPane, x: Int, y: Int) {
-        val item = ItemStack.of(Material.KNOWLEDGE_BOOK)
+        val item = NexoItemProvider.getItemStackOrFallback("lg_stats_refresh") { ItemStack.of(Material.KNOWLEDGE_BOOK) }
             .name(lang.gui("menu.statistics.item.refresh.name"))
             .lore(lang.gui("menu.statistics.item.refresh.lore.description"))
             .lore(lang.gui("menu.statistics.item.refresh.lore.details"))
@@ -807,6 +801,14 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         }
     }
 
+    private fun rankedInvitationsLore(rank: Int, playerName: Any, count: Int): Component {
+        return when (rank) {
+            1 -> lang.gui("menu.statistics.common.ranked_invitations.first", "rank" to rank, "player" to playerName, "count" to count)
+            2 -> lang.gui("menu.statistics.common.ranked_invitations.second", "rank" to rank, "player" to playerName, "count" to count)
+            3 -> lang.gui("menu.statistics.common.ranked_invitations.third", "rank" to rank, "player" to playerName, "count" to count)
+            else -> lang.gui("menu.statistics.common.ranked_invitations.other", "rank" to rank, "player" to playerName, "count" to count)
+        }
+    }
     private fun kdRatingLore(ratio: Double): Component {
         val rating = getKDRating(ratio)
         return when {
@@ -930,7 +932,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val pane = StaticPane(0, 0, 9, 5)
             gui.addPane(pane)
 
-            val titleItem = ItemStack.of(Material.TOTEM_OF_UNDYING)
+            val titleItem = NexoItemProvider.getItemStackOrFallback("lg_stats_top_killers") { ItemStack.of(Material.TOTEM_OF_UNDYING) }
                 .name(lang.gui("menu.statistics.detail.top_killers.name"))
                 .lore(lang.gui("menu.statistics.detail.top_killers.description"))
 
@@ -945,8 +947,8 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             }
             pane.addItem(GuiItem(titleItem), 4, 1)
 
-            val backItem = ItemStack.of(Material.ARROW)
-                .name(lang.gui("menu.statistics.item.back.name"))
+            val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
+                .name(lang.gui("menu.common.item.back.name"))
                 .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 4)
 
@@ -974,7 +976,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val pane = StaticPane(0, 0, 9, 5)
             gui.addPane(pane)
 
-            val titleItem = ItemStack.of(Material.GOLD_BLOCK)
+            val titleItem = NexoItemProvider.getItemStackOrFallback("lg_stats_top_contributors") { ItemStack.of(Material.GOLD_BLOCK) }
                 .name(lang.gui("menu.statistics.detail.top_contributors.name"))
                 .lore(lang.gui("menu.statistics.item.top_contributors.lore.description"))
 
@@ -989,8 +991,8 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             }
             pane.addItem(GuiItem(titleItem), 4, 1)
 
-            val backItem = ItemStack.of(Material.ARROW)
-                .name(lang.gui("menu.statistics.item.back.name"))
+            val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
+                .name(lang.gui("menu.common.item.back.name"))
                 .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 4)
 
@@ -998,6 +1000,65 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         } catch (e: Exception) {
             player.sendMessage(lang.msg("menu.statistics.feedback.load_failed.top_contributors"))
             logger.error("Error opening top contributors detail for guild ${guild.id}", e)
+        }
+    }
+
+    private fun openTopInvitersDetail(page: Int = 0) {
+        try {
+            val leaderboardPage = invitationStatisticsService.getLeaderboardPage(guild.id, page, INVITERS_PER_PAGE)
+            val totalInvitations = invitationStatisticsService.getTotalInvitations(guild.id)
+            val gui = statisticsGui(5)
+            gui.setOnTopClick { it.isCancelled = true }
+            gui.setOnBottomClick { event ->
+                if (event.click == ClickType.SHIFT_LEFT || event.click == ClickType.SHIFT_RIGHT) event.isCancelled = true
+            }
+            val pane = StaticPane(0, 0, 9, 5)
+            gui.addPane(pane)
+
+            val titleItem = ItemStack.of(Material.WRITABLE_BOOK)
+                .name(lang.gui("menu.statistics.detail.top_inviters.name"))
+                .lore(lang.gui("menu.statistics.detail.top_inviters.description"))
+                .lore(lang.gui("menu.statistics.common.total_invitations", "count" to totalInvitations))
+
+            if (leaderboardPage.entries.isNotEmpty()) {
+                titleItem.lore(lang.gui("menu.common.blank"))
+                val rankOffset = leaderboardPage.page * leaderboardPage.pageSize
+                leaderboardPage.entries.forEachIndexed { index, entry ->
+                    val playerName = Bukkit.getOfflinePlayer(entry.inviterPlayerId).name
+                        ?: entry.inviterPlayerId.toString().take(8)
+                    titleItem.lore(rankedInvitationsLore(rankOffset + index + 1, playerName, entry.inviteCount))
+                }
+            } else {
+                titleItem.lore(lang.gui("menu.statistics.common.no_invitation_data"))
+            }
+            pane.addItem(GuiItem(titleItem), 4, 1)
+
+            if (leaderboardPage.totalPages > 1) {
+                if (leaderboardPage.page > 0) {
+                    val previous = ItemStack.of(Material.ARROW)
+                        .name(lang.gui("menu.statistics.item.previous_page.name"))
+                    pane.addItem(GuiItem(previous) { openTopInvitersDetail(leaderboardPage.page - 1) }, 2, 4)
+                }
+
+                val pageIndicator = ItemStack.of(Material.PAPER)
+                    .name(lang.gui("menu.statistics.common.page_info", "page" to leaderboardPage.page + 1, "total" to leaderboardPage.totalPages))
+                pane.addItem(GuiItem(pageIndicator), 4, 3)
+
+                if (leaderboardPage.page < leaderboardPage.totalPages - 1) {
+                    val next = ItemStack.of(Material.ARROW)
+                        .name(lang.gui("menu.statistics.item.next_page.name"))
+                    pane.addItem(GuiItem(next) { openTopInvitersDetail(leaderboardPage.page + 1) }, 6, 4)
+                }
+            }
+
+            val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
+                .name(lang.gui("menu.common.item.back.name"))
+                .lore(lang.gui("menu.statistics.item.back.lore"))
+            pane.addItem(GuiItem(backItem) { open() }, 4, 4)
+            gui.show(player)
+        } catch (e: Exception) {
+            player.sendMessage(lang.msg("menu.statistics.feedback.load_failed.top_inviters"))
+            logger.error("Error opening top inviters detail for guild ${guild.id}", e)
         }
     }
 
@@ -1025,8 +1086,8 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 .lore(lang.gui("menu.statistics.common.efficiency_score", "value" to calculateEfficiencyScore(killStats)))
             pane.addItem(GuiItem(kdItem), 4, 1)
 
-            val backItem = ItemStack.of(Material.ARROW)
-                .name(lang.gui("menu.statistics.item.back.name"))
+            val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
+                .name(lang.gui("menu.common.item.back.name"))
                 .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 3)
 
@@ -1072,8 +1133,8 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             }
             pane.addItem(GuiItem(titleItem), 4, 1)
 
-            val backItem = ItemStack.of(Material.ARROW)
-                .name(lang.gui("menu.statistics.item.back.name"))
+            val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
+                .name(lang.gui("menu.common.item.back.name"))
                 .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 4)
 
@@ -1095,7 +1156,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val pane = StaticPane(0, 0, 9, 4)
             gui.addPane(pane)
 
-            val balance = try { bankService.getBalance(guild.id) } catch (_: Exception) { 0 }
+            val balance = runCatching { bankService.getBalance(guild.id) }.getOrNull()
 
             val periods = listOf(
                 "daily" to LeaderboardPeriod.DAILY,
@@ -1110,20 +1171,28 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 val periodRank = entry?.rank
 
                 val name = lang.gui("menu.statistics.detail.period_item.name", "period" to lang.gui("menu.statistics.period.$key"))
-                val item = ItemStack.of(Material.CLOCK).name(name)
-                    .lore(lang.gui("menu.statistics.common.total_kills", "count" to periodKills))
-                    .lore(lang.gui("menu.common.blank"))
-                    .lore(lang.gui("menu.statistics.common.balance", "amount" to balance))
-
-                if (periodRank != null && periodRank > 0) {
-                    item.lore(lang.gui("menu.statistics.common.ranking", "rank" to periodRank))
+                val item = NexoItemProvider.getItemStackOrFallback("lg_stats_periodic") { ItemStack.of(Material.CLOCK) }
+                    .name(name)
+                if (entry == null) {
+                    item.lore(lang.gui("menu.statistics.common.no_period_data"))
+                } else {
+                    item.lore(lang.gui("menu.statistics.common.total_kills", "count" to periodKills))
+                    if (periodRank != null && periodRank > 0) {
+                        item.lore(lang.gui("menu.statistics.common.ranking", "rank" to periodRank))
+                    }
+                }
+                item.lore(lang.gui("menu.common.blank"))
+                if (balance != null) {
+                    item.lore(lang.gui("menu.statistics.common.balance", "amount" to balance))
+                } else {
+                    item.lore(lang.gui("menu.statistics.common.balance_unavailable"))
                 }
 
                 pane.addItem(GuiItem(item), 1 + index * 2, 1)
             }
 
-            val backItem = ItemStack.of(Material.ARROW)
-                .name(lang.gui("menu.statistics.item.back.name"))
+            val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
+                .name(lang.gui("menu.common.item.back.name"))
                 .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 3)
 
@@ -1167,6 +1236,14 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val pageGuilds = rivalGuildIds.subList(startIndex, endIndex)
 
             val pagePane = StaticPane(0, 0, 9, 5)
+            if (rivalGuildIds.isEmpty()) {
+                val emptyItem = NexoItemProvider.getItemStackOrFallback("lg_stats_rivalry") {
+                    ItemStack.of(Material.GRAY_BANNER)
+                }
+                    .name(lang.gui("menu.statistics.item.rivalry.name"))
+                    .lore(lang.gui("menu.statistics.common.no_rivalry_data"))
+                pagePane.addItem(GuiItem(emptyItem), 4, 2)
+            }
             pageGuilds.forEachIndexed { index, rivalId ->
                 val enemyGuild = guildService.getGuild(rivalId)
                 val enemyName: Any = enemyGuild?.name ?: lang.gui("menu.statistics.common.unknown_guild")
@@ -1200,7 +1277,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val navPane = StaticPane(0, 5, 9, 1)
             if (totalPages > 1) {
                 if (rivalryPage > 0) {
-                    val prevItem = ItemStack.of(Material.ARROW)
+                    val prevItem = NexoItemProvider.getItemStackOrFallback("lg_page_prev") { ItemStack.of(Material.ARROW) }
                         .name(lang.gui("menu.statistics.item.previous_page.name"))
                     navPane.addItem(GuiItem(prevItem) {
                         rivalryPage--; buildRivalryStatsDetail()
@@ -1212,7 +1289,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 navPane.addItem(GuiItem(pageIndicator), 4, 0)
 
                 if (rivalryPage < totalPages - 1) {
-                    val nextItem = ItemStack.of(Material.ARROW)
+                    val nextItem = NexoItemProvider.getItemStackOrFallback("lg_page_next") { ItemStack.of(Material.ARROW) }
                         .name(lang.gui("menu.statistics.item.next_page.name"))
                     navPane.addItem(GuiItem(nextItem) {
                         rivalryPage++; buildRivalryStatsDetail()
@@ -1273,8 +1350,8 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 pane.addItem(GuiItem(item), 1 + col, row)
             }
 
-            val backItem = ItemStack.of(Material.ARROW)
-                .name(lang.gui("menu.statistics.item.back.name"))
+            val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
+                .name(lang.gui("menu.common.item.back.name"))
                 .lore(lang.gui("menu.statistics.item.back.lore"))
             pane.addItem(GuiItem(backItem) { open() }, 4, 2)
 
@@ -1285,50 +1362,6 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         }
     }
 
-    private fun openTrendAnalysis() {
-        try {
-            val gui = statisticsGui(3)
-            gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
-            gui.setOnBottomClick { guiEvent ->
-                if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT)
-                    guiEvent.isCancelled = true
-            }
-            val pane = StaticPane(0, 0, 9, 3)
-            gui.addPane(pane)
-
-            val killStats = killService.getGuildKillStats(guild.id)
-            val balance = try { bankService.getBalance(guild.id) } catch (_: Exception) { 0 }
-
-            data class TrendInfo(val label: String, val currentValue: Number, val previousValue: Number)
-
-            val trends = listOf(
-                TrendInfo("kill", killStats.totalKills, 0),
-                TrendInfo("death", killStats.totalDeaths, 0),
-                TrendInfo("balance", balance, 0)
-            )
-
-            trends.forEachIndexed { index, trend ->
-                val arrow = "→"
-
-                val item = ItemStack.of(Material.REPEATER)
-                    .name(lang.gui("menu.statistics.detail.trend.${trend.label}.name"))
-                    .lore(lang.gui("menu.statistics.detail.trend.current", "value" to trend.currentValue))
-                    .lore(lang.gui("menu.statistics.detail.trend.arrow", "arrow" to arrow))
-
-                pane.addItem(GuiItem(item), 1 + index * 2, 1)
-            }
-
-            val backItem = ItemStack.of(Material.ARROW)
-                .name(lang.gui("menu.statistics.item.back.name"))
-                .lore(lang.gui("menu.statistics.item.back.lore"))
-            pane.addItem(GuiItem(backItem) { open() }, 4, 2)
-
-            gui.show(player)
-        } catch (e: Exception) {
-            player.sendMessage(lang.msg("menu.statistics.feedback.load_failed.trends"))
-            logger.error("Error opening trend analysis for guild ${guild.id}", e)
-        }
-    }
 
     private var comparisonPage = 0
     private val comparisonItemsPerPage = 14
@@ -1365,13 +1398,19 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 val warHistory = warService.getWarHistory(otherGuild.id, 50)
                 val warsWon = warHistory.count { it.winner == otherGuild.id }
                 val warsLost = warHistory.count { it.winner != null && it.winner != otherGuild.id }
-                val balance = try { bankService.getBalance(otherGuild.id) } catch (_: Exception) { 0 }
+                val balance = runCatching { bankService.getBalance(otherGuild.id) }.getOrNull()
 
                 val item = ItemStack.of(Material.PLAYER_HEAD)
                     .name(lang.gui("menu.statistics.detail.comparison.guild", "guild" to otherGuild.name))
                     .lore(lang.gui("menu.statistics.common.kd_ratio", "ratio" to decimalFormat.format(otherKills.killDeathRatio)))
                     .lore(lang.gui("menu.statistics.common.war_record", "wins" to warsWon, "losses" to warsLost))
-                    .lore(lang.gui("menu.statistics.common.balance", "amount" to decimalFormat.format(balance)))
+                    .lore(
+                        if (balance != null) {
+                            lang.gui("menu.statistics.common.balance", "amount" to decimalFormat.format(balance))
+                        } else {
+                            lang.gui("menu.statistics.common.balance_unavailable")
+                        }
+                    )
                     .lore(lang.gui("menu.statistics.common.total_members", "count" to memberCount))
 
                 val col = index % 7
@@ -1384,7 +1423,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             val navPane = StaticPane(0, 5, 9, 1)
             if (totalPages > 1) {
                 if (comparisonPage > 0) {
-                    val prevItem = ItemStack.of(Material.ARROW)
+                    val prevItem = NexoItemProvider.getItemStackOrFallback("lg_page_prev") { ItemStack.of(Material.ARROW) }
                         .name(lang.gui("menu.statistics.item.previous_page.name"))
                     navPane.addItem(GuiItem(prevItem) {
                         comparisonPage--; buildGuildComparison()
@@ -1396,7 +1435,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
                 navPane.addItem(GuiItem(pageIndicator), 4, 0)
 
                 if (comparisonPage < totalPages - 1) {
-                    val nextItem = ItemStack.of(Material.ARROW)
+                    val nextItem = NexoItemProvider.getItemStackOrFallback("lg_page_next") { ItemStack.of(Material.ARROW) }
                         .name(lang.gui("menu.statistics.item.next_page.name"))
                     navPane.addItem(GuiItem(nextItem) {
                         comparisonPage++; buildGuildComparison()
@@ -1413,37 +1452,6 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         }
     }
 
-    private fun exportGuildStatistics() {
-        try {
-            val killStats = killService.getGuildKillStats(guild.id)
-            val warHistory = warService.getWarHistory(guild.id, 50)
-            val warsWon = warHistory.count { it.winner == guild.id }
-            val warsLost = warHistory.count { it.winner != null && it.winner != guild.id }
-            val balance = try { bankService.getBalance(guild.id) } catch (_: Exception) { 0 }
-            val memberCount = memberService.getMemberCount(guild.id)
-
-            val guildMembers = memberService.getGuildMembers(guild.id).map { it.playerId }
-            val topKillers = killService.getTopKillers(guildMembers, 3)
-            val topKillerNames = topKillers.mapIndexed { idx, (playerId, _) ->
-                "${idx + 1}. ${Bukkit.getOfflinePlayer(playerId).name ?: "Unknown"}"
-            }.joinToString(", ")
-
-            player.sendMessage(lang.msg("menu.statistics.export.header", "guild" to guild.name))
-            player.sendMessage(lang.msg("menu.statistics.export.level", "level" to guild.level))
-            player.sendMessage(lang.msg("menu.statistics.export.kills", "kills" to killStats.totalKills, "deaths" to killStats.totalDeaths))
-            player.sendMessage(lang.msg("menu.statistics.export.kdr", "ratio" to decimalFormat.format(killStats.killDeathRatio)))
-            player.sendMessage(lang.msg("menu.statistics.export.wars", "wins" to warsWon, "losses" to warsLost))
-            player.sendMessage(lang.msg("menu.statistics.export.balance", "amount" to decimalFormat.format(balance)))
-            player.sendMessage(lang.msg("menu.statistics.export.members", "count" to memberCount))
-            if (topKillerNames.isNotEmpty()) {
-                player.sendMessage(lang.msg("menu.statistics.export.top_killers", "killers" to topKillerNames))
-            }
-            player.sendMessage(lang.msg("menu.statistics.export.footer"))
-        } catch (e: Exception) {
-            player.sendMessage(lang.msg("menu.statistics.feedback.export_failed"))
-            logger.error("Error exporting guild statistics for guild ${guild.id}", e)
-        }
-    }
 
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return

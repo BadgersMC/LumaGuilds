@@ -5,13 +5,13 @@ import org.junit.jupiter.api.Test
 import kotlin.test.*
 
 class RewardConfigGateTest {
-    @Test fun `chapter two rollout defaults off and follows reload`() {
+    @Test fun `chapter two rollout defaults on and explicit false follows reload`() {
         var config = YamlConfiguration()
         val service = ConfigServiceBukkit { config }
-        assertFalse(service.loadConfig().chapterTwoRewardsEnabled)
-        config = YamlConfiguration().apply { set("progression.chapter_two_rewards_enabled", true) }
         assertTrue(service.loadConfig().chapterTwoRewardsEnabled)
-        config = YamlConfiguration()
+        config = YamlConfiguration().apply { set("progression.chapter_two_rewards_enabled", false) }
         assertFalse(service.loadConfig().chapterTwoRewardsEnabled)
+        config = YamlConfiguration()
+        assertTrue(service.loadConfig().chapterTwoRewardsEnabled)
     }
 }

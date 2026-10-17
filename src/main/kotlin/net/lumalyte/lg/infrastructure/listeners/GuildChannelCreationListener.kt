@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.listeners
 
 import net.lumalyte.lg.application.services.PartyService
 import net.lumalyte.lg.application.services.RankService
+import net.lumalyte.lg.utils.RankNameContent
 import net.lumalyte.lg.domain.entities.Party
 import net.lumalyte.lg.domain.entities.PartyStatus
 import net.lumalyte.lg.api.events.GuildCreatedEvent
@@ -37,13 +38,13 @@ class GuildChannelCreationListener(
 
             // Find leader rank (name matches "Leader" or "Owner" case-insensitive)
             val leaderRank = ranks.firstOrNull { rank ->
-                rank.name.equals("Leader", ignoreCase = true) ||
-                rank.name.equals("Owner", ignoreCase = true)
+                RankNameContent.plain(rank.name).equals("Leader", ignoreCase = true) ||
+                RankNameContent.plain(rank.name).equals("Owner", ignoreCase = true)
             }
 
             // Find officer ranks (name matches common officer/admin/moderator patterns)
             val officerRanks = ranks.filter { rank ->
-                rank.name.matches(Regex("(?i)(officer|admin|moderator|co-?leader|leader|owner)"))
+                RankNameContent.plain(rank.name).matches(Regex("(?i)(officer|admin|moderator|co-?leader|leader|owner)"))
             }
 
             // 1. Guild_Chat - All ranks (no restrictions)

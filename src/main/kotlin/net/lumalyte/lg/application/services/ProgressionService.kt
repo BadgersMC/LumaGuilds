@@ -9,6 +9,9 @@ import java.util.UUID
  * Service interface for guild progression and leveling.
  */
 interface ProgressionService {
+    /** Refresh committed SQL progression and publish a level change without awarding again. */
+    fun onCommittedExperience(guildId: UUID, leveledUpTo: Int?) {}
+
     fun getRewardState(guildId: UUID): net.lumalyte.lg.domain.rewards.GuildRewardRead =
         net.lumalyte.lg.domain.rewards.GuildRewardRead.Disabled
 
@@ -43,6 +46,17 @@ interface ProgressionService {
     /** Awards trusted system XP that is contractually outside source caps. */
     fun awardUncappedSystemExperience(guildId: UUID, experience: Int, source: ExperienceSource): Int? =
         awardExperience(guildId, experience, source)
+
+    /**
+     * Idempotent system-XP award for crash-recoverable workflows.
+     * Returns true when the transaction was applied or had already been applied.
+     */
+    fun awardUncappedSystemExperienceOnce(
+        guildId: UUID,
+        experience: Int,
+        source: ExperienceSource,
+        transactionId: UUID,
+    ): Boolean
 
     /**
      * Removes experience from a guild (used by Guild Strikes EXP penalties).

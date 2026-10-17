@@ -1,0 +1,178 @@
+{
+  "scope": "local staging imported database only; not current production proof",
+  "audited_at": "2026-09-25T08:10:00-04:00",
+  "database": "C:\\Users\\Noah\\Desktop\\test\\_net\\lobby\\plugins\\LumaGuilds\\lumaguilds.db",
+  "counts": {
+    "guilds": 168,
+    "members": 568,
+    "orphan_progression_rows": 190,
+    "orphan_home_rows": 47,
+    "orphan_member_rows": 0,
+    "orphan_rank_rows": 0,
+    "orphan_relation_rows": 0,
+    "invalid_member_rank_rows": 0,
+    "ownerless_guilds": 3,
+    "level_drift_rows": 0,
+    "missing_vault_gold_rows": 144,
+    "legacy_vs_canonical_balance_drift": 18,
+    "legacy_wars": 0,
+    "durable_war_records": 0,
+    "active_enemy_relations": 99,
+    "pending_relations": 11,
+    "guild_kill_stats_rows": 0,
+    "guild_activity_metric_rows": 0,
+    "membership_history_rows": 1167
+  },
+  "samples": {
+    "ownerless_guilds": [
+      {
+        "id": "416761cd-9704-429b-aa81-91eeab7792f5",
+        "name": "Love This Clan"
+      },
+      {
+        "id": "fafcc14f-4f80-41cb-b338-acbbd5c08444",
+        "name": "Pengu Family"
+      },
+      {
+        "id": "8955bc38-fcee-4356-984e-237ba625b7de",
+        "name": "test"
+      }
+    ],
+    "balance_drift": [
+      {
+        "id": "d0f56673-6411-44ee-9653-5be4b0f2cb60",
+        "name": "Frezhate",
+        "legacy_bank_balance": 0,
+        "canonical_vault_gold": 7072
+      },
+      {
+        "id": "e8df0ac1-75ec-4e39-9ce6-2e8003167f63",
+        "name": "Qubo",
+        "legacy_bank_balance": 0,
+        "canonical_vault_gold": 3238
+      },
+      {
+        "id": "9a220d43-b027-4a56-a57b-6b82eeb9a4b5",
+        "name": "Chillage",
+        "legacy_bank_balance": 0,
+        "canonical_vault_gold": 2015
+      },
+      {
+        "id": "5abfc07e-f3dd-4397-b1cf-4e213ec0f464",
+        "name": "BelovedOnes",
+        "legacy_bank_balance": 0,
+        "canonical_vault_gold": 2000
+      },
+      {
+        "id": "b3d81fe8-c405-4a74-b888-83c43773d1b4",
+        "name": "Enthusiast",
+        "legacy_bank_balance": 0,
+        "canonical_vault_gold": 1104
+      },
+      {
+        "id": "de063b44-fec7-4aeb-b9da-f14ff10ebbff",
+        "name": "Everlights",
+        "legacy_bank_balance": 0,
+        "canonical_vault_gold": 1010
+      },
+      {
+        "id": "23d9b7de-38cb-4ae1-9d3f-1bf124b0a34f",
+        "name": "Vibe",
+        "legacy_bank_balance": 0,
+        "canonical_vault_gold": 850
+      },
+      {
+        "id": "4a21009d-a772-49a2-8cdc-44ca8224b548",
+        "name": "SovnGarde",
+        "legacy_bank_balance": 0,
+        "canonical_vault_gold": 600
+      },
+      {
+        "id": "908075f1-645d-422f-86a2-9ce0a8ac165b",
+        "name": "NewCrown",
+        "legacy_bank_balance": 0,
+        "canonical_vault_gold": 600
+      },
+      {
+        "id": "724e5531-f6e4-4423-9c38-d4a7bec10973",
+        "name": "Asgard",
+        "legacy_bank_balance": 0,
+        "canonical_vault_gold": 300
+      },
+      {
+        "id": "6e52baa4-08ab-4cc3-8920-37448908838d",
+        "name": "Amethyst",
+        "legacy_bank_balance": 0,
+        "canonical_vault_gold": 200
+      },
+      {
+        "id": "04fdf9db-38f5-44c6-8988-41f6c75f4791",
+        "name": "BloodGuard",
+        "legacy_bank_balance": 0,
+        "canonical_vault_gold": 158
+      },
+      {
+        "id": "bff78a2d-4d76-433d-a459-195501059129",
+        "name": "GuthardGang",
+        "legacy_bank_balance": 0,
+        "canonical_vault_gold": 100
+      },
+      {
+        "id": "fafcc14f-4f80-41cb-b338-acbbd5c08444",
+        "name": "Pengu Family",
+        "legacy_bank_balance": 0,
+        "canonical_vault_gold": 100
+      },
+      {
+        "id": "16288015-b340-42f4-a5e8-50f1ab657bee",
+        "name": "Dragons",
+        "legacy_bank_balance": 0,
+        "canonical_vault_gold": 67
+      },
+      {
+        "id": "83b21e82-6c27-4bfe-88fa-da090dcb6ef4",
+        "name": "WeOnTop",
+        "legacy_bank_balance": 0,
+        "canonical_vault_gold": 22
+      },
+      {
+        "id": "f2d9479c-1a22-4e14-a290-5f8c834d12cc",
+        "name": "kirky",
+        "legacy_bank_balance": 0,
+        "canonical_vault_gold": 20
+      },
+      {
+        "id": "73fa09f9-1327-4f40-85c7-be53113d062f",
+        "name": "Bed",
+        "legacy_bank_balance": 0,
+        "canonical_vault_gold": 10
+      }
+    ],
+    "vibe": {
+      "id": "23d9b7de-38cb-4ae1-9d3f-1bf124b0a34f",
+      "level": 100,
+      "legacy_bank_balance": 0,
+      "canonical_vault_gold": 850,
+      "current_members": 22,
+      "owner_priority_members": 1,
+      "relations": {
+        "ALLY:ACTIVE": 12,
+        "ALLY:PENDING": 1,
+        "ENEMY:ACTIVE": 6
+      },
+      "legacy_wars": 0,
+      "durable_war_payload_matches": 0
+    },
+    "test": {
+      "id": "8955bc38-fcee-4356-984e-237ba625b7de",
+      "level": 1,
+      "legacy_bank_balance": 0,
+      "canonical_vault_gold": null,
+      "current_members": 1,
+      "owner_priority_members": 0,
+      "relations": {},
+      "legacy_wars": 0,
+      "durable_war_payload_matches": 0
+    }
+  }
+}

@@ -4,6 +4,7 @@ import net.lumalyte.lg.infrastructure.i18n.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.HomeActivationCostResult
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition3D
@@ -17,6 +18,7 @@ import org.geysermc.cumulus.form.SimpleForm
 import org.geysermc.floodgate.api.FloodgateApi
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import java.util.UUID
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -32,6 +34,7 @@ class BedrockGuildHomeMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val guildService: GuildService by inject()
+    private val homeActivationService: net.lumalyte.lg.application.services.GuildHomeActivationService by inject()
     private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
     private val plugin: Plugin by inject()
     private val lang: LangService by inject()
@@ -48,7 +51,14 @@ class BedrockGuildHomeMenu(
                 // Add existing homes
                 if (homes.hasHomes()) {
                     homes.homeNames.forEach { homeName ->
-                        button(lang.bedrock("bedrock.home.button.teleport", "home" to homeName))
+                        val active = homeActivationService.isActive(guild.id, homeName)
+                        button(if (active) {
+                            lang.bedrock("bedrock.home.button.teleport", "home" to homeName)
+                        } else if (canManageHomes()) {
+                            lang.bedrock("bedrock.home.button.activate", "home" to homeName)
+                        } else {
+                            lang.bedrock("bedrock.home.button.inactive", "home" to homeName)
+                        })
                     }
                 } else {
                     button(lang.bedrock("bedrock.home.button.no_homes"))
@@ -61,7 +71,9 @@ class BedrockGuildHomeMenu(
                     }
                     if (homes.hasHomes()) {
                         button(lang.bedrock("bedrock.home.button.remove"))
+                        button(lang.bedrock("bedrock.home.button.access"))
                     }
+                    button(lang.bedrock("bedrock.home.button.ally_access"))
                 }
             }
             .validResultHandler { response ->
@@ -101,6 +113,11 @@ class BedrockGuildHomeMenu(
             val homeName = homeNames[buttonIndex]
             val home = homes.getHome(homeName)
             if (home != null) {
+                if (!homeActivationService.isActive(guild.id, homeName)) {
+                    if (canManageHomes()) activateSavedHome(homeName)
+                    else player.sendMessage(lang.msg("bedrock.home.feedback.inactive", "home" to homeName))
+                    return
+                }
                 if (!guildService.canUseHome(player.uniqueId, guild.id, homeName)) {
                     player.sendMessage(lang.msg("bedrock.home.feedback.no_permission", "home" to homeName))
                     return
@@ -135,6 +152,22 @@ class BedrockGuildHomeMenu(
                 showRemoveHomeMenu(homes)
                 return
             }
+            currentIndex++
+        }
+
+        // Per-home rank access
+        if (canManageHomes() && homes.hasHomes()) {
+            if (buttonIndex == currentIndex) {
+                showHomeAccessSelection(homes)
+                return
+            }
+            currentIndex++
+        }
+
+        // Inbound ally-home access
+        if (canManageHomes() && buttonIndex == currentIndex) {
+            bedrockNavigator.openMenu(menuFactory.createAllyHomeAccessMenu(menuNavigator, player, guild))
+            return
         }
 
         // Default: go back
@@ -185,20 +218,90 @@ class BedrockGuildHomeMenu(
             position = currentLocation.toPosition3D(),
         )
 
-        val success = guildService.setHome(
-            guild.id,
-            homeName,
-            home,
-            player.uniqueId,
-        )
-        if (success) {
-            player.sendMessage(lang.msg("bedrock.home.feedback.set", "home" to homeName))
-        } else {
-            player.sendMessage(lang.msg("bedrock.home.feedback.set_failed"))
+        val result = homeActivationService.persistLocation(
+            UUID.randomUUID(), guild.id, homeName, player.uniqueId, existedBefore = false,
+        ) { guildService.setHome(guild.id, homeName, home, player.uniqueId) }
+        when (result) {
+            is HomeActivationCostResult.Applied -> {
+                player.sendMessage(lang.msg("bedrock.home.feedback.set", "home" to homeName))
+                if (result.cost > 0) {
+                    player.sendMessage(lang.msg("bedrock.home.feedback.activation_paid", "cost" to result.cost))
+                }
+            }
+            is HomeActivationCostResult.Rejected -> {
+                if (result.reason == net.lumalyte.lg.domain.gold.GuildGoldRejection.INSUFFICIENT_FUNDS) {
+                    player.sendMessage(lang.msg("bedrock.home.feedback.activation_insufficient"))
+                    player.sendMessage(lang.msg("bedrock.home.feedback.funding_tip"))
+                } else {
+                    player.sendMessage(lang.msg("bedrock.home.feedback.activation_rejected", "reason" to result.reason.name))
+                }
+            }
+            HomeActivationCostResult.ConfigurationError ->
+                player.sendMessage(lang.msg("bedrock.home.feedback.activation_config_error"))
+            is HomeActivationCostResult.PaymentFailed ->
+                player.sendMessage(lang.msg("bedrock.home.feedback.activation_review", "transaction" to result.transactionId))
+            is HomeActivationCostResult.ActivationFailed -> {
+                player.sendMessage(lang.msg("bedrock.home.feedback.set_failed"))
+                if (!result.compensated) {
+                    player.sendMessage(lang.msg("bedrock.home.feedback.activation_review_no_transaction"))
+                }
+            }
         }
 
         // Reopen menu to refresh
         bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+    }
+
+    private fun activateSavedHome(homeName: String) {
+        when (val result = homeActivationService.activateSavedHome(UUID.randomUUID(), guild.id, homeName, player.uniqueId)) {
+            is HomeActivationCostResult.Applied -> {
+                player.sendMessage(lang.msg("bedrock.home.feedback.activation_success", "home" to homeName))
+                if (result.cost > 0) player.sendMessage(lang.msg("bedrock.home.feedback.activation_paid", "cost" to result.cost))
+            }
+            is HomeActivationCostResult.Rejected -> {
+                if (result.reason == net.lumalyte.lg.domain.gold.GuildGoldRejection.INSUFFICIENT_FUNDS) {
+                    player.sendMessage(lang.msg("bedrock.home.feedback.activation_insufficient"))
+                    player.sendMessage(lang.msg("bedrock.home.feedback.funding_tip"))
+                } else {
+                    player.sendMessage(lang.msg("bedrock.home.feedback.activation_rejected", "reason" to result.reason.name))
+                }
+            }
+            HomeActivationCostResult.ConfigurationError -> player.sendMessage(lang.msg("bedrock.home.feedback.activation_config_error"))
+            is HomeActivationCostResult.PaymentFailed -> player.sendMessage(lang.msg("bedrock.home.feedback.activation_review", "transaction" to result.transactionId))
+            is HomeActivationCostResult.ActivationFailed -> player.sendMessage(lang.msg("bedrock.home.feedback.activation_failed", "home" to homeName))
+        }
+        bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+    }
+
+    private fun showHomeAccessSelection(homes: net.lumalyte.lg.domain.entities.GuildHomes) {
+        val accessForm = SimpleForm.builder()
+            .title(lang.bedrock("bedrock.home.access.title", "guild" to guild.name))
+            .content(lang.bedrock("bedrock.home.access.description"))
+            .apply {
+                homes.homeNames.forEach { homeName ->
+                    button(lang.bedrock("bedrock.home.access.button", "home" to homeName))
+                }
+            }
+            .validResultHandler { response ->
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    val homeName = homes.homeNames.toList().getOrNull(response.clickedButtonId())
+                    if (homeName != null && canManageHomes()) {
+                        bedrockNavigator.openMenu(
+                            menuFactory.createHomeAccessMenu(menuNavigator, player, guild, homeName)
+                        )
+                    } else {
+                        bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+                    }
+                })
+            }
+            .closedOrInvalidResultHandler { _, _ ->
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+                })
+            }
+            .build()
+
+        FloodgateApi.getInstance().sendForm(player.uniqueId, accessForm)
     }
 
     private fun showRemoveHomeMenu(homes: net.lumalyte.lg.domain.entities.GuildHomes) {

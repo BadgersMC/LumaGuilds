@@ -13,6 +13,7 @@ import net.lumalyte.lg.interaction.listeners.ChatInputListener
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.MenuItemBuilder
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -76,10 +77,10 @@ class GuildEmojiClearTest {
         val player = server.addPlayer()
         val guild = Guild(id = guildId, name = "Clearable", emoji = storedEmoji, createdAt = Instant.EPOCH)
         val menu = GuildEmojiMenu(mockk<MenuNavigator>(relaxed = true), player, guild)
-        val pane = com.github.stefvanschie.inventoryframework.pane.StaticPane(9, 3)
+        val pane = StaticPane(0, 0, 9, 3)
         val addClearButton = GuildEmojiMenu::class.java.getDeclaredMethod(
             "addClearButton",
-            com.github.stefvanschie.inventoryframework.pane.StaticPane::class.java,
+            StaticPane::class.java,
             Int::class.javaPrimitiveType,
             Int::class.javaPrimitiveType,
         ).apply { isAccessible = true }

@@ -55,6 +55,22 @@ class MenuLocalizationTest {
     }
 
     @Test
+    fun `current guild emoji uses its selected Nexo item in the display slot`() {
+        val source = sourceRoot.resolve("guild/GuildEmojiMenu.kt").toFile().readText()
+
+        kotlin.test.assertTrue(source.contains("currentEmoji?.let(nexoEmojiService::extractEmojiName)"))
+        kotlin.test.assertTrue(source.contains("NexoItemProvider.getItemStackOrFallback(\"lg_emoji_choice_"))
+    }
+
+    @Test
+    fun `chapter two rewards uses the Nexo reward icon`() {
+        val source = sourceRoot.resolve("guild/GuildProgressionMenu.kt").toFile().readText()
+
+        kotlin.test.assertTrue(source.contains("NexoItemProvider.getItemStackOrFallback(\"lg_reward\")"))
+        assertFalse(source.contains("val item = ItemStack.of(Material.DIAMOND).also"))
+    }
+
+    @Test
     fun `progression menu keeps nested progress values as Components`() {
         val source = sourceRoot.resolve("guild/GuildProgressionMenu.kt").toFile().readText()
 

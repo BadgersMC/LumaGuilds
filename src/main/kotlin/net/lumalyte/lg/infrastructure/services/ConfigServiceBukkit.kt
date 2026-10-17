@@ -47,8 +47,44 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             bedrock = loadBedrockConfig(),
             webApi = loadWebApiConfig(),
             strikes = loadStrikesConfig(),
-            chapterTwoRewardsEnabled = config.getBoolean("progression.chapter_two_rewards_enabled", false)
+            seasonalElo = loadSeasonalEloConfig(),
+            warBanner = loadWarBannerConfig(),
+            discordGuildRoles = loadDiscordGuildRolesConfig(),
+            guildList = loadGuildListConfig(),
+            chapterTwoRewardsEnabled = config.getBoolean("progression.chapter_two_rewards_enabled", true),
+            chapterTwoGoldCostsEnabled = config.getBoolean("progression.chapter_two_gold_costs_enabled", false)
         )
+    }
+
+    private fun loadWarBannerConfig(): WarBannerConfig {
+        return WarBannerConfig(
+            rawGoldCost = config.getInt("war_banner.raw_gold_cost", 64),
+            cooldownMinutes = config.getInt("war_banner.cooldown_minutes", 15),
+        )
+    }
+
+    private fun loadDiscordGuildRolesConfig(): DiscordGuildRolesConfig {
+        return DiscordGuildRolesConfig(
+            enabled = config.getBoolean("discord.guild_roles.enabled", true),
+            minimumLevel = config.getInt("discord.guild_roles.minimum_level", 50),
+            roleNameFormat = string("discord.guild_roles.role_name_format", "Guild • <guild>"),
+        )
+    }
+
+    private fun loadGuildListConfig(): GuildListConfig =
+        GuildListConfig(
+            pageSize = config.getInt("guild_list.page_size", 18).coerceIn(1, 36),
+        )
+
+    private fun loadSeasonalEloConfig(): SeasonalEloConfig {
+        val result = SeasonalEloConfig(
+            enabled = config.getBoolean("seasonal_elo.enabled", false),
+            kFactor = config.getInt("seasonal_elo.k_factor", 40),
+            upperDisplayRating = config.getInt("seasonal_elo.upper_display_rating", 1600),
+            rematchWindowDays = config.getInt("seasonal_elo.rematch_window_days", 7),
+        )
+        result.settings()
+        return result
     }
 
     private fun loadStrikesConfig(): StrikesConfig {
@@ -105,6 +141,8 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             minNameLength = config.getInt("guild.min_name_length", 1),
             maxGuildCount = config.getInt("guild.max_guild_count", 1000),
             createGuildCost = config.getInt("guild.create_guild_cost", 0),
+            homeActivationBaseCost = config.getInt("guild.home_activation_base_cost", 0),
+            homeActivationScale = config.getDouble("guild.home_activation_scale", 2.0),
             creationCooldown = net.lumalyte.lg.domain.values.GuildCreationCooldown(
                 config.getInt("guild.create_then_delete_window_days", 7),
                 config.getInt("guild.creation_cooldown_days", 15)),
@@ -241,6 +279,8 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             fallbackToJavaMenus = config.getBoolean("bedrock.fallback_to_java_menus", true),
             fallbackOnFloodgateUnavailable = config.getBoolean("bedrock.fallback_on_floodgate_unavailable", true),
             fallbackOnCumulusUnavailable = config.getBoolean("bedrock.fallback_on_cumulus_unavailable", true),
+            javaMenuVanillaIcons = config.getBoolean("bedrock.java_menu_vanilla_icons", false),
+            javaMenuPlainTitles = config.getBoolean("bedrock.java_menu_plain_titles", false),
             formCacheEnabled = config.getBoolean("bedrock.form_cache_enabled", true),
             formCacheSize = config.getInt("bedrock.form_cache_size", 100),
             formCacheExpirationMinutes = config.getInt("bedrock.form_cache_expiration_minutes", 30),
@@ -259,6 +299,8 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             guildSettingsIconPath = string("bedrock.guild_settings_icon_path", "textures/ui/settings.png"),
             guildBankIconUrl = string("bedrock.guild_bank_icon_url", ""),
             guildBankIconPath = string("bedrock.guild_bank_icon_path", "textures/ui/bank.png"),
+            guildStallsIconUrl = string("bedrock.guild_stalls_icon_url", ""),
+            guildStallsIconPath = string("bedrock.guild_stalls_icon_path", "textures/ui/stall.png"),
             guildWarsIconUrl = string("bedrock.guild_wars_icon_url", ""),
             guildWarsIconPath = string("bedrock.guild_wars_icon_path", "textures/ui/wars.png"),
             guildHomeIconUrl = string("bedrock.guild_home_icon_url", ""),
@@ -296,6 +338,9 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             warDurationHours = config.getInt("combat.war_duration_hours", 168),
             warEndGracePeriodMinutes = config.getInt("combat.war_end_grace_period_minutes", 30),
             maxSimultaneousWars = config.getInt("combat.max_simultaneous_wars", 3),
+            warKillWinTarget = config.getInt("combat.war_kill_win_target", 25).also {
+                require(it > 0) { "combat.war_kill_win_target must be positive" }
+            },
             killExperience = config.getInt("combat.kill_experience", 10),
             warWinExperience = config.getInt("combat.war_win_experience", 500),
             warLoseExperience = config.getInt("combat.war_lose_experience", 100)
@@ -331,8 +376,17 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
     }
 
     private fun loadProgressionConfig(): ProgressionConfig {
+        val prestigeMax = config.getInt("progression.prestige.max_count", 6).coerceIn(1, 6)
+        val prestigeFees = config.getLongList("progression.prestige.fees").ifEmpty {
+            listOf(10_000L, 20_000L, 30_000L, 30_000L, 30_000L, 30_000L)
+        }
         return ProgressionConfig(
             maxLevel = config.getInt("progression.max_level", 100).coerceIn(1, 100),
+            prestige = net.lumalyte.lg.config.PrestigeConfig(
+                enabled = config.getBoolean("progression.prestige.enabled", false),
+                maxCount = prestigeMax,
+                fees = prestigeFees,
+            ),
 
             // Experience values for different activities
             bankDepositXpPer100 = config.getInt("progression.bank_deposit_xp_per_100", 1),
@@ -358,6 +412,13 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             baseXp = config.getDouble("progression.base_xp", 500.0),
             levelExponent = config.getDouble("progression.level_exponent", 1.15),
             linearBonusPerLevel = config.getInt("progression.linear_bonus_per_level", 150),
+            shopXp = net.lumalyte.lg.domain.values.GuildShopXpPolicy(
+                enabled = config.getBoolean("progression.shop_xp.enabled", false),
+                xpPerSale = config.getInt("progression.shop_xp.xp_per_sale", 5),
+                guildDailyCap = config.getInt("progression.shop_xp.guild_daily_cap", 500),
+                buyerDailyCap = config.getInt("progression.shop_xp.buyer_daily_cap", 50),
+                pairCooldownSeconds = config.getLong("progression.shop_xp.pair_cooldown_seconds", 300),
+            ),
             sourcePolicies = loadExperiencePolicies(),
             xpBoost = loadExperienceBoost(),
             materialPools = loadMaterialPools(),

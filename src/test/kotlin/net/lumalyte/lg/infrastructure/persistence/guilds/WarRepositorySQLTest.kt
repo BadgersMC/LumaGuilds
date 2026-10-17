@@ -75,6 +75,155 @@ class WarRepositorySQLTest {
         assertEquals(listOf(original.copy(revision = 1)), reopened.getAll())
     }
 
+    @Test fun `rated chapter identity survives a new repository`() {
+        val base = record()
+        val original = base.copy(
+            declaration = base.declaration!!.copy(ratedChapterId = "chapter-2"),
+            war = base.war!!.copy(ratedChapterId = "chapter-2"),
+        )
+        assertTrue(repository.save(original))
+        storage.connection.close()
+        storage = VirtualThreadSQLiteStorage(directory.toFile())
+        val reopened = WarRepositorySQL(storage)
+
+        val restored = reopened.get(original.id)!!
+        assertTrue(restored.declaration!!.isRated)
+        assertTrue(restored.war!!.isRated)
+        assertEquals("chapter-2", restored.war!!.ratedChapterId)
+    }
+
+    @Test fun `notification recovery markers survive a new repository`() {
+        val recipient = UUID.randomUUID()
+        val original = record().copy(
+            notificationRecipients = WarNotificationRecipients(
+                declarationSent = setOf(recipient),
+                acceptanceDeclaring = setOf(recipient),
+                victory = setOf(recipient),
+            ),
+            declarationNotificationExpected = true,
+            acceptanceNotificationExpected = true,
+            resolutionNotificationExpected = true,
+        )
+        assertTrue(repository.save(original))
+        storage.connection.close()
+        storage = VirtualThreadSQLiteStorage(directory.toFile())
+
+        val restored = WarRepositorySQL(storage).get(original.id)!!
+
+        assertEquals(setOf(recipient), restored.notificationRecipients.declarationSent)
+        assertEquals(setOf(recipient), restored.notificationRecipients.acceptanceDeclaring)
+        assertEquals(setOf(recipient), restored.notificationRecipients.victory)
+        assertTrue(restored.declarationNotificationExpected)
+        assertTrue(restored.acceptanceNotificationExpected)
+        assertTrue(restored.resolutionNotificationExpected)
+    }
+
+    @Test fun `legacy version one war payload decodes as explicitly unrated`() {
+        val original = record().copy(revision = 1)
+        val json = JsonParser.parseString(WarRecordCodec.encode(original)).asJsonObject
+        json.addProperty("version", 1)
+        val legacyRecord = json.getAsJsonObject("record")
+        val legacyDeclaration = legacyRecord.getAsJsonObject("declaration")
+        val legacyWar = legacyRecord.getAsJsonObject("war")
+        legacyDeclaration.remove("ratedChapterId")
+        legacyDeclaration.remove("declarationCooldownUntil")
+        legacyWar.remove("ratedChapterId")
+        legacyWar.remove("farmingCooldownGuildId")
+        legacyWar.remove("farmingCooldownUntil")
+        legacyRecord.remove("notificationRecipients")
+        legacyRecord.remove("declarationNotificationExpected")
+        legacyRecord.remove("acceptanceNotificationExpected")
+        legacyRecord.remove("resolutionNotificationExpected")
+
+        val decoded = WarRecordCodec.decode(json.toString())
+
+        assertFalse(decoded.declaration!!.isRated)
+        assertFalse(decoded.war!!.isRated)
+        assertEquals(null, decoded.declaration!!.ratedChapterId)
+        assertEquals(null, decoded.war!!.ratedChapterId)
+        assertEquals(null, decoded.declaration!!.declarationCooldownUntil)
+        assertEquals(null, decoded.war!!.farmingCooldownGuildId)
+        assertEquals(null, decoded.war!!.farmingCooldownUntil)
+    }
+
+    @Test fun `legacy version two payload decodes without durable cooldown metadata`() {
+        val original = record().copy(revision = 1)
+        val json = JsonParser.parseString(WarRecordCodec.encode(original)).asJsonObject
+        json.addProperty("version", 2)
+        val legacyDeclaration = json.getAsJsonObject("record").getAsJsonObject("declaration")
+        val legacyWar = json.getAsJsonObject("record").getAsJsonObject("war")
+        legacyDeclaration.remove("declarationCooldownUntil")
+        legacyWar.remove("farmingCooldownGuildId")
+        legacyWar.remove("farmingCooldownUntil")
+
+        val decoded = WarRecordCodec.decode(json.toString())
+
+        assertEquals(null, decoded.declaration!!.declarationCooldownUntil)
+        assertEquals(null, decoded.war!!.farmingCooldownGuildId)
+        assertEquals(null, decoded.war!!.farmingCooldownUntil)
+    }
+
+    @Test fun `version three notification payload decodes without cooldown metadata`() {
+        val recipient = UUID.randomUUID()
+        val original = record().copy(
+            notificationRecipients = WarNotificationRecipients(victory = setOf(recipient)),
+            resolutionNotificationExpected = true,
+        )
+        val json = JsonParser.parseString(WarRecordCodec.encode(original)).asJsonObject
+        json.addProperty("version", 3)
+        val legacyDeclaration = json.getAsJsonObject("record").getAsJsonObject("declaration")
+        val legacyWar = json.getAsJsonObject("record").getAsJsonObject("war")
+        legacyDeclaration.remove("declarationCooldownUntil")
+        legacyWar.remove("farmingCooldownGuildId")
+        legacyWar.remove("farmingCooldownUntil")
+
+        val decoded = WarRecordCodec.decode(json.toString())
+
+        assertEquals(null, decoded.declaration!!.declarationCooldownUntil)
+        assertEquals(null, decoded.war!!.farmingCooldownGuildId)
+        assertEquals(null, decoded.war!!.farmingCooldownUntil)
+        assertEquals(setOf(recipient), decoded.notificationRecipients.victory)
+        assertTrue(decoded.resolutionNotificationExpected)
+    }
+
+    @Test fun `version two payload cannot omit rated war identity`() {
+        val json = JsonParser.parseString(WarRecordCodec.encode(record())).asJsonObject
+        json.addProperty("version", 2)
+        val legacyRecord = json.getAsJsonObject("record")
+        val legacyDeclaration = legacyRecord.getAsJsonObject("declaration")
+        val legacyWar = legacyRecord.getAsJsonObject("war")
+        legacyDeclaration.remove("declarationCooldownUntil")
+        legacyWar.remove("farmingCooldownGuildId")
+        legacyWar.remove("farmingCooldownUntil")
+        legacyWar.remove("ratedChapterId")
+        legacyRecord.remove("notificationRecipients")
+        legacyRecord.remove("declarationNotificationExpected")
+        legacyRecord.remove("acceptanceNotificationExpected")
+        legacyRecord.remove("resolutionNotificationExpected")
+        assertFailsWith<IllegalStateException> { WarRecordCodec.decode(json.toString()) }
+    }
+
+    @Test fun `version two payload does not invent notification recovery work`() {
+        val original = record().copy(
+            declarationNotificationExpected = true,
+            acceptanceNotificationExpected = true,
+            resolutionNotificationExpected = true,
+        )
+        val json = JsonParser.parseString(WarRecordCodec.encode(original)).asJsonObject
+        json.addProperty("version", 2)
+        json.getAsJsonObject("record").remove("notificationRecipients")
+        json.getAsJsonObject("record").remove("declarationNotificationExpected")
+        json.getAsJsonObject("record").remove("acceptanceNotificationExpected")
+        json.getAsJsonObject("record").remove("resolutionNotificationExpected")
+
+        val decoded = WarRecordCodec.decode(json.toString())
+
+        assertEquals(WarNotificationRecipients(), decoded.notificationRecipients)
+        assertFalse(decoded.declarationNotificationExpected)
+        assertFalse(decoded.acceptanceNotificationExpected)
+        assertFalse(decoded.resolutionNotificationExpected)
+    }
+
     @Test fun `stale writer cannot overwrite a newer settlement decision`() {
         val original = record()
         assertTrue(repository.save(original))

@@ -42,6 +42,14 @@ class LocaleContractTest {
         "menu.bank.security.risk.high",
         "menu.bank.security.risk.low",
         "menu.bank.security.risk.medium",
+        "menu.bank.quick.deposit.100",
+        "menu.bank.quick.deposit.1000",
+        "menu.bank.quick.deposit.10000",
+        "menu.bank.quick.deposit.all",
+        "menu.bank.quick.withdraw.100",
+        "menu.bank.quick.withdraw.1000",
+        "menu.bank.quick.withdraw.10000",
+        "menu.bank.quick.withdraw.all",
         "menu.bank.stats.activity.high",
         "menu.bank.stats.activity.low",
         "menu.bank.stats.activity.moderate",
@@ -60,7 +68,22 @@ class LocaleContractTest {
         "menu.guild_war_management.war_details.info.status_cancelled",
     )
     private val helpTopicDynamicKeys = HelpTopics.all.flatMap { listOf(it.menuKey, it.pageKey) }.toSet()
+    private val warNotificationDynamicKeys = setOf(
+        "declaration_received",
+        "declaration_sent",
+        "war_accepted",
+        "victory",
+        "defeat",
+    ).flatMap { kind ->
+        listOf(
+            "notification.war.lifecycle.toast.$kind.title",
+            "notification.war.lifecycle.toast.$kind.description",
+            "notification.war.lifecycle.chat.$kind",
+        )
+    }.toSet()
     private val localizedHelperKeys = setOf(
+        // Bank sub-menus (budget, history, security, statistics) read it through getLocalizedString().
+        "menu.bank.back_to_control_panel",
         "menu.guild_mode.cooldown.expired",
         "menu.guild_mode.cooldown.hostile",
         "menu.guild_mode.cooldown.lock_expired",
@@ -88,10 +111,17 @@ class LocaleContractTest {
         "menu.tag_editor.validation.too_long",
         "menu.tag_editor.validation.unclosed",
         "menu.tag_editor.validation.unknown_tag",
+        "menu.bank.close",
+        "menu.bank.history.filter.type",
+        "menu.bank.history.filter.member",
+        "menu.bank.history.filter.date",
+        "menu.bank.history.filter.search",
+        "menu.bank.history.filter.clear",
+        "menu.bank.stats.budget.status",
     )
     private val declaredDynamicKeys =
         claimPermissionDynamicKeys + flagDynamicKeys + rankPermissionDynamicKeys + finiteMenuStateKeys +
-            helpTopicDynamicKeys + localizedHelperKeys
+            helpTopicDynamicKeys + warNotificationDynamicKeys + localizedHelperKeys
 
     @Test
     fun `locale values use exclusively MiniMessage without legacy formatting codes`() {
@@ -110,6 +140,19 @@ class LocaleContractTest {
     }
 
     @Test
+    fun `rank legacy conversion utilities have exact file classifications`() {
+        listOf(
+            "net/lumalyte/lg/utils/RankNameContent.kt",
+            "net/lumalyte/lg/infrastructure/services/GuildRankChatFormatter.kt",
+        ).forEach { file ->
+            assertEquals(PlayerTextClassification.COLOR_CODE_UTILITY,
+                LocaleSourceScanner.classificationFor(projectRoot.resolve("src/main/kotlin/$file")))
+        }
+        assertEquals(null, LocaleSourceScanner.classificationFor(
+            projectRoot.resolve("src/main/kotlin/net/lumalyte/lg/utils/OtherRankText.kt")))
+    }
+
+    @Test
     fun `production localization never serializes through lang legacy`() {
         val inventory = LocaleSourceScanner.scan(projectRoot.resolve("src/main/kotlin"))
         val legacyCalls = inventory.calls.filter { it.renderer == "legacy" }
@@ -119,6 +162,11 @@ class LocaleContractTest {
             legacyCalls,
             legacyCalls.joinToString { "${it.file}:${it.line} lang.${it.renderer}(\"${it.key}\")" },
         )
+    }
+
+    @Test
+    fun `every rank permission dynamic key is localized`() {
+        assertEquals(emptySet<String>(), rankPermissionDynamicKeys - localeKeys())
     }
 
     @Test
@@ -192,6 +240,14 @@ class LocaleContractTest {
             "menu.bank.security.risk.high",
             "menu.bank.security.risk.low",
             "menu.bank.security.risk.medium",
+        "menu.bank.quick.deposit.100",
+        "menu.bank.quick.deposit.1000",
+        "menu.bank.quick.deposit.10000",
+        "menu.bank.quick.deposit.all",
+        "menu.bank.quick.withdraw.100",
+        "menu.bank.quick.withdraw.1000",
+        "menu.bank.quick.withdraw.10000",
+        "menu.bank.quick.withdraw.all",
             "menu.bank.stats.activity.high",
             "menu.bank.stats.activity.low",
             "menu.bank.stats.activity.moderate",
@@ -216,7 +272,8 @@ class LocaleContractTest {
             .toSet()
 
         assertEquals(
-            permissionKeys + flagKeys + rankPermissionKeys + expectedMenuStateKeys + expectedHelpTopicKeys + localizedHelperKeys,
+            permissionKeys + flagKeys + rankPermissionKeys + expectedMenuStateKeys + expectedHelpTopicKeys +
+                warNotificationDynamicKeys + localizedHelperKeys,
             declaredDynamicKeys,
         )
     }
@@ -380,7 +437,7 @@ class LocaleContractTest {
         const val BASELINE_POSITIONAL_PLACEHOLDERS = 0
         const val BASELINE_MISSING_KEYS = 0
         const val BASELINE_UNUSED_KEYS = 0
-        const val BASELINE_DYNAMIC_CALLS = 39
+        const val BASELINE_DYNAMIC_CALLS = 42
         const val BASELINE_HARDCODED_PLAYER_TEXT = 0
         const val BASELINE_PLACEHOLDER_MISMATCHES = 0
     }

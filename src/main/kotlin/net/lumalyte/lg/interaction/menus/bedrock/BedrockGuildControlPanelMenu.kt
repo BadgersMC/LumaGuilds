@@ -39,6 +39,17 @@ class BedrockGuildControlPanelMenu(
         // Build button list conditionally
         val buttons = mutableListOf<MenuButton>()
 
+        buttons.add(MenuButton(lang.bedrock("onboarding.title"), config.editIconUrl, config.editIconPath) {
+            bedrockNavigator.openMenu(menuFactory.createGuildGettingStartedMenu(menuNavigator, player, guild.id))
+        })
+
+        buttons.add(MenuButton(lang.bedrock("guild_stall.title"), config.guildStallsIconUrl, config.guildStallsIconPath) {
+            bedrockNavigator.openMenu(menuFactory.createGuildStallMenu(menuNavigator, player, guild))
+        })
+
+        buttons.add(MenuButton(lang.bedrock("community.chat.settings"), config.guildSettingsIconUrl, config.guildSettingsIconPath) {
+            bedrockNavigator.openMenu(menuFactory.createPlayerChatSettingsMenu(menuNavigator, player))
+        })
         // Always present buttons
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.members"), config.guildMembersIconUrl, config.guildMembersIconPath) {
             bedrockNavigator.openMenu(BedrockGuildMemberListMenu(menuNavigator, player, guild, logger))
@@ -51,6 +62,9 @@ class BedrockGuildControlPanelMenu(
         })
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.ranks"), config.editIconUrl, config.editIconPath) {
             bedrockNavigator.openMenu(BedrockGuildRankManagementMenu(menuNavigator, player, guild, null, logger))
+        })
+        buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.quests"), config.editIconUrl, config.editIconPath) {
+            bedrockNavigator.openMenu(menuFactory.createGuildQuestsMenu(menuNavigator, player, guild))
         })
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.tag"), config.editIconUrl, config.editIconPath) {
             bedrockNavigator.openMenu(BedrockTagEditorMenu(menuNavigator, player, guild, logger))

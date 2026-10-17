@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.persistence.guilds
 
 import co.aikar.idb.Database
 import net.lumalyte.lg.application.persistence.RewardPurchaseRepository
+import net.lumalyte.lg.application.services.GuildActionCoordinator
 import net.lumalyte.lg.domain.gold.*
 import net.lumalyte.lg.domain.rewards.*
 import net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect
@@ -12,10 +13,11 @@ import java.util.UUID
 /** Ownership, canonical gold journal/balance and receipt commit on exactly one connection. */
 class RewardPurchaseRepositorySQL(
     private val storage: Storage<Database>,
-    private val catalog: RewardCatalog
+    private val catalog: RewardCatalog,
+    private val gold: GuildGoldRepositorySQL,
+    private val guildActions: GuildActionCoordinator = GuildActionCoordinator(),
 ) : RewardPurchaseRepository {
     private val owners = RewardOwnershipRepositorySQL(storage, catalog)
-    private val gold = GuildGoldRepositorySQL(storage)
     private val resolver = RewardEntitlementResolver(catalog)
     private val lockSuffix = if (storage.dialect == SqlDialect.MARIADB) " FOR UPDATE" else ""
 
@@ -39,25 +41,29 @@ class RewardPurchaseRepositorySQL(
     }
 
     override fun purchase(request: RewardPurchaseRequest, guard: () -> RewardPurchaseRejection?): RewardPurchaseResult = try {
-        storage.connection.connection.use { connection ->
-            val autoCommit = connection.autoCommit
-            connection.autoCommit = false
-            try {
-                // Write first: SQLite database lock / MariaDB row lock, with no read-lock upgrade.
-                connection.prepareStatement("UPDATE guild_reward_accounts SET version = version WHERE guild_id = ?").use {
-                    it.setString(1, request.guildId.toString())
-                    it.executeUpdate()
+        guildActions.withGuilds(request.guildId) {
+            gold.withGuildLock(request.guildId) {
+                storage.connection.connection.use { connection ->
+                val autoCommit = connection.autoCommit
+                connection.autoCommit = false
+                try {
+                    // Write first: SQLite database lock / MariaDB row lock, with no read-lock upgrade.
+                    connection.prepareStatement("UPDATE guild_reward_accounts SET version = version WHERE guild_id = ?").use {
+                        it.setString(1, request.guildId.toString())
+                        it.executeUpdate()
+                    }
+                    val replay = replay(connection, request)
+                    val result = replay ?: execute(connection, request, guard).also { saveReceipt(connection, request, it) }
+                    connection.commit()
+                    result
+                } catch (error: Exception) {
+                    connection.rollback()
+                    throw error
+                } finally {
+                    connection.autoCommit = autoCommit
                 }
-                val replay = replay(connection, request)
-                val result = replay ?: execute(connection, request, guard).also { saveReceipt(connection, request, it) }
-                connection.commit()
-                result
-            } catch (error: Exception) {
-                connection.rollback()
-                throw error
-            } finally {
-                connection.autoCommit = autoCommit
             }
+        }
         }
     } catch (_: Exception) {
         RewardPurchaseResult.Failed(request.transactionId)

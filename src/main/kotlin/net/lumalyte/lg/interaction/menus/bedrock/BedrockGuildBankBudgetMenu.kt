@@ -4,6 +4,7 @@ import net.lumalyte.lg.infrastructure.i18n.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.BankSettingsRepository
+import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.BankSettings
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -26,11 +27,23 @@ class BedrockGuildBankBudgetMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val bankSettingsRepository: BankSettingsRepository by inject()
+    private val guildService: GuildService by inject()
+    private val authorization by lazy { BedrockGuildAuthorization(guildService) }
     private val lang: LangService by inject()
 
     override fun getForm(): Form {
+        if (!authorization.canManageBankSettings(player.uniqueId, guild.id)) {
+            return CustomForm.builder()
+                .title(lang.bedrock("bedrock.bank_budget.title", "guild" to guild.name))
+                .label(lang.bedrock("bedrock.bank.management.no_permission"))
+                .validResultHandler { bedrockNavigator.goBack() }
+                .closedOrInvalidResultHandler { _, _ -> bedrockNavigator.goBack() }
+                .build()
+        }
         val settings = bankSettingsRepository.getByGuildId(guild.id) ?: BankSettings(guild.id)
-        val editor = BedrockBankSettingsEditor(bankSettingsRepository)
+        val editor = BedrockBankSettingsEditor(bankSettingsRepository) { targetGuildId ->
+            authorization.canManageBankSettings(player.uniqueId, targetGuildId)
+        }
         return CustomForm.builder()
             .title(lang.bedrock("bedrock.bank_budget.title", "guild" to guild.name))
             .input(lang.bedrock("bedrock.bank_budget.monthly"), "0", settings.monthlyBudget.toString())

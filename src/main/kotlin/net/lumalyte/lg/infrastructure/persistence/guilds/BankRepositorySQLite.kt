@@ -14,13 +14,14 @@ import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 class BankRepositorySQLite(private val storage: Storage<Database>) : BankRepository {
 
     private val logger = LoggerFactory.getLogger(BankRepositorySQLite::class.java)
 
     private val transactions: MutableMap<UUID, BankTransaction> = mutableMapOf()
-    private val audits: MutableMap<UUID, BankAudit> = mutableMapOf()
+    private val audits: MutableMap<UUID, BankAudit> = ConcurrentHashMap()
 
     init {
         createBankTables()

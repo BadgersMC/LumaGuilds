@@ -1,29 +1,32 @@
 package net.lumalyte.lg.interaction.menus.guild
 
-import net.lumalyte.lg.utils.MenuTitleBuilder
-import net.lumalyte.lg.infrastructure.i18n.gui
-import net.lumalyte.lg.infrastructure.i18n.guiTitle
-import net.badgersmc.nexus.i18n.LangService
-
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
-import net.lumalyte.lg.application.services.RankService
-import net.lumalyte.lg.application.services.MemberService
-import net.lumalyte.lg.application.services.ConfigService
-import net.lumalyte.lg.domain.entities.Guild
-import net.lumalyte.lg.domain.entities.Rank
-import net.lumalyte.lg.domain.entities.RankPermission
-import net.lumalyte.lg.interaction.listeners.ChatInputHandler
-import net.lumalyte.lg.interaction.listeners.ChatInputListener
-import net.lumalyte.lg.interaction.menus.Menu
-import net.lumalyte.lg.interaction.menus.MenuNavigator
-import net.lumalyte.lg.utils.lore
-import net.lumalyte.lg.utils.name
+import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
+import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.application.services.RankService
+import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.domain.entities.Rank
+import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.lumalyte.lg.infrastructure.i18n.rankNameError
+import net.lumalyte.lg.interaction.listeners.ChatInputHandler
+import net.lumalyte.lg.interaction.listeners.ChatInputListener
+import net.lumalyte.lg.interaction.menus.Menu
+import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.utils.NexoItemProvider
+import net.lumalyte.lg.utils.RankNameContent
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.addPane
+import net.lumalyte.lg.utils.lore
+import net.lumalyte.lg.utils.name
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -81,7 +84,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         val upItem = ItemStack.of(if (canUp) Material.SPECTRAL_ARROW else Material.BARRIER)
             .name(if (canUp) lang.gui("menu.rank_edit.priority.up") else lang.gui("menu.rank_edit.priority.up_locked"))
             .lore(lang.gui("menu.rank_edit.priority.current", "priority" to rank.priority))
-            .lore(if (upNeighbor != null) lang.gui("menu.rank_edit.priority.above", "rank" to upNeighbor.name) else lang.gui("menu.rank_edit.priority.no_above"))
+            .lore(if (upNeighbor != null) lang.gui("menu.rank_edit.priority.above", "rank" to RankNameContent.miniMessage(upNeighbor.name)) else lang.gui("menu.rank_edit.priority.no_above"))
             .lore(lang.gui("menu.common.blank"))
             .lore(if (canUp) lang.gui("menu.rank_edit.priority.raise") else lang.gui("menu.rank_edit.priority.cannot_reorder"))
         pane.addItem(GuiItem(upItem) {
@@ -99,7 +102,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         val downItem = ItemStack.of(if (canDown) Material.SPECTRAL_ARROW else Material.BARRIER)
             .name(if (canDown) lang.gui("menu.rank_edit.priority.down") else lang.gui("menu.rank_edit.priority.down_locked"))
             .lore(lang.gui("menu.rank_edit.priority.current", "priority" to rank.priority))
-            .lore(if (downNeighbor != null) lang.gui("menu.rank_edit.priority.below", "rank" to downNeighbor.name) else lang.gui("menu.rank_edit.priority.no_below"))
+            .lore(if (downNeighbor != null) lang.gui("menu.rank_edit.priority.below", "rank" to RankNameContent.miniMessage(downNeighbor.name)) else lang.gui("menu.rank_edit.priority.no_below"))
             .lore(lang.gui("menu.common.blank"))
             .lore(if (canDown) lang.gui("menu.rank_edit.priority.lower") else lang.gui("menu.rank_edit.priority.cannot_reorder"))
         pane.addItem(GuiItem(downItem) {
@@ -151,7 +154,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             return
         }
 
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.rank_edit.title", "rank" to rank.name)))
+        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.rank_edit.title", "rank" to RankNameContent.miniMessage(rank.name))))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
@@ -178,7 +181,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         // Rank name and basic info
         val infoItem = ItemStack.of(Material.NAME_TAG)
             .name(lang.gui("menu.rank_edit.info.name"))
-            .lore(lang.gui("menu.rank_edit.info.rank_name", "rank" to rank.name))
+            .lore(lang.gui("menu.rank_edit.info.rank_name", "rank" to RankNameContent.miniMessage(rank.name)))
             .lore(lang.gui("menu.rank_edit.info.priority", "priority" to rank.priority))
             .lore(lang.gui("menu.rank_edit.info.members", "count" to getMemberCount()))
             
@@ -250,49 +253,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
     }
 
     private fun addPermissionCategories(pane: StaticPane) {
-        val baseCategories = mutableMapOf(
-            "Guild Management" to listOf(
-                RankPermission.MANAGE_RANKS, RankPermission.MANAGE_MEMBERS,
-                RankPermission.MANAGE_BANNER, RankPermission.MANAGE_EMOJI,
-                RankPermission.MANAGE_DESCRIPTION, RankPermission.MANAGE_HOME,
-                RankPermission.MANAGE_MODE, RankPermission.MANAGE_GUILD_SETTINGS
-            ),
-            "Banking" to listOf(
-                RankPermission.DEPOSIT_TO_BANK, RankPermission.WITHDRAW_FROM_BANK,
-                RankPermission.VIEW_BANK_TRANSACTIONS,
-                RankPermission.MANAGE_BANK_SETTINGS,
-                RankPermission.PLACE_VAULT, RankPermission.ACCESS_VAULT,
-                RankPermission.DEPOSIT_TO_VAULT, RankPermission.WITHDRAW_FROM_VAULT,
-                RankPermission.MANAGE_VAULT, RankPermission.BREAK_VAULT,
-                RankPermission.ACCESS_SHOP_CHESTS, RankPermission.EDIT_SHOP_STOCK,
-                RankPermission.MODIFY_SHOP_PRICES
-            ),
-            "Diplomacy" to listOf(
-                RankPermission.MANAGE_RELATIONS, RankPermission.DECLARE_WAR,
-                RankPermission.ACCEPT_ALLIANCES, RankPermission.MANAGE_PARTIES,
-                RankPermission.SEND_PARTY_REQUESTS, RankPermission.ACCEPT_PARTY_INVITES,
-                RankPermission.USE_ALLY_HOMES
-            ),
-            "Communication" to listOf(
-                RankPermission.SEND_ANNOUNCEMENTS, RankPermission.SEND_PINGS,
-                RankPermission.MODERATE_CHAT
-            ),
-            "Administrative" to listOf(
-                RankPermission.ACCESS_ADMIN_COMMANDS, RankPermission.BYPASS_RESTRICTIONS,
-                RankPermission.VIEW_AUDIT_LOGS, RankPermission.MANAGE_INTEGRATIONS
-            )
-        )
-
-        // Only add Claims category if claims are enabled
-        if (areClaimsEnabled()) {
-            baseCategories["Claims"] = listOf(
-                RankPermission.MANAGE_CLAIMS, RankPermission.MANAGE_FLAGS,
-                RankPermission.MANAGE_PERMISSIONS, RankPermission.CREATE_CLAIMS,
-                RankPermission.DELETE_CLAIMS
-            )
-        }
-
-        val categories = baseCategories
+        val categories = RankPermissionCatalog.categories(areClaimsEnabled())
 
         categories.entries.forEachIndexed { index, (categoryName, permissions) ->
             val row = 1 + (index / 3)
@@ -476,12 +437,23 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                 for (member in membersWithRank) {
                     memberService.changeMemberRank(member.playerId, guild.id, targetRank.id, player.uniqueId)
                 }
-                player.sendMessage(lang.msg("menu.rank_edit.feedback.members_moved", "count" to membersWithRank.size, "rank" to targetRank.name))
+                player.sendMessage(
+                    lang.msg(
+                        "menu.rank_edit.feedback.members_moved",
+                        "count" to membersWithRank.size,
+                        "rank" to RankNameContent.miniMessage(targetRank.name),
+                    ),
+                )
             }
 
             val result = rankService.deleteRank(rank.id, player.uniqueId)
             if (result) {
-                player.sendMessage(lang.msg("menu.rank_edit.feedback.deleted", "rank" to rank.name))
+                player.sendMessage(
+                    lang.msg(
+                        "menu.rank_edit.feedback.deleted",
+                        "rank" to RankNameContent.miniMessage(rank.name),
+                    ),
+                )
             } else {
                 player.sendMessage(lang.msg("menu.rank_edit.feedback.delete_failed"))
             }
@@ -491,7 +463,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
         pane.addItem(deleteGuiItem, 5, 5)
 
         // Back to rank management
-        val backItem = ItemStack.of(Material.ARROW)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.rank_edit.action.back.name"))
             .lore(lang.gui("menu.rank_edit.action.back.description"))
 
@@ -525,7 +497,12 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
 
         player.sendMessage(lang.msg("menu.rank_edit.input.name.header"))
         player.sendMessage(lang.msg("menu.rank_edit.input.name.prompt"))
-        player.sendMessage(lang.msg("menu.rank_edit.input.name.current", "rank" to rank.name))
+        player.sendMessage(
+            lang.msg(
+                "menu.rank_edit.input.name.current",
+                "rank" to RankNameContent.miniMessage(rank.name),
+            ),
+        )
         player.sendMessage(lang.msg("menu.rank_edit.input.name.requirements"))
         player.sendMessage(lang.msg("menu.rank_edit.input.name.length"))
         player.sendMessage(lang.msg("menu.rank_edit.input.name.characters"))
@@ -555,7 +532,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                 lang.msg("menu.rank_edit.input.icon.link_action")
                     .color(NamedTextColor.AQUA)
                     .decorate(TextDecoration.UNDERLINED)
-                    .clickEvent(ClickEvent.openUrl("https://jd.papermc.io/paper/1.21.8/org/bukkit/Material.html"))
+                    .clickEvent(ClickEvent.openUrl("https://jd.papermc.io/paper/26.2/org/bukkit/Material.html"))
             )
         player.sendMessage(linkText)
         
@@ -565,10 +542,10 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
     }
 
     private fun validateRankName(name: String): Component? {
-        if (name.length !in 1..24) {
-            return lang.msg("menu.rank_edit.validation.length", "length" to name.length)
+        if (RankNameContent.plain(name).length !in 1..RankNameContent.MAX_VISIBLE_LENGTH) {
+            return lang.msg("menu.rank_edit.validation.length", "length" to RankNameContent.plain(name).length)
         }
-        if (!name.matches(Regex("^[a-zA-Z0-9 ]+$"))) {
+        if (!RankNameContent.valid(name)) {
             return lang.msg("menu.rank_edit.validation.characters")
         }
         // Check if name is unique in guild (excluding current rank)
@@ -593,15 +570,21 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
             "name" -> {
                 val error = validateRankName(input)
                 if (error != null) {
-                    player.sendMessage(lang.msg("menu.rank_edit.feedback.invalid_name", "error" to error))
+                    player.sendMessage(lang.rankNameError(error))
                     player.sendMessage(lang.msg("menu.rank_edit.feedback.try_again"))
                     // Keep input mode active and reopen menu for retry
                 } else {
-                    // Update rank name in database
-                    rank = rank.copy(name = input)
-                    val success = rankService.updateRank(rank, player.uniqueId)
+                    // Update local state only after the database accepts the rename.
+                    val renamed = rank.copy(name = input)
+                    val success = rankService.updateRank(renamed, player.uniqueId)
                     if (success) {
-                        player.sendMessage(lang.msg("menu.rank_edit.feedback.name_updated", "rank" to input))
+                        rank = renamed
+                        player.sendMessage(
+                            lang.msg(
+                                "menu.rank_edit.feedback.name_updated",
+                                "rank" to RankNameContent.miniMessage(input),
+                            ),
+                        )
                     } else {
                         player.sendMessage(lang.msg("menu.rank_edit.feedback.name_update_failed"))
                     }

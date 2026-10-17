@@ -1,5 +1,10 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.RankNameContent
+
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
@@ -7,16 +12,18 @@ import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import io.papermc.paper.datacomponent.DataComponentTypes
 import io.papermc.paper.datacomponent.item.ResolvableProfile
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.interaction.menus.sortMembersByRank
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Bukkit
@@ -34,11 +41,13 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
     private val guildService: GuildService by inject()
     private val memberService: MemberService by inject()
+    private val rankService: RankService by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val lang: LangService by inject()
 
     private lateinit var memberPane: StaticPane
     private var currentPage = 0
+    private var sortByRank = false
     private val itemsPerPage = 45 // 9x5 grid
 
     override fun open() {
@@ -65,9 +74,10 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
 
         // Add action buttons
         addInviteButton(pane, 1, 5)
+        addSortButton(pane, 2, 5)
         addPromoteDemoteButton(pane, 3, 5)
         addKickButton(pane, 5, 5)
-        addBackButton(pane, 7, 5)
+        addBackButton(pane, 4, 5)
 
         gui.addPane(memberPane)
         gui.addPane(pane)
@@ -75,7 +85,12 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
     }
 
     private fun updateMemberDisplay() {
-        val allMembers = memberService.getGuildMembers(guild.id).sortedBy { it.playerId }
+        val members = memberService.getGuildMembers(guild.id)
+        val allMembers = if (sortByRank) {
+            sortMembersByRank(members, rankService.listRanks(guild.id), ::resolvePlayerName)
+        } else {
+            members.sortedBy { it.playerId }
+        }
 
         // Calculate pagination
         val totalPages = (allMembers.size + itemsPerPage - 1) / itemsPerPage
@@ -118,14 +133,15 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
         val meta = head.itemMeta as SkullMeta
 
         // Try to get player name from online players or cache
-        val playerName = Bukkit.getOfflinePlayer(member.playerId).name
-            ?: lang.raw("menu.guild_confirmation.common.unknown_player")
-
+        val playerName = resolvePlayerName(member)
+        val rankName = rankService.getRank(member.rankId)?.name
+            ?: lang.raw("menu.member_list.default_rank")
 
         head.itemMeta = meta
 
         return head.name(lang.gui("menu.member_management.item.member.name", "player" to playerName))
             .lore(lang.gui("menu.member_management.item.member.lore.player", "player" to playerName))
+            .lore(lang.gui("menu.member_management.item.member.lore.rank", "rank" to RankNameContent.miniMessage(rankName)))
             .lore(lang.gui("menu.member_management.item.member.lore.joined", "joined" to member.joinedAt))
             .lore(lang.gui("menu.common.blank"))
             .lore(lang.gui("menu.member_management.item.member.lore.action"))
@@ -136,7 +152,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
         val totalPages = (allMembers.size + itemsPerPage - 1) / itemsPerPage
 
         // Previous page button
-        val prevItem = ItemStack.of(Material.ARROW)
+        val prevItem = NexoItemProvider.getItemStackOrFallback("lg_page_prev") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.member_management.item.previous.name"))
             .lore(lang.gui("menu.member_management.item.previous.lore"))
 
@@ -149,7 +165,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
         pane.addItem(prevGuiItem, 0, 5)
 
         // Next page button
-        val nextItem = ItemStack.of(Material.ARROW)
+        val nextItem = NexoItemProvider.getItemStackOrFallback("lg_page_next") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.member_management.item.next.name"))
             .lore(lang.gui("menu.member_management.item.next.lore"))
 
@@ -170,11 +186,36 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
             ))
             .lore(lang.gui("menu.member_management.item.page.lore"))
 
-        pane.addItem(GuiItem(pageItem), 4, 5)
+        pane.addItem(GuiItem(pageItem), 7, 5)
     }
 
+    private fun addSortButton(pane: StaticPane, x: Int, y: Int) {
+        val baseItem = NexoItemProvider.getItemStackOrFallback("lg_sort") {
+            ItemStack.of(Material.COMPARATOR)
+        }
+        val sortItem = if (sortByRank) {
+            baseItem
+                .name(lang.gui("menu.member_management.item.sort.name.rank"))
+                .lore(lang.gui("menu.member_management.item.sort.lore.rank"))
+        } else {
+            baseItem
+                .name(lang.gui("menu.member_management.item.sort.name.default"))
+                .lore(lang.gui("menu.member_management.item.sort.lore.default"))
+        }
+
+        pane.addItem(GuiItem(sortItem) {
+            sortByRank = !sortByRank
+            currentPage = 0
+            open()
+        }, x, y)
+    }
+
+    private fun resolvePlayerName(member: Member): String =
+        Bukkit.getOfflinePlayer(member.playerId).name
+            ?: lang.raw("menu.guild_confirmation.common.unknown_player")
+
     private fun addInviteButton(pane: StaticPane, x: Int, y: Int) {
-        val inviteItem = ItemStack.of(Material.GREEN_WOOL)
+        val inviteItem = NexoItemProvider.getItemStackOrFallback("lg_invite") { ItemStack.of(Material.GREEN_WOOL) }
             .name(lang.gui("menu.member_management.item.invite.name"))
             .lore(lang.gui("menu.member_management.item.invite.lore.description"))
             .lore(lang.gui("menu.member_management.item.invite.lore.requirement"))
@@ -190,7 +231,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
     }
 
     private fun addPromoteDemoteButton(pane: StaticPane, x: Int, y: Int) {
-        val promoteItem = ItemStack.of(Material.GOLDEN_APPLE)
+        val promoteItem = NexoItemProvider.getItemStackOrFallback("lg_promote") { ItemStack.of(Material.GOLDEN_APPLE) }
             .name(lang.gui("menu.member_management.item.rank_change.name"))
             .lore(lang.gui("menu.member_management.item.rank_change.lore.description"))
             .lore(lang.gui("menu.member_management.item.rank_change.lore.requirement"))
@@ -217,7 +258,7 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
     }
 
     private fun addKickButton(pane: StaticPane, x: Int, y: Int) {
-        val kickItem = ItemStack.of(Material.RED_WOOL)
+        val kickItem = NexoItemProvider.getItemStackOrFallback("lg_kick") { ItemStack.of(Material.RED_WOOL) }
             .name(lang.gui("menu.member_management.item.kick.name"))
             .lore(lang.gui("menu.member_management.item.kick.lore.description"))
             .lore(lang.gui("menu.member_management.item.kick.lore.requirement"))
@@ -233,12 +274,12 @@ class GuildMemberManagementMenu(private val menuNavigator: MenuNavigator, privat
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack.of(Material.BARRIER)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
             .name(lang.gui("menu.member_management.item.back.name"))
             .lore(lang.gui("menu.member_management.item.back.lore"))
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(backGuiItem, x, y)
     }

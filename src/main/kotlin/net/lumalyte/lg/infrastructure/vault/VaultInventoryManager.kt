@@ -391,32 +391,33 @@ class VaultInventoryManager(
     fun flushBuffer(guildId: UUID): Boolean {
         val buffer = writeBuffers[guildId] ?: return true // No buffer, nothing to flush
 
-        if (!buffer.hasPendingChanges()) {
-            return true // Nothing to flush
-        }
-
-        var success = true
-
-        // Flush pending slot changes (additions/updates)
-        buffer.pendingSlots.forEach { (slot, item) ->
-            if (!saveSlotWithRetry(guildId, slot, item)) {
-                success = false
+        return synchronized(buffer) {
+            if (!buffer.hasPendingChanges()) {
+                return@synchronized true // Nothing to flush
             }
-        }
 
-        // Flush pending slot deletions (cleared slots)
-        buffer.pendingDeletions.forEach { slot ->
-            if (!saveSlotWithRetry(guildId, slot, null)) {
-                success = false
+            var success = true
+
+            // Hold the buffer monitor while persisting so gameplay writes cannot be
+            // cleared by a successful flush that started before those writes arrived.
+            buffer.pendingSlots.forEach { (slot, item) ->
+                if (!saveSlotWithRetry(guildId, slot, item)) {
+                    success = false
+                }
             }
+
+            buffer.pendingDeletions.forEach { slot ->
+                if (!saveSlotWithRetry(guildId, slot, null)) {
+                    success = false
+                }
+            }
+
+            if (success) {
+                buffer.clear()
+            }
+
+            success
         }
-
-
-        if (success) {
-            buffer.clear()
-        }
-
-        return success
     }
 
     /**

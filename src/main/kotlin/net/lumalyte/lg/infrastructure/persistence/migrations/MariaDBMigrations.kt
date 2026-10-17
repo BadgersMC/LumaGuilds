@@ -95,7 +95,90 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(29)
                 currentDbVersion = 29
             }
+            if (currentDbVersion < 30) {
+                migrateToVersion30()
+                updateDatabaseVersion(30)
+                currentDbVersion = 30
+            }
+            if (currentDbVersion < 31) {
+                migrateToVersion31()
+                updateDatabaseVersion(31)
+                currentDbVersion = 31
+            }
+            if (currentDbVersion < 32) {
+                migrateToVersion32()
+                updateDatabaseVersion(32)
+                currentDbVersion = 32
+            }
+            if (currentDbVersion < 33) {
+                migrateToVersion33()
+                updateDatabaseVersion(33)
+                currentDbVersion = 33
+            }
+            if (currentDbVersion < 34) {
+                migrateToVersion34()
+                updateDatabaseVersion(34)
+                currentDbVersion = 34
+            }
+            if (currentDbVersion < 35) {
+                migrateToVersion35()
+                updateDatabaseVersion(35)
+                currentDbVersion = 35
+            }
+            if (currentDbVersion < 36) {
+                migrateToVersion36()
+                updateDatabaseVersion(36)
+                currentDbVersion = 36
+            }
+            if (currentDbVersion < 37) {
+                migrateToVersion37()
+                updateDatabaseVersion(37)
+                currentDbVersion = 37
+            }
+            if (currentDbVersion < 38) {
+                migrateToVersion38()
+                updateDatabaseVersion(38)
+                currentDbVersion = 38
+            }
+            if (currentDbVersion < 39) {
+                migrateToVersion39()
+                updateDatabaseVersion(39)
+                currentDbVersion = 39
+            }
+            if (currentDbVersion < 40) {
+                migrateToVersion40()
+                updateDatabaseVersion(40)
+                currentDbVersion = 40
+            }
+            if (currentDbVersion < 41) {
+                migrateToVersion41()
+                updateDatabaseVersion(41)
+                currentDbVersion = 41
+            }
 
+            if (currentDbVersion < 42) {
+                GuildChatRankSettingsSchema.create(connection, mariaDb = true)
+                updateDatabaseVersion(42)
+                currentDbVersion = 42
+            }
+            if (currentDbVersion < 43) {
+                GuildHomeActivationSchema.create(connection, mariaDb = true)
+                GuildHomeActivationSchema.backfillLegacyCredits(connection, mariaDb = true)
+                updateDatabaseVersion(43)
+                currentDbVersion = 43
+            }
+            // Additive post-version schemas are idempotently ensured on every startup.
+            GuildCosmeticSchema.create(connection, mariaDb = true)
+            if (currentDbVersion < 44) {
+                // Keep v44 safe for partial/damaged schemas: recreate the historical v24
+                // strike table before adding provider-neutral identity and expiration columns.
+                if (!tableExists("guild_strikes")) {
+                    migrateToVersion24()
+                }
+                GuildStrikeFeedSchema.migrate(connection)
+                updateDatabaseVersion(44)
+                currentDbVersion = 44
+            }
             connection.commit()
 
             val finalVersion = getCurrentDatabaseVersion()
@@ -991,5 +1074,75 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
     private fun migrateToVersion29() {
         GuildGoldSchema.create(connection, mariaDb = true)
         componentLogger.info(Component.text("✓ Migration v29 complete: canonical guild-gold operations added"))
+    }
+
+    private fun migrateToVersion30() {
+        ChapterLifecycleSchema.create(connection, mariaDb = true)
+        componentLogger.info(Component.text("✓ Migration v30 complete: chapter lifecycle persistence added"))
+    }
+
+    private fun migrateToVersion31() {
+        SeasonalEloSchema.create(connection, mariaDb = true)
+        componentLogger.info(Component.text("✓ Migration v31 complete: seasonal Elo pair/result persistence added"))
+    }
+
+    private fun migrateToVersion32() {
+        WarBannerSchema.create(connection, mariaDb = true)
+        val updatedRanks = WarBannerSchema.backfillRankPermission(connection)
+        componentLogger.info(Component.text(
+            "✓ Migration v32 complete: tactical war-banner state added; " +
+                "$updatedRanks existing war-management rank(s) granted PLACE_WAR_BANNER"
+        ))
+    }
+
+    private fun migrateToVersion33() {
+        WarNotificationSchema.create(connection, mariaDb = true)
+        componentLogger.info(Component.text(
+            "✓ Migration v33 complete: durable war-notification queue added"
+        ))
+    }
+
+    private fun migrateToVersion34() {
+        PlayerNotificationPreferenceSchema.create(connection, mariaDb = true)
+        componentLogger.info(Component.text(
+            "✓ Migration v34 complete: player notification preferences added"
+        ))
+    }
+
+    private fun migrateToVersion35() {
+        GuildDiscordRoleSchema.create(connection, mariaDb = true)
+        componentLogger.info(Component.text(
+            "✓ Migration v35 complete: durable guild Discord-role links added"
+        ))
+    }
+
+    private fun migrateToVersion36() {
+        QuestSchema.create(connection, mariaDb = true)
+        componentLogger.info(Component.text("Quest persistence migrated to schema v36"))
+    }
+
+    private fun migrateToVersion37() {
+        InvitationStatisticsSchema.create(connection, mariaDb = true)
+        componentLogger.info(Component.text("Invitation statistics migrated to schema v37"))
+    }
+
+    private fun migrateToVersion38() {
+        SpawnBannerSchema.create(connection, mariaDb = true)
+        componentLogger.info(Component.text("Dynamic spawn banners migrated to schema v38"))
+    }
+
+    private fun migrateToVersion39() {
+        ClaimTransferRequestSchema.create(connection, mariaDb = true)
+        componentLogger.info(Component.text("Claim transfer requests migrated to schema v39"))
+    }
+
+    private fun migrateToVersion40() {
+        RankClaimPermissionProfileSchema.create(connection, mariaDb = true)
+        componentLogger.info(Component.text("Rank claim-permission profiles migrated to schema v40"))
+    }
+
+    private fun migrateToVersion41() {
+        QuestCompletionNotificationSchema.create(connection, mariaDb = true)
+        componentLogger.info(Component.text("Quest completion notifications migrated to schema v41"))
     }
 }

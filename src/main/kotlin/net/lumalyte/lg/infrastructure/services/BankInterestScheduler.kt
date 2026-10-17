@@ -1,5 +1,6 @@
 package net.lumalyte.lg.infrastructure.services
 
+import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.services.BankAutomationService
 import org.bukkit.plugin.Plugin
 import org.bukkit.scheduler.BukkitRunnable
@@ -8,63 +9,68 @@ import org.slf4j.LoggerFactory
 /**
  * Periodic bank automation driver (REQ-009): interest accrual + audit-log pruning.
  *
- * Runs every 5 minutes; each run accrues interest for every guild whose compound
- * period has elapsed (catch-up capped by [BankAutomationService]) and prunes
- * expired audit entries.
+ * Interest stays on the Bukkit main thread because the settlement path can update a live
+ * inventory. Audit pruning is database-only and runs asynchronously so a busy SQLite writer
+ * can never stall the server thread long enough to trip the watchdog.
  */
 class BankInterestScheduler(
     private val plugin: Plugin,
     private val bankAutomationService: BankAutomationService
 ) {
-
     private val logger = LoggerFactory.getLogger(BankInterestScheduler::class.java)
 
     private var scheduledTask: BukkitRunnable? = null
+    private var pruneTask: BukkitRunnable? = null
 
-    private val runIntervalTicks = 5L * 60L * 20L // 5 minutes (20 ticks per second)
+    private val runIntervalTicks = 5L * 60L * 20L
+    // Retention is measured in days; pruning hourly is ample and avoids competing with
+    // the five-minute interest sweep. The first prune is deliberately offset by one minute.
+    private val pruneInitialDelayTicks = runIntervalTicks + (60L * 20L)
+    private val pruneIntervalTicks = 60L * 60L * 20L
 
-    /** Starts the periodic scheduler. Safe to call once at plugin enable. */
     fun start() {
-        if (scheduledTask != null) return
+        if (scheduledTask != null || pruneTask != null) return
 
         scheduledTask = object : BukkitRunnable() {
             override fun run() {
-                // NOTE: intentionally runs on the main thread — the accrual path
-                // (creditToGuildBank → VaultInventoryManager.depositGold →
-                // updateGoldBalanceButton) mutates a live Bukkit Inventory, so it
-                // cannot be moved to a worker thread. Matches DailyWarCostsScheduler.
                 try {
                     val credited = bankAutomationService.accrueInterest()
                     if (credited > 0) {
                         logger.info("Bank interest accrued for $credited guild(s)")
                     }
-                } catch (e: net.lumalyte.lg.application.errors.DatabaseOperationException) {
+                } catch (e: DatabaseOperationException) {
                     logger.error("Database error running bank interest accrual", e)
                 } catch (e: IllegalStateException) {
                     logger.error("Service error running bank interest accrual", e)
                 }
+            }
+        }
+        scheduledTask?.runTaskTimer(plugin, runIntervalTicks, runIntervalTicks)
 
+        pruneTask = object : BukkitRunnable() {
+            override fun run() {
                 try {
                     val pruned = bankAutomationService.pruneAuditLogs()
                     if (pruned > 0) {
                         logger.info("Pruned $pruned expired bank audit entr${if (pruned == 1) "y" else "ies"}")
                     }
-                } catch (e: net.lumalyte.lg.application.errors.DatabaseOperationException) {
+                } catch (e: DatabaseOperationException) {
                     logger.error("Database error pruning bank audit logs", e)
                 } catch (e: IllegalStateException) {
                     logger.error("Service error pruning bank audit logs", e)
                 }
             }
         }
+        pruneTask?.runTaskTimerAsynchronously(plugin, pruneInitialDelayTicks, pruneIntervalTicks)
 
-        scheduledTask?.runTaskTimer(plugin, runIntervalTicks, runIntervalTicks)
-        logger.info("Bank interest scheduler started (every 5 minutes)")
+        logger.info("Bank interest scheduler started (interest every 5 minutes; audit pruning async hourly)")
     }
 
-    /** Stops the periodic scheduler. */
     fun stop() {
         scheduledTask?.cancel()
+        pruneTask?.cancel()
         scheduledTask = null
+        pruneTask = null
         logger.info("Bank interest scheduler stopped")
     }
 }

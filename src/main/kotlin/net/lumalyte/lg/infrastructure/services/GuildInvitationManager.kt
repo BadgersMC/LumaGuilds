@@ -30,7 +30,7 @@ object GuildInvitationManager {
         invitedPlayerId: UUID,
         inviterPlayerId: UUID,
         inviterName: String
-    ) {
+    ): Boolean {
         val invitation = GuildInvitation(
             guildId = guildId,
             guildName = guildName,
@@ -39,15 +39,16 @@ object GuildInvitationManager {
             inviterName = inviterName
         )
 
-        repository.add(invitation)
+        if (!repository.add(invitation)) return false
 
-        // Send Apollo notification (if available)
         try {
-            val notificationService = org.koin.core.context.GlobalContext.get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService>()
+            val notificationService = org.koin.core.context.GlobalContext.get()
+                .getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService>()
             notificationService?.notifyGuildInvite(invitedPlayerId, guildName, inviterName)
-        } catch (e: Exception) {
-            // Silently fail if Apollo not available
+        } catch (_: Exception) {
+            // Apollo is optional; durable invitation persistence already succeeded.
         }
+        return true
     }
 
     /**

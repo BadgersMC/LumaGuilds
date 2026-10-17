@@ -9,7 +9,9 @@ data class GuildQuestProgress(
     val guildId: UUID,
     val currentCount: Long = 0,
     val claimed: Boolean = false,
-    val completedAt: Instant? = null
+    val completedAt: Instant? = null,
+    val claimActorId: UUID? = null,
+    val rewardDelivered: Boolean = false,
 ) {
     fun withIncrementedCount(amount: Long, targetCount: Long, now: Instant = Instant.now()): GuildQuestProgress {
         require(amount >= 0) { "Progress increment cannot be negative" }
@@ -20,7 +22,10 @@ data class GuildQuestProgress(
         )
     }
 
-    fun withClaimed(): GuildQuestProgress = copy(claimed = true)
+    fun withClaimed(actorId: UUID? = claimActorId): GuildQuestProgress =
+        copy(claimed = true, claimActorId = actorId)
+
+    fun withRewardDelivered(): GuildQuestProgress = copy(rewardDelivered = true)
 
     fun isCompletable(targetCount: Long): Boolean = targetCount > 0 && currentCount >= targetCount && !claimed
 }

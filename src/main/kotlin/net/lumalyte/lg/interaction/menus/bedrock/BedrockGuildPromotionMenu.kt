@@ -1,7 +1,5 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
-import net.lumalyte.lg.infrastructure.i18n.bedrock
-
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
@@ -10,7 +8,9 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.Rank
 import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.infrastructure.i18n.bedrock
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.RankNameContent
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
@@ -75,7 +75,11 @@ class BedrockGuildPromotionMenu(
         return members.map { member ->
             val playerName = getPlayerName(member)
             val currentRank = rankService.getRank(member.rankId)?.name ?: lang.bedrock("bedrock.promotion.unknown_rank")
-            lang.bedrock("bedrock.promotion.member_option", "player" to playerName, "rank" to currentRank)
+            lang.bedrock(
+                "bedrock.promotion.member_option",
+                "player" to playerName,
+                "rank" to RankNameContent.miniMessage(currentRank),
+            )
         }
     }
 
@@ -85,7 +89,11 @@ class BedrockGuildPromotionMenu(
         }
 
         return ranks.map { rank ->
-            lang.bedrock("bedrock.promotion.rank_option", "rank" to rank.name, "priority" to rank.priority)
+            lang.bedrock(
+                "bedrock.promotion.rank_option",
+                "rank" to RankNameContent.miniMessage(rank.name),
+                "priority" to rank.priority,
+            )
         }
     }
 

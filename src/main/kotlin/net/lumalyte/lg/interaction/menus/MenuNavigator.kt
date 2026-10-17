@@ -1,9 +1,17 @@
 package net.lumalyte.lg.interaction.menus
 
 import org.bukkit.entity.Player
+import java.util.WeakHashMap
+import java.util.concurrent.atomic.AtomicLong
 
+/** Public navigation contract used by the existing Java and Bedrock menu constructors. */
+@Suppress("LibraryEntitiesShouldNotBePublic") // Preserve the public menu-constructor contract.
 class MenuNavigator(private val player: Player) {
     private val menuStack = ArrayDeque<Menu>()
+    private val navigationGeneration =
+        synchronized(GENERATIONS) {
+            GENERATIONS.getOrPut(player) { AtomicLong() }
+        }
 
     /**
      * Opens the provided menu for the target player.
@@ -14,6 +22,7 @@ class MenuNavigator(private val player: Player) {
      * @param menu The menu to open.
      */
     fun openMenu(menu: Menu) {
+        navigationGeneration.incrementAndGet()
         menuStack.addFirst(menu)
         menu.open()
     }
@@ -25,6 +34,7 @@ class MenuNavigator(private val player: Player) {
      * a step in the stack when prompted for it.
      */
     fun goBack() {
+        navigationGeneration.incrementAndGet()
         navigateBack()
     }
 
@@ -39,6 +49,7 @@ class MenuNavigator(private val player: Player) {
      * @param data Data type of any to pass to the previous menu.
      */
     fun goBackWithData(data: Any?) {
+        navigationGeneration.incrementAndGet()
         navigateBack(data)
     }
 
@@ -49,7 +60,27 @@ class MenuNavigator(private val player: Player) {
      * menu.
      */
     fun clearMenuStack() {
+        navigationGeneration.incrementAndGet()
         menuStack.clear()
+    }
+
+    /**
+     * Returns the current navigation generation for guarding asynchronous menu work.
+     */
+    fun currentNavigationToken(): Long = navigationGeneration.get()
+
+    /**
+     * Returns true while [token] still belongs to the player's current navigation state.
+     */
+    fun isNavigationCurrent(token: Long): Boolean = navigationGeneration.get() == token
+
+    /**
+     * Invalidates asynchronous work without changing the menu stack.
+     *
+     * Used when a player closes a menu directly instead of navigating through this class.
+     */
+    fun invalidateCurrentNavigation() {
+        navigationGeneration.incrementAndGet()
     }
 
     private fun navigateBack(data: Any? = null) {
@@ -62,5 +93,11 @@ class MenuNavigator(private val player: Player) {
                 player.closeInventory()
             }
         }
+    }
+
+    private companion object {
+        // Commands may create separate navigators for the same live player.
+        // Weak keys avoid retaining disconnected players after their menus are released.
+        val GENERATIONS = WeakHashMap<Player, AtomicLong>()
     }
 }

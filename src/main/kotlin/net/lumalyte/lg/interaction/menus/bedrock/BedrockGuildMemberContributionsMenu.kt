@@ -1,107 +1,131 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
-import net.lumalyte.lg.infrastructure.i18n.bedrock
-
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.domain.entities.MemberContribution
+import net.lumalyte.lg.infrastructure.i18n.bedrock
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
-import org.geysermc.cumulus.form.SimpleForm
+import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.Form
-import org.koin.core.component.KoinComponent
+import org.geysermc.cumulus.form.SimpleForm
 import org.koin.core.component.inject
 import java.util.logging.Logger
 
-/**
- * Bedrock Edition guild member contributions menu using Cumulus SimpleForm
- * Shows net contributions for each member
- */
+/** Paged Bedrock view of every member contribution returned by BankService. */
 class BedrockGuildMemberContributionsMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
     logger: Logger
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
-
     private val bankService: BankService by inject()
     private val lang: LangService by inject()
+    private val plugin: Plugin by inject()
+    private var page = 0
 
     override fun getForm(): Form {
-        val config = getBedrockConfig()
-
-        // Get member contributions
         val contributions = bankService.getMemberContributions(guild.id)
-            .sortedByDescending { it.netContribution }
-            .take(10) // Show top 10 contributors
+            .sortedByDescending(MemberContribution::netContribution)
+        val pageCount = maxOf(1, (contributions.size + PAGE_SIZE - 1) / PAGE_SIZE)
+        page = page.coerceIn(0, pageCount - 1)
+        val pageItems = contributions
+            .drop(page * PAGE_SIZE)
+            .take(PAGE_SIZE)
 
-        val content = if (contributions.isEmpty()) {
+        val content = if (pageItems.isEmpty()) {
             lang.bedrock("bedrock.bank.contributions.empty")
         } else {
-            val rows = contributions.mapIndexed { index, contribution ->
-                val memberName = Bukkit.getOfflinePlayer(contribution.playerId).name
-                    ?: lang.bedrock("bedrock.bank.contributions.unknown_player")
-                val key = when {
-                    contribution.netContribution > 0 -> "bedrock.bank.contributions.row.positive"
-                    contribution.netContribution < 0 -> "bedrock.bank.contributions.row.negative"
-                    else -> "bedrock.bank.contributions.row.neutral"
-                }
-                when (key) {
-                    "bedrock.bank.contributions.row.positive" -> lang.bedrock(
-                        "bedrock.bank.contributions.row.positive",
-                        "position" to index + 1,
-                        "player" to memberName,
-                        "net" to contribution.netContribution,
-                        "deposits" to contribution.totalDeposits,
-                        "withdrawals" to contribution.totalWithdrawals
-                    )
-                    "bedrock.bank.contributions.row.negative" -> lang.bedrock(
-                        "bedrock.bank.contributions.row.negative",
-                        "position" to index + 1,
-                        "player" to memberName,
-                        "net" to contribution.netContribution,
-                        "deposits" to contribution.totalDeposits,
-                        "withdrawals" to contribution.totalWithdrawals
-                    )
-                    else -> lang.bedrock(
-                        "bedrock.bank.contributions.row.neutral",
-                        "position" to index + 1,
-                        "player" to memberName,
-                        "net" to contribution.netContribution,
-                        "deposits" to contribution.totalDeposits,
-                        "withdrawals" to contribution.totalWithdrawals
-                    )
-                }
+            val rows = pageItems.mapIndexed { index, contribution ->
+                renderContribution(page * PAGE_SIZE + index + 1, contribution)
             }.joinToString("\n")
-            lang.bedrock("bedrock.bank.contributions.content", "contributors" to rows)
+            listOf(
+                lang.bedrock(
+                    "bedrock.bank.contributions.page_header",
+                    "page" to page + 1,
+                    "pages" to pageCount,
+                    "count" to contributions.size
+                ),
+                rows
+            ).joinToString("\n\n")
         }
 
-        return SimpleForm.builder()
+        var builder = SimpleForm.builder()
             .title(lang.bedrock("bedrock.bank.contributions.title", "guild" to guild.name))
             .content(content)
-            .button(lang.bedrock("bedrock.bank.contributions.button.refresh"))
-            .button(lang.bedrock("bedrock.bank.contributions.button.back"))
+        val actions = mutableListOf<() -> Unit>()
+
+        if (page > 0) {
+            builder = builder.button(lang.bedrock("bedrock.bank.contributions.button.previous"))
+            actions += { runOnServerThread { page--; open() } }
+        }
+        if (page + 1 < pageCount) {
+            builder = builder.button(lang.bedrock("bedrock.bank.contributions.button.next"))
+            actions += { runOnServerThread { page++; open() } }
+        }
+
+        builder = builder.button(lang.bedrock("bedrock.bank.contributions.button.refresh"))
+        actions += { runOnServerThread { open() } }
+        builder = builder.button(lang.bedrock("bedrock.bank.contributions.button.back"))
+        actions += { runOnServerThread { bedrockNavigator.goBack() } }
+
+        return builder
             .validResultHandler { response ->
-                when (response.clickedButtonId()) {
-                    0 -> {
-                        // Refresh
-                        bedrockNavigator.openMenu(BedrockGuildMemberContributionsMenu(menuNavigator, player, guild, logger))
-                    }
-                    1 -> {
-                        // Back
-                        bedrockNavigator.goBack()
-                    }
-                }
+                onFormResponseReceived()
+                actions.getOrNull(response.clickedButtonId())?.invoke()
             }
             .closedOrInvalidResultHandler { _, _ ->
-                bedrockNavigator.goBack()
+                runOnServerThread {
+                    onFormResponseReceived()
+                    bedrockNavigator.goBack()
+                }
             }
             .build()
     }
 
-    override fun handleResponse(player: Player, response: Any?) {
-        // Handled in the form result handler
-        onFormResponseReceived()
+    private fun runOnServerThread(action: () -> Unit) {
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            if (player.isOnline) action()
+        })
+    }
+
+    private fun renderContribution(position: Int, contribution: MemberContribution): String {
+        val memberName = contribution.playerName
+            ?: lang.bedrock("bedrock.bank.contributions.unknown_player")
+        return when {
+            contribution.netContribution > 0 -> lang.bedrock(
+                "bedrock.bank.contributions.row.positive",
+                "position" to position,
+                "player" to memberName,
+                "net" to contribution.netContribution,
+                "deposits" to contribution.totalDeposits,
+                "withdrawals" to contribution.totalWithdrawals
+            )
+            contribution.netContribution < 0 -> lang.bedrock(
+                "bedrock.bank.contributions.row.negative",
+                "position" to position,
+                "player" to memberName,
+                "net" to contribution.netContribution,
+                "deposits" to contribution.totalDeposits,
+                "withdrawals" to contribution.totalWithdrawals
+            )
+            else -> lang.bedrock(
+                "bedrock.bank.contributions.row.neutral",
+                "position" to position,
+                "player" to memberName,
+                "net" to contribution.netContribution,
+                "deposits" to contribution.totalDeposits,
+                "withdrawals" to contribution.totalWithdrawals
+            )
+        }
+    }
+
+    override fun shouldCacheForm(): Boolean = false
+    override fun handleResponse(player: Player, response: Any?) = Unit
+
+    companion object {
+        private const val PAGE_SIZE = 10
     }
 }

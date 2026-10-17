@@ -8,7 +8,6 @@ import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuNavigator
-import net.lumalyte.lg.interaction.menus.guild.GuildControlPanelMenu
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
@@ -84,22 +83,6 @@ class BedrockGuildLeaveConfirmationMenu(
         // Response handling is done in the form builder's validResultHandler
         // This method is kept for interface compatibility
         onFormResponseReceived()
-    }
-
-    override fun createFallbackJavaMenu(): net.lumalyte.lg.interaction.menus.Menu? {
-        return try {
-            // Import the Java guild leave confirmation menu
-            val javaMenuClass = Class.forName("net.lumalyte.lg.interaction.menus.guild.GuildLeaveConfirmationMenu")
-            val constructor = javaMenuClass.getConstructor(
-                net.lumalyte.lg.interaction.menus.MenuNavigator::class.java,
-                org.bukkit.entity.Player::class.java
-            )
-            constructor.newInstance(menuNavigator, player) as net.lumalyte.lg.interaction.menus.Menu
-        } catch (e: Exception) {
-            // Menu operation - catching all exceptions to prevent UI failure
-            logger.warning("Failed to create Java fallback menu for guild leave confirmation: ${e.message}")
-            null
-        }
     }
 }
 

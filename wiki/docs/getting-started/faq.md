@@ -5,7 +5,7 @@ topic: faq
 summary: Common questions from new players about LumaGuilds.
 keywords: [faq, common questions, help, troubleshooting]
 related: [walkthrough, chat, homes]
-updated: 2026-05-13
+updated: 2026-09-28
 ---
 
 # FAQ
@@ -32,7 +32,15 @@ Yes. `/g sethome <name>` creates additional named homes (`shop`, `mine`, etc.). 
 
 ## I'm on Bedrock — does this all work?
 
-Mostly. A few menus open as chat-based forms instead of inventory GUIs, and clickable chat buttons map to taps. See [Players → Bedrock differences](../players/bedrock.md).
+Yes. Bedrock uses native Floodgate/Cumulus forms instead of Java inventory GUIs, including the Chapter 2 progression, prestige, and weekly quest flows. See [Players → Bedrock differences](../players/bedrock.md).
+
+## How do weekly guild quests work?
+
+Your guild shares the same weekly objectives as every other guild. Reaching the target awards the normal reward automatically, but progress can continue past the target for the per-quest leaderboard. See [Weekly Guild Quests](../players/quests.md).
+
+## What is prestige?
+
+Prestige is an optional Chapter progression feature. When enabled by the server and your guild meets the requirements, the Progression menu shows the cost, retained-perk choices, and confirmation flow. See [Progression, Rewards & Prestige](../players/progression.md#prestige).
 
 ## Where do I report a bug?
 

@@ -1,20 +1,22 @@
 package net.lumalyte.lg.interaction.menus.guild
 
-import net.lumalyte.lg.utils.MenuTitleBuilder
-import net.badgersmc.nexus.i18n.LangService
-import net.lumalyte.lg.infrastructure.i18n.gui
-import net.lumalyte.lg.infrastructure.i18n.guiTitle
-
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.PaginatedPane
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Rank
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.utils.NexoItemProvider
+import net.lumalyte.lg.utils.RankNameContent
+import net.lumalyte.lg.utils.inventoryframework.PaginatedPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Bukkit
@@ -23,9 +25,9 @@ import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
+import org.bukkit.plugin.Plugin
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import org.bukkit.plugin.Plugin
 
 class GuildPromotionMenu(
     private val menuNavigator: MenuNavigator,
@@ -74,9 +76,10 @@ class GuildPromotionMenu(
             val playerName = Bukkit.getOfflinePlayer(member.playerId).name ?: member.playerId.toString().take(8)
             val isOnline = Bukkit.getPlayer(member.playerId)?.isOnline == true
 
+            val rankName = rank?.name ?: lang.raw("menu.guild_promotion.fallback.unknown_rank")
             val item = ItemStack.of(if (isOnline) Material.PLAYER_HEAD else Material.SKELETON_SKULL)
                 .name(lang.gui("menu.guild_promotion.member.name", "player" to playerName))
-                .lore(lang.gui("menu.guild_promotion.member.rank", "rank" to (rank?.name ?: lang.raw("menu.guild_promotion.fallback.unknown_rank"))))
+                .lore(lang.gui("menu.guild_promotion.member.rank", "rank" to RankNameContent.miniMessage(rankName)))
                 .lore(
                     if (isOnline) {
                         lang.gui("menu.guild_promotion.member.status.online")
@@ -98,7 +101,13 @@ class GuildPromotionMenu(
                             // Fetch the exact rank the service assigned
                             val updatedMember = memberService.getMember(member.playerId, guild.id)
                             val newRankName = updatedMember?.let { m -> rankById[m.rankId]?.name } ?: ranks[rankIdx - 1].name
-                            player.sendMessage(lang.msg("menu.guild_promotion.feedback.promoted", "player" to playerName, "rank" to newRankName))
+                            player.sendMessage(
+                                lang.msg(
+                                    "menu.guild_promotion.feedback.promoted",
+                                    "player" to playerName,
+                                    "rank" to RankNameContent.miniMessage(newRankName),
+                                ),
+                            )
                             player.playSound(player.location, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f)
                             reloadSafely()
                         } else {
@@ -115,7 +124,13 @@ class GuildPromotionMenu(
                             // Fetch the exact rank the service assigned
                             val updatedMember = memberService.getMember(member.playerId, guild.id)
                             val newRankName = updatedMember?.let { m -> rankById[m.rankId]?.name } ?: ranks[rankIdx + 1].name
-                            player.sendMessage(lang.msg("menu.guild_promotion.feedback.demoted", "player" to playerName, "rank" to newRankName))
+                            player.sendMessage(
+                                lang.msg(
+                                    "menu.guild_promotion.feedback.demoted",
+                                    "player" to playerName,
+                                    "rank" to RankNameContent.miniMessage(newRankName),
+                                ),
+                            )
                             player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 0.8f, 1.0f)
                             reloadSafely()
                         } else {
@@ -133,7 +148,7 @@ class GuildPromotionMenu(
         // Navigation row (y=5)
         if (paginatedPane.pages > 1) {
             // Previous page
-            val prevItem = ItemStack.of(Material.ARROW)
+            val prevItem = NexoItemProvider.getItemStackOrFallback("lg_page_prev") { ItemStack.of(Material.ARROW) }
                 .name(lang.gui("menu.guild_promotion.navigation.previous"))
                 .lore(lang.gui("menu.guild_promotion.navigation.page", "page" to paginatedPane.page + 1, "pages" to paginatedPane.pages))
             staticPane.addItem(GuiItem(prevItem) {
@@ -144,7 +159,7 @@ class GuildPromotionMenu(
             }, 0, 0)
 
             // Next page
-            val nextItem = ItemStack.of(Material.ARROW)
+            val nextItem = NexoItemProvider.getItemStackOrFallback("lg_page_next") { ItemStack.of(Material.ARROW) }
                 .name(lang.gui("menu.guild_promotion.navigation.next"))
                 .lore(lang.gui("menu.guild_promotion.navigation.page", "page" to paginatedPane.page + 1, "pages" to paginatedPane.pages))
             staticPane.addItem(GuiItem(nextItem) {
@@ -162,7 +177,7 @@ class GuildPromotionMenu(
         staticPane.addItem(GuiItem(infoItem) { it.isCancelled = true }, 4, 0)
 
         // Back button
-        val backItem = ItemStack.of(Material.ARROW)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.guild_promotion.navigation.back.name"))
             .lore(lang.gui("menu.guild_promotion.navigation.back.description"))
         staticPane.addItem(GuiItem(backItem) { menuNavigator.goBack() }, 7, 0)

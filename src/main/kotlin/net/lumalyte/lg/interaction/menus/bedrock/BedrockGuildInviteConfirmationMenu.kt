@@ -9,8 +9,6 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.infrastructure.services.GuildInvitationManager
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
-import net.lumalyte.lg.interaction.menus.guild.GuildInviteMenu
-import net.lumalyte.lg.interaction.menus.guild.GuildMemberManagementMenu
 import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.Form
@@ -62,13 +60,17 @@ class BedrockGuildInviteConfirmationMenu(
             return
         }
 
-        GuildInvitationManager.addInvite(
+        val invitationStored = GuildInvitationManager.addInvite(
             guildId = guild.id,
             guildName = guild.name,
             invitedPlayerId = targetPlayer.uniqueId,
             inviterPlayerId = player.uniqueId,
             inviterName = player.name
         )
+        if (!invitationStored) {
+            player.sendMessage(lang.msg("bedrock.invite_confirmation.feedback.failed"))
+            return
+        }
 
         // Send invitation message
         player.sendMessage(lang.msg("bedrock.invite_confirmation.feedback.sent", "player" to targetPlayer.name))
@@ -84,7 +86,7 @@ class BedrockGuildInviteConfirmationMenu(
         targetPlayer.playSound(targetPlayer.location, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.2f)
 
         // Return to member management menu
-        bedrockNavigator.openMenu(GuildMemberManagementMenu(menuNavigator, player, guild))
+        bedrockNavigator.openMenu(menuFactory.createGuildMemberManagementMenu(menuNavigator, player, guild))
     }
 
     override fun handleResponse(player: Player, response: Any?) {

@@ -51,6 +51,11 @@ interface FormCacheService {
      * Gets or builds a form asynchronously with caching
      */
     fun getOrBuildFormAsync(cacheKey: String, formBuilder: () -> Form): CompletableFuture<Form>
+
+    /**
+     * Releases executor resources owned by the cache service.
+     */
+    fun shutdown()
 }
 
 data class CacheStats(

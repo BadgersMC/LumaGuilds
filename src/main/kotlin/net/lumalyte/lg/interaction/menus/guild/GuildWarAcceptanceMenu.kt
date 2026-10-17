@@ -1,5 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
@@ -7,7 +10,7 @@ import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
@@ -109,6 +112,15 @@ class GuildWarAcceptanceMenu(
         val detailsItem = ItemStack.of(Material.WRITTEN_BOOK)
             .name(lang.gui("menu.war_acceptance.details.name"))
             .lore(lang.gui("menu.war_acceptance.details.duration", "days" to warDeclaration.proposedDuration.toDays()))
+            .also { item ->
+                item.lore(
+                    if (warDeclaration.isRated) {
+                        lang.gui("menu.war_acceptance.details.rated")
+                    } else {
+                        lang.gui("menu.war_acceptance.details.unrated")
+                    }
+                )
+            }
             .lore(lang.gui("menu.war_acceptance.details.objectives", "count" to warDeclaration.objectives.size))
             if (warDeclaration.objectives.isNotEmpty()) {
                 warDeclaration.objectives.forEach { objective ->
@@ -243,9 +255,6 @@ class GuildWarAcceptanceMenu(
                 player.closeInventory()
                 menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
                 
-                // Notify both guilds of war acceptance
-                notifyGuildsOfWarAcceptance(war)
-                
             } else {
                 player.sendMessage(lang.msg("menu.war_acceptance.feedback.accept_failed"))
                 player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
@@ -284,7 +293,7 @@ class GuildWarAcceptanceMenu(
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack.of(Material.ARROW)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.war_declaration.item.back.name"))
             .lore(lang.gui("menu.war_declaration.item.back.lore"))
 
@@ -292,64 +301,6 @@ class GuildWarAcceptanceMenu(
             menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
-    }
-
-    private fun notifyGuildsOfWarAcceptance(war: War) {
-        try {
-            val declaringGuild = guildService.getGuild(war.declaringGuildId)
-            val defendingGuild = guildService.getGuild(war.defendingGuildId)
-            
-            if (declaringGuild == null || defendingGuild == null) return
-            
-            // Notify declaring guild
-            val declaringMembers = memberService.getGuildMembers(war.declaringGuildId)
-            for (member in declaringMembers) {
-                val onlinePlayer = org.bukkit.Bukkit.getPlayer(member.playerId)
-                if (onlinePlayer != null && onlinePlayer.isOnline) {
-                    onlinePlayer.showTitle(Title.title(
-                        lang.msg("menu.war_acceptance.notification.accepted.title"),
-                        lang.msg("menu.war_acceptance.notification.accepted.subtitle", "guild" to defendingGuild.name),
-                        Title.Times.times(JavaDuration.ofMillis(500), JavaDuration.ofSeconds(4), JavaDuration.ofSeconds(1))
-                    ))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.accepted.border"))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.accepted.header"))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.enemy", "guild" to defendingGuild.name))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.duration", "days" to war.duration.toDays()))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.target", "objective" to (war.objectives.firstOrNull()?.description ?: lang.raw("menu.war_acceptance.notification.no_objectives"))))
-                    onlinePlayer.sendMessage(lang.msg("menu.common.blank"))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.accepted.begun"))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.accepted.border"))
-                    onlinePlayer.playSound(onlinePlayer.location, Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 0.8f)
-                }
-            }
-            
-            // Notify defending guild (excluding the player who accepted)
-            val defendingMembers = memberService.getGuildMembers(war.defendingGuildId)
-            for (member in defendingMembers) {
-                if (member.playerId == player.uniqueId) continue // Skip the accepting player
-                
-                val onlinePlayer = org.bukkit.Bukkit.getPlayer(member.playerId)
-                if (onlinePlayer != null && onlinePlayer.isOnline) {
-                    onlinePlayer.showTitle(Title.title(
-                        lang.msg("menu.war_acceptance.notification.defending.title"),
-                        lang.msg("menu.war_acceptance.notification.defending.subtitle", "guild" to declaringGuild.name),
-                        Title.Times.times(JavaDuration.ofMillis(500), JavaDuration.ofSeconds(4), JavaDuration.ofSeconds(1))
-                    ))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.defending.border"))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.defending.header"))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.enemy", "guild" to declaringGuild.name))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.duration", "days" to war.duration.toDays()))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.target", "objective" to (war.objectives.firstOrNull()?.description ?: lang.raw("menu.war_acceptance.notification.no_objectives"))))
-                    onlinePlayer.sendMessage(lang.msg("menu.common.blank"))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.defending.challenge"))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_acceptance.notification.defending.border"))
-                    onlinePlayer.playSound(onlinePlayer.location, Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 0.8f)
-                }
-            }
-        } catch (e: Exception) {
-            // Menu operation - catching all exceptions to prevent UI failure
-            println("Error notifying guilds of war acceptance: ${e.message}")
-        }
     }
 
     private fun notifyGuildOfWarRejection(declaringGuildId: UUID) {

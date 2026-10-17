@@ -11,6 +11,17 @@ class SQLiteStorage(dataFolder: File): Storage<Database> {
 
     init {
         val options = DatabaseOptions.builder().sqlite("$dataFolder/lumaguilds.db").build()
-        connection = PooledDatabaseOptions.builder().options(options).createHikariDatabase()
+        connection = sqlitePool(options)
     }
 }
+
+internal fun sqlitePool(options: DatabaseOptions): Database =
+    PooledDatabaseOptions.builder()
+        .options(options)
+        // WAL permits concurrent readers but SQLite still has a single writer.
+        // Keep the pool deliberately small and make competing writers wait
+        // instead of failing immediately with SQLITE_BUSY.
+        .minIdleConnections(1)
+        .maxConnections(4)
+        .dataSourceProperties(mapOf("busyTimeout" to 15_000))
+        .createHikariDatabase()

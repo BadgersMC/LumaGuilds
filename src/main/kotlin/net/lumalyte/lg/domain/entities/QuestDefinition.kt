@@ -11,13 +11,25 @@ enum class QuestConditionType {
     IN_BIOME,
     ABOVE_Y,
     BELOW_Y,
+    X_WITHIN,
+    Z_WITHIN,
     USING_TRANSPORT,
     WITHOUT_ELYTRA
 }
 
 enum class BlockProvenancePolicy { NATURAL_ONLY, PLAYER_PLACED, ANY }
 
-data class QuestCondition(val type: QuestConditionType, val value: String? = null)
+enum class QuestTargetRarity {
+    BULK,
+    COMMON,
+    UNCOMMON,
+    RARE,
+    PRECIOUS
+}
+
+data class QuestCondition(val type: QuestConditionType, val value: String? = null) {
+    fun canonical(): String = "${type.name}:${value.orEmpty().lowercase()}"
+}
 
 data class QuestTarget(
     val id: String,
@@ -27,34 +39,50 @@ data class QuestTarget(
     val naturalDimensions: Set<String> = emptySet(),
     val naturalBiomes: Set<String> = emptySet(),
     val supportedConditions: Set<QuestConditionType> = emptySet(),
-    val provenancePolicy: BlockProvenancePolicy = BlockProvenancePolicy.ANY
+    val provenancePolicy: BlockProvenancePolicy = BlockProvenancePolicy.ANY,
+    val rarity: QuestTargetRarity = QuestTargetRarity.COMMON
 ) {
     init {
         require(id.isNotBlank()) { "Quest target id cannot be blank" }
-        require(minimumAmount >= 0) { "Minimum amount cannot be negative" }
+        require(':' in id && '/' in id.substringAfter(':')) {
+            "Quest target id must be namespaced and typed, e.g. minecraft:block/stone: $id"
+        }
+        require(allowedActions.isNotEmpty()) { "Quest target must support at least one action" }
+        require(minimumAmount > 0) { "Minimum amount must be positive" }
         require(maximumAmount >= minimumAmount) { "Maximum amount cannot be below minimum" }
     }
+
+    val namespace: String get() = id.substringBefore(':')
+    val kind: String get() = id.substringAfter(':').substringBefore('/')
+    val value: String get() = id.substringAfter('/')
+
+    fun actionKey(action: QuestAction): String = "${action.name}|${id.lowercase()}"
 }
 
 data class QuestItemReward(val itemId: String, val amount: Int)
 
 data class QuestDefinition(
     val id: String,
-    val nameKey: String,
-    val descriptionKey: String,
+    val nameKey: String = "menu.quests.item.quest.name",
+    val descriptionKey: String = "menu.quests.item.quest.description",
     val action: QuestAction,
     val target: QuestTarget,
     val targetCount: Long,
     val tier: QuestRewardTier,
-    val condition: QuestCondition? = null,
+    val conditions: List<QuestCondition> = emptyList(),
     val experienceReward: Int = 0,
     val itemRewards: List<QuestItemReward> = emptyList(),
     val leaderboard: Boolean = false,
     val leaderboardPayouts: Map<Int, Int> = emptyMap()
-)
+) {
+    val condition: QuestCondition? get() = conditions.firstOrNull()
 
-data class QuestCandidate(val definition: QuestDefinition, val weight: Int = 1) {
-    init {
-        require(weight > 0) { "Quest candidate weight must be positive" }
+    fun fingerprint(): String = buildString {
+        append(action.name).append('|')
+        append(target.id.lowercase()).append('|')
+        append(targetCount).append('|')
+        conditions.map(QuestCondition::canonical).sorted().joinTo(this, separator = ",")
     }
+
+    fun actionTargetFingerprint(): String = target.actionKey(action)
 }

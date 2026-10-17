@@ -290,4 +290,7 @@ class RelationRepositorySQLite(private val storage: Storage<Database>) : Relatio
         ensureInitialized()
         return relations.values.toSet()
     }
+    override fun evictGuild(guildId: UUID) {
+        relations.entries.removeIf { it.value.involves(guildId) }
+    }
 }

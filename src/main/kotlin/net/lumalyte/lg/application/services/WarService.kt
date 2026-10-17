@@ -8,6 +8,21 @@ import java.util.UUID
 /**
  * Service interface for managing wars between guilds.
  */
+data class WarKillCounterUpdate(
+    val stats: WarStats,
+    val killTarget: Int,
+    val winnerGuildId: UUID? = null,
+)
+
+data class WarCutoverReport(
+    val canceledWars: Int,
+    val rejectedDeclarations: Int,
+    val clearedPeaceAgreements: Int,
+    val failedRecordIds: List<UUID> = emptyList(),
+) {
+    val successful: Boolean get() = failedRecordIds.isEmpty()
+}
+
 interface WarService {
 
     /**
@@ -23,7 +38,8 @@ interface WarService {
         objectives: Set<WarObjective>,
         wagerAmount: Int = 0,
         terms: String? = null,
-        actorId: UUID
+        actorId: UUID,
+        rated: Boolean = false,
     ): WarDeclaration?
 
     /**
@@ -130,6 +146,9 @@ interface WarService {
      */
     fun getWarStats(warId: UUID): WarStats
 
+    /** Configured opposing-guild kill count that automatically wins an active war. */
+    fun getWarKillWinTarget(): Int
+
     /**
      * Updates war statistics.
      *
@@ -137,6 +156,32 @@ interface WarService {
      * @return true if successful, false otherwise.
      */
     fun updateWarStats(stats: WarStats): Boolean
+
+    /**
+     * Atomically validates and records one opposing-guild kill for an active war.
+     * Returns null when the war is inactive or the supplied guilds are not the
+     * exact opposing pair for that war. A non-null winner means this kill reached
+     * a configured victory target; callers must finish kill-side effects before
+     * resolving the durable terminal state with [resolveReachedKillTarget].
+     */
+    fun recordOpposingGuildKill(
+        warId: UUID,
+        killerGuildId: UUID,
+        victimGuildId: UUID,
+    ): WarKillCounterUpdate?
+
+    /**
+     * Trusted follow-up for a kill result that reached a victory target. The
+     * service revalidates the persisted counter before ending the war.
+     */
+    fun resolveReachedKillTarget(warId: UUID, winnerGuildId: UUID): Boolean
+
+    /**
+     * Recovers an active war whose persisted kill counters already prove a
+     * terminal kill victory, such as after a crash between kill side effects
+     * and the terminal war transition.
+     */
+    fun reconcilePendingKillVictories(): Int
 
     /**
      * Adds progress to a war objective.
@@ -180,6 +225,12 @@ interface WarService {
      * @return The number of items processed.
      */
     fun processExpiredWars(): Int
+
+    /**
+     * Trusted operator-only Chapter cut-over operation. Callers must authorize the
+     * operator before invoking it. Wagers are safely unwound before wars are cancelled.
+     */
+    fun resetChapterCutoverState(operator: String): WarCutoverReport
 
     /**
      * Validates war objectives.

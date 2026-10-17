@@ -25,7 +25,8 @@ class MemberServiceBukkit(
     private val progressionConfigService: ProgressionConfigService,
     private val historyRepository: MembershipHistoryRepository,
     private val adminOverrideService: AdminOverrideService,
-    private val guildRewards: net.lumalyte.lg.application.services.GuildRewardService? = null
+    private val guildRewards: net.lumalyte.lg.application.services.GuildRewardService? = null,
+    private val invalidateClaimPermissionCache: (UUID) -> Unit = {},
 ) : MemberService {
 
     private val logger = LoggerFactory.getLogger(MemberServiceBukkit::class.java)
@@ -87,6 +88,7 @@ class MemberServiceBukkit(
         
         val result = memberRepository.add(member)
         if (result) {
+            invalidateClaimPermissionCache(playerId)
             logger.info("Player $playerId added to guild $guildId with rank '${rank.name}'")
 
             // Fire event for progression system
@@ -133,6 +135,7 @@ class MemberServiceBukkit(
 
         val result = memberRepository.remove(playerId, guildId)
         if (result) {
+            invalidateClaimPermissionCache(playerId)
             // Record membership history (LEFT = voluntary, KICKED = by another player)
             val reason = if (actorId == playerId) DepartureReason.LEFT else DepartureReason.KICKED
             historyRepository.closeStint(playerId, guildId, reason)
@@ -212,19 +215,17 @@ class MemberServiceBukkit(
             return false
         }
 
-        // OWNER PROTECTION: even with admin override, ownership must go through ownership-transfer flow
+        // OWNER PROTECTION: even with admin override, all ownership changes must use the atomic transfer flow.
         if (newRank.priority == 0) {
             logger.warn("Cannot directly promote to owner rank - use ownership transfer instead (actor=$actorId, override=$isOverride)")
             return false
         }
+        if (currentRank.priority == 0) {
+            logger.warn("Cannot directly change the current owner's rank - use ownership transfer instead (actor=$actorId, override=$isOverride)")
+            return false
+        }
 
         if (!isOverride) {
-            // OWNER PROTECTION: Prevent owner from changing their own rank
-            if (currentRank.priority == 0 && playerId == actorId) {
-                logger.warn("Player $actorId (owner) attempted to change their own rank - ownership transfer required")
-                return false
-            }
-
             // PRIORITY CHECK: Actor must strictly outrank the target (lower priority number = higher rank)
             val actorMember = memberRepository.getByPlayerAndGuild(actorId, guildId) ?: return false
             val actorRank = rankRepository.getById(actorMember.rankId) ?: return false
@@ -245,6 +246,7 @@ class MemberServiceBukkit(
         val updatedMember = member.copy(rankId = newRankId)
         val result = memberRepository.update(updatedMember)
         if (result) {
+            invalidateClaimPermissionCache(playerId)
             logger.info("Player $playerId rank changed to '${newRank.name}' in guild $guildId by $actorId")
 
             // Send Apollo notification (if available)
@@ -334,6 +336,7 @@ class MemberServiceBukkit(
         val updatedMember = member.copy(rankId = nextRank.id)
         val result = memberRepository.update(updatedMember)
         if (result) {
+            invalidateClaimPermissionCache(playerId)
             logger.info("Player $playerId promoted from '${currentRank.name}' to '${nextRank.name}' in guild $guildId by $actorId")
         }
         return result
@@ -377,6 +380,7 @@ class MemberServiceBukkit(
         val updatedMember = member.copy(rankId = nextRank.id)
         val result = memberRepository.update(updatedMember)
         if (result) {
+            invalidateClaimPermissionCache(playerId)
             logger.info("Player $playerId demoted from '${currentRank.name}' to '${nextRank.name}' in guild $guildId by $actorId")
         }
         return result
@@ -421,22 +425,14 @@ class MemberServiceBukkit(
 
         // Atomically update both members
         try {
-            // Demote current owner to second-highest rank
-            val demotedOwner = currentOwner.copy(rankId = secondHighestRank.id)
-            if (!memberRepository.update(demotedOwner)) {
-                logger.error("Failed to demote current owner")
+            if (ownerRank.id != currentOwner.rankId || secondHighestRank.priority == 0) return false
+            if (!memberRepository.transferOwnership(currentOwner, newOwner, secondHighestRank.id)) {
+                logger.error("Ownership transfer was not committed; both previous ranks were preserved")
                 return false
             }
 
-            // Promote new owner to owner rank
-            val promotedNewOwner = newOwner.copy(rankId = ownerRank.id)
-            if (!memberRepository.update(promotedNewOwner)) {
-                logger.error("Failed to promote new owner - rolling back current owner demotion")
-                // Rollback: restore current owner's rank
-                memberRepository.update(currentOwner)
-                return false
-            }
-
+            invalidateClaimPermissionCache(currentOwnerId)
+            invalidateClaimPermissionCache(newOwnerId)
             logger.info("Ownership of guild $guildId transferred from $currentOwnerId to $newOwnerId")
             Bukkit.getPluginManager().callEvent(GuildOwnershipTransferEvent(guildId, currentOwnerId, newOwnerId))
             return true

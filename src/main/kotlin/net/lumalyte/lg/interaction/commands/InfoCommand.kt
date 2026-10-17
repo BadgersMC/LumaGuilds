@@ -51,7 +51,7 @@ class InfoCommand : ClaimCommand(), KoinComponent {
         if (claim.description.isNotEmpty()) chatInfo.addParagraph("${claim.description}\n")
 
         // Add metadata values
-        val ownerName = Bukkit.getOfflinePlayer(player.uniqueId).name ?: lang.msg("general.name_error")
+        val ownerName = Bukkit.getOfflinePlayer(claim.playerId).name ?: lang.msg("general.name_error")
         chatInfo.addRow(lang.msg("command.claim.info.row.owner", "owner" to ownerName))
         chatInfo.addRow(lang.msg("command.claim.info.row.creation_date", "creation_date" to dateTimeFormatter.format(claim.creationTime)))
         chatInfo.addRow(lang.msg("command.claim.info.row.partition_count", "partition_count" to getClaimPartitions.execute(claimId).count().toString()))

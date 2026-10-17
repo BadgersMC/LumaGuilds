@@ -1,5 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.infrastructure.i18n.gui
@@ -7,7 +10,7 @@ import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.ConfigService
@@ -19,7 +22,6 @@ import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.ObjectiveType
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.entities.War
-import net.lumalyte.lg.domain.entities.WarDeclaration
 import net.lumalyte.lg.domain.entities.WarObjective
 import net.lumalyte.lg.interaction.listeners.ChatInputHandler
 import net.lumalyte.lg.interaction.listeners.ChatInputListener
@@ -34,8 +36,6 @@ import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.title.Title
-import java.time.Duration as JavaDuration
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.time.Duration
@@ -54,6 +54,7 @@ class GuildWarDeclarationMenu(
     private val memberService: MemberService by inject()
     private val bankService: BankService by inject()
     private val configService: ConfigService by inject()
+    private val seasonalElo: net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator by inject()
     private val chatInputListener: ChatInputListener by inject()
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
     private val lang: LangService by inject()
@@ -64,6 +65,7 @@ class GuildWarDeclarationMenu(
     private var warTerms: String? = null
     private var inputMode: String? = null // Track what input mode we're in ("war_terms")
     private var wagerAmount: Int = 0 // War pot amount
+    private var selectedRated: Boolean = false
 
     override fun open() {
         // Check permissions first
@@ -121,6 +123,7 @@ class GuildWarDeclarationMenu(
         // Get all guilds except own guild
         val availableGuilds = guildRepository.getAll()
             .filter { it.id != guild.id }
+            .filter { it.mode == GuildMode.HOSTILE }
             .filter { warService.getCurrentWarBetweenGuilds(guild.id, it.id)?.isActive != true }
             .sortedBy { it.name }
 
@@ -218,6 +221,9 @@ class GuildWarDeclarationMenu(
 
         // Duration selection
         addDurationSelection(pane)
+
+        // Seasonal rating selection
+        addRatedSelection(pane, target)
         
         // War wager selection
         addWarWagerSection(pane)
@@ -249,6 +255,50 @@ class GuildWarDeclarationMenu(
             open() // Refresh menu
         }
         pane.addItem(guiItem, 3, 1)
+    }
+
+    private fun addRatedSelection(pane: StaticPane, target: Guild) {
+        val ownView = seasonalElo.view(guild.id)
+        val targetView = seasonalElo.view(target.id)
+        val available = ownView?.eligible == true &&
+            targetView?.eligible == true &&
+            ownView.chapterId == targetView.chapterId
+
+        if (!available) selectedRated = false
+
+        val item = when {
+            !available -> ItemStack.of(Material.BARRIER)
+                .name(lang.gui("menu.war_declaration.item.rated.name.unavailable"))
+                .lore(lang.gui("menu.war_declaration.item.rated.lore.unavailable"))
+                .lore(lang.gui("menu.war_declaration.item.rated.lore.requirements"))
+            selectedRated -> ItemStack.of(Material.NETHER_STAR)
+                .name(lang.gui("menu.war_declaration.item.rated.name.enabled"))
+                .lore(lang.gui("menu.war_declaration.item.rated.lore.enabled"))
+                .lore(lang.gui(
+                    "menu.war_declaration.item.rated.lore.chapter",
+                    "chapter" to ownView!!.chapterId,
+                ))
+                .lore(lang.gui("menu.war_declaration.item.rated.lore.toggle"))
+            else -> ItemStack.of(Material.IRON_SWORD)
+                .name(lang.gui("menu.war_declaration.item.rated.name.disabled"))
+                .lore(lang.gui("menu.war_declaration.item.rated.lore.disabled"))
+                .lore(lang.gui("menu.war_declaration.item.rated.lore.toggle"))
+        }
+
+        pane.addItem(GuiItem(item) {
+            if (!available) {
+                player.sendMessage(lang.msg("menu.war_declaration.feedback.rated_unavailable"))
+                player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                return@GuiItem
+            }
+            selectedRated = !selectedRated
+            if (selectedRated) {
+                player.sendMessage(lang.msg("menu.war_declaration.feedback.rated_enabled"))
+            } else {
+                player.sendMessage(lang.msg("menu.war_declaration.feedback.rated_disabled"))
+            }
+            open()
+        }, 4, 1)
     }
 
     private fun addWarWagerSection(pane: StaticPane) {
@@ -395,7 +445,7 @@ class GuildWarDeclarationMenu(
         if (selectedObjectives.isEmpty()) {
             selectedObjectives.add(WarObjective(
                 type = ObjectiveType.KILLS,
-                targetValue = 10,
+                targetValue = minOf(10, warService.getWarKillWinTarget()),
                 description = lang.raw("menu.war_declaration.objective.default_description")
             ))
         }
@@ -474,6 +524,15 @@ class GuildWarDeclarationMenu(
                 } else {
                     lang.gui("menu.war_declaration.item.declare.lore.no_wager")
                 })
+                .also { item ->
+                    item.lore(
+                        if (selectedRated) {
+                            lang.gui("menu.war_declaration.item.declare.lore.rated")
+                        } else {
+                            lang.gui("menu.war_declaration.item.declare.lore.unrated")
+                        }
+                    )
+                }
                 .lore(lang.gui("menu.common.blank"))
                 .lore(lang.gui("menu.war_declaration.item.declare.lore.notify_1"))
                 .lore(lang.gui("menu.war_declaration.item.declare.lore.notify_2"))
@@ -538,12 +597,18 @@ class GuildWarDeclarationMenu(
                 objectives = selectedObjectives,
                 wagerAmount = wagerAmount,
                 terms = warTerms,
-                actorId = player.uniqueId
+                actorId = player.uniqueId,
+                rated = selectedRated,
             )
 
             if (declaration != null) {
                 player.sendMessage(lang.msg("menu.war_declaration.feedback.sent", "guild" to target.name))
                 player.sendMessage(lang.msg("menu.war_declaration.feedback.duration", "days" to selectedDuration.toDays()))
+                if (declaration.isRated) {
+                    player.sendMessage(lang.msg("menu.war_declaration.feedback.rated_created"))
+                } else {
+                    player.sendMessage(lang.msg("menu.war_declaration.feedback.unrated_created"))
+                }
                 if (selectedObjectives.isNotEmpty()) {
                     player.sendMessage(lang.msg("menu.war_declaration.feedback.objectives", "count" to selectedObjectives.size))
                 }
@@ -557,8 +622,6 @@ class GuildWarDeclarationMenu(
                 player.closeInventory()
                 menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
 
-                // Notify defending guild of the declaration
-                notifyGuildOfWarDeclaration(declaration)
                 return
             } else {
                 player.sendMessage(lang.msg("menu.war_declaration.feedback.send_failed"))
@@ -597,8 +660,12 @@ class GuildWarDeclarationMenu(
     }
 
     private fun cycleKillTarget() {
-        val killTargets = listOf(5, 10, 25, 50)
-        val currentKills = selectedObjectives.firstOrNull()?.targetValue ?: 10
+        val killCap = warService.getWarKillWinTarget()
+        val killTargets = (listOf(5, 10, 25, 50).filter { it <= killCap } + killCap)
+            .filter { it > 0 }
+            .distinct()
+            .sorted()
+        val currentKills = selectedObjectives.firstOrNull()?.targetValue ?: killTargets.first()
         val currentIndex = killTargets.indexOf(currentKills)
         val nextIndex = if (currentIndex == -1 || currentIndex >= killTargets.size - 1) 0 else currentIndex + 1
         val newTarget = killTargets[nextIndex]
@@ -643,7 +710,7 @@ class GuildWarDeclarationMenu(
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack.of(Material.ARROW)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.war_declaration.item.back.name"))
             .lore(lang.gui("menu.war_declaration.item.back.lore"))
 
@@ -651,77 +718,6 @@ class GuildWarDeclarationMenu(
             menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
         }
         pane.addItem(guiItem, x, y)
-    }
-
-    private fun notifyGuildOfWarDeclaration(declaration: WarDeclaration) {
-        try {
-            val declaringGuild = guildService.getGuild(declaration.declaringGuildId)
-            val defendingGuild = guildService.getGuild(declaration.defendingGuildId)
-
-            if (declaringGuild == null || defendingGuild == null) return
-
-            // Notify defending guild members
-            val defendingMembers = memberService.getGuildMembers(declaration.defendingGuildId)
-
-            for (member in defendingMembers) {
-                val onlinePlayer = org.bukkit.Bukkit.getPlayer(member.playerId)
-                if (onlinePlayer != null && onlinePlayer.isOnline) {
-                    // Send title
-                    onlinePlayer.showTitle(net.kyori.adventure.title.Title.title(
-                        lang.msg("menu.war_declaration.notification.title"),
-                        lang.msg("menu.war_declaration.notification.subtitle", "guild" to declaringGuild.name),
-                        net.kyori.adventure.title.Title.Times.times(
-                            java.time.Duration.ofMillis(500),
-                            java.time.Duration.ofSeconds(4),
-                            java.time.Duration.ofSeconds(1)
-                        )
-                    ))
-
-                    // Send chat messages
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.divider"))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.received"))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.from", "guild" to declaringGuild.name))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.duration", "days" to declaration.proposedDuration.toDays()))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.objectives", "count" to declaration.objectives.size))
-                    if (wagerAmount > 0) {
-                        onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.wager", "amount" to wagerAmount))
-                        onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.match"))
-                    }
-                    if (declaration.terms != null) {
-                        onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.terms", "terms" to declaration.terms))
-                    }
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.expires", "hours" to declaration.remainingTime.toHours()))
-                    onlinePlayer.sendMessage(lang.msg("menu.common.blank"))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.respond"))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.divider"))
-
-                    // Play alert sound
-                    onlinePlayer.playSound(onlinePlayer.location, org.bukkit.Sound.BLOCK_BELL_USE, 1.0f, 0.8f)
-                    onlinePlayer.playSound(onlinePlayer.location, org.bukkit.Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.7f, 1.0f)
-                }
-            }
-
-            // Also notify declaring guild that declaration was sent
-            val declaringMembers = memberService.getGuildMembers(declaration.declaringGuildId)
-            for (member in declaringMembers) {
-                if (member.playerId == player.uniqueId) continue // Skip the sender
-
-                val onlinePlayer = org.bukkit.Bukkit.getPlayer(member.playerId)
-                if (onlinePlayer != null && onlinePlayer.isOnline) {
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.ally_sent", "guild" to defendingGuild.name))
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.duration", "days" to declaration.proposedDuration.toDays()))
-                    if (wagerAmount > 0) {
-                        onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.ally_wager", "amount" to wagerAmount))
-                    }
-                    onlinePlayer.sendMessage(lang.msg("menu.war_declaration.notification.awaiting"))
-                }
-            }
-
-        } catch (e: Exception) {
-            // Menu operation - catching all exceptions to prevent UI failure
-            player.sendMessage(lang.msg("menu.war_declaration.feedback.notify_failed"))
-            println("Error notifying guild of war declaration: ${e.message}")
-        }
     }
 
     override fun passData(data: Any?) {

@@ -125,7 +125,11 @@ guild:
   max_name_length: 32
   min_name_length: 1
   max_guild_count: 1000
+  # Chapter 2 raw-gold costs. These must be positive before enabling chapter_two_gold_costs_enabled.
+  # Numeric values are intentionally operator-selected; the approved design defines behavior, not prices.
   create_guild_cost: 0
+  home_activation_base_cost: 0
+  home_activation_scale: 2.0
   disband_refund_percent: 0.5
   
   # Mode Switching (Peaceful/Hostile)
@@ -178,6 +182,11 @@ guild:
   #     MyGuild: lumaguilds.emoji.crown
   #     AwesomeGuild: lumaguilds.emoji.star
   emoji_grants: {}
+
+# Guild directory / leaderboard browser
+guild_list:
+  # Number of guilds fetched per page. Java inventory layout supports up to 36.
+  page_size: 18
 
 # =====================================
 # Guild Vault Configuration
@@ -431,11 +440,18 @@ combat:
   war_duration_hours: 168                # 1 week war duration
   war_end_grace_period_minutes: 30       # Grace period after war ends
   max_simultaneous_wars: 3               # Max wars a guild can be in
-  
+  war_kill_win_target: 25                 # Opposing-guild kills required to automatically win
+
   # Experience and Rewards
   kill_experience: 10           # XP gained for kills
   war_win_experience: 500       # XP gained for winning a war
   war_lose_experience: 100      # XP gained for losing a war (participation)
+
+war_banner:
+  # One stack of physical RAW_GOLD by default. Nonpositive values fail closed.
+  raw_gold_cost: 64
+  # Cooldown starts at placement. Banner lifetime is fixed by REQ-059 at 15 minutes.
+  cooldown_minutes: 15
 
 
 # =====================================
@@ -444,8 +460,8 @@ combat:
 
 chat:
   # Rate Limiting
-  announce_cooldown_minutes: 30  # Cooldown for guild announcements
-  ping_cooldown_minutes: 5       # Cooldown for @everyone pings
+  announce_cooldown_minutes: 30  # Guild announcement cooldown; <= 0 disables it, not the hourly cap
+  ping_cooldown_minutes: 5       # @everyone ping cooldown; <= 0 disables it, not the hourly cap
   max_message_length: 256
   
   # Channels
@@ -495,13 +511,46 @@ party:
   default_to_all_members: true
 
 # =====================================
+# Chapter Lifecycle
+# =====================================
+# Keep disabled until the maintenance-window cutover has been rehearsed.
+# Times are UTC ISO-8601. Later chapters derive from this persisted schedule.
+chapter:
+  enabled: false
+  id: 'chapter-2'
+  name: 'Chapter 2'
+  starts_at: '2026-10-01T00:00:00Z'
+  ends_at: '2027-01-01T00:00:00Z'
+  duration_months: 3
+  check_interval_seconds: 60
+
+# =====================================
 # Guild Progression System Configuration
 # =====================================
 
+# Optional DiscordSRV guild-role integration.
+# Roles below this level are removed automatically; completed prestige remains eligible.
+# Linked Discord accounts are granted/removed automatically with guild membership.
+discord:
+  guild_roles:
+    enabled: true
+    minimum_level: 50
+    # <guild> is required and is replaced with the live guild name.
+    role_name_format: "Guild • <guild>"
+
+seasonal_elo:
+  # Keep disabled until Chapter 2 migration and live war validation are complete.
+  enabled: false
+  # Starting and floor Elo are fixed by the Chapter 2 contract at 1000.
+  k_factor: 40
+  upper_display_rating: 1600
+  rematch_window_days: 7
+
 progression:
-  # Keep false until Chapter 2 migration and player interfaces are ready.
-  # This switch never migrates guilds; missing reward accounts block benefit reads.
-  chapter_two_rewards_enabled: false
+  # Chapter 2 reward reads and purchases are production-ready. Set false to disable explicitly.
+  chapter_two_rewards_enabled: true
+  # Independent from reward purchasing; enables physical creation cost and guild-gold home activation charges.
+  chapter_two_gold_costs_enabled: false
   # Scheduled increased XP. Source caps stay fixed; UTC end is exclusive.
   # Omit sources to include all non-admin sources (including weekly quests).
   xp_boost:
@@ -511,6 +560,11 @@ progression:
     ends_at: '2026-09-21T00:00:00Z'
     # sources: [MOB_KILL, PLAYER_KILL, COAL_ORE]
   max_level: 100                      # Permanent progression cap
+  # Prestige is production-ready. Set false to disable it explicitly.
+  prestige:
+    enabled: true
+    max_count: 6
+    fees: [10000, 20000, 30000, 30000, 30000, 30000]
 
   # Experience values for different activities
   bank_deposit_xp_per_100: 1         # XP per 100 coins deposited
@@ -530,6 +584,15 @@ progression:
 
   # Chapter 2 guild-wide source policies. Caps are independent per pool;
   # WEEKLY_ACTIVITY is intentionally unlimited so quests bypass daily caps.
+  # Paid guild SELL trades only; own-guild buyers never earn XP.
+  # Caps use UTC sale date; cooldown spans every shop belonging to the guild.
+  shop_xp:
+    enabled: false
+    xp_per_sale: 5
+    guild_daily_cap: 500
+    buyer_daily_cap: 50
+    pair_cooldown_seconds: 300
+
   sources:
     bank_deposit: { enabled: true, award_xp: 1, cap_xp: 500, period: DAILY, pool: BANK_DEPOSIT }
     qualified_recruit: { enabled: true, award_xp: 1000, cap_xp: 5000, period: WEEKLY, pool: QUALIFIED_RECRUIT }
@@ -767,6 +830,11 @@ bedrock:
   fallback_on_floodgate_unavailable: true
   fallback_on_cumulus_unavailable: true
 
+  # Java chest menus shown to Bedrock players (only when no Bedrock form exists).
+  # Leave off when Geyser custom-item mappings already draw the lg_ icons for Bedrock.
+  java_menu_vanilla_icons: false   # send vanilla items in place of Nexo menu icons
+  java_menu_plain_titles: false    # remove the font-glyph background from themed menu titles
+
   # Performance tuning
   form_cache_enabled: true
   form_cache_size: 100
@@ -795,6 +863,9 @@ bedrock:
   guild_settings_icon_path: "textures/ui/settings.png"
   guild_bank_icon_url: ""
   guild_bank_icon_path: "textures/ui/bank.png"
+  # Stall art is separate from the bank. RESOURCE_PACK needs the supplied Bedrock overlay.
+  guild_stalls_icon_url: ""
+  guild_stalls_icon_path: "textures/ui/stall.png"
   guild_wars_icon_url: ""
   guild_wars_icon_path: "textures/ui/wars.png"
   guild_home_icon_url: ""
@@ -924,15 +995,15 @@ apollo:
     server_ip: "play.enthusia.info"
 # =====================================
 # Guild Strikes
-# LiteBans punishments attributed to guilds. When a guild member is punished
-# (warn/kick/mute/ban) while in the guild, the guild receives a strike.
+# EnthusiaStaff punishments attributed to guilds, with legacy LiteBans history
+# reconciled through EnthusiaStaff's imported punishment snapshot.
 # =====================================
 strikes:
   # Master switch: if false, no punishments are recorded and /g strikes is disabled.
   enabled: true
   # Punishments before a guild is "up for a penalty" (admin-triggered action).
   threshold: 5
-  # Which LiteBans punishment types count as strikes.
+  # Which normalized punishment categories count as strikes.
   # Valid: WARN, KICK, MUTE, BAN
   counted_types:
     - WARN
@@ -952,11 +1023,10 @@ strikes:
       # Guild mute duration in milliseconds (0 = disabled). 24h default.
       duration_ms: 86400000
 
-  # One-shot backfill of pre-existing LiteBans punishments on startup, so
-  # existing guilds get credit for past behaviour. Idempotent (deduped by
-  # LiteBans entry id) — safe to leave enabled.
+  # Historical LiteBans backfill/repair. Existing recorded legacy rows are always
+  # reconciled; this switch controls whether missing historical rows may be created.
   backfill:
-    # Run the backfill on startup.
+    # Allow creation of missing historical LiteBans strike rows.
     enabled: true
     # When membership history cannot prove which guild the player was in at
     # punishment time, attribute to the player's current guild instead

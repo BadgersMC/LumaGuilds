@@ -108,6 +108,20 @@ class MemberRepositorySQLite(private val storage: Storage<Database>) : MemberRep
         }
     }
     
+    override fun transferOwnership(current: Member, next: Member, demotedRankId: UUID): Boolean {
+        if (current.guildId != next.guildId || current.playerId == next.playerId ||
+            current.rankId == next.rankId
+        ) {
+            return false
+        }
+        val committed = MemberOwnershipTransferSQL(storage).transfer(current, next, demotedRankId)
+        if (committed) {
+            members[Pair(current.playerId, current.guildId)] = current.copy(rankId = demotedRankId)
+            members[Pair(next.playerId, next.guildId)] = next.copy(rankId = current.rankId)
+        }
+        return committed
+    }
+
     override fun update(member: Member): Boolean {
         val sql = """
             UPDATE members SET rank_id = ?, joined_at = ?
@@ -162,4 +176,7 @@ class MemberRepositorySQLite(private val storage: Storage<Database>) : MemberRep
         getByPlayerAndGuild(playerId, guildId) != null
     
     override fun getTotalCount(): Int = members.size
+    override fun evictGuild(guildId: UUID) {
+        members.entries.removeIf { it.value.guildId == guildId }
+    }
 }

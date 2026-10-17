@@ -18,16 +18,68 @@ internal object WarRecordCodec {
         .create()
 
     fun encode(record: DurableWarRecord): String = gson.toJson(JsonObject().apply {
-        addProperty("version", 1)
+        addProperty("version", 4)
         add("record", gson.toJsonTree(record))
     })
 
     fun decode(payload: String): DurableWarRecord = try {
         val root = JsonParser.parseString(payload).asJsonObject
-        check(root.get("version")?.asString == "1") { "Unsupported war record version" }
-        val json = root.getAsJsonObject("record")
+        val version = root.get("version")?.asInt
+        check(version != null && version in 1..4) { "Unsupported war record version" }
+        val json = root.getAsJsonObject("record").deepCopy()
         check(json.keySet().containsAll(setOf("id", "revision", "fundingCycle", "declaration", "war", "stats", "wager",
             "paymentPhase", "settlementChosen", "settlementWinner", "paymentAttempts"))) { "Incomplete war record" }
+        if (version >= 3) {
+            check(json.keySet().containsAll(setOf(
+                "notificationRecipients",
+                "declarationNotificationExpected",
+                "acceptanceNotificationExpected",
+                "resolutionNotificationExpected",
+            ))) { "Incomplete war notification recovery state" }
+        } else {
+            json.add("notificationRecipients", gson.toJsonTree(net.lumalyte.lg.domain.entities.WarNotificationRecipients()))
+            json.addProperty("declarationNotificationExpected", false)
+            json.addProperty("acceptanceNotificationExpected", false)
+            json.addProperty("resolutionNotificationExpected", false)
+        }
+
+        // v1 predates explicit rated-war identity. Existing persisted wars must remain
+        // unrated rather than being rejected or silently attached to a current chapter.
+        if (version == 1) {
+            json.get("declaration")?.takeUnless { it.isJsonNull }?.asJsonObject
+                ?.add("ratedChapterId", com.google.gson.JsonNull.INSTANCE)
+            json.get("war")?.takeUnless { it.isJsonNull }?.asJsonObject
+                ?.add("ratedChapterId", com.google.gson.JsonNull.INSTANCE)
+        } else {
+            json.get("declaration")?.takeUnless { it.isJsonNull }?.asJsonObject?.let {
+                check(it.has("ratedChapterId")) { "Incomplete war declaration rating identity" }
+            }
+            json.get("war")?.takeUnless { it.isJsonNull }?.asJsonObject?.let {
+                check(it.has("ratedChapterId")) { "Incomplete war rating identity" }
+            }
+        }
+
+        // v4 persists the exact cooldown deadline chosen when a declaration is
+        // created or a winning war ends. v3 was already deployed for durable
+        // notification recovery, so v1-v3 must remain readable without cooldown fields.
+        if (version < 4) {
+            json.get("declaration")?.takeUnless { it.isJsonNull }?.asJsonObject
+                ?.add("declarationCooldownUntil", com.google.gson.JsonNull.INSTANCE)
+            json.get("war")?.takeUnless { it.isJsonNull }?.asJsonObject?.let {
+                it.add("farmingCooldownGuildId", com.google.gson.JsonNull.INSTANCE)
+                it.add("farmingCooldownUntil", com.google.gson.JsonNull.INSTANCE)
+            }
+        } else {
+            json.get("declaration")?.takeUnless { it.isJsonNull }?.asJsonObject?.let {
+                check(it.has("declarationCooldownUntil")) { "Incomplete war declaration cooldown identity" }
+            }
+            json.get("war")?.takeUnless { it.isJsonNull }?.asJsonObject?.let {
+                check(it.has("farmingCooldownGuildId") && it.has("farmingCooldownUntil")) {
+                    "Incomplete war farming cooldown identity"
+                }
+            }
+        }
+
         val raw = gson.fromJson(json, DurableWarRecord::class.java)
         // Gson can bypass Kotlin constructors. Re-enter constructors and enforce identity invariants.
         val checked = raw.copy(

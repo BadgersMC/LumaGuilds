@@ -10,12 +10,14 @@ import net.lumalyte.lg.application.actions.player.DoesPlayerHaveClaimOverride
 import net.lumalyte.lg.application.actions.claim.metadata.GetClaimDetails
 import net.lumalyte.lg.application.actions.claim.partition.GetPartitionByPosition
 import net.lumalyte.lg.application.actions.player.tool.GivePlayerClaimTool
+import net.lumalyte.lg.application.services.ClaimManagementAuthorizer
 import net.lumalyte.lg.application.results.player.DoesPlayerHaveClaimOverrideResult
 import net.lumalyte.lg.application.results.player.tool.GivePlayerClaimToolResult
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import net.lumalyte.lg.domain.entities.Partition
+import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition3D
 
 import org.koin.core.component.KoinComponent
@@ -27,6 +29,7 @@ open class ClaimCommand : BaseCommand(), KoinComponent {
     private val doesPlayerHaveClaimOverride: DoesPlayerHaveClaimOverride by inject()
     private val getClaimDetails: GetClaimDetails by inject()
     private val givePlayerClaimTool: GivePlayerClaimTool by inject()
+    private val claimManagementAuthorizer: ClaimManagementAuthorizer by inject()
 
     @CommandAlias("claim")
     @CommandPermission("lumaguilds.command.claim")
@@ -48,7 +51,11 @@ open class ClaimCommand : BaseCommand(), KoinComponent {
         return claimPartition
     }
 
-    fun isPlayerHasClaimPermission(player: Player, partition: Partition): Boolean {
+    fun isPlayerHasClaimPermission(
+        player: Player,
+        partition: Partition,
+        permission: RankPermission = RankPermission.MANAGE_CLAIMS,
+    ): Boolean {
         // Check if player has override
         val overrideResult = doesPlayerHaveClaimOverride.execute(player.uniqueId)
         when (overrideResult) {
@@ -56,9 +63,9 @@ open class ClaimCommand : BaseCommand(), KoinComponent {
             is DoesPlayerHaveClaimOverrideResult.StorageError -> return false
         }
 
-        // Check if player owns claim
+        // Personal owners remain authorized; guild-owned claims also use current rank permissions.
         val claim = getClaimDetails.execute(partition.claimId) ?: return false
-        if (player.uniqueId != claim.playerId) {
+        if (!claimManagementAuthorizer.hasPermission(player.uniqueId, claim, permission)) {
             player.sendMessage(lang.msg("command.common.no_claim_permission"))
             return false
         }

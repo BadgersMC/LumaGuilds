@@ -40,8 +40,8 @@ this checkout contains no AGENTS.md, SPEAR SKILL.md or state runner.
    their best absolute multiplier and permit at most one permanent selection per
    family. An already permanent purchase cannot be bought or selected again.
 6. Home slots add to migrated/new-guild permanent capacity, once per unique ID for
-   the guild's lifetime. Nine catalog slots plus at most three prestige slots means
-   **13 homes for a fresh guild**, or **18 for a guild migrated with six saved homes**.
+   the guild's lifetime. Nine catalog slots plus at most six prestige slots means
+   **16 homes for a fresh guild**, or **21 for a guild migrated with six saved homes**.
    This is capacity only; activating locations is paid separately under REQ-054.
 
 ## Existing implementation inventory
@@ -240,7 +240,7 @@ belong to the separate activation contract and are not invented here.
 Accepted retention rules:
 
 - A bank extension is independently selectable and retains exactly +1,000.
-  At most three can be retained because there are three lifetime prestiges.
+  At most six can be retained because there are six lifetime prestiges.
 - Cooldown and withdrawal upgrades use `min(1.0, active multipliers)` per family.
   Only one tier per family can become permanent; selecting a weaker tier does not
   permit replacing or upgrading that permanent choice later. Show this consequence
@@ -263,7 +263,7 @@ subject to the global ceiling. Selecting other perks provides no bank increase.
 For example, with no retained bank extensions, a balance of 18,000 can pay the
 first 10,000 fee and fit exactly; 18,001 must be rejected until at least one gold
 is withdrawn (subject to normal withdrawal policy). Never destroy the excess.
-All three approved fees (10,000 / 20,000 / 30,000) fit the 47,500 automatic
+All six default fees (10,000 / 20,000 / 30,000 / 30,000 / 30,000 / 30,000) fit the 47,500 automatic
 level-100 capacity; eligibility still requires an eligible purchased perk and
 the other REQ-093 guards. Prestige remains disabled by default.
 
@@ -311,7 +311,7 @@ Before implementing accepted values, add failing tests for:
   owned/permanent/dominated purchases fail without charge.
 - Bank additive union, multiplier minimum, permanent-family exclusivity, and
   activation distinct from capacity, including migration with more than six homes.
-- Reset versus rollover, three-prestige bounds, saved-state preservation and
+- Reset versus rollover, six-prestige bounds, saved-state preservation and
   capacity checks after fees; retained perks resolve at level 1.
 - Atomic ownership/payment with same-ID retry, concurrent purchase, storage failure,
   reload/restart, and SQLite/MariaDB contracts.

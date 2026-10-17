@@ -58,11 +58,47 @@ The audited migration moved 17 Bukkit events to `api.events` and three Bukkit-ba
 - Every task carries exactly one tag (`TDD`/`DOC`/`INFRA`), a `References:` line, and an `Evidence:` block filled with real source citations during execution.
 - TDD tasks run the full cycle: spec → prove (failing test) → engine (min impl) → arch (layer check) → refine (green + close).
 
+## Guild Invitation Statistics (LG-1501)
+
+Pending guild invitations remain operational state in `guild_invitations`; analytics are stored separately in append-only `guild_invitation_history`. A successful invite writes both records in one JDBC transaction, so a history failure rolls the pending invite back and a duplicate pending invite cannot inflate statistics. Removing a pending invitation on accept, decline, expiry, or cancellation leaves the historical send event intact.
+
+`InvitationStatisticsService` exposes bounded per-guild aggregation while persistence orders by sent count descending and inviter UUID ascending for stable ties. Statistics UI resolves the inviter UUID to the current player name only at render time. Java displays a top-inviters summary and a 10-entry paginated detail view with previous/next controls; Bedrock renders five entries per page with a page selector from the same shared service. Pagination is database-backed with deterministic LIMIT/OFFSET ordering and a distinct-inviter count, so historical inviters are not truncated. Schema v37 owns the history table and indexes for both SQLite and MariaDB.
+
+## Dynamic Spawn Banners (LG-1502)
+
+Dynamic leaderboard banners are admin-created display blocks rather than hard-coded spawn coordinates. `/lumaguilds spawnbanner <rank> <category>` issues a white banner carrying rank/category PDC; placement creates a durable `spawn_banners` row keyed by a display UUID and world coordinates. The placed tile also stores the display UUID, rank, and category so persistence and the physical block can validate each other. Breaking a registered display unregisters it and returns the configured white display item rather than cloning the currently rendered guild banner.
+
+`SpawnBannerServiceBukkit` resolves a single bounded leaderboard row at `rank - 1`, then projects the guild's current serialized banner design onto the physical block. Missing leaderboard data, missing guilds, or guilds without a custom banner render as plain white. Material changes preserve standing-banner rotation or wall-banner facing. Relevant `GuildLeaderboardRankChangeEvent` and `GuildBannerSetEvent` events refresh displays immediately; a synchronous 60-second reconciliation pass covers missed events/restarts and prunes stale rows for loaded chunks whose physical PDC binding no longer exists. Schema v38 persists the registry for SQLite and MariaDB and participates in SQLite→Maria migration.
+
+## Guild Directory (LG-1503)
+
+`/g list` is a cross-platform directory separate from the recruitment-only `/g lfg` browser. `GuildListService` is the paging boundary: callers provide page, page size, sort key and direction, and receive only that page plus total count/page metadata. `GuildListRepositorySQL` performs count, deterministic ordering and `LIMIT/OFFSET` in SQL; neither Java nor Bedrock menu loads the full guild collection or slices an unbounded result. `guild_list.page_size` defaults to 18 and is capped at 36 to match the four-row Java content area.
+
+The directory exposes All-Time Active, Weekly Active, Guild Level and Creation Date sorts. Activity ranking reuses the established progression-source multipliers. Weekly activity is a trailing seven-day window; raw `PLAYER_KILL` transactions are excluded from the generic activity sum, and PvP contributes only as distinct opposing victim UUIDs multiplied by `activity.weights.kills_this_week`, preventing repeated kills of one player from inflating rank. Activity sorts descend; level and creation sorts ascend. Every primary sort finishes with case-insensitive guild name, creation timestamp and UUID tie-breaks for stable pagination. Both Java and Bedrock consume the same service page and click through to the existing platform-aware guild info menu.
+
+## Guild List Banner Rendering (LG-1504)
+
+Java guild-directory entries resolve their inventory icon through `GuildBannerItemResolver`. The resolver deserializes the guild's stored banner `ItemStack`, accepts only standing banner materials, clones the result so menu metadata cannot mutate persisted banner state, and falls back to `WHITE_BANNER` for missing, corrupt, non-banner, or wall-banner payloads. Because the resolved `ItemStack` is the original physical banner design, base material/color and ordered pattern layers are preserved. The ally/enemy relation browser uses the same resolver to keep physical-banner and fallback behavior consistent across Java list surfaces. Bedrock SimpleForms remain text/button based because they do not expose a Minecraft `ItemStack` rendering surface.
+
+## Enhanced Guild Descriptions (LG-1507)
+
+Guild descriptions use `GuildDescriptionContent` as the single validation/rendering policy across command, service, Java menus, and Bedrock forms. The domain and interaction layers share a 200-character maximum. Safe display MiniMessage tags (colors, decorations, gradients, rainbow, reset) remain supported, while user-authored interactive event tags (`click`, `hover`, `insertion`) are rejected before persistence and again at the service boundary. `GuildServiceBukkit.setDescription` now enforces the dedicated `MANAGE_DESCRIPTION` permission rather than the prior emoji-management permission.
+
+The renderer detects only HTTPS Discord recruitment invites on `discord.gg/<code>` and `discord.com/invite/<code>`. On Java these invite substrings are converted to aqua underlined `OPEN_URL` components with a hover hint; unrelated URLs remain ordinary text. Guild info keeps the inventory description readable and, when an invite exists, clicking the description book emits the rendered description to chat where the URL can be opened. Java settings/editor previews reuse the same sanitized component renderer. Bedrock forms render descriptions as formatting-stripped plain text while retaining the visible Discord URL, and both Bedrock edit surfaces use the same validation policy; blank submissions clear the stored description.
+
+## Disband Announcements (LG-1508)
+
+A successful guild disband captures active `ALLY`/`ENEMY` relations before the guild deletion transaction can cascade relation rows or evict relation cache state. The immutable snapshot is attached internally to the existing three-argument `GuildDisbandedEvent`, preserving the public constructor/API contract while giving post-delete listeners authoritative pre-delete relationship context.
+
+`GuildDisbandAnnouncementServiceBukkit` emits one localized server-wide chat broadcast for every successful disband. It then resolves online members of the snapshotted related guilds and sends a relationship-aware advancement toast through the same `ToastSender` path for Java and Geyser/Bedrock players. The toast title contains both relationship type and guild name so it remains meaningful on Bedrock clients that omit the advancement-toast description line. Recipients are deduplicated across guild memberships, former members of the disbanded guild are excluded from relationship toasts, and `ENEMY` takes precedence over `ALLY` if malformed/multi-membership data reaches the same player through both. Toast failures fall back to an action bar; the global chat announcement is independent and still reaches the player.
+
 ## Weekly Guild Quests (PR-16)
 
-The domain owns typed quest definitions, conditions, provenance policies, validation results, and pure generation rules. The application layer owns the active-week lifecycle, progress evaluation, atomic claims, completion bonuses, and leaderboard payout orchestration through repository and Guild EXP ports. Infrastructure translates Bukkit/domain events into quest progress facts, persists active sets/progress/block provenance in SQLite, schedules reset catch-up, and supplies PlaceholderAPI adapters. Interaction renders the existing ChestGUI menu without mutating state except through the claim use case.
+The domain owns provider-neutral namespaced quest targets, typed actions/conditions, provenance policies, validation results, amount policy, deterministic fingerprints/history rejection, and pure procedural generation rules. Infrastructure supplies runtime target providers: Bukkit/Paper discovers vanilla blocks, mature crops, living entities, registered crafting/cooking recipes and enchantable items; Nexo optionally contributes custom block and item identities without exposing vanilla backing materials to the generator. The application layer owns active-week lifecycle, progress evaluation, atomic claims, completion bonuses, and leaderboard payout orchestration through repository and Guild EXP ports. Infrastructure translates Bukkit/domain events into namespaced progress facts with relevant spatial/tool context, persists active/history sets and progress for SQLite/MariaDB, schedules reset catch-up, and supplies PlaceholderAPI adapters. Interaction dynamically renders generated quest text without requiring a language key for every combination.
 
-One `WeeklyQuestSet` is shared server-wide for a stable reset-period ID. `GuildQuestProgress` is keyed by `(week_id, quest_id, guild_id)`. Location metadata never becomes an implicit condition: it is consulted only when validating an explicitly generated location condition. Reward flags and reset processing are persisted/idempotent; leaderboard payouts run before expired progress is cleared.
+One `WeeklyQuestSet` is shared server-wide for a stable reset-period ID and persists the fully generated definitions so restarts do not reroll the week. `GuildQuestProgress` is keyed by `(week_id, quest_id, guild_id)`. Generation independently rolls action, compatible provider target, human-rounded magnitude-aware amount, and optional compatible conditions; exact fingerprints and recent action+target pairs are rejected across configured history windows. X/Z corridor conditions encode `center:radius` and are intentionally biased toward X=0/Z=0 by configuration; event coordinates are evaluated only when that explicit condition exists. Location metadata never creates a hidden requirement.
+
+Quest targets are completion thresholds rather than score caps. Crossing a threshold atomically marks the quest claimed, settles its base reward with the existing stable transaction identity, sends online guild members a completion toast using the action-specific Nexo icon (tier/vanilla fallback), and keeps counting subsequent activity for that quest's weekly standings. Every generated quest participates in a per-quest leaderboard; the configured first-place Guild EXP payout is settled idempotently during weekly rollover. Final progress rows are retained after rollover so historical standings remain available. Java quest entries open a 36-entry paginated guild leaderboard and Bedrock exposes the same standings through a paginated form. Reward flags and reset processing remain persisted/idempotent. Schema v36 owns all weekly quest tables and generated-target metadata in both migration chains; repositories no longer create their own schema.
 
 ## Chapter 2 Progression (PR-12)
 
@@ -71,7 +107,9 @@ One `WeeklyQuestSet` is shared server-wide for a stable reset-period ID. `GuildQ
 New guild creation records an immutable original creator in `guild_creators`.
 `GuildCreationHistorySQL` serializes admission and deletion on the creator's SQL
 row. Guild insertion and creator history commit together; guild deletion and its
-cooldown receipt also commit together. Cache changes follow successful commits.
+cooldown receipt also commit together, including member/rank/relation/home removal
+and closing membership stints. Cache eviction and vault/hologram removal follow
+successful commits. Failed SQL leaves dependent rows, caches, and world state intact.
 `GuildServiceBukkit` uses these paths, while failed setup uses ordinary removal
 without a cooldown. The command shows a localized UTC expiry and rejects an
 unavailable cooldown lookup; SQL admission rechecks the current deadline.
@@ -107,7 +145,7 @@ defaults to deny. Read-model migration remains LG-1214. See the
 
 `GuildRewardService` reads one transactionally consistent level/ownership snapshot
 through `RewardStateRepositorySQL`, then resolves all entitlements. The reloadable
-`progression.chapter_two_rewards_enabled` switch defaults false. Disabled reads do
+`progression.chapter_two_rewards_enabled` switch defaults true for the production Chapter 2 cutover. Disabled reads do
 not access reward storage; missing, failed or invalid state is explicitly unavailable
 and never falls back to legacy grants. No read initializes an account. Gold settings,
 progression/home benefits and member limits share this resolver. Java and Bedrock
@@ -123,8 +161,9 @@ catalog. Bedrock callbacks dispatch onto the server thread and ignore disconnect
 players. Cancelling or viewing never spends gold.
 
 `guild_reward_*` placeholders report unavailable numeric values as blank and expose
-state separately. Migration and live UI validation must be ready before the switch
-is enabled for a server. See `docs/plans/2026-09-17-reward-purchase-ui.md`.
+state separately. Migration readiness is covered by the Chapter 1→2 migration/read-model integration
+contract. Live Paper/Java/Bedrock validation remains a deployment gate before the
+switch is enabled for a server. See `docs/plans/2026-09-17-reward-purchase-ui.md`.
 
 `ExperienceBoost` defines an immutable UTC interval and source selection for
 `progression.xp_boost`. `PermanentExperienceService` applies it after eligibility and
@@ -138,3 +177,21 @@ Current-run progression, permanent guild rewards/prestige, canonical guild gold,
 Current-run progression is keyed by `guild_id`; permanent perks by `(guild_id, reward_id)` plus guild prestige count; canonical guild gold by `guild_id` in `vault_gold`; source usage by `(guild_id, source_pool, period_start)`; ratings and standings by `(chapter_id, guild_id)`; and rematch guards by an unordered guild pair within a chapter. XP award plus cap reservation is one transaction. A guild-gold mutation plus audit is one transaction with compensation for failed external Vault/item legs. Prestige fee, permanent rewards, temporary-perk reset, level/XP reset, and audit commit together. A rated result plus both Elo updates plus its pair guard is one transaction. Rollover follows `SCHEDULED -> FROZEN -> BACKED_UP -> ARCHIVED -> RESET -> PRUNED -> COMPLETE`; no reset or prune transition may run before a verified backup and archived standings exist.
 
 The XP/Elo/chapter contract lives in `docs/superpowers/specs/2026-08-27-chapter-2-progression-revamp-design.md`. The canonical guild-gold, Chapter 1 migration, reward cadence, and bounded-prestige contract lives in `docs/superpowers/specs/2026-08-30-chapter-2-prestige-gold-design.md`.
+
+## Guild-shop XP (REQ-121)
+
+See [guild-shop-xp.md](guild-shop-xp.md) for approved policy, durable delivery, SPEAR state and acceptance boundaries.
+
+### Guild-wide reconnect chat preference (REQ-135)
+
+`GuildChatReconnectSettingsService` owns membership/permission policy through `GuildChatReconnectSettingsRepository`; the SQL adapter stores a default-off guild preference with atomic expected-state writes. Both menu clients submit a rendered snapshot without replacing newer unchanged fields. `GuildChatReconnectListener` is wired with RoseChat startup, runs one tick after join, and rechecks the current session/channel before switching only guild/ally chat to the configured default. Additive schema migration and transactional disband cleanup cover both supported databases. See `docs/chat-reconnect.md` for verification and release boundaries.
+
+## Community chat, ranks and directory (REQ-136 through REQ-139)
+
+The shared interaction permission catalog drives creation and editing; selection never writes a category-wide grant. GuildListService assembles bounded read models through its SQL repository with priority-zero owners and active, non-expired allies. Personal chat preferences use an additive SQL table and transactional writes before cache publication. The RoseChat viewer adapter filters only global player messages; an optional boss bar reads the actual channel without taking over the action bar. Fullscreen announcement commands reuse announcement policy. Stall report navigation delegates to Market's independently authorized read-only command. See [community-ui.md](community-ui.md) for SPEAR evidence and acceptance boundaries.
+
+## Guild onboarding (REQ-145 and REQ-146)
+
+GuildGettingStartedService derives permission-aware read models through existing guild/member/home services. Shared interaction navigation rechecks the selected guild at every click and opens existing menus; Java uses a themed three-row inventory with bounded description lore, while Bedrock uses a native uncached form with a navigation-generation guard on scheduled responses. `/g start` and dashboard access supplement the existing `/g help` browser. No guide action grants rewards, changes prices or purchases homes.
+
+GuildOnboardingRepository is the application persistence port; its infrastructure SQL adapter owns an additive player/guild prompt table. Registration never resets consumption; one conditional update claims delivery atomically. Creation/join events enroll new memberships, and reconnects deliver only pending rows for current online members with help permission. SQL failure preserves pending delivery and does not report successful dismissal. Consumed IDs remain as tombstones so duplicate events or restored memberships cannot replay a first-time prompt. See [guild-onboarding.md](guild-onboarding.md) for evidence and release boundaries.

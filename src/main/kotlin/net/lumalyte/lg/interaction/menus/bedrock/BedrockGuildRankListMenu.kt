@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.infrastructure.i18n.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
@@ -82,7 +84,7 @@ class BedrockGuildRankListMenu(
     private fun buildRankButtonText(rank: Rank, permissionCount: Int): String {
         return lang.bedrock(
             "bedrock.rank_list.rank_button",
-            "rank" to rank.name,
+            "rank" to RankNameContent.miniMessage(rank.name),
             "priority" to rank.priority,
             "permission_count" to permissionCount
         )
@@ -100,7 +102,7 @@ class BedrockGuildRankListMenu(
 
     private fun showRankDetails(rank: Rank) {
         val detailForm = SimpleForm.builder()
-            .title(lang.bedrock("bedrock.rank_list.details.title", "rank" to rank.name))
+            .title(lang.bedrock("bedrock.rank_list.details.title", "rank" to RankNameContent.miniMessage(rank.name)))
             .content(buildRankDetailsContent(rank))
             .button(lang.bedrock("bedrock.rank_list.details.back"))
             .validResultHandler { _ ->
@@ -130,7 +132,7 @@ class BedrockGuildRankListMenu(
 
         return lang.bedrock(
             "bedrock.rank_list.details.content",
-            "rank" to rank.name,
+            "rank" to RankNameContent.miniMessage(rank.name),
             "priority" to rank.priority,
             "permissions" to permissions
         )
@@ -142,8 +144,8 @@ class BedrockGuildRankListMenu(
     }
 
     private fun showRankDetailsInChat(rank: Rank) {
-        player.sendMessage(lang.msg("bedrock.rank_list.chat.title", "rank" to rank.name))
-        player.sendMessage(lang.msg("bedrock.rank_list.chat.name", "rank" to rank.name))
+        player.sendMessage(lang.msg("bedrock.rank_list.chat.title", "rank" to RankNameContent.miniMessage(rank.name)))
+        player.sendMessage(lang.msg("bedrock.rank_list.chat.name", "rank" to RankNameContent.miniMessage(rank.name)))
         player.sendMessage(lang.msg("bedrock.rank_list.chat.priority", "priority" to rank.priority))
         player.sendMessage(lang.msg("bedrock.rank_list.chat.permissions"))
 

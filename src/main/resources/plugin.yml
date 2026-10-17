@@ -1,9 +1,9 @@
 name: LumaGuilds
 version: ${version}
-api-version: '1.21.11'
+api-version: '26.2'
 load: STARTUP
 main: net.lumalyte.lg.LumaGuilds
-softdepend: [Vault, PlaceholderAPI, AxKoth, LiteBans, EnthusiaPlaytime, Nexo]
+softdepend: [Vault, PlaceholderAPI, LiteBans, EnthusiaStaff, EnthusiaPlaytime, Nexo, packetevents, DiscordSRV]
 depend: [RoseChat]
 
 commands:
@@ -82,6 +82,7 @@ permissions:
       lumaguilds.guild.tag: true
       lumaguilds.guild.description: true
       lumaguilds.guild.war: true
+      lumaguilds.guild.warbanner: true
       lumaguilds.guild.info: true
       lumaguilds.guild.history: true
       lumaguilds.guild.chat: true
@@ -153,6 +154,9 @@ permissions:
     default: true
   lumaguilds.guild.war:
     description: Declare war on other guilds
+    default: true
+  lumaguilds.guild.warbanner:
+    description: Deploy and teleport to tactical guild war banners
     default: true
   lumaguilds.guild.info:
     description: View guild information
@@ -297,9 +301,14 @@ permissions:
     default: op
     children:
       bellclaims.admin: true
+      lumaguilds.admin.xp: true
 
   bellclaims.admin:
     description: Allows access to admin commands including guild override mode
+    default: op
+
+  lumaguilds.admin.xp:
+    description: Grant permanent guild XP with /lumaguilds xp give
     default: op
 
   # Guild Strikes Admin Permissions

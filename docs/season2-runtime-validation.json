@@ -1,0 +1,165 @@
+﻿{
+    "validated_at":  "2026-09-26T18:35:30-04:00",
+    "scope":  "local staging only; production untouched",
+    "source_checkout":  "C:\\Users\\Noah\\Documents\\Codex\\2026-09-24\\files-pasted-by-the-user-astra\\work\\season2-ui",
+    "staging_root":  "C:\\Users\\Noah\\Desktop\\test\\_net\\lobby",
+    "tests":  {
+                  "total":  1393,
+                  "failures":  0,
+                  "errors":  0,
+                  "skipped":  3,
+                  "command":  "gradlew.bat test shadowJar --no-daemon --console=plain"
+              },
+    "static_analysis":  {
+                            "git_diff_check":  "clean; no errors, LF/CRLF warnings only",
+                            "semgrep":  {
+                                            "config":  "p/kotlin",
+                                            "rules":  9,
+                                            "targets":  795,
+                                            "findings":  0,
+                                            "warnings":  1,
+                                            "status":  "rerun 2026-09-26 18:34 - 0 findings; one non-blocking PartialParsing warning in BedrockGuildSelectionMenu.kt around open() calls; Gradle/Kotlin compilation and the full test suite are green"
+                                        },
+                            "configured_analyzers":  [
+
+                                                     ],
+                            "note":  "No detekt/ktlint/spotless/checkstyle task is configured in this checkout; compiler/tests, architecture/localization/resource contracts and git diff --check were run."
+                        },
+    "deployment":  {
+                       "jar":  "plugins/LumaGuilds-Season2.jar",
+                       "jar_sha256":  "040C47B3AAD1AC015928389536440CC355C286EC602802F369BB0B39056F5572",
+                       "previous_jar_sha256":  "1978020586FBB14EDB1F99EFE822F064069B02CC9DD83EF2B6E547A1BDAE5110",
+                       "jar_backup":  "C:\\Users\\Noah\\Desktop\\test\\_net\\lobby\\plugins\\LumaGuilds-Season2.pre-lg1812-watchdog-20260926.jar.bak",
+                       "resource_backup":  "_staging_backups/season2-ui-secondpass-20260924-190910",
+                       "jar_size_bytes":  24585861
+                   },
+    "nexo":  {
+                 "version":  "1.22.1",
+                 "pack_server":  "SELFHOST",
+                 "new_item_cmd_range":  "733213-733238",
+                 "new_item_cmd_counts":  "all exactly 1",
+                 "new_glyph_chars":  "U+A018-U+A01D",
+                 "new_glyph_char_counts":  "all exactly 1",
+                 "duplicate_item_ids":  0,
+                 "duplicate_glyph_ids":  0,
+                 "runtime_gui_texture_size":  "256x256",
+                 "approved_master_art_size":  "512x512",
+                 "pack_zip":  "plugins/Nexo/pack/pack.zip",
+                 "pack_sha256":  "60814E1CB04812B4395D6928536C23EA5C9A1167DE611D77345AEEEBB4E58A21",
+                 "pack_size_bytes":  915141,
+                 "generated_at":  "2026-09-26T10:43:34-04:00",
+                 "validator_result":  "clean; no oversized/placeholder warnings after corrected restart",
+                 "one_row_glyphs_present_in_generated_json":  true
+             },
+    "runtime":  {
+                    "server":  "Leaf 1.21.11-179",
+                    "java":  "21",
+                    "lumaguilds":  "2.1.0",
+                    "java_client_connected":  false,
+                    "visual_acceptance":  "second Java walkthrough against current green JAR pending",
+                    "visual_audit":  "docs/season2-java-visual-audit-2026-09-24.md",
+                    "follow_up_gate":  "complete the real Bedrock walkthrough, repeat the Java walkthrough, run the fresh production-copy DB readiness audit and perform the war cutover validation before release",
+                    "bedrock_validation":  "Geyser/Floodgate/Cumulus/ViaVersion staging boot validated on the final JAR; automated/static gates and bank-scheduler runtime regression validation are green; real Bedrock client walkthrough pending",
+                    "leaf":  "1.21.11-179",
+                    "nexo":  "1.22.1",
+                    "server_running_after_followup_restart":  true,
+                    "java_pid_at_validation":  37428,
+                    "known_staging_warnings":  [
+                                                   "BankServiceBukkit initializes before EnthusiaCurrency registers as the Vault economy provider; EnthusiaCurrency later registers successfully during this staging boot.",
+                                                   "Imported guild vault world UUID is absent from the minimal local staging worlds, so vault chest restoration is skipped for those imported locations.",
+                                                   "Staging server is intentionally offline-mode and loopback-only."
+                                               ]
+                },
+    "jar":  {
+                "source":  "build/libs/LumaGuilds-2.1.0.jar",
+                "sha256":  "040C47B3AAD1AC015928389536440CC355C286EC602802F369BB0B39056F5572",
+                "staging":  "C:\\Users\\Noah\\Desktop\\test\\_net\\lobby\\plugins\\LumaGuilds-Season2.jar",
+                "staging_sha256":  "040C47B3AAD1AC015928389536440CC355C286EC602802F369BB0B39056F5572",
+                "backup":  "C:\\Users\\Noah\\Desktop\\test\\_net\\lobby\\plugins\\LumaGuilds-Season2.pre-lg1812-watchdog-20260926.jar.bak"
+            },
+    "nexo_followup":  {
+                          "version":  "1.22.1",
+                          "server_type":  "SELFHOST",
+                          "stale_menu_new_cmd_range":  [
+                                                           733239,
+                                                           733255
+                                                       ],
+                          "stale_menu_new_items":  17,
+                          "stale_menu_icons_32px":  19,
+                          "new_cmd_collisions":  0,
+                          "reused_ids":  [
+                                             "lg_history",
+                                             "lg_automation",
+                                             "lg_nav_statistics"
+                                         ],
+                          "runtime_pack":  {
+                                               "path":  "C:\\Users\\Noah\\Desktop\\test\\_net\\lobby\\plugins\\Nexo\\pack\\pack.zip",
+                                               "sha256":  "60814E1CB04812B4395D6928536C23EA5C9A1167DE611D77345AEEEBB4E58A21",
+                                               "size_bytes":  915141,
+                                               "generated_at":  "2026-09-26T10:43:34-04:00",
+                                               "validator":  "clean"
+                                           }
+                      },
+    "release_followup":  {
+                             "prestige":  "implemented and tested at level 100; operator gate progression.prestige.enabled remains false by default",
+                             "war_cutover":  "implemented/admin-confirmed/fail-closed for ambiguous wager state; live DB execution pending",
+                             "live_db_readiness":  "tooling expanded; production-copy audit not yet run",
+                             "human_gate":  "repeat Java-client walkthrough and complete the real Bedrock client walkthrough against the current JAR before release sign-off",
+                             "bedrock":  "LG-1809..LG-1811 implemented and automated/staging gates green; LG-1812 remains open for real-client walkthrough and independent final sign-off."
+                         },
+    "bedrock_runtime":  {
+                            "status":  "staging infrastructure and automated runtime regression gates green; real-client acceptance pending",
+                            "real_client_walkthrough_complete":  false,
+                            "signoff":  "PENDING",
+                            "geyser":  {
+                                           "version":  "2.11.3-b1247",
+                                           "jar":  "plugins/Geyser-Spigot.jar",
+                                           "sha256":  "6FED2D9711E2DB3C365508EC10DB36D06A0199ABD226159D23D57F82662FD7A6",
+                                           "bind":  "127.0.0.1:19132/UDP",
+                                           "auth_type":  "floodgate"
+                                       },
+                            "floodgate":  {
+                                              "version":  "2.2.5-b141",
+                                              "jar":  "plugins/floodgate-spigot.jar",
+                                              "sha256":  "21570AFF9CE17D6983928E8552777760E1EDE5050026B04C686B0AE112E6FD7E",
+                                              "cumulus_form_class_present":  true
+                                          },
+                            "viaversion":  {
+                                               "version":  "5.12.0",
+                                               "jar":  "plugins/ViaVersion-5.12.0.jar",
+                                               "sha256":  "72C40A6A702D67F226FC9A0D8AD82ABA1483FDABE2E6159BCDDDB2DC070750B0"
+                                           },
+                            "java_listener":  "127.0.0.1:25570/TCP",
+                            "runtime_boot":  "healthy on final 040C47B3... JAR; first scheduler cycles passed without SQLITE_BUSY/watchdog regression",
+                            "protocol_compatibility_warning_after_viaversion":  false,
+                            "client_prep":  "Minecraft for Windows installed/launched; Windows loopback exemption present; existing external server entry local -> localhost:19132; real-client walkthrough still requires human interaction",
+                            "required_walkthrough":  [
+                                                         "dashboard",
+                                                         "quests/claim",
+                                                         "reward purchase/prestige",
+                                                         "settings/denials",
+                                                         "bank",
+                                                         "homes/access",
+                                                         "members/ranks",
+                                                         "party/LFG",
+                                                         "diplomacy/war",
+                                                         "statistics",
+                                                         "close/back/timeout/reconnect"
+                                                     ]
+                        },
+    "signoff":  {
+                    "java":  "PENDING_SECOND_WALKTHROUGH",
+                    "bedrock":  "PENDING_REAL_CLIENT_WALKTHROUGH",
+                    "automated":  "GREEN"
+                },
+    "bank_scheduler_runtime":  {
+                                   "issue":  "SQLite audit-log pruning previously ran on the Bukkit main thread and a locked staging database produced a watchdog stall.",
+                                   "fix":  "BankInterestScheduler keeps inventory-sensitive interest settlement on the main thread, moves audit retention pruning to a separate asynchronous task, offsets the first prune by one minute after the interest sweep, and repeats pruning hourly; BankRepositorySQLite audit cache is ConcurrentHashMap-backed.",
+                                   "contract":  "BankInterestSchedulerThreadingContractTest",
+                                   "focused_tests":  "green",
+                                   "first_interest_cycle":  "passed without SQLITE_BUSY/database-lock/watchdog entries",
+                                   "first_async_prune_window":  "passed without SQLITE_BUSY/database-lock/watchdog entries",
+                                   "responsiveness_probe":  "bedrockcachestats completed after both windows",
+                                   "validated_at":  "2026-09-26T13:18:53-04:00"
+                               }
+}

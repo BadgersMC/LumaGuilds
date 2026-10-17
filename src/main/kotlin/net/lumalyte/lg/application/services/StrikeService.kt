@@ -6,19 +6,12 @@ import net.lumalyte.lg.domain.entities.GuildStrike
 import java.time.Instant
 import java.util.UUID
 
-/**
- * Application-layer service for Guild Strikes.
- *
- * Bridges LiteBans punishment events and the persistence layer, and answers
- * the queries the public command + admin GUI need.
- */
-class StrikeService(
-    private val repository: StrikeRepository,
-    private val configProvider: () -> StrikesConfig,
-) {
+// Preserve the established public query and reconciliation facade used by plugin adapters.
 
-    /** Records a strike for a guild member's punishment. Returns true if a new row
-     *  was inserted, false if disabled or a dedupe hit. */
+/** Configured write policy and historical/current strike queries. */
+@Suppress("TooManyFunctions", "LibraryEntitiesShouldNotBePublic")
+class StrikeService(private val repository: StrikeRepository, private val configProvider: () -> StrikesConfig) {
+    /** Record an attributed legacy strike while enabled. */
     fun recordStrike(
         guildId: UUID,
         playerUuid: UUID,
@@ -41,30 +34,61 @@ class StrikeService(
                 executorName = executorName,
                 issuedAt = issuedAt,
                 litebansEntryId = litebansEntryId,
-                active = active
-            )
+                active = active,
+            ),
         )
     }
 
-    /** Marks a strike inactive when its LiteBans punishment is removed/expired. */
+    /** Record the complete provider identity and attribution only while strikes are enabled. */
+    fun recordExternalStrike(strike: GuildStrike): Boolean =
+        configProvider().enabled && repository.recordExternalStrike(strike)
+
+    /** Deactivate an existing legacy identity while enabled. */
     fun deactivateStrike(punishmentType: String, litebansEntryId: Long) {
         if (!configProvider().enabled) return
         repository.deactivateStrike(punishmentType, litebansEntryId)
     }
 
+    /** Update a known legacy identity without changing its historical guild. */
+    fun reconcileLegacyStrike(punishmentType: String, litebansEntryId: Long, active: Boolean): Boolean {
+        if (!configProvider().enabled) return false
+        return repository.reconcileLegacyStrike(punishmentType, litebansEntryId, active)
+    }
+
+    /** Update a known provider identity; failures propagate so the feed can retry. */
+    fun reconcileExternalStrike(
+        sourceProvider: String,
+        sourcePunishmentId: String,
+        active: Boolean,
+        expiresAt: Instant?,
+    ): Boolean {
+        if (!configProvider().enabled) return false
+        return repository.reconcileExternalStrike(sourceProvider, sourcePunishmentId, active, expiresAt)
+    }
+
+    /** Expire persisted provider strikes without waiting for another source event. */
+    fun deactivateExpiredExternal(now: Instant): Int =
+        if (configProvider().enabled) repository.deactivateExpiredExternal(now) else 0
+
+    /** Count every historical strike for a guild. */
     fun countByGuild(guildId: UUID): Int = repository.countByGuild(guildId)
 
+    /** Count active strikes for a guild. */
     fun countActiveByGuild(guildId: UUID): Int = repository.countActiveByGuild(guildId)
 
+    /** Read the ordered historical strikes for a guild. */
     fun getByGuild(guildId: UUID): List<GuildStrike> = repository.getByGuild(guildId)
 
+    /** Read historical counts by guild. */
     fun getAllCounts(): Map<UUID, Int> = repository.getAllCounts()
 
+    /** Read active counts by guild. */
     fun getAllActiveCounts(): Map<UUID, Int> = repository.getAllActiveCounts()
 
+    /** Count all historical strikes. */
     fun countAll(): Int = repository.countAll()
 
-    /** True when a guild's ACTIVE strikes have reached (or passed) the threshold. */
+    /** Compare active strikes with the configured positive threshold. */
     fun isUpForPenalty(guildId: UUID): Boolean {
         val threshold = configProvider().threshold
         return threshold > 0 && repository.countActiveByGuild(guildId) >= threshold

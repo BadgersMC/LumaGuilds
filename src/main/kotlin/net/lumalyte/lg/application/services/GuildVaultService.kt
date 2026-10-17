@@ -32,6 +32,9 @@ interface GuildVaultService {
      */
     fun removeVaultChest(guild: Guild, dropItems: Boolean): VaultResult<Guild>
 
+    /** Read-only preparation; invoke the returned cleanup only after disband commits. */
+    fun prepareDisband(guild: Guild): () -> VaultResult<Guild> = { removeVaultChest(guild, true) }
+
     /**
      * Opens the vault inventory for a player.
      *

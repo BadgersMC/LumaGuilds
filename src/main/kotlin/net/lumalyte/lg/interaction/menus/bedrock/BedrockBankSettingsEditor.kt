@@ -4,11 +4,13 @@ import net.lumalyte.lg.application.persistence.BankSettingsRepository
 import net.lumalyte.lg.domain.entities.BankSettings
 import java.util.UUID
 
-/** Applies validated Bedrock form values without discarding unrelated bank settings. */
+/** Applies validated, authorized Bedrock form values without discarding unrelated bank settings. */
 class BedrockBankSettingsEditor(
-    private val repository: BankSettingsRepository
+    private val repository: BankSettingsRepository,
+    private val canManageSettings: (UUID) -> Boolean = { false }
 ) {
     fun saveBudgets(guildId: UUID, monthly: String, weekly: String, daily: String): Boolean {
+        if (!canManageSettings(guildId)) return false
         val monthlyValue = monthly.toNonnegativeInt() ?: return false
         val weeklyValue = weekly.toNonnegativeInt() ?: return false
         val dailyValue = daily.toNonnegativeInt() ?: return false
@@ -29,6 +31,7 @@ class BedrockBankSettingsEditor(
         recurringPayments: Boolean,
         interestPercent: String
     ): Boolean {
+        if (!canManageSettings(guildId)) return false
         val percent = interestPercent.trim().toDoubleOrNull()
             ?.takeIf { it.isFinite() && it in 0.0..100.0 }
             ?: return false
@@ -43,13 +46,24 @@ class BedrockBankSettingsEditor(
         )
     }
 
+    fun saveInterestRate(guildId: UUID, interestPercent: String): Boolean {
+        if (!canManageSettings(guildId)) return false
+        val percent = interestPercent.trim().toDoubleOrNull()
+            ?.takeIf { it.isFinite() && it in 0.0..100.0 }
+            ?: return false
+        val current = repository.getByGuildId(guildId) ?: BankSettings(guildId)
+        return repository.upsert(current.copy(interestRate = percent / 100.0))
+    }
+
     fun saveSecurity(guildId: UUID, dualAuthThreshold: String): Boolean {
+        if (!canManageSettings(guildId)) return false
         val threshold = dualAuthThreshold.toNonnegativeInt() ?: return false
         val current = repository.getByGuildId(guildId) ?: BankSettings(guildId)
         return repository.upsert(current.copy(dualAuthThreshold = threshold))
     }
 
     fun saveAutoDeposit(guildId: UUID, enabled: Boolean): Boolean {
+        if (!canManageSettings(guildId)) return false
         val current = repository.getByGuildId(guildId) ?: BankSettings(guildId)
         return repository.upsert(current.copy(scheduledDepositsEnabled = enabled))
     }

@@ -3,22 +3,33 @@ name: release
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'wiki/**'
+      - 'mkdocs.yml'
+      - 'tools/wiki/**'
+      - '.markdownlint.jsonc'
+      - '.github/workflows/wiki-checks.yml'
+      - '.github/workflows/wiki-deploy.yml'
 
 jobs:
   release:
+    if: ${{ !contains(github.event.head_commit.message, '[skip release]') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
     env:
-      ROSECHAT_PREHOOK_REF: 3fe078a
+      ROSECHAT_UPSTREAM_REF: 179483128fa2020f3ad8b0e4192ada3d0a251c49
       COMBATLOGX_API_REF: 4812e85af1264ebb27da481b9d9cbf8de0956e53
+      ENTHUSIASTAFF_API_REF: 8539bb8c77d7ecaf083546dda7ca8ccbfa8064e6 # Staff PR #408 lifecycle API
 
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # need tags for version bump
+          persist-credentials: false
 
-      - uses: actions/setup-java@v4
+      - name: Set up Java 21 for CombatLogX API build
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
@@ -26,23 +37,24 @@ jobs:
       - name: Bump version
         id: bump
         run: |
-          # Find latest tag matching v*.*.*
+          # The build file is the minimum release baseline. This allows intentional
+          # major/minor jumps (for example 2.1.x -> 3.0.0) without rewriting tags.
+          BASE=$(grep -oP 'version\s*=\s*findProperty.*\?\s*:\s*"\K[^"]+' build.gradle.kts)
           LATEST=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -1)
+
           if [ -z "$LATEST" ]; then
-            # No tags yet — read base from build.gradle.kts
-            BASE=$(grep -oP 'version\s*=\s*findProperty.*\?\s*:\s*"\K[^"]+' build.gradle.kts)
-            MAJOR=$(echo "$BASE" | cut -d. -f1)
-            MINOR=$(echo "$BASE" | cut -d. -f2)
-            PATCH=$(echo "$BASE" | cut -d. -f3)
+            NEXT="$BASE"
           else
-            # Strip leading 'v'
             VER="${LATEST#v}"
             MAJOR=$(echo "$VER" | cut -d. -f1)
             MINOR=$(echo "$VER" | cut -d. -f2)
             PATCH=$(echo "$VER" | cut -d. -f3)
+            PATCH_NEXT="${MAJOR}.${MINOR}.$((PATCH + 1))"
+
+            NEXT=$(printf '%s\n%s\n' "$BASE" "$PATCH_NEXT" | sort -V | tail -1)
           fi
-          NEXT="${MAJOR}.${MINOR}.$((PATCH + 1))"
-          echo "Latest tag: ${LATEST:-none}, bumping to v$NEXT"
+
+          echo "Latest tag: ${LATEST:-none}; baseline: $BASE; releasing v$NEXT"
           echo "version=$NEXT" >> "$GITHUB_OUTPUT"
 
       - name: Cache RoseChat jar
@@ -50,19 +62,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: libs/RoseChat-RC-2.jar
-          key: rosechat-jar-prehook-${{ env.ROSECHAT_PREHOOK_REF }}
-
-      - name: Build RoseChat (pre-hook) dependency
-        if: steps.rosechat-cache.outputs.cache-hit != 'true'
-        run: |
-          git clone https://github.com/BadgersMC/Enthusia-RoseChat.git "$RUNNER_TEMP/rosechat"
-          cd "$RUNNER_TEMP/rosechat"
-          git checkout "$ROSECHAT_PREHOOK_REF"
-          chmod +x gradlew
-          ./gradlew shadowJar --no-daemon
-          ROSE_JAR=$(ls build/libs/RoseChat-RC-2*.jar | grep -v '\-sources\|\-javadoc' | head -1)
-          mkdir -p "$GITHUB_WORKSPACE/libs"
-          cp "$ROSE_JAR" "$GITHUB_WORKSPACE/libs/RoseChat-RC-2.jar"
+          key: rosechat-jar-official-${{ env.ROSECHAT_UPSTREAM_REF }}
 
       - name: Cache CombatLogX API jar
         id: combatlogx-cache
@@ -85,11 +85,51 @@ jobs:
           test -n "$COMBATLOGX_JAR"
           cp "$COMBATLOGX_JAR" "$GITHUB_WORKSPACE/libs/CombatLogX-api.jar"
 
+      - name: Set up Java 25 for RoseChat and LumaGuilds
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Build official RoseChat 26.2 dependency
+        if: steps.rosechat-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone https://github.com/Rosewood-Development/RoseChat.git "$RUNNER_TEMP/rosechat"
+          cd "$RUNNER_TEMP/rosechat"
+          git checkout "$ROSECHAT_UPSTREAM_REF"
+          chmod +x gradlew
+          ./gradlew -I "$GITHUB_WORKSPACE/ci/rosechat/simpleclans.init.gradle" shadowJar --no-daemon
+          ROSE_JAR=$(find build/libs -maxdepth 1 -name 'RoseChat-*.jar'             ! -name '*-sources.jar' ! -name '*-javadoc.jar' | head -1)
+          test -n "$ROSE_JAR"
+          mkdir -p "$GITHUB_WORKSPACE/libs"
+          cp "$ROSE_JAR" "$GITHUB_WORKSPACE/libs/RoseChat-RC-2.jar"
+
       # Run the full test suite, including the Koin graph smoke test. The v2.1.23
       # release shipped a jar whose Koin graph referenced an unregistered type — a
       # class-presence check would pass that jar (the class file exists; the
       # registration doesn't). KoinGraphSmokeTest force-resolves every definition,
       # so a broken graph fails here, before the artifact is published.
+      - name: Cache EnthusiaStaff moderation API jar
+        id: enthusiastaff-api-cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: libs/EnthusiaStaff-moderation-api.jar
+          key: enthusiastaff-moderation-api-${{ env.ENTHUSIASTAFF_API_REF }}
+
+      - name: Build EnthusiaStaff moderation API jar
+        if: steps.enthusiastaff-api-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone https://github.com/wsg138/EnthusiaStaff.git "$RUNNER_TEMP/enthusiastaff"
+          cd "$RUNNER_TEMP/enthusiastaff"
+          git checkout "$ENTHUSIASTAFF_API_REF"
+          chmod +x gradlew
+          ./gradlew :moderation-platform-api:jar --no-daemon
+          mkdir -p "$GITHUB_WORKSPACE/libs"
+          STAFF_API_JAR=$(find moderation-platform-api/build/libs -maxdepth 1 -name '*.jar' \
+            ! -name '*-sources.jar' ! -name '*-javadoc.jar' | head -1)
+          test -n "$STAFF_API_JAR"
+          cp "$STAFF_API_JAR" "$GITHUB_WORKSPACE/libs/EnthusiaStaff-moderation-api.jar"
+
       - name: Test with Gradle
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

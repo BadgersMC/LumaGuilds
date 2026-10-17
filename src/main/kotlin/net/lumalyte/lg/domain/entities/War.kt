@@ -19,11 +19,24 @@ data class War(
     val objectives: Set<WarObjective> = emptySet(),
     val winner: UUID? = null,
     val loser: UUID? = null,
-    val peaceTerms: String? = null
+    val peaceTerms: String? = null,
+    val ratedChapterId: String? = null,
+    val farmingCooldownGuildId: UUID? = null,
+    val farmingCooldownUntil: Instant? = null,
 ) {
     init {
         require(declaringGuildId != defendingGuildId) { "Guild cannot declare war on itself" }
+        require(ratedChapterId == null || ratedChapterId.isNotBlank()) { "Rated chapter id cannot be blank" }
+        require((farmingCooldownGuildId == null) == (farmingCooldownUntil == null)) {
+            "War farming cooldown guild and deadline must be stored together"
+        }
+        require(farmingCooldownGuildId == null || farmingCooldownGuildId in setOf(declaringGuildId, defendingGuildId)) {
+            "War farming cooldown must belong to a participant"
+        }
     }
+
+    val isRated: Boolean
+        get() = ratedChapterId != null
 
     /**
      * Checks if the war is currently active.
@@ -55,7 +68,9 @@ data class War(
      * Checks if the war has expired.
      */
     val isExpired: Boolean
-        get() = remainingDuration?.isNegative ?: false
+        get() = startedAt?.plus(duration)?.let { endTime ->
+            !Instant.now().isBefore(endTime)
+        } ?: false
 
     companion object {
         fun create(declaringGuildId: UUID, defendingGuildId: UUID, duration: Duration = Duration.ofDays(7)): War {
@@ -167,9 +182,18 @@ data class WarDeclaration(
     val wagerAmount: Int = 0, // Amount wagered by declaring guild (escrowed)
     val declaredAt: Instant = Instant.now(),
     val expiresAt: Instant = Instant.now().plus(Duration.ofHours(24)), // 24 hour expiration
+    val ratedChapterId: String? = null,
+    val declarationCooldownUntil: Instant? = null,
     val accepted: Boolean = false,
     val rejected: Boolean = false
 ) {
+    init {
+        require(ratedChapterId == null || ratedChapterId.isNotBlank()) { "Rated chapter id cannot be blank" }
+    }
+
+    val isRated: Boolean
+        get() = ratedChapterId != null
+
     /**
      * Checks if the declaration is still valid (not expired and not responded to).
      */

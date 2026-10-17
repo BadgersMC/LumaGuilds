@@ -101,7 +101,7 @@ class BankServiceBukkit(
 
         val rsp: RegisteredServiceProvider<Economy>? = Bukkit.getServer().servicesManager.getRegistration(Economy::class.java)
         if (rsp == null) {
-            logger.error("No economy provider found! Guild Bank will not function without an economy plugin (Essentials, iConomy, etc.)")
+            logger.info("Waiting for a Vault economy provider to register; Guild Bank checks availability before each operation")
             return
         }
 
@@ -113,8 +113,12 @@ class BankServiceBukkit(
      * Get the Vault economy instance
      */
     private fun getEconomy(): Economy? {
-        if (economy == null) {
-            setupEconomy()
+        val registered = Bukkit.getServer().servicesManager.getRegistration(Economy::class.java)?.provider
+        if (registered !== economy) {
+            economy = registered
+            if (registered != null) {
+                logger.info("Successfully hooked into economy provider: ${registered.javaClass.simpleName}")
+            }
         }
         return economy
     }
@@ -197,6 +201,16 @@ class BankServiceBukkit(
                 recordCanonicalHistory(canonicalTransaction(result, request.guildId, request.playerId,
                     request.amount.toInt(), request.description,
                     if (withdrawal) TransactionType.WITHDRAWAL else TransactionType.DEPOSIT))
+                if (!withdrawal) {
+                    postDepositApplied(
+                        request.transactionId,
+                        request.guildId,
+                        request.playerId,
+                        request.amount.toInt(),
+                        result.oldBalance,
+                        result.newBalance,
+                    )
+                }
             }
             result
         } catch (error: Exception) {
@@ -215,15 +229,26 @@ class BankServiceBukkit(
             if (result !is net.lumalyte.lg.domain.gold.GuildGoldResult.Applied) return null
             val transaction = canonicalTransaction(result, guildId, playerId, amount, description, TransactionType.DEPOSIT)
             recordCanonicalHistory(transaction)
-            runCatching {
-                chapterTwoGuildAwardService?.awardBankGrowth(guildId, playerId, result.oldBalance, result.newBalance)
-                Bukkit.getPluginManager().callEvent(GuildBankDepositEvent(guildId, playerId, amount))
-            }.onFailure { logger.warn("Post-deposit notification failed for $transactionId", it) }
+            postDepositApplied(transactionId, guildId, playerId, amount, result.oldBalance, result.newBalance)
             transaction
         } catch (error: Exception) {
             logger.error("Canonical deposit $transactionId requires inspection", error)
             null
         }
+    }
+
+    private fun postDepositApplied(
+        transactionId: UUID,
+        guildId: UUID,
+        playerId: UUID,
+        amount: Int,
+        oldBalance: Long,
+        newBalance: Long,
+    ) {
+        runCatching {
+            chapterTwoGuildAwardService?.awardBankGrowth(guildId, playerId, oldBalance, newBalance)
+            Bukkit.getPluginManager().callEvent(GuildBankDepositEvent(guildId, playerId, amount))
+        }.onFailure { logger.warn("Post-deposit notification failed for $transactionId", it) }
     }
 
     override fun withdraw(guildId: UUID, playerId: UUID, amount: Int, description: String?): BankTransaction? =
@@ -330,27 +355,26 @@ class BankServiceBukkit(
 
     override fun getMemberContributions(guildId: UUID): List<MemberContribution> {
         val members = memberRepository.getByGuild(guildId)
+        val transactionsByActor = bankRepository.getTransactionsForGuild(guildId)
+            .groupBy { it.actorId }
 
         return members.map { member ->
             val playerId = member.playerId
-            val totalDeposits = bankRepository.getPlayerTotalDeposits(playerId, guildId)
-            val totalWithdrawals = bankRepository.getPlayerTotalWithdrawals(playerId, guildId)
-
-            // Get transaction count and last transaction for this member
-            val memberTransactions = bankRepository.getTransactionsForGuild(guildId)
-                .filter { it.actorId == playerId }
-            val transactionCount = memberTransactions.size
+            val memberTransactions = transactionsByActor[playerId].orEmpty()
+            val totalDeposits = memberTransactions
+                .filter { it.type == TransactionType.DEPOSIT }
+                .sumOf { it.amount }
+            val totalWithdrawals = memberTransactions
+                .filter { it.type == TransactionType.WITHDRAWAL }
+                .sumOf { it.amount + it.fee }
             val lastTransaction = memberTransactions.maxByOrNull { it.timestamp }?.timestamp
-
-            // Try to get player name from online players
-            val playerName = Bukkit.getPlayer(playerId)?.name
 
             MemberContribution(
                 playerId = playerId,
-                playerName = playerName,
+                playerName = Bukkit.getOfflinePlayer(playerId).name,
                 totalDeposits = totalDeposits,
                 totalWithdrawals = totalWithdrawals,
-                transactionCount = transactionCount,
+                transactionCount = memberTransactions.size,
                 lastTransaction = lastTransaction
             )
         }.sortedByDescending { it.netContribution }

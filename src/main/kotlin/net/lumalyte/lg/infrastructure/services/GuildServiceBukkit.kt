@@ -8,7 +8,7 @@ import net.lumalyte.lg.application.persistence.RelationRepository
 import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
-import net.lumalyte.lg.domain.entities.DepartureReason
+import net.lumalyte.lg.application.services.GuildHomeActivationService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.entities.GuildHomes
@@ -22,6 +22,7 @@ import net.lumalyte.lg.api.events.GuildRenamedEvent
 import net.lumalyte.lg.api.events.GuildHomeSetEvent
 import net.lumalyte.lg.api.events.GuildTrackingChangedEvent
 import net.lumalyte.lg.utils.serializeToString
+import net.lumalyte.lg.utils.GuildDescriptionContent
 import net.lumalyte.lg.utils.GuildNameFilter
 import org.bukkit.Bukkit
 import org.koin.core.component.KoinComponent
@@ -42,6 +43,7 @@ class GuildServiceBukkit(
     private val relationRepository: RelationRepository,
     private val historyRepository: MembershipHistoryRepository,
     private val adminOverrideService: net.lumalyte.lg.application.services.AdminOverrideService,
+    private val homeActivationService: GuildHomeActivationService,
     // Null (tests, partial wiring) fails closed: holiday themes stay locked.
     private val themeAccess: net.lumalyte.lg.application.services.GuildCosmeticUnlockService? = null,
 ) : GuildService, KoinComponent {
@@ -53,6 +55,7 @@ class GuildServiceBukkit(
     private val logger = LoggerFactory.getLogger(GuildServiceBukkit::class.java)
 
     private val configService: ConfigService by inject()
+    private val rewardService: net.lumalyte.lg.application.services.GuildRewardService by inject()
 
     companion object {
         // Allow only alphanumerics and spaces. Blocks color codes (&r, etc.),
@@ -135,50 +138,59 @@ class GuildServiceBukkit(
 
         val deletionPolicy = configService.loadConfig().guild.creationCooldown
 
-        // Clean up vault chest and hologram if exists
-        val vaultLocation = vaultService.getVaultLocation(guild)
-        if (vaultLocation != null) {
-            // Remove hologram first
-            hologramService.removeHologram(vaultLocation)
-            logger.info("Removed vault hologram for disbanded guild ${guild.name}")
-
-            // Remove vault chest and data (with items dropped)
-            when (val removeResult = vaultService.removeVaultChest(guild, dropItems = true)) {
-                is net.lumalyte.lg.application.services.VaultResult.Success -> {
-                    logger.info("Removed vault chest for disbanded guild ${guild.name}")
-                }
-                is net.lumalyte.lg.application.services.VaultResult.Failure -> {
-                    logger.warn("Failed to remove vault chest during disbandment: ${removeResult.message}")
-                }
-            }
-        }
-
-        // Capture member IDs before removal so the disbandment event carries them
+        // Capture member IDs and active ally/enemy relations before removal so the
+        // disbandment event survives FK cascades/cache eviction with complete notification context.
         val memberIds = memberService.getGuildMembers(guildId).map { it.playerId }.toSet()
-
-        // Remove all members
-        memberRepository.removeByGuild(guildId)
-
-        // Close membership history stints for all members (guild disbanded)
-        memberIds.forEach { memberId ->
-            historyRepository.closeStint(memberId, guildId, DepartureReason.DISBANDED)
-        }
-
-        // Remove all ranks
-        rankRepository.removeByGuild(guildId)
-
-        // Remove all relations to prevent stale entries in other guilds' ally/enemy lists
-        val removedRelations = relationRepository.removeByGuild(guildId)
-        if (removedRelations > 0) {
-            logger.info("Removed $removedRelations relation(s) for disbanded guild $guildId")
+        val relatedGuilds = runCatching {
+            relationRepository.getByGuild(guildId)
+                .asSequence()
+                .filter { relation ->
+                    relation.isActive() &&
+                        (relation.type == net.lumalyte.lg.domain.entities.RelationType.ALLY ||
+                            relation.type == net.lumalyte.lg.domain.entities.RelationType.ENEMY)
+                }
+                .associate { relation ->
+                    relation.getOtherGuild(guildId) to relation.type
+                }
+        }.onFailure {
+            logger.warn("Failed to capture relation snapshot before disbanding guild $guildId", it)
+        }.getOrDefault(emptyMap())
+        val vaultLocation = vaultService.getVaultLocation(guild)
+        val vaultCleanup = try {
+            if (vaultLocation != null) vaultService.prepareDisband(guild) else null
+        } catch (error: Exception) {
+            logger.warn("Failed to prepare vault cleanup for guild $guildId", error)
+            return false
         }
 
         // Remove guild
         val result = guildRepository.removeWithCreationCooldown(guildId,
             deletionPolicy, Instant.now())
         if (result) {
+            memberRepository.evictGuild(guildId)
+            rankRepository.evictGuild(guildId)
+            relationRepository.evictGuild(guildId)
+            // Clean up vault chest and hologram if exists
+            if (vaultLocation != null && vaultCleanup != null) {
+                // Remove hologram first
+                hologramService.removeHologram(vaultLocation)
+                logger.info("Removed vault hologram for disbanded guild ${guild.name}")
+
+                // Remove vault chest and data (with items dropped)
+                when (val removeResult = vaultCleanup()) {
+                    is net.lumalyte.lg.application.services.VaultResult.Success -> {
+                        logger.info("Removed vault chest for disbanded guild ${guild.name}")
+                    }
+                    is net.lumalyte.lg.application.services.VaultResult.Failure -> {
+                        logger.warn("Failed to remove vault chest during disbandment: ${removeResult.message}")
+                    }
+                }
+            }
+
             logger.info("Guild $guildId disbanded by $actorId")
-            Bukkit.getPluginManager().callEvent(GuildDisbandedEvent(guild, memberIds, actorId))
+            val disbandedEvent = GuildDisbandedEvent(guild, memberIds, actorId)
+            disbandedEvent.attachRelatedGuilds(relatedGuilds)
+            Bukkit.getPluginManager().callEvent(disbandedEvent)
         }
         return result
     }
@@ -253,6 +265,10 @@ class GuildServiceBukkit(
                 logger.warn("Invalid emoji format: $emojiValue")
                 return false
             }
+            if (!nexoEmojiService.doesEmojiExist(emojiValue)) {
+                logger.warn("Unknown or non-emoji glyph: $emojiValue")
+                return false
+            }
             
             // Check if player has specific emoji permission
             val player = Bukkit.getPlayer(actorId)
@@ -261,7 +277,7 @@ class GuildServiceBukkit(
                 return false
             }
             
-            if (!nexoEmojiService.hasEmojiPermission(player, emojiValue)) {
+            if (!nexoEmojiService.hasGuildEmojiPermission(player, emojiValue, guildId)) {
                 logger.warn("Player ${player.name} does not have permission to use emoji: $emojiValue")
                 return false
             }
@@ -328,17 +344,14 @@ class GuildServiceBukkit(
         val guild = guildRepository.getById(guildId) ?: return false
 
         // Check if actor has permission to set description
-        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_EMOJI)) { // Reuse emoji permission for description
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_DESCRIPTION)) {
             logger.warn("Player $actorId attempted to set description for guild $guildId without permission")
             return false
         }
 
-        // Validate description length if provided
-        description?.let { descValue ->
-            if (descValue.length > 100) {
-                logger.warn("Description too long: ${descValue.length} characters (max 100)")
-                return false
-            }
+        GuildDescriptionContent.validationFailure(description)?.let { failure ->
+            logger.warn("Rejected guild description for guild $guildId: $failure")
+            return false
         }
 
         val updatedGuild = guild.copy(description = description)
@@ -407,26 +420,32 @@ class GuildServiceBukkit(
     }
 
     override fun getAvailableHomeSlots(guildId: UUID): Int {
-        try {
-            val guild = guildRepository.getById(guildId) ?: return 1 // Default to 1 slot if guild not found
-
-            // Get progression service to check for ADDITIONAL_HOMES perk
-            // For now, use a simple calculation based on guild level
-            // This can be enhanced later to use the actual perk system
-            val baseSlots = 1
-            val additionalSlots = when {
-                guild.level >= 30 -> 5  // Level 30: 5 additional homes
-                guild.level >= 20 -> 3  // Level 20: 3 additional homes
-                guild.level >= 15 -> 2  // Level 15: 2 additional homes
-                guild.level >= 7 -> 1   // Level 7: 1 additional home
-                else -> 0
+        return try {
+            val guild = guildRepository.getById(guildId) ?: return 0
+            if (configService.loadConfig().chapterTwoRewardsEnabled) {
+                when (val state = rewardService.read(guildId)) {
+                    is net.lumalyte.lg.domain.rewards.GuildRewardRead.Available -> state.entitlements.homeCapacity
+                    net.lumalyte.lg.domain.rewards.GuildRewardRead.Disabled -> legacyHomeSlots(guild.level)
+                    net.lumalyte.lg.domain.rewards.GuildRewardRead.Unavailable -> 0
+                }
+            } else {
+                legacyHomeSlots(guild.level)
             }
-            return baseSlots + additionalSlots
         } catch (e: Exception) {
-            // Non-critical operation - catching all exceptions to prevent service failure
             logger.error("Error calculating available home slots for guild $guildId", e)
-            return 1 // Default fallback
+            0
         }
+    }
+
+    private fun legacyHomeSlots(level: Int): Int {
+        val additionalSlots = when {
+            level >= 30 -> 5
+            level >= 20 -> 3
+            level >= 15 -> 2
+            level >= 7 -> 1
+            else -> 0
+        }
+        return 1 + additionalSlots
     }
 
     override fun removeHome(guildId: UUID, homeName: String, actorId: UUID): Boolean {
@@ -449,6 +468,7 @@ class GuildServiceBukkit(
             val updatedGuild = guild.copy(homes = updatedHomes)
             val result = guildRepository.update(updatedGuild)
             if (result) {
+                homeActivationService.removeActivation(guildId, homeName)
                 logger.info("Guild $guildId home '$homeName' removed by $actorId")
             }
             return result
@@ -478,6 +498,7 @@ class GuildServiceBukkit(
             val updatedGuild = guild.copy(homes = GuildHomes.EMPTY)
             val result = guildRepository.update(updatedGuild)
             if (result) {
+                homeActivationService.removeAllActivations(guildId)
                 logger.info("Guild $guildId all homes removed by $actorId")
             }
             return result
@@ -711,6 +732,7 @@ class GuildServiceBukkit(
     override fun canUseHome(playerId: UUID, guildId: UUID, homeName: String): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false
         val home = guild.homes.getHome(homeName) ?: return false
+        if (!homeActivationService.isActive(guildId, homeName)) return false
         val member = memberRepository.getByPlayerAndGuild(playerId, guildId) ?: return false
         val ownerRank = rankRepository.getHighestRank(guildId)
         if (ownerRank != null && member.rankId == ownerRank.id) return true
@@ -722,12 +744,11 @@ class GuildServiceBukkit(
         if (!hasPermission(actorId, guildId, RankPermission.MANAGE_GUILD_SETTINGS)) {
             return false
         }
-        // REQ-094: holiday themes are applied only once the guild has earned them.
+        // REQ-121: holiday themes are applied only once the guild has earned them.
         if (theme.requiresUnlock && themeAccess?.isThemeAvailable(guildId, theme) != true) {
             return false
         }
-        val updatedGuild = guild.copy(guiTheme = theme)
-        return guildRepository.update(updatedGuild)
+        return guildRepository.updateGuiTheme(guildId, guild.guiTheme, theme)
     }
 
     override fun canUseAllyHome(playerId: UUID, sourceGuildId: UUID, targetGuildId: UUID): Boolean {

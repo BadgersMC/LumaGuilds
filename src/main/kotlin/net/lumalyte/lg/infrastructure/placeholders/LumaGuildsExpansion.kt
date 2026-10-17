@@ -1,10 +1,15 @@
 package net.lumalyte.lg.infrastructure.placeholders
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.application.persistence.LeaderboardRepository
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.infrastructure.services.NexoEmojiService
+import net.lumalyte.lg.infrastructure.persistence.migrations.ChapterReadSQL
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import co.aikar.idb.Database
 import net.lumalyte.lg.utils.ColorCodeUtils
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -101,6 +106,8 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     private val leaderboardRepository: LeaderboardRepository by inject()
     private val nexoEmojiService: NexoEmojiService by inject()
     private val questService: QuestService by inject()
+    private val storage: Storage<Database> by inject()
+    private val seasonalElo: net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator by inject()
 
     private val miniMessage = MiniMessage.miniMessage()
     private val plainSerializer = PlainTextComponentSerializer.plainText()
@@ -134,6 +141,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         // Global placeholders — no player required
         when {
             ident == "guild_total_count" -> return safeGuildCount()
+            ident.startsWith("chapter_") -> return handleChapterPlaceholder(ident)
             ident.startsWith("top_") -> return handleTopPlaceholder(ident)
             ident in PERMANENT_PLACEHOLDERS && player == null -> return "0"
             ident.startsWith("source_") && player == null -> return if (ident.endsWith("_used")) "0" else ""
@@ -167,9 +175,13 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
             "guild_tag_raw" -> guild.tag ?: "§6${guild.name}"
             "guild_tag_plain" -> renderTagAsPlain(guild)
             "guild_emoji" -> convertEmojiToNexoPlaceholder(guild.emoji)
-            "guild_emoji_minimessage" -> ColorCodeUtils.emojiToGlyphTag(guild.emoji)
+            "guild_emoji_minimessage" -> nexoEmojiService.emojiToGlyphTag(guild.emoji)
             "guild_emoji_font" -> nexoEmojiService.emojiToFontTag(guild.emoji)
             "guild_level" -> guild.level.toString()
+            "guild_seasonal_elo" -> safeSeasonalElo(guildId)?.rating?.toString() ?: ""
+            "guild_seasonal_level" -> safeSeasonalElo(guildId)?.displayLevel?.toString() ?: ""
+            "guild_seasonal_rank" -> safeSeasonalElo(guildId)?.rank?.toString() ?: ""
+            "guild_rating_eligible" -> (safeSeasonalElo(guildId)?.eligible ?: false).toString()
             // BankService.getBalance resolves to the unified guild balance (store B: vault gold),
             // the single source of truth shared by /g bal, /g baltop, /g menu -> Bank and the vault.
             "guild_balance" -> safeBalance(guildId).toString()
@@ -212,7 +224,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
                 val rankId = memberService.getPlayerRankId(playerId, guildId)
                 if (rankId != null) {
                     val rank = rankService.getRank(rankId)
-                    rank?.name ?: "Unknown"
+                    rank?.name?.let(RankNameContent::legacy) ?: "Unknown"
                 } else {
                     "Unknown"
                 }
@@ -363,11 +375,8 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         val count = current?.currentCount ?: 0
         val percentage = if (quest.targetCount > 0) ((count.coerceAtMost(quest.targetCount) * 100) / quest.targetCount) else 0
         return when (field) {
-            "name" -> "${net.lumalyte.lg.utils.QuestDisplayFormatter.token(quest.action.name)} ${net.lumalyte.lg.utils.QuestDisplayFormatter.token(quest.target.id)}"
-            "description" -> buildString {
-                append(quest.targetCount).append(' ').append(net.lumalyte.lg.utils.QuestDisplayFormatter.token(quest.target.id))
-                quest.condition?.let { append(' ').append(net.lumalyte.lg.utils.QuestDisplayFormatter.token(it.type.name)).append(' ').append(net.lumalyte.lg.utils.QuestDisplayFormatter.token(it.value.orEmpty())) }
-            }.trim()
+            "name" -> net.lumalyte.lg.utils.QuestDisplayFormatter.name(quest)
+            "description" -> net.lumalyte.lg.utils.QuestDisplayFormatter.description(quest)
             "action" -> quest.action.name
             "target" -> quest.target.id
             "required" -> quest.targetCount.toString()
@@ -465,18 +474,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
      * - null or empty -> ""
      */
     private fun convertEmojiToNexoPlaceholder(emoji: String?): String {
-        if (emoji.isNullOrEmpty()) return ""
-
-        // Check if emoji is in Discord format (:emoji:)
-        if (emoji.startsWith(":") && emoji.endsWith(":") && emoji.length > 2) {
-            // Extract emoji name (remove colons)
-            val emojiName = emoji.substring(1, emoji.length - 1)
-            // Return Nexo placeholder format
-            return "%nexo_$emojiName%"
-        }
-
-        // If not in Discord format, return as-is
-        return emoji
+        return nexoEmojiService.emojiToNexoPlaceholder(emoji)
     }
 
     // -----------------------------------------------------------------
@@ -518,7 +516,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         "activity" -> safeWeeklyActivityScore(guild.id).toString()
         "age_days" -> Duration.between(guild.createdAt, Instant.now()).toDays().toString()
         "emoji" -> convertEmojiToNexoPlaceholder(guild.emoji)
-        "emoji_mm" -> ColorCodeUtils.emojiToGlyphTag(guild.emoji)
+        "emoji_mm" -> nexoEmojiService.emojiToGlyphTag(guild.emoji)
         else -> ""
     }
 
@@ -576,6 +574,9 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     private fun safeProgression(guildId: UUID) =
         try { progressionRepository.getGuildProgression(guildId) } catch (_: Exception) { null }
 
+    private fun safeSeasonalElo(guildId: UUID) =
+        try { seasonalElo.view(guildId) } catch (_: Exception) { null }
+
     private fun sourceUsagePlaceholder(guildId: UUID, identifier: String): String {
         return try {
             sourceUsageValue(
@@ -598,6 +599,25 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         try {
             leaderboardRepository.getWeeklyActivity(guildId, currentWeekStart())?.totalScore ?: 0
         } catch (_: Exception) { 0 }
+
+    private fun handleChapterPlaceholder(identifier: String): String {
+        return try {
+            storage.connection.connection.use { connection ->
+                val chapter = ChapterReadSQL(connection).current() ?: return ""
+                when (identifier) {
+                    "chapter_id" -> chapter.id
+                    "chapter_name" -> chapter.name
+                    "chapter_phase" -> chapter.phase
+                    "chapter_start" -> chapter.startIso()
+                    "chapter_end" -> chapter.endIso()
+                    "chapter_time_remaining" -> chapter.timeRemainingText(System.currentTimeMillis())
+                    else -> ""
+                }
+            }
+        } catch (_: Exception) {
+            ""
+        }
+    }
 
     private fun safeGuildCount(): String =
         try { guildService.getAllGuilds().size.toString() } catch (_: Exception) { "0" }

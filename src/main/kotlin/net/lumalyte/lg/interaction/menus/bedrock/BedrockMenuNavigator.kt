@@ -135,8 +135,12 @@ class BedrockMenuNavigator(
      */
     fun createForwardHandler(menu: Menu, currentMenu: Menu, stateKey: String = "forward"): Runnable {
         return Runnable {
-            // This would need access to the current menu's state preservation methods
-            // For now, we'll create a simple version
+            if (currentMenu is BaseBedrockMenu) {
+                val state = currentMenu.getCurrentFormState()
+                if (state.isNotEmpty()) {
+                    FormStateManager.saveState("${player.uniqueId}:$stateKey", state)
+                }
+            }
             openMenu(menu)
         }
     }
@@ -149,8 +153,8 @@ class BedrockMenuNavigator(
     fun createCancelWorkflowHandler(customHandler: (() -> Unit)? = null): Runnable {
         return Runnable {
             customHandler?.invoke()
+            FormStateManager.clearPlayerStates(player.uniqueId.toString())
             clearMenuStack()
-            // Send cancellation message
             player.sendMessage(lang.msg("bedrock.common.workflow.cancelled"))
         }
     }
@@ -163,8 +167,8 @@ class BedrockMenuNavigator(
      */
     fun createRecoveryHandler(recoveryMenu: Menu, stateKey: String = "timeout_recovery"): Runnable {
         return Runnable {
-            // Send recovery message
             player.sendMessage(lang.msg("bedrock.common.workflow.restoring"))
+            FormStateManager.restoreState("${player.uniqueId}:$stateKey")?.let(recoveryMenu::passData)
             openMenu(recoveryMenu)
         }
     }
@@ -178,8 +182,9 @@ class BedrockMenuNavigator(
      */
     fun createStepNavigationHandler(stepName: String, nextMenu: Menu, stepData: Map<String, Any?>): Runnable {
         return Runnable {
-            // Save current step data
-            // This would need integration with FormStateManager
+            val workflowKey = "${player.uniqueId}:workflow"
+            FormStateManager.updateState(workflowKey, mapOf(stepName to stepData))
+            FormStateManager.restoreState(workflowKey)?.let(nextMenu::passData)
             openMenu(nextMenu)
         }
     }

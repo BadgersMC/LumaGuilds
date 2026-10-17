@@ -71,9 +71,11 @@ import net.lumalyte.lg.application.actions.player.visualisation.ToggleVisualiser
 import net.lumalyte.lg.application.persistence.ClaimFlagRepository
 import net.lumalyte.lg.application.persistence.ClaimPermissionRepository
 import net.lumalyte.lg.application.persistence.ClaimRepository
+import net.lumalyte.lg.application.persistence.ClaimTransferRequestRepository
 import net.lumalyte.lg.application.persistence.PartitionRepository
 import net.lumalyte.lg.application.persistence.PlayerAccessRepository
 import net.lumalyte.lg.application.persistence.PlayerStateRepository
+import net.lumalyte.lg.application.services.ClaimManagementAuthorizer
 import net.lumalyte.lg.application.services.ConfigService
 
 import net.lumalyte.lg.application.services.BedrockLocalizationService
@@ -167,6 +169,7 @@ import net.lumalyte.lg.infrastructure.persistence.guilds.MembershipHistoryReposi
 import net.lumalyte.lg.infrastructure.persistence.claims.ClaimFlagRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.claims.ClaimPermissionRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.claims.ClaimRepositorySQLite
+import net.lumalyte.lg.infrastructure.persistence.claims.ClaimTransferRequestRepositorySQL
 import net.lumalyte.lg.infrastructure.persistence.claims.PlayerAccessRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.partitions.PartitionRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.players.PlayerStateRepositoryMemory
@@ -182,6 +185,7 @@ import net.lumalyte.lg.infrastructure.services.WorldManipulationServiceBukkit
 import net.lumalyte.lg.infrastructure.services.scheduling.SchedulerServiceBukkit
 import net.badgersmc.nexus.i18n.LangService
 import net.badgersmc.nexus.i18n.LangHost
+import net.lumalyte.lg.infrastructure.i18n.LocaleCompatibilityMigrator
 import net.badgersmc.nexus.i18n.Locale
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -252,6 +256,7 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
 
     // Utilities
     single<LangService> {
+        LocaleCompatibilityMigrator.migrate(plugin.dataFolder, plugin.logger)
         LangService(LangHost.of(plugin), Locale("en_US"), net.lumalyte.lg.infrastructure.i18n.LumaGuildsLang::class.java)
     }
     single<PlatformDetectionService> { FloodgatePlatformDetectionService(get<LumaGuilds>().logger) }
@@ -284,6 +289,7 @@ fun claimsModule() = module {
     single<ClaimFlagRepository> { ClaimFlagRepositorySQLite(get()) }
     single<ClaimPermissionRepository> { ClaimPermissionRepositorySQLite(get()) }
     single<ClaimRepository> { ClaimRepositorySQLite(get()) }
+    single<ClaimTransferRequestRepository> { ClaimTransferRequestRepositorySQL(get()) }
     single<PartitionRepository> { PartitionRepositorySQLite(get()) }
     single<PlayerAccessRepository> { PlayerAccessRepositorySQLite(get()) }
     single<PlayerStateRepository> { PlayerStateRepositoryMemory() }
@@ -294,6 +300,7 @@ fun claimsModule() = module {
     single<WorldManipulationService> { WorldManipulationServiceBukkit() }
     single<SchedulerService> { SchedulerServiceBukkit(get()) }
     single<ToolItemService> { ToolItemServiceBukkit(get(), get()) }
+    singleOf(::ClaimManagementAuthorizer)
 
     // Claim actions
     singleOf(::CreateClaim)
@@ -393,10 +400,17 @@ fun claimsModule() = module {
 fun guildsModule() = module {
     // Repositories
     single<GuildRepository> { GuildRepositorySQLite(get()) }
+    single<net.lumalyte.lg.application.persistence.GuildHomeActivationRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildHomeActivationRepositorySQL(get())
+    }
     single<RankRepository> { RankRepositorySQLite(get()) }
+    single<net.lumalyte.lg.application.persistence.RankClaimPermissionProfileRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.RankClaimPermissionProfileRepositorySQL(get())
+    }
     single<MemberRepository> { MemberRepositorySQLite(get()) }
     single<RelationRepository> { RelationRepositorySQLite(get()) }
     single<GuildInvitationRepository> { GuildInvitationRepositorySQLite(get()) }
+    single { net.lumalyte.lg.application.services.InvitationStatisticsService(get()) }
     single<GuildBannerRepository> { GuildBannerRepositorySQLite(get()) }
     single<AuditRepository> { AuditRepositorySQLite(get()) }
     single<MembershipHistoryRepository> { MembershipHistoryRepositorySQLite(get()) }
@@ -406,14 +420,41 @@ fun guildsModule() = module {
         net.lumalyte.lg.infrastructure.persistence.guilds.GuildCosmeticUnlockRepositorySQLite(get())
     }
     single { net.lumalyte.lg.application.services.GuildCosmeticUnlockService(get(), get()) }
-    single<GuildService> { GuildServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
-    single<RankService> { RankServiceBukkit(get(), get(), get(), get()) }
-    single<MemberService> { MemberServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<GuildService> {
+        GuildServiceBukkit(
+            get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
+        )
+    }
+    single<RankService> {
+        RankServiceBukkit(
+            get(), get(), get(), get(), get(),
+            invalidateClaimPermissionCacheForPlayer = { playerId ->
+                org.koin.core.context.GlobalContext.get()
+                    .getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
+                    ?.invalidatePlayerCache(playerId)
+            },
+            invalidateClaimPermissionCacheForGuild = { guildId ->
+                org.koin.core.context.GlobalContext.get()
+                    .getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
+                    ?.invalidateGuildCache(guildId)
+            },
+        )
+    }
+    single<MemberService> {
+        MemberServiceBukkit(
+            get(), get(), get(), get(), get(), get(), get(), get(),
+            invalidateClaimPermissionCache = { playerId ->
+                org.koin.core.context.GlobalContext.get()
+                    .getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
+                    ?.invalidatePlayerCache(playerId)
+            },
+        )
+    }
     single<RelationService> { RelationServiceBukkit(get(), get(), get()) }
     single<LfgService> { LfgServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
     single<GuildBannerService> { GuildBannerServiceBukkit() }
     single<AuditService> { AuditServiceBukkit() }
-    single<NexoEmojiService> { NexoEmojiService(get()) }
+    single<NexoEmojiService> { NexoEmojiService(get(), guildCosmetics = get()) }
     single<net.lumalyte.lg.application.services.AdminOverrideService> {
         net.lumalyte.lg.infrastructure.services.AdminOverrideServiceImpl()
     }
@@ -426,7 +467,7 @@ fun guildsModule() = module {
         net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners(get<LumaGuilds>(), get(), get(), get())
     }
 
-    // Guild Strikes (LiteBans integration)
+    // Guild Strikes (EnthusiaStaff lifecycle + legacy LiteBans compatibility)
     single<net.lumalyte.lg.application.persistence.StrikeRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.StrikeRepositorySQLite(get())
     }
@@ -453,23 +494,11 @@ fun guildsModule() = module {
             configProvider = { get<net.lumalyte.lg.config.StrikesConfig>() }
         )
     }
-    single<net.lumalyte.lg.infrastructure.litebans.LiteBansStrikeListener> {
-        net.lumalyte.lg.infrastructure.litebans.LiteBansStrikeListener(
-            plugin = get<LumaGuilds>(),
-            guildService = get(),
-            strikeService = get(),
-            membershipHistoryRepository = get(),
-            configProvider = { get<net.lumalyte.lg.config.StrikesConfig>() }
-        )
-    }
-    single<net.lumalyte.lg.infrastructure.litebans.StrikeBackfillService> {
-        net.lumalyte.lg.infrastructure.litebans.StrikeBackfillService(
-            strikeService = get(),
-            membershipHistoryRepository = get(),
-            guildService = get(),
-            configProvider = { get<net.lumalyte.lg.config.StrikesConfig>() }
-        )
-    }
+    // LiteBans-bound listener/backfill classes are intentionally NOT registered
+    // in the always-loaded Koin graph. Their class hierarchy references the
+    // optional LiteBans API, so resolving their KClass here would make LiteBans
+    // a hard runtime dependency. LumaGuilds constructs them lazily only after
+    // confirming LiteBans is enabled; see registerLiteBansStrikeHook().
 }
 
 /**
@@ -477,13 +506,20 @@ fun guildsModule() = module {
  * Only loaded when claims are enabled
  */
 fun guildClaimsIntegrationModule() = module {
-    single<GuildRolePermissionResolver> { GuildRolePermissionResolverBukkit(get(), get(), get(), get(), get()) }
+    single<GuildRolePermissionResolver> {
+        GuildRolePermissionResolverBukkit(get(), get(), get(), get(), get(), get())
+    }
 }
 
 /**
  * Social module - Party system, chat, and LFG
  */
 fun socialModule() = module {
+    single<net.lumalyte.lg.application.persistence.GuildOnboardingRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildOnboardingRepositorySQL(get())
+    }
+    single { net.lumalyte.lg.application.services.GuildGettingStartedService(get(), get(), get()) }
+    single { net.lumalyte.lg.infrastructure.listeners.GuildOnboardingListener(get(), get(), get(), get(), get()) }
     // Repositories
     single<PartyRepository> { PartyRepositorySQLite(get()) }
     single<PlayerPartyPreferenceRepository> { PlayerPartyPreferenceRepositorySQLite(get()) }
@@ -491,10 +527,22 @@ fun socialModule() = module {
     single<ChatSettingsRepository> {
         ChatSettingsRepositorySQLite(get(), get<ConfigService>().loadConfig().chat.defaultChannelVisibility)
     }
+    single<net.lumalyte.lg.application.persistence.GuildChatRankSettingsRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildChatRankSettingsRepositorySQL(get())
+    }
+    single { net.lumalyte.lg.application.services.GuildChatRankSettingsService(get(), get()) }
+    single<net.lumalyte.lg.application.persistence.GuildChatReconnectSettingsRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildChatReconnectSettingsRepositorySQL(get())
+    }
+    single { net.lumalyte.lg.application.services.GuildChatReconnectSettingsService(get(), get()) }
+    single {
+        net.lumalyte.lg.infrastructure.listeners.GuildChatReconnectListener(get(), get(), get())
+    }
+
 
     // Services
     single<PartyService> { PartyServiceBukkit(get(), get(), get(), get(), get()) }
-    single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Listeners
     single<ChatInputListener> { ChatInputListener() }
@@ -505,7 +553,7 @@ fun socialModule() = module {
         net.lumalyte.lg.infrastructure.listeners.GuildChannelCreationListener(get(), get())
     }
     single<net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener> {
-        net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener(get(), get(), get())
+        net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener(get(), get(), get(), get())
     }
     single<net.lumalyte.lg.infrastructure.services.GuildEmojiGrantService> {
         net.lumalyte.lg.infrastructure.services.GuildEmojiGrantService(get(), get(), get())
@@ -522,9 +570,54 @@ fun socialModule() = module {
     single<net.lumalyte.lg.infrastructure.listeners.GuildEmojiGrantListener> {
         net.lumalyte.lg.infrastructure.listeners.GuildEmojiGrantListener(get())
     }
+
+    single<net.lumalyte.lg.application.persistence.GuildDiscordRoleRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildDiscordRoleRepositorySQL(get())
+    }
+    single<net.lumalyte.lg.application.services.DiscordGuildRoleGateway> {
+        if (org.bukkit.Bukkit.getPluginManager().getPlugin("DiscordSRV") != null) {
+            net.lumalyte.lg.infrastructure.services.DiscordSrvGuildRoleGateway()
+        } else {
+            net.lumalyte.lg.infrastructure.services.UnavailableDiscordGuildRoleGateway()
+        }
+    }
+    single {
+        net.lumalyte.lg.application.services.GuildDiscordRoleService(get(), get(), get(), get(), get(), get(), get())
+    }
+    single<net.lumalyte.lg.infrastructure.listeners.GuildDiscordRoleListener> {
+        net.lumalyte.lg.infrastructure.listeners.GuildDiscordRoleListener(get())
+    }
+    single<net.lumalyte.lg.application.services.DiscordAccountLinkSubscription> {
+        if (org.bukkit.Bukkit.getPluginManager().getPlugin("DiscordSRV") != null) {
+            net.lumalyte.lg.infrastructure.services.DiscordSrvAccountLinkSubscription(
+                get(),
+                get<java.util.concurrent.ExecutorService>(named("VirtualThreadExecutor")),
+            )
+        } else {
+            net.lumalyte.lg.infrastructure.services.UnavailableDiscordAccountLinkSubscription()
+        }
+    }
+    single<net.lumalyte.lg.application.services.DiscordGuildProfileSubscription> {
+        if (org.bukkit.Bukkit.getPluginManager().getPlugin("DiscordSRV") != null) {
+            net.lumalyte.lg.infrastructure.services.DiscordSrvGuildProfileSubscription(
+                plugin = get(),
+                profiles = get(),
+                guildListService = get(),
+                killService = get(),
+                warService = get(),
+                seasonalElo = get(),
+                executor = get<java.util.concurrent.ExecutorService>(named("VirtualThreadExecutor")),
+            )
+        } else {
+            net.lumalyte.lg.infrastructure.services.UnavailableDiscordGuildProfileSubscription()
+        }
+    }
+
     single<net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener> {
         net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener(get(), get(), get(), get(), get())
     }
+    single { net.lumalyte.lg.infrastructure.listeners.GlobalChatVisibilityListener(get()) }
+    single { net.lumalyte.lg.infrastructure.listeners.ChatDestinationIndicator(get(), get()) }
     single<net.lumalyte.lg.infrastructure.listeners.GuildMuteChatListener> {
         net.lumalyte.lg.infrastructure.listeners.GuildMuteChatListener(get(), get(), get())
     }
@@ -534,8 +627,13 @@ fun socialModule() = module {
  * Progression module - Combat, kills, wars, and guild progression
  */
 fun progressionModule() = module {
+    single { net.lumalyte.lg.application.services.GuildActionCoordinator() }
     single { net.lumalyte.lg.domain.rewards.RewardCatalog.chapterTwo() }
-    single { net.lumalyte.lg.infrastructure.persistence.guilds.RewardPurchaseRepositorySQL(get(), get()) }
+    single {
+        net.lumalyte.lg.infrastructure.persistence.guilds.RewardPurchaseRepositorySQL(
+            get(), get(), get(), get<net.lumalyte.lg.application.services.GuildActionCoordinator>()
+        )
+    }
     single { net.lumalyte.lg.application.services.GuildRewardPurchaseAccess(get(), get()) }
     single {
         val config = get<ConfigService>()
@@ -544,6 +642,23 @@ fun progressionModule() = module {
             { config.loadConfig().chapterTwoRewardsEnabled }, access::allowed)
     }
     single { net.lumalyte.lg.infrastructure.persistence.guilds.RewardOwnershipRepositorySQL(get(), get()) }
+    single<net.lumalyte.lg.application.persistence.RewardOwnershipRepository> {
+        get<net.lumalyte.lg.infrastructure.persistence.guilds.RewardOwnershipRepositorySQL>()
+    }
+    single<net.lumalyte.lg.application.persistence.PrestigeRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.PrestigeRepositorySQL(
+            get(),
+            get(),
+            get<net.lumalyte.lg.infrastructure.persistence.guilds.RewardOwnershipRepositorySQL>(),
+            get(),
+            get(),
+        ) { get<ConfigService>().loadConfig() }
+    }
+    single {
+        net.lumalyte.lg.application.services.GuildPrestigeService(
+            get(), get(), get(), get(), get(), get(),
+        )
+    }
     single { net.lumalyte.lg.infrastructure.persistence.guilds.RewardStateRepositorySQL(get(), get()) }
     single {
         val config = get<ConfigService>()
@@ -559,21 +674,38 @@ fun progressionModule() = module {
     // Repositories
     single<KillRepository> { KillRepositorySQLite(get()) }
     single<ProgressionRepository> { ProgressionRepositorySQLite(get(), get()) }
-    single<net.lumalyte.lg.application.persistence.ExperienceAwardRepository> {
+    single<net.lumalyte.lg.infrastructure.persistence.guilds.ExperienceAwardRepositorySQL> {
         net.lumalyte.lg.infrastructure.persistence.guilds.ExperienceAwardRepositorySQL(
             get(),
             { net.lumalyte.lg.domain.values.ProgressionCurve.from(get<ConfigService>().loadConfig().progression) },
+        )
+    }
+    single<net.lumalyte.lg.application.persistence.ExperienceAwardRepository> { get<net.lumalyte.lg.infrastructure.persistence.guilds.ExperienceAwardRepositorySQL>() }
+    single<net.lumalyte.lg.application.persistence.GuildShopXpRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildShopXpRepositorySQL(
+            get(), get<net.lumalyte.lg.infrastructure.persistence.guilds.ExperienceAwardRepositorySQL>(), get(),
         )
     }
     single<net.lumalyte.lg.application.persistence.BankProgressionRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.BankProgressionRepositorySQL(get())
     }
     single<LeaderboardRepository> { LeaderboardRepositorySQLite(get()) }
+    single<net.lumalyte.lg.application.persistence.GuildListRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildListRepositorySQL(get())
+    }
+    single<net.lumalyte.lg.application.persistence.SpawnBannerRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.SpawnBannerRepositorySQL(get())
+    }
     single<net.lumalyte.lg.application.persistence.QuestRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.QuestRepositorySQLite(get())
     }
     single<net.lumalyte.lg.application.persistence.BlockProvenanceRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.BlockProvenanceRepositorySQLite(get())
+    }
+    single {
+        net.lumalyte.lg.infrastructure.listeners.BlockProvenanceOperationQueue(
+            get<ExecutorService>(named("VirtualThreadExecutor"))
+        )
     }
 
     // Services
@@ -587,13 +719,111 @@ fun progressionModule() = module {
         }
     }
     single { net.lumalyte.lg.application.services.ChapterTwoGuildAwardService(get(), get(), get(), get(), get()) }
+    single { net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator(get(), get()) }
     single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get(), get<LumaGuilds>(), get(), get(), get(), get()) }
     single<net.lumalyte.lg.application.persistence.WarRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.WarRepositorySQL(get())
     }
+    single<net.lumalyte.lg.application.persistence.WarNotificationRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.WarNotificationRepositorySQL(get())
+    }
+    single<net.lumalyte.lg.application.persistence.QuestCompletionNotificationRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.QuestCompletionNotificationRepositorySQL(get())
+    }
+    single<net.lumalyte.lg.application.persistence.PlayerNotificationPreferenceRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.PlayerNotificationPreferenceRepositorySQL(get())
+    }
+    single<net.lumalyte.lg.infrastructure.services.ToastSender> {
+        net.lumalyte.lg.infrastructure.services.PacketEventsToastSender(get<LumaGuilds>())
+    }
+    single<net.lumalyte.lg.application.services.QuestCompletionNotifier> {
+        val plugin = get<LumaGuilds>()
+        net.lumalyte.lg.infrastructure.services.QuestCompletionNotifierBukkit(
+            get(), get(), get(), get(), get(),
+            onMainThread = { action ->
+                if (org.bukkit.Bukkit.isPrimaryThread()) action()
+                else org.bukkit.Bukkit.getScheduler().callSyncMethod(plugin) { action() }
+                    .get(5, java.util.concurrent.TimeUnit.SECONDS)
+            },
+        )
+    }
+    single<net.lumalyte.lg.application.services.GuildDisbandAnnouncementService> {
+        net.lumalyte.lg.infrastructure.services.GuildDisbandAnnouncementServiceBukkit(
+            get(), get(), get(),
+        )
+    }
+    single<net.lumalyte.lg.application.services.WarNotificationService> {
+        net.lumalyte.lg.infrastructure.services.WarNotificationServiceBukkit(
+            get<LumaGuilds>(), get(), get(), get(), get(), get(), get()
+        )
+    }
+    single<net.lumalyte.lg.application.services.GuildLoginNotificationService> {
+        net.lumalyte.lg.infrastructure.services.GuildLoginNotificationServiceBukkit(
+            get(), get(), get(), get(),
+            startupAtMillis = get<LumaGuilds>().enabledAtMillis,
+        )
+    }
     single { net.lumalyte.lg.application.services.WarPaymentService(get(), get()) }
-    single<WarService> { WarServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<WarService> {
+        WarServiceBukkit(
+            configService = get(),
+            bankService = get(),
+            progressionRepository = get(),
+            progressionConfigService = get(),
+            chapterTwoGuildAwardService = get(),
+            progressionService = get(),
+            warRepository = get(),
+            warPayments = get(),
+            memberService = get(),
+            guildRepository = get(),
+            seasonalElo = get(),
+            warNotifications = get(),
+            memberRepository = get(),
+            guildActions = get(),
+        )
+    }
     single<LeaderboardService> { LeaderboardServiceBukkit(get()) }
+    single {
+        net.lumalyte.lg.infrastructure.services.GuildLeaderboardProjectionService(
+            get<LumaGuilds>(),
+            get(),
+            get(),
+            getOrNull<ClaimRepository>(),
+            get(),
+            get(),
+            get(),
+        )
+    }
+    single {
+        net.lumalyte.lg.application.services.GuildListService(
+            get(),
+            get(),
+            get(),
+            get(),
+            get<java.util.concurrent.ExecutorService>(named("VirtualThreadExecutor")),
+        )
+    }
+    single {
+        net.lumalyte.lg.application.services.GuildDiscordProfileService(
+            guildService = get(),
+            memberService = get(),
+            rankService = get(),
+            progressionRepository = get(),
+            prestigeService = get(),
+            relationService = get(),
+            playerNameResolver = { playerId: java.util.UUID ->
+                org.bukkit.Bukkit.getOfflinePlayer(playerId).name
+            },
+        )
+    }
+    single {
+        net.lumalyte.lg.infrastructure.services.SpawnBannerServiceBukkit(
+            get<LumaGuilds>(), get(), get(), get(), get()
+        )
+    }
+    single {
+        net.lumalyte.lg.infrastructure.listeners.SpawnBannerListener(get(), get())
+    }
     single {
         net.lumalyte.lg.infrastructure.web.handlers.GuildLeaderboardHandler(
             leaderboardService = get(),
@@ -618,17 +848,28 @@ fun progressionModule() = module {
         net.lumalyte.lg.infrastructure.services.ProgressionConfigService(get())
     }
     single<net.lumalyte.lg.application.services.QuestRewardSink> {
-        net.lumalyte.lg.infrastructure.services.QuestRewardSinkBukkit(get())
+        net.lumalyte.lg.infrastructure.services.QuestRewardSinkBukkit(get(), get<LumaGuilds>())
     }
     single {
+        val questConfig = get<net.lumalyte.lg.infrastructure.services.ProgressionConfigService>()
+            .getProgressionConfig().quests
         net.lumalyte.lg.application.services.QuestService(
             repository = get(),
             rewards = get(),
-            fullSetBonusExperience = get<net.lumalyte.lg.infrastructure.services.ProgressionConfigService>()
-                .getProgressionConfig().quests.fullSetBonusXp
+            fullSetBonusExperience = questConfig.fullSetBonusXp,
+            leaderboardWinnerExperience = questConfig.leaderboardWinnerXp,
+            completionNotifier = get(),
         )
     }
-    single { net.lumalyte.lg.infrastructure.services.WeeklyQuestCoordinator(get(), get()) }
+single {
+        net.lumalyte.lg.domain.services.QuestTargetCatalog(
+            listOf(
+                net.lumalyte.lg.infrastructure.services.BukkitQuestTargetProvider(get()),
+                net.lumalyte.lg.infrastructure.services.NexoQuestTargetProvider(get())
+            )
+        )
+    }
+    single { net.lumalyte.lg.infrastructure.services.WeeklyQuestCoordinator(get(), get(), get()) }
     single<net.lumalyte.lg.application.services.DailyWarCostsService> {
         net.lumalyte.lg.infrastructure.services.DailyWarCostsServiceBukkit(get(), get(), get(), get())
     }
@@ -646,6 +887,7 @@ fun progressionModule() = module {
             blockProvenanceRepository = get(),
             plugin = get(),
             virtualDispatcher = get(named("VirtualDispatcher")),
+            provenanceOperations = get(),
         )
     }
     single { net.lumalyte.lg.infrastructure.listeners.QuestProgressListener(get(), get(), get(), get()) }
@@ -666,8 +908,9 @@ fun economyModule() = module {
     }
 
     // Services
+    single { net.lumalyte.lg.infrastructure.persistence.guilds.GuildGoldRepositorySQL(get()) }
     single<net.lumalyte.lg.application.persistence.GuildGoldRepository> {
-        net.lumalyte.lg.infrastructure.persistence.guilds.GuildGoldRepositorySQL(get())
+        get<net.lumalyte.lg.infrastructure.persistence.guilds.GuildGoldRepositorySQL>()
     }
     single {
         val config = get<ConfigService>()
@@ -688,6 +931,8 @@ fun economyModule() = module {
                 }
                 override fun canDeposit(playerId: java.util.UUID, guildId: java.util.UUID) =
                     allowed(playerId, guildId, net.lumalyte.lg.domain.entities.RankPermission.DEPOSIT_TO_BANK)
+                override fun canDepositPhysical(playerId: java.util.UUID, guildId: java.util.UUID) =
+                    members.getByPlayerAndGuild(playerId, guildId) != null
                 override fun canWithdraw(playerId: java.util.UUID, guildId: java.util.UUID) =
                     allowed(playerId, guildId, net.lumalyte.lg.domain.entities.RankPermission.WITHDRAW_FROM_BANK)
             },
@@ -714,6 +959,64 @@ fun economyModule() = module {
         net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter.fromConfig(
             { org.bukkit.Bukkit.getPlayer(it) }, get<ConfigService>().loadConfig().vault,
             net.lumalyte.lg.infrastructure.services.PhysicalGoldJournal(get()))
+    }
+    single(named("WarBannerRawGold")) {
+        net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter(
+            { org.bukkit.Bukkit.getPlayer(it) },
+            org.bukkit.Material.RAW_GOLD,
+            org.bukkit.Material.RAW_GOLD_BLOCK,
+            9L,
+            net.lumalyte.lg.infrastructure.services.PhysicalGoldJournal(get()),
+        )
+    }
+    single<net.lumalyte.lg.application.persistence.WarBannerRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.WarBannerRepositorySQL(get())
+    }
+    single {
+        val members = get<net.lumalyte.lg.application.persistence.MemberRepository>()
+        val ranks = get<net.lumalyte.lg.application.persistence.RankRepository>()
+        val wars = get<net.lumalyte.lg.application.services.WarService>()
+        val config = get<ConfigService>()
+        net.lumalyte.lg.application.services.WarBannerService(
+            repository = get(),
+            physicalGold = get<net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter>(
+                named("WarBannerRawGold")
+            ),
+            config = { config.loadConfig().warBanner },
+            isMember = { playerId, guildId ->
+                members.getByPlayerAndGuild(playerId, guildId) != null
+            },
+            canPlace = { playerId, guildId ->
+                val member = members.getByPlayerAndGuild(playerId, guildId)
+                member != null && ranks.getById(member.rankId)?.permissions
+                    ?.contains(net.lumalyte.lg.domain.entities.RankPermission.PLACE_WAR_BANNER) == true
+            },
+            hasActiveWar = { guildId ->
+                wars.getWarsForGuild(guildId).any { it.isActive }
+            },
+        )
+    }
+    single {
+        net.lumalyte.lg.infrastructure.services.WarBannerServiceBukkit(
+            get<LumaGuilds>(), get(), get(), get(), get(),
+        )
+    }
+    single {
+        net.lumalyte.lg.infrastructure.listeners.WarBannerListener(
+            get(), get(), get(), get(),
+        )
+    }
+    single {
+        net.lumalyte.lg.application.services.GuildCostService(
+            { get<ConfigService>().loadConfig() },
+            get<net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter>(),
+            get<net.lumalyte.lg.application.services.GuildGoldService>(),
+        )
+    }
+    single {
+        net.lumalyte.lg.application.services.GuildHomeActivationService(
+            get(), get(), { get<ConfigService>().loadConfig() },
+        )
     }
     single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<net.lumalyte.lg.application.services.BankAutomationService> {

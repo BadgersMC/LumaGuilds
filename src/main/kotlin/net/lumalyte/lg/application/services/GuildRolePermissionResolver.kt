@@ -49,4 +49,9 @@ interface GuildRolePermissionResolver {
      * Should be called when configuration changes or on server restart.
      */
     fun clearCache()
+
+    /**
+     * Releases executor resources owned by the resolver.
+     */
+    fun shutdown()
 }

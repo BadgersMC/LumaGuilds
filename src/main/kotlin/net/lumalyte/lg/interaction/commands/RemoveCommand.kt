@@ -26,7 +26,7 @@ class RemoveCommand : ClaimCommand(), KoinComponent {
     fun onRemove(player: Player) {
         // Get the partition at the player's current location
         val partition = getPartitionAtPlayer(player) ?: return
-        if (!isPlayerHasClaimPermission(player, partition)) return
+        if (!isPlayerHasClaimPermission(player, partition, net.lumalyte.lg.domain.entities.RankPermission.DELETE_CLAIMS)) return
 
         // Assign common variables
         val claimId = partition.claimId

@@ -16,7 +16,7 @@ class BedrockBankSettingsEditorTest {
         val repository = RecordingRepository(
             BankSettings(guildId, scheduledDepositsEnabled = true, interestRate = 0.03)
         )
-        val editor = BedrockBankSettingsEditor(repository)
+        val editor = BedrockBankSettingsEditor(repository) { true }
 
         val result = editor.saveBudgets(guildId, "12000", "3000", "750")
 
@@ -31,7 +31,7 @@ class BedrockBankSettingsEditorTest {
     @Test
     fun `budget save rejects negative or nonnumeric values without writing`() {
         val repository = RecordingRepository(BankSettings(guildId))
-        val editor = BedrockBankSettingsEditor(repository)
+        val editor = BedrockBankSettingsEditor(repository) { true }
 
         assertFalse(editor.saveBudgets(guildId, "100", "-1", "25"))
         assertFalse(editor.saveBudgets(guildId, "nope", "50", "25"))
@@ -41,7 +41,7 @@ class BedrockBankSettingsEditorTest {
     @Test
     fun `automation save converts percent to fraction and persists toggles`() {
         val repository = RecordingRepository(BankSettings(guildId, monthlyBudget = 42000))
-        val editor = BedrockBankSettingsEditor(repository)
+        val editor = BedrockBankSettingsEditor(repository) { true }
 
         val result = editor.saveAutomation(guildId, true, false, true, "2.5")
 
@@ -54,9 +54,29 @@ class BedrockBankSettingsEditorTest {
     }
 
     @Test
+    fun `interest-only save preserves retained legacy automation flags`() {
+        val repository = RecordingRepository(
+            BankSettings(
+                guildId,
+                scheduledDepositsEnabled = true,
+                autoRewardsEnabled = false,
+                recurringPaymentsEnabled = true,
+                interestRate = 0.01
+            )
+        )
+        val editor = BedrockBankSettingsEditor(repository) { true }
+
+        assertTrue(editor.saveInterestRate(guildId, "2.5"))
+        assertEquals(0.025, repository.saved?.interestRate)
+        assertTrue(repository.saved?.scheduledDepositsEnabled == true)
+        assertFalse(repository.saved?.autoRewardsEnabled == true)
+        assertTrue(repository.saved?.recurringPaymentsEnabled == true)
+    }
+
+    @Test
     fun `security save persists a nonnegative dual auth threshold`() {
         val repository = RecordingRepository(BankSettings(guildId))
-        val editor = BedrockBankSettingsEditor(repository)
+        val editor = BedrockBankSettingsEditor(repository) { true }
 
         assertTrue(editor.saveSecurity(guildId, "2500"))
         assertEquals(2500, repository.saved?.dualAuthThreshold)
@@ -68,10 +88,23 @@ class BedrockBankSettingsEditorTest {
     @Test
     fun `auto deposit save persists both enabled and disabled states`() {
         val repository = RecordingRepository(BankSettings(guildId, scheduledDepositsEnabled = true))
-        val editor = BedrockBankSettingsEditor(repository)
+        val editor = BedrockBankSettingsEditor(repository) { true }
 
         assertTrue(editor.saveAutoDeposit(guildId, false))
         assertFalse(repository.saved?.scheduledDepositsEnabled == true)
+    }
+
+    @Test
+    fun `unauthorized editor fails closed without writing`() {
+        val repository = RecordingRepository(BankSettings(guildId))
+        val editor = BedrockBankSettingsEditor(repository) { false }
+
+        assertFalse(editor.saveAutoDeposit(guildId, true))
+        assertFalse(editor.saveBudgets(guildId, "100", "50", "25"))
+        assertFalse(editor.saveAutomation(guildId, true, true, true, "2.5"))
+        assertFalse(editor.saveInterestRate(guildId, "2.5"))
+        assertFalse(editor.saveSecurity(guildId, "2500"))
+        assertEquals(null, repository.saved)
     }
 
     private class RecordingRepository(private val current: BankSettings?) : BankSettingsRepository {

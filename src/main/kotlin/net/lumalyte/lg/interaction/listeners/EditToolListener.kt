@@ -27,8 +27,10 @@ import net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult
 import net.lumalyte.lg.application.results.claim.partition.CreatePartitionResult
 import net.lumalyte.lg.application.results.claim.partition.ResizePartitionResult
 import net.lumalyte.lg.application.results.player.DoesPlayerHaveClaimOverrideResult
+import net.lumalyte.lg.application.services.ClaimManagementAuthorizer
 import net.lumalyte.lg.application.services.scheduling.SchedulerService
 import net.lumalyte.lg.domain.entities.Claim
+import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.values.Position2D
 import net.lumalyte.lg.interaction.menus.misc.EditToolMenu
 import net.lumalyte.lg.domain.values.Area
@@ -41,7 +43,6 @@ import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.UUID
-import kotlin.concurrent.thread
 
 /**
  * Actions based on using the claim tool.
@@ -62,6 +63,7 @@ class EditToolListener: Listener, KoinComponent {
     private val displaySelectionVisualisation: DisplaySelectionVisualisation by inject()
     private val clearSelectionVisualisation: ClearSelectionVisualisation by inject()
     private val refreshVisualisation: RefreshVisualisation by inject()
+    private val claimManagementAuthorizer: ClaimManagementAuthorizer by inject()
 
     // Map of player id to the partition and the first selected corner to resize a partition
     private val firstSelectedCornerResize: MutableMap<UUID, Pair<UUID, Position2D>> = mutableMapOf()
@@ -161,8 +163,7 @@ class EditToolListener: Listener, KoinComponent {
             player.sendActionBar(
                 lang.msg("feedback.edit_tool.invalid")
                     .color(TextColor.color(255, 85, 85)))
-            thread(start = true) {
-                Thread.sleep(1)
+            schedulerService.schedule(1) {
                 refreshVisualisation.execute(player.uniqueId, partition.claimId, partition.id)
             }
             return
@@ -183,7 +184,7 @@ class EditToolListener: Listener, KoinComponent {
             selectedClaim = adjacentClaims.firstOrNull()
         } else {
             for (claim in adjacentClaims) {
-                if (claim.playerId == player.uniqueId) {
+                if (claimManagementAuthorizer.hasPermission(player.uniqueId, claim, RankPermission.MANAGE_CLAIMS)) {
                     selectedClaim = claim
                     break
                 }
@@ -209,8 +210,7 @@ class EditToolListener: Listener, KoinComponent {
 
         // Start partition building
         firstSelectedCornerCreate[player.uniqueId] = Pair(selectedClaim.id, location.toPosition2D())
-        thread(start = true) {
-            Thread.sleep(1)
+        schedulerService.schedule(1) {
             displayVisualisation.execute(player.uniqueId, location.toPosition3D())
             displaySelectionVisualisation.execute(player.uniqueId, location.toPosition3D())
         }
@@ -315,7 +315,7 @@ class EditToolListener: Listener, KoinComponent {
 
         // Alert player if they don't have permission to modify
         if (hasOverride) {}
-        else if (claim.playerId != player.uniqueId) {
+        else if (!claimManagementAuthorizer.hasPermission(player.uniqueId, claim, RankPermission.MANAGE_CLAIMS)) {
             player.sendActionBar(
                 lang.msg("feedback_edit_tool.permission")
                     .color(TextColor.color(255, 85, 85)))
@@ -331,8 +331,7 @@ class EditToolListener: Listener, KoinComponent {
         player.sendActionBar(
             lang.msg("feedback_edit_tool.start_resize", "remaining_blocks" to remainingClaimBlockCount)
                 .color(TextColor.color(85, 255, 85)))
-        thread(start = true) {
-            Thread.sleep(1)
+        schedulerService.schedule(1) {
             displaySelectionVisualisation.execute(player.uniqueId, location.toPosition3D())
         }
         return true

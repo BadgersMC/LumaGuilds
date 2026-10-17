@@ -1,5 +1,7 @@
 package net.lumalyte.lg.infrastructure.services
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.plain
 import net.kyori.adventure.text.Component
@@ -31,14 +33,13 @@ class ChatServiceBukkit(
     private val rankService: RankService,
     private val preferenceRepository: PlayerPartyPreferenceRepository,
     private val partyRepository: PartyRepository,
-    private val lang: LangService
+    private val lang: LangService,
+    private val chatRankSettings: GuildChatRankSettingsService,
 ) : ChatService {
 
     private val logger = LoggerFactory.getLogger(ChatServiceBukkit::class.java)
     
-    // Rate limiting configuration (in milliseconds)
-    private val announceRateLimit = 300000L // 5 minutes
-    private val pingRateLimit = 60000L // 1 minute
+    // Hourly safeguards remain independent of the configurable cooldowns.
     private val maxAnnouncementsPerHour = 3
     private val maxPingsPerHour = 10
     
@@ -90,9 +91,14 @@ class ChatServiceBukkit(
         }
     }
 
+    private fun formatGuildTag(guild: Guild, brackets: Boolean = true): String {
+        val displayedGuild = guild.copy(emoji = nexoEmojiService.getEmojiPlaceholder(guild.emoji))
+        return GuildDisplayUtils.createGuildTag(displayedGuild, brackets)
+    }
+
     private fun formatAnnouncement(guild: Guild, name: String, message: String, colorDigit: Char): Component {
         val headerColor = colorDigit.takeIf { it in '0'..'9' } ?: '6'
-        val guildTag = GuildDisplayUtils.createGuildTag(guild)
+        val guildTag = formatGuildTag(guild)
         return when (headerColor) {
             '0' -> lang.msg("notification.chat.announcement.black", "guild" to guildTag, "player" to name, "message" to message)
             '1' -> lang.msg("notification.chat.announcement.dark_blue", "guild" to guildTag, "player" to name, "message" to message)
@@ -143,7 +149,7 @@ class ChatServiceBukkit(
             }
             
             val pingerName = Bukkit.getPlayer(pingerId)?.name ?: UNKNOWN_PLAYER
-            val guildDisplayName = GuildDisplayUtils.createGuildTag(guild)
+            val guildDisplayName = formatGuildTag(guild)
             
             val formattedMessage = if (message != null) {
                 lang.msg("notification.chat.ping.message", "guild" to guildDisplayName, "player" to pingerName, "message" to message)
@@ -169,26 +175,25 @@ class ChatServiceBukkit(
     override fun toggleChatVisibility(playerId: UUID, channel: ChatChannel): Boolean {
         try {
             val currentSettings = getVisibilitySettings(playerId)
-            
-            val newSettings = when (channel) {
-                ChatChannel.GUILD -> currentSettings.copy(guildChatVisible = !currentSettings.guildChatVisible)
-                ChatChannel.ALLY -> currentSettings.copy(allyChatVisible = !currentSettings.allyChatVisible)
-                ChatChannel.PARTY -> currentSettings.copy(partyChatVisible = !currentSettings.partyChatVisible)
-                ChatChannel.PUBLIC -> {
-                    logger.warn("Cannot toggle visibility for public channel")
-                    return false
+
+            val newSettings =
+                when (channel) {
+                    ChatChannel.GUILD -> currentSettings.copy(guildChatVisible = !currentSettings.guildChatVisible)
+                    ChatChannel.ALLY -> currentSettings.copy(allyChatVisible = !currentSettings.allyChatVisible)
+                    ChatChannel.PARTY -> currentSettings.copy(partyChatVisible = !currentSettings.partyChatVisible)
+                    ChatChannel.PUBLIC -> currentSettings.copy(globalChatVisible = !currentSettings.globalChatVisible)
                 }
-            }
-            
+
             val success = updateVisibilitySettings(playerId, newSettings)
             
             if (success) {
-                val visibilityState = when (channel) {
-                    ChatChannel.GUILD -> newSettings.guildChatVisible
-                    ChatChannel.ALLY -> newSettings.allyChatVisible
-                    ChatChannel.PARTY -> newSettings.partyChatVisible
-                    ChatChannel.PUBLIC -> false
-                }
+                val visibilityState =
+                    when (channel) {
+                        ChatChannel.GUILD -> newSettings.guildChatVisible
+                        ChatChannel.ALLY -> newSettings.allyChatVisible
+                        ChatChannel.PARTY -> newSettings.partyChatVisible
+                        ChatChannel.PUBLIC -> newSettings.globalChatVisible
+                    }
                 logger.info("Player $playerId toggled $channel chat visibility to $visibilityState")
             }
             
@@ -199,16 +204,26 @@ class ChatServiceBukkit(
             return false
         }
     }
-    
-    override fun getVisibilitySettings(playerId: UUID): ChatVisibilitySettings {
-        return chatSettingsRepository.getVisibilitySettings(playerId)
+
+    override fun getVisibilitySettings(playerId: UUID): ChatVisibilitySettings = chatSettingsRepository.getVisibilitySettings(playerId)
+
+    override fun updateVisibilitySettings(
+        playerId: UUID,
+        settings: ChatVisibilitySettings,
+    ): Boolean {
+        if (playerId != settings.playerId) return false
+        return try {
+            chatSettingsRepository.updateVisibilitySettings(settings)
+        } catch (failure: Exception) {
+            logger.error("Failed to save chat preferences", failure)
+            false
+        }
     }
-    
-    override fun updateVisibilitySettings(playerId: UUID, settings: ChatVisibilitySettings): Boolean {
-        return chatSettingsRepository.updateVisibilitySettings(settings)
-    }
-    
-    override fun getRecipientsForChannel(senderId: UUID, channel: ChatChannel): Set<UUID> {
+
+    override fun getRecipientsForChannel(
+        senderId: UUID,
+        channel: ChatChannel,
+    ): Set<UUID> {
         return when (channel) {
             ChatChannel.GUILD -> {
                 val senderGuilds = memberService.getPlayerGuilds(senderId)
@@ -259,17 +274,18 @@ class ChatServiceBukkit(
         val primaryGuild = senderGuilds.firstOrNull()?.let { guildService.getGuild(it) }
         
         val guildTag = if (primaryGuild != null) {
-            GuildDisplayUtils.createGuildTag(primaryGuild, brackets = false)
+            formatGuildTag(primaryGuild, brackets = false)
         } else {
             ""
         }
         
         return when (channel) {
             ChatChannel.GUILD -> {
+                val guildChatName = guildChatPlayer(senderId, senderName, primaryGuild)
                 if (guildTag.isNotEmpty()) {
-                    lang.plain("notification.chat.guild.with_tag", "tag" to guildTag, "player" to senderName, "message" to processedMessage)
+                    lang.plain("notification.chat.guild.with_tag", "tag" to guildTag, "player" to guildChatName, "message" to processedMessage)
                 } else {
-                    lang.plain("notification.chat.guild.without_tag", "player" to senderName, "message" to processedMessage)
+                    lang.plain("notification.chat.guild.without_tag", "player" to guildChatName, "message" to processedMessage)
                 }
             }
             ChatChannel.ALLY -> {
@@ -300,13 +316,16 @@ class ChatServiceBukkit(
                 if (configService.loadConfig().chat.coloredChatEnabled) value else stripLegacyColors(value)
             }
         val primaryGuild = memberService.getPlayerGuilds(senderId).firstOrNull()?.let(guildService::getGuild)
-        val guildTag = primaryGuild?.let { GuildDisplayUtils.createGuildTag(it, brackets = false) }.orEmpty()
+        val guildTag = primaryGuild?.let { formatGuildTag(it, brackets = false) }.orEmpty()
 
         return when (channel) {
-            ChatChannel.GUILD -> if (guildTag.isNotEmpty()) {
-                lang.msg("notification.chat.guild.with_tag", "tag" to guildTag, "player" to senderName, "message" to processedMessage)
-            } else {
-                lang.msg("notification.chat.guild.without_tag", "player" to senderName, "message" to processedMessage)
+            ChatChannel.GUILD -> {
+                val guildChatName = guildChatPlayer(senderId, senderName, primaryGuild)
+                if (guildTag.isNotEmpty()) {
+                    lang.msg("notification.chat.guild.with_tag", "tag" to guildTag, "player" to guildChatName, "message" to processedMessage)
+                } else {
+                    lang.msg("notification.chat.guild.without_tag", "player" to guildChatName, "message" to processedMessage)
+                }
             }
             ChatChannel.ALLY -> if (guildTag.isNotEmpty()) {
                 lang.msg("notification.chat.ally.with_tag", "tag" to guildTag, "player" to senderName, "message" to processedMessage)
@@ -391,6 +410,13 @@ class ChatServiceBukkit(
         }
     }
 
+    private fun guildChatPlayer(senderId: UUID, senderName: String, guild: Guild?): String {
+        if (guild == null || !chatRankSettings.ranksVisible(guild.id)) return senderName
+        val rank = memberService.getPlayerRankId(senderId, guild.id)?.let(rankService::getRank) ?: return senderName
+        return "<dark_gray>[<aqua>" + RankNameContent.miniMessage(rank.name) +
+            "<reset><dark_gray>]<reset> $senderName"
+    }
+
 
     override fun canSendAnnouncements(playerId: UUID, guildId: UUID): Boolean {
         return memberService.hasPermission(playerId, guildId, RankPermission.SEND_ANNOUNCEMENTS)
@@ -405,7 +431,8 @@ class ChatServiceBukkit(
         val currentTime = System.currentTimeMillis()
         
         // Check time-based rate limit
-        if (currentTime - rateLimit.lastAnnounceTime < announceRateLimit) {
+        val cooldown = configService.loadConfig().chat.announceCooldownMinutes.coerceAtLeast(0).toLong() * 60_000L
+        if (cooldown > 0 && currentTime - rateLimit.lastAnnounceTime < cooldown) {
             return true
         }
         
@@ -423,7 +450,8 @@ class ChatServiceBukkit(
         val currentTime = System.currentTimeMillis()
         
         // Check time-based rate limit
-        if (currentTime - rateLimit.lastPingTime < pingRateLimit) {
+        val cooldown = configService.loadConfig().chat.pingCooldownMinutes.coerceAtLeast(0).toLong() * 60_000L
+        if (cooldown > 0 && currentTime - rateLimit.lastPingTime < cooldown) {
             return true
         }
         

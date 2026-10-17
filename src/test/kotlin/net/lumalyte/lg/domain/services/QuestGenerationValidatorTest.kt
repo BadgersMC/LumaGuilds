@@ -30,7 +30,7 @@ class QuestGenerationValidatorTest {
                 action = QuestAction.HARVEST_CROPS,
                 target = wheat,
                 amount = 1_000,
-                condition = QuestCondition(QuestConditionType.IN_DIMENSION, "NETHER")
+                conditions = listOf(QuestCondition(QuestConditionType.IN_DIMENSION, "NETHER"))
             )
         )
 
@@ -44,7 +44,7 @@ class QuestGenerationValidatorTest {
                 action = QuestAction.KILL_MOBS,
                 target = dragon,
                 amount = 3,
-                condition = QuestCondition(QuestConditionType.IN_DIMENSION, "THE_END")
+                conditions = listOf(QuestCondition(QuestConditionType.IN_DIMENSION, "THE_END"))
             )
         )
 
@@ -67,32 +67,54 @@ class QuestGenerationValidatorTest {
     }
 
     @Test
-    fun `malformed numeric condition value is rejected`() {
-        val target = wheat.copy(supportedConditions = setOf(QuestConditionType.ABOVE_Y))
-        val result = validator.validate(quest(QuestAction.HARVEST_CROPS, target, 1_000,
-            QuestCondition(QuestConditionType.ABOVE_Y, "not-a-number")))
+    fun `axis corridor requires center and positive radius`() {
+        val target = wheat.copy(supportedConditions = setOf(QuestConditionType.X_WITHIN))
+        val malformed = validator.validate(
+            quest(
+                QuestAction.HARVEST_CROPS,
+                target,
+                1_000,
+                listOf(QuestCondition(QuestConditionType.X_WITHIN, "0:0"))
+            )
+        )
 
-        assertEquals(listOf(QuestValidationFailure.CONDITION_VALUE_INVALID), result.failures)
+        assertEquals(listOf(QuestValidationFailure.CONDITION_VALUE_INVALID), malformed.failures)
+    }
+
+    @Test
+    fun `duplicate condition types are rejected`() {
+        val target = wheat.copy(supportedConditions = setOf(QuestConditionType.X_WITHIN))
+        val result = validator.validate(
+            quest(
+                QuestAction.HARVEST_CROPS,
+                target,
+                1_000,
+                listOf(
+                    QuestCondition(QuestConditionType.X_WITHIN, "0:100"),
+                    QuestCondition(QuestConditionType.X_WITHIN, "500:100")
+                )
+            )
+        )
+
+        assertEquals(listOf(QuestValidationFailure.CONDITION_DUPLICATE), result.failures)
     }
 
     private fun quest(
         action: QuestAction,
         target: QuestTarget,
         amount: Long,
-        condition: QuestCondition? = null
+        conditions: List<QuestCondition> = emptyList()
     ) = QuestDefinition(
         id = "test",
-        nameKey = "quests.test.name",
-        descriptionKey = "quests.test.description",
         action = action,
         target = target,
         targetCount = amount,
         tier = QuestRewardTier.COMMON,
-        condition = condition
+        conditions = conditions
     )
 
     private val dragon = QuestTarget(
-        id = "ENDER_DRAGON",
+        id = "minecraft:entity/ender_dragon",
         allowedActions = setOf(QuestAction.KILL_MOBS),
         minimumAmount = 1,
         maximumAmount = 5,
@@ -101,7 +123,7 @@ class QuestGenerationValidatorTest {
     )
 
     private val wheat = QuestTarget(
-        id = "WHEAT",
+        id = "minecraft:block/wheat",
         allowedActions = setOf(QuestAction.HARVEST_CROPS),
         minimumAmount = 500,
         maximumAmount = 3_000,
@@ -110,7 +132,7 @@ class QuestGenerationValidatorTest {
     )
 
     private val sheep = QuestTarget(
-        id = "SHEEP",
+        id = "minecraft:entity/sheep",
         allowedActions = setOf(QuestAction.KILL_MOBS),
         minimumAmount = 50,
         maximumAmount = 500,

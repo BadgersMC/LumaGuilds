@@ -9,9 +9,9 @@ import kotlin.test.assertTrue
 class HelpTopicsTest {
 
     @Test
-    fun `all 12 player topics are registered`() {
+    fun `all 13 player topics are registered`() {
         val expected = setOf(
-            "guilds", "ranks", "homes", "alliances", "war",
+            "guilds", "ranks", "homes", "alliances", "war", "quests",
             "chat", "identity", "progression", "vault", "mode",
             "lfg", "bedrock",
         )

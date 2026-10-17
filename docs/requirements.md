@@ -317,7 +317,7 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 **Event-driven.** WHEN a guild member logs into the server THEN THE SYSTEM SHALL notify the guild in-game.
 
 ### REQ-063
-**State-driven.** THE SYSTEM SHALL display each member's current guild rank next to their name in guild chat (restoring the legacy feature).
+**State-driven.** THE SYSTEM SHALL display each member's current guild rank next to their name in guild chat by default. Guild leaders or members with MANAGE_GUILD_SETTINGS SHALL be able to toggle rank display for the entire guild; the setting SHALL persist across restarts and apply to the next guild-chat message without changing other guilds, public, ally, or officer chat. Guild rank names SHALL support legacy color/format codes and hex colors (including bare `#RRGGBB` and `&#RRGGBB`), with a maximum of 24 visible characters and 255 stored characters. Rank creation/editing on Java and Bedrock SHALL use the same validation; color changes SHALL NOT create duplicate visible rank names or change rank IDs, member assignments, permission sets, or claim-permission profiles. Validation errors SHALL display readable text. Per-message RoseChat formatting SHALL preserve every option supplied by the runtime API, including newer bypass flags, without linking to a version-specific record constructor.
 
 ### REQ-064
 **Conditional.** GIVEN guild leadership, THE SYSTEM SHALL provide a dedicated private chat channel for guild admins/leadership only.
@@ -326,46 +326,46 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 **Conditional.** GIVEN RoseChat feasibility, THEN THE SYSTEM SHALL let guilds create and name custom chat channels for their own organizational structure.
 
 ### REQ-066
-**Event-driven.** WHEN a member invites a player to the guild THEN THE SYSTEM SHALL record it, AND the Guild Statistics UI node SHALL display an internal invitation leaderboard (most invites per member).
+**Event-driven.** WHEN a member successfully persists a guild invitation THEN THE SYSTEM SHALL atomically append an immutable sent-invitation history event keyed by guild, inviter UUID, invitee UUID, and send time. Accepting, declining, expiring, or otherwise removing the pending invitation SHALL NOT remove that history. Failed or duplicate pending-invitation writes SHALL NOT increment statistics. The Guild Statistics UI SHALL display the guild's all-time invitation leaderboard ordered by sent count descending with inviter UUID as the deterministic tie-breaker, resolving the inviter's current player name only for display. The leaderboard SHALL paginate across all historical inviters rather than truncate the result set.
 
 ### REQ-067
-**State-driven.** THE SYSTEM SHALL keep the physical banners at server spawn updated to reflect current top guilds by Guild Level Leaderboard placement.
+**State-driven.** THE SYSTEM SHALL support admin-created physical leaderboard banners bound to a positive rank and guild leaderboard category, including Guild Level placement. A bound banner SHALL persist its world location, rank, and category; SHALL render the current guild's configured banner or a plain white banner when the rank/guild/banner is unavailable; SHALL refresh when the relevant leaderboard rank changes or the displayed guild changes its banner; and SHALL periodically reconcile persisted displays so stale or changed state is corrected after missed events or restarts.
 
 ### REQ-068
-**Event-driven.** WHEN a player opens the guild list GUI THEN THE SYSTEM SHALL list all server guilds with sort options: All-Time Active, Weekly Active (weighted by unique PvP kills), Guild Level (low→high), and Creation Date (old→new). Retrieval contract: paging is bounded at the service boundary — the lookup action accepts `(page, pageSize, sortKey, ascending)` and returns one page plus a total count, never a full `List` sliced in the GUI (the existing `GuildLookup.getAllGuilds()` unbounded path is NOT used); page size defaults to `guild_list.page_size` (default 18); navigation uses prev/next page buttons; sorting is deterministic — ties break by guild name (case-insensitive), then creation date, so page boundaries are stable across refreshes.
+**Event-driven.** WHEN a player opens the guild list GUI THEN THE SYSTEM SHALL list all server guilds with sort options: All-Time Active, Weekly Active, Guild Level (low→high), and Creation Date (old→new). All-Time Active SHALL use the existing weighted guild progression-activity sources across all recorded history. Weekly Active SHALL use the same weighted activity over the trailing seven days, except raw `PLAYER_KILL` activity SHALL NOT score directly; instead PvP SHALL contribute only through distinct opposing-player victims multiplied by the configured `activity.weights.kills_this_week` weight so repeated kills of the same victim cannot inflate the weekly ranking. Retrieval SHALL be bounded at the service boundary — the lookup action accepts `(page, pageSize, sortKey, ascending)` and returns one page plus a total count, never a full `List` sliced in the GUI (the existing `GuildLookup.getAllGuilds()` unbounded path is NOT used). Page size SHALL default to `guild_list.page_size` (default 18), navigation SHALL expose previous/next controls, and sorting SHALL be deterministic with case-insensitive guild name then creation date as stable tie-breakers.
 
 ### REQ-069
-**Conditional.** GIVEN the guild list GUI, THEN THE SYSTEM SHALL display each guild's physical banner, defaulting to a plain white banner when none is set.
+**Conditional.** GIVEN the guild list GUI, THEN THE SYSTEM SHALL display each guild's stored physical standing-banner item, preserving its material/base color and pattern layers. Missing, unreadable, corrupt, non-banner, or block-only wall-banner payloads SHALL resolve to a plain white standing banner.
 
 ### REQ-070
 **Event-driven.** WHEN a player clicks the Enemy/Ally sections of `/g info` THEN THE SYSTEM SHALL expand to the full guild list (currently only top 3, no way to view the rest).
 
 ### REQ-071
-**Conditional.** GIVEN a guild reaches a Discord-role level perk, THEN THE SYSTEM SHALL create/link a Discord role that dynamically grants/removes itself as players join/leave the guild in-game.
+**Event-driven.** WHEN a guild reaches the configured minimum guild level (default 50), THEN THE SYSTEM SHALL create/link a Discord role and dynamically grant/remove it for Discord-linked players as they join/leave the guild or link/unlink their Discord account. Startup and periodic reconciliation SHALL automatically delete existing managed roles and their saved links for guilds below the minimum with no completed prestige, including roles created during earlier testing. Failed Discord deletion SHALL retain the link for retry. Those guilds SHALL wait until the minimum before the role is recreated. A guild with at least one completed prestige SHALL remain eligible to keep/create/repair its role after the level reset. Failed eligibility reads SHALL preserve the saved role/link for retry. Disbanded guild roles SHALL still be removed.
 
 ### REQ-072
-**Event-driven.** WHEN a guild edits its description THEN THE SYSTEM SHALL allow embedding a Discord invite link for recruitment.
+**Event-driven.** WHEN a guild edits its description THEN THE SYSTEM SHALL accept up to 200 characters of safe display MiniMessage formatting and SHALL recognize HTTPS Discord invite URLs from `discord.gg/<code>` and `discord.com/invite/<code>`. Discord invite URLs SHALL be the only external URLs promoted to clickable `OPEN_URL` components; arbitrary URLs SHALL remain inert text. User-authored interactive MiniMessage event tags including `click`, `hover`, and `insertion` SHALL be rejected at every write path. Java guild-info SHALL expose detected Discord invites through a clickable chat component, while Bedrock SHALL preserve the visible invite URL as plain text.
 
 ### REQ-073
-**Event-driven.** WHEN a guild is disbanded THEN THE SYSTEM SHALL broadcast a server-wide announcement.
+**Event-driven.** WHEN a guild is successfully disbanded THEN THE SYSTEM SHALL broadcast a server-wide chat announcement and SHALL send an advancement toast to every online member of each guild that had an active ALLY or ENEMY relation with the disbanded guild immediately before deletion. Relationship recipients SHALL receive the global chat announcement as well as the toast. Relation membership SHALL be snapshotted before persistence cleanup removes relation rows. Toast delivery SHALL use the same player/advancement path for Java and Geyser/Bedrock clients; the toast title SHALL independently identify the relation and disbanded guild because Bedrock may not render the advancement toast description line. Players who appear through multiple related guild memberships SHALL receive at most one relationship toast, with ENEMY taking precedence over ALLY.
 
 ### REQ-074
-**State-driven.** WHILE weekly guild quests are enabled THE SYSTEM SHALL persist one shared weekly quest set for all guilds, generate it once per configured reset period, preserve it across restarts, catch up a missed reset on startup, and track progress independently per guild.
+**State-driven.** WHILE weekly guild quests are enabled THE SYSTEM SHALL discover the eligible quest-target universe from registered runtime providers, deterministically generate and persist one shared weekly quest set per configured reset period, preserve it across restarts, catch up a missed reset on startup, retain prior generated sets for repetition checks, and track progress independently per guild.
 
 ### REQ-075
-**Ubiquitous.** THE SYSTEM SHALL represent a weekly quest as `[action] [amount] [target] [optional condition]`, generate only typed trackable combinations, reject incompatible, impossible, redundant, duplicate, or amount-invalid rolls with structured reasons, and use a bounded deterministic fallback when random generation exhausts its retry limit. Target location metadata SHALL validate only explicit location conditions and SHALL NOT create hidden location requirements.
+**Ubiquitous.** THE SYSTEM SHALL procedurally compose each weekly quest by independently selecting a trackable action, provider-owned namespaced target, sane human-rounded amount, and zero or more compatible optional conditions. Vanilla target pools SHALL be runtime-discovered from Bukkit/Paper materials, entities, recipes, and block semantics with a small technical-exclusion list rather than an operator-authored whitelist; optional providers such as Nexo SHALL expose custom content through the same target contract. THE SYSTEM SHALL reject incompatible, impossible, redundant, duplicate, recently repeated, or amount-invalid rolls with structured reasons and use bounded deterministic fallback generation. Target location metadata SHALL validate only explicit location conditions and SHALL NOT create hidden location requirements.
 
 ### REQ-076
-**Event-driven.** WHEN qualifying guild-member activity occurs THEN THE SYSTEM SHALL increment every matching active quest for that member's guild, retain progress beyond the milestone for leaderboard ranking, reject cancelled/creative/spectator activity, and prevent player-placed blocks from satisfying `NATURAL_ONLY` break quests while allowing player-grown crops under an `ANY` provenance policy.
+**Event-driven.** WHEN qualifying guild-member activity occurs THEN THE SYSTEM SHALL emit the provider-owned target identity plus relevant event context and increment every matching active quest for that member's guild. Progress matching SHALL support explicit X/Z corridor conditions and other compatible conditions, retain progress beyond the milestone for leaderboard ranking, reject cancelled/creative/spectator activity, distinguish custom provider targets from vanilla backing types, and prevent player-placed blocks from satisfying `NATURAL_ONLY` break quests while allowing player-grown crops under an `ANY` provenance policy.
 
 ### REQ-077
-**Event-driven.** WHEN a guild reaches a milestone THEN THE SYSTEM SHALL allow that guild to claim its configured Guild EXP and item rewards once during the active week; WHEN all milestone quests are claimed before reset THEN THE SYSTEM SHALL award the configured full-set Guild EXP bonus once; WHEN reset occurs THEN THE SYSTEM SHALL pay configured leaderboard Guild EXP positions before clearing progress. All reward paths SHALL be idempotent.
+**Event-driven.** WHEN a guild first reaches a weekly quest milestone THEN THE SYSTEM SHALL automatically settle that quest's configured Guild EXP and item rewards exactly once, mark the milestone complete without requiring a manual claim, notify online guild members with a localized toast using the quest action's custom icon when available, and continue recording all qualifying progress beyond the milestone. WHEN all milestone quests complete before reset THEN THE SYSTEM SHALL award the configured full-set Guild EXP bonus once. WHEN reset occurs THEN THE SYSTEM SHALL pay the configured first-place leaderboard Guild EXP reward for each quest before activating the next weekly set, with stable transaction identity and durable payout markers preventing duplicate rewards. Final weekly scores SHALL remain persisted for history/audit. All reward paths SHALL be idempotent.
 
 ### REQ-078
-**Event-driven.** WHEN a guild member opens the main guild menu THEN THE SYSTEM SHALL provide access to a localized six-row weekly quest menu showing the shared quests, that guild's progress, claim status, rewards, leaderboard rank where enabled, full-set bonus state, pagination, and time remaining until reset.
+**Event-driven.** WHEN a guild member opens the main guild menu THEN THE SYSTEM SHALL provide access to a localized six-row weekly quest menu showing dynamically rendered procedural quest text, action-specific custom icons with tier/vanilla fallback, the shared quests, that guild's uncapped score, completion state, rewards, current leaderboard rank, full-set bonus state, pagination, and time remaining until reset. WHEN the member activates a quest entry THEN THE SYSTEM SHALL open a paginated quest leaderboard showing guild names, scores, ranks, completion target, the viewer guild's standing, weekly winner reward, and reset time; Java and Bedrock SHALL expose equivalent leaderboard information.
 
 ### REQ-079
-**Optional feature.** WHERE PlaceholderAPI is installed THE SYSTEM SHALL expose read-only timer, quest-definition, guild-progress, completion, reward, and weekly-bonus placeholders with documented safe fallbacks for missing players, guilds, quests, and active weeks; placeholder evaluation SHALL NOT generate, reset, claim, reward, or otherwise mutate quest state.
+**Optional feature.** WHERE PlaceholderAPI is installed THE SYSTEM SHALL expose read-only timer, dynamically rendered procedural quest-definition, guild-progress, completion, reward, and weekly-bonus placeholders with documented safe fallbacks for missing players, guilds, quests, and active weeks; placeholder evaluation SHALL NOT discover/generate a new set, reset, claim, reward, or otherwise mutate quest state.
 
 ### REQ-087
 **Event-driven.** WHEN a guild member opens the main Guild Dashboard THEN THE SYSTEM SHALL show a Statistics navigation item in the bottom-right slot directly below Economy, and activating it SHALL open the guild statistics menu.
@@ -390,7 +390,171 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 **Durable war clarification (2026-09-14; REQ-039/092).** Declarations, war identity/status, statistics, wager amounts and settlement intent SHALL survive restart. Financial intent SHALL be recorded before a charge or refund. A completed leg SHALL not be repeated after a crash or failed state-marker write; an uncertain leg SHALL prevent speculative compensation and require reconciliation. Acceptance SHALL not publish an active paid war until funding is confirmed. A chosen settlement outcome SHALL be immutable once settlement begins. Corrupt or unavailable persistence SHALL fail closed rather than expose an empty war registry. Stale writers SHALL not overwrite a newer persisted state.
 
 ### REQ-093
-**Conditional.** WHILE prestige is enabled, GIVEN a guild is current-run level 100, is below the configured lifetime maximum (default 3), has selected a purchased prestige-eligible non-permanent perk, has no active/accepted/unresolved war or outgoing declaration, and can pay the configured tier fee (defaults 10,000/20,000/30,000 raw-gold units) while leaving a balance no greater than its calculated post-prestige capacity, WHEN an authorized leader explicitly confirms prestige THEN THE SYSTEM SHALL atomically deduct the fee, increment prestige count, grant one permanent home-capacity unit, mark the selected perk permanent, reset current-run level to 1 and XP to 0, and deactivate every other non-permanent purchased progression perk. Prestige SHALL preserve seasonal Elo and pair history, source-cap consumption, weekly quest progress/reward flags, guild identity, membership, ranks, relations, canonical guild gold remainder, vault contents, activated homes, permanent home capacity, and prior permanent perks. Failure or retry SHALL grant neither duplicate rewards nor duplicate charges. The shipped default SHALL be `prestige.enabled: false` until the operator enables the community-approved feature.
+**Conditional.** WHILE prestige is enabled, GIVEN a guild is current-run level 100, is below the configured lifetime maximum (default 6), has selected a purchased prestige-eligible non-permanent perk, has no active/accepted/unresolved war or outgoing declaration, and can pay the configured tier fee (defaults 10,000/20,000/30,000/30,000/30,000/30,000 raw-gold units) while leaving a balance no greater than its calculated post-prestige capacity, WHEN an authorized leader explicitly confirms prestige THEN THE SYSTEM SHALL atomically deduct the fee, increment prestige count, grant one permanent home-capacity unit, mark the selected perk permanent, reset current-run level to 1 and XP to 0, and deactivate every other non-permanent purchased progression perk. Prestige SHALL preserve seasonal Elo and pair history, source-cap consumption, weekly quest progress/reward flags, guild identity, membership, ranks, relations, canonical guild gold remainder, vault contents, activated homes, permanent home capacity, and prior permanent perks. Failure or retry SHALL grant neither duplicate rewards nor duplicate charges. For the production Chapter 2 cutover, the shipped default SHALL be `prestige.enabled: true`; operators MAY explicitly set it to `false` to disable Prestige.
+
+## Season 2 presentation contract
 
 ### REQ-094
-**Event-driven.** WHEN an integrating plugin (EnthusiaHolidays) unlocks a guild cosmetic through the public `GuildCosmeticUnlocks` service THEN THE SYSTEM SHALL durably record that the guild owns the cosmetic `(type, key)` with its display name and source, idempotently, and SHALL report success for an already-owned cosmetic. Holiday GUI themes marked `requiresUnlock` SHALL be offered in the theme selector only as **locked** until the guild owns them, and `setGuiTheme` SHALL reject a locked theme regardless of caller. WHEN a cosmetic is revoked THE SYSTEM SHALL remove ownership idempotently and reset a guild currently using that theme to `NEUTRAL`. The API SHALL use JDK-only signatures, SHALL accept unknown keys (so a newer integration cannot wedge its sync), and SHALL return false only for a nonexistent guild or a persistence failure. Progression themes without `requiresUnlock` keep their existing behavior.
+**Ubiquitous.** THE SYSTEM SHALL render paginated progression sources in unique row-major content slots that never overlap header, sidebar, back, close, or pagination controls. Layout changes SHALL preserve source accounting, permissions and reward actions.
+
+### REQ-095
+**Ubiquitous.** THE staging Season 2 resource pack SHALL resolve all LumaGuilds item IDs, including the nine missing navigation/source IDs and 37 emoji-choice IDs, to existing resources. Icons SHALL use readable silhouettes, consistent gold/slate pixel-art navigation, correctly directed pagination arrows and shape-distinct status indicators. Existing IDs, approved guild backgrounds and recognizable emoji identities SHALL be preserved. Pack generation SHALL retain SELFHOST. Java and Bedrock client validation SHALL be reported independently from static validation.
+
+
+### REQ-096
+**Event-driven.** WHEN an authorized guild member opens Settings → GUI Theme THEN THE SYSTEM SHALL render a one-row six-choice theme selector using `guild_bg_<theme>_1_row`, place theme choices in slots 0–5 and Back in slot 8, use a distinct supplied symbol for every `GuiTheme`, identify the active theme with localized text plus a secondary visual cue, use the localized heading `GUI Theme`, keep the player inventory visible, and reject unauthorized selections without reporting success.
+
+### REQ-097
+**Ubiquitous.** THE progression menu SHALL map every `ExperienceSource` to intentional Season 2 artwork without a catch-all reward/gift fallback. Shared pool presentation SHALL use the pool's meaning (`ORE` → ore, shared `CRAFTING` → workbench) rather than an arbitrary representative source, while source-specific mappings remain exhaustive for future non-pooled views. Gift/reward artwork SHALL be reserved for actual rewards.
+
+### REQ-098
+**Ubiquitous.** THE Guild Bank Java menu SHALL resolve every literal and computed localization lookup to a string leaf in shipped and active language trees. Quick-action dynamic keys and transaction-type labels SHALL be covered by executable localization tests, and amount/balance/fee/actor placeholders SHALL render without leaking raw keys.
+
+### REQ-099
+**Ubiquitous.** THE local Season 2 Nexo pack SHALL ship the approved dark-slate/metallic 1/3/4/5/6-row backgrounds, six theme-choice symbols, and all new progression source icons under unique item/glyph identifiers with no duplicate glyph chars or custom-model-data collisions. Menu titles on these dark backgrounds SHALL use light/ivory foreground text. Pack generation SHALL remain SELFHOST and production hosting/configuration SHALL NOT be changed.
+
+### REQ-100
+**Ubiquitous.** THE Season 2 Java GUI redesign SHALL preserve every existing action, authorization rule, data-bearing item, failure path, sorting/paging behavior, and economic safeguard while reorganizing presentation: Dashboard retains all ten sections with Statistics directly below Economy; Progression retains its proven 24-slot content grid and isolated sidebar/navigation; Bank uses a compact four-row shell when all controls/overlays fit; Settings groups identity, appearance, and access/location without dropping conditional controls; Diplomacy/Warfare separate status/requests/consequential actions; Members/Ranks retain player heads and rank state.
+
+## Season 2 Java visual-audit follow-up — 2026-09-24
+
+### REQ-101
+**Ubiquitous.** THE Guild Dashboard summary SHALL derive member count, guild rank/level, canonical guild balance, banner and other displayed guild facts from the same authoritative services used by their destination menus. The balance shown on the dashboard SHALL equal the balance shown by Economy/Bank for the same guild and SHALL NOT display a stale or independently calculated zero. The summary SHOULD use the available space for useful at-a-glance guild information without duplicating confusing or low-value fields.
+
+### REQ-102
+**Event-driven.** WHEN a player opens Guild Information THEN THE SYSTEM SHALL open the information view whenever that player is authorized to view it, independent of whether they are the owner. Disbanded guilds SHALL NOT remain joinable or resolve to orphaned/unknown owners after a completed disband. Chapter 2 migration/readiness tooling SHALL detect and report stale guild rows, orphaned ownership, and other disband remnants before production cut-over rather than silently carrying them forward.
+
+### REQ-103
+**Ubiquitous.** THE Ranks UI SHALL resolve every perk/title/lore localization key and SHALL replace legacy verbose perk descriptions with concise, scannable hover text that communicates the same permission/effect without extending beyond practical inventory-tooltip height. Existing rank authorization and behavior SHALL remain unchanged.
+
+### REQ-104
+**Ubiquitous.** Weekly quest presentation SHALL use human-readable action phrases and target nouns rather than generator-style fragments: examples include "Catch any fish", "Enchant 90 Stone Spears", and "Deposit 30,000 Gold Ore to the Guild Bank" rather than "Fish Any", "90 stone spear", or generic "coins". Generated condition text SHALL be limited to conditions that make gameplay sense for the selected action; X/Z highway-corridor conditions SHALL NOT be attached to actions such as enchanting where location is incidental. The shipped Chapter 2 weekly set SHALL contain six guild quests, with menu layout adjusted to present all six cleanly.
+
+### REQ-105
+**Ubiquitous.** THE Guild Bank SHALL retain its intended transaction history, automation, member-contribution, interest, alert, recurring-payment, budget and statistics information, but SHALL present it through a coherent navigation hierarchy with purpose-specific Season 2 icons, complete localization and no misleading dead controls. Every visible control SHALL either perform its described operation or clearly represent read-only status; placeholder "coming soon" actions SHALL NOT ship as interactive controls. Interest/next-accrual countdowns SHALL update from real persisted schedule state, and member-contribution/statistics views SHALL use real guild data.
+
+### REQ-106
+**Ubiquitous.** Lunar tracking SHALL be disabled by default for new guilds and newly initialized settings while preserving explicit persisted opt-in choices for existing guilds unless migration policy says otherwise.
+
+### REQ-107
+**State-driven.** Prestige SHALL require current-run level 100, matching REQ-093, and the release UI SHALL NOT describe level 25 or present Prestige as a future-update placeholder. For Chapter 2 release, the implemented prestige path, eligibility checks, confirmation, rewards, reset semantics and persistence SHALL be production-ready. The production release policy is governed by REQ-093: Prestige ships enabled, while an explicit operator `prestige.enabled: false` remains authoritative.
+
+### REQ-108
+**Event-driven.** BEFORE Chapter 2 production cut-over, operators SHALL have an explicit administrative cleanup operation that can end and remove all residual active wars, incoming/outgoing declarations and peace-agreement state so Chapter 2 starts from a clean diplomatic-war state. The operation SHALL be auditable and safe to run against the reviewed live database. War-menu quick statistics (total wars, wins/losses or ratio, active wars and related counters) SHALL be calculated from authoritative persisted war data and validated against live data before release rather than assumed correct from the imported staging snapshot.
+
+### REQ-109
+**Ubiquitous.** THE Guild Statistics UI SHALL receive a Season 2 presentation pass with intentional custom icons, complete localization and verified persisted-data backing. The obsolete statistics CSV export control SHALL be removed in accordance with REQ-023. Kill trends, periodic statistics, rivalry statistics, guild achievements, top killers, top contributors, K/D analysis and every other retained statistics surface SHALL either return real supported data or be removed/hidden until implemented; empty guild data SHALL be distinguishable from an unwired data path. Statistics SHALL be validated against representative live-database data before Chapter 2 release.
+
+### REQ-110
+**Ubiquitous.** THE dedicated Bedrock guild UI SHALL provide Chapter 2 behavioral parity for every supported primary Guild Dashboard domain while remaining a platform-specific Cumulus presentation adapter. Supported Bedrock flows SHALL use the same authoritative services, authorization rules, mutation semantics and persisted data as Java, SHALL NOT directly construct Java inventory menus as their normal success/back path, and SHALL NOT replace unavailable data with believable fabricated defaults. Form navigation/back/timeout state SHALL remain within the Bedrock flow.
+
+### REQ-111
+**Event-driven.** WHEN a Bedrock guild member opens Weekly Guild Quests THEN THE SYSTEM SHALL present the same active shared six-quest set, human-readable generated objectives, guild progress, claim/reward state, full-set bonus state, supported leaderboard state and reset timing available to Java; claiming SHALL use the existing idempotent quest service and SHALL NOT duplicate generation/reward logic in the form layer.
+
+### REQ-112
+**State-driven.** WHILE Chapter 2 progression is available to a Bedrock guild member THEN THE SYSTEM SHALL present current-run progression, source-cap state and the approved reward catalog from the same read models as Java. WHILE Prestige is enabled, eligible Bedrock leaders SHALL see the same level-100 eligibility, lifetime maximum (default 6), next fee, eligible retained-perk choices, immutable quote, explicit confirmation and retry-safe result semantics as Java; disabled/unavailable/max states SHALL be explicit and legacy contradictory prestige/perk presentation SHALL NOT be shown.
+
+### REQ-113
+**Event-driven.** WHEN an authorized Bedrock player opens Guild Settings THEN THE SYSTEM SHALL expose the persisted current state and mutation controls for open/closed guild access, Lunar tracking and GUI theme in addition to the existing supported identity/appearance/mode controls. Every mutation SHALL enforce the same Java permission requirement before presentation and again before persistence/service execution; toggle labels SHALL describe current persisted state rather than imply an unperformed action.
+
+### REQ-114
+**Ubiquitous.** THE Bedrock Guild Statistics surface SHALL render only authoritative supported statistics and SHALL distinguish real zero/empty data from unavailable or unwired data. Hardcoded XP, activity, territory, kill, war or other plausible-looking placeholder values SHALL NOT ship. Retained Bedrock statistics SHALL consume the same kill/war/member/bank/invitation/leaderboard sources as Java or SHALL be hidden/marked unavailable until supported, and the obsolete CSV/export path SHALL remain absent.
+
+### REQ-115
+**Ubiquitous.** THE Bedrock Guild Bank SHALL expose a coherent navigation hierarchy for canonical balance/actions, transaction history, statistics, member contributions, automation, budget and security where authorized. Deposit/withdraw and every mutable bank-management setting SHALL use the same Java authority and canonical BankService/persistence semantics, including unresolved payout review states. Management settings SHALL be authorization-checked before rendering mutable controls and again at mutation time; history/analytics SHALL be bounded and use real persisted data.
+
+### REQ-116
+**Event-driven.** WHEN a Bedrock player manages guild homes THEN THE SYSTEM SHALL retain the current paid activation/use behavior and SHALL provide functional per-home rank access and inbound ally-home access controls backed by the same services as Java. Bedrock SHALL NOT replace these supported controls with an unavailable placeholder.
+
+### REQ-117
+**Ubiquitous.** THE Bedrock member/rank management surface SHALL expose the same currently supported authorized member actions and rank permission/prefix semantics as Java through a coherent selected-member/rank flow. Rank editing SHALL preserve stable rank identity and existing priority unless an explicit reorder action is performed; alternate Bedrock editors SHALL NOT silently expose conflicting permission subsets or change ordering as a side effect of editing.
+
+### REQ-118
+**Event-driven.** WHEN a Bedrock player uses guild recruitment or party management THEN THE SYSTEM SHALL keep the supported LFG browse -> join requirements -> admission/result -> return flow within Bedrock forms and SHALL expose current service-backed party settings/permissions rather than a hardcoded platform-unavailable action. Paid admission SHALL continue to use the existing journaled LfgService path.
+
+### REQ-119
+**Ubiquitous.** THE Bedrock diplomacy/warfare UI SHALL preserve the current service-backed relation, declaration, wager, acceptance/rejection/cancellation, kill-progress, history/statistics and peace behavior and SHALL expose every currently supported war objective/configuration required by the Chapter 2 Java flow. Bedrock and Java MAY use different layouts, but both SHALL resolve authoritative persisted war/relation state and SHALL NOT fork lifecycle or settlement logic.
+
+### REQ-120
+**Event-driven.** BEFORE Chapter 2 Bedrock release sign-off, automated parity contracts SHALL cover primary routing, authorization denials, data truthfulness and the new Quests/Prestige/Settings/Bank/Statistics flows; all visible Bedrock text in those flows SHALL be localized. A compatible staging environment with Geyser/Floodgate/Cumulus SHALL then complete a real Bedrock-client walkthrough of dashboard navigation, quests/claim, reward purchase/prestige, settings, bank, homes/access, members/ranks, party/LFG, diplomacy/warfare, statistics and close/back/timeout/reconnect behavior. Java or static-source validation SHALL NOT be reported as Bedrock runtime validation.
+
+### REQ-147 — Retire unused AxKoth integration
+
+THE SYSTEM SHALL compile, test and start without the retired AxKoth API dependency, repository, plugin soft dependency or team-hook registration. Existing guild war, reward, standings and persistence behavior SHALL remain unchanged. See retired-axkoth.md. IDs 121–146 are reserved by the existing reviewed guild stack.
+### REQ-121
+**Event-driven.** WHEN an integrating plugin (EnthusiaHolidays) unlocks a guild cosmetic through the public `GuildCosmeticUnlocks` service THEN THE SYSTEM SHALL durably record that the guild owns the cosmetic `(type, key)` with its display name and source, idempotently, and SHALL report success for an already-owned cosmetic. Holiday menu styles marked `requiresUnlock` (`HALLOWEEN`, `CHRISTMAS`) SHALL be offered in the theme selector (Java and Bedrock) only as **locked** until the guild owns them, and `setGuiTheme` SHALL reject a locked theme regardless of caller. WHEN a cosmetic is revoked THE SYSTEM SHALL remove ownership idempotently and reset a guild currently using that theme to the default style without overwriting other guild fields. WHILE a guild uses a style with `seasonalIcons`, THE SYSTEM SHALL send its members the `<icon>_<style>` Nexo variant of each LumaGuilds menu icon that has one, and the normal icon otherwise. The API SHALL use JDK-only signatures, SHALL accept unknown nonblank keys (so a newer integration cannot wedge its sync), and SHALL return false for a nonexistent guild, an invalid blank/over-length identity, or a persistence failure.
+
+
+### REQ-122
+**Event-driven.** WHEN a current guild member uses `/guild bank` or `/g bank` with the existing guild-menu command permission THEN THE SYSTEM SHALL open that member's platform-appropriate Guild Bank without requiring unrelated management permissions. Non-members SHALL receive the existing localized membership denial. Bank operation authorization and currency semantics SHALL remain unchanged.
+
+### REQ-123
+**Ubiquitous.** THE SYSTEM SHALL enforce `chat.announce_cooldown_minutes` and `chat.ping_cooldown_minutes` from current configuration when checking announcement and ping cooldowns, SHALL retain existing hourly limits, and SHALL treat non-positive cooldowns as disabling only the time-based limit.
+
+### REQ-124
+**Event-driven.** WHEN a guild member opens Guild Stalls from their guild menu or `/g stall` THE SYSTEM SHALL show Market-authoritative guild-owned stalls, state, rent, deadlines, location and guild members with permitted shop actions on Java and Bedrock, SHALL distinguish unavailable data from no stall, and SHALL permit no Market mutations.
+
+### REQ-125
+**Ubiquitous.** THE SYSTEM SHALL ignore stale asynchronous stall results after navigation, disconnection or membership loss, SHALL tolerate absent or incompatible Market read providers, and SHALL requery ownership and permissions on refresh rather than cache access across membership or rank changes.
+
+### REQ-126
+**Ubiquitous.** THE Java Guild Stalls dashboard button SHALL use the dedicated `lg_nav_stalls` item when that private pack item is installed, SHALL retain its oak-sign fallback when it is unavailable, and SHALL keep the Economy button's existing bank icon. Proprietary icon artwork and generators SHALL remain outside this public repository.
+
+### REQ-127
+**Ubiquitous.** THE Bedrock Guild Stalls button SHALL use independent configurable URL/resource-pack icon references and SHALL preserve existing bank icon settings. The matching proprietary texture SHALL be supplied by the separately managed private pack and SHALL NOT be stored or generated in this public repository. THE Gradle test task SHALL track the configured Market API artifact path and contents so enabling or replacing the artifact invalidates cached compatibility results.
+
+### REQ-130
+WHEN the staff strike feed cannot read historical guild membership, THE SYSTEM SHALL fail the page for retry and SHALL NOT treat the failed read as an empty history or attribute the punishment to the player's current guild. Configured current-guild fallback SHALL apply only after a successful historical read.
+
+### REQ-132
+**Event-driven.** WHEN a prepared guild-shop sale is delivered THEN THE SYSTEM SHALL consume it without XP if its captured chapter or prestige no longer matches, or the current chapter is frozen, closed, elapsed or not started. New installations and missing configuration SHALL default shop XP to disabled until an operator enables the reviewed integration. The approved numerical limits SHALL remain configurable.
+
+### REQ-133
+**Ubiquitous.** THE SYSTEM SHALL initialize historical MariaDB physical-vault fields before guild persistence reads or updates and SHALL preserve existing guild names, home coordinates and vault state on repeated initialization. Schema repair SHALL add only absent fields and SHALL NOT rewrite existing data. SQLite SHALL retain its existing physical-vault semantics.
+
+### REQ-134
+**Event-driven.** WHEN EnthusiaMarket prepares a unique paid outside-customer SELL sale before mutating payment or stock THEN THE SYSTEM SHALL durably capture the sale identity, owning guild, buyer, occurrence time, current prestige run, chapter identity and current shop-XP policy. WHEN that same sale is later durably completed, THE SYSTEM SHALL award at most the captured flat XP once, subject atomically to the guild daily cap, buyer-to-guild daily cap and pair cooldown; own-guild buyers, disabled policy, zero caps, stale prestige/chapter runs, frozen chapters and duplicate completion SHALL not grant additional XP. Failed SQL completion SHALL roll back XP, cap/cooldown reservations and receipt finalization so the same completed sale can retry safely. WHEN Market knows a prepared trade failed before durable completion THEN THE SYSTEM SHALL idempotently terminalize that receipt as ABORTED without overwriting any already terminal outcome; duplicate completion replay SHALL NOT re-fire committed progression side effects.
+
+### REQ-128
+**Event-driven.** WHEN a member mutates guild ranks or assigns a member rank, THE SYSTEM SHALL enforce management permission and rank priority at the service boundary, reject self-escalation and newly delegated permissions the actor lacks, preserve priority through ordinary edits, and reserve every transition to or from the owner rank for the explicit ownership-transfer service. Administrative override SHALL NOT bypass this owner-integrity boundary. Existing hidden permission values SHALL remain preserved unless explicitly edited.
+
+### REQ-129
+**Event-driven.** WHEN a guild owner transfers ownership, THE SYSTEM SHALL commit both rank updates in one transaction using the expected prior member ranks, preserve both prior ranks and caches on any failed write or stale snapshot, and publish success only after the transaction commits. Owner and demotion ranks SHALL belong to the same guild with priorities zero and greater than zero respectively.
+
+### REQ-131 — Accessible teleport completion
+**Event-driven.** WHEN a member completes /guild home THE SYSTEM SHALL suggest only homes accepted by the same current home-access decision as teleportation, retaining owner access and full-name completion for home management commands.
+
+### REQ-135
+**Event-driven.** WHEN an authorized guild manager changes Reset chat on reconnect in Java or Bedrock Guild Settings THE SYSTEM SHALL persist the guild-wide value, defaulting to disabled for existing/new guilds. WHEN a guild member reconnects in guild or ally chat and any guild they belong to enables the setting THE SYSTEM SHALL move them to RoseChat's configured default channel after join, using current membership/settings. Other channels and an allied guild's setting SHALL NOT trigger reset. Unchanged/stale forms SHALL NOT overwrite newer values; revoked authority and failed writes SHALL NOT change persistence. Existing invalid-channel cleanup SHALL remain.
+
+### REQ-136 — Individual rank permissions
+WHEN a rank manager opens a permission category THE SYSTEM SHALL display individual toggles without granting the category, SHALL use the complete shared catalog for creation/editing, and SHALL recheck grant authority on each selection. Disabled claim permissions SHALL remain hidden and preserved on edits.
+
+### REQ-137 — Public directory details
+WHEN a player opens the public directory THE SYSTEM SHALL include invite-only guilds and authoritative owners, founding date, active allies, member count, level and existing activity metrics on Java and Bedrock. Missing owners SHALL be labeled unknown; failed reads SHALL NOT fabricate facts.
+
+### REQ-138 — Personal chat preferences and fullscreen announcements
+WHEN a player changes personal chat preferences THE SYSTEM SHALL durably store global player-message visibility and an optional destination indicator, defaulting to visible/off. DMs, server notices and private channels SHALL remain visible. Fullscreen guild announcements SHALL reuse existing permission, mute and rate-limit checks; rejected sends SHALL NOT show titles.
+
+### REQ-139 — Stall report shortcut
+WHILE the companion accounting command is available THE guild stall detail menu SHALL offer its read-only report to currently authorized shop managers on Java and Bedrock. Market SHALL recheck current ownership, membership and shop authority before querying or disclosing records.
+### REQ-140
+WHEN a player opens or interacts with a guild vault THE SYSTEM SHALL recheck current ACCESS_VAULT authorization. Item movements SHALL require DEPOSIT_TO_VAULT for ingress and WITHDRAW_FROM_VAULT for egress, including shift transfers, collection, drops and swaps. Swaps SHALL require both permissions. Permission loss SHALL cancel the interaction before mutation and close only the affected vault view safely. Player-only actions SHALL retain normal behavior while access remains valid; the gold button SHALL retain its existing operation-specific checks. Unknown/cancelled actions SHALL NOT mutate or synchronize the vault. Existing explicit admin override semantics SHALL remain unchanged.
+### REQ-141
+**Event-driven.** WHEN a player clicks a previously rendered Java ally-home button THEN THE SYSTEM SHALL resolve the target guild by its stable identity, read its current ally home, and recheck current eligible-home listing (including both guilds' required perks) and service-backed ally-home access before starting the countdown. Removed homes, disbanded targets and revoked access SHALL be denied; relocated homes SHALL use current coordinates and renamed targets SHALL retain their identity. Existing safety/countdown/economy behavior SHALL be preserved. Real client acceptance is deferred; this correction addresses stale menu state, not authorization changes during an already running countdown.
+### REQ-143
+**Event-driven.** WHEN a companion checks guild alliance access THE public GuildAllianceLookup SHALL return true only for an active ALLY relation between distinct guilds; pending, ended, absent and enemy relations SHALL return false. The repository SHALL be warmed at registration so event reads use its existing cache.
+
+### REQ-144
+**Event-driven.** WHEN a currently authorized shop manager opens guild stall details THE Java and Bedrock controls SHALL offer the Market stall flags/access command. Market SHALL revalidate stall ownership and authority on each mutation; the shortcut SHALL NOT grant permissions.
+### REQ-145 — In-server guild Getting Started
+
+**Event-driven.** WHEN a player requests guild onboarding THE SYSTEM SHALL present current, permission-aware Java/Bedrock guidance and read-only milestone states, recheck every click, preserve existing costs/permissions, and offer guild creation and directory help before membership. See `docs/guild-onboarding.md`.
+
+### REQ-146 — One-time membership prompt
+
+**Event-driven.** WHEN a guild creation or new membership occurs THE SYSTEM SHALL persist one pending prompt per player/guild, consume it once only for an online current member, retain pending offline prompts and preserve consumption across duplicate events and restarts. Existing memberships SHALL NOT be retroactively enrolled. See `docs/guild-onboarding.md`.
+### REQ-148
+**Event-driven.** WHEN a guild owns EMOJI:PUMPKIN_KING THE SYSTEM SHALL allow members with existing MANAGE_EMOJI authority to equip the existing pumpkin_king_icon glyph as its guild emoji through Java, Bedrock and command paths. Unowned guilds SHALL be rejected even with broad personal emoji permissions. Ordinary emojis SHALL preserve their prior permission rules. Only this existing glyph with its expected U+A0A0 character and minecraft:default font SHALL be admitted from non-emoji assets; all other non-emoji glyphs SHALL remain excluded. Revocation SHALL clear only the matching equipped emoji with a conditional field write, preserving unrelated guild fields.
+### REQ-149 — Dynamic Vault economy provider lifecycle
+**Event-driven.** WHEN Vault is present but no Economy provider is registered, personal-account guild-bank operations SHALL report the provider as unavailable without declaring the bank permanently broken. BEFORE each personal-account economy operation THE SYSTEM SHALL resolve the currently registered Vault Economy provider, SHALL discover a provider registered after LumaGuilds startup, and SHALL discard a cached provider that is unregistered or replaced. Physical guild-gold and ordinary vault storage SHALL retain their existing availability semantics.

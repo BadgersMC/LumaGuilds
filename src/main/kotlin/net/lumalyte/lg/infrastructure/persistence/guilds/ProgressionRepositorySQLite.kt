@@ -343,6 +343,28 @@ class ProgressionRepositorySQLite(
         return guildProgressions[guildId] ?: createDefaultProgressionIfNotExists(guildId)
     }
 
+    override fun refreshGuildProgression(guildId: UUID): GuildProgression? {
+        ensureTablesExist()
+        val sql = """
+            SELECT guild_id, total_experience, current_level, experience_this_level,
+                   experience_for_next_level, last_level_up, total_level_ups,
+                   unlocked_perks, created_at, last_updated
+            FROM guild_progression
+            WHERE guild_id = ?
+        """.trimIndent()
+        return try {
+            val row = storage.connection.getFirstRow(sql, guildId.toString())
+            if (row == null) {
+                guildProgressions.remove(guildId)
+                null
+            } else {
+                mapResultSetToGuildProgression(row).also { guildProgressions[guildId] = it }
+            }
+        } catch (e: SQLException) {
+            throw DatabaseOperationException("Failed to refresh guild progression", e)
+        }
+    }
+
     private fun createDefaultProgressionIfNotExists(guildId: UUID): GuildProgression? {
         // Check if it exists in the database
         val sql = "SELECT COUNT(*) as count FROM guild_progression WHERE guild_id = ?"

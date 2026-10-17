@@ -164,7 +164,91 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(29)
                 dbVersion = 29
             }
+            if (dbVersion < 30) {
+                migrateToVersion30()
+                updateDatabaseVersion(30)
+                dbVersion = 30
+            }
+            if (dbVersion < 31) {
+                migrateToVersion31()
+                updateDatabaseVersion(31)
+                dbVersion = 31
+            }
+            if (dbVersion < 32) {
+                migrateToVersion32()
+                updateDatabaseVersion(32)
+                dbVersion = 32
+            }
+            if (dbVersion < 33) {
+                migrateToVersion33()
+                updateDatabaseVersion(33)
+                dbVersion = 33
+            }
+            if (dbVersion < 34) {
+                migrateToVersion34()
+                updateDatabaseVersion(34)
+                dbVersion = 34
+            }
+            if (dbVersion < 35) {
+                migrateToVersion35()
+                updateDatabaseVersion(35)
+                dbVersion = 35
+            }
+            if (dbVersion < 36) {
+                migrateToVersion36()
+                updateDatabaseVersion(36)
+                dbVersion = 36
+            }
+            if (dbVersion < 37) {
+                migrateToVersion37()
+                updateDatabaseVersion(37)
+                dbVersion = 37
+            }
+            if (dbVersion < 38) {
+                migrateToVersion38()
+                updateDatabaseVersion(38)
+                dbVersion = 38
+            }
+            if (dbVersion < 39) {
+                if (claimsEnabled) migrateToVersion39()
+                updateDatabaseVersion(39)
+                dbVersion = 39
+            }
+            if (dbVersion < 40) {
+                migrateToVersion40()
+                updateDatabaseVersion(40)
+                dbVersion = 40
+            }
+            if (dbVersion < 41) {
+                migrateToVersion41()
+                updateDatabaseVersion(41)
+                dbVersion = 41
+            }
 
+            if (dbVersion < 42) {
+                GuildChatRankSettingsSchema.create(connection, mariaDb = false)
+                updateDatabaseVersion(42)
+                dbVersion = 42
+            }
+            if (dbVersion < 43) {
+                GuildHomeActivationSchema.create(connection, mariaDb = false)
+                GuildHomeActivationSchema.backfillLegacyCredits(connection, mariaDb = false)
+                updateDatabaseVersion(43)
+                dbVersion = 43
+            }
+            // Additive post-version schemas are idempotently ensured on every startup.
+            GuildCosmeticSchema.create(connection, mariaDb = false)
+            if (dbVersion < 44) {
+                // Partial-schema recovery tests and damaged production schemas can legitimately
+                // reach a later version without the older strike table. Recreate the v24 table
+                // before applying the provider-neutral v44 columns/indexes.
+                if (!tableExists("guild_strikes")) {
+                    migrateToVersion24()
+                }
+                GuildStrikeFeedSchema.migrate(connection)
+                updateDatabaseVersion(44)
+                dbVersion = 44
+            }
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
 
@@ -1350,16 +1434,25 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
         val requiredTables = mutableListOf(
             "guilds", "guild_homes", "members", "relations", "parties", "party_requests",
             "player_party_preferences", "bank_tx", "kills",
-            "audits", "wars", "leaderboards", "guild_invitations",
+            "audits", "wars", "leaderboards", "guild_invitations", "guild_invitation_history",
             "vault_slots", "vault_gold", "vault_transaction_log",
             "guild_strikes", "guild_penalties", "quest_player_placed_blocks",
             "guild_experience_source_usage", "guild_bank_xp_high_water", "membership_history",
-            "guild_gold_operations", "guild_gold_withdrawal_usage", "guild_gold_security"
+            "guild_gold_operations", "guild_gold_withdrawal_usage", "guild_gold_security",
+            "war_banners", "war_notifications", "player_notification_preferences", "guild_discord_roles",
+            "spawn_banners", "rank_claim_permission_profiles",
+            QuestCompletionNotificationSchema.TABLE, GuildChatRankSettingsSchema.TABLE,
+            GuildHomeActivationSchema.ACTIVATIONS_TABLE, GuildHomeActivationSchema.CREDITS_TABLE
         )
 
         // Add claim tables to required list if claims are enabled
         if (claimsEnabled) {
-            requiredTables.addAll(listOf("claims", "claim_partitions", "claim_flags", "claim_permissions", "player_access"))
+            requiredTables.addAll(
+                listOf(
+                    "claims", "claim_partitions", "claim_flags", "claim_permissions",
+                    "player_access", ClaimTransferRequestSchema.TABLE,
+                )
+            )
         }
 
         // Note: chat_visibility_settings and chat_rate_limits are created by ChatSettingsRepository itself
@@ -1408,10 +1501,49 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             if (missingTables.any { it in setOf("guild_gold_operations", "guild_gold_withdrawal_usage", "guild_gold_security") }) {
                 migrateToVersion29()
             }
+            if ("war_banners" in missingTables) {
+                migrateToVersion32()
+                componentLogger.info(Component.text("✓ Recreated tactical war-banner table"))
+            }
+            if ("war_notifications" in missingTables) {
+                migrateToVersion33()
+                componentLogger.info(Component.text("✓ Recreated durable war-notification queue"))
+            }
+            if ("player_notification_preferences" in missingTables) {
+                migrateToVersion34()
+                componentLogger.info(Component.text("✓ Recreated player notification preferences"))
+            }
+            if ("guild_discord_roles" in missingTables) {
+                migrateToVersion35()
+                componentLogger.info(Component.text("✓ Recreated guild Discord-role links"))
+            }
+            if ("spawn_banners" in missingTables) {
+                migrateToVersion38()
+                componentLogger.info(Component.text("✓ Recreated dynamic spawn-banner registry"))
+            }
+            if ("rank_claim_permission_profiles" in missingTables) {
+                migrateToVersion40()
+                componentLogger.info(Component.text("✓ Recreated rank claim-permission profiles"))
+            }
+            if (QuestCompletionNotificationSchema.TABLE in missingTables) {
+                migrateToVersion41()
+                componentLogger.info(Component.text("✓ Recreated quest completion notification queue"))
+            }
+            if (GuildChatRankSettingsSchema.TABLE in missingTables) {
+                GuildChatRankSettingsSchema.create(connection, mariaDb = false)
+            }
+            if (GuildHomeActivationSchema.ACTIVATIONS_TABLE in missingTables ||
+                GuildHomeActivationSchema.CREDITS_TABLE in missingTables) {
+                GuildHomeActivationSchema.create(connection, mariaDb = false)
+            }
             // Recreate claim tables if missing (only checked when claims enabled)
             if (claimsEnabled && missingTables.any { it in listOf("claims", "claim_partitions", "claim_flags", "claim_permissions", "player_access") }) {
                 migrateToVersion2()
                 componentLogger.info(Component.text("✓ Recreated claim system tables"))
+            }
+            if (claimsEnabled && ClaimTransferRequestSchema.TABLE in missingTables) {
+                migrateToVersion39()
+                componentLogger.info(Component.text("✓ Recreated claim transfer-request table"))
             }
         }
 
@@ -1770,5 +1902,75 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
     private fun migrateToVersion29() {
         GuildGoldSchema.create(connection, mariaDb = false)
         componentLogger.info(Component.text("✓ Migration v29 complete: canonical guild-gold operations added"))
+    }
+
+    private fun migrateToVersion30() {
+        ChapterLifecycleSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text("✓ Migration v30 complete: chapter lifecycle persistence added"))
+    }
+
+    private fun migrateToVersion31() {
+        SeasonalEloSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text("✓ Migration v31 complete: seasonal Elo pair/result persistence added"))
+    }
+
+    private fun migrateToVersion32() {
+        WarBannerSchema.create(connection, mariaDb = false)
+        val updatedRanks = WarBannerSchema.backfillRankPermission(connection)
+        componentLogger.info(Component.text(
+            "✓ Migration v32 complete: tactical war-banner state added; " +
+                "$updatedRanks existing war-management rank(s) granted PLACE_WAR_BANNER"
+        ))
+    }
+
+    private fun migrateToVersion33() {
+        WarNotificationSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text(
+            "✓ Migration v33 complete: durable war-notification queue added"
+        ))
+    }
+
+    private fun migrateToVersion34() {
+        PlayerNotificationPreferenceSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text(
+            "✓ Migration v34 complete: player notification preferences added"
+        ))
+    }
+
+    private fun migrateToVersion35() {
+        GuildDiscordRoleSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text(
+            "✓ Migration v35 complete: durable guild Discord-role links added"
+        ))
+    }
+
+    private fun migrateToVersion36() {
+        QuestSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text("Quest persistence migrated to schema v36"))
+    }
+
+    private fun migrateToVersion37() {
+        InvitationStatisticsSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text("Invitation statistics migrated to schema v37"))
+    }
+
+    private fun migrateToVersion38() {
+        SpawnBannerSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text("Dynamic spawn banners migrated to schema v38"))
+    }
+
+    private fun migrateToVersion39() {
+        ClaimTransferRequestSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text("Claim transfer requests migrated to schema v39"))
+    }
+
+    private fun migrateToVersion40() {
+        RankClaimPermissionProfileSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text("Rank claim-permission profiles migrated to schema v40"))
+    }
+
+    private fun migrateToVersion41() {
+        QuestCompletionNotificationSchema.create(connection, mariaDb = false)
+        componentLogger.info(Component.text("Quest completion notifications migrated to schema v41"))
     }
 }

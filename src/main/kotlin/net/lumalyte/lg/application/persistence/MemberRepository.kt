@@ -7,6 +7,9 @@ import java.util.UUID
  * A repository that handles the persistence of Members.
  */
 interface MemberRepository {
+    /** Forget cached state after a committed guild disband transaction. */
+    fun evictGuild(guildId: UUID) {}
+
     /**
      * Gets all members that exist.
      *
@@ -113,4 +116,10 @@ interface MemberRepository {
      * @return The total count of members.
      */
     fun getTotalCount(): Int
+
+    /**
+     * Commits both owner rank changes together, checking the supplied previous rank IDs.
+     * Unsupported adapters fail closed; cache state must change only after a committed transfer.
+     */
+    fun transferOwnership(current: Member, next: Member, demotedRankId: UUID): Boolean = false
 }

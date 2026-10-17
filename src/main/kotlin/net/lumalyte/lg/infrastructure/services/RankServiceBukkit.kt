@@ -1,8 +1,11 @@
 package net.lumalyte.lg.infrastructure.services
 
+import net.lumalyte.lg.utils.RankNameContent
+
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.application.persistence.RankRepository
+import net.lumalyte.lg.application.persistence.RankClaimPermissionProfileRepository
 import net.lumalyte.lg.application.services.PriorityDirection
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Rank
@@ -14,11 +17,36 @@ class RankServiceBukkit(
     private val rankRepository: RankRepository,
     private val memberRepository: MemberRepository,
     private val guildRepository: GuildRepository,
-    private val memberService: net.lumalyte.lg.application.services.MemberService
+    private val memberService: net.lumalyte.lg.application.services.MemberService,
+    private val rankClaimPermissionProfiles: RankClaimPermissionProfileRepository,
+    private val invalidateClaimPermissionCacheForPlayer: (UUID) -> Unit = {},
+    private val invalidateClaimPermissionCacheForGuild: (UUID) -> Unit = {},
 ) : RankService {
     
     private val logger = LoggerFactory.getLogger(RankServiceBukkit::class.java)
+
+    private fun rollbackCreatedRanks(ranks: Collection<Rank>) {
+        ranks.toList().asReversed().forEach { rank ->
+            if (!rankRepository.remove(rank.id)) {
+                logger.error("Failed to roll back rank {} after claim-permission profile failure", rank.id)
+            }
+            runCatching { rankClaimPermissionProfiles.remove(rank.id) }
+                .onFailure {
+                    logger.warn("Failed to clear claim-permission profile while rolling back rank ${rank.id}", it)
+                }
+        }
+    }
     
+    private fun canEditRank(actorId: UUID, rank: Rank): Boolean {
+        val actor = getPlayerRank(actorId, rank.guildId) ?: return false
+        return actor.priority == 0 || actor.priority < rank.priority
+    }
+
+    private fun canGrant(actorId: UUID, guildId: UUID, permissions: Set<RankPermission>): Boolean {
+        val actor = getPlayerRank(actorId, guildId) ?: return false
+        return actor.priority == 0 || actor.permissions.containsAll(permissions)
+    }
+
     override fun listRanks(guildId: UUID): Set<Rank> = rankRepository.getByGuild(guildId)
     
     override fun addRank(guildId: UUID, name: String, permissions: Set<RankPermission>, actorId: UUID): Rank? {
@@ -28,8 +56,10 @@ class RankServiceBukkit(
             return null
         }
         
+        if (!canGrant(actorId, guildId, permissions)) return null
+
         // Validate rank name
-        if (name.isBlank() || name.length > 24) {
+        if (!RankNameContent.valid(name)) {
             logger.warn("Invalid rank name: $name")
             return null
         }
@@ -43,6 +73,8 @@ class RankServiceBukkit(
         // Create rank
         val rankId = UUID.randomUUID()
         val priority = rankRepository.getNextPriority(guildId)
+        val actorRank = getPlayerRank(actorId, guildId) ?: return null
+        if (priority <= actorRank.priority) return null
         val rank = Rank(
             id = rankId,
             guildId = guildId,
@@ -53,6 +85,14 @@ class RankServiceBukkit(
         
         val result = rankRepository.add(rank)
         if (result) {
+            try {
+                rankClaimPermissionProfiles.getOrCreate(rank.id, rank.name)
+            } catch (error: Exception) {
+                logger.error("Failed to establish claim-permission profile for new rank ${rank.id}", error)
+                rollbackCreatedRanks(listOf(rank))
+                return null
+            }
+            invalidateClaimPermissionCacheForGuild(guildId)
             logger.info("Added rank '$name' to guild $guildId by $actorId")
             return rank
         }
@@ -63,6 +103,7 @@ class RankServiceBukkit(
     
     override fun renameRank(rankId: UUID, newName: String, actorId: UUID): Boolean {
         val rank = rankRepository.getById(rankId) ?: return false
+        if (!canEditRank(actorId, rank)) return false
         
         // Check if actor has permission to manage ranks
         if (!hasPermission(actorId, rank.guildId, RankPermission.MANAGE_RANKS)) {
@@ -71,20 +112,31 @@ class RankServiceBukkit(
         }
         
         // Validate new name
-        if (newName.isBlank() || newName.length > 24) {
+        if (!RankNameContent.valid(newName)) {
             logger.warn("Invalid rank name: $newName")
             return false
         }
         
         // Check if new name is already taken in this guild
-        if (rankRepository.isNameTaken(rank.guildId, newName)) {
+        if (rankRepository.getByName(rank.guildId, newName)?.id?.let { it != rank.id } == true) {
             logger.warn("Rank name already taken in guild: $newName")
             return false
         }
         
+        // Freeze the legacy config identity against this stable rank ID before
+        // changing its display name. If persistence fails, abort rather than silently
+        // changing the permissions that will apply after the rename.
+        try {
+            rankClaimPermissionProfiles.getOrCreate(rank.id, rank.name)
+        } catch (error: Exception) {
+            logger.error("Failed to preserve claim-permission profile before renaming rank $rankId", error)
+            return false
+        }
+
         val updatedRank = rank.copy(name = newName)
         val result = rankRepository.update(updatedRank)
         if (result) {
+            invalidateClaimPermissionCacheForGuild(rank.guildId)
             logger.info("Rank $rankId renamed to '$newName' by $actorId")
         }
         return result
@@ -92,6 +144,8 @@ class RankServiceBukkit(
     
     override fun deleteRank(rankId: UUID, actorId: UUID): Boolean {
         val rank = rankRepository.getById(rankId) ?: return false
+        if (!canEditRank(actorId, rank)) return false
+        if (rank.priority == 0) return false
         
         // Check if actor has permission to manage ranks
         if (!hasPermission(actorId, rank.guildId, RankPermission.MANAGE_RANKS)) {
@@ -108,6 +162,10 @@ class RankServiceBukkit(
         
         val result = rankRepository.remove(rankId)
         if (result) {
+            // Normally removed by FK cascade; clear the repository cache as well.
+            runCatching { rankClaimPermissionProfiles.remove(rankId) }
+                .onFailure { logger.warn("Failed to clear claim-permission profile cache for deleted rank $rankId", it) }
+            invalidateClaimPermissionCacheForGuild(rank.guildId)
             logger.info("Rank $rankId deleted by $actorId")
         }
         return result
@@ -115,6 +173,8 @@ class RankServiceBukkit(
     
     override fun setRankPermissions(rankId: UUID, permissions: Set<RankPermission>, actorId: UUID): Boolean {
         val rank = rankRepository.getById(rankId) ?: return false
+        if (!canEditRank(actorId, rank)) return false
+        if (!canGrant(actorId, rank.guildId, permissions - rank.permissions)) return false
         
         // Check if actor has permission to manage ranks
         if (!hasPermission(actorId, rank.guildId, RankPermission.MANAGE_RANKS)) {
@@ -125,6 +185,7 @@ class RankServiceBukkit(
         val updatedRank = rank.copy(permissions = permissions)
         val result = rankRepository.update(updatedRank)
         if (result) {
+            invalidateClaimPermissionCacheForGuild(rank.guildId)
             logger.info("Permissions for rank $rankId set by $actorId: ${permissions.map { it.name }}")
         }
         return result
@@ -132,6 +193,8 @@ class RankServiceBukkit(
     
     override fun addRankPermission(rankId: UUID, permission: RankPermission, actorId: UUID): Boolean {
         val rank = rankRepository.getById(rankId) ?: return false
+        if (!canEditRank(actorId, rank)) return false
+        if (!canGrant(actorId, rank.guildId, setOf(permission))) return false
         
         // Check if actor has permission to manage ranks
         if (!hasPermission(actorId, rank.guildId, RankPermission.MANAGE_RANKS)) {
@@ -148,6 +211,7 @@ class RankServiceBukkit(
         val updatedRank = rank.copy(permissions = updatedPermissions)
         val result = rankRepository.update(updatedRank)
         if (result) {
+            invalidateClaimPermissionCacheForGuild(rank.guildId)
             logger.info("Permission ${permission.name} added to rank $rankId by $actorId")
         }
         return result
@@ -155,6 +219,7 @@ class RankServiceBukkit(
     
     override fun removeRankPermission(rankId: UUID, permission: RankPermission, actorId: UUID): Boolean {
         val rank = rankRepository.getById(rankId) ?: return false
+        if (!canEditRank(actorId, rank)) return false
         
         // Check if actor has permission to manage ranks
         if (!hasPermission(actorId, rank.guildId, RankPermission.MANAGE_RANKS)) {
@@ -171,6 +236,7 @@ class RankServiceBukkit(
         val updatedRank = rank.copy(permissions = updatedPermissions)
         val result = rankRepository.update(updatedRank)
         if (result) {
+            invalidateClaimPermissionCacheForGuild(rank.guildId)
             logger.info("Permission ${permission.name} removed from rank $rankId by $actorId")
         }
         return result
@@ -190,13 +256,21 @@ class RankServiceBukkit(
             return false
         }
         
+        val actorRank = getPlayerRank(actorId, guildId) ?: return false
+        if (playerId == actorId || rank.priority <= actorRank.priority) return false
+        // Ownership must move through MemberService.transferOwnership, never ordinary assignment.
+        if (rank.priority == 0) return false
+
         // Check if player is already a member
         val existingMember = memberRepository.getByPlayerAndGuild(playerId, guildId)
         if (existingMember != null) {
+            val currentRank = rankRepository.getById(existingMember.rankId) ?: return false
+            if (currentRank.priority <= actorRank.priority || currentRank.priority == 0) return false
             // Update existing member's rank
             val updatedMember = existingMember.copy(rankId = rankId)
             val result = memberRepository.update(updatedMember)
             if (result) {
+                invalidateClaimPermissionCacheForPlayer(playerId)
                 logger.info("Player $playerId rank changed to '${rank.name}' in guild $guildId by $actorId")
             }
             return result
@@ -236,6 +310,9 @@ class RankServiceBukkit(
     override fun updateRank(rank: Rank, actorId: UUID): Boolean {
         // Check if rank exists
         val existingRank = rankRepository.getById(rank.id) ?: return false
+        if (!canEditRank(actorId, existingRank)) return false
+        if (existingRank.priority != rank.priority) return false
+        if (!canGrant(actorId, rank.guildId, rank.permissions - existingRank.permissions)) return false
 
         // Validate that the rank belongs to the same guild
         if (existingRank.guildId != rank.guildId) {
@@ -249,8 +326,23 @@ class RankServiceBukkit(
             return false
         }
 
+        if (existingRank.name != rank.name) {
+            if (!RankNameContent.valid(rank.name)) return false
+            if (rankRepository.getByName(rank.guildId, rank.name)?.id?.let { it != rank.id } == true) return false
+            try {
+                rankClaimPermissionProfiles.getOrCreate(existingRank.id, existingRank.name)
+            } catch (error: Exception) {
+                logger.error(
+                    "Failed to preserve claim-permission profile before updating rank ${rank.id}",
+                    error,
+                )
+                return false
+            }
+        }
+
         val result = rankRepository.update(rank)
         if (result) {
+            invalidateClaimPermissionCacheForGuild(rank.guildId)
             logger.info("Rank ${rank.id} updated by $actorId: name='${rank.name}', permissions=${rank.permissions.size}, icon='${rank.icon}'")
         }
         return result
@@ -267,6 +359,7 @@ class RankServiceBukkit(
                 RankPermission.MANAGE_MODE,
                 RankPermission.MANAGE_RELATIONS,
                 RankPermission.DECLARE_WAR,
+                RankPermission.PLACE_WAR_BANNER,
                 RankPermission.DEPOSIT_TO_BANK,
                 RankPermission.WITHDRAW_FROM_BANK,
                 RankPermission.VIEW_BANK_TRANSACTIONS,
@@ -282,6 +375,7 @@ class RankServiceBukkit(
                 RankPermission.MANAGE_HOME,
                 RankPermission.MANAGE_RELATIONS,
                 RankPermission.DECLARE_WAR,
+                RankPermission.PLACE_WAR_BANNER,
                 RankPermission.DEPOSIT_TO_BANK,
                 RankPermission.VIEW_BANK_TRANSACTIONS,
                 RankPermission.SEND_ANNOUNCEMENTS,
@@ -301,19 +395,28 @@ class RankServiceBukkit(
             ))
         )
         
-        var success = true
+        val createdRanks = mutableListOf<Rank>()
         for (rank in defaultRanks) {
             if (!rankRepository.add(rank)) {
                 logger.error("Failed to create default rank: ${rank.name}")
-                success = false
-                break
+                rollbackCreatedRanks(createdRanks)
+                return false
+            }
+            createdRanks += rank
+            try {
+                rankClaimPermissionProfiles.getOrCreate(rank.id, rank.name)
+            } catch (error: Exception) {
+                logger.error(
+                    "Failed to establish claim-permission profile for default rank ${rank.id}",
+                    error,
+                )
+                rollbackCreatedRanks(createdRanks)
+                return false
             }
         }
         
-        if (success) {
-            logger.info("Created default ranks for guild $guildId")
-        }
-        return success
+        logger.info("Created default ranks for guild $guildId")
+        return true
     }
 
     override fun moveRankPriority(rankId: UUID, direction: PriorityDirection, actorId: UUID): Boolean {
@@ -334,6 +437,8 @@ class RankServiceBukkit(
         // Block swap when the adjacent rank is at or above the actor's priority — otherwise
         // an actor at priority 1 could shove a rank UP into their own slot.
         if (neighbor.priority <= actorRank.priority) return false
-        return rankRepository.swapPriorities(target.id, neighbor.id)
+        val result = rankRepository.swapPriorities(target.id, neighbor.id)
+        if (result) invalidateClaimPermissionCacheForGuild(target.guildId)
+        return result
     }
 }

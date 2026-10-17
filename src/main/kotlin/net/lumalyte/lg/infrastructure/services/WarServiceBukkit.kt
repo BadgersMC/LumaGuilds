@@ -1,8 +1,13 @@
 package net.lumalyte.lg.infrastructure.services
 
+import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.WarService
+import net.lumalyte.lg.application.services.GuildActionCoordinator
+import net.lumalyte.lg.application.services.WarCutoverReport
+import net.lumalyte.lg.application.services.WarNotificationService
 import net.lumalyte.lg.application.services.ChapterTwoGuildAwardService
 import net.lumalyte.lg.application.services.ProgressionService
 import net.lumalyte.lg.domain.values.ExperienceSource
@@ -25,6 +30,12 @@ class WarServiceBukkit(
     private val progressionService: ProgressionService,
     private val warRepository: net.lumalyte.lg.application.persistence.WarRepository,
     private val warPayments: net.lumalyte.lg.application.services.WarPaymentService,
+    private val memberService: MemberService,
+    private val guildRepository: GuildRepository,
+    private val seasonalElo: SeasonalEloCoordinator? = null,
+    private val warNotifications: WarNotificationService? = null,
+    private val memberRepository: net.lumalyte.lg.application.persistence.MemberRepository? = null,
+    private val guildActions: GuildActionCoordinator = GuildActionCoordinator(),
 ) : WarService {
 
     private val logger = LoggerFactory.getLogger(WarServiceBukkit::class.java)
@@ -34,18 +45,55 @@ class WarServiceBukkit(
     private val warDeclarations: Map<UUID, WarDeclaration> get() = warRepository.getAll()
         .mapNotNull { it.declaration }.filter { !it.accepted && !it.rejected }.associateBy { it.id }
 
-    init { warRepository.getAll() } // Corrupt/unavailable persistence must fail initialization.
+    init {
+        warRepository.getAll() // Corrupt/unavailable persistence must fail initialization.
+        require(warNotifications == null || memberRepository != null) {
+            "War notification publishing requires a member repository for durable recipient snapshots"
+        }
+    }
 
     private fun persist(record: DurableWarRecord) {
         check(warRepository.save(record)) { "War state changed concurrently: ${record.id}" }
     }
 
-    private fun saveWar(war: War) {
-        persist(warRepository.get(war.id)?.copy(war = war) ?: DurableWarRecord(war.id, war = war))
+    private fun snapshotNotificationRecipients(guildId: UUID): Set<UUID> =
+        memberRepository?.getByGuild(guildId)?.mapTo(linkedSetOf()) { it.playerId } ?: emptySet()
+
+    private fun saveWar(war: War, expectResolutionNotification: Boolean = false) {
+        val current = warRepository.get(war.id)
+        var recipients = current?.notificationRecipients ?: WarNotificationRecipients()
+        if (expectResolutionNotification) {
+            val winner = requireNotNull(war.winner)
+            val loser = requireNotNull(war.loser)
+            recipients = recipients.copy(
+                victory = snapshotNotificationRecipients(winner),
+                defeat = snapshotNotificationRecipients(loser),
+            )
+        }
+        val updated = current?.copy(
+            war = war,
+            notificationRecipients = recipients,
+            resolutionNotificationExpected =
+                current.resolutionNotificationExpected || expectResolutionNotification,
+        ) ?: DurableWarRecord(
+            war.id,
+            war = war,
+            notificationRecipients = recipients,
+            resolutionNotificationExpected = expectResolutionNotification,
+        )
+        persist(updated)
     }
 
     private fun saveDeclaration(declaration: WarDeclaration) {
-        persist(DurableWarRecord(declaration.id, declaration = declaration))
+        persist(DurableWarRecord(
+            declaration.id,
+            declaration = declaration,
+            notificationRecipients = WarNotificationRecipients(
+                declarationSent = snapshotNotificationRecipients(declaration.declaringGuildId),
+                declarationReceived = snapshotNotificationRecipients(declaration.defendingGuildId),
+            ),
+            declarationNotificationExpected = true,
+        ))
     }
 
     private fun removeDeclaration(id: UUID): WarDeclaration? {
@@ -65,12 +113,56 @@ class WarServiceBukkit(
     // (REQ-008: kill_cooldown_minutes + same_player_kill_limit).
     private val killTracking = ConcurrentHashMap<UUID, ConcurrentHashMap<UUID, MutableList<Instant>>>()
     private val peaceAgreements = ConcurrentHashMap<UUID, PeaceAgreement>()
-    private val warFarmingCooldowns = ConcurrentHashMap<UUID, Instant>()
-    private val warDeclarationCooldowns = ConcurrentHashMap<UUID, Instant>()
+
+    private fun declarationCooldownEnd(
+        guildId: UUID,
+        snapshot: Collection<DurableWarRecord>,
+        cooldownHours: Int,
+    ): Instant? = snapshot.asSequence()
+        .mapNotNull { it.declaration }
+        .filter { it.declaringGuildId == guildId }
+        .map {
+            it.declarationCooldownUntil
+                ?: it.declaredAt.plus(Duration.ofHours(cooldownHours.coerceAtLeast(0).toLong()))
+        }
+        .maxOrNull()
+
+    private fun farmingCooldownEnd(
+        guildId: UUID,
+        snapshot: Collection<DurableWarRecord>,
+        cooldownHours: Int,
+    ): Instant? = snapshot.asSequence()
+        .mapNotNull { it.war }
+        .filter { it.isEnded && it.winner == guildId && it.endedAt != null }
+        .mapNotNull { war ->
+            when {
+                war.farmingCooldownGuildId == guildId -> war.farmingCooldownUntil
+                war.farmingCooldownGuildId == null ->
+                    war.endedAt?.plus(Duration.ofHours(cooldownHours.coerceAtLeast(0).toLong()))
+                else -> null
+            }
+        }
+        .maxOrNull()
+
+    private fun activeWarCount(guildId: UUID, knownWars: Collection<War>): Int =
+        knownWars.count { it.isActive && guildId in setOf(it.declaringGuildId, it.defendingGuildId) }
+
+    private fun objectivesFitKillTarget(objectives: Set<WarObjective>, killTarget: Int): Boolean =
+        objectives.all { objective ->
+            objective.targetValue > 0 &&
+                (objective.type != ObjectiveType.KILLS || objective.targetValue <= killTarget)
+        }
+
+    private fun participantsAreHostile(firstGuildId: UUID, secondGuildId: UUID): Boolean {
+        val first = guildRepository.getById(firstGuildId) ?: return false
+        val second = guildRepository.getById(secondGuildId) ?: return false
+        return first.mode == GuildMode.HOSTILE && second.mode == GuildMode.HOSTILE
+    }
 
     /**
      * Creates a war declaration that requires acceptance (REQ-024: no auto-accept).
      */
+    @Synchronized
     override fun createWarDeclaration(
         declaringGuildId: UUID,
         defendingGuildId: UUID,
@@ -78,12 +170,47 @@ class WarServiceBukkit(
         objectives: Set<WarObjective>,
         wagerAmount: Int,
         terms: String?,
-        actorId: UUID
+        actorId: UUID,
+        rated: Boolean,
     ): WarDeclaration? {
-        return try {
-            // Check if war already exists between these guilds
+        if (!canPlayerManageWars(actorId, declaringGuildId)) {
+            logger.warn("Player $actorId attempted to declare war for guild $declaringGuildId without permission")
+            return null
+        }
+        return guildActions.withGuilds(declaringGuildId, defendingGuildId) {
+            try {
+            if (!participantsAreHostile(declaringGuildId, defendingGuildId)) {
+                logger.warn("Cannot create war declaration - both guilds must be hostile")
+                return null
+            }
+
             val snapshot = warRepository.getAll()
             val knownWars = snapshot.mapNotNull { it.war }
+            val config = configService.loadConfig()
+            val now = Instant.now()
+
+            val declarationCooldownEnd = declarationCooldownEnd(
+                declaringGuildId,
+                snapshot,
+                config.combat.warDeclarationCooldownHours,
+            )
+            if (declarationCooldownEnd != null && now.isBefore(declarationCooldownEnd)) {
+                logger.warn("Cannot create war declaration - guild $declaringGuildId is on declaration cooldown until $declarationCooldownEnd")
+                return null
+            }
+
+            for (guildId in setOf(declaringGuildId, defendingGuildId)) {
+                val farmingCooldownEnd = farmingCooldownEnd(
+                    guildId,
+                    snapshot,
+                    config.combat.warFarmingCooldownHours,
+                )
+                if (farmingCooldownEnd != null && now.isBefore(farmingCooldownEnd)) {
+                    logger.warn("Cannot create war declaration - guild $guildId is on war farming cooldown until $farmingCooldownEnd")
+                    return null
+                }
+            }
+
             val existingWar = knownWars.find { it.isActive &&
                 setOf(it.declaringGuildId, it.defendingGuildId) == setOf(declaringGuildId, defendingGuildId) }
             if (existingWar != null) {
@@ -91,7 +218,6 @@ class WarServiceBukkit(
                 return null
             }
 
-            // Check if pending declaration already exists
             val existingDeclaration = snapshot.mapNotNull { it.declaration }.filter { !it.accepted && !it.rejected }.find {
                 (it.declaringGuildId == declaringGuildId && it.defendingGuildId == defendingGuildId) ||
                 (it.declaringGuildId == defendingGuildId && it.defendingGuildId == declaringGuildId)
@@ -101,29 +227,52 @@ class WarServiceBukkit(
                 return null
             }
 
-            // Check war slot limit (REQ-008): config max, refined upward by progression
-            val currentWars = knownWars.filter { it.isActive && declaringGuildId in setOf(it.declaringGuildId, it.defendingGuildId) }
-            val config = configService.loadConfig()
-            val maxWars = maxWarsForGuild(declaringGuildId, config.combat.maxSimultaneousWars)
-
-            if (currentWars.size >= maxWars) {
-                logger.warn("Guild $declaringGuildId has reached war limit: ${currentWars.size}/$maxWars")
+            if (!objectivesFitKillTarget(objectives, config.combat.warKillWinTarget)) {
+                logger.warn("Cannot create war declaration - objective target is invalid or exceeds global kill target")
                 return null
             }
 
+            for (guildId in setOf(declaringGuildId, defendingGuildId)) {
+                val currentWars = activeWarCount(guildId, knownWars)
+                val maxWars = maxWarsForGuild(guildId, config.combat.maxSimultaneousWars)
+                if (currentWars >= maxWars) {
+                    logger.warn("Guild $guildId has reached war limit: $currentWars/$maxWars")
+                    return null
+                }
+            }
+
+            val ratedChapterId = if (rated) {
+                if (progressionRepository.getGuildProgression(declaringGuildId)?.currentLevel != 100 ||
+                    progressionRepository.getGuildProgression(defendingGuildId)?.currentLevel != 100
+                ) {
+                    logger.debug("Rated war declaration rejected because both guilds are not current-run level 100")
+                    return null
+                }
+                seasonalElo?.currentRatedChapterId() ?: run {
+                    logger.debug("Rated war declaration rejected because seasonal Elo is not active in a scheduled chapter")
+                    return null
+                }
+            } else {
+                null
+            }
+            val declaredAt = Instant.now()
             val declaration = WarDeclaration(
                 declaringGuildId = declaringGuildId,
                 defendingGuildId = defendingGuildId,
                 proposedDuration = effectiveWarDuration(duration),
                 objectives = objectives,
                 terms = terms,
-                wagerAmount = wagerAmount
+                wagerAmount = wagerAmount,
+                declaredAt = declaredAt,
+                ratedChapterId = ratedChapterId,
+                declarationCooldownUntil = declaredAt.plus(
+                    Duration.ofHours(config.combat.warDeclarationCooldownHours.coerceAtLeast(0).toLong())
+                ),
             )
 
             saveDeclaration(declaration)
-
-            // Record war declaration for cooldown tracking
-            recordWarDeclaration(declaringGuildId)
+            runCatching { warNotifications?.declarationCreated(declaration) }
+                .onFailure { logger.error("Failed to publish war declaration notifications ${declaration.id}", it) }
 
             logger.info("War declaration created by guild $declaringGuildId against guild $defendingGuildId with wager $wagerAmount")
             declaration
@@ -132,19 +281,75 @@ class WarServiceBukkit(
             logger.error("Error creating war declaration between $declaringGuildId and $defendingGuildId", e)
             null
         }
+        }
     }
 
     @Synchronized
     override fun acceptWarDeclaration(declarationId: UUID, actorId: UUID): War? {
+        val declaration = warRepository.get(declarationId)?.declaration?.takeIf { !it.accepted && !it.rejected } ?: return null
+        if (!canPlayerManageWars(actorId, declaration.defendingGuildId)) {
+            logger.warn("Player $actorId attempted to accept war declaration $declarationId without permission for guild ${declaration.defendingGuildId}")
+            return null
+        }
+        return guildActions.withGuilds(declaration.declaringGuildId, declaration.defendingGuildId) {
+            acceptWarDeclarationInternal(declarationId, actorId)
+        }
+    }
+
+    private fun acceptWarDeclarationInternal(declarationId: UUID, actorId: UUID): War? {
         return try {
-            val declaration = warRepository.get(declarationId)?.declaration?.takeIf { !it.accepted && !it.rejected } ?: return null
+            var record = warRepository.get(declarationId) ?: return null
+            val declaration = record.declaration?.takeIf { !it.accepted && !it.rejected } ?: return null
             if (!declaration.isValid) return null
-            var record = requireNotNull(warRepository.get(declarationId))
+            val alreadyEscrowed = record.paymentPhase == WarPaymentPhase.ESCROWED
+            // Once escrow is durably funded this is crash recovery. Every acceptance
+            // policy check was already satisfied before money moved, so re-validating
+            // hostile mode, limits, objectives, cooldowns, or rated eligibility here
+            // could strand funded escrow after a restart.
+            if (!alreadyEscrowed) {
+                if (!participantsAreHostile(declaration.declaringGuildId, declaration.defendingGuildId)) {
+                    logger.warn("Cannot accept war declaration $declarationId - both guilds must remain hostile")
+                    return null
+                }
+                val snapshot = warRepository.getAll()
+                val knownWars = snapshot.mapNotNull { it.war }
+                val combat = configService.loadConfig().combat
+                if (!objectivesFitKillTarget(declaration.objectives, combat.warKillWinTarget)) {
+                    logger.warn("Cannot accept war declaration $declarationId - objective target is no longer valid")
+                    return null
+                }
+                for (guildId in setOf(declaration.declaringGuildId, declaration.defendingGuildId)) {
+                    val farmingEnd = farmingCooldownEnd(guildId, snapshot, combat.warFarmingCooldownHours)
+                    if (farmingEnd != null && Instant.now().isBefore(farmingEnd)) {
+                        logger.warn("Cannot accept war declaration $declarationId - guild $guildId is on farming cooldown")
+                        return null
+                    }
+                    val currentWars = activeWarCount(guildId, knownWars)
+                    val maxWars = maxWarsForGuild(guildId, combat.maxSimultaneousWars)
+                    if (currentWars >= maxWars) {
+                        logger.warn("Cannot accept war declaration $declarationId - guild $guildId has reached war limit")
+                        return null
+                    }
+                }
+                if (declaration.isRated) {
+                    val currentRatedChapter = seasonalElo?.currentRatedChapterId()
+                    if (currentRatedChapter != declaration.ratedChapterId ||
+                        progressionRepository.getGuildProgression(declaration.declaringGuildId)?.currentLevel != 100 ||
+                        progressionRepository.getGuildProgression(declaration.defendingGuildId)?.currentLevel != 100
+                    ) {
+                        logger.debug("Rated war acceptance rejected because chapter or level-100 eligibility changed")
+                        return null
+                    }
+                }
+            }
+            val acceptanceDeclaringRecipients = snapshotNotificationRecipients(declaration.declaringGuildId)
+            val acceptanceDefendingRecipients = snapshotNotificationRecipients(declaration.defendingGuildId)
+            record = requireNotNull(warRepository.get(declarationId))
             if (record.war?.isEnded == true || record.war?.status == WarStatus.CANCELLED) return null
             if (record.war == null) {
                 val pending = War(id = declarationId, declaringGuildId = declaration.declaringGuildId,
                     defendingGuildId = declaration.defendingGuildId, duration = declaration.proposedDuration,
-                    objectives = declaration.objectives)
+                    objectives = declaration.objectives, ratedChapterId = declaration.ratedChapterId)
                 persist(record.copy(war = pending, stats = WarStats(declarationId)))
             }
             if (declaration.wagerAmount > 0 && createWager(declarationId, declaration.wagerAmount, declaration.wagerAmount) == null) {
@@ -152,8 +357,18 @@ class WarServiceBukkit(
             }
             record = requireNotNull(warRepository.get(declarationId))
             val active = requireNotNull(record.war).copy(status = WarStatus.ACTIVE, startedAt = Instant.now())
-            persist(record.copy(war = active, declaration = declaration.copy(accepted = true)))
+            persist(record.copy(
+                war = active,
+                declaration = declaration.copy(accepted = true),
+                notificationRecipients = record.notificationRecipients.copy(
+                    acceptanceDeclaring = acceptanceDeclaringRecipients,
+                    acceptanceDefending = acceptanceDefendingRecipients,
+                ),
+                acceptanceNotificationExpected = true,
+            ))
             Bukkit.getPluginManager().callEvent(GuildWarDeclaredEvent(active.declaringGuildId, active.defendingGuildId, actorId))
+            runCatching { warNotifications?.warAccepted(active) }
+                .onFailure { logger.error("Failed to publish war acceptance notifications ${active.id}", it) }
             active
         } catch (error: Exception) {
             logger.error("Error accepting durable war declaration $declarationId", error)
@@ -163,6 +378,11 @@ class WarServiceBukkit(
 
     override fun rejectWarDeclaration(declarationId: UUID, actorId: UUID): Boolean {
         return try {
+            val declaration = warRepository.get(declarationId)?.declaration?.takeIf { !it.accepted && !it.rejected } ?: return false
+            if (!canPlayerManageWars(actorId, declaration.defendingGuildId)) {
+                logger.warn("Player $actorId attempted to reject war declaration $declarationId without permission for guild ${declaration.defendingGuildId}")
+                return false
+            }
             removeDeclaration(declarationId) != null
         } catch (e: Exception) {
             // In-memory operation - catching runtime exceptions from state validation
@@ -173,6 +393,11 @@ class WarServiceBukkit(
 
     override fun cancelWarDeclaration(declarationId: UUID, actorId: UUID): Boolean {
         return try {
+            val declaration = warRepository.get(declarationId)?.declaration?.takeIf { !it.accepted && !it.rejected } ?: return false
+            if (!canPlayerManageWars(actorId, declaration.declaringGuildId)) {
+                logger.warn("Player $actorId attempted to cancel war declaration $declarationId without permission for guild ${declaration.declaringGuildId}")
+                return false
+            }
             removeDeclaration(declarationId) != null
         } catch (e: Exception) {
             // In-memory operation - catching runtime exceptions from state validation
@@ -183,51 +408,104 @@ class WarServiceBukkit(
 
     @Synchronized
     override fun endWar(warId: UUID, winnerGuildId: UUID, peaceTerms: String?, actorId: UUID): Boolean {
+        val war = getWar(warId) ?: return false
+        if (winnerGuildId !in setOf(war.declaringGuildId, war.defendingGuildId)) return false
+        val losingGuildId =
+            if (winnerGuildId == war.declaringGuildId) war.defendingGuildId else war.declaringGuildId
+        if (!canPlayerManageWars(actorId, losingGuildId)) {
+            logger.warn(
+                "Player $actorId attempted to end war $warId without permission for losing guild $losingGuildId"
+            )
+            return false
+        }
+        return endWarInternal(warId, winnerGuildId, peaceTerms)
+    }
+
+    private fun endWarInternal(warId: UUID, winnerGuildId: UUID, peaceTerms: String?): Boolean =
+        finishWarInternal(warId, winnerGuildId, peaceTerms) != null
+
+    private fun finishWarInternal(warId: UUID, winnerGuildId: UUID?, peaceTerms: String?): War? {
         return try {
-            val war = getWar(warId) ?: return false
-            if (!war.isActive || winnerGuildId !in setOf(war.declaringGuildId, war.defendingGuildId)) return false
-            val loser = if (winnerGuildId == war.declaringGuildId) war.defendingGuildId else war.declaringGuildId
-            val ended = war.copy(status = WarStatus.ENDED, endedAt = Instant.now(),
-                winner = winnerGuildId, loser = loser, peaceTerms = peaceTerms)
-            saveWar(ended)
+            val war = getWar(warId) ?: return null
+            if (!war.isActive) return null
+            if (winnerGuildId != null &&
+                winnerGuildId !in setOf(war.declaringGuildId, war.defendingGuildId)
+            ) {
+                return null
+            }
+
+            val loser = when (winnerGuildId) {
+                war.declaringGuildId -> war.defendingGuildId
+                war.defendingGuildId -> war.declaringGuildId
+                else -> null
+            }
+            val endedAt = Instant.now()
+            val farmingCooldownUntil = winnerGuildId?.let {
+                endedAt.plus(
+                    Duration.ofHours(
+                        configService.loadConfig().combat.warFarmingCooldownHours.coerceAtLeast(0).toLong()
+                    )
+                )
+            }
+            val ended = war.copy(
+                status = WarStatus.ENDED,
+                endedAt = endedAt,
+                winner = winnerGuildId,
+                loser = loser,
+                peaceTerms = peaceTerms,
+                farmingCooldownGuildId = winnerGuildId,
+                farmingCooldownUntil = farmingCooldownUntil,
+            )
+            // Durable VICTORY/DEFEAT recovery requires winner/loser snapshots.
+            // Draws and mutual peace currently have no winner/loser notification kind.
+            saveWar(ended, expectResolutionNotification = winnerGuildId != null)
+            rateResolvedWar(ended)
             resolveWager(warId, winnerGuildId)
-            applyWarFarmingCooldown(war.declaringGuildId, war.defendingGuildId, winnerGuildId)
-            awardWarExperience(winnerGuildId)
-            Bukkit.getPluginManager().callEvent(GuildWarEndEvent(warId, winnerGuildId, loser, war.declaringGuildId, war.defendingGuildId))
-            true
+            if (winnerGuildId != null && !ended.isRated) {
+                awardWarExperience(winnerGuildId)
+            }
+            Bukkit.getPluginManager().callEvent(
+                GuildWarEndEvent(
+                    warId,
+                    winnerGuildId,
+                    loser,
+                    war.declaringGuildId,
+                    war.defendingGuildId,
+                )
+            )
+            runCatching { warNotifications?.warEnded(ended) }
+                .onFailure { logger.error("Failed to publish war resolution notifications $warId", it) }
+            ended
         } catch (error: Exception) {
             logger.error("Error ending durable war $warId", error)
-            false
+            null
         }
     }
 
     @Synchronized
     override fun endWarAsDraw(warId: UUID, reason: String?, actorId: UUID): Boolean {
-        return try {
-            val war = getWar(warId) ?: return false
-            if (!war.isActive) return false
-            val endedWar = war.copy(
-                status = WarStatus.ENDED,
-                endedAt = Instant.now(),
-                winner = null, // No winner in a draw
-                loser = null,  // No loser in a draw
-                peaceTerms = reason ?: "War ended in a draw"
-            )
-            saveWar(endedWar)
-            resolveWager(warId, null)
-            logger.info("War ended as draw: $warId, reason: $reason")
-            true
-        } catch (e: Exception) {
-            // In-memory operation - catching runtime exceptions from state validation
-            logger.error("Error ending war as draw: $warId", e)
-            false
+        val war = getWar(warId) ?: return false
+        if (!canActorManageWar(actorId, war)) {
+            logger.warn("Player $actorId attempted to end war $warId as a draw without permission")
+            return false
         }
+        return endWarAsDrawInternal(warId, reason)
+    }
+
+    private fun endWarAsDrawInternal(warId: UUID, reason: String?): Boolean {
+        val ended = finishWarInternal(warId, null, reason ?: "War ended in a draw") ?: return false
+        logger.info("War ended as draw: ${ended.id}, reason: $reason")
+        return true
     }
 
     @Synchronized
     override fun cancelWar(warId: UUID, actorId: UUID): Boolean {
         return try {
             val war = getWar(warId) ?: return false
+            if (!canActorManageWar(actorId, war)) {
+                logger.warn("Player $actorId attempted to cancel war $warId without permission")
+                return false
+            }
             if (war.status == WarStatus.ENDED || war.status == WarStatus.CANCELLED) return false
             val canceledWar = war.copy(status = WarStatus.CANCELLED)
             saveWar(canceledWar)
@@ -265,6 +543,11 @@ class WarServiceBukkit(
         return warRepository.get(warId)?.stats ?: WarStats(warId)
     }
 
+    override fun getWarKillWinTarget(): Int =
+        configService.loadConfig().combat.warKillWinTarget.also {
+            check(it > 0) { "combat.war_kill_win_target must be positive" }
+        }
+
     override fun updateWarStats(stats: WarStats): Boolean {
         return try {
             saveStats(stats)
@@ -276,14 +559,148 @@ class WarServiceBukkit(
         }
     }
 
+    @Synchronized
+    override fun recordOpposingGuildKill(
+        warId: UUID,
+        killerGuildId: UUID,
+        victimGuildId: UUID,
+    ): net.lumalyte.lg.application.services.WarKillCounterUpdate? {
+        val record = warRepository.get(warId) ?: return null
+        val war = record.war ?: return null
+        if (!war.isActive || killerGuildId == victimGuildId) return null
 
+        val declaringKill = killerGuildId == war.declaringGuildId &&
+            victimGuildId == war.defendingGuildId
+        val defendingKill = killerGuildId == war.defendingGuildId &&
+            victimGuildId == war.declaringGuildId
+        if (!declaringKill && !defendingKill) return null
+
+        val current = record.stats ?: WarStats(warId)
+        val persistedWinners = listOf(war.declaringGuildId, war.defendingGuildId)
+            .filter { guildId -> killVictoryTerms(war, current, guildId) != null }
+        if (persistedWinners.isNotEmpty()) {
+            if (persistedWinners.size == 1) {
+                val pendingWinner = persistedWinners.single()
+                if (!resolveReachedKillTarget(warId, pendingWinner)) {
+                    logger.error("Failed to recover persisted kill-target victory for war $warId")
+                }
+            } else {
+                logger.error(
+                    "War $warId has conflicting persisted global kill-target victories; refusing another kill"
+                )
+            }
+            return null
+        }
+
+        val updated = if (declaringKill) {
+            current.copy(
+                declaringGuildKills = Math.addExact(current.declaringGuildKills, 1),
+                defendingGuildDeaths = Math.addExact(current.defendingGuildDeaths, 1),
+                lastUpdated = Instant.now(),
+            )
+        } else {
+            current.copy(
+                defendingGuildKills = Math.addExact(current.defendingGuildKills, 1),
+                declaringGuildDeaths = Math.addExact(current.declaringGuildDeaths, 1),
+                lastUpdated = Instant.now(),
+            )
+        }
+        persist(record.copy(stats = updated))
+
+        val target = getWarKillWinTarget()
+        val winner = killerGuildId.takeIf { killVictoryTerms(war, updated, killerGuildId) != null }
+        return net.lumalyte.lg.application.services.WarKillCounterUpdate(updated, target, winner)
+    }
+
+    @Synchronized
+    override fun resolveReachedKillTarget(warId: UUID, winnerGuildId: UUID): Boolean {
+        val record = warRepository.get(warId) ?: return false
+        val war = record.war ?: return false
+        if (!war.isActive) return false
+
+        val terms = killVictoryTerms(
+            war,
+            record.stats ?: WarStats(warId),
+            winnerGuildId,
+        ) ?: return false
+        return endWarInternal(warId, winnerGuildId, terms)
+    }
+
+    @Synchronized
+    override fun reconcilePendingKillVictories(): Int =
+        reconcilePendingKillVictories(warRepository.getAll())
+
+    private fun reconcilePendingKillVictories(records: Iterable<DurableWarRecord>): Int {
+        var resolved = 0
+        records.forEach { record ->
+            val war = record.war?.takeIf { it.isActive } ?: return@forEach
+            val stats = record.stats ?: return@forEach
+            val candidates = listOf(war.declaringGuildId, war.defendingGuildId)
+                .mapNotNull { guildId ->
+                    killVictoryTerms(war, stats, guildId)?.let { terms -> guildId to terms }
+                }
+
+            when (candidates.size) {
+                0 -> Unit
+                1 -> {
+                    val (winner, terms) = candidates.single()
+                    if (endWarInternal(war.id, winner, terms)) resolved++
+                }
+                else -> logger.error(
+                    "War ${war.id} has conflicting persisted kill victories; refusing automatic resolution"
+                )
+            }
+        }
+        return resolved
+    }
+
+    private fun killVictoryTerms(war: War, stats: WarStats, guildId: UUID): String? {
+        val killerKills = when (guildId) {
+            war.declaringGuildId -> stats.declaringGuildKills
+            war.defendingGuildId -> stats.defendingGuildKills
+            else -> return null
+        }
+        val target = getWarKillWinTarget()
+        if (killerKills >= target) {
+            return "Victory achieved by reaching the global war kill target ($killerKills/$target)"
+        }
+
+        val objectiveTarget = war.objectives
+            .asSequence()
+            .filter { it.type == ObjectiveType.KILLS && it.targetValue > 0 }
+            .map { it.targetValue }
+            .minOrNull()
+        return objectiveTarget
+            ?.takeIf { killerKills >= it }
+            ?.let { "Victory achieved through kill objective ($killerKills/$it)" }
+    }
+
+    @Synchronized
     override fun addObjectiveProgress(warId: UUID, objectiveId: UUID, progress: Int): Boolean {
-        // This is a simplified implementation - would need proper objective tracking
+        if (progress <= 0) return false
         return try {
-            logger.info("Objective progress added: war=$warId, objective=$objectiveId, progress=$progress")
+            val record = warRepository.get(warId) ?: return false
+            val war = record.war?.takeIf { it.isActive } ?: return false
+            val objective = war.objectives.firstOrNull { it.id == objectiveId } ?: return false
+            if (objective.completed || objective.isCompleted) return true
+
+            val currentValue = minOf(
+                objective.targetValue,
+                Math.addExact(objective.currentValue, progress),
+            )
+            val completed = currentValue >= objective.targetValue
+            val updated = objective.copy(
+                currentValue = currentValue,
+                completed = completed,
+                completedAt = if (completed) objective.completedAt ?: Instant.now() else objective.completedAt,
+            )
+            val updatedObjectives = war.objectives.map {
+                if (it.id == objectiveId) updated else it
+            }.toSet()
+            persist(record.copy(war = war.copy(objectives = updatedObjectives)))
+            logger.info("Objective progress persisted: war=$warId, objective=$objectiveId, progress=$currentValue/${objective.targetValue}")
             true
         } catch (e: Exception) {
-            // In-memory operation - catching runtime exceptions from state validation
             logger.error("Error adding objective progress for war: $warId", e)
             false
         }
@@ -422,17 +839,28 @@ class WarServiceBukkit(
      * check in `createWarDeclaration`.
      */
     override fun canGuildDeclareWar(guildId: UUID): Boolean {
-        val activeWars = wars.values.filter {
-            it.isActive && (it.declaringGuildId == guildId || it.defendingGuildId == guildId)
-        }.size
-        val maxWars = maxWarsForGuild(guildId, configService.loadConfig().combat.maxSimultaneousWars)
+        if (guildRepository.getById(guildId)?.mode != GuildMode.HOSTILE) return false
+        val snapshot = warRepository.getAll()
+        val combat = configService.loadConfig().combat
+        val now = Instant.now()
+        if (declarationCooldownEnd(guildId, snapshot, combat.warDeclarationCooldownHours)
+                ?.let(now::isBefore) == true
+        ) return false
+        if (farmingCooldownEnd(guildId, snapshot, combat.warFarmingCooldownHours)
+                ?.let(now::isBefore) == true
+        ) return false
+
+        val activeWars = activeWarCount(guildId, snapshot.mapNotNull { it.war })
+        val maxWars = maxWarsForGuild(guildId, combat.maxSimultaneousWars)
         return activeWars < maxWars
     }
 
-    override fun canPlayerManageWars(playerId: UUID, guildId: UUID): Boolean {
-        // Placeholder - would need to check player permissions
-        return true
-    }
+    override fun canPlayerManageWars(playerId: UUID, guildId: UUID): Boolean =
+        memberService.hasPermission(playerId, guildId, RankPermission.DECLARE_WAR)
+
+    private fun canActorManageWar(actorId: UUID, war: War): Boolean =
+        canPlayerManageWars(actorId, war.declaringGuildId) ||
+            canPlayerManageWars(actorId, war.defendingGuildId)
 
     override fun getCurrentWarBetweenGuilds(guildA: UUID, guildB: UUID): War? {
         return wars.values.find {
@@ -443,17 +871,95 @@ class WarServiceBukkit(
     }
 
     @Synchronized
+    override fun resetChapterCutoverState(operator: String): WarCutoverReport {
+        val failed = mutableListOf<UUID>()
+        var canceledWars = 0
+        var rejectedDeclarations = 0
+        logger.warn("Chapter cut-over war reset requested by $operator")
+
+        warRepository.getAll().forEach { initial ->
+            try {
+                var record = warRepository.get(initial.id) ?: return@forEach
+                val war = record.war
+                val pendingDeclaration = record.declaration?.takeIf { !it.accepted && !it.rejected }
+                val resetWar = war?.status == WarStatus.ACTIVE || war?.status == WarStatus.DECLARED
+                if (!resetWar && pendingDeclaration == null) return@forEach
+
+                if (resetWar && record.wager != null && !warPayments.cancelForCutover(record.id)) {
+                    logger.error(
+                        "Chapter cut-over refused to cancel war ${record.id}: wager state " +
+                            "${record.paymentPhase} requires operator review"
+                    )
+                    failed += record.id
+                    return@forEach
+                }
+
+                record = warRepository.get(record.id) ?: run {
+                    failed += initial.id
+                    return@forEach
+                }
+                val currentWar = record.war
+                val currentPending = record.declaration?.takeIf { !it.accepted && !it.rejected }
+
+                if (currentWar?.status == WarStatus.ACTIVE || currentWar?.status == WarStatus.DECLARED) {
+                    val updatedDeclaration = currentPending?.copy(rejected = true) ?: record.declaration
+                    persist(
+                        record.copy(
+                            war = currentWar.copy(status = WarStatus.CANCELLED),
+                            declaration = updatedDeclaration,
+                        )
+                    )
+                    canceledWars++
+                    if (currentPending != null) rejectedDeclarations++
+                } else if (currentPending != null) {
+                    persist(record.copy(declaration = currentPending.copy(rejected = true)))
+                    rejectedDeclarations++
+                }
+            } catch (error: Exception) {
+                logger.error("Chapter cut-over failed for war record ${initial.id}", error)
+                failed += initial.id
+            }
+        }
+
+        val peaceCount = peaceAgreements.size
+        peaceAgreements.clear()
+
+        val report = WarCutoverReport(
+            canceledWars = canceledWars,
+            rejectedDeclarations = rejectedDeclarations,
+            clearedPeaceAgreements = peaceCount,
+            failedRecordIds = failed.distinct(),
+        )
+        logger.warn(
+            "Chapter cut-over war reset by $operator complete: cancelled=${report.canceledWars}, " +
+                "declarations=${report.rejectedDeclarations}, peace=${report.clearedPeaceAgreements}, " +
+                "failures=${report.failedRecordIds.size}"
+        )
+        return report
+    }
+
+    @Synchronized
     override fun processExpiredWars(): Int {
         val snapshot = warRepository.getAll().associateBy { it.id }.toMutableMap()
+        var processedCount = reconcilePendingKillVictories(snapshot.values)
         // Only resume acceptance already recorded as fully funded. Never start a fresh charge
         // from a timer or revive expired consent; other incomplete phases remain held.
         snapshot.values.toList().filter {
             it.war?.status == WarStatus.DECLARED && it.paymentPhase == WarPaymentPhase.ESCROWED &&
                 it.declaration?.isValid == true
         }.forEach {
-            acceptWarDeclaration(it.id, UUID(0, 0))
+            val declaration = it.declaration ?: return@forEach
+            guildActions.withGuilds(declaration.declaringGuildId, declaration.defendingGuildId) {
+                acceptWarDeclarationInternal(it.id, SYSTEM_ACTOR)
+            }
             warRepository.get(it.id)?.let { updated -> snapshot[it.id] = updated }
         }
+        // Retry seasonal rating for durable completed outcomes. The Elo repository's war-id receipt
+        // makes this idempotent, so a transient database failure cannot permanently lose a rated result.
+        snapshot.values.mapNotNull { it.war }
+            .filter { it.isEnded && it.isRated }
+            .forEach(::rateResolvedWar)
+
         // Retry durable, already-chosen outcomes even when the ended war is no longer active.
         snapshot.values.toList().filter { it.wager != null && (it.war?.isEnded == true || it.war?.status == WarStatus.CANCELLED) &&
             it.paymentPhase !in setOf(WarPaymentPhase.SETTLED, WarPaymentPhase.REVIEW) }
@@ -462,7 +968,6 @@ class WarServiceBukkit(
                 warRepository.get(it.id)?.let { updated -> snapshot[it.id] = updated }
             }
         val now = Instant.now()
-        var processedCount = 0
 
         // Process expired declarations
         val expiredDeclarations = snapshot.values.mapNotNull { it.declaration }.filter { !it.accepted && !it.rejected && it.expiresAt.isBefore(now) }
@@ -478,31 +983,24 @@ class WarServiceBukkit(
                 war.startedAt!!.plus(war.duration).plusSeconds(graceSeconds).isBefore(now)
         }
         for (war in expiredWars) {
-            if (checkForDrawCondition(snapshot.getValue(war.id))) {
-                // End as draw and handle wager refunds
-                endWarAsDraw(
-                    warId = war.id,
-                    reason = "War expired with no clear winner",
-                    actorId = UUID.randomUUID() // System UUID
-                )
-                // Resolve wager as draw (refund both guilds)
-                resolveWager(war.id, null)
-                logger.info("War ${war.id} ended as draw due to expiration")
+            val reason = if (checkForDrawCondition(snapshot.getValue(war.id))) {
+                "War expired with no clear winner"
             } else {
-                // End without winner (shouldn't happen with current logic)
-                val endedWar = war.copy(status = WarStatus.ENDED, endedAt = now)
-                saveWar(endedWar)
+                "War expired without a resolvable victory"
             }
-            processedCount++
+            if (endWarAsDrawInternal(war.id, reason)) {
+                logger.info("War ${war.id} ended as draw due to expiration")
+                processedCount++
+            }
         }
 
         return processedCount
     }
 
-    override fun validateObjectives(objectives: Set<WarObjective>): Boolean {
-        // Basic validation
-        return objectives.isNotEmpty() && objectives.size <= 5
-    }
+    override fun validateObjectives(objectives: Set<WarObjective>): Boolean =
+        objectives.isNotEmpty() &&
+            objectives.size <= 5 &&
+            objectivesFitKillTarget(objectives, getWarKillWinTarget())
 
     override fun getWarHistory(guildId: UUID, limit: Int): List<War> {
         return wars.values
@@ -641,19 +1139,12 @@ class WarServiceBukkit(
                 return null
             }
 
-            // End the war
-            val endedWar = war.copy(
-                status = WarStatus.ENDED,
-                endedAt = Instant.now(),
-                peaceTerms = agreement.peaceTerms
-            )
-
-            saveWar(endedWar)
-            resolveWager(war.id, null)
+            val endedWar = finishWarInternal(
+                war.id,
+                winnerGuildId = null,
+                peaceTerms = agreement.peaceTerms,
+            ) ?: return null
             peaceAgreements[agreementId] = agreement.copy(accepted = true, acceptedAt = Instant.now())
-
-            // Apply war farming cooldown to the winner
-            applyWarFarmingCooldown(war.declaringGuildId, war.defendingGuildId, war.winner)
 
             logger.info("Peace agreement accepted, war ${war.id} ended")
             endedWar
@@ -690,6 +1181,45 @@ class WarServiceBukkit(
         return peaceAgreements.values.filter { it.targetGuildId == guildId && it.isValid }
     }
 
+    private fun rateResolvedWar(war: War) {
+        val chapterId = war.ratedChapterId ?: return
+        val coordinator = seasonalElo ?: return
+        try {
+            val draw = war.winner == null
+            val firstScore = when {
+                draw -> 0.5
+                war.winner == war.declaringGuildId -> 1.0
+                else -> 0.0
+            }
+            val secondScore = when {
+                draw -> 0.5
+                war.winner == war.defendingGuildId -> 1.0
+                else -> 0.0
+            }
+            when (val result = coordinator.rateWar(
+                war.id,
+                chapterId,
+                war.declaringGuildId,
+                war.defendingGuildId,
+                firstScore,
+                secondScore,
+                war.endedAt?.toEpochMilli() ?: System.currentTimeMillis(),
+            )) {
+                is net.lumalyte.lg.infrastructure.persistence.migrations.SeasonalWarRatingResult.Rated ->
+                    logger.info("Rated war ${war.id}: ${result.firstBefore}->${result.firstAfter}, ${result.secondBefore}->${result.secondAfter}")
+                net.lumalyte.lg.infrastructure.persistence.migrations.SeasonalWarRatingResult.RematchGuarded ->
+                    logger.debug("War ${war.id} completed inside seasonal Elo rematch window; unrated")
+                net.lumalyte.lg.infrastructure.persistence.migrations.SeasonalWarRatingResult.Ineligible ->
+                    logger.debug("War ${war.id} is not eligible for seasonal Elo")
+                net.lumalyte.lg.infrastructure.persistence.migrations.SeasonalWarRatingResult.Frozen ->
+                    logger.debug("War ${war.id} seasonal Elo is frozen by chapter state")
+                net.lumalyte.lg.infrastructure.persistence.migrations.SeasonalWarRatingResult.Replayed -> Unit
+            }
+        } catch (error: Exception) {
+            logger.warn("Seasonal Elo update failed for resolved war ${war.id}; reconciliation will retry", error)
+        }
+    }
+
     // Daily War Costs
     // NOTE: This method is deprecated - DailyWarCostsServiceBukkit handles actual cost deduction
     // This just returns the count of affected guilds for backward compatibility
@@ -713,63 +1243,72 @@ class WarServiceBukkit(
         }
     }
 
-    // War Farming Cooldown Methods
-    private fun applyWarFarmingCooldown(declaringGuildId: UUID, defendingGuildId: UUID, winnerGuildId: UUID?) {
-        if (winnerGuildId == null) return // No winner for draw
+    // War cooldowns are durable metadata on declarations/resolved wars. Older
+    // records are reconstructed from their persisted timestamps by the helpers above.
+    override fun isGuildInWarFarmingCooldown(guildId: UUID): Boolean =
+        getGuildWarFarmingCooldownEnd(guildId)?.let { Instant.now().isBefore(it) } == true
 
-        // Apply cooldown to the winning guild
-        val cooldownEnd = Instant.now().plusSeconds(getWarFarmingCooldownSeconds())
-        warFarmingCooldowns[winnerGuildId] = cooldownEnd
-
-        logger.info("Applied war farming cooldown to guild $winnerGuildId until $cooldownEnd")
+    override fun getGuildWarFarmingCooldownEnd(guildId: UUID): Instant? {
+        val combat = configService.loadConfig().combat
+        return farmingCooldownEnd(guildId, warRepository.getAll(), combat.warFarmingCooldownHours)
     }
 
-    private fun getWarFarmingCooldownSeconds(): Long {
-        // Convert hours from config to seconds
-        val config = configService.loadConfig()
-        return config.combat.warFarmingCooldownHours * 3600L
-    }
-
-    override fun isGuildInWarFarmingCooldown(guildId: UUID): Boolean {
-        val cooldownEnd = warFarmingCooldowns[guildId]
-        return cooldownEnd != null && Instant.now().isBefore(cooldownEnd)
-    }
-
-    override fun getGuildWarFarmingCooldownEnd(guildId: UUID): java.time.Instant? {
-        return warFarmingCooldowns[guildId]
-    }
-
-    override fun updateGuildWarFarmingCooldown(guildId: UUID, endTime: java.time.Instant): Boolean {
+    @Synchronized
+    override fun updateGuildWarFarmingCooldown(guildId: UUID, endTime: Instant): Boolean {
         return try {
-            warFarmingCooldowns[guildId] = endTime
-            logger.info("Updated war farming cooldown for guild $guildId until $endTime")
+            val record = warRepository.getAll()
+                .filter { it.war?.isEnded == true && it.war?.winner == guildId }
+                .maxByOrNull { it.war?.endedAt ?: Instant.MIN }
+                ?: return false
+            val war = requireNotNull(record.war)
+            persist(
+                record.copy(
+                    war = war.copy(
+                        farmingCooldownGuildId = guildId,
+                        farmingCooldownUntil = endTime,
+                    )
+                )
+            )
+            logger.info("Updated durable war farming cooldown for guild $guildId until $endTime")
             true
         } catch (e: Exception) {
-            // In-memory operation - catching runtime exceptions from state validation
-            logger.error("Error updating war farming cooldown", e)
+            logger.error("Error updating durable war farming cooldown", e)
             false
         }
     }
 
-    // War Declaration Cooldown Methods
-    override fun isGuildOnWarDeclarationCooldown(guildId: UUID): Boolean {
-        val cooldownEnd = warDeclarationCooldowns[guildId]
-        return cooldownEnd != null && Instant.now().isBefore(cooldownEnd)
-    }
+    override fun isGuildOnWarDeclarationCooldown(guildId: UUID): Boolean =
+        getWarDeclarationCooldownEnd(guildId)?.let { Instant.now().isBefore(it) } == true
 
     override fun getWarDeclarationCooldownEnd(guildId: UUID): Instant? {
-        return warDeclarationCooldowns[guildId]
+        val combat = configService.loadConfig().combat
+        return declarationCooldownEnd(guildId, warRepository.getAll(), combat.warDeclarationCooldownHours)
     }
 
+    @Synchronized
     override fun recordWarDeclaration(guildId: UUID) {
-        val config = configService.loadConfig()
-        val cooldownHours = config.combat.warDeclarationCooldownHours.toLong()
-        val cooldownEnd = Instant.now().plusSeconds(cooldownHours * 3600)
-        warDeclarationCooldowns[guildId] = cooldownEnd
-        logger.info("Guild $guildId declared war - cooldown until $cooldownEnd")
+        try {
+            val record = warRepository.getAll()
+                .filter { it.declaration?.declaringGuildId == guildId }
+                .maxByOrNull { it.declaration?.declaredAt ?: Instant.MIN }
+                ?: return
+            val declaration = requireNotNull(record.declaration)
+            if (declaration.declarationCooldownUntil != null) return
+            val cooldownEnd = declaration.declaredAt.plus(
+                Duration.ofHours(
+                    configService.loadConfig().combat.warDeclarationCooldownHours.coerceAtLeast(0).toLong()
+                )
+            )
+            persist(record.copy(declaration = declaration.copy(declarationCooldownUntil = cooldownEnd)))
+            logger.info("Recorded durable war declaration cooldown for guild $guildId until $cooldownEnd")
+        } catch (e: Exception) {
+            logger.error("Error recording durable war declaration cooldown for guild $guildId", e)
+        }
     }
 
     companion object {
+        private val SYSTEM_ACTOR = UUID(0, 0)
+
         /** Anti-farming tracking bound: prune once this many killers are tracked. */
         private const val MAX_TRACKED_KILLERS = 10_000
 

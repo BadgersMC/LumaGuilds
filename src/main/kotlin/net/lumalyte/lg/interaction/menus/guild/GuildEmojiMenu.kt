@@ -1,11 +1,13 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.infrastructure.services.NexoEmojiService
@@ -108,8 +110,14 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
     }
 
     private fun addCurrentEmojiDisplay(pane: StaticPane, x: Int, y: Int) {
-        val currentEmojiText = currentEmoji ?: lang.raw("menu.guild_emoji.current.not_set")
-        val displayItem = ItemStack.of(Material.NAME_TAG)
+        val currentEmojiText = currentEmoji?.let(nexoEmojiService::emojiToFontTag) ?: lang.raw("menu.guild_emoji.current.not_set")
+        val currentEmojiName = currentEmoji?.let(nexoEmojiService::extractEmojiName)
+        val displayItem = currentEmojiName?.let { emojiName ->
+            NexoItemProvider.getItemStackOrFallback("lg_emoji_choice_$emojiName") {
+                ItemStack.of(Material.NAME_TAG)
+            }
+        } ?: ItemStack.of(Material.NAME_TAG)
+        displayItem
             .name(lang.gui("menu.guild_emoji.current.name"))
             .lore(lang.gui("menu.guild_emoji.current.value", "emoji" to currentEmojiText))
             .lore(lang.gui("menu.common.blank"))
@@ -149,7 +157,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
     private fun addEmojiInputField(pane: StaticPane, x: Int, y: Int) {
         println("[LumaGuilds] GuildEmojiMenu: Adding emoji input field with current input: '$inputEmoji'")
-        val inputItem = ItemStack.of(Material.WRITABLE_BOOK)
+        val inputItem = NexoItemProvider.getItemStackOrFallback("lg_description") { ItemStack.of(Material.WRITABLE_BOOK) }
             .name(lang.gui("menu.guild_emoji.input.name"))
             .lore(lang.gui("menu.guild_emoji.input.format"))
             .lore(lang.gui("menu.guild_emoji.input.example"))
@@ -178,9 +186,9 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
     }
 
     private fun addEmojiSelectorButton(pane: StaticPane, x: Int, y: Int) {
-        val unlockedCount = nexoEmojiService.getPlayerUnlockedEmojis(player).size
+        val unlockedCount = nexoEmojiService.getPlayerUnlockedEmojis(player, guild.id).size
         println("[LumaGuilds] GuildEmojiMenu: Player ${player.name} has $unlockedCount unlocked emojis")
-        val selectorItem = ItemStack.of(Material.ENDER_CHEST)
+        val selectorItem = NexoItemProvider.getItemStackOrFallback("lg_emoji") { ItemStack.of(Material.ENDER_CHEST) }
             .name(lang.gui("menu.guild_emoji.selector.name"))
             .lore(lang.gui("menu.guild_emoji.selector.description"))
             .lore(lang.gui("menu.guild_emoji.selector.count", "count" to unlockedCount))
@@ -202,7 +210,8 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
     private fun addPreviewSection(pane: StaticPane, x: Int, y: Int) {
         val previewEmoji = inputEmoji ?: ":cat:" // Default preview
-        val previewItem = ItemStack.of(Material.PAPER)
+        val renderedPreviewEmoji = nexoEmojiService.emojiToFontTag(previewEmoji)
+        val previewItem = NexoItemProvider.getItemStackOrFallback("lg_emoji") { ItemStack.of(Material.PAPER) }
             .name(lang.gui("menu.guild_emoji.preview.name"))
             .lore(lang.gui("menu.guild_emoji.preview.description"))
 
@@ -210,7 +219,7 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
             previewItem.lore(lang.gui("menu.guild_emoji.preview.invalid_message", "player" to player.name, "emoji" to previewEmoji))
                 .lore(lang.gui("menu.guild_emoji.preview.invalid"))
         } else {
-            previewItem.lore(lang.gui("menu.guild_emoji.preview.message", "player" to player.name, "emoji" to previewEmoji))
+            previewItem.lore(lang.gui("menu.guild_emoji.preview.message", "player" to player.name, "emoji" to renderedPreviewEmoji))
                 .lore(lang.gui("menu.guild_emoji.preview.valid"))
         }
 
@@ -304,18 +313,18 @@ class GuildEmojiMenu(private val menuNavigator: MenuNavigator, private val playe
 
         val guiItem = GuiItem(cancelItem) {
             // Close menu without saving
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(guiItem, x, y)
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack.of(Material.ARROW)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.guild_emoji.action.back.name"))
             .lore(lang.gui("menu.guild_emoji.action.back.description"))
 
         val guiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildControlPanelMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(guiItem, x, y)
     }
@@ -471,7 +480,7 @@ class EmojiSelectionMenu(
 
     override fun open() {
         // Get all unlocked emojis for this player
-        unlockedEmojis = nexoEmojiService.getPlayerUnlockedEmojis(player)
+        unlockedEmojis = nexoEmojiService.getPlayerUnlockedEmojis(player, guild.id)
 
         if (unlockedEmojis.isEmpty()) {
             player.sendMessage(lang.msg("menu.guild_emoji.feedback.none_unlocked"))
@@ -525,7 +534,7 @@ class EmojiSelectionMenu(
         val emojiItem = NexoItemProvider.getItemStackOrFallback("lg_emoji_choice_$emojiName") {
             ItemStack.of(Material.PAPER)
         }
-            .name(lang.gui("menu.guild_emoji.selection.emoji", "emoji" to emojiPlaceholder))
+            .name(lang.gui("menu.guild_emoji.selection.emoji", "emoji" to nexoEmojiService.emojiToFontTag(emojiPlaceholder)))
             .lore(lang.gui("menu.guild_emoji.selection.select"))
             .lore(lang.gui("menu.guild_emoji.selection.description"))
 
@@ -541,7 +550,7 @@ class EmojiSelectionMenu(
     }
 
     private fun addPreviousPageButton(pane: StaticPane, x: Int, y: Int) {
-        val prevItem = ItemStack.of(Material.ARROW)
+        val prevItem = NexoItemProvider.getItemStackOrFallback("lg_page_prev") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.guild_emoji.selection.previous.name"))
             .lore(lang.gui("menu.guild_emoji.selection.previous.description"))
 
@@ -553,7 +562,7 @@ class EmojiSelectionMenu(
     }
 
     private fun addNextPageButton(pane: StaticPane, x: Int, y: Int) {
-        val nextItem = ItemStack.of(Material.ARROW)
+        val nextItem = NexoItemProvider.getItemStackOrFallback("lg_page_next") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.guild_emoji.selection.next.name"))
             .lore(lang.gui("menu.guild_emoji.selection.next.description"))
 
@@ -565,7 +574,7 @@ class EmojiSelectionMenu(
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack.of(Material.BARRIER)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
             .name(lang.gui("menu.guild_emoji.selection.back.name"))
             .lore(lang.gui("menu.guild_emoji.selection.back.description"))
 

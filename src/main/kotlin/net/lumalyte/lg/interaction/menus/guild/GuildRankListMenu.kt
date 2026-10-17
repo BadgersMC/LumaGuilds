@@ -1,5 +1,10 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.RankNameContent
+
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
@@ -7,8 +12,8 @@ import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.PaginatedPane
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.PaginatedPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Rank
@@ -89,7 +94,7 @@ class GuildRankListMenu(
 
             val permCount = rank.permissions.size
             val item = ItemStack.of(displayIcon)
-                .name(lang.gui("menu.rank_list.item.rank.name", "rank" to rank.name))
+                .name(lang.gui("menu.rank_list.item.rank.name", "rank" to RankNameContent.miniMessage(rank.name)))
                 .lore(lang.gui("menu.rank_list.item.rank.lore.priority", "priority" to rank.priority))
                 .lore(lang.gui("menu.rank_list.item.rank.lore.permission_count", "permission_count" to permCount))
                 .lore("")
@@ -109,7 +114,7 @@ class GuildRankListMenu(
         }
 
         // Back button in bottom-right
-        val backItem = ItemStack.of(Material.ARROW)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.rank_list.item.back.name"))
             .lore(lang.gui("menu.rank_list.item.back.lore"))
         pane.addItem(GuiItem(backItem) { menuNavigator.goBack() }, 8, height - 1)

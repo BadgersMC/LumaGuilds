@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.infrastructure.i18n.gui
@@ -9,7 +10,7 @@ import net.kyori.adventure.text.Component
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.domain.entities.Guild
@@ -267,7 +268,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
 
                 player.sendMessage(lang.msg("menu.tag_editor.feedback.updated"))
                 if (tagToSave != null) {
-                    val displayTag = ColorCodeUtils.renderTagForDisplay(tagToSave)
+                    val displayTag = ColorCodeUtils.toMiniMessage(tagToSave)
                     player.sendMessage(lang.msg("menu.tag_editor.feedback.new_tag", "tag" to displayTag))
                 } else {
                     player.sendMessage(lang.msg("menu.tag_editor.feedback.cleared_tag"))
@@ -465,7 +466,7 @@ class TagEditorMenu(private val menuNavigator: MenuNavigator, private val player
         })
 
         // Show formatted tag in message
-        val displayTag = ColorCodeUtils.renderTagForDisplay(input)
+        val displayTag = ColorCodeUtils.toMiniMessage(input)
         player.sendMessage(lang.msg("menu.tag_editor.feedback.set", "tag" to displayTag))
         player.sendMessage(lang.msg("menu.tag_editor.feedback.save_hint"))
     }

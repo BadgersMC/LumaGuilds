@@ -48,6 +48,20 @@ class ConfigLoaderConsistencyTest {
     }
 
     @Test
+    fun `bedrock java-menu fallbacks are opt-in and loaded`() {
+        val defaults = load(YamlConfiguration()).bedrock
+        assertFalse(defaults.javaMenuVanillaIcons)
+        assertFalse(defaults.javaMenuPlainTitles)
+        val cfg = YamlConfiguration().apply {
+            set("bedrock.java_menu_vanilla_icons", true)
+            set("bedrock.java_menu_plain_titles", true)
+        }
+        val bedrock = load(cfg).bedrock
+        assertTrue(bedrock.javaMenuVanillaIcons)
+        assertTrue(bedrock.javaMenuPlainTitles)
+    }
+
+    @Test
     fun `brewing xp is loaded`() {
         val cfg = YamlConfiguration().apply { set("progression.brewing_xp", 42) }
         assertEquals(42, load(cfg).progression.brewingXp)
@@ -70,6 +84,70 @@ class ConfigLoaderConsistencyTest {
         assertTrue(filter.enabled)
         assertEquals(listOf("\\bfoo\\b"), filter.blockedPatterns)
         assertEquals(false, filter.normalization.leetMap)
+    }
+
+    @Test
+    fun `war banner defaults to one stack of raw gold and fifteen minute cooldown`() {
+        val warBanner = load(YamlConfiguration()).warBanner
+        assertEquals(64, warBanner.rawGoldCost)
+        assertEquals(15, warBanner.cooldownMinutes)
+    }
+
+    @Test
+    fun `war banner settings are loaded`() {
+        val cfg = YamlConfiguration().apply {
+            set("war_banner.raw_gold_cost", 64)
+            set("war_banner.cooldown_minutes", 22)
+        }
+        val warBanner = load(cfg).warBanner
+        assertEquals(64, warBanner.rawGoldCost)
+        assertEquals(22, warBanner.cooldownMinutes)
+    }
+
+    @Test
+    fun `discord guild roles default to level 50`() {
+        val discord = load(YamlConfiguration()).discordGuildRoles
+
+        assertTrue(discord.enabled)
+        assertEquals(50, discord.minimumLevel)
+        assertEquals("Guild • <guild>", discord.roleNameFormat)
+    }
+
+    @Test
+    fun `discord guild role settings are loaded when explicitly configured`() {
+        val cfg = YamlConfiguration().apply {
+            set("discord.guild_roles.enabled", false)
+            set("discord.guild_roles.minimum_level", 25)
+            set("discord.guild_roles.role_name_format", "[Guild] <guild>")
+        }
+
+        val discord = load(cfg).discordGuildRoles
+
+        assertFalse(discord.enabled)
+        assertEquals(25, discord.minimumLevel)
+        assertEquals("[Guild] <guild>", discord.roleNameFormat)
+    }
+
+    @Test
+    fun `discord guild role minimum must be within progression levels`() {
+        for (level in listOf(0, 101)) {
+            val cfg = YamlConfiguration().apply { set("discord.guild_roles.minimum_level", level) }
+            org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException::class.java) {
+                load(cfg)
+            }
+        }
+    }
+
+    @Test
+    fun `discord guild role format must retain the guild placeholder`() {
+        val cfg = YamlConfiguration().apply {
+            set("discord.guild_roles.enabled", true)
+            set("discord.guild_roles.role_name_format", "Guild Member")
+        }
+
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException::class.java) {
+            load(cfg)
+        }
     }
 
     @Test
@@ -122,6 +200,8 @@ class ConfigLoaderConsistencyTest {
         listOf(
             "parties_enabled", "brewing_xp", "mode_switching_enabled",
             "name_filter:", "banner_copy_physical_cost",
+            "war_banner:", "raw_gold_cost:", "cooldown_minutes:",
+            "discord:", "guild_roles:", "role_name_format:",
         ).forEach { key ->
             assertTrue(yml.contains(key), "config.yml must document '$key'")
         }
@@ -140,5 +220,23 @@ class ConfigLoaderConsistencyTest {
         assertEquals("", bedrock.defaultButtonImageUrl)
         assertEquals("", bedrock.guildMembersIconUrl)
         assertEquals("", bedrock.confirmIconUrl)
+    }
+
+    @Test
+    fun `stall icons load independently of existing bank icons`() {
+        val defaults = load(YamlConfiguration()).bedrock
+        assertEquals("", defaults.guildStallsIconUrl)
+        assertEquals("textures/ui/stall.png", defaults.guildStallsIconPath)
+        val cfg = YamlConfiguration().apply {
+            set("bedrock.guild_stalls_icon_url", "https://cdn.example.com/stall.png")
+            set("bedrock.guild_stalls_icon_path", "textures/custom/stall.png")
+            set("bedrock.guild_bank_icon_url", "https://cdn.example.com/bank.png")
+            set("bedrock.guild_bank_icon_path", "textures/custom/bank.png")
+        }
+        val icons = load(cfg).bedrock
+        assertEquals("https://cdn.example.com/stall.png", icons.guildStallsIconUrl)
+        assertEquals("textures/custom/stall.png", icons.guildStallsIconPath)
+        assertEquals("https://cdn.example.com/bank.png", icons.guildBankIconUrl)
+        assertEquals("textures/custom/bank.png", icons.guildBankIconPath)
     }
 }

@@ -1,15 +1,22 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.utils.NexoItemProvider
+import org.bukkit.Bukkit
+import org.bukkit.scheduler.BukkitTask
+import java.time.Duration
+import java.time.Instant
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import com.github.stefvanschie.inventoryframework.pane.Pane
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.persistence.BankSettingsRepository
 import net.lumalyte.lg.application.services.BankAutomationService
 import net.lumalyte.lg.application.services.BankService
@@ -27,8 +34,6 @@ import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 /**
  * Guild Bank Automation menu with scheduled tasks, rewards, and alerts (REQ-010)
@@ -52,6 +57,8 @@ class GuildBankAutomationMenu(
     private lateinit var mainPane: StaticPane
     private lateinit var automationPane: StaticPane
     private lateinit var rewardsPane: StaticPane
+    private var countdownTask: BukkitTask? = null
+    private lateinit var menuTitle: String
 
     // Automation settings (persisted per guild via BankSettingsRepository)
     private var scheduledDepositsEnabled: Boolean = false
@@ -74,6 +81,7 @@ class GuildBankAutomationMenu(
     override fun open() {
         updateAutomationDisplay()
         gui.show(player)
+        startLiveCountdown()
     }
 
     override fun passData(data: Any?) {
@@ -112,15 +120,8 @@ class GuildBankAutomationMenu(
     private fun checkActiveAutomations() {
         activeAutomations.clear()
 
-        if (scheduledDepositsEnabled) {
-            activeAutomations.add(lang.gui("menu.bank_automation.active.scheduled_deposits"))
-        }
-        if (autoRewardsEnabled) {
-            activeAutomations.add(lang.gui("menu.bank_automation.active.auto_rewards"))
-        }
-        if (recurringPaymentsEnabled) {
-            activeAutomations.add(lang.gui("menu.bank_automation.active.recurring_payments"))
-        }
+        // Only count automations that actually execute server-side. The three legacy
+        // booleans are retained for migration compatibility but are not presented as active.
         if (interestRate > 0) {
             activeAutomations.add(lang.gui("menu.bank_automation.active.interest", "rate" to String.format("%.1f", interestRate * 100)))
         }
@@ -130,7 +131,8 @@ class GuildBankAutomationMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(5, MenuTitleBuilder.build(guild.guiTheme, 5, lang.guiTitle("menu.bank_automation.title", "guild" to guild.name)))
+        menuTitle = MenuTitleBuilder.build(guild.guiTheme, 5, lang.guiTitle("menu.bank_automation.title", "guild" to guild.name))
+        gui = ChestGui(5, menuTitle)
         gui.setOnGlobalClick { event -> event.isCancelled = true }
 
         // Create main navigation pane
@@ -209,57 +211,35 @@ class GuildBankAutomationMenu(
      * Setup automation settings controls
      */
     private fun setupAutomationSettings() {
-        // Scheduled deposits toggle
+        // Scheduled deposits: retained state is shown honestly, but this legacy flag has no execution service yet.
         val scheduledItem = createMenuItem(
-            if (scheduledDepositsEnabled) Material.GREEN_WOOL else Material.RED_WOOL,
+            "lg_bank_scheduled_deposits",
+            if (scheduledDepositsEnabled) Material.GREEN_WOOL else Material.GRAY_WOOL,
             lang.gui("menu.bank_automation.scheduled.name"),
             listOf(
                 toggleStatus(scheduledDepositsEnabled),
                 lang.gui("menu.bank_automation.scheduled.description"),
-                lang.gui("menu.bank_automation.common.toggle")
+                lang.gui("menu.bank_automation.common.read_only")
             )
         )
-        val scheduledGuiItem = GuiItem(scheduledItem) { event ->
-            event.isCancelled = true
-            scheduledDepositsEnabled = !scheduledDepositsEnabled
-            if (scheduledDepositsEnabled) {
-                player.sendMessage(lang.msg("menu.bank_automation.feedback.scheduled_enabled"))
-            } else {
-                player.sendMessage(lang.msg("menu.bank_automation.feedback.scheduled_disabled"))
-            }
-            checkActiveAutomations()
-            updateAutomationDisplay()
-            gui.update()
-        }
-        automationPane.addItem(scheduledGuiItem, 0, 0)
+        automationPane.addItem(GuiItem(scheduledItem), 0, 0)
 
-        // Auto-rewards toggle
+        // Auto-rewards: retained state is shown honestly, but this legacy flag has no execution service yet.
         val rewardsItem = createMenuItem(
-            if (autoRewardsEnabled) Material.GREEN_WOOL else Material.RED_WOOL,
+            "lg_bank_auto_rewards",
+            if (autoRewardsEnabled) Material.GREEN_WOOL else Material.GRAY_WOOL,
             lang.gui("menu.bank_automation.rewards.name"),
             listOf(
                 toggleStatus(autoRewardsEnabled),
                 lang.gui("menu.bank_automation.rewards.description"),
-                lang.gui("menu.bank_automation.common.toggle")
+                lang.gui("menu.bank_automation.common.read_only")
             )
         )
-        val rewardsGuiItem = GuiItem(rewardsItem) { event ->
-            event.isCancelled = true
-            autoRewardsEnabled = !autoRewardsEnabled
-            if (autoRewardsEnabled) {
-                player.sendMessage(lang.msg("menu.bank_automation.feedback.rewards_enabled"))
-            } else {
-                player.sendMessage(lang.msg("menu.bank_automation.feedback.rewards_disabled"))
-            }
-            checkActiveAutomations()
-            updateAutomationDisplay()
-            gui.update()
-        }
-        automationPane.addItem(rewardsGuiItem, 1, 0)
+        automationPane.addItem(GuiItem(rewardsItem), 1, 0)
 
         // Budget alerts — opens the dedicated Budget Management menu
         val alertsItem = createMenuItem(
-            Material.BELL,
+            "lg_bank_budget_alerts", Material.BELL,
             lang.gui("menu.bank_automation.alerts.name"),
             listOf(
                 lang.gui("menu.bank_automation.alerts.description"),
@@ -273,33 +253,22 @@ class GuildBankAutomationMenu(
         }
         automationPane.addItem(alertsGuiItem, 2, 0)
 
-        // Recurring payments toggle
+        // Recurring payments: retained state is shown honestly, but this legacy flag has no execution service yet.
         val recurringItem = createMenuItem(
-            if (recurringPaymentsEnabled) Material.GREEN_WOOL else Material.RED_WOOL,
+            "lg_bank_recurring_payments",
+            if (recurringPaymentsEnabled) Material.GREEN_WOOL else Material.GRAY_WOOL,
             lang.gui("menu.bank_automation.recurring.name"),
             listOf(
                 toggleStatus(recurringPaymentsEnabled),
                 lang.gui("menu.bank_automation.recurring.description"),
-                lang.gui("menu.bank_automation.common.toggle")
+                lang.gui("menu.bank_automation.common.read_only")
             )
         )
-        val recurringGuiItem = GuiItem(recurringItem) { event ->
-            event.isCancelled = true
-            recurringPaymentsEnabled = !recurringPaymentsEnabled
-            if (recurringPaymentsEnabled) {
-                player.sendMessage(lang.msg("menu.bank_automation.feedback.recurring_enabled"))
-            } else {
-                player.sendMessage(lang.msg("menu.bank_automation.feedback.recurring_disabled"))
-            }
-            checkActiveAutomations()
-            updateAutomationDisplay()
-            gui.update()
-        }
-        automationPane.addItem(recurringGuiItem, 3, 0)
+        automationPane.addItem(GuiItem(recurringItem), 3, 0)
 
         // Interest rate setting
         val interestItem = createMenuItem(
-            Material.GOLD_INGOT,
+            "lg_bank_interest", Material.GOLD_INGOT,
             lang.gui("menu.bank_automation.interest.name"),
             listOf(
                 lang.gui("menu.bank_automation.interest.current", "rate" to String.format("%.1f", interestRate * 100)),
@@ -333,12 +302,7 @@ class GuildBankAutomationMenu(
                 lang.gui("menu.bank_automation.setup.rewards.basis")
             )
         )
-        val rewardSetupGuiItem = GuiItem(rewardSetupItem) { event ->
-            event.isCancelled = true
-            // TODO: Open reward setup menu
-            player.sendMessage(lang.msg("menu.bank_automation.feedback.rewards_coming_soon"))
-        }
-        rewardsPane.addItem(rewardSetupGuiItem, 0, 0)
+        rewardsPane.addItem(GuiItem(rewardSetupItem), 0, 0)
 
         // Alert threshold configuration
         val alertConfigItem = createMenuItem(
@@ -352,8 +316,7 @@ class GuildBankAutomationMenu(
         )
         val alertConfigGuiItem = GuiItem(alertConfigItem) { event ->
             event.isCancelled = true
-            // TODO: Open alert configuration menu
-            player.sendMessage(lang.msg("menu.bank_automation.feedback.alerts_coming_soon"))
+            menuNavigator.openMenu(menuFactory.createGuildBankBudgetMenu(menuNavigator, player, guild))
         }
         rewardsPane.addItem(alertConfigGuiItem, 1, 0)
 
@@ -367,12 +330,7 @@ class GuildBankAutomationMenu(
                 lang.gui("menu.bank_automation.setup.recurring.recipients")
             )
         )
-        val paymentSetupGuiItem = GuiItem(paymentSetupItem) { event ->
-            event.isCancelled = true
-            // TODO: Open recurring payment setup
-            player.sendMessage(lang.msg("menu.bank_automation.feedback.recurring_coming_soon"))
-        }
-        rewardsPane.addItem(paymentSetupGuiItem, 2, 0)
+        rewardsPane.addItem(GuiItem(paymentSetupItem), 2, 0)
 
         // Automation status display
         updateAutomationStatus()
@@ -383,6 +341,7 @@ class GuildBankAutomationMenu(
      */
     private fun updateActiveAutomations() {
         val statusItem = createMenuItem(
+            if (activeAutomations.isNotEmpty()) "lg_bank_active_automations" else "lg_bank_inactive_automations",
             Material.COMPARATOR,
             lang.gui("menu.bank_automation.summary.active.name"),
             activeAutomations.take(3).ifEmpty { listOf(lang.gui("menu.bank_automation.summary.active.empty")) }
@@ -398,12 +357,7 @@ class GuildBankAutomationMenu(
                 lang.gui("menu.bank_automation.summary.action")
             )
         )
-        val countGuiItem = GuiItem(countItem) { event ->
-            event.isCancelled = true
-            // TODO: Show detailed automation list
-            player.sendMessage(lang.msg("menu.bank_automation.feedback.active", "automations" to activeAutomations.joinToString(", ")))
-        }
-        automationPane.addItem(countGuiItem, 7, 0)
+        automationPane.addItem(GuiItem(countItem), 7, 0)
     }
 
     /**
@@ -413,7 +367,7 @@ class GuildBankAutomationMenu(
         // Real next run: last accrual + compound period, or the periodic scheduler cadence
         val nextRun = bankAutomationService.getNextInterestRun(guild.id)
         val nextRunText = nextRun?.let {
-            it.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm"))
+            lang.gui("menu.bank_automation.status.next.countdown", "time" to formatCountdown(it))
         } ?: lang.gui("menu.bank_automation.status.pending_first_accrual")
 
         val nextRunItem = createMenuItem(
@@ -432,8 +386,7 @@ class GuildBankAutomationMenu(
         val statusLore = if (activeCount > 0) {
             listOf(
                 lang.gui("menu.bank_automation.status.health.configured", "count" to activeCount),
-                lang.gui("menu.bank_automation.status.health.interest", "rate" to String.format("%.2f", interestRate * 100), "hours" to interestPeriodHours()),
-                lang.gui("menu.bank_automation.status.health.toggles", "scheduled" to toggleWord(scheduledDepositsEnabled), "rewards" to toggleWord(autoRewardsEnabled))
+                lang.gui("menu.bank_automation.status.health.interest", "rate" to String.format("%.2f", interestRate * 100), "hours" to interestPeriodHours())
             )
         } else {
             listOf(lang.gui("menu.bank_automation.status.health.empty"), lang.gui("menu.bank_automation.status.health.hint"))
@@ -485,12 +438,7 @@ class GuildBankAutomationMenu(
      */
     private fun saveAutomationSettings() {
         val current = bankSettingsRepository.getByGuildId(guild.id) ?: BankSettings(guild.id)
-        val updated = current.copy(
-            scheduledDepositsEnabled = scheduledDepositsEnabled,
-            autoRewardsEnabled = autoRewardsEnabled,
-            recurringPaymentsEnabled = recurringPaymentsEnabled,
-            interestRate = interestRate
-        )
+        val updated = current.copy(interestRate = interestRate)
         val saved = bankSettingsRepository.upsert(updated)
         if (saved) {
             player.sendMessage(lang.msg("menu.bank_automation.feedback.saved"))
@@ -527,8 +475,15 @@ class GuildBankAutomationMenu(
     /**
      * Create a menu item with consistent formatting
      */
-    private fun createMenuItem(material: Material, name: Component, lore: List<*>): ItemStack {
-        val item = ItemStack.of(material)
+    private fun createMenuItem(nexoId: String, material: Material, name: Component, lore: List<*>): ItemStack {
+        val item = NexoItemProvider.getItemStackOrFallback(nexoId) { ItemStack.of(material) }
+        return decorateMenuItem(item, name, lore)
+    }
+
+    private fun createMenuItem(material: Material, name: Component, lore: List<*>): ItemStack =
+        decorateMenuItem(ItemStack.of(material), name, lore)
+
+    private fun decorateMenuItem(item: ItemStack, name: Component, lore: List<*>): ItemStack {
         val meta = item.itemMeta
 
         meta.displayName(name.decoration(TextDecoration.ITALIC, false))
@@ -547,15 +502,37 @@ class GuildBankAutomationMenu(
         return item
     }
 
+    private fun startLiveCountdown() {
+        countdownTask?.cancel()
+        countdownTask = Bukkit.getScheduler().runTaskTimer(
+            net.lumalyte.lg.common.PluginKeys.getPlugin(),
+            Runnable {
+                if (!player.isOnline || player.openInventory.topInventory != gui.inventory) {
+                    countdownTask?.cancel()
+                    countdownTask = null
+                    return@Runnable
+                }
+                updateAutomationStatus()
+                gui.update()
+            },
+            20L,
+            20L,
+        )
+    }
+
+    private fun formatCountdown(nextRun: Instant): String {
+        val seconds = Duration.between(Instant.now(), nextRun).seconds.coerceAtLeast(0)
+        val hours = seconds / 3600
+        val minutes = (seconds % 3600) / 60
+        val secs = seconds % 60
+        return if (hours > 0) "%dh %02dm %02ds".format(hours, minutes, secs)
+        else "%dm %02ds".format(minutes, secs)
+    }
+
     private fun toggleStatus(enabled: Boolean): Component = if (enabled) {
         lang.gui("menu.bank_automation.common.status.enabled")
     } else {
         lang.gui("menu.bank_automation.common.status.disabled")
     }
 
-    private fun toggleWord(enabled: Boolean): Component = if (enabled) {
-        lang.gui("menu.bank_automation.common.enabled_word")
-    } else {
-        lang.gui("menu.bank_automation.common.disabled_word")
-    }
 }

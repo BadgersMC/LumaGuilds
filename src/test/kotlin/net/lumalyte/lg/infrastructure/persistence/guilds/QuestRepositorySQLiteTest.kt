@@ -8,6 +8,7 @@ import net.lumalyte.lg.domain.entities.QuestTarget
 import net.lumalyte.lg.domain.entities.WeeklyQuestSet
 import net.lumalyte.lg.domain.values.QuestAction
 import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.migrations.QuestSchema
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Path
+import java.sql.DriverManager
 import java.time.Instant
 import java.util.UUID
 
@@ -26,6 +28,7 @@ class QuestRepositorySQLiteTest {
 
     @BeforeEach fun setUp() {
         storage = VirtualThreadSQLiteStorage(tempDir.toFile())
+        storage.connection.getConnection().use { QuestSchema.create(it, mariaDb = false) }
         repository = QuestRepositorySQLite(storage)
     }
 
@@ -57,13 +60,20 @@ class QuestRepositorySQLiteTest {
         val guild = UUID.randomUUID()
         repository.saveActiveQuestSet(set)
         repository.saveProgress(GuildQuestProgress(set.weekId, "zombies", guild, 100))
+        val actor = UUID.randomUUID()
 
-        assertTrue(repository.tryMarkClaimed(set.weekId, "zombies", guild))
-        assertFalse(repository.tryMarkClaimed(set.weekId, "zombies", guild))
+        assertTrue(repository.tryMarkClaimed(set.weekId, "zombies", guild, actor))
+        assertFalse(repository.tryMarkClaimed(set.weekId, "zombies", guild, actor))
+        val claimed = repository.getProgress(set.weekId, "zombies", guild)!!
+        assertEquals(actor, claimed.claimActorId)
+        assertFalse(claimed.rewardDelivered)
+        assertTrue(repository.markClaimRewardDelivered(set.weekId, "zombies", guild))
+        assertTrue(repository.getProgress(set.weekId, "zombies", guild)!!.rewardDelivered)
+
         assertTrue(repository.tryMarkWeeklyBonusAwarded(set.weekId, guild))
         assertFalse(repository.tryMarkWeeklyBonusAwarded(set.weekId, guild))
         assertFalse(repository.isLeaderboardRecipientPaid(set.weekId, "zombies", guild))
-        repository.markLeaderboardRecipientPaid(set.weekId, "zombies", guild)
+        assertTrue(repository.markLeaderboardRecipientPaid(set.weekId, "zombies", guild))
         assertTrue(repository.isLeaderboardRecipientPaid(set.weekId, "zombies", guild))
     }
 
@@ -72,13 +82,82 @@ class QuestRepositorySQLiteTest {
         val set = questSet()
         val guild = UUID.randomUUID()
         repository.saveProgress(GuildQuestProgress(set.weekId, "zombies", guild, 100))
-        assertTrue(repository.tryMarkClaimed(set.weekId, "zombies", guild))
+        assertTrue(repository.tryMarkClaimed(set.weekId, "zombies", guild, UUID.randomUUID()))
 
         repository.saveProgress(GuildQuestProgress(set.weekId, "zombies", guild, 90))
 
         val stored = repository.getProgress(set.weekId, "zombies", guild)!!
         assertTrue(stored.claimed)
         assertEquals(100, stored.currentCount)
+    }
+
+    @Test
+    fun `completed but unclaimed progress can be recovered after restart`() {
+        val set = questSet()
+        val completedGuild = UUID.randomUUID()
+        val inProgressGuild = UUID.randomUUID()
+        val alreadyClaimedGuild = UUID.randomUUID()
+        val completedAt = Instant.parse("2026-08-26T12:00:00Z")
+
+        repository.saveProgress(
+            GuildQuestProgress(
+                set.weekId, "zombies", completedGuild, 125,
+                completedAt = completedAt,
+            )
+        )
+        repository.saveProgress(
+            GuildQuestProgress(set.weekId, "zombies", inProgressGuild, 99)
+        )
+        repository.saveProgress(
+            GuildQuestProgress(
+                set.weekId, "zombies", alreadyClaimedGuild, 140,
+                claimed = true,
+                completedAt = completedAt,
+            )
+        )
+
+        val recoverable = repository.getUnclaimedCompletedProgress(set.weekId)
+
+        assertEquals(listOf(completedGuild), recoverable.map { it.guildId })
+        assertEquals(125, recoverable.single().currentCount)
+    }
+
+    @Test
+    fun `legacy claimed progress migrates as already delivered`() {
+        val legacyFile = tempDir.resolve("legacy-quests.db")
+        DriverManager.getConnection("jdbc:sqlite:$legacyFile").use { connection ->
+            connection.createStatement().use { statement ->
+                statement.execute("""
+                    CREATE TABLE guild_quest_progress (
+                        week_id TEXT NOT NULL,
+                        quest_id TEXT NOT NULL,
+                        guild_id TEXT NOT NULL,
+                        current_count INTEGER NOT NULL DEFAULT 0,
+                        claimed INTEGER NOT NULL DEFAULT 0,
+                        completed_at INTEGER,
+                        PRIMARY KEY (week_id, quest_id, guild_id)
+                    )
+                """.trimIndent())
+                statement.execute("""
+                    INSERT INTO guild_quest_progress
+                    (week_id, quest_id, guild_id, current_count, claimed)
+                    VALUES ('old-week', 'old-quest', '00000000-0000-0000-0000-000000000001', 10, 1)
+                """.trimIndent())
+            }
+
+            QuestSchema.create(connection, mariaDb = false)
+
+            connection.createStatement().use { statement ->
+                statement.executeQuery("""
+                    SELECT reward_delivered
+                    FROM guild_quest_progress
+                    WHERE week_id='old-week' AND quest_id='old-quest'
+                """.trimIndent()).use { rows ->
+                    assertTrue(rows.next())
+                    assertEquals(1, rows.getInt(1))
+                }
+            }
+        }
     }
 
     @Test
@@ -97,7 +176,7 @@ class QuestRepositorySQLiteTest {
             nameKey = "quests.zombies.name",
             descriptionKey = "quests.zombies.description",
             action = QuestAction.KILL_MOBS,
-            target = QuestTarget("ZOMBIE", setOf(QuestAction.KILL_MOBS), 50, 500),
+            target = QuestTarget("minecraft:entity/zombie", setOf(QuestAction.KILL_MOBS), 50, 500),
             targetCount = 100,
             tier = QuestRewardTier.COMMON,
             experienceReward = 500,

@@ -14,7 +14,7 @@ class RewardOwnership(
 
     init {
         require(initialHomeCapacity > 0)
-        require(prestigeCount in 0..3)
+        require(prestigeCount in 0..6)
     }
 
     fun copy(
@@ -83,7 +83,7 @@ class RewardEntitlementResolver(private val catalog: RewardCatalog) {
             }
             RewardOffer(reward, status)
         }
-        val choices = if (level != 100 || ownership.prestigeCount == 3) emptyList() else current.filter { candidate ->
+        val choices = if (level != 100 || ownership.prestigeCount >= 6) emptyList() else current.filter { candidate ->
             candidate.prestigeEligible && candidate.id !in ownership.permanent && when (candidate.effect) {
                 is RewardEffect.HomeCooldown -> selections.none { it.effect is RewardEffect.HomeCooldown }
                 is RewardEffect.WithdrawalFee -> selections.none { it.effect is RewardEffect.WithdrawalFee }

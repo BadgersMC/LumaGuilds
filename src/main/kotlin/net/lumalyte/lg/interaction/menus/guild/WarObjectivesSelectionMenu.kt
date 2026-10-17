@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
@@ -9,7 +10,7 @@ import net.badgersmc.nexus.i18n.LangService
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.domain.entities.ObjectiveType
 import net.lumalyte.lg.domain.entities.WarObjective
@@ -39,7 +40,7 @@ class WarObjectivesSelectionMenu(
     override fun open() {
         val claimsEnabled = configService.loadConfig().claimsEnabled
 
-        val gui = ChestGui(5, MenuTitleBuilder.build(GuiTheme.NEUTRAL, 5, lang.guiTitle("menu.war_objectives.title")))
+        val gui = ChestGui(5, MenuTitleBuilder.build(GuiTheme.DEFAULT, 5, lang.guiTitle("menu.war_objectives.title")))
         val pane = StaticPane(0, 0, 9, 5)
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick { if (it.click == ClickType.SHIFT_LEFT || it.click == ClickType.SHIFT_RIGHT) it.isCancelled = true }
@@ -80,7 +81,12 @@ class WarObjectivesSelectionMenu(
     private fun addKillsObjectiveItem(pane: StaticPane, x: Int, y: Int) {
         val killObjective = tempObjectives.firstOrNull { it.type == ObjectiveType.KILLS }
         val hasObjective = killObjective != null
-        val currentValue = killObjective?.targetValue ?: 10
+        val killCap = configService.loadConfig().combat.warKillWinTarget
+        val killTargets = (listOf(5, 10, 25, 50).filter { it <= killCap } + killCap)
+            .filter { it > 0 }
+            .distinct()
+            .sorted()
+        val currentValue = killObjective?.targetValue ?: killTargets.first()
 
         val item = ItemStack.of(if (hasObjective) Material.DIAMOND_SWORD else Material.IRON_SWORD)
             .name(if (hasObjective) lang.gui("menu.war_objectives.kills.selected") else lang.gui("menu.war_objectives.kills.name"))
@@ -104,7 +110,6 @@ class WarObjectivesSelectionMenu(
                 player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1.0f, 0.8f)
             } else {
                 // Cycle or add objective
-                val killTargets = listOf(5, 10, 25, 50)
                 val currentIndex = killTargets.indexOf(currentValue)
                 val nextIndex = if (currentIndex == -1 || currentIndex >= killTargets.size - 1) 0 else currentIndex + 1
                 val newTarget = killTargets[nextIndex]

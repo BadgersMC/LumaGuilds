@@ -57,6 +57,34 @@ class WarPaymentService(private val wars: WarRepository, private val gold: Guild
     fun settle(recordId: UUID, winnerGuildId: UUID?): Boolean =
         runCatching { settleRecorded(recordId, winnerGuildId) }.getOrDefault(false)
 
+    /**
+     * Safely unwinds any wager before a Chapter cut-over cancels the corresponding war.
+     * FUNDING/REFUNDING only refunds confirmed debits; REVIEW fails closed.
+     */
+    @Synchronized
+    fun cancelForCutover(recordId: UUID): Boolean =
+        runCatching { cancelForCutoverRecorded(recordId) }.getOrDefault(false)
+
+    private fun cancelForCutoverRecorded(id: UUID): Boolean {
+        var record = wars.get(id) ?: return true
+        val wager = record.wager ?: return true
+        return when (record.paymentPhase) {
+            WarPaymentPhase.FUNDING -> {
+                record = saved(record.copy(paymentPhase = WarPaymentPhase.REFUNDING)) ?: return false
+                refundFunding(id)
+            }
+            WarPaymentPhase.REFUNDING -> refundFunding(id)
+            WarPaymentPhase.ESCROWED -> settleRecorded(id, null)
+            WarPaymentPhase.SETTLING ->
+                record.settlementChosen && record.settlementWinner == null && settleRecorded(id, null)
+            WarPaymentPhase.SETTLED ->
+                record.settlementWinner == null &&
+                    wager.status in setOf(WagerStatus.CANCELLED, WagerStatus.DRAW)
+            WarPaymentPhase.REVIEW -> false
+            null -> false
+        }
+    }
+
     private fun settleRecorded(id: UUID, winner: UUID?): Boolean {
         var record = wars.get(id) ?: return false
         val wager = record.wager ?: return false

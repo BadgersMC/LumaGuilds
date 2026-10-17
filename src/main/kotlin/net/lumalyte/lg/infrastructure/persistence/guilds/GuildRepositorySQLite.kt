@@ -7,11 +7,12 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.entities.GuildHomes
 import net.lumalyte.lg.domain.entities.GuildMode
-import net.lumalyte.lg.domain.entities.VaultStatus
 import net.lumalyte.lg.domain.entities.GuildVaultLocation
-import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import net.lumalyte.lg.domain.entities.VaultStatus
 import net.lumalyte.lg.infrastructure.persistence.getInstant
 import net.lumalyte.lg.infrastructure.persistence.getInstantNotNull
+import net.lumalyte.lg.infrastructure.persistence.migrations.GuildChatReconnectSettingsSchema
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import java.sql.SQLException
 import java.time.Instant
 import java.time.ZoneOffset
@@ -101,6 +102,10 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
 
     init {
         createGuildTable()
+        storage.connection.connection.use {
+            it.ensureGuildVaultSchema()
+            GuildChatReconnectSettingsSchema.create(it)
+        }
         createGuildHomesTable()
         migrateTrackingColumn()
         migrateBankFrozenColumn()
@@ -523,9 +528,9 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
         // Parse gui_theme (default to NEUTRAL for existing guilds)
         val guiTheme = try {
             val themeStr = rs.getString("gui_theme")
-            if (themeStr != null) net.lumalyte.lg.utils.GuiTheme.fromKey(themeStr) else net.lumalyte.lg.utils.GuiTheme.NEUTRAL
+            if (themeStr != null) net.lumalyte.lg.utils.GuiTheme.fromKey(themeStr) else net.lumalyte.lg.utils.GuiTheme.DEFAULT
         } catch (e: Exception) {
-            net.lumalyte.lg.utils.GuiTheme.NEUTRAL
+            net.lumalyte.lg.utils.GuiTheme.DEFAULT
         }
 
         // Debug logging for vault data loading
@@ -558,6 +563,12 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             allyHomeAllowedGuilds = allyHomeAllowedGuilds,
             guiTheme = guiTheme
         )
+    }
+
+    override fun refreshCachedLevel(guildId: UUID) {
+        val cached = guilds[guildId] ?: return
+        val row = storage.connection.getResults("SELECT level FROM guilds WHERE id = ?", guildId.toString()).firstOrNull() ?: return
+        guilds[guildId] = cached.copy(level = row.getInt("level"))
     }
 
     override fun getAll(): Set<Guild> = guilds.values.toSet()
@@ -595,12 +606,25 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     override fun addCreated(guild: Guild, creatorId: UUID): Boolean = try {
         require(guild.homes.homes.isEmpty()) { "New guild must not contain activated homes" }
         val added = creationHistory.create(guild.id, creatorId, guild.createdAt) { connection ->
-            insertGuild(guild, GuildSqlWriter { sql, args ->
+            val inserted = insertGuild(guild, GuildSqlWriter { sql, args ->
                 connection.prepareStatement(sql).use { statement ->
                     args.forEachIndexed { index, value -> statement.setObject(index + 1, value) }
                     statement.executeUpdate()
                 }
             }, false)
+            if (!inserted) {
+                false
+            } else {
+                connection.prepareStatement(
+                    "INSERT INTO guild_reward_accounts (guild_id, version, initial_home_capacity, prestige_count) VALUES (?, 0, 1, 0)"
+                ).use { statement ->
+                    statement.setString(1, guild.id.toString())
+                    check(statement.executeUpdate() == 1) {
+                        "Failed to initialize reward account for new guild ${guild.id}"
+                    }
+                }
+                true
+            }
         }
         if (added) guilds[guild.id] = guild
         added
@@ -610,6 +634,25 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     override fun removeWithCreationCooldown(guildId: UUID,
         policy: net.lumalyte.lg.domain.values.GuildCreationCooldown, deletedAt: Instant): Boolean = try {
         val removed = creationHistory.delete(guildId, policy, deletedAt) { connection ->
+            // These writes share the cooldown transaction; caches/world change only after commit.
+            connection.prepareStatement("UPDATE membership_history SET departed_at = ?, departure_reason = 'DISBANDED' WHERE guild_id = ? AND departed_at IS NULL").use {
+                it.setString(1, deletedAt.toString())
+                it.setString(2, guildId.toString())
+                it.executeUpdate()
+            }
+            for (table in listOf("members", "ranks", "guild_homes")) {
+                connection.prepareStatement("DELETE FROM $table WHERE guild_id = ?").use {
+                    it.setString(1, guildId.toString())
+                    it.executeUpdate()
+                }
+            }
+            connection.deleteGuildRelations(guildId)
+            GuildChatReconnectSettingsSchema.delete(connection, guildId)
+            deleteRewardOwnershipState(connection, guildId)
+            connection.prepareStatement("DELETE FROM guild_cosmetic_unlocks WHERE guild_id = ?").use {
+                it.setString(1, guildId.toString())
+                it.executeUpdate()
+            }
             connection.prepareStatement("DELETE FROM guilds WHERE id = ?").use {
                 it.setString(1, guildId.toString())
                 it.executeUpdate() == 1
@@ -812,6 +855,21 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             changed
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to update GUI theme for guild $guildId", e)
+        }
+    }
+
+    override fun clearEmoji(guildId: UUID, expected: String): Boolean {
+        return try {
+            val changed = storage.connection.executeUpdate(
+                "UPDATE guilds SET emoji = NULL WHERE id = ? AND emoji = ?",
+                guildId.toString(), expected,
+            ) > 0
+            if (changed) guilds.computeIfPresent(guildId) { _, guild ->
+                if (guild.emoji == expected) guild.copy(emoji = null) else guild
+            }
+            true
+        } catch (e: SQLException) {
+            throw DatabaseOperationException("Failed to clear emoji for guild $guildId", e)
         }
     }
 
@@ -1039,16 +1097,63 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     }
 
     override fun remove(guildId: UUID): Boolean {
-        val sql = "DELETE FROM guilds WHERE id = ?"
-        
         return try {
-            val rowsAffected = storage.connection.executeUpdate(sql, guildId.toString())
-            if (rowsAffected > 0) {
-                guilds.remove(guildId)
+            val removed = storage.connection.connection.use { connection ->
+                val autoCommit = connection.autoCommit
+                connection.autoCommit = false
+                var failure: Throwable? = null
+                var rolledBack = false
+                try {
+                    GuildChatReconnectSettingsSchema.delete(connection, guildId)
+                    deleteRewardOwnershipState(connection, guildId)
+                    val rowsAffected = connection.prepareStatement("DELETE FROM guilds WHERE id = ?").use {
+                        it.setString(1, guildId.toString())
+                        it.executeUpdate()
+                    }
+                    if (rowsAffected > 0) {
+                        connection.commit()
+                        true
+                    } else {
+                        connection.rollback()
+                        rolledBack = true
+                        false
+                    }
+                } catch (error: Throwable) {
+                    failure = error
+                    try {
+                        connection.rollback()
+                        rolledBack = true
+                    } catch (rollback: Throwable) {
+                        if (rollback !== error) error.addSuppressed(rollback)
+                    }
+                    throw error
+                } finally {
+                    // Never re-enable auto-commit after a failed rollback; doing so may commit partial writes.
+                    if (failure == null || rolledBack) {
+                        try {
+                            connection.autoCommit = autoCommit
+                        } catch (restore: Throwable) {
+                            if (failure == null) throw restore
+                            if (restore !== failure) failure.addSuppressed(restore)
+                        }
+                    }
+                }
             }
-            rowsAffected > 0
-        } catch (e: SQLException) {
+            if (removed) guilds.remove(guildId)
+            removed
+        } catch (_: Throwable) {
             false
+        }
+    }
+
+    private fun deleteRewardOwnershipState(connection: java.sql.Connection, guildId: UUID) {
+        connection.prepareStatement("DELETE FROM guild_reward_ownership WHERE guild_id = ?").use {
+            it.setString(1, guildId.toString())
+            it.executeUpdate()
+        }
+        connection.prepareStatement("DELETE FROM guild_reward_accounts WHERE guild_id = ?").use {
+            it.setString(1, guildId.toString())
+            it.executeUpdate()
         }
     }
     

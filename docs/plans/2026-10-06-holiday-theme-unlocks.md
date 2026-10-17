@@ -1,6 +1,6 @@
 # PR-17 holiday guild menu themes — SPEAR
 
-REQ-094. Holiday-themed guild menu backgrounds are earned through EnthusiaHolidays
+REQ-121. Holiday-themed guild menu backgrounds are earned through EnthusiaHolidays
 (guild goals during holiday events) and rendered by LumaGuilds. EnthusiaHolidays
 keeps the permanent earned ledger and pushes each unlock or revocation here until
 LumaGuilds confirms; it never edits guild menus. Contract (consumer side):
@@ -8,7 +8,7 @@ EnthusiaHolidays `docs/lumaguilds-integration.md`.
 
 ## Spec
 
-- `GuiTheme` gains `requiresUnlock`; `HAUNTED_HALL` and `WINTER_LODGE` require it.
+- `GuiTheme` gains `requiresUnlock`; `HALLOWEEN` and `CHRISTMAS` require it.
   Existing progression themes are unchanged (`requiresUnlock = false`).
 - Ownership ledger `guild_cosmetic_unlocks(guild_id, cosmetic_type, cosmetic_key,
   display_name, source, unlocked_at)`, primary key `(guild_id, cosmetic_type,
@@ -20,11 +20,11 @@ EnthusiaHolidays `docs/lumaguilds-integration.md`.
   and types are stored (forward compatibility). Type and key are normalised to
   upper case; blank or over-long values are rejected.
 - `setGuiTheme` rejects a locked theme even when called outside the menu.
-- Revoking an equipped `MENU_THEME` resets the guild to `NEUTRAL`.
+- Revoking an equipped `MENU_THEME` resets only its `gui_theme` to the default style (`GuiTheme.DEFAULT`).
 - The selector lists every theme; locked ones show a lock and "earned through
   holiday guild goals (/holidays)" lore and cannot be applied. A failed change
   reports failure instead of claiming success.
-- Guild disband leaves ledger rows orphaned but harmless (a new guild has a new id).
+- Guild disband deletes cosmetic ownership in the same database transaction as the guild and its other dependent state; a failed disband preserves the ledger row.
 
 ## Prove
 

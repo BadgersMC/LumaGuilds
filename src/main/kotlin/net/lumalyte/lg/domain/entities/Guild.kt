@@ -1,6 +1,7 @@
 package net.lumalyte.lg.domain.entities
 
 import net.lumalyte.lg.domain.values.Position3D
+import net.lumalyte.lg.utils.GuildDescriptionContent
 import net.lumalyte.lg.utils.GuiTheme
 import java.time.Instant
 import java.util.UUID
@@ -48,12 +49,12 @@ data class Guild(
     val isOpen: Boolean = false,
     val joinFeeEnabled: Boolean = false,
     val joinFeeAmount: Int = 0,
-    val trackingEnabled: Boolean = true,
+    val trackingEnabled: Boolean = false,
     val bankFrozen: Boolean = false,
     val bannermanEnabled: Boolean = false,
     val allyHome: GuildHome? = null,
     val allyHomeAllowedGuilds: Set<UUID> = emptySet(),
-    val guiTheme: GuiTheme = GuiTheme.NEUTRAL
+    val guiTheme: GuiTheme = GuiTheme.DEFAULT
 ) {
     init {
         require(name.length in 1..32) { "Guild name must be between 1 and 32 characters." }
@@ -70,8 +71,8 @@ data class Guild(
 
         // Validate description length if provided
         description?.let { descValue ->
-            require(descValue.length <= 100) {
-                "Guild description must be 100 characters or less."
+            require(descValue.length <= GuildDescriptionContent.MAX_LENGTH) {
+                "Guild description must be ${GuildDescriptionContent.MAX_LENGTH} characters or less."
             }
         }
     }

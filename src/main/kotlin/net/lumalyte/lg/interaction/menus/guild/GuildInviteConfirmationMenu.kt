@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
@@ -7,7 +8,7 @@ import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
@@ -128,13 +129,17 @@ class GuildInviteConfirmationMenu(private val menuNavigator: MenuNavigator, priv
         }
 
         // Store the invitation
-        GuildInvitationManager.addInvite(
+        val invitationStored = GuildInvitationManager.addInvite(
             guildId = guild.id,
             guildName = guild.name,
             invitedPlayerId = targetPlayer.uniqueId,
             inviterPlayerId = player.uniqueId,
             inviterName = player.name
         )
+        if (!invitationStored) {
+            player.sendMessage(lang.msg("menu.guild_confirmation.invite.feedback.failed"))
+            return
+        }
 
         // Send invitation message
         player.sendMessage(lang.msg("menu.guild_confirmation.invite.feedback.sent", "player" to targetPlayer.name))

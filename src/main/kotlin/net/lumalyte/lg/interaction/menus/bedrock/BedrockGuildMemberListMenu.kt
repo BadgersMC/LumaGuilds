@@ -1,7 +1,5 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
-import net.lumalyte.lg.infrastructure.i18n.bedrock
-
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
@@ -9,16 +7,21 @@ import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.infrastructure.i18n.bedrock
 import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.interaction.menus.sortMembersByRank
+import net.lumalyte.lg.utils.RankNameContent
+import org.bukkit.Bukkit
 import org.bukkit.entity.Player
-import org.geysermc.cumulus.form.SimpleForm
+import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.ModalForm
+import org.geysermc.cumulus.form.SimpleForm
 import org.geysermc.cumulus.util.FormImage
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import java.util.logging.Logger
 import java.util.UUID
+import java.util.logging.Logger
 
 /**
  * Bedrock Edition guild member list menu using Cumulus SimpleForm
@@ -35,10 +38,17 @@ class BedrockGuildMemberListMenu(
     private val memberService: MemberService by inject()
     private val rankService: RankService by inject()
     private val lang: LangService by inject()
+    private val plugin: Plugin by inject()
+    private var sortByRank = false
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
-        val members = memberService.getGuildMembers(guild.id).toList()
+        val rawMembers = memberService.getGuildMembers(guild.id)
+        val members = if (sortByRank) {
+            sortMembersByRank(rawMembers, rankService.listRanks(guild.id), ::getPlayerName)
+        } else {
+            rawMembers.toList()
+        }
 
         return SimpleForm.builder()
             .title(lang.bedrock("bedrock.member_list.title", "guild" to guild.name))
@@ -57,6 +67,16 @@ class BedrockGuildMemberListMenu(
             )
             .addButtonWithImage(
                 config,
+                if (sortByRank) {
+                    lang.bedrock("bedrock.member_list.button.sort_default")
+                } else {
+                    lang.bedrock("bedrock.member_list.button.sort_rank")
+                },
+                config.editIconUrl,
+                config.editIconPath
+            )
+            .addButtonWithImage(
+                config,
                 lang.bedrock("bedrock.member_list.button.refresh"),
                 config.editIconUrl,
                 config.editIconPath
@@ -68,10 +88,14 @@ class BedrockGuildMemberListMenu(
                 config.backIconPath
             )
             .validResultHandler { response ->
-                handleFormResponse(response, members)
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    if (player.isOnline) handleFormResponse(response, members)
+                })
             }
             .closedOrInvalidResultHandler { _, _ ->
-                navigateBack()
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    if (player.isOnline) navigateBack()
+                })
             }
             .build()
     }
@@ -112,7 +136,7 @@ class BedrockGuildMemberListMenu(
                 "bedrock.member_list.member_row",
                 "status" to onlineStatus,
                 "player" to playerName,
-                "rank" to rank
+                "rank" to RankNameContent.miniMessage(rank),
             )
         }
 
@@ -135,8 +159,9 @@ class BedrockGuildMemberListMenu(
             when (response.clickedButtonId()) {
                 0 -> handleMemberSelection(members) // Member list button
                 1 -> handleInvitePlayer() // Invite button
-                2 -> handleRefresh() // Refresh button
-                3 -> navigateBack() // Back button
+                2 -> toggleRankSort() // Sort mode button
+                3 -> handleRefresh() // Refresh button
+                4 -> navigateBack() // Back button
             }
 
         } catch (e: Exception) {
@@ -154,14 +179,53 @@ class BedrockGuildMemberListMenu(
             return
         }
 
-        // For now, show member management menu
-        // TODO: Implement detailed member selection with individual actions
-        showMemberManagementMenu()
-    }
+        val actions = mutableListOf<() -> Unit>()
+        var builder = SimpleForm.builder()
+            .title(lang.bedrock("bedrock.member_list.select_title", "guild" to guild.name))
+            .content(lang.bedrock("bedrock.member_list.select_description"))
 
-    private fun showMemberManagementMenu() {
-        val memberManagementMenu = menuFactory.createGuildMemberManagementMenu(menuNavigator, player, guild)
-        menuNavigator.openMenu(memberManagementMenu)
+        val orderedMembers = if (sortByRank) {
+            members
+        } else {
+            members.sortedBy { getPlayerName(it).lowercase() }
+        }
+
+        orderedMembers.forEach { member ->
+            val name = getPlayerName(member)
+            val rank = rankService.getRank(member.rankId)?.name
+                ?: lang.bedrock("bedrock.member_list.unknown")
+            builder = builder.button(
+                lang.bedrock(
+                    "bedrock.member_list.select_member",
+                    "player" to name,
+                    "rank" to RankNameContent.miniMessage(rank),
+                ),
+            )
+            actions += {
+                bedrockNavigator.openMenu(
+                    BedrockGuildMemberDetailMenu(menuNavigator, player, guild, member, logger)
+                )
+            }
+        }
+
+        builder = builder.button(lang.bedrock("bedrock.member_list.button.back"))
+        actions += { reopen() }
+
+        val selectionForm = builder
+            .validResultHandler { response ->
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    if (!player.isOnline) return@Runnable
+                    actions.getOrNull(response.clickedButtonId())?.invoke()
+                })
+            }
+            .closedOrInvalidResultHandler { _, _ ->
+                Bukkit.getScheduler().runTask(plugin, Runnable {
+                    if (player.isOnline) reopen()
+                })
+            }
+            .build()
+
+        org.geysermc.floodgate.api.FloodgateApi.getInstance().sendForm(player.uniqueId, selectionForm)
     }
 
     private fun handleInvitePlayer() {
@@ -174,6 +238,11 @@ class BedrockGuildMemberListMenu(
         // Navigate to invite menu
         val inviteMenu = BedrockGuildInviteMenu(menuNavigator, player, guild, logger)
         openMenu(inviteMenu)
+    }
+
+    private fun toggleRankSort() {
+        sortByRank = !sortByRank
+        reopen()
     }
 
     private fun handleRefresh() {
@@ -199,11 +268,7 @@ class BedrockGuildMemberListMenu(
         }
     }
 
-    override fun shouldCacheForm(): Boolean = true
-
-    override fun createCacheKey(): String {
-        return "${this::class.simpleName}:${player.uniqueId}:${guild.id}:${System.currentTimeMillis() / 60000}" // Cache for 1 minute
-    }
+    override fun shouldCacheForm(): Boolean = false
 
     override fun handleResponse(player: Player, response: Any?) {
         // Response handling is done in the form builder's validResultHandler

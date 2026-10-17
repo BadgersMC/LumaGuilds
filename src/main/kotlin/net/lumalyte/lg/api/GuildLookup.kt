@@ -27,6 +27,9 @@ import java.util.UUID
  * enum names (e.g. "EDIT_SHOP_STOCK").
  */
 interface GuildLookup {
+    /** Complete active ALLY graph, including isolated guilds; null means unsupported/unavailable. */
+    fun getActiveAllianceGraph(): Map<UUID, Set<UUID>>? = null
+
     /** Guild ids the player is a member of (may be empty). */
     fun getPlayerGuildIds(playerId: UUID): Set<UUID>
 
@@ -72,6 +75,12 @@ interface GuildLookup {
      * Same Int-bounded constraint as [bankWithdraw].
      */
     fun bankDeposit(guildId: UUID, actorId: UUID, amount: Long, reason: String): Boolean
+
+    /** System integrations debit guild funds directly; no personal wallet or online actor involved. */
+    fun systemBankWithdraw(guildId: UUID, amount: Long, reason: String): Boolean = false
+
+    /** System integrations credit guild funds directly, with normal frozen-bank safeguards. */
+    fun systemBankDeposit(guildId: UUID, amount: Long, reason: String): Boolean = false
 }
 
 /**

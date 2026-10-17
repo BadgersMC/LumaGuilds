@@ -84,6 +84,7 @@ internal class GuildServiceBannermanTest {
                 relationRepository = relationRepository,
                 historyRepository = historyRepository,
                 adminOverrideService = adminOverrideService,
+                homeActivationService = mockk(relaxed = true),
             )
     }
 

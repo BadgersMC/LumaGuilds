@@ -19,12 +19,25 @@ import java.util.UUID
  * Koin resolution happens inside LumaGuilds' own classloader (safe) and consumers
  * only ever touch the [GuildLookup] interface.
  */
-class GuildLookupImpl(
+class GuildLookupImpl @JvmOverloads constructor(
     private val guilds: GuildService,
     private val members: MemberService,
     private val ranks: RankService,
     private val banks: BankService,
+    private val relations: net.lumalyte.lg.application.services.RelationService? = null,
 ) : GuildLookup {
+
+    override fun getActiveAllianceGraph(): Map<UUID, Set<UUID>>? {
+        val service = relations ?: return null
+        val ids = guilds.getAllGuilds().map { it.id }.toSet()
+        return ids.associateWith { id ->
+            service.getGuildRelations(id)
+                .filter { it.type == net.lumalyte.lg.domain.entities.RelationType.ALLY && it.isActive() }
+                .map { it.getOtherGuild(id) }
+                .filter { it in ids }
+                .toSet()
+        }
+    }
 
     override fun getPlayerGuildIds(playerId: UUID): Set<UUID> = members.getPlayerGuilds(playerId)
 
@@ -72,6 +85,16 @@ class GuildLookupImpl(
     }
 
     private fun Long.toIntBankAmountOrNull(): Int? = if (this <= 0 || this > Int.MAX_VALUE) null else toInt()
+
+    override fun systemBankWithdraw(guildId: UUID, amount: Long, reason: String): Boolean {
+        val bounded = amount.toIntBankAmountOrNull() ?: return false
+        return banks.deductFromGuildBank(guildId, bounded, reason)
+    }
+
+    override fun systemBankDeposit(guildId: UUID, amount: Long, reason: String): Boolean {
+        val bounded = amount.toIntBankAmountOrNull() ?: return false
+        return banks.creditToGuildBank(guildId, bounded, reason)
+    }
 
     private fun Guild.toSummary() = GuildSummary(id, name, tag, emoji)
 }

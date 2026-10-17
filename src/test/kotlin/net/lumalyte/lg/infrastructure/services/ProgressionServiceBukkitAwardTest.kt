@@ -1,6 +1,10 @@
 package net.lumalyte.lg.infrastructure.services
 
 import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
+import io.mockk.verify
+import io.mockk.every
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.ExperienceAwardRepository
 import net.lumalyte.lg.application.persistence.GuildRepository
@@ -13,15 +17,23 @@ import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.domain.entities.ExperienceAwardRequest
 import net.lumalyte.lg.domain.entities.ExperienceAwardResult
 import net.lumalyte.lg.domain.entities.ExperienceTransaction
+import net.lumalyte.lg.domain.entities.GuildProgression
 import net.lumalyte.lg.domain.values.ExperiencePolicy
 import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.domain.values.PeriodWindow
+import net.lumalyte.lg.api.events.GuildLevelChangedEvent
+import org.bukkit.Bukkit
 import org.bukkit.plugin.Plugin
+import org.bukkit.plugin.PluginManager
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
+
+private const val DISCORD_ROLE_LEVEL = 50
+private const val AWARD_XP = 2_000
 
 class ProgressionServiceBukkitAwardTest {
 
@@ -66,6 +78,57 @@ class ProgressionServiceBukkitAwardTest {
         assertEquals(2, service.awardExperience(UUID.randomUUID(), 2_000, ExperienceSource.MOB_KILL))
     }
 
+    /** A committed level award refreshes progression before publishing its event. */
+    @Test
+    fun awardPublishesLevelChange() {
+        val awards = RecordingRepository().apply { leveledUpTo = DISCORD_ROLE_LEVEL }
+        val progressionRepository = mockk<ProgressionRepository>(relaxed = true)
+        val service = serviceWith(awards, progressionRepository)
+        val guildId = UUID.randomUUID()
+        withCapturedLevelEvents { pluginManager ->
+            assertEquals(DISCORD_ROLE_LEVEL, service.awardExperience(guildId, AWARD_XP, ExperienceSource.MOB_KILL))
+            verifyLevelChange(pluginManager, guildId)
+            verify(exactly = 1) { progressionRepository.refreshGuildProgression(guildId) }
+        }
+    }
+
+    /** A level penalty publishes the decrease for managed-role cleanup. */
+    @Test
+    fun reductionPublishesLevelChange() {
+        val guildId = UUID.randomUUID()
+        val progressionRepository = mockk<ProgressionRepository>(relaxed = true)
+        every { progressionRepository.getGuildProgression(guildId) } returns
+            GuildProgression(guildId, currentLevel = DISCORD_ROLE_LEVEL + 1)
+        every { progressionRepository.saveGuildProgression(any()) } returns true
+        val service = serviceWith(RecordingRepository(), progressionRepository)
+        withCapturedLevelEvents { pluginManager ->
+            assertEquals(DISCORD_ROLE_LEVEL, service.reduceLevel(guildId, 1, ExperienceSource.ADMIN_BONUS))
+            verifyLevelChange(pluginManager, guildId)
+        }
+    }
+
+    private fun withCapturedLevelEvents(action: (PluginManager) -> Unit) {
+        val pluginManager = mockk<PluginManager>(relaxed = true)
+        mockkStatic(Bukkit::class)
+        try {
+            every { Bukkit.isPrimaryThread() } returns true
+            every { Bukkit.getPluginManager() } returns pluginManager
+            action(pluginManager)
+        } finally {
+            unmockkStatic(Bukkit::class)
+        }
+    }
+
+    private fun verifyLevelChange(pluginManager: PluginManager, guildId: UUID) {
+        verify(exactly = 1) {
+            pluginManager.callEvent(
+                match { event ->
+                    event is GuildLevelChangedEvent && event.guildId == guildId && event.newLevel == DISCORD_ROLE_LEVEL
+                },
+            )
+        }
+    }
+
     @Test
     fun `player activity preserves actor and configured units`() {
         val awards = RecordingRepository()
@@ -82,15 +145,19 @@ class ProgressionServiceBukkitAwardTest {
     }
 
     @Test
-    fun `weekly quest sink forces reward outside source caps`() {
+    fun `weekly quest system award uses supplied id outside source caps`() {
         val awards = RecordingRepository()
         val service = serviceWith(awards)
+        val transactionId = UUID.randomUUID()
 
-        QuestRewardSinkBukkit(service).awardExperience(
+        assertTrue(service.awardUncappedSystemExperienceOnce(
             UUID.randomUUID(),
             50_000,
-        )
+            ExperienceSource.WEEKLY_ACTIVITY,
+            transactionId,
+        ))
 
+        assertEquals(transactionId, awards.request?.transactionId)
         assertEquals(ExperienceSource.WEEKLY_ACTIVITY, awards.request?.source)
         assertEquals(false, awards.policy?.isCapped)
         assertEquals(50_000, awards.requestedXp)

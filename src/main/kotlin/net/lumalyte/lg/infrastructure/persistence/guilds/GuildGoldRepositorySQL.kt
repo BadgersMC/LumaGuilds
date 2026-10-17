@@ -626,6 +626,8 @@ class GuildGoldRepositorySQL(
         }
     }
 
+    internal fun <T> withGuildLock(guildId: UUID, action: () -> T): T = guildLock(guildId).withLock(action)
+
     private fun guildLock(guildId: UUID): ReentrantLock =
         guildLocks.computeIfAbsent(guildId) { ReentrantLock() }
 

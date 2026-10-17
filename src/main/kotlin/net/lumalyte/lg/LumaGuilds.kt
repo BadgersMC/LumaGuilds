@@ -2,43 +2,43 @@ package net.lumalyte.lg
 
 import co.aikar.commands.PaperCommandManager
 import co.aikar.idb.Database
-import net.lumalyte.lg.di.appModule
-import net.lumalyte.lg.infrastructure.persistence.migrations.SQLiteMigrations
-import net.lumalyte.lg.infrastructure.persistence.migrations.MariaDBMigrations
-import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
-import net.lumalyte.lg.infrastructure.persistence.storage.MariaDBStorage
-import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteStorage
-import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadMariaDBStorage
-import net.lumalyte.lg.infrastructure.persistence.storage.Storage
-import net.lumalyte.lg.infrastructure.placeholders.LumaGuildsExpansion
-import net.lumalyte.lg.interaction.commands.*
-import net.lumalyte.lg.interaction.commands.LumaGuildsCommand
-import net.lumalyte.lg.interaction.listeners.*
-import net.lumalyte.lg.infrastructure.listeners.ProgressionEventListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import net.milkbowl.vault.chat.Chat
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.application.services.DailyWarCostsService
+import net.lumalyte.lg.application.services.accessibleHomeNames
+import net.lumalyte.lg.di.appModule
+import net.lumalyte.lg.infrastructure.listeners.ProgressionEventListener
+import net.lumalyte.lg.infrastructure.persistence.migrations.MariaDBMigrations
+import net.lumalyte.lg.infrastructure.persistence.migrations.SQLiteMigrations
+import net.lumalyte.lg.infrastructure.persistence.storage.MariaDBStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadMariaDBStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteStorage
+import net.lumalyte.lg.infrastructure.placeholders.LumaGuildsExpansion
+import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
+import net.lumalyte.lg.infrastructure.services.DailyWarCostsScheduler
+import net.lumalyte.lg.infrastructure.services.LumaGuildsChannelProvider
+import net.lumalyte.lg.interaction.commands.*
+import net.lumalyte.lg.interaction.commands.LumaGuildsCommand
+import net.lumalyte.lg.interaction.listeners.*
+import net.milkbowl.vault.chat.Chat
 import org.bukkit.Bukkit
 import org.bukkit.plugin.ServicePriority
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitScheduler
-import org.koin.core.context.GlobalContext.startKoin
 import org.koin.core.context.GlobalContext.get
-import net.lumalyte.lg.application.services.ConfigService
-import net.lumalyte.lg.application.services.DailyWarCostsService
-import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
-import net.lumalyte.lg.infrastructure.services.DailyWarCostsScheduler
-import net.lumalyte.lg.infrastructure.services.LumaGuildsChannelProvider
+import org.koin.core.context.GlobalContext.startKoin
 import java.io.File
 import java.io.IOException
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
-
 
 /**
  * The entry point for the Luma Guilds plugin.
@@ -52,11 +52,18 @@ class LumaGuilds : JavaPlugin() {
     private lateinit var bankInterestScheduler: net.lumalyte.lg.infrastructure.services.BankInterestScheduler
     private lateinit var qualifiedRecruitScheduler: net.lumalyte.lg.infrastructure.services.QualifiedRecruitScheduler
     private var experienceTransactionCleanupScheduler: net.lumalyte.lg.infrastructure.services.ExperienceTransactionCleanupScheduler? = null
+    private var chapterRolloverScheduler: net.lumalyte.lg.infrastructure.services.ChapterRolloverScheduler? = null
+    private var liteBansStrikeHookRegistered = false
+    private var enthusiaStaffStrikeFeed: AutoCloseable? = null
     internal lateinit var vaultProtectionListener: net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener
+    internal var enabledAtMillis: Long = 0L
+        private set
     private val componentLogger = getComponentLogger()
 
 
     override fun onEnable() {
+        enabledAtMillis = System.currentTimeMillis()
+
         // Initialize PluginKeys with plugin instance (must be first)
         net.lumalyte.lg.common.PluginKeys.initialize(this)
 
@@ -75,7 +82,6 @@ class LumaGuilds : JavaPlugin() {
         scheduler = server.scheduler
         initialiseVaultDependency()
         initialisePlaceholderAPI()
-        initialiseAxKothIntegration()
         commandManager = PaperCommandManager(this)
 
         // Enable case-insensitive command completion and parsing
@@ -84,6 +90,22 @@ class LumaGuilds : JavaPlugin() {
         // Start Koin with modular architecture
         startKoin { modules(appModule(this@LumaGuilds, storage, claimsEnabled)) }
 
+        // Repair the production invariant that every live guild has reward/prestige state.
+        // This is idempotent and only inserts accounts that are completely missing.
+        try {
+            val reconciled = get().get<net.lumalyte.lg.infrastructure.persistence.guilds.RewardOwnershipRepositorySQL>()
+                .reconcileMissingGuildAccounts()
+            if (reconciled > 0) {
+                logColored("✓ Initialized Chapter 2 reward/prestige state for $reconciled existing guild(s)")
+            }
+        } catch (error: Exception) {
+            logger.log(
+                java.util.logging.Level.SEVERE,
+                "Failed to reconcile missing guild reward/prestige accounts; affected guilds will remain unavailable until repaired",
+                error,
+            )
+        }
+
         // Register GuildLookup in Bukkit's ServicesManager so EnthusiaMarket
         // (and other plugins) can query guild membership, permissions, and
         // bank balances via the public API.
@@ -91,7 +113,8 @@ class LumaGuilds : JavaPlugin() {
             get().get<net.lumalyte.lg.application.services.GuildService>(),
             get().get<net.lumalyte.lg.application.services.MemberService>(),
             get().get<net.lumalyte.lg.application.services.RankService>(),
-            get().get<net.lumalyte.lg.application.services.BankService>()
+            get().get<net.lumalyte.lg.application.services.BankService>(),
+            get().get<net.lumalyte.lg.application.services.RelationService>()
         )
         Bukkit.getServicesManager().register(
             net.lumalyte.lg.api.GuildLookup::class.java,
@@ -113,8 +136,14 @@ class LumaGuilds : JavaPlugin() {
             ServicePriority.Normal
         )
         logColored("✓ GuildVisualLookup registered in ServicesManager for cross-plugin integration")
+        Bukkit.getServicesManager().register(
+            net.lumalyte.lg.api.GuildAllianceLookup::class.java,
+            net.lumalyte.lg.api.GuildAllianceLookupImpl(get().get()),
+            this,
+            ServicePriority.Normal,
+        )
 
-        // REQ-094: EnthusiaHolidays grants holiday menu themes through this API.
+        // REQ-121: EnthusiaHolidays grants holiday menu themes through this API.
         Bukkit.getServicesManager().register(
             net.lumalyte.lg.api.GuildCosmeticUnlocks::class.java,
             net.lumalyte.lg.api.GuildCosmeticUnlocksImpl(
@@ -199,6 +228,15 @@ class LumaGuilds : JavaPlugin() {
         // Initialize relation maintenance scheduler (truce expiry + stale-request cleanup)
         initRelationMaintenanceScheduler()
 
+        chapterRolloverScheduler = net.lumalyte.lg.infrastructure.services.ChapterRolloverScheduler(
+            this,
+            storage,
+            net.lumalyte.lg.infrastructure.services.ChapterRatedWarReconciliationGate(
+                get().get<net.lumalyte.lg.application.persistence.WarRepository>(),
+                get().get<net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator>(),
+            ),
+        ).also { it.start() }
+
         // Start Web API (read-only JSON endpoint for the website)
         try {
             get().get<net.lumalyte.lg.infrastructure.web.WebApiServer>().start()
@@ -213,6 +251,7 @@ class LumaGuilds : JavaPlugin() {
     fun initConfig() {
         // Save default config if it doesn't exist
         saveDefaultConfig()
+        net.lumalyte.lg.infrastructure.services.ConfigCompatibilityMigrator.migrate(dataFolder, logger)
         reloadConfig()
     }
 
@@ -281,7 +320,7 @@ class LumaGuilds : JavaPlugin() {
                     throw RuntimeException("Failed to initialize MariaDB storage - invalid configuration", e)
                 } catch (e: NoSuchMethodError) {
                     logColored("⚠ Virtual threads not available - falling back to platform threads")
-                    logColored("Upgrade to Java 21+ for better performance")
+                    logColored("Virtual threads are unavailable on this Java runtime")
                     MariaDBStorage(
                         host = host,
                         port = port,
@@ -318,7 +357,7 @@ class LumaGuilds : JavaPlugin() {
                     throw RuntimeException("Failed to initialize SQLite storage - file system error", e)
                 } catch (e: NoSuchMethodError) {
                     logColored("⚠ Virtual threads not available - falling back to platform threads")
-                    logColored("Upgrade to Java 21+ for better performance")
+                    logColored("Virtual threads are unavailable on this Java runtime")
                     SQLiteStorage(dataFolder)
                 }
             }
@@ -592,28 +631,6 @@ class LumaGuilds : JavaPlugin() {
     }
 
     /**
-     * Registers the AxKoth team hook if AxKoth is available.
-     * This allows AxKoth to recognize guilds as teams for KOTH events.
-     */
-    private fun initialiseAxKothIntegration() {
-        if (Bukkit.getPluginManager().getPlugin("AxKoth") != null) {
-            try {
-                val hook = net.lumalyte.lg.integrations.axkoth.LumaGuildsHook()
-                com.artillexstudios.axkoth.api.AxKothAPI.registerTeamHook(this, hook)
-                logColored("✓ Successfully registered LumaGuilds hook with AxKoth!")
-                logColored("Guilds can now compete in KOTH events as teams")
-            } catch (e: Exception) {
-                // Broad exception handling acceptable here - optional integration shouldn't crash plugin
-                // Can fail due to: NoClassDefFoundError, LinkageError, API changes
-                logger.severe("Error registering AxKoth integration: ${e.message}")
-                e.printStackTrace()
-            }
-        } else {
-            logColored("⚠ AxKoth not found. Guild KOTH integration unavailable.")
-        }
-    }
-
-    /**
      * Initializes Apollo (Lunar Client) integration if available.
      * Provides enhanced features for Lunar Client users through Apollo API.
      */
@@ -772,13 +789,23 @@ class LumaGuilds : JavaPlugin() {
             guildService.getHomes(guild.id).homeNames.toList()
         }
 
+        // Current membership/rank caches are read on the server thread, like the home command.
+        commandManager.commandCompletions.registerCompletion("guildaccessiblehomes") { context ->
+            val player = context.player ?: return@registerCompletion emptyList()
+            val service = get().get<net.lumalyte.lg.application.services.GuildService>()
+            val guild = service.getPlayerGuilds(player.uniqueId).firstOrNull()
+            if (guild == null) emptyList() else service.accessibleHomeNames(player.uniqueId, guild.id)
+        }
+
         // Register unlocked emojis completion (shows only emojis the player has permission to use)
         commandManager.commandCompletions.registerAsyncCompletion("unlockedemojis") { context ->
             val player = context.player ?: return@registerAsyncCompletion emptyList()
             val nexoEmojiService = get().get<net.lumalyte.lg.infrastructure.services.NexoEmojiService>()
 
             // Get emoji names player has permission for and format as :emojiname:
-            nexoEmojiService.getPlayerUnlockedEmojis(player).map { emojiName ->
+            val guildId = get().get<net.lumalyte.lg.application.services.GuildService>()
+                .getPlayerGuilds(player.uniqueId).firstOrNull()?.id
+            nexoEmojiService.getPlayerUnlockedEmojis(player, guildId).map { emojiName ->
                 ":$emojiName:"
             }
         }
@@ -846,6 +873,10 @@ class LumaGuilds : JavaPlugin() {
         commandManager.registerCommand(QuickAllyChatCommand())
         commandManager.registerCommand(QuickModChatCommand())
         commandManager.registerCommand(QuickAnnounceCommand())
+        commandManager.registerCommand(
+            net.lumalyte.lg.interaction.commands
+                .FullscreenAnnounceCommand(),
+        )
 
         // Register LumaGuilds admin command
         getCommand("lumaguilds")?.setExecutor(LumaGuildsCommand())
@@ -932,6 +963,21 @@ class LumaGuilds : JavaPlugin() {
 
         server.pluginManager.registerEvents(BannerSelectionListener(), this)
         server.pluginManager.registerEvents(BannerFuelPreventionListener(), this)
+        server.pluginManager.registerEvents(
+            get().get<net.lumalyte.lg.infrastructure.listeners.WarBannerListener>(),
+            this,
+        )
+        server.pluginManager.registerEvents(
+            get().get<net.lumalyte.lg.infrastructure.listeners.SpawnBannerListener>(),
+            this,
+        )
+        val spawnBannerService = get().get<net.lumalyte.lg.infrastructure.services.SpawnBannerServiceBukkit>()
+        get().get<net.lumalyte.lg.infrastructure.services.GuildLeaderboardProjectionService>().start { changed ->
+            changed.forEach { key ->
+                spawnBannerService.refreshLeaderboard(key.type, key.period)
+            }
+        }
+        spawnBannerService.start()
         server.pluginManager.registerEvents(net.lumalyte.lg.interaction.listeners.GuildVaultCraftingPreventionListener(), this)
         server.pluginManager.registerEvents(GuildVaultFuelPreventionListener(), this)
 
@@ -972,11 +1018,32 @@ class LumaGuilds : JavaPlugin() {
         server.pluginManager.registerEvents(vaultInventoryListener, this)
 
         // Register player session cleanup listener
+        server.pluginManager.registerEvents(get().get<net.lumalyte.lg.infrastructure.listeners.GuildOnboardingListener>(), this)
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.PlayerSessionListener(), this)
 
         // Register war kill tracking listener
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.WarKillTrackingListener(), this)
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.CombatAntiGriefListener(), this)
+        val warService = get().get<net.lumalyte.lg.application.services.WarService>()
+        val recoveredKillVictories = warService.reconcilePendingKillVictories()
+        if (recoveredKillVictories > 0) {
+            logColored("✓ Recovered $recoveredKillVictories decisive war kill(s) after restart")
+        }
+        server.scheduler.runTaskTimer(
+            this,
+            Runnable {
+                try {
+                    val processed = warService.processExpiredWars()
+                    if (processed > 0) {
+                        logger.info("War maintenance processed $processed expired/recoverable record(s)")
+                    }
+                } catch (error: Exception) {
+                    logger.log(java.util.logging.Level.SEVERE, "War maintenance failed", error)
+                }
+            },
+            20L * 60L,
+            20L * 60L,
+        )
 
         // Close stale guild menus, clean up channels, and despawn bannerman displays when a guild is disbanded
         val guildDisbandedListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildDisbandedListener>()
@@ -990,6 +1057,57 @@ class LumaGuilds : JavaPlugin() {
             logger.warning("Emoji permission reconciliation completed with ${emojiResult.failed} failure(s)")
         }
 
+        // Optional DiscordSRV guild-role integration. The listener is always registered;
+        // the service is a no-op unless discord.guild_roles.enabled is explicitly enabled.
+        val discordRoleListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildDiscordRoleListener>()
+        server.pluginManager.registerEvents(discordRoleListener, this)
+        val discordRoleConfig = get().get<net.lumalyte.lg.application.services.ConfigService>()
+            .loadConfig().discordGuildRoles
+        if (discordRoleConfig.enabled) {
+            get().get<net.lumalyte.lg.application.services.DiscordAccountLinkSubscription>().subscribe()
+            val discordGateway = get().get<net.lumalyte.lg.application.services.DiscordGuildRoleGateway>()
+            val discordRoleService = get().get<net.lumalyte.lg.application.services.GuildDiscordRoleService>()
+            if (!discordGateway.isAvailable()) {
+                logger.info("DiscordSRV is not ready yet; guild-role reconciliation will run when DiscordReadyEvent fires")
+            } else {
+                discordRoleService
+                    .reconcileAll()
+                    .whenComplete { result, error ->
+                        if (error != null) {
+                            logger.warning("Discord guild-role startup reconciliation failed: ${error.message}")
+                        } else {
+                            logColored(
+                                "✓ Discord guild roles reconciled: " +
+                                    "${result.guildsReconciled} guild(s), " +
+                                    "${result.rolesCreated} role(s) created, " +
+                                    "${result.memberRolesApplied} member role(s) applied, " +
+                                    "${result.failures} failure(s)"
+                            )
+                        }
+                    }
+            }
+
+            // Repair missed grants/revocations after transient DiscordSRV/JDA outages without
+            // requiring a server restart or unrelated guild activity.
+            server.scheduler.runTaskTimer(this, Runnable {
+                if (!discordGateway.isAvailable()) return@Runnable
+                discordRoleService.reconcileAll().whenComplete { result, error ->
+                    if (error != null) {
+                        logger.warning("Discord guild-role periodic reconciliation failed: ${error.message}")
+                    } else if (result.failures > 0) {
+                        logger.warning(
+                            "Discord guild-role periodic reconciliation completed with " +
+                                "${result.failures} failure(s)"
+                        )
+                    }
+                }
+            }, 20L * 60L, 20L * 60L * 5L)
+        }
+
+        // Public Discord guild profiles are independent of Discord role syncing:
+        // every LumaGuilds guild is browseable, even when guild_roles is disabled.
+        get().get<net.lumalyte.lg.application.services.DiscordGuildProfileSubscription>().subscribe()
+
         // Clean up RoseChat channels when guild status changes.
         // LumaGuilds can enable BEFORE RoseChat despite `depend: [RoseChat]`
         // (observed on the Fuji test server: RoseChat enabled ~4 minutes later),
@@ -1000,6 +1118,9 @@ class LumaGuilds : JavaPlugin() {
         val wireRoseChatHook = {
             val roseChatCleanupListener = get().get<net.lumalyte.lg.infrastructure.listeners.RoseChatCleanupListener>()
             server.pluginManager.registerEvents(roseChatCleanupListener, this)
+            server.pluginManager.registerEvents(
+                get().get<net.lumalyte.lg.infrastructure.listeners.GuildChatReconnectListener>(), this
+            )
             logColored("✓ RoseChat integration registered for chat cleanup")
 
             // Enforce guild mutes on the live RoseChat message path (players
@@ -1030,6 +1151,19 @@ class LumaGuilds : JavaPlugin() {
             server.pluginManager.registerEvents(adminOverrideListener, this)
         }
 
+        // Guild Strikes — prefer the provider-neutral EnthusiaStaff lifecycle feed.
+        server.pluginManager.registerEvents(
+            net.lumalyte.lg.infrastructure.enthusiastaff.EnthusiaStaffEnableListener {
+                registerEnthusiaStaffStrikeFeed()
+            },
+            this,
+        )
+        if (server.pluginManager.isPluginEnabled("EnthusiaStaff")) {
+            registerEnthusiaStaffStrikeFeed()
+        } else {
+            logger.info("EnthusiaStaff not yet enabled - Guild Strikes feed will wire when it enables")
+        }
+
         // Guild Strikes — LiteBans hook (softdepend; only registers when LiteBans is present).
         // LumaGuilds can enable BEFORE LiteBans (observed on Fuji: +22s), so we also
         // listen for LiteBans' PluginEnableEvent and wire the hook when it arrives.
@@ -1049,30 +1183,89 @@ class LumaGuilds : JavaPlugin() {
 
         // Register NexoItemProvider listener — fires on NexoItemsLoadedEvent
         net.lumalyte.lg.utils.NexoItemProvider.register(this)
+
+        // Vanilla icons for Bedrock players and Vanilla-style guilds; plain titles for Bedrock
+        runCatching {
+            net.lumalyte.lg.infrastructure.services.MenuIconAdapter(
+                this,
+                get().get<net.lumalyte.lg.application.services.PlatformDetectionService>(),
+                get().get<net.lumalyte.lg.application.services.GuildService>(),
+                bedrockConfig = { get().get<net.lumalyte.lg.application.services.ConfigService>().loadConfig().bedrock },
+            ).register()
+        }.onFailure { logger.warning("Menu icon adapter not started: ${it.message}") }
     }
 
     /**
      * Wires the Guild Strikes listener into LiteBans and kicks off the one-shot
-     * backfill. Safe to call multiple times: Events.register with the same
-     * listener is idempotent in practice (and the backfill is deduped by
-     * LiteBans entry id). Wrapped in try/catch (including LinkageError, which
+     * backfill. Safe to call multiple times: the method keeps an explicit
+     * registration guard, and the backfill is additionally deduped by LiteBans
+     * entry id. Wrapped in try/catch (including LinkageError, which
      * Bukkit can throw on class-load of a plugin dependency) so a LiteBans API
      * hiccup can never take down LumaGuilds.
      */
-    private fun registerLiteBansStrikeHook() {
+    private fun registerEnthusiaStaffStrikeFeed() {
+        if (enthusiaStaffStrikeFeed != null || liteBansStrikeHookRegistered) return
         try {
-            litebans.api.Events.get().register(get().get<net.lumalyte.lg.infrastructure.litebans.LiteBansStrikeListener>())
+            val feed = net.lumalyte.lg.infrastructure.enthusiastaff.EnthusiaStaffStrikeFeed(
+                plugin = this,
+                guildService = get().get(),
+                strikeService = get().get(),
+                membershipHistoryRepository = get().get(),
+                configProvider = { get().get() },
+            )
+            if (!feed.start()) {
+                logger.info("EnthusiaStaff lifecycle API is not available yet; Guild Strikes feed remains unwired")
+                return
+            }
+            enthusiaStaffStrikeFeed = feed
+            logColored("✓ Guild Strikes hooked into EnthusiaStaff punishment lifecycle")
+        } catch (e: LinkageError) {
+            logger.warning("Failed to load EnthusiaStaff Guild Strikes API: ${e.message}")
+        } catch (e: Exception) {
+            logger.warning("Failed to register EnthusiaStaff Guild Strikes feed: ${e.message}")
+        }
+    }
+
+    private fun registerLiteBansStrikeHook() {
+        if (liteBansStrikeHookRegistered || enthusiaStaffStrikeFeed != null) return
+
+        try {
+            val strikeService = get().get<net.lumalyte.lg.application.services.StrikeService>()
+            val guildService = get().get<net.lumalyte.lg.application.services.GuildService>()
+            val membershipHistoryRepository =
+                get().get<net.lumalyte.lg.application.persistence.MembershipHistoryRepository>()
+            val configProvider = { get().get<net.lumalyte.lg.config.StrikesConfig>() }
+
+            // Construct LiteBans-bound classes only after LiteBans is actually enabled.
+            // Keeping these classes out of the core Koin graph is what makes LiteBans
+            // a true optional dependency at JVM class-loading time.
+            val listener = net.lumalyte.lg.infrastructure.litebans.LiteBansStrikeListener(
+                plugin = this,
+                guildService = guildService,
+                strikeService = strikeService,
+                membershipHistoryRepository = membershipHistoryRepository,
+                configProvider = configProvider,
+            )
+            litebans.api.Events.get().register(listener)
+            liteBansStrikeHookRegistered = true
             logColored("✓ Guild Strikes hooked into LiteBans (punishments tracked per guild)")
 
             // One-shot backfill of pre-existing LiteBans punishments
             // (async, idempotent — deduped by LiteBans entry id).
             Bukkit.getScheduler().runTaskAsynchronously(this, Runnable {
                 try {
-                    val result = get().get<net.lumalyte.lg.infrastructure.litebans.StrikeBackfillService>().run()
+                    val result = net.lumalyte.lg.infrastructure.litebans.StrikeBackfillService(
+                        strikeService = strikeService,
+                        membershipHistoryRepository = membershipHistoryRepository,
+                        guildService = guildService,
+                        configProvider = configProvider,
+                    ).run()
                     logColored(
                         "✓ Guild Strikes backfill: ${result.recorded} recorded, " +
                             "${result.attributed} attributed, ${result.skippedUnattributable} skipped (unattributable)",
                     )
+                } catch (e: LinkageError) {
+                    logger.warning("Guild Strikes backfill unavailable (LiteBans API incompatible): ${e.message}")
                 } catch (e: Exception) {
                     logger.warning("Guild Strikes backfill failed: ${e.message}")
                 }
@@ -1269,15 +1462,54 @@ class LumaGuilds : JavaPlugin() {
     }
 
     override fun onDisable() {
+        get().getOrNull<net.lumalyte.lg.infrastructure.listeners.ChatDestinationIndicator>()?.close()
+        enthusiaStaffStrikeFeed?.close()
+        enthusiaStaffStrikeFeed = null
+        Bukkit.getServicesManager().unregisterAll(this)
+        try {
+            get().getOrNull<net.lumalyte.lg.application.services.DiscordAccountLinkSubscription>()?.unsubscribe()
+        } catch (e: Exception) {
+            logger.warning("Failed to unsubscribe DiscordSRV account-link listener: ${e.message}")
+        }
+        try {
+            get().getOrNull<net.lumalyte.lg.application.services.DiscordGuildProfileSubscription>()?.unsubscribe()
+        } catch (e: Exception) {
+            logger.warning("Failed to unregister DiscordSRV guild profile commands: ${e.message}")
+        }
         try {
             get().getOrNull<net.lumalyte.lg.infrastructure.services.WeeklyQuestCoordinator>()?.stop()
         } catch (e: Exception) {
             logger.warning("Failed to stop weekly quest coordinator: ${e.message}")
         }
         try {
+            get().getOrNull<net.lumalyte.lg.infrastructure.services.GuildLeaderboardProjectionService>()?.stop()
+        } catch (e: Exception) {
+            logger.warning("Failed to stop guild leaderboard projection task: ${e.message}")
+        }
+        try {
+            get().getOrNull<net.lumalyte.lg.infrastructure.services.SpawnBannerServiceBukkit>()?.stop()
+        } catch (e: Exception) {
+            logger.warning("Failed to stop spawn banner refresh task: ${e.message}")
+        }
+        try {
             get().getOrNull<ProgressionEventListener>()?.shutdown()
         } catch (e: Exception) {
             logger.warning("Failed to flush progression XP batches: ${e.message}")
+        }
+        try {
+            get().getOrNull<net.lumalyte.lg.application.services.FormCacheService>()?.shutdown()
+        } catch (e: Exception) {
+            logger.warning("Failed to shutdown Bedrock form cache executor: ${e.message}")
+        }
+        try {
+            get().getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()?.shutdown()
+        } catch (e: Exception) {
+            logger.warning("Failed to shutdown guild role permission resolver: ${e.message}")
+        }
+        try {
+            net.lumalyte.lg.interaction.menus.bedrock.FormStateManager.shutdown()
+        } catch (e: Exception) {
+            logger.warning("Failed to shutdown Bedrock form state manager: ${e.message}")
         }
 
         // Stop Web API first so it stops accepting new requests
@@ -1298,40 +1530,30 @@ class LumaGuilds : JavaPlugin() {
 
         // Stop vault auto-save service (this will flush all pending writes)
         try {
-            val vaultAutoSaveService = get().get<net.lumalyte.lg.infrastructure.vault.VaultAutoSaveService>()
-            vaultAutoSaveService.stop()
+            get().getOrNull<net.lumalyte.lg.infrastructure.vault.VaultAutoSaveService>()?.stop()
         } catch (e: Exception) {
-            // Broad exception handling acceptable - shutdown should be resilient
-            logger.severe("Failed to stop vault auto-save service: ${e.message}")
-            e.printStackTrace()
+            logger.warning("Failed to stop vault auto-save service: ${e.message}")
         }
 
         // Stop vault backup service
         try {
-            val vaultBackupService = get().get<net.lumalyte.lg.application.services.VaultBackupService>()
-            vaultBackupService.stopAutoBackup()
+            get().getOrNull<net.lumalyte.lg.application.services.VaultBackupService>()?.stopAutoBackup()
         } catch (e: Exception) {
-            // Broad exception handling acceptable - shutdown should be resilient
-            logger.severe("Failed to stop vault backup service: ${e.message}")
-            e.printStackTrace()
+            logger.warning("Failed to stop vault backup service: ${e.message}")
         }
 
         // Stop vault hologram service
         try {
-            val hologramService = get().get<net.lumalyte.lg.infrastructure.services.VaultHologramService>()
-            hologramService.stop()
+            get().getOrNull<net.lumalyte.lg.infrastructure.services.VaultHologramService>()?.stop()
         } catch (e: Exception) {
-            // Broad exception handling acceptable - shutdown should be resilient
-            logger.severe("Failed to stop vault hologram service: ${e.message}")
-            e.printStackTrace()
+            logger.warning("Failed to stop vault hologram service: ${e.message}")
         }
 
         // Despawn all bannerman displays
         try {
-            val bannermanRenderer = get().get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanRenderService>()
-            bannermanRenderer.despawnAll()
+            get().getOrNull<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanRenderService>()?.despawnAll()
         } catch (_: Exception) {
-            // Koin already torn down — nothing to clean up
+            // Koin may not have completed startup; nothing to clean up.
         }
 
         // Stop the daily war costs scheduler
@@ -1350,6 +1572,7 @@ class LumaGuilds : JavaPlugin() {
 
         // Stop the experience transaction cleanup scheduler
         experienceTransactionCleanupScheduler?.stop()
+        chapterRolloverScheduler?.stop()
 
         // Shutdown virtual thread executor
         try {

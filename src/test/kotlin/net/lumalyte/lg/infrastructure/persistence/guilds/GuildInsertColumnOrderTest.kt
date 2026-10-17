@@ -1,3 +1,6 @@
+// Explicit fixture numbers document persisted coordinates, icon dimensions and approved boundaries.
+@file:Suppress("MagicNumber")
+
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
 import co.aikar.idb.Database
@@ -12,31 +15,34 @@ import net.lumalyte.lg.utils.GuiTheme
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.util.UUID
 
 /** New guilds must store gui_theme and the ally-home columns in their own columns. */
-class GuildInsertColumnOrderTest : RewardSqlTestFixture() {
+internal class GuildInsertColumnOrderTest : RewardSqlTestFixture() {
     private val world = UUID.fromString("00000000-0000-0000-0000-0000000000aa")
     private val ally = UUID.fromString("00000000-0000-0000-0000-0000000000bb")
 
-    @Test fun `add stores theme and ally home in their own columns`() {
+    /** Add stores theme and ally home in their own columns. */
+    @DisplayName("add stores theme and ally home in their own columns")
+    @Test
+    fun scenario1() {
         val storage = openStorage()
         val repository = migratedRepository(storage)
-        val guild = Guild(UUID.randomUUID(), "Columns", createdAt = Instant.now(), guiTheme = GuiTheme.EMBERSTONE,
-            allyHome = GuildHome(world, Position3D(10, 64, -20)), allyHomeAllowedGuilds = setOf(ally))
+        val guild =
+            Guild(
+                UUID.randomUUID(),
+                "Columns",
+                createdAt = Instant.now(),
+                guiTheme = GuiTheme.EMBERSTONE,
+                allyHome = GuildHome(world, Position3D(10, 64, -20)),
+                allyHomeAllowedGuilds = setOf(ally),
+            )
         assertTrue(repository.add(guild))
 
-        val row = storage.connection.getFirstRow(
-            "SELECT gui_theme, ally_home_world, ally_home_x, ally_home_y, ally_home_z, ally_home_allowed_guilds FROM guilds WHERE id = ?",
-            guild.id.toString())
-        assertEquals("EMBERSTONE", row.getString("gui_theme"))
-        assertEquals(world.toString(), row.getString("ally_home_world"))
-        assertEquals(10, (row.get<Any>("ally_home_x") as Number).toInt())
-        assertEquals(64, (row.get<Any>("ally_home_y") as Number).toInt())
-        assertEquals(-20, (row.get<Any>("ally_home_z") as Number).toInt())
-        assertEquals(ally.toString(), row.getString("ally_home_allowed_guilds"))
+        assertStoredColumns(storage, guild)
 
         val reloaded = GuildRepositorySQLite(storage).getById(guild.id)!!
         assertEquals(GuiTheme.EMBERSTONE, reloaded.guiTheme)
@@ -44,29 +50,66 @@ class GuildInsertColumnOrderTest : RewardSqlTestFixture() {
         assertEquals(setOf(ally), reloaded.allyHomeAllowedGuilds)
     }
 
-    @Test fun `rows written by the old insert are repaired on startup`() {
+    private fun assertStoredColumns(storage: Storage<Database>, guild: Guild) {
+        val row =
+            storage.connection.getFirstRow(
+                "SELECT gui_theme, ally_home_world, ally_home_x, ally_home_y, ally_home_z, " +
+                    "ally_home_allowed_guilds FROM guilds WHERE id = ?",
+                guild.id.toString(),
+            )
+        assertEquals("EMBERSTONE", row.getString("gui_theme"))
+        assertEquals(world.toString(), row.getString("ally_home_world"))
+        assertEquals(10, row.getInt("ally_home_x"))
+        assertEquals(64, row.getInt("ally_home_y"))
+        assertEquals(-20, row.getInt("ally_home_z"))
+        assertEquals(ally.toString(), row.getString("ally_home_allowed_guilds"))
+    }
+
+    /** Rows written by the old insert are repaired on startup. */
+    @DisplayName("rows written by the old insert are repaired on startup")
+    @Test
+    fun scenario2() {
         val storage = openStorage()
         val repository = migratedRepository(storage)
         val guild = Guild(UUID.randomUUID(), "Legacy", createdAt = Instant.now())
         assertTrue(repository.add(guild))
-        // Reproduce what the shifted insert used to store for a new guild.
-        storage.connection.executeUpdate(
-            "UPDATE guilds SET ally_home_world = 'NEUTRAL', ally_home_x = NULL, ally_home_y = NULL, ally_home_z = NULL, " +
-                "ally_home_allowed_guilds = NULL, gui_theme = '' WHERE id = ?", guild.id.toString())
+        writeShiftedInsert(storage, guild)
 
         GuildRepositorySQLite(storage)
 
-        val row = storage.connection.getFirstRow(
-            "SELECT gui_theme, ally_home_world, ally_home_allowed_guilds FROM guilds WHERE id = ?", guild.id.toString())
+        val row =
+            storage.connection.getFirstRow(
+                "SELECT gui_theme, ally_home_world, ally_home_allowed_guilds FROM guilds WHERE id = ?",
+                guild.id.toString(),
+            )
         assertEquals("NEUTRAL", row.getString("gui_theme"))
         assertNull(row.getString("ally_home_world"))
         assertEquals("", row.getString("ally_home_allowed_guilds").orEmpty())
     }
 
-    @Test fun `repair leaves real ally homes alone`() {
+    private fun writeShiftedInsert(storage: Storage<Database>, guild: Guild) {
+        // Reproduce what the shifted insert used to store for a new guild.
+        storage.connection.executeUpdate(
+            "UPDATE guilds SET ally_home_world = 'NEUTRAL', ally_home_x = NULL, " +
+                "ally_home_y = NULL, ally_home_z = NULL, " +
+                "ally_home_allowed_guilds = NULL, gui_theme = '' WHERE id = ?",
+            guild.id.toString(),
+        )
+    }
+
+    /** Repair leaves real ally homes alone. */
+    @DisplayName("repair leaves real ally homes alone")
+    @Test
+    fun scenario3() {
         val storage = openStorage()
         val repository = migratedRepository(storage)
-        val guild = Guild(UUID.randomUUID(), "Real", createdAt = Instant.now(), allyHome = GuildHome(world, Position3D(1, 2, 3)))
+        val guild =
+            Guild(
+                UUID.randomUUID(),
+                "Real",
+                createdAt = Instant.now(),
+                allyHome = GuildHome(world, Position3D(1, 2, 3)),
+            )
         assertTrue(repository.add(guild))
         assertTrue(repository.update(guild))
 
@@ -74,14 +117,53 @@ class GuildInsertColumnOrderTest : RewardSqlTestFixture() {
         assertEquals(guild.allyHome, reloaded.allyHome)
     }
 
-    /** Production schema via the real migration chain, as at plugin enable. */
+    /** Repeated initialization preserves an existing physical vault and guild identity. */
+    @DisplayName("repeated schema repair preserves physical vault data")
+    @Test
+    fun vaultRepairPreservesData() {
+        val storage = openStorage()
+        val repository = migratedRepository(storage)
+        val guild = createVaultOwner(storage, repository)
+        repeat(2) { GuildRepositorySQLite(storage) }
+        val row =
+            storage.connection.getFirstRow(
+                "SELECT name, vault_status, vault_chest_world, vault_chest_x, vault_chest_y, vault_chest_z " +
+                    "FROM guilds WHERE id = ?",
+                guild.id.toString(),
+            )
+        assertEquals(guild.name, row.getString("name"))
+        assertEquals("AVAILABLE", row.getString("vault_status"))
+        assertEquals(world.toString(), row.getString("vault_chest_world"))
+        assertEquals(10, row.getInt("vault_chest_x"))
+        assertEquals(64, row.getInt("vault_chest_y"))
+        assertEquals(-20, row.getInt("vault_chest_z"))
+    }
+
+    private fun createVaultOwner(storage: Storage<Database>, repository: GuildRepositorySQLite): Guild {
+        val guild = Guild(UUID.randomUUID(), "VaultOwner", createdAt = Instant.now())
+        assertTrue(repository.add(guild))
+        storage.connection.executeUpdate(
+            "UPDATE guilds SET vault_status = 'AVAILABLE', vault_chest_world = ?, " +
+                "vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ? WHERE id = ?",
+            world.toString(),
+            10,
+            64,
+            -20,
+            guild.id.toString(),
+        )
+        return guild
+    }
+
     private fun migratedRepository(storage: Storage<Database>): GuildRepositorySQLite {
         val plugin = io.mockk.mockk<org.bukkit.plugin.java.JavaPlugin>(relaxed = true)
         io.mockk.every { plugin.getComponentLogger() } returns
             net.kyori.adventure.text.logger.slf4j.ComponentLogger.logger("GuildInsertColumnOrderTest")
         storage.connection.connection.use { connection ->
-            if (storage.dialect == SqlDialect.MARIADB) MariaDBMigrations(plugin, connection).migrate()
-            else SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
+            if (storage.dialect == SqlDialect.MARIADB) {
+                MariaDBMigrations(plugin, connection).migrate()
+            } else {
+                SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
+            }
         }
         return GuildRepositorySQLite(storage)
     }

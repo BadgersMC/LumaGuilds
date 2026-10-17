@@ -10,6 +10,7 @@ import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteSto
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -18,6 +19,8 @@ import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CountDownLatch
 
 /** Atomic SQL contract for REQ-049 source caps. */
 class ExperienceAwardRepositorySQLTest {
@@ -44,6 +47,75 @@ class ExperienceAwardRepositorySQLTest {
     @AfterEach
     fun tearDown() {
         storage.connection.close(5, TimeUnit.SECONDS)
+    }
+
+    @Test
+    fun `award waits for another writer before reading its transaction snapshot`() {
+        storage.connection.executeUpdate("CREATE TABLE unrelated_writer (value INTEGER)")
+        storage.connection.connection.use { blocker ->
+            blocker.autoCommit = false
+            blocker.createStatement().use { it.executeUpdate("INSERT INTO unrelated_writer VALUES (1)") }
+            val started = CountDownLatch(1)
+            val award = CompletableFuture.supplyAsync {
+                started.countDown()
+                repository.awardAtomically(request(), policy, 2, policy.windowContaining(instant))
+            }
+            check(started.await(5, TimeUnit.SECONDS))
+            try {
+                Thread.sleep(250)
+                assertFalse(award.isDone, "Writer contention must wait rather than fail on read-to-write upgrade")
+            } finally {
+                blocker.commit()
+            }
+            assertEquals(ExperienceAwardResult.Awarded(2, 2, true), award.get(5, TimeUnit.SECONDS))
+        }
+        assertEquals(2, intValue("SELECT total_experience AS value FROM guild_progression WHERE guild_id = ?", guildId))
+    }
+
+    @Test
+    fun `concurrent awards preserve cap progression and idempotency across repository instances`() {
+        val secondRepository = ExperienceAwardRepositorySQL(storage, curve)
+        val capped = policy.copy(capXp = 12)
+        val start = CountDownLatch(1)
+        val requests = List(12) { request() }
+        val awards = requests.mapIndexed { index, request ->
+            CompletableFuture.supplyAsync {
+                start.await()
+                val target = if (index % 2 == 0) repository else secondRepository
+                target.awardAtomically(request, capped, 2, capped.windowContaining(instant))
+            }
+        }
+        start.countDown()
+        val results = awards.map { it.get(10, TimeUnit.SECONDS) }
+        assertEquals(6, results.filterIsInstance<ExperienceAwardResult.Awarded>().size)
+        assertEquals(6, results.filterIsInstance<ExperienceAwardResult.NoAllowance>().size)
+        assertEquals(12, intValue("SELECT total_experience AS value FROM guild_progression WHERE guild_id = ?", guildId))
+        assertEquals(12, intValue("SELECT awarded_xp AS value FROM guild_experience_source_usage WHERE guild_id = ?", guildId))
+        assertEquals(6, rowCount("experience_transactions"))
+        requests.forEach { secondRepository.awardAtomically(it, capped, 2, capped.windowContaining(instant)) }
+        assertEquals(6, rowCount("experience_transactions"))
+    }
+
+    @Test
+    fun `concurrent unlimited awards do not lose experience or grant duplicate requests`() {
+        val unlimited = ExperiencePolicy(
+            ExperienceSource.WEEKLY_ACTIVITY, "WEEKLY_ACTIVITY", 1, 0, CapPeriod.UNLIMITED, true,
+        )
+        val requests = List(8) { request().copy(source = ExperienceSource.WEEKLY_ACTIVITY) }
+        val start = CountDownLatch(1)
+        val awards = (requests + requests).map { request ->
+            CompletableFuture.supplyAsync {
+                start.await()
+                repository.awardAtomically(request, unlimited, 2, null)
+            }
+        }
+        start.countDown()
+        val results = awards.map { it.get(10, TimeUnit.SECONDS) }
+        assertEquals(8, results.filterIsInstance<ExperienceAwardResult.Awarded>().size)
+        assertEquals(8, results.count { it == ExperienceAwardResult.Duplicate })
+        assertEquals(16, intValue("SELECT total_experience AS value FROM guild_progression WHERE guild_id = ?", guildId))
+        assertEquals(8, rowCount("experience_transactions"))
+        assertEquals(0, rowCount("guild_experience_source_usage"))
     }
 
     @Test

@@ -12,6 +12,7 @@ import net.lumalyte.lg.domain.values.PerkType
 import net.lumalyte.lg.domain.values.ProgressionCurve
 import net.lumalyte.lg.domain.entities.*
 import net.lumalyte.lg.api.events.GuildLevelUpEvent
+import net.lumalyte.lg.api.events.GuildLevelChangedEvent
 import org.bukkit.Bukkit
 import org.bukkit.Sound
 import org.slf4j.LoggerFactory
@@ -64,7 +65,7 @@ class ProgressionServiceBukkit(
 
         val configured = mainConfig.progression.sourcePolicies.getValue(source)
         val rawXpPolicy = configured.copy(awardXp = 1)
-        return when (val result = permanentExperienceService.award(
+        return levelFromAward(guildId, permanentExperienceService.award(
             ExperienceAwardRequest(
                 guildId = guildId,
                 actorId = null,
@@ -73,12 +74,7 @@ class ProgressionServiceBukkit(
                 occurredAt = Instant.now(),
             ),
             rawXpPolicy,
-        )) {
-            is ExperienceAwardResult.Awarded -> result.leveledUpTo
-            ExperienceAwardResult.Duplicate -> null
-            is ExperienceAwardResult.NoAllowance -> null
-            is ExperienceAwardResult.Rejected -> null
-        }
+        ))
     }
 
     override fun awardPlayerActivity(
@@ -90,15 +86,10 @@ class ProgressionServiceBukkit(
     ): Int? {
         if (units <= 0) return null
         val policy = configService.loadConfig().progression.sourcePolicies.getValue(source)
-        return when (val result = permanentExperienceService.award(
+        return levelFromAward(guildId, permanentExperienceService.award(
             ExperienceAwardRequest(guildId, actorId, source, units, Instant.now(), eligible),
             policy,
-        )) {
-            is ExperienceAwardResult.Awarded -> result.leveledUpTo
-            ExperienceAwardResult.Duplicate -> null
-            is ExperienceAwardResult.NoAllowance -> null
-            is ExperienceAwardResult.Rejected -> null
-        }
+        ))
     }
 
     override fun awardUncappedSystemExperience(
@@ -111,14 +102,40 @@ class ProgressionServiceBukkit(
         }
         if (experience <= 0) return null
         val policy = ExperiencePolicy(source, source.defaultPool, 1, 0, CapPeriod.UNLIMITED, true)
-        return when (val result = permanentExperienceService.award(
+        return levelFromAward(guildId, permanentExperienceService.award(
             ExperienceAwardRequest(guildId, null, source, experience, Instant.now()),
             policy,
+        ))
+    }
+
+    override fun awardUncappedSystemExperienceOnce(
+        guildId: UUID,
+        experience: Int,
+        source: ExperienceSource,
+        transactionId: UUID,
+    ): Boolean {
+        require(source == ExperienceSource.WEEKLY_ACTIVITY || source == ExperienceSource.ADMIN_BONUS) {
+            "Only trusted system sources may bypass caps"
+        }
+        if (experience <= 0) return true
+        val policy = ExperiencePolicy(source, source.defaultPool, 1, 0, CapPeriod.UNLIMITED, true)
+        return when (val result = permanentExperienceService.award(
+            ExperienceAwardRequest(
+                guildId = guildId,
+                actorId = null,
+                source = source,
+                units = experience,
+                occurredAt = Instant.now(),
+                transactionId = transactionId,
+            ),
+            policy,
         )) {
-            is ExperienceAwardResult.Awarded -> result.leveledUpTo
-            ExperienceAwardResult.Duplicate -> null
-            is ExperienceAwardResult.NoAllowance -> null
-            is ExperienceAwardResult.Rejected -> null
+            is ExperienceAwardResult.Awarded -> {
+                result.leveledUpTo?.let { publishAwardedLevel(guildId, it) }
+                true
+            }
+            ExperienceAwardResult.Duplicate -> true
+            is ExperienceAwardResult.NoAllowance, is ExperienceAwardResult.Rejected -> false
         }
     }
 
@@ -155,6 +172,7 @@ class ProgressionServiceBukkit(
                 )
             )
             syncGuildLevelField(guildId, newLevel)
+            if (progression.currentLevel != newLevel) publishLevelChanged(guildId, newLevel)
             logger.info("Guild $guildId XP reduced by $amount -> level $newLevel (strike penalty)")
             return newLevel
         } catch (e: Exception) {
@@ -195,6 +213,7 @@ class ProgressionServiceBukkit(
                 )
             )
             syncGuildLevelField(guildId, targetLevel)
+            publishLevelChanged(guildId, targetLevel)
             logger.info("Guild $guildId level reduced $currentLevel -> $targetLevel (strike penalty)")
             return targetLevel
         } catch (e: Exception) {
@@ -484,7 +503,12 @@ class ProgressionServiceBukkit(
             logger.error("Failed to read source usage for guild $guildId", e)
             emptyMap()
         }
-        val policies = configService.loadConfig().progression.sourcePolicies.values
+        val configuration = configService.loadConfig().progression
+        val shop = configuration.shopXp
+        val shopPolicies = if (shop.enabled && shop.xpPerSale > 0 && shop.guildDailyCap > 0 && shop.buyerDailyCap > 0) {
+            listOf(ExperiencePolicy(ExperienceSource.SHOP_SALE, "SHOP_SALE", shop.xpPerSale, shop.guildDailyCap, CapPeriod.DAILY, true))
+        } else emptyList()
+        val policies = (configuration.sourcePolicies.values.filter { it.source != ExperienceSource.SHOP_SALE } + shopPolicies)
             .filter { it.enabled }
             .groupBy { it.pool }
         return policies.values.map { sharedPolicies ->
@@ -517,14 +541,56 @@ class ProgressionServiceBukkit(
         if (experience <= 0) return null
         val configured = configService.loadConfig().progression.sourcePolicies.getValue(source)
         val rawXpPolicy = configured.copy(awardXp = 1)
-        return when (val result = permanentExperienceService.award(
+        return levelFromAward(guildId, permanentExperienceService.award(
             ExperienceAwardRequest(guildId, actorId, source, experience, Instant.now(), eligible),
             rawXpPolicy,
-        )) {
-            is ExperienceAwardResult.Awarded -> result.leveledUpTo
-            ExperienceAwardResult.Duplicate -> null
-            is ExperienceAwardResult.NoAllowance -> null
-            is ExperienceAwardResult.Rejected -> null
+        ))
+    }
+
+    override fun onCommittedExperience(guildId: UUID, leveledUpTo: Int?) {
+        val refresh = Runnable {
+            try {
+                val current = progressionRepository.refreshGuildProgression(guildId)
+                guildRepository.refreshCachedLevel(guildId)
+                if (leveledUpTo != null && current?.currentLevel == leveledUpTo) {
+                    publishLevelChanged(guildId, leveledUpTo)
+                    processLevelUp(guildId, leveledUpTo)
+                }
+            } catch (error: Exception) {
+                logger.warn("Failed to refresh committed shop XP for $guildId", error)
+            }
+        }
+        if (Bukkit.isPrimaryThread()) refresh.run() else Bukkit.getScheduler().runTask(plugin, refresh)
+    }
+
+    private fun levelFromAward(guildId: UUID, result: ExperienceAwardResult): Int? = when (result) {
+        is ExperienceAwardResult.Awarded -> result.leveledUpTo?.also { publishAwardedLevel(guildId, it) }
+        ExperienceAwardResult.Duplicate -> null
+        is ExperienceAwardResult.NoAllowance -> null
+        is ExperienceAwardResult.Rejected -> null
+    }
+
+    private fun publishAwardedLevel(guildId: UUID, newLevel: Int) {
+        try {
+            progressionRepository.refreshGuildProgression(guildId)
+        } catch (error: Exception) {
+            logger.warn("Failed to refresh guild progression after level award for $guildId", error)
+        }
+        publishLevelChanged(guildId, newLevel)
+    }
+
+    private fun publishLevelChanged(guildId: UUID, newLevel: Int) {
+        val notification = Runnable {
+            Bukkit.getPluginManager().callEvent(GuildLevelChangedEvent(guildId, newLevel))
+        }
+        try {
+            if (Bukkit.isPrimaryThread()) {
+                notification.run()
+            } else {
+                Bukkit.getScheduler().runTask(plugin, notification)
+            }
+        } catch (error: Exception) {
+            logger.warn("Failed to publish guild level change for $guildId at level $newLevel", error)
         }
     }
 

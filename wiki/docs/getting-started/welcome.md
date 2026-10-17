@@ -5,7 +5,7 @@ topic: welcome
 summary: Orientation for new players — what EnthusiaSMP is, what LumaGuilds adds, and where to go next.
 keywords: [welcome, new player, onboarding, enthusiasmp]
 related: [walkthrough, faq]
-updated: 2026-05-13
+updated: 2026-09-28
 ---
 
 # Welcome to EnthusiaSMP
@@ -23,13 +23,17 @@ LumaGuilds is the guild plugin. It lets you:
 - Form a guild with friends and share a tag, banner, and identity.
 - Set named guild homes that any member (or specific ranks) can teleport to.
 - Form alliances, declare wars, sign truces.
-- Earn guild XP together as you play, unlocking perks and bigger member caps.
+- Earn Chapter XP together, unlock rewards, and use prestige when your server enables it.
+- Complete shared weekly guild quests and compete on per-quest leaderboards.
+- Build a seasonal war rating through eligible rated wars.
 - Run a shared vault.
 
 ## What this wiki is for
 
 - **[Getting Started → Your first 30 minutes](walkthrough.md)** — guided tour.
 - **[Players](../players/how-do-i.md)** — every feature explained, organized by topic.
+- **[Weekly Guild Quests](../players/quests.md)** — this week's shared objectives and competition.
+- **[Progression, Rewards & Prestige](../players/progression.md)** — Chapter XP, unlocks, rewards, and prestige.
 - **[Admins](../admins/installation.md)** and **[Developers](../developers/architecture.md)** — if you run a server or work on the plugin.
 
 In-game, type `/g help` for the same content as a clickable menu.

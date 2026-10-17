@@ -1,14 +1,16 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
 import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.utils.RankNameContent
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.PaginatedPane
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.PaginatedPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import io.papermc.paper.datacomponent.DataComponentTypes
 import io.papermc.paper.datacomponent.item.ResolvableProfile
 import net.lumalyte.lg.application.services.MemberService
@@ -19,6 +21,7 @@ import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Bukkit
+import net.lumalyte.lg.utils.NexoItemProvider
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
@@ -61,12 +64,13 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
             val rank = rankService.getPlayerRank(member.playerId, guild.id)
             val offlinePlayer = Bukkit.getOfflinePlayer(member.playerId)
             val playerName = offlinePlayer.name ?: lang.raw("menu.guild_confirmation.common.unknown_player")
+            val rankName = rank?.name ?: lang.raw("menu.member_list.default_rank")
 
             val memberItem = ItemStack.of(Material.PLAYER_HEAD)
                 .name(lang.gui("menu.member_list.item.member.name", "player" to playerName))
                 .lore(lang.gui(
                     "menu.member_list.item.member.lore.rank",
-                    "rank" to (rank?.name ?: lang.raw("menu.member_list.default_rank")),
+                    "rank" to RankNameContent.miniMessage(rankName),
                 ))
 
             val joinFormatter = DateTimeFormatter.ofPattern(lang.raw("menu.member_list.date_pattern"))
@@ -102,9 +106,16 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
         // Navigation buttons
         if (paginatedPane.pages > 1) {
             // Previous page button
-            val prevButton = ItemStack.of(Material.ARROW)
-                .name(lang.gui("menu.member_list.item.previous.name"))
-                .lore(lang.gui("menu.common.item.page.name", "current_page" to (paginatedPane.page + 1), "total_pages" to paginatedPane.pages))
+            val prevButton =
+                NexoItemProvider.getItemStackOrFallback("lg_page_prev") { ItemStack.of(Material.ARROW) }
+                    .name(lang.gui("menu.member_list.item.previous.name"))
+                    .lore(
+                        lang.gui(
+                            "menu.common.item.page.name",
+                            "current_page" to paginatedPane.page + 1,
+                            "total_pages" to paginatedPane.pages,
+                        ),
+                    )
 
             val prevGuiItem = GuiItem(prevButton) {
                 if (paginatedPane.page > 0) {
@@ -115,9 +126,16 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
             staticPane.addItem(prevGuiItem, 0, 0)
 
             // Next page button
-            val nextButton = ItemStack.of(Material.ARROW)
-                .name(lang.gui("menu.member_list.item.next.name"))
-                .lore(lang.gui("menu.common.item.page.name", "current_page" to (paginatedPane.page + 1), "total_pages" to paginatedPane.pages))
+            val nextButton =
+                NexoItemProvider.getItemStackOrFallback("lg_page_next") { ItemStack.of(Material.ARROW) }
+                    .name(lang.gui("menu.member_list.item.next.name"))
+                    .lore(
+                        lang.gui(
+                            "menu.common.item.page.name",
+                            "current_page" to paginatedPane.page + 1,
+                            "total_pages" to paginatedPane.pages,
+                        ),
+                    )
 
             val nextGuiItem = GuiItem(nextButton) {
                 if (paginatedPane.page < paginatedPane.pages - 1) {
@@ -132,17 +150,18 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
         val infoItem = ItemStack.of(Material.PLAYER_HEAD)
             .name(lang.gui("menu.member_list.item.summary.name", "member_count" to members.size))
             .lore(lang.gui("menu.member_list.item.summary.lore", "guild" to guild.name))
-        staticPane.addItem(GuiItem(infoItem), 4, 0)
+        staticPane.addItem(GuiItem(infoItem), INFO_SLOT, 0)
 
         // Back button
-        val backButton = ItemStack.of(Material.BARRIER)
-            .name(lang.gui("menu.member_list.item.back.name"))
-            .lore(lang.gui("menu.member_list.item.back.lore"))
+        val backButton =
+            NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
+                .name(lang.gui("menu.member_list.item.back.name"))
+                .lore(lang.gui("menu.member_list.item.back.lore"))
 
         val backGuiItem = GuiItem(backButton) {
             menuNavigator.goBack()
         }
-        staticPane.addItem(backGuiItem, 7, 0)
+        staticPane.addItem(backGuiItem, BACK_SLOT, 0)
 
         gui.addPane(paginatedPane)
         gui.addPane(staticPane)
@@ -151,5 +170,10 @@ class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val 
 
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return
+    }
+
+    private companion object {
+        const val BACK_SLOT = 4
+        const val INFO_SLOT = 7
     }
 }

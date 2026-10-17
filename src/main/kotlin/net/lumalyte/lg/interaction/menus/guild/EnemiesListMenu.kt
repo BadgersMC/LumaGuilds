@@ -1,5 +1,8 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.utils.inventoryframework.addPane
+
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
@@ -8,8 +11,8 @@ import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import com.github.stefvanschie.inventoryframework.pane.PaginatedPane
-import com.github.stefvanschie.inventoryframework.pane.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.PaginatedPane
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RelationService
@@ -248,7 +251,7 @@ class EnemiesListMenu(
         pane.addItem(warDetailsGuiItem, 7, 1)
 
         // Back button
-        val backItem = ItemStack.of(Material.ARROW)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.enemies_list.actions.back.name"))
             .lore(lang.gui("menu.enemies_list.actions.back.description"))
 
@@ -268,7 +271,7 @@ class EnemiesListMenu(
 
         // Previous page button
         if (currentPage > 0) {
-            val prevItem = ItemStack.of(Material.ARROW)
+            val prevItem = NexoItemProvider.getItemStackOrFallback("lg_page_prev") { ItemStack.of(Material.ARROW) }
                 .name(lang.gui("menu.enemies_list.navigation.previous.name"))
                 .lore(lang.gui("menu.enemies_list.navigation.previous.description"))
 
@@ -289,7 +292,7 @@ class EnemiesListMenu(
 
         // Next page button
         if (currentPage < totalPages - 1) {
-            val nextItem = ItemStack.of(Material.ARROW)
+            val nextItem = NexoItemProvider.getItemStackOrFallback("lg_page_next") { ItemStack.of(Material.ARROW) }
                 .name(lang.gui("menu.enemies_list.navigation.next.name"))
                 .lore(lang.gui("menu.enemies_list.navigation.next.description"))
 
@@ -302,7 +305,7 @@ class EnemiesListMenu(
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = ItemStack.of(Material.ARROW)
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.enemies_list.navigation.back.name"))
             .lore(lang.gui("menu.enemies_list.navigation.back.description"))
 

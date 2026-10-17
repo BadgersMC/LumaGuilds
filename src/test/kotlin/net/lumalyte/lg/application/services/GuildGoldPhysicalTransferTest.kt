@@ -70,6 +70,21 @@ class GuildGoldPhysicalTransferTest {
     }
 
     @Test
+    fun `physical contribution can be authorized when virtual deposit is denied`() {
+        val authorization = object : GuildGoldAuthorizationPort {
+            override fun canDeposit(playerId: UUID, guildId: UUID) = false
+            override fun canDepositPhysical(playerId: UUID, guildId: UUID) = true
+            override fun canWithdraw(playerId: UUID, guildId: UUID) = false
+        }
+        val service = service(sqlRepository, authorization = authorization)
+
+        val result = service.depositPhysical(request(amount = 100))
+
+        assertTrue(result is GuildGoldResult.Applied)
+        assertEquals(100, service.balance(guildId))
+    }
+
+    @Test
     fun `physical deposit reserves amount plus fee and commits after canonical credit`() {
         val service = service(sqlRepository)
         val transactionId = UUID.randomUUID()
@@ -199,12 +214,13 @@ class GuildGoldPhysicalTransferTest {
 
     private fun service(
         repository: GuildGoldRepository,
-        capacity: Long = 100_000
+        capacity: Long = 100_000,
+        authorization: GuildGoldAuthorizationPort = GuildGoldAuthorizationPort.AllowAll,
     ) = GuildGoldService(
         repository = repository,
         policyProvider = GuildGoldPolicyProvider { policy() },
         capacityProvider = GuildGoldCapacityProvider { GuildGoldCapacity(capacity, 0) },
-        authorization = GuildGoldAuthorizationPort.AllowAll,
+        authorization = authorization,
         physicalGold = physical,
         periodStartProvider = { periodStart }
     )

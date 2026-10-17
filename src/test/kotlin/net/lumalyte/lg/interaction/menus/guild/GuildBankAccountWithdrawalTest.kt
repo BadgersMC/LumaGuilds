@@ -169,7 +169,7 @@ internal class GuildBankAccountWithdrawalTest {
         org.koin.core.context.loadKoinModules(module { single<BankService> { unavailableBank } })
         menu = GuildBankMenu(mockk(relaxed = true), player, Guild(guildId, "Physical only", createdAt = Instant.EPOCH))
         menu.open()
-        assertEquals(54, player.openInventory?.topInventory?.size, "Physical-only bank must open")
+        assertEquals(36, player.openInventory?.topInventory?.size, "Physical-only bank must open in the approved four-row shell")
         assertFalse(withdraw())
         assertEquals(1_000, balance)
         assertEquals(0.0, personalGold)

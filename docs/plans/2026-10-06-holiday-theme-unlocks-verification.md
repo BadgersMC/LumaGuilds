@@ -1,6 +1,6 @@
 # PR-17 holiday theme unlocks verification
 
-SPEAR specification: `2026-10-06-holiday-theme-unlocks.md` (REQ-094).
+SPEAR specification: `2026-10-06-holiday-theme-unlocks.md` (REQ-121).
 
 The RED run failed test compilation with 38 unresolved references because the
 ledger, service, API and `GuiTheme.requiresUnlock` did not exist. The implementation
@@ -26,8 +26,28 @@ production dependency, mock behavior or assertion was changed.
 
 ## Boundaries and remaining work
 
-- LG-1805: `guild_bg_haunted_hall_<rows>_row` and `guild_bg_winter_lodge_<rows>_row`
-  Nexo glyphs/textures belong in the server's resource pack. Until they exist, the
-  themes unlock and apply, but the menu background glyph will not render.
+- The proprietary Nexo/resource-pack assets are intentionally **not stored in this public repository**.
+  Deploy the separately maintained private pack through the normal Enthusia asset pipeline, then `/nexo reload all`.
 - MariaDB was not exercised in this session.
 - Live Paper/client validation with EnthusiaHolidays is outstanding.
+
+## Upstream port (2026-10-06)
+
+The work above landed first in the FainNeito fork, whose `main` was 108 commits behind
+BadgersMC/LumaGuilds. It was cherry-picked onto upstream `main` and adapted to the
+Enthusia redesign: the holiday themes became the design's `HALLOWEEN` and `CHRISTMAS`
+styles (with seasonal icon sets), a revoked style resets to `GuiTheme.DEFAULT`, and the
+requirement was renumbered REQ-121 because upstream already uses REQ-094. Tasks:
+LG-1904..LG-1908. Full `test` on the port: 1,573 tests, 0 failures, 0 errors, 4 skipped.
+The local RoseChat stand-in was extended with the 26.2 `ChannelMessageOptions` record
+and `ChannelSettings` shapes, read from the pinned RoseChat source (not built).
+
+## 8 October review refinement
+
+Current authoritative main remains a15b244e8a294bf18e6dedf722462edf9faa40ae. Review continues on the existing upstream PR #208, preserving its public API and stored ownership semantics. Local EARS/state helpers were not present; the requirements, tasks and this manual evidence record remain authoritative.
+
+Replaced earlier dependency stand-ins with actual ignored RoseChat RC-2 and CombatLogX API JARs. Focused theme/ownership/pack checks passed before and after the bounded service/SQL refinements. Native MariaDB now executes cosmetic persistence, guild insert repair and theme compare-and-set contracts using disposable randomly named schemas.
+
+The first native run failed three guild-update assertions because historical MariaDB migrations omit physical-vault columns. Additive JDBC metadata repair adds only absent vault fields before repository loading, preserving existing values. Rerunning the same native contracts passed with zero skips. No live database, resource-pack file, deployment or client acceptance was changed. Hosted quality and full-suite verification remain pending at this record.
+
+Final review validation: full Java 25 / pinned Paper 26.2 test and shadowJar pass with 1,574 tests, zero failures/errors and four unrelated optional skips. Ten native MariaDB cosmetic/insert/theme/preservation cases execute with zero skips. The added preservation fixture initially omitted vault Y/Z; completing the fixture made it a valid persisted vault and the repeated-startup assertions passed. Actual companion JARs were used. Codacy passed the preceding source head; final hosted build/wiki/quality checks must confirm the published revision. No production or client acceptance is claimed.
