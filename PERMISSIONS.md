@@ -169,6 +169,7 @@ pex group <group> check lumaguilds.guild.*
 | Guild Info | `lumaguilds.guild.info: true` | Public information |
 | Guild List | `lumaguilds.guild.list: true` | View open guilds |
 | Guild LFG | `lumaguilds.guild.lfg: true` | Browse guilds looking for members |
+| Invite Blocks | `lumaguilds.guild.block: true` | Anyone may block players from inviting them |
 | Guild Management | `lumaguilds.guild.*: true` | Guild members should manage their guilds |
 | War Declarations | `lumaguilds.guild.war: true` | Guild members can wage war |
 | Claim Management | `lumaguilds.command.*: op` | Resource intensive |

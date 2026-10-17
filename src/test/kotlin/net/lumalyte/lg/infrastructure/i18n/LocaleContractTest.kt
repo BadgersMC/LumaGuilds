@@ -119,7 +119,62 @@ class LocaleContractTest {
         "menu.bank.history.filter.clear",
         "menu.bank.stats.budget.status",
     )
-    private val declaredDynamicKeys =
+    private val dialogV2DynamicKeys =
+        setOf(
+            "dialog_v2.board_subtitle",
+            "dialog_v2.action_subtitle",
+            "dialog_v2.confirm_fee",
+            "dialog_v2.filter_fee",
+            "dialog_v2.filter_level",
+            "dialog_v2.filter_sort",
+            "dialog_v2.show_results",
+            "dialog_v2.sort_online",
+            "dialog_v2.winner_reward",
+            "dialog_v2.automatic_rewards",
+            "dialog_v2.resets",
+            "dialog_v2.top_three",
+            "dialog_v2.full_rankings",
+            "dialog_v2.other_quests",
+            "dialog_v2.view_quest",
+            "dialog_v2.guild_settings",
+            "dialog_v2.guild_frame",
+            "dialog_v2.more_settings",
+            "dialog_v2.more_listing_options",
+            "dialog_v2.more_filters",
+            "dialog_v2.open_recruitment",
+            "dialog_v2.close_recruitment",
+            "dialog_v2.setting_public",
+            "dialog_v2.setting_public_description",
+            "dialog_v2.setting_announcements",
+            "dialog_v2.setting_announcements_description",
+            "dialog_v2.setting_banner",
+            "dialog_v2.setting_banner_description",
+            "dialog_v2.setting_reminders",
+            "dialog_v2.setting_reminders_description",
+            "dialog_v2.on",
+            "dialog_v2.off",
+            "dialog_v2.frame_locked",
+            "dialog_v2.frame_current",
+            "dialog_v2.frame_preview",
+            "dialog_v2.frame_choose",
+            "dialog_v2.frame_subtitle",
+            "dialog_v2.apply_frame",
+            "dialog_v2.leaderboard",
+            "dialog_v2.guild_rankings",
+            "dialog_v2.recorded_wins",
+            "dialog_v2.rank_level",
+            "dialog_v2.rank_wins",
+            "dialog_v2.members",
+            "dialog_v2.perks",
+            "dialog_v2.perk_unlocked",
+            "dialog_v2.join_announcement",
+            "dialog_v2.quest_reminder",
+            "guild_dialogs.board.search_filters",
+            "guild_dialogs.quests.choose_ranking",
+            "recruitment.dialog.navigation",
+            "recruitment.dialog.close",
+        )
+    private val declaredDynamicKeys = dialogV2DynamicKeys +
         claimPermissionDynamicKeys + flagDynamicKeys + rankPermissionDynamicKeys + finiteMenuStateKeys +
             helpTopicDynamicKeys + warNotificationDynamicKeys + localizedHelperKeys
 
@@ -273,7 +328,7 @@ class LocaleContractTest {
 
         assertEquals(
             permissionKeys + flagKeys + rankPermissionKeys + expectedMenuStateKeys + expectedHelpTopicKeys +
-                warNotificationDynamicKeys + localizedHelperKeys,
+                warNotificationDynamicKeys + localizedHelperKeys + dialogV2DynamicKeys,
             declaredDynamicKeys,
         )
     }
@@ -437,7 +492,8 @@ class LocaleContractTest {
         const val BASELINE_POSITIONAL_PLACEHOLDERS = 0
         const val BASELINE_MISSING_KEYS = 0
         const val BASELINE_UNUSED_KEYS = 0
-        const val BASELINE_DYNAMIC_CALLS = 42
+        // Reference dialogs add thirteen finite state-dependent calls.
+        const val BASELINE_DYNAMIC_CALLS = 53 // Recruitment Back now uses one literal key.
         const val BASELINE_HARDCODED_PLAYER_TEXT = 0
         const val BASELINE_PLACEHOLDER_MISMATCHES = 0
     }

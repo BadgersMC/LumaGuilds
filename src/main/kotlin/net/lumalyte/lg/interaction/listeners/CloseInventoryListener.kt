@@ -16,6 +16,7 @@ class CloseInventoryListener: Listener, KoinComponent {
         if (event.player !is Player) return
         if (event.reason == InventoryCloseEvent.Reason.OPEN_NEW) return
         if (event.reason == InventoryCloseEvent.Reason.UNKNOWN) return
+        net.lumalyte.lg.infrastructure.services.GuildMenuLifecycle.inventoryClosed(event.player as Player, event.reason)
         unregisterClaimMenuOpening.execute(event.player.uniqueId)
     }
 }

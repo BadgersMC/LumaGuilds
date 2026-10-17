@@ -20,7 +20,8 @@ import kotlin.random.Random
 class WeeklyQuestCoordinator(
     private val questService: QuestService,
     private val configService: ProgressionConfigService,
-    private val targetCatalog: QuestTargetCatalog
+    private val targetCatalog: QuestTargetCatalog,
+    private val onNewQuestSet: () -> Unit = {}
 ) {
     private val logger = LoggerFactory.getLogger(WeeklyQuestCoordinator::class.java)
     private var task: BukkitTask? = null
@@ -99,6 +100,7 @@ class WeeklyQuestCoordinator(
         questService.resetWeeklyQuests(
             WeeklyQuestSet(period.weekId, period.startsAt, period.endsAt, quests)
         )
+        onNewQuestSet()
     }
 
     private fun periodBounds(now: Instant, config: QuestSystemConfig): PeriodBounds {

@@ -41,6 +41,18 @@ class QuestService(
 ) {
     fun activeQuestSet(): WeeklyQuestSet? = repository.getActiveQuestSet()
     fun recentQuestSets(limit: Int): List<WeeklyQuestSet> = repository.getRecentQuestSets(limit)
+
+    /** Standings from retained completed sets, not an invented current-season counter. */
+    fun recordedWins(): Map<UUID, Int> {
+        val active = repository.getActiveQuestSet()?.weekId
+        val counts = mutableMapOf<UUID, Int>()
+        repository.getRecentQuestSets(52).filter { it.weekId != active && !it.endsAt.isAfter(Instant.now()) }
+            .forEach { week -> week.quests.forEach { quest ->
+                repository.getQuestLeaderboard(week.weekId, quest.id, 1).firstOrNull()?.takeIf { it.currentCount > 0 }
+                    ?.let { counts[it.guildId] = (counts[it.guildId] ?: 0) + 1 }
+            } }
+        return counts
+    }
     fun deactivate() = repository.deactivateActiveQuestSet()
 
     fun progressFor(guildId: UUID, questId: String): GuildQuestProgress {

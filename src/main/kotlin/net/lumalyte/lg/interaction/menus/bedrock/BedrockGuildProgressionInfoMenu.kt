@@ -71,14 +71,27 @@ class BedrockGuildProgressionInfoMenu(
             .label(createBenefitsSection())
             .label(createSectionHeader(lang.bedrock("bedrock.progression.header.activity")))
             .label(createActivitySection())
+            .toggle(lang.bedrock("quest_discovery.menu_name"), false)
             .validResultHandler { response ->
-                // Read-only menu, just close
-                bedrockNavigator.goBack()
+                Bukkit.getScheduler().runTask(serverPlugin, Runnable {
+                    onFormResponseReceived()
+                    if (response.asToggle(13)) openQuests() else bedrockNavigator.goBack()
+                })
             }
             .closedOrInvalidResultHandler { _, _ ->
                 bedrockNavigator.goBack()
             }
             .build()
+    }
+
+    private fun openQuests() {
+        if (!player.isOnline) return
+        if (members.getMember(player.uniqueId, guild.id) == null ||
+            !player.hasPermission("lumaguilds.guild.quests")) {
+            player.sendMessage(lang.msg("quest_discovery.denied"))
+            return
+        }
+        bedrockNavigator.openMenu(menuFactory.createGuildQuestsMenu(menuNavigator, player, guild))
     }
 
     private fun rewardCatalog(rewards: GuildRewardRead.Available): Form {
@@ -101,6 +114,7 @@ class BedrockGuildProgressionInfoMenu(
                 if (offer.status == RewardOfferStatus.AVAILABLE) listOf(lang.bedrock("chapter_two_rewards.purchase.select"))
                 else emptyList()).joinToString("\n")) } }
             .button(prestigeButtonLabel())
+            .button(lang.bedrock("quest_discovery.menu_name"))
             .button(lang.bedrock("chapter_two_rewards.back"))
             .validResultHandler { response ->
                 val index = response.clickedButtonId()
@@ -128,6 +142,8 @@ class BedrockGuildProgressionInfoMenu(
                         bedrockNavigator.openMenu(
                             BedrockPrestigeSelectionMenu(menuNavigator, player, guild, logger)
                         )
+                    } else if (index == offers.size + 1) {
+                        openQuests()
                     } else {
                         bedrockNavigator.goBack()
                     }
