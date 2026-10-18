@@ -1,12 +1,12 @@
 package net.lumalyte.lg.infrastructure.services
 
-import java.io.File
 import org.junit.jupiter.api.Test
+import java.io.File
 import kotlin.test.assertTrue
 
 internal class GuildShopXpStartupTest {
     @Test
-    fun startupPublishesShopXpBeforePlayerListeners() {
+    fun startupPublishesShopXp() {
         val source = File("src/main/kotlin/net/lumalyte/lg/LumaGuilds.kt").readText()
         val enable = source.substringAfter("override fun onEnable()").substringBefore("override fun onDisable()")
         assertTrue(enable.contains("registerGuildShopXpApi("), "onEnable must publish Market's XP service")
