@@ -37,8 +37,9 @@ private const val AWARD_XP = 2_000
 
 class ProgressionServiceBukkitAwardTest {
 
+    /** A non-level bank award must update cached menu reads. */
     @Test
-    fun `non-level bank activity refreshes committed XP for menu readers`() {
+    fun bankXpRefreshesCachedTotal() {
         val awards = RecordingRepository()
         val progression = mockk<ProgressionRepository>(relaxed = true)
         val guildId = UUID.randomUUID()
@@ -50,8 +51,9 @@ class ProgressionServiceBukkitAwardTest {
         verify(exactly = 1) { progression.refreshGuildProgression(guildId) }
     }
 
+    /** Completing a quest publishes XP even when the guild stays at the same level. */
     @Test
-    fun `completed quest XP refreshes menu readers even without a level-up`() {
+    fun questXpRefreshesCachedTotal() {
         val awards = RecordingRepository()
         val progression = mockk<ProgressionRepository>(relaxed = true)
         val guildId = UUID.randomUUID()

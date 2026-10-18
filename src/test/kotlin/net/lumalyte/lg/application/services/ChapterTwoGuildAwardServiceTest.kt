@@ -47,12 +47,13 @@ class ChapterTwoGuildAwardServiceTest {
         assertEquals(listOf(guildId to null), committed)
     }
 
+    /** Publishing a committed bank level does not issue a second award. */
     @Test
-    fun `bank level-up publishes the committed level once without another XP award`() {
+    fun bankLevelUpPublishesOnce() {
         val guildId = UUID.randomUUID()
         awards.leveledUpTo = 2
 
-        service.awardBankGrowth(guildId, UUID.randomUUID(), 0, 100, now)
+        service.awardBankGrowth(guildId, UUID.randomUUID(), 0, BANK_TEST_AMOUNT, now)
 
         assertEquals(listOf(guildId to 2), committed)
         assertEquals(1, awards.calls.size)
@@ -129,6 +130,10 @@ class ChapterTwoGuildAwardServiceTest {
     private class RecordingActivity : PlaytimeActivityService {
         val blocked = mutableSetOf<UUID>()
         override fun isXpBlocked(playerId: UUID) = playerId in blocked
+    }
+
+    private companion object {
+        const val BANK_TEST_AMOUNT = 100L
     }
 
     private class InMemoryBankProgression : BankProgressionRepository {
