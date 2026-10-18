@@ -125,6 +125,14 @@ class LumaGuilds : JavaPlugin() {
         )
         logColored("✓ GuildLookup registered in ServicesManager for cross-plugin integration")
 
+        net.lumalyte.lg.infrastructure.services.registerGuildShopXpApi(
+            this,
+            get().get(),
+            get().get(),
+            get().get(),
+        )
+        logColored("✓ GuildShopXpApi v2 registered in ServicesManager for Market purchases")
+
         val guildVisualLookup = net.lumalyte.lg.api.GuildVisualLookupImpl(
             get().get<net.lumalyte.lg.application.services.GuildService>(),
             get().get<net.lumalyte.lg.application.services.MemberService>(),
