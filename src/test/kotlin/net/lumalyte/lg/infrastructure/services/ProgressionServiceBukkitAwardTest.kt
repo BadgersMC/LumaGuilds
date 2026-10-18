@@ -61,9 +61,14 @@ class ProgressionServiceBukkitAwardTest {
         val guildId = UUID.randomUUID()
         val service = serviceWith(awards, progression)
 
-        assertTrue(service.awardUncappedSystemExperienceOnce(
-            guildId, QUEST_REWARD_XP, ExperienceSource.WEEKLY_ACTIVITY, UUID.randomUUID(),
-        ))
+        assertTrue(
+            service.awardUncappedSystemExperienceOnce(
+                guildId,
+                QUEST_REWARD_XP,
+                ExperienceSource.WEEKLY_ACTIVITY,
+                UUID.randomUUID(),
+            ),
+        )
 
         assertEquals(QUEST_REWARD_XP, awards.requestedXp)
         verify(exactly = 1) { progression.refreshGuildProgression(guildId) }

@@ -139,14 +139,16 @@ internal class DepositXpVisibilityTest {
     private fun questPolicy() =
         ExperiencePolicy(ExperienceSource.WEEKLY_ACTIVITY, "WEEKLY_ACTIVITY", 1, 0, CapPeriod.UNLIMITED, true)
 
-    private fun questRequest(receipt: UUID) = ExperienceAwardRequest(
-        guildId,
-        null,
-        ExperienceSource.WEEKLY_ACTIVITY,
-        QUEST_XP,
-        Instant.now(),
-        transactionId = receipt,
-    )
+    private fun questRequest(receipt: UUID): ExperienceAwardRequest {
+        return ExperienceAwardRequest(
+            guildId,
+            null,
+            ExperienceSource.WEEKLY_ACTIVITY,
+            QUEST_XP,
+            Instant.now(),
+            transactionId = receipt,
+        )
+    }
 
     private fun setTimestamps(created: Any, updated: Any, lastLevel: Any?) {
         storage.connection.executeUpdate(
@@ -158,19 +160,23 @@ internal class DepositXpVisibilityTest {
         )
     }
 
-    private fun receipts(): Int = checkNotNull(
-        storage.connection.getFirstRow(
-            "SELECT COUNT(*) AS count FROM experience_transactions WHERE guild_id = ?",
-            guildId.toString(),
-        ),
-    ).getInt("count")
+    private fun receipts(): Int {
+        return checkNotNull(
+            storage.connection.getFirstRow(
+                "SELECT COUNT(*) AS count FROM experience_transactions WHERE guild_id = ?",
+                guildId.toString(),
+            ),
+        ).getInt("count")
+    }
 
-    private fun persistedXp(): Int = checkNotNull(
-        storage.connection.getFirstRow(
-            "SELECT total_experience FROM guild_progression WHERE guild_id = ?",
-            guildId.toString(),
-        ),
-    ).getInt("total_experience")
+    private fun persistedXp(): Int {
+        return checkNotNull(
+            storage.connection.getFirstRow(
+                "SELECT total_experience FROM guild_progression WHERE guild_id = ?",
+                guildId.toString(),
+            ),
+        ).getInt("total_experience")
+    }
 
     private companion object {
         const val BANK_AMOUNT = 100L
