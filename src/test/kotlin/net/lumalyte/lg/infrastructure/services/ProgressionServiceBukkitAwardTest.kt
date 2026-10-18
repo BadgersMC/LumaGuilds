@@ -34,6 +34,8 @@ import java.util.UUID
 
 private const val DISCORD_ROLE_LEVEL = 50
 private const val AWARD_XP = 2_000
+private const val BANK_ACTIVITY_XP = 10
+private const val QUEST_REWARD_XP = 500
 
 class ProgressionServiceBukkitAwardTest {
 
@@ -45,9 +47,9 @@ class ProgressionServiceBukkitAwardTest {
         val guildId = UUID.randomUUID()
         val service = serviceWith(awards, progression)
 
-        assertEquals(null, service.awardExperience(guildId, 10, ExperienceSource.BANK_DEPOSIT))
+        assertEquals(null, service.awardExperience(guildId, BANK_ACTIVITY_XP, ExperienceSource.BANK_DEPOSIT))
 
-        assertEquals(10, awards.requestedXp)
+        assertEquals(BANK_ACTIVITY_XP, awards.requestedXp)
         verify(exactly = 1) { progression.refreshGuildProgression(guildId) }
     }
 
@@ -60,10 +62,10 @@ class ProgressionServiceBukkitAwardTest {
         val service = serviceWith(awards, progression)
 
         assertTrue(service.awardUncappedSystemExperienceOnce(
-            guildId, 500, ExperienceSource.WEEKLY_ACTIVITY, UUID.randomUUID(),
+            guildId, QUEST_REWARD_XP, ExperienceSource.WEEKLY_ACTIVITY, UUID.randomUUID(),
         ))
 
-        assertEquals(500, awards.requestedXp)
+        assertEquals(QUEST_REWARD_XP, awards.requestedXp)
         verify(exactly = 1) { progression.refreshGuildProgression(guildId) }
     }
 

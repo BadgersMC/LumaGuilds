@@ -110,25 +110,7 @@ internal class DepositXpVisibilityTest {
     /** Replaying a committed receipt only repairs cached state. */
     @Test fun rewardReplayRefreshesCache() {
         val receipt = UUID.randomUUID()
-        val policy =
-            ExperiencePolicy(
-                ExperienceSource.WEEKLY_ACTIVITY,
-                "WEEKLY_ACTIVITY",
-                1,
-                0,
-                CapPeriod.UNLIMITED,
-                true,
-            )
-        val request =
-            ExperienceAwardRequest(
-                guildId,
-                null,
-                ExperienceSource.WEEKLY_ACTIVITY,
-                QUEST_XP,
-                Instant.now(),
-                transactionId = receipt,
-            )
-        awards.awardAtomically(request, policy, QUEST_XP, null)
+        awards.awardAtomically(questRequest(receipt), questPolicy(), QUEST_XP, null)
         assertEquals(QUEST_XP, persistedXp())
         assertEquals(0, cached.getGuildProgression(guildId)?.totalExperience)
 
@@ -141,45 +123,54 @@ internal class DepositXpVisibilityTest {
     /** Numeric and legacy text timestamps retain their exact meanings. */
     @Test fun mixedTimestampsRemainReadable() {
         val instant = Instant.parse("2026-08-28T12:00:00Z")
-        storage.connection.executeUpdate(
-            "UPDATE guild_progression SET created_at = ?, last_updated = ?, last_level_up = ? WHERE guild_id = ?",
-            instant.toEpochMilli(),
-            instant.toString(),
-            instant.toEpochMilli(),
-            guildId.toString(),
-        )
+        setTimestamps(instant.toEpochMilli(), instant.toString(), instant.toEpochMilli())
         val mixed = checkNotNull(cached.refreshGuildProgression(guildId))
         assertEquals(instant, mixed.createdAt)
         assertEquals(instant, mixed.lastUpdated)
         assertEquals(instant, mixed.lastLevelUp)
 
-        storage.connection.executeUpdate(
-            "UPDATE guild_progression SET created_at = ?, last_updated = ?, last_level_up = NULL WHERE guild_id = ?",
-            instant.toString(),
-            instant.toEpochMilli(),
-            guildId.toString(),
-        )
+        setTimestamps(instant.toString(), instant.toEpochMilli(), null)
         val reversed = checkNotNull(cached.refreshGuildProgression(guildId))
         assertEquals(instant, reversed.createdAt)
         assertEquals(instant, reversed.lastUpdated)
         assertEquals(null, reversed.lastLevelUp)
     }
 
-    private fun receipts(): Int =
-        checkNotNull(
-            storage.connection.getFirstRow(
-                "SELECT COUNT(*) AS count FROM experience_transactions WHERE guild_id = ?",
-                guildId.toString(),
-            ),
-        ).getInt("count")
+    private fun questPolicy() =
+        ExperiencePolicy(ExperienceSource.WEEKLY_ACTIVITY, "WEEKLY_ACTIVITY", 1, 0, CapPeriod.UNLIMITED, true)
 
-    private fun persistedXp(): Int =
-        checkNotNull(
-            storage.connection.getFirstRow(
-                "SELECT total_experience FROM guild_progression WHERE guild_id = ?",
-                guildId.toString(),
-            ),
-        ).getInt("total_experience")
+    private fun questRequest(receipt: UUID) = ExperienceAwardRequest(
+        guildId,
+        null,
+        ExperienceSource.WEEKLY_ACTIVITY,
+        QUEST_XP,
+        Instant.now(),
+        transactionId = receipt,
+    )
+
+    private fun setTimestamps(created: Any, updated: Any, lastLevel: Any?) {
+        storage.connection.executeUpdate(
+            "UPDATE guild_progression SET created_at = ?, last_updated = ?, last_level_up = ? WHERE guild_id = ?",
+            created,
+            updated,
+            lastLevel,
+            guildId.toString(),
+        )
+    }
+
+    private fun receipts(): Int = checkNotNull(
+        storage.connection.getFirstRow(
+            "SELECT COUNT(*) AS count FROM experience_transactions WHERE guild_id = ?",
+            guildId.toString(),
+        ),
+    ).getInt("count")
+
+    private fun persistedXp(): Int = checkNotNull(
+        storage.connection.getFirstRow(
+            "SELECT total_experience FROM guild_progression WHERE guild_id = ?",
+            guildId.toString(),
+        ),
+    ).getInt("total_experience")
 
     private companion object {
         const val BANK_AMOUNT = 100L
