@@ -8,12 +8,14 @@ import net.lumalyte.lg.domain.values.ExperienceSource
 import java.time.Instant
 import java.util.UUID
 
-class ChapterTwoGuildAwardService(
+class ChapterTwoGuildAwardService @JvmOverloads constructor(
     private val bankProgressionRepository: BankProgressionRepository,
     private val membershipHistoryRepository: MembershipHistoryRepository,
     private val permanentExperienceService: PermanentExperienceService,
     private val configService: ConfigService,
     private val playtimeActivityService: PlaytimeActivityService,
+    // The platform adapter publishes committed state; it must not award XP again or throw.
+    private val onCommittedExperience: (UUID, Int?) -> Unit = { _, _ -> },
 ) {
     fun awardBankGrowth(
         guildId: UUID,
@@ -37,7 +39,7 @@ class ChapterTwoGuildAwardService(
         return permanentExperienceService.award(
             ExperienceAwardRequest(guildId, actorId, ExperienceSource.BANK_DEPOSIT, units, occurredAt),
             policy,
-        )
+        ).also { publishCommitted(guildId, it) }
     }
 
     fun processQualifiedRecruits(occurredAt: Instant = Instant.now()): Int {
@@ -56,6 +58,7 @@ class ChapterTwoGuildAwardService(
                 ),
                 policy,
             )
+            publishCommitted(stint.guildId, result)
             if ((result is ExperienceAwardResult.Awarded || result is ExperienceAwardResult.Duplicate) &&
                 membershipHistoryRepository.markRecruitXpAwarded(stint.id, occurredAt)
             ) {
@@ -75,7 +78,15 @@ class ChapterTwoGuildAwardService(
         return permanentExperienceService.award(
             ExperienceAwardRequest(guildId, null, source, 1, occurredAt),
             policy(source),
-        )
+        ).also { publishCommitted(guildId, it) }
+    }
+
+    private fun publishCommitted(guildId: UUID, result: ExperienceAwardResult) {
+        when (result) {
+            is ExperienceAwardResult.Awarded -> onCommittedExperience(guildId, result.leveledUpTo)
+            ExperienceAwardResult.Duplicate -> onCommittedExperience(guildId, null)
+            else -> Unit
+        }
     }
 
     private fun policy(source: ExperienceSource) =

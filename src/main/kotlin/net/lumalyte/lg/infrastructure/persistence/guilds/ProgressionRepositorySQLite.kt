@@ -23,7 +23,7 @@ class ProgressionRepositorySQLite(
 ) : ProgressionRepository {
 
     private val logger = LoggerFactory.getLogger(ProgressionRepositorySQLite::class.java)
-    private val guildProgressions: MutableMap<UUID, GuildProgression> = mutableMapOf()
+    private val guildProgressions: MutableMap<UUID, GuildProgression> = java.util.concurrent.ConcurrentHashMap()
     private val activityMetrics: MutableMap<UUID, GuildActivityMetrics> = mutableMapOf()
 
     // Memoized curve, invalidated when the config values change (reload-safe).
@@ -258,11 +258,11 @@ class ProgressionRepositorySQLite(
             currentLevel = rs.getInt("current_level"),
             experienceThisLevel = rs.getInt("experience_this_level"),
             experienceForNextLevel = rs.getInt("experience_for_next_level"),
-            lastLevelUp = rs.getString("last_level_up")?.let { parseTimestamp(it) },
+            lastLevelUp = rs.get<Any>("last_level_up")?.toString()?.let { parseTimestamp(it) },
             totalLevelUps = rs.getInt("total_level_ups"),
             unlockedPerks = unlockedPerks,
-            createdAt = parseTimestamp(rs.getString("created_at")),
-            lastUpdated = parseTimestamp(rs.getString("last_updated"))
+            createdAt = parseTimestamp(rs.get<Any>("created_at").toString()),
+            lastUpdated = parseTimestamp(rs.get<Any>("last_updated").toString())
         )
     }
 
