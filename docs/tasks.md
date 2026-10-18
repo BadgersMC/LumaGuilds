@@ -2,6 +2,11 @@
 
 Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` line, and an `Evidence:` block that MUST be filled with real source citations before any downstream SPEAR phase runs on it.
 
+- [x] **SHOP-XP-REGISTRATION** Publish the existing v2 service during startup.
+  - Tag: `TDD`
+  - References: REQ-134.
+  - Evidence: `docs/plans/2026-10-18-shop-xp-registration.md`. Startup wiring regression fails on current main; real Bukkit discovery and actual Market 1.0.53 gateway lifecycle pass after registration. Full build and hosted/client evidence are recorded separately.
+
 - [~] **LG-2010** Guild stall menus and optional read adapter.
   - Tag: `TDD`
   - References: REQ-124/125; Market REQ-340/341.
