@@ -1001,3 +1001,5 @@ Menu audit follow-up (REQ-063):
   - Tag: `TDD`
   - References: REQ-149.
   - Evidence: the historical TEST branch reproduced stale-provider behavior and recorded 24 focused cases plus a 1,752-test full suite with zero failures/errors and 20 optional skips. This sanitized rebuild contains only the provider lifecycle source/test correction and evidence; fresh exact-head hosted checks remain required. See `docs/test-startup-cleanup.md`. Production remains unchanged.
+
+- [x] **DEPOSIT-XP-VISIBILITY** Refresh committed XP without a level-up, publish Chapter Two bank XP, and read numeric/legacy progression timestamps. Two baseline cache regressions and a real SQL mapper failure reproduced; full local check passes 1,775 tests with zero failures/errors and 16 optional skips. Evidence: docs/plans/2026-10-18-deposit-xp-visibility.md. Hosted review and corrected TEST acceptance remain separate; no deployment.

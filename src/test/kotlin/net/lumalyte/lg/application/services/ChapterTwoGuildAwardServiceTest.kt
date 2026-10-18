@@ -23,12 +23,14 @@ class ChapterTwoGuildAwardServiceTest {
     private val history = InMemoryMembershipHistory()
     private val activity = RecordingActivity()
     private val config = MainConfig()
+    private val committed = mutableListOf<Pair<UUID, Int?>>()
     private val service = ChapterTwoGuildAwardService(
         bank,
         history,
         PermanentExperienceService(awards, activity),
         object : ConfigService { override fun loadConfig() = config },
         activity,
+        onCommittedExperience = { guildId, level -> committed += guildId to level },
     )
 
     @Test
@@ -42,6 +44,18 @@ class ChapterTwoGuildAwardServiceTest {
 
         assertEquals(listOf(100), awards.calls.map { it.requestedXp })
         assertEquals(ExperienceSource.BANK_DEPOSIT, awards.calls.single().request.source)
+        assertEquals(listOf(guildId to null), committed)
+    }
+
+    @Test
+    fun `bank level-up publishes the committed level once without another XP award`() {
+        val guildId = UUID.randomUUID()
+        awards.leveledUpTo = 2
+
+        service.awardBankGrowth(guildId, UUID.randomUUID(), 0, 100, now)
+
+        assertEquals(listOf(guildId to 2), committed)
+        assertEquals(1, awards.calls.size)
     }
 
     @Test
@@ -51,6 +65,7 @@ class ChapterTwoGuildAwardServiceTest {
         activity.blocked += actorId
 
         service.awardBankGrowth(guildId, actorId, 0, 10_000, now)
+        assertEquals(emptyList<Pair<UUID, Int?>>(), committed)
         activity.blocked -= actorId
         service.awardBankGrowth(guildId, actorId, 0, 10_000, now)
 
@@ -95,6 +110,7 @@ class ChapterTwoGuildAwardServiceTest {
     }
 
     private class RecordingAwards : ExperienceAwardRepository {
+        var leveledUpTo: Int? = null
         data class Call(val request: ExperienceAwardRequest, val requestedXp: Int)
         val calls = mutableListOf<Call>()
         private val transactionIds = mutableSetOf<UUID>()
@@ -106,7 +122,7 @@ class ChapterTwoGuildAwardServiceTest {
         ): ExperienceAwardResult {
             if (!transactionIds.add(request.transactionId)) return ExperienceAwardResult.Duplicate
             calls += Call(request, requestedXp)
-            return ExperienceAwardResult.Awarded(requestedXp, requestedXp, policy.isCapped)
+            return ExperienceAwardResult.Awarded(requestedXp, requestedXp, policy.isCapped, leveledUpTo)
         }
     }
 

@@ -182,6 +182,10 @@ The XP/Elo/chapter contract lives in `docs/superpowers/specs/2026-08-27-chapter-
 
 See [guild-shop-xp.md](guild-shop-xp.md) for approved policy, durable delivery, SPEAR state and acceptance boundaries.
 
+### Committed XP visibility
+
+Committed XP must be published to the progression read cache even when no level changes. The progression facade refreshes successful awards and idempotent quest-reward receipt replays; Chapter Two bank/recruit/war awards invoke a deferred platform callback after the permanent award commits. This callback only refreshes state and existing level effects, never awards XP again. The progression mapper accepts both numeric epoch and legacy text timestamps. See [deposit XP verification](plans/2026-10-18-deposit-xp-visibility.md).
+
 ### Guild-wide reconnect chat preference (REQ-135)
 
 `GuildChatReconnectSettingsService` owns membership/permission policy through `GuildChatReconnectSettingsRepository`; the SQL adapter stores a default-off guild preference with atomic expected-state writes. Both menu clients submit a rendered snapshot without replacing newer unchanged fields. `GuildChatReconnectListener` is wired with RoseChat startup, runs one tick after join, and rechecks the current session/channel before switching only guild/ally chat to the configured default. Additive schema migration and transactional disband cleanup cover both supported databases. See `docs/chat-reconnect.md` for verification and release boundaries.

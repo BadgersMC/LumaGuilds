@@ -38,6 +38,34 @@ private const val AWARD_XP = 2_000
 class ProgressionServiceBukkitAwardTest {
 
     @Test
+    fun `non-level bank activity refreshes committed XP for menu readers`() {
+        val awards = RecordingRepository()
+        val progression = mockk<ProgressionRepository>(relaxed = true)
+        val guildId = UUID.randomUUID()
+        val service = serviceWith(awards, progression)
+
+        assertEquals(null, service.awardExperience(guildId, 10, ExperienceSource.BANK_DEPOSIT))
+
+        assertEquals(10, awards.requestedXp)
+        verify(exactly = 1) { progression.refreshGuildProgression(guildId) }
+    }
+
+    @Test
+    fun `completed quest XP refreshes menu readers even without a level-up`() {
+        val awards = RecordingRepository()
+        val progression = mockk<ProgressionRepository>(relaxed = true)
+        val guildId = UUID.randomUUID()
+        val service = serviceWith(awards, progression)
+
+        assertTrue(service.awardUncappedSystemExperienceOnce(
+            guildId, 500, ExperienceSource.WEEKLY_ACTIVITY, UUID.randomUUID(),
+        ))
+
+        assertEquals(500, awards.requestedXp)
+        verify(exactly = 1) { progression.refreshGuildProgression(guildId) }
+    }
+
+    @Test
     fun `legacy positive award delegates raw XP through capped permanent service`() {
         val awards = RecordingRepository()
         val config = MainConfig()
