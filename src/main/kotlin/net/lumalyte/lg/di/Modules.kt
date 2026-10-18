@@ -761,7 +761,20 @@ fun progressionModule() = module {
             config.loadConfig().progression.xpBoost
         }
     }
-    single { net.lumalyte.lg.application.services.ChapterTwoGuildAwardService(get(), get(), get(), get(), get()) }
+    single {
+        net.lumalyte.lg.application.services.ChapterTwoGuildAwardService(
+            get(), get(), get(), get(), get(),
+            onCommittedExperience = { guildId, level ->
+                // Resolve only after an award, avoiding a constructor cycle with ProgressionService.
+                runCatching { get<ProgressionService>().onCommittedExperience(guildId, level) }
+                    .onFailure { error ->
+                        get<LumaGuilds>().logger.log(
+                            java.util.logging.Level.WARNING, "Failed to publish committed guild XP for $guildId", error,
+                        )
+                    }
+            },
+        )
+    }
     single { net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator(get(), get()) }
     single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get(), get<LumaGuilds>(), get(), get(), get(), get()) }
     single<net.lumalyte.lg.application.persistence.WarRepository> {
