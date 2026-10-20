@@ -25,11 +25,13 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.mockbukkit.mockbukkit.MockBukkit
 import java.nio.file.Path
+import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import kotlin.properties.Delegates
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 /** Real SQL award receipts and the real cached menu repository share one committed total. */
@@ -72,7 +74,7 @@ internal class DepositXpVisibilityTest {
             )
         bank =
             ChapterTwoGuildAwardService(
-                BankProgressionRepositorySQL(storage),
+                BankProgressionRepositorySQL(storage, awards),
                 mockk(relaxed = true),
                 permanent,
                 config,
@@ -109,6 +111,37 @@ internal class DepositXpVisibilityTest {
         bank.awardBankGrowth(guildId, actor, 0, BANK_AMOUNT)
         assertEquals(TOTAL_XP, cached.getGuildProgression(guildId)?.totalExperience)
         assertEquals(2, receipts())
+    }
+
+    /** A rolled-back XP write must not permanently consume the deposit's growth. */
+    @Test fun bankAwardRetryAfterSqlFailurePreservesGrowth() {
+        val actor = UUID.randomUUID()
+        val occurredAt = Instant.parse("2026-10-20T12:00:00Z")
+        storage.connection.executeUpdate(
+            "CREATE TRIGGER reject_bank_xp BEFORE INSERT ON experience_transactions " +
+                "BEGIN SELECT RAISE(ABORT, 'bank XP receipt rejected'); END",
+        )
+
+        assertFailsWith<SQLException> {
+            bank.awardBankGrowth(guildId, actor, 0, BANK_AMOUNT, occurredAt)
+        }
+        assertEquals(0, persistedXp())
+        assertEquals(0, cached.getGuildProgression(guildId)?.totalExperience)
+        assertEquals(0, receipts())
+        assertTrue(awards.getAwardedXpByPool(guildId, occurredAt).isEmpty())
+        storage.connection.executeUpdate("DROP TRIGGER reject_bank_xp")
+
+        val result = bank.awardBankGrowth(guildId, actor, 0, BANK_AMOUNT, occurredAt)
+
+        assertTrue(result is net.lumalyte.lg.domain.entities.ExperienceAwardResult.Awarded, "$result")
+        assertEquals(1, persistedXp())
+        assertEquals(1, cached.getGuildProgression(guildId)?.totalExperience)
+        assertEquals(1, receipts())
+        assertEquals(1, awards.getAwardedXpByPool(guildId, occurredAt)["BANK_DEPOSIT"])
+
+        bank.awardBankGrowth(guildId, actor, 0, BANK_AMOUNT, occurredAt)
+        assertEquals(1, persistedXp())
+        assertEquals(1, receipts())
     }
 
     /** Replaying a committed receipt only repairs cached state. */
