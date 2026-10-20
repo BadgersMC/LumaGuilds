@@ -74,7 +74,7 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
                                 )
                                     .action(action { actions.cancel() })
                                     .build()),
-                                ActionButton.builder(Component.translatable("gui.close"))
+                                ActionButton.builder(GUILD_DIALOG_CLOSE_LABEL)
                                     .action(action(Duration.ofHours(1)) { GuildMenuLifecycle.dismiss(player) }).build(), 2,
                             ),
                         )

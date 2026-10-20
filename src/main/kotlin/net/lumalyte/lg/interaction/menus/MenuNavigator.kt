@@ -42,16 +42,31 @@ class MenuNavigator(private val player: Player) {
      */
     fun returnTo(parentType: Class<out Menu>, fallback: () -> Menu) {
         navigationGeneration.incrementAndGet()
+        restoreParent(parentType, fallback).open()
+    }
+
+    /**
+     * Returns to a named parent with updated child data while retaining the parent's
+     * other state. Data is delivered before opening either the existing parent or
+     * its direct-entry fallback. Descendants cannot be revisited by another Back.
+     */
+    fun returnToWithData(parentType: Class<out Menu>, data: Any?, fallback: () -> Menu) {
+        navigationGeneration.incrementAndGet()
+        val parent = restoreParent(parentType, fallback)
+        parent.passData(data)
+        parent.open()
+    }
+
+    private fun restoreParent(parentType: Class<out Menu>, fallback: () -> Menu): Menu {
         val parent = menuStack.firstOrNull { parentType.isInstance(it) }
         if (parent != null) {
             while (menuStack.first() !== parent) menuStack.removeFirst()
-            parent.open()
-        } else {
-            val replacement = fallback()
-            if (menuStack.isNotEmpty()) menuStack.removeFirst()
-            menuStack.addFirst(replacement)
-            replacement.open()
+            return parent
         }
+        val replacement = fallback()
+        if (menuStack.isNotEmpty()) menuStack.removeFirst()
+        menuStack.addFirst(replacement)
+        return replacement
     }
 
     /**

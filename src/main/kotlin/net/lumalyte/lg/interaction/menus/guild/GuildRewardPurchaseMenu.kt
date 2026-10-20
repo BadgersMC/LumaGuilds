@@ -58,8 +58,7 @@ class GuildRewardPurchaseMenu(private val player: Player, private val quote: Rew
             val shown = dialog.show(player, net.lumalyte.lg.infrastructure.services.GuildDialogPage(
                 lang.gui("chapter_two_rewards.purchase.title"),
                 listOf(referenceItem("lg_reward", listOf(
-                    lang.gui("chapter_two_rewards.purchase.quote", "reward" to rewardName, "price" to quote.quotedPrice),
-                    net.kyori.adventure.text.Component.text(quote.transactionId.toString())))),
+                    lang.gui("chapter_two_rewards.purchase.quote", "reward" to rewardName, "price" to quote.quotedPrice)))),
                 listOf(referenceAction(confirm, "lg_confirm") {
                     val result = purchases.confirm(player.uniqueId, quote)
                     player.sendMessage(lang.purchaseFeedback(result))

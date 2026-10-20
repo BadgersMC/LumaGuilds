@@ -9,6 +9,55 @@ import org.junit.jupiter.api.Test
 class MenuNavigatorTest {
     private class ParentMenu(val opened: () -> Unit) : Menu { override fun open() = opened() }
 
+    private class EditorMenu(private val visits: MutableList<String>) : Menu {
+        var page = 3
+        private var draft: Any? = "original"
+        override fun passData(data: Any?) { draft = data }
+        override fun open() { visits += "editor-$page-$draft" }
+    }
+
+    @Test fun `named data return updates the nearest editor before reopening and keeps other state`() {
+        val navigator = MenuNavigator(mockk(relaxed = true))
+        val visits = mutableListOf<String>()
+        val olderEditor = EditorMenu(visits).also { it.page = 1 }
+        val editor = EditorMenu(visits)
+        navigator.openMenu(olderEditor)
+        navigator.openMenu(editor)
+        val child = mockk<Menu>(relaxed = true)
+        navigator.openMenu(child)
+        navigator.openMenu(mockk(relaxed = true))
+        val token = navigator.currentNavigationToken()
+
+        navigator.returnToWithData(EditorMenu::class.java, "updated") { error("Existing editor must be reused") }
+        assertFalse(navigator.isNavigationCurrent(token))
+        kotlin.test.assertEquals("editor-3-updated", visits.last())
+        navigator.returnToWithData(EditorMenu::class.java, "latest") { error("Repeated return must reuse editor") }
+        kotlin.test.assertEquals("editor-3-latest", visits.last())
+        navigator.goBack()
+        kotlin.test.assertEquals("editor-1-null", visits.last())
+        io.mockk.verify(exactly = 1) { child.open() }
+    }
+
+    @Test fun `direct data return initializes fallback before opening and cannot revisit its child`() {
+        val player = mockk<Player>(relaxed = true)
+        val navigator = MenuNavigator(player)
+        val visits = mutableListOf<String>()
+        val child = mockk<Menu>(relaxed = true)
+        navigator.openMenu(child)
+        navigator.returnToWithData(EditorMenu::class.java, "selected") { EditorMenu(visits) }
+        kotlin.test.assertEquals(listOf("editor-3-selected"), visits)
+        val presentation = net.lumalyte.lg.infrastructure.services.RecruitmentPresentation
+        io.mockk.mockkObject(presentation)
+        try {
+            io.mockk.every { presentation.supportsDialog(player) } returns false
+            navigator.goBack()
+        } finally {
+            io.mockk.unmockkObject(presentation)
+        }
+        io.mockk.verify(exactly = 1) { child.open() }
+        io.mockk.verify(exactly = 1) { player.closeInventory() }
+    }
+
     @Test fun `named parent return discards descendants retains state and invalidates async work`() {
         val navigator = MenuNavigator(mockk(relaxed = true))
         val visited = mutableListOf<String>()

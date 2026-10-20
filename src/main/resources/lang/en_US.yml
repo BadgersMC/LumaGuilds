@@ -6694,7 +6694,7 @@ menu:
         category: '<gray>for this category'
         click: '<yellow>Click to reset'
       back:
-        saved: '<gray>(changes will be saved)'
+        saved: '<gray>Keep this draft; use Save in the rank editor to apply it'
     feedback:
       self_edit_denied: '<red>❌ You cannot modify your own rank''s permissions!'
       prevent_lockout: '<gray>This prevents you from locking yourself out of guild management.'

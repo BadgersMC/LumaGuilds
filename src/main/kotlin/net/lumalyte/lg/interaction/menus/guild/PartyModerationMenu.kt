@@ -250,7 +250,9 @@ class PartyModerationMenu(
             .name(lang.gui("menu.party.moderation.back.name"))
             .lore(lang.gui("menu.party.moderation.back.lore"))
         pane.addItem(GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild))
+            menuNavigator.returnTo(GuildPartyManagementMenu::class.java) {
+                menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild)
+            }
         }, 4, 5)
 
         // Refresh button

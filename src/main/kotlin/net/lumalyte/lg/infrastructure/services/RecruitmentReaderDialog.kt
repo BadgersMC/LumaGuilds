@@ -49,7 +49,7 @@ internal class RecruitmentReaderDialog(
                 actions.next?.let { add(button(actions.nextLabel, it)) }
             }
         val back = button(content.returnLabel, actions.back)
-        val exit = ActionButton.builder(Component.translatable("gui.close")).action(
+        val exit = ActionButton.builder(GUILD_DIALOG_CLOSE_LABEL).action(
             DialogAction.customClick({ _, audience ->
                 if (audience is Player && audience.uniqueId == player.uniqueId) {
                     org.bukkit.Bukkit.getScheduler().runTask(net.lumalyte.lg.common.PluginKeys.getPlugin(), Runnable {
