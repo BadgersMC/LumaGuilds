@@ -63,7 +63,37 @@ class GuildGoldMigrationTest {
         assertTrue(tableExists("guild_gold_operations"))
         assertTrue(tableExists("guild_gold_withdrawal_usage"))
         assertTrue(tableExists("guild_gold_security"))
-        assertEquals(ChronicleGoalSchema.VERSION, databaseVersion())
+        assertTrue(tableExists(BankDepositXpSchema.DELIVERIES))
+        assertTrue(tableExists(BankDepositXpSchema.SEQUENCES))
+        assertEquals(BankDepositXpSchema.VERSION, databaseVersion())
+    }
+
+    @Test
+    fun `version 47 retains legacy gold without inventing deposit quotes`() {
+        SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
+        connection.createStatement().use {
+            it.execute("""INSERT INTO guild_gold_operations
+                (transaction_id, guild_id, actor_id, route, direction, amount, fee, old_balance,
+                 new_balance, status, description, created_at)
+                VALUES ('legacy', 'guild', 'actor', 'PERSONAL_ACCOUNT', 'CREDIT', 100, 0, 0, 100,
+                        'APPLIED', 'Historical deposit without XP provenance', 1)""".trimIndent())
+            it.execute("PRAGMA user_version = 46")
+        }
+
+        SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
+        SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
+
+        assertEquals(BankDepositXpSchema.VERSION, databaseVersion())
+        connection.createStatement().use { statement ->
+            statement.executeQuery("SELECT COUNT(*) FROM guild_gold_operations WHERE transaction_id = 'legacy'").use {
+                assertTrue(it.next())
+                assertEquals(1, it.getInt(1))
+            }
+            statement.executeQuery("SELECT COUNT(*) FROM ${BankDepositXpSchema.DELIVERIES}").use {
+                assertTrue(it.next())
+                assertEquals(0, it.getInt(1))
+            }
+        }
     }
 
     private fun tableExists(table: String): Boolean = connection.prepareStatement(

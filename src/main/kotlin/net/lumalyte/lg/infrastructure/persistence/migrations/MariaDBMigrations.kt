@@ -192,6 +192,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(ChronicleGoalSchema.VERSION)
                 currentDbVersion = ChronicleGoalSchema.VERSION
             }
+            BankDepositXpSchema.create(connection, mariaDb = true)
+            if (currentDbVersion < BankDepositXpSchema.VERSION) {
+                updateDatabaseVersion(BankDepositXpSchema.VERSION)
+                currentDbVersion = BankDepositXpSchema.VERSION
+            }
             connection.commit()
             val finalVersion = getCurrentDatabaseVersion()
             componentLogger.info(Component.text("✓ Database migrations completed (v$finalVersion)"))

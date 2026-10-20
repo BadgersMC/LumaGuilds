@@ -62,7 +62,7 @@ class QuestSchemaMigrationTest {
         assertTrue(columnExists("weekly_quest_definitions", "target_rarity"))
         assertTrue(columnExists("weekly_quest_definitions", "conditions"))
         assertTrue(columnExists("weekly_quest_definitions", "quest_order"))
-        assertEquals(ChronicleGoalSchema.VERSION, databaseVersion())
+        assertEquals(BankDepositXpSchema.VERSION, databaseVersion())
     }
 
     private fun tableExists(table: String): Boolean = connection.prepareStatement(

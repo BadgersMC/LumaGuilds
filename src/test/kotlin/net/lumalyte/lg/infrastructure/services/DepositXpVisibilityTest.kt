@@ -1,7 +1,9 @@
 package net.lumalyte.lg.infrastructure.services
 
 import io.mockk.mockk
+import io.mockk.every
 import net.lumalyte.lg.application.persistence.GuildShopXpSale
+import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.services.ChapterTwoGuildAwardService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.PermanentExperienceService
@@ -24,11 +26,13 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.mockbukkit.mockbukkit.MockBukkit
+import org.mockbukkit.mockbukkit.ServerMock
 import java.nio.file.Path
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.CompletableFuture
 import kotlin.properties.Delegates
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -44,11 +48,13 @@ internal class DepositXpVisibilityTest {
     private var bank: ChapterTwoGuildAwardService by Delegates.notNull()
     private var progression: ProgressionServiceBukkit by Delegates.notNull()
     private var sink: QuestRewardSinkBukkit by Delegates.notNull()
+    private var server: ServerMock by Delegates.notNull()
+    private var guilds: GuildRepository by Delegates.notNull()
     private val guildId = UUID.randomUUID()
 
     /** Warm the menu cache before any award. */
     @BeforeEach fun setup() {
-        MockBukkit.mock()
+        server = MockBukkit.mock()
         val plugin = MockBukkit.createMockPlugin()
         storage = VirtualThreadSQLiteStorage(checkNotNull(directory).toFile())
         storage.connection.executeUpdate("CREATE TABLE guilds (id TEXT PRIMARY KEY, level INTEGER NOT NULL DEFAULT 1)")
@@ -60,10 +66,11 @@ internal class DepositXpVisibilityTest {
         awards = ExperienceAwardRepositorySQL(storage, curve)
         val activity = object : PlaytimeActivityService { override fun isXpBlocked(playerId: UUID) = false }
         val permanent = PermanentExperienceService(awards, activity)
+        guilds = mockk(relaxed = true)
         progression =
             ProgressionServiceBukkit(
                 cached,
-                mockk(relaxed = true),
+                guilds,
                 mockk(relaxed = true),
                 config,
                 mockk(relaxed = true),
@@ -153,6 +160,39 @@ internal class DepositXpVisibilityTest {
 
         assertTrue(sink.awardExperience(guildId, QUEST_XP, receipt))
 
+        assertEquals(QUEST_XP, cached.getGuildProgression(guildId)?.totalExperience)
+        assertEquals(1, receipts())
+    }
+
+    /** A scheduled callback is not an acknowledgement until the main-thread cache work runs. */
+    @Test fun bankCacheAcknowledgementWaitsForScheduledRefresh() {
+        val receipt = UUID.randomUUID()
+        awards.awardAtomically(questRequest(receipt), questPolicy(), QUEST_XP, null)
+        var acknowledged = 0
+        CompletableFuture.runAsync {
+            progression.onCommittedBankDepositExperience(guildId, null) { acknowledged++ }
+        }.get(5, TimeUnit.SECONDS)
+
+        assertEquals(0, acknowledged)
+        assertEquals(0, cached.getGuildProgression(guildId)?.totalExperience)
+        server.scheduler.performOneTick()
+        assertEquals(1, acknowledged)
+        assertEquals(QUEST_XP, cached.getGuildProgression(guildId)?.totalExperience)
+    }
+
+    /** A failed guild cache refresh keeps the delivery request unacknowledged for cache-only retry. */
+    @Test fun failedBankCacheRefreshDoesNotAcknowledge() {
+        val receipt = UUID.randomUUID()
+        awards.awardAtomically(questRequest(receipt), questPolicy(), QUEST_XP, null)
+        every { guilds.refreshCachedLevel(guildId) } throws IllegalStateException("cache read unavailable")
+        var acknowledged = 0
+
+        progression.onCommittedBankDepositExperience(guildId, null) { acknowledged++ }
+        assertEquals(0, acknowledged)
+        every { guilds.refreshCachedLevel(guildId) } returns Unit
+        progression.onCommittedBankDepositExperience(guildId, null) { acknowledged++ }
+
+        assertEquals(1, acknowledged)
         assertEquals(QUEST_XP, cached.getGuildProgression(guildId)?.totalExperience)
         assertEquals(1, receipts())
     }

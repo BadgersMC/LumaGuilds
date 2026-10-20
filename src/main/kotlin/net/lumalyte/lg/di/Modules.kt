@@ -732,6 +732,23 @@ fun progressionModule() = module {
     single<net.lumalyte.lg.application.persistence.BankProgressionRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.BankProgressionRepositorySQL(get(), get())
     }
+    single<net.lumalyte.lg.application.persistence.BankDepositXpRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.BankDepositXpRepositorySQL(get(), get())
+    }
+    single { net.lumalyte.lg.application.services.BankDepositXpQuotes(get(), get()) }
+    single {
+        net.lumalyte.lg.application.services.BankDepositXpDeliveryService(
+            get(),
+            publish = { guildId, level, acknowledged ->
+                // Resolve on publication, avoiding the ProgressionService/BankService constructor cycle.
+                get<ProgressionService>().onCommittedBankDepositExperience(guildId, level, acknowledged)
+            },
+            onFailure = { transactionId, error ->
+                get<LumaGuilds>().logger.log(java.util.logging.Level.WARNING,
+                    "Bank XP delivery or cache publication remains pending for $transactionId", error)
+            },
+        )
+    }
     single<LeaderboardRepository> { LeaderboardRepositorySQLite(get()) }
     single<net.lumalyte.lg.application.persistence.GuildListRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.GuildListRepositorySQL(get())
@@ -1011,6 +1028,7 @@ fun economyModule() = module {
             },
             rewardPurchaseAuthorization = get<net.lumalyte.lg.application.services.GuildRewardPurchaseAccess>()::allowed,
             rewardPurchasesEnabled = { config.loadConfig().chapterTwoRewardsEnabled },
+            depositXpQuote = { actorId -> get<net.lumalyte.lg.application.services.BankDepositXpQuotes>().capture(actorId) },
             periodStartProvider = {
                 java.time.LocalDate.now(java.time.ZoneOffset.UTC)
                     .atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()

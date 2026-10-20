@@ -128,6 +128,7 @@ class GuildGoldRepositorySQL(
                             }
                         }
                     }
+                    if (run != null) check(run.guildExists) { "Guild no longer exists for a new bank deposit" }
                     insertPrepared(connection, mutation)
                     if (quote != null) bankDeliveries.capture(connection, mutation, quote, checkNotNull(run))
                     GuildGoldPreparation.New(

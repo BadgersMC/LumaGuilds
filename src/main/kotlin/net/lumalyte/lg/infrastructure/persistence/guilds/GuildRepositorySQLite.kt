@@ -651,6 +651,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     override fun removeWithCreationCooldown(guildId: UUID,
         policy: net.lumalyte.lg.domain.values.GuildCreationCooldown, deletedAt: Instant): Boolean = try {
         val removed = creationHistory.delete(guildId, policy, deletedAt) { connection ->
+            lockGuildBeforeDeletion(connection, guildId)
             // These writes share the cooldown transaction; caches/world change only after commit.
             connection.prepareStatement("UPDATE membership_history SET departed_at = ?, departure_reason = 'DISBANDED' WHERE guild_id = ? AND departed_at IS NULL").use {
                 it.setString(1, deletedAt.toString())
@@ -1122,6 +1123,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                 var failure: Throwable? = null
                 var rolledBack = false
                 try {
+                    lockGuildBeforeDeletion(connection, guildId)
                     GuildChatReconnectSettingsSchema.delete(connection, guildId)
                     deleteRewardOwnershipState(connection, guildId)
                     val rowsAffected = connection.prepareStatement("DELETE FROM guilds WHERE id = ?").use {
@@ -1161,6 +1163,14 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             removed
         } catch (_: Throwable) {
             false
+        }
+    }
+
+    private fun lockGuildBeforeDeletion(connection: java.sql.Connection, guildId: UUID) {
+        // Delivery and prestige take guild before reward account; preserve that order here.
+        connection.prepareStatement("UPDATE guilds SET level = level WHERE id = ?").use {
+            it.setString(1, guildId.toString())
+            it.executeUpdate()
         }
     }
 

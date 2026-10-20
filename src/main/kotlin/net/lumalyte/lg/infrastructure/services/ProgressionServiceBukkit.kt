@@ -551,10 +551,22 @@ class ProgressionServiceBukkit(
     }
 
     override fun onCommittedExperience(guildId: UUID, leveledUpTo: Int?) {
+        publishCommittedExperience(guildId, leveledUpTo, null)
+    }
+
+    override fun onCommittedBankDepositExperience(guildId: UUID, leveledUpTo: Int?, onRefreshed: () -> Unit) {
+        publishCommittedExperience(guildId, leveledUpTo, onRefreshed)
+    }
+
+    private fun publishCommittedExperience(guildId: UUID, leveledUpTo: Int?, onRefreshed: (() -> Unit)?) {
         val refresh = Runnable {
             try {
                 val current = progressionRepository.refreshGuildProgression(guildId)
                 guildRepository.refreshCachedLevel(guildId)
+                // Scheduling this runnable is not delivery. Only the successful reads above
+                // permit the exact bank receipt to acknowledge its durable cache request.
+                if (onRefreshed != null) runCatching { onRefreshed() }
+                    .onFailure { logger.warn("Failed to acknowledge committed bank XP cache refresh for $guildId", it) }
                 if (leveledUpTo != null && current?.currentLevel == leveledUpTo) {
                     publishLevelChanged(guildId, leveledUpTo)
                     processLevelUp(guildId, leveledUpTo)
