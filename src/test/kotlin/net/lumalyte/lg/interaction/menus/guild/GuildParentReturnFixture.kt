@@ -12,7 +12,7 @@ import org.koin.core.context.GlobalContext
 internal abstract class GuildParentReturnFixture : GuildRankMenuFixture() {
     protected val factory: MenuFactory get() = GlobalContext.get().get()
 
-    protected fun <T : Menu> traced(menu: T, label: String, visits: MutableList<String>): T {
+    protected inline fun <reified T : Menu> traced(menu: T, label: String, visits: MutableList<String>): T {
         val traced = spyk(menu)
         every { traced.open() } answers { visits += label; Unit }
         return traced
