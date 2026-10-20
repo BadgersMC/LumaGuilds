@@ -5,7 +5,8 @@
 This review branch continues Codex session
 `01a0ca20-8e1b-72b2-8236-bbd670689b51` through Roundtable project **GUILDS**.
 It retains the combined unmerged source previously recorded on TEST, then adds
-the remaining navigation, shop XP replay, and owner-recovery follow-ups.
+the remaining navigation, shop XP replay, and owner-recovery follow-ups. A second
+dispatch adds atomic bank growth awards and current Market companion contracts.
 
 | Component | Verified source |
 | --- | --- |
@@ -16,9 +17,13 @@ the remaining navigation, shop XP replay, and owner-recovery follow-ups.
 | Deposit/quest XP PR [#237](https://github.com/BadgersMC/LumaGuilds/pull/237) | `f2da62900e6974404cb1db2e02059d1b173f16c6` |
 | API registration PR [#238](https://github.com/BadgersMC/LumaGuilds/pull/238) | `8a32cba4d36f419be0f83387963ffc5ed221835b` |
 | Owner-recovery PR [#239](https://github.com/BadgersMC/LumaGuilds/pull/239) at intake | `b8270521a3fcb4fb0220a4f9c0f06195f9021ebd` |
-| Navigation follow-up after independent review | `9526400604b0438f1a7824d81cc4d7988b094e51` |
+| Navigation follow-up including test compilation correction | `e9ec42b77d75ab6d48a1ab4a4d920c5fb3b2fdf8` |
 | Shop replay follow-up | `c406d067393d2272d36db3ef536a410dd2da55fb` |
 | Owner-recovery analysis follow-up | `b2f2eb6a800df44c40552a44d8dad1a3377ee8b3` |
+| First published and verified PR #240 candidate | `243370dd815845b06022ed15e12f924fa3cc79ef` |
+| Atomic bank growth follow-up | `6efe3704112ca99da6a2cc524308f4da1deb4302` |
+| Current Market contract follow-up | `aa41228965afe0c60cd2172d5b375fa43f18227d` |
+| Paired Market combined candidate | `654db0eec2bcf5afa69e4791a271f4877c9bcac4` |
 
 Git ancestry confirms that the historical combined source contains the pinned
 heads of PRs #236, #237 and #238. It does not contain #239. Owner recovery is
@@ -48,13 +53,18 @@ local renderer captures are not a new live verification.
 | GUILDS-04 | Owner-recovery worker: readable static-analysis follow-up with explicit retained findings. |
 | GUILDS-05 | Deferred current-artifact and live TEST acceptance, coordinated with Market/KOTH. |
 | GUILDS-06 | Coordinator: final integration, validation, independent review and draft PR evidence. |
+| GUILDS-07 | Bank worker: reproduce reservation loss and commit bank high-water and XP together. |
+| GUILDS-08 | Companion worker: execute the actual Market gateway and stall record contracts. |
+| GUILDS-09 | Independent bank transaction and recovery-boundary review. |
 
-Three native workers executed in isolated checkouts. Roundtable records their
+Three native workers executed in each dispatch, using isolated checkouts. Roundtable records their
 actual source acknowledgments and results; logical task seats are routing labels,
 not a substitute for an executing worker. The coordinator owns remote operations,
 combined builds and publishing. The owner-recovery worker independently reviewed
 the XP repair and build wiring; the XP worker reviews navigation. The coordinator
 reviews owner-recovery changes and integrates the exact contributions.
+In the second dispatch, the bank reviewer challenges the transaction design and
+reviews its immutable correction; the coordinator reviews the Market tests.
 
 ## Follow-up behavior
 
@@ -87,6 +97,16 @@ membership timestamp comparison and cache-after-commit behavior. Six of the
 dispositions. Only fresh hosted analysis can establish the new issue count.
 No gate configuration or test assertions were weakened.
 
+The bank regression separately demonstrated that an XP SQL rollback left a
+committed high-water reservation, making the same recorded growth ineligible on
+retry. At test-only `09ab68bf1949a6196c7d32d49b11f3afd39792f0`, Java 25 executed
+one case with one expected assertion failure and no skips, from 18:31:32 to
+18:32:53 UTC. The correction locks the guild and commits high-water, cap usage,
+progression and the XP receipt on one connection. A failed SQL write rolls that
+group back. Non-awarding policy dispositions and the ordinary award service's
+boost/overflow behavior are preserved. The bank contribution adds 25 cases when
+the native profile is enabled; see the [atomicity note](2026-10-20-bank-xp-atomicity.md).
+
 ## Validation and remaining gates
 
 The coordinator records the final candidate commit/tree, executed test counts,
@@ -95,13 +115,26 @@ ordinary tests, native database contracts, paired artifact tests and live player
 acceptance are distinct results. A skipped external profile is not a passing
 compatibility test.
 
+The first candidate at `243370dd` passed 2,103 cases across 414 suites: 2,097
+passed, six skipped and no failures or errors. Its 17 native MariaDB contracts
+executed. Those results are historical evidence for that exact candidate.
+
+The second dispatch's current-artifact profile passed all 16 gateway/stall cases,
+with no failures, errors or skips, at Guilds `aa41228965afe0c60cd2172d5b375fa43f18227d`
+on October 20, 18:42:51–18:43:22 UTC. Both Market artifact variables pointed to the
+same independently copied and hash-verified combined JAR from `654db0eec2bc`:
+4,477,968 bytes, SHA-256
+`230504aa0243d0ff3145c5fb95723cbbd8db0ff01b60d39de54f57a21257c064`.
+The [contract note](2026-10-20-guilds-market-contracts.md) distinguishes actual
+classloader/API coverage from Market payment, stock and durable queue execution.
+
 - Run the combined Java 25 test/build profile and inspect the new navigation,
-  replay and owner-recovery cases.
-- Run the six recovery and two transfer contracts, plus the nine shop contracts,
+  replay, bank and owner-recovery cases at the final integrated head.
+- Run the nine bank, six recovery and two transfer contracts, plus the nine shop contracts,
   on the coordinator's dedicated disposable loopback MariaDB fixture.
-- Obtain current immutable Market candidate and companion artifacts from
-  MARKET-07/08 before claiming paired compatibility. Historical Market 1.0.53
-  results are insufficient for a different candidate.
+- Include the pinned current Market artifact in the final combined run. The
+  earlier two-case Market-owned result applies to `243370dd`; the new 16-case
+  result applies to `aa412289`. Neither replaces final integrated verification.
 - Verify current TEST plugin, backend, pack and fixture state before requesting
   a bounded shared resource window. GUILDS-05 remains pending until overlapping
   owners acknowledge that window; no reply does not establish ownership.
@@ -109,9 +142,13 @@ compatibility test.
   before/after currency, stock, bank, XP and receipts. See the
   [XP/shop acceptance procedure](2026-10-20-guilds-xp-shop-acceptance.md).
 
-Bank currency credit, high-water reservation and XP award remain separate commits.
-Recovery from a later XP SQL failure is a separate investigation; this cache fix
-does not claim atomic bank/XP recovery or authorize compensating awards.
+Bank currency credit remains separate from the now-atomic high-water/XP group.
+Missed post-credit callbacks, original operation/time/run identity, event delivery
+and startup currency reconciliation still need a durable recovery design. The
+correction preserves a same-snapshot retry; it does not automatically replay old
+deposits or authorize compensating awards. Shared TEST acceptance still requires
+current installed binary/rollback and backend/pack evidence. Market withdrew its
+earlier ungranted TEST window while those external prerequisites remain unresolved.
 
 This is a draft review candidate. Canonical merge, production deployment, TEST
 deployment/restart, monorepo version-pin updates and live player mutations are not

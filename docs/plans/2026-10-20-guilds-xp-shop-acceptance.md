@@ -77,12 +77,14 @@ No award amount, cap, receipt identity, schema or accounting path changes.
 
 ### Boundaries that remain separate
 
-Bank currency credit, high-water reservation and XP award are separate commits.
-The inspected visibility/high-water tests do not prove recovery from an XP SQL
-failure after a successful reservation or from an earlier currency recovery that
-bypasses the ordinary post-deposit callback. Do not interpret this cache repair as
-an atomic bank/XP recovery change or issue compensating XP from a timeout. Record
-such a failure with its currency and XP evidence for a separate recovery decision.
+At this inspection's original source, bank currency credit, high-water reservation
+and XP award were separate commits. The subsequent **GUILDS-07** correction
+combines high-water and XP after reproducing reservation loss on an XP SQL failure;
+see the [bank atomicity note](2026-10-20-bank-xp-atomicity.md). Currency credit still
+commits separately, and currency recovery can bypass the ordinary post-deposit
+callback. Neither the cache repair nor the atomic XP group supplies a durable
+replay of every missed deposit callback. Do not issue compensating XP from a
+timeout; retain currency and XP evidence for a separate recovery decision.
 
 The starting test task fingerprints `MARKET_API_JAR`, while the shop lifecycle test
 reads `MARKET_RUNTIME_JAR`. The coordinator added path/content inputs for the
