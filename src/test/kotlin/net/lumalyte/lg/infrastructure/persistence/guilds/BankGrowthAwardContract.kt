@@ -180,7 +180,13 @@ abstract class BankGrowthAwardContract {
     private fun assertState(highWater: Long?, xp: Int, receipts: Int) {
         assertEquals(highWater, db.connection.getFirstRow(
             "SELECT high_water_balance FROM guild_bank_xp_high_water WHERE guild_id = ?", guild.toString(),
-        )?.getLong("high_water_balance"))
+        )?.let { row ->
+            when (val value = row.get<Any>("high_water_balance")) {
+                is Int -> value.toLong()
+                is Long -> value
+                else -> error("Expected an integral bank high-water value, got $value")
+            }
+        })
         assertEquals(xp, sum("guild_progression", "total_experience"))
         assertEquals(xp, sum("guild_experience_source_usage", "awarded_xp"))
         assertEquals(receipts, checkNotNull(db.connection.getFirstRow(
