@@ -8,6 +8,7 @@ import net.lumalyte.lg.domain.entities.DepartureReason
 import net.lumalyte.lg.domain.entities.ExperienceAwardRequest
 import net.lumalyte.lg.domain.entities.ExperienceAwardResult
 import net.lumalyte.lg.domain.entities.MembershipHistory
+import net.lumalyte.lg.domain.entities.PreparedExperienceAward
 import net.lumalyte.lg.domain.values.ExperiencePolicy
 import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.domain.values.PeriodWindow
@@ -19,7 +20,7 @@ import java.util.UUID
 class ChapterTwoGuildAwardServiceTest {
     private val now = Instant.parse("2026-08-28T12:00:00Z")
     private val awards = RecordingAwards()
-    private val bank = InMemoryBankProgression()
+    private val bank = InMemoryBankProgression(awards)
     private val history = InMemoryMembershipHistory()
     private val activity = RecordingActivity()
     private val config = MainConfig()
@@ -136,8 +137,26 @@ class ChapterTwoGuildAwardServiceTest {
         const val BANK_TEST_AMOUNT = 100L
     }
 
-    private class InMemoryBankProgression : BankProgressionRepository {
+    private class InMemoryBankProgression(private val awards: ExperienceAwardRepository) : BankProgressionRepository {
         private val highs = mutableMapOf<Pair<UUID, Instant>, Long>()
+        override fun awardNetNewUnits(
+            guildId: UUID,
+            openingBalance: Long,
+            currentBalance: Long,
+            valuePerUnit: Long,
+            window: PeriodWindow,
+            prepareAward: (Int) -> PreparedExperienceAward,
+        ): ExperienceAwardResult? {
+            val units = reserveNetNewUnits(guildId, openingBalance, currentBalance, valuePerUnit, window)
+            if (units <= 0) return null
+            return when (val prepared = prepareAward(units)) {
+                is PreparedExperienceAward.Rejected -> ExperienceAwardResult.Rejected(prepared.reason)
+                is PreparedExperienceAward.Ready -> awards.awardAtomically(
+                    prepared.request, prepared.policy, prepared.requestedXp, window,
+                )
+            }
+        }
+
         override fun reserveNetNewUnits(
             guildId: UUID,
             openingBalance: Long,

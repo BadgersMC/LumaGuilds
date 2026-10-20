@@ -27,19 +27,18 @@ class ChapterTwoGuildAwardService @JvmOverloads constructor(
         if (playtimeActivityService.isXpBlocked(actorId)) return null
         val policy = policy(ExperienceSource.BANK_DEPOSIT)
         val window = policy.windowContaining(occurredAt) ?: return null
-        val units = bankProgressionRepository.reserveNetNewUnits(
+        val prepareAward = permanentExperienceService.prepareForUnits(
+            ExperienceAwardRequest(guildId, actorId, ExperienceSource.BANK_DEPOSIT, 1, occurredAt),
+            policy,
+        )
+        return bankProgressionRepository.awardNetNewUnits(
             guildId = guildId,
             openingBalance = openingBalance,
             currentBalance = currentBalance,
             valuePerUnit = BANK_VALUE_PER_UNIT,
             window = window,
-        )
-        if (units <= 0) return null
-
-        return permanentExperienceService.award(
-            ExperienceAwardRequest(guildId, actorId, ExperienceSource.BANK_DEPOSIT, units, occurredAt),
-            policy,
-        ).also { publishCommitted(guildId, it) }
+            prepareAward = prepareAward,
+        ).also { if (it != null) publishCommitted(guildId, it) }
     }
 
     fun processQualifiedRecruits(occurredAt: Instant = Instant.now()): Int {

@@ -730,7 +730,7 @@ fun progressionModule() = module {
         )
     }
     single<net.lumalyte.lg.application.persistence.BankProgressionRepository> {
-        net.lumalyte.lg.infrastructure.persistence.guilds.BankProgressionRepositorySQL(get())
+        net.lumalyte.lg.infrastructure.persistence.guilds.BankProgressionRepositorySQL(get(), get())
     }
     single<LeaderboardRepository> { LeaderboardRepositorySQLite(get()) }
     single<net.lumalyte.lg.application.persistence.GuildListRepository> {

@@ -4,7 +4,9 @@ import net.lumalyte.lg.application.persistence.ExperienceAwardRepository
 import net.lumalyte.lg.domain.entities.AwardRejection
 import net.lumalyte.lg.domain.entities.ExperienceAwardRequest
 import net.lumalyte.lg.domain.entities.ExperienceAwardResult
+import net.lumalyte.lg.domain.entities.PreparedExperienceAward
 import net.lumalyte.lg.domain.values.CapPeriod
+import net.lumalyte.lg.domain.values.ExperienceBoost
 import net.lumalyte.lg.domain.values.ExperiencePolicy
 import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.domain.values.PeriodWindow
@@ -115,6 +117,43 @@ class PermanentExperienceServiceTest {
         val result = service.award(request.copy(units = Int.MAX_VALUE), mobPolicy)
 
         assertEquals(ExperienceAwardResult.Rejected(AwardRejection.INVALID_UNITS), result)
+        assertNull(repository.lastCall)
+    }
+
+    @Test fun preparedUnitsUseCapturedEligibilityAndWholeAwardBoost() {
+        var boost: ExperienceBoost? = ExperienceBoost(instant, instant.plusSeconds(60), 1.5, setOf(request.source))
+        var boostReads = 0
+        val preparing = PermanentExperienceService(repository, activity) { boostReads++; boost }
+        val singleXp = mobPolicy.copy(awardXp = 1)
+        val calculate = preparing.prepareForUnits(request, singleXp)
+        activity.blockedPlayers += actorId
+        boost = null
+
+        val single = calculate(1) as PreparedExperienceAward.Ready
+        val combined = calculate(2) as PreparedExperienceAward.Ready
+
+        assertEquals(1, single.requestedXp)
+        assertEquals(3, combined.requestedXp)
+        assertEquals(2, combined.request.units)
+        assertEquals(1, boostReads)
+        assertEquals(listOf(actorId), activity.checkedPlayers)
+        assertNull(repository.lastCall)
+    }
+
+    @Test fun preparedRejectionDoesNotReadBoostOrWriteXp() {
+        val preparing = PermanentExperienceService(repository, activity) { error("Rejected source must not read boost") }
+        val calculate = preparing.prepareForUnits(request, mobPolicy.copy(enabled = false))
+
+        assertEquals(PreparedExperienceAward.Rejected(AwardRejection.SOURCE_DISABLED), calculate(2))
+        assertEquals(emptyList<UUID>(), activity.checkedPlayers)
+        assertNull(repository.lastCall)
+    }
+
+    @Test fun preparedInvalidUnitsAndOverflowNeverWriteXp() {
+        val calculate = service.prepareForUnits(request, mobPolicy)
+
+        assertEquals(PreparedExperienceAward.Rejected(AwardRejection.INVALID_UNITS), calculate(0))
+        assertEquals(PreparedExperienceAward.Rejected(AwardRejection.INVALID_UNITS), calculate(Int.MAX_VALUE))
         assertNull(repository.lastCall)
     }
 

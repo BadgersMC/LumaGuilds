@@ -4,6 +4,8 @@ import net.lumalyte.lg.application.persistence.ExperienceAwardRepository
 import net.lumalyte.lg.domain.entities.AwardRejection
 import net.lumalyte.lg.domain.entities.ExperienceAwardRequest
 import net.lumalyte.lg.domain.entities.ExperienceAwardResult
+import net.lumalyte.lg.domain.entities.PreparedExperienceAward
+import net.lumalyte.lg.domain.values.ExperienceBoost
 import net.lumalyte.lg.domain.values.ExperiencePolicy
 import net.lumalyte.lg.domain.values.ExperienceSource
 
@@ -16,6 +18,26 @@ class PermanentExperienceService(
     fun award(request: ExperienceAwardRequest, policy: ExperiencePolicy): ExperienceAwardResult {
         val rejection = sourceRejection(request, policy) ?: actorRejection(request)
         return if (rejection == null) awardEligible(request, policy) else ExperienceAwardResult.Rejected(rejection)
+    }
+
+    /** Capture platform/config inputs before a transaction determines the eligible unit count. */
+    fun prepareForUnits(
+        request: ExperienceAwardRequest,
+        policy: ExperiencePolicy,
+    ): (Int) -> PreparedExperienceAward {
+        val rejection = sourceRejection(request, policy) ?: actorRejection(request)
+        val boost = if (rejection == null) boostProvider() else null
+        return { units ->
+            val actual = request.copy(units = units)
+            val reason = rejection ?: AwardRejection.INVALID_UNITS.takeIf { units <= 0 }
+            if (reason != null) {
+                PreparedExperienceAward.Rejected(reason)
+            } else {
+                val xp = requestedXp(actual, policy, boost)
+                if (xp == null) PreparedExperienceAward.Rejected(AwardRejection.INVALID_UNITS)
+                else PreparedExperienceAward.Ready(actual, policy, xp)
+            }
+        }
     }
 
     private fun sourceRejection(request: ExperienceAwardRequest, policy: ExperiencePolicy): AwardRejection? {
@@ -42,10 +64,14 @@ class PermanentExperienceService(
         return repository.awardAtomically(request, policy, requestedXp, policy.windowContaining(request.occurredAt))
     }
 
-    private fun requestedXp(request: ExperienceAwardRequest, policy: ExperiencePolicy): Int? {
+    private fun requestedXp(
+        request: ExperienceAwardRequest,
+        policy: ExperiencePolicy,
+        boost: ExperienceBoost? = boostProvider(),
+    ): Int? {
         return try {
             val base = Math.multiplyExact(policy.awardXp, request.units)
-            boostProvider()?.apply(base, request.source, request.occurredAt) ?: base
+            boost?.apply(base, request.source, request.occurredAt) ?: base
         } catch (_: ArithmeticException) {
             null
         }

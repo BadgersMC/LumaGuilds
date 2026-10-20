@@ -74,7 +74,7 @@ internal class DepositXpVisibilityTest {
             )
         bank =
             ChapterTwoGuildAwardService(
-                BankProgressionRepositorySQL(storage),
+                BankProgressionRepositorySQL(storage, awards),
                 mockk(relaxed = true),
                 permanent,
                 config,
