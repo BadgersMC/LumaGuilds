@@ -69,13 +69,31 @@ lumaguilds.command.*     # All claim commands (default: op)
 ```
 lumaguilds.admin         # Admin commands (default: op)
 bellclaims.admin         # Admin override mode (default: op)
+lumaguilds.admin.owner.recover # Recover an ownerless guild (default: op)
 ```
 
 **Admin Override Mode** (`bellclaims.admin`): Allows administrators to toggle a special mode that grants owner-level permissions in all guild claims. When enabled:
 - Grants all 13 claim permissions (BUILD, CONTAINER, REDSTONE, etc.)
-- Bypasses guild membership and rank checks
+- Bypasses guild management permission checks; Owner assignment, direct
+  demotion, and removal remain protected
 - Automatically cleared on logout for security
 - Use `/lumaguilds override` or `/bellclaims override` to toggle
+
+**Owner recovery** requires both `lumaguilds.admin` and
+`lumaguilds.admin.owner.recover`. The specialist permission is not inherited
+from base admin access, `bellclaims.admin`, guild ranks, or an enabled override.
+For a non-operator administrator who should recover ownerless guilds:
+
+```text
+/lp user <admin> permission set lumaguilds.admin true
+/lp user <admin> permission set lumaguilds.admin.owner.recover true
+```
+
+`/lumaguilds owner recover <guild-uuid> <member-uuid>` previews the recovery of
+an existing member. The returned confirmation command uses a single-use token
+that expires after 60 seconds. Recovery refuses to replace an existing Owner.
+See the
+[recovery guide](wiki/docs/admins/override.md#recovering-an-ownerless-guild).
 
 ---
 
@@ -176,6 +194,7 @@ pex group <group> check lumaguilds.guild.*
 | Party Chat | `lumaguilds.partychat.*: op` | Prevent spam |
 | Admin Commands | `lumaguilds.admin: op` | Server management |
 | Admin Override | `bellclaims.admin: op` | Powerful debugging tool |
+| Owner Recovery | `lumaguilds.admin.owner.recover: op` plus `lumaguilds.admin` | Restore an existing member as Owner only in an ownerless guild |
 
 ---
 

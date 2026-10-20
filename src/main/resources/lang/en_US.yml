@@ -7118,6 +7118,31 @@ permission:
     lore: Allows you to view lecterns
     name: View
 admin:
+  owner_recovery:
+    help: '<yellow>/lumaguilds owner recover \<guild-uuid> \<member-uuid> <gray>- Preview recovery of an ownerless guild'
+    usage: '<yellow>Usage: /lumaguilds owner recover \<guild-uuid> \<member-uuid> [confirm \<token>]. Use full UUIDs; first run without confirmation.'
+    sender_required: '<red>Owner recovery requires a player administrator or server console.'
+    preview: |-
+      <gold>Owner recovery preview <gray>(no changes made)
+      <yellow>Guild: <white><guild> <gray>(<guild_id>)
+      <yellow>Existing member: <white><member_id>
+      <yellow>Current rank: <white><current_rank> <gray>(<current_rank_id>)
+      <yellow>Owner rank: <white><owner_rank> <gray>(<owner_rank_id>)
+      <yellow>Current Owners: <white>0
+    confirm: |-
+      <yellow>Verify the intended member UUID, then confirm within 60 seconds:
+      <white>/lumaguilds owner recover <guild_id> <member_id> confirm <token>
+    invalid_confirmation: '<red>Confirmation is missing, expired, used, or does not match this administrator and member. Run a new recovery preview.'
+    success: '<green>Recovered ownership of <guild> (<guild_id>) to existing member <member_id>. Guild progress and other members are unchanged.'
+    rejected:
+      guild_not_found: '<red>Guild UUID was not found. No recovery was performed.'
+      member_not_found: '<red>The target UUID is not an existing member of this guild. No recovery was performed.'
+      invalid_owner_ranks: '<red>The guild must have exactly one Owner rank (priority 0). Repair the rank configuration before recovery.'
+      invalid_member_ranks: '<red>The guild contains a member with a missing or invalid rank. Review the membership data before recovery.'
+      already_owned: '<red>This guild already has an Owner. Use the normal ownership transfer flow.'
+      stale_preview: '<red>Guild ownership or membership changed after the preview. No recovery was performed; run a new preview.'
+      storage_failure: '<red>Could not confirm the recovery result. Check the server log and current ownership before trying a new preview.'
+      unsupported_repository: '<red>The configured member repository does not support owner recovery.'
   bank_credit:
     failure: '<red>✗ Failed to credit player'
     success: '<green>✓ Successfully credited <white><amount> <green>coins to <white><player>'

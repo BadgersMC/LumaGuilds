@@ -319,6 +319,10 @@ permissions:
     description: Grant permanent guild XP with /lumaguilds xp give
     default: op
 
+  lumaguilds.admin.owner.recover:
+    description: Preview and confirm recovery of an ownerless guild to an existing member
+    default: op
+
   # Guild Strikes Admin Permissions
   lumaguilds.admin.strikes:
     description: Open the guild penalty GUI (/g strikes punish)

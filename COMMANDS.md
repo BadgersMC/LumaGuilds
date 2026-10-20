@@ -133,9 +133,24 @@ LumaGuilds is a comprehensive guild management plugin with party chat, claim man
 | `/lumaguilds exports` | `lumaguilds.admin` | List available exports | `/lumaguilds exports` |
 | `/lumaguilds cancel <exportId>` | `lumaguilds.admin` | Cancel export | `/lumaguilds cancel abc123` |
 | `/lumaguilds override` | `bellclaims.admin` | Toggle admin override mode | `/lumaguilds override` |
+| `/lumaguilds owner recover <guild-uuid> <member-uuid>` | `lumaguilds.admin` and `lumaguilds.admin.owner.recover` | Preview ownership recovery for an ownerless guild | Use an existing guild member's UUID; supports offline members and console. |
+| `/lumaguilds owner recover <guild-uuid> <member-uuid> confirm <token>` | `lumaguilds.admin` and `lumaguilds.admin.owner.recover` | Confirm the reviewed recovery within 60 seconds | Use the exact command and single-use token returned by the preview. |
 | `/lumaguilds help` | `lumaguilds.admin` | Show admin help | `/lumaguilds help` |
 
-**Admin Override Mode**: When enabled, grants the administrator owner-level permissions in all guild claims, bypassing normal membership and rank checks. Override mode is automatically cleared on logout.
+**Admin Override Mode**: When enabled, grants the administrator owner-level
+permissions for guild management checks. Override mode is automatically cleared
+on logout. It cannot assign the Owner rank or directly demote or remove an
+Owner.
+
+**Owner recovery** appoints an existing member only when the guild has no
+current Owner and exactly one valid Owner rank. The preview makes no changes.
+Confirmation is bound to the sender, guild, and member and rechecks current
+state before committing. Recovery changes only the target's rank, preserves
+guild progress, and records an audit entry in the server log. The specialist
+permission defaults to operators and is not granted by base admin access or
+override. For ordinary succession, use `/g transfer` or the Owner's `/g leave`
+flow. See the
+[recovery guide](wiki/docs/admins/override.md#recovering-an-ownerless-guild).
 
 ### Command Aliases
 - `/lumaguilds` - Primary command
@@ -192,6 +207,7 @@ lumaguilds.command.*
 ```
 lumaguilds.partychat.*     (default: op)
 lumaguilds.admin          (default: op)
+lumaguilds.admin.owner.recover (default: op; separate specialist permission)
 ```
 
 ---
