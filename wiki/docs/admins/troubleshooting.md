@@ -108,17 +108,27 @@ If the problem persists, include the RoseChat and LumaGuilds startup sections fr
 
 ## Owner or rank permissions are broken
 
-For a guild with no Owner, preview a recovery using the guild UUID and an existing member's Minecraft UUID:
+For a guild with no Owner, preview a recovery using the guild UUID and an
+existing member's Minecraft UUID:
 
 ```text
 /lumaguilds owner recover <guild-uuid> <member-uuid>
 ```
 
-Review the result, then use the confirmation command it supplies within 60 seconds. This requires both `lumaguilds.admin` and `lumaguilds.admin.owner.recover`. Recovery preserves the guild's progress and refuses to replace an existing Owner, create a membership, or proceed with inconsistent ranks.
+Review the result, then use the confirmation command it supplies within 60
+seconds. This requires both `lumaguilds.admin` and
+`lumaguilds.admin.owner.recover`. Recovery preserves the guild's progress and
+refuses to replace an existing Owner, create a membership, or proceed with
+inconsistent ranks.
 
-For temporary management access, `/lumaguilds override` grants owner-level permission checks for the session. It does not assign the Owner rank or permit direct Owner demotion or removal. Use `/g transfer` when a current Owner is available.
+For temporary management access, `/lumaguilds override` grants owner-level
+permission checks for the session. It does not assign the Owner rank or permit
+direct Owner demotion or removal. Use `/g transfer` when a current Owner is
+available.
 
-See [Override & recovery](override.md) for the complete procedure and rejection reasons. If a storage error leaves the result unconfirmed, inspect current ownership and the server logs before retrying.
+See [Override & recovery](override.md) for the complete procedure and rejection
+reasons. If a storage error leaves the result unconfirmed, inspect current
+ownership and the server logs before retrying.
 
 ## Home teleport is blocked as unsafe
 

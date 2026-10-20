@@ -79,18 +79,23 @@ Note that rank *permissions* (which roles can BUILD, HARVEST, CONTAINER, etc. in
 | `lumaguilds.admin.vault.rollback` | `op` | List and restore vault backups with `/vaultrollback`. |
 | `lumaguilds.admin.bank.credit` | `op` | Manually credit a player's Vault balance with `/bankcredit`. |
 | `lumaguilds.admin.vault.remove` | `op` | Forcibly remove a guild's vault with `/removevault`. |
-| `lumaguilds.admin.owner.recover` | `op` | Preview and confirm ownership recovery for a guild with no Owner. Also requires `lumaguilds.admin` to use the command. |
+| `lumaguilds.admin.owner.recover` | `op` | Recover an ownerless guild. |
 | `lumaguilds.bedrock.cache.stats` | `op` | View Bedrock form cache statistics with `/bedrockcachestats`. |
 | `lumaguilds.bedrock.cache.clear` | `op` | Clear Bedrock form cache. |
 
-`lumaguilds.admin.owner.recover` is a separate specialist permission. Granting `lumaguilds.admin` or `bellclaims.admin`, enabling override, or holding a guild rank does not grant recovery access. Operators receive its `op` default unless explicitly denied. For a non-operator recovery administrator, grant both command permissions:
+`lumaguilds.admin.owner.recover` is a separate specialist permission. Granting
+`lumaguilds.admin` or `bellclaims.admin`, enabling override, or holding a guild
+rank does not grant recovery access. Operators receive its `op` default unless
+explicitly denied. For a non-operator recovery administrator, grant both command
+permissions:
 
 ```text
 /lp user <admin> permission set lumaguilds.admin true
 /lp user <admin> permission set lumaguilds.admin.owner.recover true
 ```
 
-See [Ownerless guild recovery](override.md#recovering-an-ownerless-guild) for the preview and confirmation procedure.
+See [Ownerless guild recovery](override.md#recovering-an-ownerless-guild) for
+the preview and confirmation procedure.
 
 ## Rank permissions vs node permissions
 
@@ -154,7 +159,10 @@ PERMISSIONS.md (at repo root) and plugin.yml are in sync as of 2026-05-14. Both 
 ## Gotchas
 
 - **`.create` denial blocks all guilds:** Denying `lumaguilds.guild.create` completely prevents new guild creation. Don't accidentally set it to `false` unless you want to lock guilds.
-- **Override grants management access:** The `lumaguilds.admin` permission includes the legacy gate for `/lumaguilds override`. Override cannot assign the Owner rank or directly demote or remove an Owner, and does not grant the specialist recovery permission.
+- **Override grants management access:** The `lumaguilds.admin` permission
+  includes the legacy gate for `/lumaguilds override`. Override cannot assign
+  the Owner rank or directly demote or remove an Owner, and does not grant the
+  specialist recovery permission.
 - **Revoking nodes doesn't kick players:** Removing a permission doesn't kick players from commands they're already using. They're only blocked on the next command execution.
 - **Party chat defaults to `op`:** If you want all players to use `/pc`, explicitly grant `lumaguilds.partychat` to your default group.
 

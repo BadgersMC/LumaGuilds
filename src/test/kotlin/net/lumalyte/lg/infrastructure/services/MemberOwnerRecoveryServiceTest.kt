@@ -21,6 +21,8 @@ import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 
+/** Descriptive regression names state the permission/cache guarantees of each service boundary. */
+@Suppress("FunctionMaxLength")
 internal class MemberOwnerRecoveryServiceTest {
     private val guildId = UUID.randomUUID()
     private val playerId = UUID.randomUUID()
@@ -34,16 +36,18 @@ internal class MemberOwnerRecoveryServiceTest {
     private val override = mockk<AdminOverrideService>()
     private val invalidated = mutableListOf<UUID>()
 
-    private fun service(invalidate: (UUID) -> Unit = { invalidated.add(it) }) = MemberServiceBukkit(
-        members,
-        ranks,
-        mockk(),
-        mockk(),
-        mockk(),
-        mockk(),
-        override,
-        invalidateClaimPermissionCache = invalidate,
-    )
+    private fun service(invalidate: (UUID) -> Unit = { invalidated.add(it) }): MemberServiceBukkit {
+        return MemberServiceBukkit(
+            members,
+            ranks,
+            mockk(),
+            mockk(),
+            mockk(),
+            mockk(),
+            override,
+            invalidateClaimPermissionCache = invalidate,
+        )
+    }
 
     @Test
     fun previewUsesAuthoritativeRepositoryWithoutPublishingPermissionChanges() {

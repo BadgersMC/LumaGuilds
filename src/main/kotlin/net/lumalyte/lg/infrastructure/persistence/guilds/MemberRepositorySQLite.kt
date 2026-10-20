@@ -166,7 +166,7 @@ class MemberRepositorySQLite(private val storage: Storage<Database>) : MemberRep
                 member.playerId.toString(),
                 member.guildId.toString(),
                 member.rankId.toString(),
-                member.rankId.toString()
+                member.rankId.toString(),
             )
             if (rowsAffected > 0) {
                 members[Pair(member.playerId, member.guildId)] = member
@@ -219,6 +219,7 @@ class MemberRepositorySQLite(private val storage: Storage<Database>) : MemberRep
         getByPlayerAndGuild(playerId, guildId) != null
     
     override fun getTotalCount(): Int = members.size
+
     @Synchronized
     override fun evictGuild(guildId: UUID) {
         members.entries.removeIf { it.value.guildId == guildId }

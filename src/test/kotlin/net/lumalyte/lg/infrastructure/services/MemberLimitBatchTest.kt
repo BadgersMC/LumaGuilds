@@ -79,7 +79,7 @@ class MemberLimitBatchTest {
     fun `leaving a guild invalidates cached claim membership`() {
         val playerId = UUID.randomUUID()
         val guildId = UUID.randomUUID()
-        val rank = Rank(UUID.randomUUID(), guildId, "Member", 4)
+        val rank = Rank(UUID.randomUUID(), guildId, "Member", MEMBER_PRIORITY)
         val member = Member(playerId, guildId, rank.id, Instant.EPOCH)
         val members = mockk<MemberRepository>()
         val ranks = mockk<RankRepository>()
@@ -108,5 +108,8 @@ class MemberLimitBatchTest {
         } finally {
             unmockkStatic(Bukkit::class)
         }
+    }
+    private companion object {
+        const val MEMBER_PRIORITY = 4
     }
 }

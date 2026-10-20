@@ -36,9 +36,15 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/** Exercise operator intent and rendered replies against the real language bundle. */
+/**
+ * Exercise the complete confirmation contract against the real language bundle.
+ * Descriptive regression names, JUnit lifecycle fields, and literal command/expiry fixtures keep
+ * each case readable; related permission and confirmation cases intentionally share this fixture.
+ */
+@Suppress("FunctionMaxLength", "LateinitUsage", "MagicNumber", "StringLiteralDuplication", "TooManyFunctions")
 internal class GuildOwnerRecoveryCommandTest {
-    @TempDir lateinit var dataFolder: Path
+    @TempDir
+    lateinit var dataFolder: Path
 
     private lateinit var server: ServerMock
     private lateinit var player: PlayerMock
@@ -57,27 +63,36 @@ internal class GuildOwnerRecoveryCommandTest {
         plugin = mockk(relaxed = true)
         every { plugin.isEnabled } returns true
         members = mockk()
-        preview = OwnerRecoveryPreview(
-            UUID.randomUUID(),
-            "Example Guild",
-            Member(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), Instant.EPOCH),
-            "Co-Owner",
-            UUID.randomUUID(),
-            "Owner",
-        ).let { it.copy(member = it.member.copy(guildId = it.guildId)) }
+        preview = createPreview()
         every { members.previewOwnerRecovery(preview.guildId, preview.member.playerId) } returns
             OwnerRecoveryPreviewResult.Ready(preview)
         every { members.recoverOwnership(preview) } returns OwnerRecoveryResult.Recovered(preview)
-        val lang = LangService(
+        command =
+            GuildOwnerRecoveryCommand(
+                members, createLanguage(), { clock }, { UUID(0, ++issuedTokens).toString() }, audits::add,
+            )
+    }
+
+    private fun createPreview(): OwnerRecoveryPreview {
+        val guildId = UUID.randomUUID()
+        return OwnerRecoveryPreview(
+            guildId,
+            "Example Guild",
+            Member(UUID.randomUUID(), guildId, UUID.randomUUID(), Instant.EPOCH),
+            "Co-Owner",
+            UUID.randomUUID(),
+            "Owner",
+        )
+    }
+
+    private fun createLanguage(): LangService {
+        return LangService(
             object : LangHost {
                 override val dataFolder: File = this@GuildOwnerRecoveryCommandTest.dataFolder.toFile()
                 override val resourceClassLoader: ClassLoader = LumaGuildsLang::class.java.classLoader
             },
             Locale("en_US"),
             LumaGuildsLang::class.java,
-        )
-        command = GuildOwnerRecoveryCommand(
-            members, lang, { clock }, { UUID(0, ++issuedTokens).toString() }, audits::add,
         )
     }
 
@@ -93,23 +108,8 @@ internal class GuildOwnerRecoveryCommandTest {
 
         verify(exactly = 1) { members.previewOwnerRecovery(preview.guildId, preview.member.playerId) }
         verify(exactly = 0) { members.recoverOwnership(any()) }
-        val messages = playerMessages()
-        val display = messages.joinToString("\n")
-        for (expected in listOf(
-            preview.guildName,
-            preview.guildId.toString(),
-            preview.member.playerId.toString(),
-            preview.currentRankName,
-            preview.member.rankId.toString(),
-            preview.ownerRankName,
-            preview.ownerRankId.toString(),
-            "Current Owners:",
-            "no changes made",
-            "60 seconds",
-            token(1),
-        )) {
-            assertTrue(display.contains(expected), "Preview is missing $expected")
-        }
+        val display = playerMessages().joinToString("\n")
+        assertPreviewDetails(display)
         assertFalse(display.contains("\\n"), "Preview must render line breaks, not backslash-n")
         assertEquals(1, audits.size)
         assertTrue(audits.single().contains("outcome=PREVIEW"))
@@ -145,14 +145,15 @@ internal class GuildOwnerRecoveryCommandTest {
     @Test
     fun unsupportedVerbsAndArgumentCountsCannotReachStorage() {
         authorize()
-        val inputs = listOf(
-            arrayOf("owner"),
-            arrayOf("owner", "recover"),
-            previewArgs().copyOf().also { it[1] = "set" },
-            previewArgs() + "confirm",
-            confirmArgs().copyOf().also { it[4] = "force" },
-            confirmArgs() + "extra",
-        )
+        val inputs =
+            listOf(
+                arrayOf("owner"),
+                arrayOf("owner", "recover"),
+                previewArgs().copyOf().also { it[1] = "set" },
+                previewArgs() + "confirm",
+                confirmArgs().copyOf().also { it[4] = "force" },
+                confirmArgs() + "extra",
+            )
         inputs.forEach { command.execute(player, it) }
 
         verify(exactly = 0) { members.previewOwnerRecovery(any(), any()) }
@@ -178,15 +179,7 @@ internal class GuildOwnerRecoveryCommandTest {
 
         verify(exactly = 1) { members.recoverOwnership(preview) }
         assertTrue(playerMessages().single().contains("Recovered ownership"))
-        val committed = audits.single { it.contains("outcome=RECOVERED") }
-        for (expected in listOf(
-            "actor=PLAYER:${player.uniqueId}",
-            "guild=${preview.guildId}",
-            "member=${preview.member.playerId}",
-            "oldRank=${preview.member.rankId}",
-            "ownerRank=${preview.ownerRankId}",
-        )) assertTrue(committed.contains(expected))
-        assertTrue(audits.none { it.contains(token(1)) }, "Confirmation tokens must not appear in audit logs")
+        assertRecoveryAudit()
 
         command.execute(player, confirmArgs())
         verify(exactly = 1) { members.recoverOwnership(preview) }
@@ -230,7 +223,13 @@ internal class GuildOwnerRecoveryCommandTest {
         command.execute(player, previewArgs())
         playerMessages()
         val wrong = confirmArgs()
-        wrong[when (changed) { "guild" -> 2; "member" -> 3; else -> 5 }] = UUID.randomUUID().toString()
+        val changedIndex =
+            when (changed) {
+                "guild" -> 2
+                "member" -> 3
+                else -> 5
+            }
+        wrong[changedIndex] = UUID.randomUUID().toString()
         command.execute(player, wrong)
 
         verify(exactly = 0) { members.recoverOwnership(any()) }
@@ -390,6 +389,40 @@ internal class GuildOwnerRecoveryCommandTest {
     private fun isSenderRestriction(message: Component): Boolean {
         val text = PlainTextComponentSerializer.plainText().serialize(message)
         return text.contains("player administrator") && text.contains("console")
+    }
+
+    private fun assertPreviewDetails(display: String) {
+        val expectedValues =
+            listOf(
+                preview.guildName,
+                preview.guildId.toString(),
+                preview.member.playerId.toString(),
+                preview.currentRankName,
+                preview.member.rankId.toString(),
+                preview.ownerRankName,
+                preview.ownerRankId.toString(),
+                "Current Owners:",
+                "no changes made",
+                "60 seconds",
+                token(1),
+            )
+        for (expected in expectedValues) {
+            assertTrue(display.contains(expected), "Preview is missing $expected")
+        }
+    }
+
+    private fun assertRecoveryAudit() {
+        val committed = audits.single { it.contains("outcome=RECOVERED") }
+        val expectedValues =
+            listOf(
+                "actor=PLAYER:${player.uniqueId}",
+                "guild=${preview.guildId}",
+                "member=${preview.member.playerId}",
+                "oldRank=${preview.member.rankId}",
+                "ownerRank=${preview.ownerRankId}",
+            )
+        for (expected in expectedValues) assertTrue(committed.contains(expected))
+        assertTrue(audits.none { it.contains(token(1)) }, "Confirmation tokens must not appear in audit logs")
     }
 
     private fun authorize(target: PlayerMock = player) {

@@ -44,6 +44,8 @@ class LumaGuildsCommandTest {
     private lateinit var permissionResolver: GuildRolePermissionResolver
     private var guildService: GuildService = mockk(relaxed = true)
     private var progressionService: ProgressionService = mockk(relaxed = true)
+    // Koin receives a fresh member-service mock during each JUnit setup.
+    @Suppress("LateinitUsage")
     private lateinit var memberService: MemberService
     private val xpTasks = java.util.ArrayDeque<Runnable>()
     private val xpReplies = java.util.ArrayDeque<Runnable>()
@@ -104,6 +106,8 @@ class LumaGuildsCommandTest {
         stopKoin()
     }
 
+    /** The admin route delegates recovery preview to the authoritative member service without a write. */
+    @Suppress("FunctionMaxLength") // The regression name describes the routing guarantee.
     @Test
     fun ownerRecoverySubcommandUsesTheAuthoritativeMemberService() {
         player.addAttachment(mockPlugin, GuildOwnerRecoveryCommand.BASE_PERMISSION, true)
@@ -113,18 +117,22 @@ class LumaGuildsCommandTest {
         every { memberService.previewOwnerRecovery(guildId, memberId) } returns
             OwnerRecoveryPreviewResult.Rejected(OwnerRecoveryRejection.MEMBER_NOT_FOUND)
 
-        assertTrue(command.onCommand(
-            player,
-            mockCommand,
-            COMMAND_NAME,
-            arrayOf("owner", "recover", guildId.toString(), memberId.toString()),
-        ))
+        assertTrue(
+            command.onCommand(
+                player,
+                mockCommand,
+                COMMAND_NAME,
+                arrayOf("owner", "recover", guildId.toString(), memberId.toString()),
+            ),
+        )
 
         verify(exactly = 1) { memberService.previewOwnerRecovery(guildId, memberId) }
         verify(exactly = 0) { memberService.recoverOwnership(any()) }
         assertTrue(player.nextMessage()?.contains("not an existing member") == true)
     }
 
+    /** An active guild override does not grant the separate ownership-recovery command permission. */
+    @Suppress("FunctionMaxLength") // The regression name distinguishes override from command authorization.
     @Test
     fun activeOverrideDoesNotGrantTheOwnerRecoveryPermission() {
         player.addAttachment(mockPlugin, GuildOwnerRecoveryCommand.BASE_PERMISSION, true)
