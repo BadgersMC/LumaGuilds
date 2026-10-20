@@ -316,7 +316,9 @@ class PlayerModerationMenu(
             .lore(lang.gui("menu.player_moderation.back.description"))
 
         pane.addItem(GuiItem(backItem) {
-            menuNavigator.openMenu(PartyModerationMenu(menuNavigator, player, guild, party))
+            menuNavigator.returnToWithData(PartyModerationMenu::class.java, party) {
+                PartyModerationMenu(menuNavigator, player, guild, party)
+            }
         }, 4, 2)
     }
 
