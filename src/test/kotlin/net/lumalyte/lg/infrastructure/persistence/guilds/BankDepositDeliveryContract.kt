@@ -1,6 +1,7 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
 import net.lumalyte.lg.application.services.PaidGuildAdmission
+import net.lumalyte.lg.application.services.PersonalGoldRequest
 import net.lumalyte.lg.application.services.PhysicalCommitResult
 import net.lumalyte.lg.domain.entities.BankDepositXpCompletion
 import net.lumalyte.lg.domain.entities.BankDepositXpEligibility
@@ -428,6 +429,59 @@ abstract class BankDepositDeliveryContract : BankDepositDeliveryFixture() {
         assertEquals(1, results.count { it.awardedNow })
         assertEquals(listOf(1, 1), results.map { it.acceptedXp })
         assertAccounting(100, 100, 1, 1)
+    }
+
+    @Test fun failedGuildHeadYieldsTheBoundedPageAfterRollbackAndRestart() {
+        val head = personalRequest()
+        val follower = personalRequest()
+        assertIs<GuildGoldResult.Applied>(service.depositPersonal(head))
+        assertIs<GuildGoldResult.Applied>(service.depositPersonal(follower))
+        val otherGuild = UUID.randomUUID()
+        execute("INSERT INTO guilds VALUES (?, 1)", otherGuild.toString())
+        execute("INSERT INTO guild_reward_accounts VALUES (?, 0)", otherGuild.toString())
+        val other = PersonalGoldRequest(UUID.randomUUID(), otherGuild, actor, 100, "Independent guild deposit")
+        assertIs<GuildGoldResult.Applied>(service.depositPersonal(other))
+        // Fix initial priority without relying on UUID collation or wall-clock resolution.
+        execute("UPDATE guild_bank_xp_deliveries SET last_attempt_at = 1 WHERE transaction_id = ?", other.transactionId.toString())
+        assertEquals(listOf(head.transactionId), delivery.pending(1))
+        assertEquals(listOf(head.transactionId, other.transactionId), delivery.pending(10))
+
+        rejectInsert("experience_transactions")
+        assertFailsWith<SQLException> { delivery.complete(head.transactionId) }
+        assertAccounting(200, null, 0, 0)
+        restart()
+
+        assertEquals("READY", deliveryStatus(head.transactionId))
+        assertEquals(listOf(other.transactionId), delivery.pending(1))
+        assertEquals(listOf(other.transactionId, head.transactionId), delivery.pending(10))
+        assertTrue(delivery.pendingCache(10).isEmpty())
+        allowDeliveryWrites()
+        val awarded = assertNotNull(delivery.complete(other.transactionId))
+        assertEquals(otherGuild, awarded.guildId)
+        assertEquals(BankDepositXpStatus.AWARDED, awarded.status)
+        assertEquals(1, awarded.acceptedXp)
+        assertEquals(1L, scalar("SELECT total_experience FROM guild_progression WHERE guild_id = ?", otherGuild.toString()))
+        assertEquals(1L, scalar("SELECT COUNT(*) FROM experience_transactions WHERE guild_id = ?", otherGuild.toString()))
+        // The failed guild's follower cannot crowd either bounded queue.
+        assertEquals(listOf(head.transactionId), delivery.pending(10))
+        assertEquals(listOf(other.transactionId), delivery.pendingCache(10))
+        assertAccounting(200, null, 0, 0)
+    }
+
+    @Test fun alreadyAbsentGuildCannotPrepareOrChargeANewPlayerDeposit() {
+        execute("DELETE FROM guilds WHERE id = ?", guild.toString())
+        assertFailsWith<IllegalStateException> { service.depositPersonal(personalRequest()) }
+        assertFailsWith<IllegalStateException> { service.depositPhysical(physicalRequest()) }
+
+        assertEquals(0, personal.debitCalls)
+        assertEquals(0L, personal.debited)
+        assertEquals(0, physical.reserveCalls)
+        assertEquals(0L, physical.consumed)
+        assertEquals(0L, scalar("SELECT COUNT(*) FROM guild_gold_operations"))
+        assertEquals(0L, scalar("SELECT COUNT(*) FROM guild_gold_external_attempts"))
+        assertEquals(0L, scalar("SELECT COUNT(*) FROM guild_bank_xp_deliveries"))
+        assertEquals(0L, scalar("SELECT COUNT(*) FROM guild_bank_xp_delivery_sequences"))
+        assertAccounting(0, null, 0, 0)
     }
 
     private fun assertAward(id: UUID, xp: Int): BankDepositXpCompletion {
