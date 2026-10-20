@@ -33,7 +33,7 @@ class PermanentExperienceService(
             if (reason != null) {
                 PreparedExperienceAward.Rejected(reason)
             } else {
-                val xp = requestedXp(actual, policy, boost)
+                val xp = requestedXp(actual, policy) { boost }
                 if (xp == null) PreparedExperienceAward.Rejected(AwardRejection.INVALID_UNITS)
                 else PreparedExperienceAward.Ready(actual, policy, xp)
             }
@@ -67,11 +67,11 @@ class PermanentExperienceService(
     private fun requestedXp(
         request: ExperienceAwardRequest,
         policy: ExperiencePolicy,
-        boost: ExperienceBoost? = boostProvider(),
+        boost: () -> ExperienceBoost? = boostProvider,
     ): Int? {
         return try {
             val base = Math.multiplyExact(policy.awardXp, request.units)
-            boost?.apply(base, request.source, request.occurredAt) ?: base
+            boost()?.apply(base, request.source, request.occurredAt) ?: base
         } catch (_: ArithmeticException) {
             null
         }

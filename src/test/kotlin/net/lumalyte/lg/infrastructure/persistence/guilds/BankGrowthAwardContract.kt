@@ -118,7 +118,7 @@ abstract class BankGrowthAwardContract {
     @Test fun disabledSourceStillConsumesHighWater() {
         assertEquals(
             ExperienceAwardResult.Rejected(AwardRejection.SOURCE_DISABLED),
-            award(0, 100, policy.copy(enabled = false)),
+            award(0, 100, policy.copy(enabled = false, awardXp = 0)),
         )
 
         assertNull(award(0, 100))

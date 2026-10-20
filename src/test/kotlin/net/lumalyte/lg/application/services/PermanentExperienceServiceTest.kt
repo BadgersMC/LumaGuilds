@@ -142,7 +142,7 @@ class PermanentExperienceServiceTest {
 
     @Test fun preparedRejectionDoesNotReadBoostOrWriteXp() {
         val preparing = PermanentExperienceService(repository, activity) { error("Rejected source must not read boost") }
-        val calculate = preparing.prepareForUnits(request, mobPolicy.copy(enabled = false))
+        val calculate = preparing.prepareForUnits(request, mobPolicy.copy(enabled = false, awardXp = 0))
 
         assertEquals(PreparedExperienceAward.Rejected(AwardRejection.SOURCE_DISABLED), calculate(2))
         assertEquals(emptyList<UUID>(), activity.checkedPlayers)
@@ -154,6 +154,26 @@ class PermanentExperienceServiceTest {
 
         assertEquals(PreparedExperienceAward.Rejected(AwardRejection.INVALID_UNITS), calculate(0))
         assertEquals(PreparedExperienceAward.Rejected(AwardRejection.INVALID_UNITS), calculate(Int.MAX_VALUE))
+        assertNull(repository.lastCall)
+    }
+
+    @Test fun ordinaryOverflowDoesNotResolveBoost() {
+        val awarding = PermanentExperienceService(repository, activity) { error("Overflow must precede boost lookup") }
+
+        assertEquals(
+            ExperienceAwardResult.Rejected(AwardRejection.INVALID_UNITS),
+            awarding.award(request.copy(units = Int.MAX_VALUE), mobPolicy),
+        )
+        assertNull(repository.lastCall)
+    }
+
+    @Test fun ordinaryBoostArithmeticFailureRetainsRejection() {
+        val awarding = PermanentExperienceService(repository, activity) { throw ArithmeticException("boost unavailable") }
+
+        assertEquals(
+            ExperienceAwardResult.Rejected(AwardRejection.INVALID_UNITS),
+            awarding.award(request, mobPolicy),
+        )
         assertNull(repository.lastCall)
     }
 
