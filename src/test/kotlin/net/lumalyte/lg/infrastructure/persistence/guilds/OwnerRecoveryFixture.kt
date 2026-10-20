@@ -12,9 +12,15 @@ import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
-/** Disposable SQLite/MariaDB data with real rank/member storage and existing guild progress. */
-// Distinct fixture literals make unintended edits to membership and guild progress observable.
-@Suppress("MagicNumber")
+/**
+ * Disposable SQLite/MariaDB data with real rank/member storage and existing guild progress.
+ *
+ * Distinct fixture literals make unintended edits to membership and guild progress observable.
+ *
+ * Codacy's FunctionSignature and MultilineExpressionWrapping conflict on expression-body placement.
+ * Fitting function expressions stay beside their signatures; variable expressions remain explicitly wrapped.
+ */
+@Suppress("MagicNumber", "MultilineExpressionWrapping")
 internal class OwnerRecoveryFixture(val storage: Storage<Database>) {
     val guild = UUID.randomUUID()
     val ownerRank = UUID.randomUUID()
@@ -85,26 +91,23 @@ internal class OwnerRecoveryFixture(val storage: Storage<Database>) {
     fun preview(playerId: UUID = target.playerId): OwnerRecoveryPreview =
         assertIs<OwnerRecoveryPreviewResult.Ready>(repo.previewOwnerRecovery(guild, playerId)).preview
 
-    fun storedRank(member: Member): UUID? =
-        storage.connection.getResults(
-            "SELECT rank_id FROM members WHERE player_id = ? AND guild_id = ?",
-            member.playerId.toString(),
-            member.guildId.toString(),
-        ).singleOrNull()?.getString("rank_id")?.let(UUID::fromString)
+    fun storedRank(member: Member): UUID? = storage.connection.getResults(
+        "SELECT rank_id FROM members WHERE player_id = ? AND guild_id = ?",
+        member.playerId.toString(),
+        member.guildId.toString(),
+    ).singleOrNull()?.getString("rank_id")?.let(UUID::fromString)
 
-    fun storedJoinedAt(member: Member): String =
-        storage.connection.getResults(
-            "SELECT joined_at FROM members WHERE player_id = ? AND guild_id = ?",
-            member.playerId.toString(),
-            member.guildId.toString(),
-        ).single().get<Any>("joined_at").toString()
+    fun storedJoinedAt(member: Member): String = storage.connection.getResults(
+        "SELECT joined_at FROM members WHERE player_id = ? AND guild_id = ?",
+        member.playerId.toString(),
+        member.guildId.toString(),
+    ).single().get<Any>("joined_at").toString()
 
-    fun ownerCount(): Int =
-        storage.connection.getResults(
-            "SELECT COUNT(*) AS total FROM members m JOIN ranks r ON r.id = m.rank_id " +
-                "WHERE m.guild_id = ? AND r.priority = 0",
-            guild.toString(),
-        ).single().getInt("total")
+    fun ownerCount(): Int = storage.connection.getResults(
+        "SELECT COUNT(*) AS total FROM members m JOIN ranks r ON r.id = m.rank_id " +
+            "WHERE m.guild_id = ? AND r.priority = 0",
+        guild.toString(),
+    ).single().getInt("total")
 
     fun assertProgressUnchanged() {
         val row = storage.connection.getResults("SELECT * FROM guilds WHERE id = ?", guild.toString()).single()

@@ -27,18 +27,25 @@ data class OwnerRecoveryPreview(
 enum class OwnerRecoveryRejection {
     /** No stored guild matches the requested UUID. */
     GUILD_NOT_FOUND,
+
     /** The target UUID has no existing membership in this guild. */
     MEMBER_NOT_FOUND,
+
     /** The guild's ranks are malformed or do not contain exactly one Owner rank. */
     INVALID_OWNER_RANKS,
+
     /** A membership is malformed or refers to a missing or foreign-guild rank. */
     INVALID_MEMBER_RANKS,
+
     /** A current member already holds the guild's Owner rank. */
     ALREADY_OWNED,
+
     /** The stored membership, guild name, or relevant rank changed after the preview. */
     STALE_PREVIEW,
+
     /** Storage could not confirm the outcome; administrators must inspect current ownership. */
     STORAGE_FAILURE,
+
     /** This repository adapter does not implement authoritative ownership recovery. */
     UNSUPPORTED_REPOSITORY,
 }

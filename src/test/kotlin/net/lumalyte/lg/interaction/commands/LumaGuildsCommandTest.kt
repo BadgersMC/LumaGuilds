@@ -44,9 +44,11 @@ class LumaGuildsCommandTest {
     private lateinit var permissionResolver: GuildRolePermissionResolver
     private var guildService: GuildService = mockk(relaxed = true)
     private var progressionService: ProgressionService = mockk(relaxed = true)
+
     // Koin receives a fresh member-service mock during each JUnit setup.
     @Suppress("LateinitUsage")
     private lateinit var memberService: MemberService
+
     private val xpTasks = java.util.ArrayDeque<Runnable>()
     private val xpReplies = java.util.ArrayDeque<Runnable>()
     private lateinit var mockCommand: Command
@@ -136,7 +138,7 @@ class LumaGuildsCommandTest {
     @Test
     fun activeOverrideDoesNotGrantTheOwnerRecoveryPermission() {
         player.addAttachment(mockPlugin, GuildOwnerRecoveryCommand.BASE_PERMISSION, true)
-        player.addAttachment(mockPlugin, "bellclaims.admin", true)
+        player.addAttachment(mockPlugin, LEGACY_ADMIN_PERMISSION, true)
         every { adminOverrideService.hasOverride(player.uniqueId) } returns true
 
         command.onCommand(
@@ -148,7 +150,7 @@ class LumaGuildsCommandTest {
 
         verify(exactly = 0) { memberService.previewOwnerRecovery(any(), any()) }
         verify(exactly = 0) { memberService.recoverOwnership(any()) }
-        assertTrue(player.nextMessage()?.contains("permission") == true)
+        assertTrue(player.nextMessage()?.contains(PERMISSION_MESSAGE_FRAGMENT) == true)
     }
 
     /** The database award waits for the worker; the Bukkit reply waits for the main thread. */
@@ -180,7 +182,7 @@ class LumaGuildsCommandTest {
         assertTrue(result)
         assertTrue(xpTasks.isEmpty())
         verify(exactly = 0) { progressionService.awardUncappedSystemExperienceOnce(any(), any(), any(), any()) }
-        assertTrue(player.nextMessage()?.contains("permission", ignoreCase = true) == true)
+        assertTrue(player.nextMessage()?.contains(PERMISSION_MESSAGE_FRAGMENT, ignoreCase = true) == true)
     }
 
     /** Invalid and overflowing amounts are rejected before lookup. */
@@ -302,7 +304,7 @@ class LumaGuildsCommandTest {
     @Test
     fun `override command with admin permission should enable override`() {
         // Given: Player has admin permission and override is disabled
-        player.addAttachment(mockPlugin, "bellclaims.admin", true)
+        player.addAttachment(mockPlugin, LEGACY_ADMIN_PERMISSION, true)
         every { adminOverrideService.toggleOverride(player.uniqueId) } returns true
 
         // When: Player executes /bellclaims override
@@ -326,7 +328,7 @@ class LumaGuildsCommandTest {
     @Test
     fun `override command with admin permission should disable when enabled`() {
         // Given: Player has admin permission and override is enabled
-        player.addAttachment(mockPlugin, "bellclaims.admin", true)
+        player.addAttachment(mockPlugin, LEGACY_ADMIN_PERMISSION, true)
         every { adminOverrideService.toggleOverride(player.uniqueId) } returns false
 
         // When: Player executes /bellclaims override
@@ -368,7 +370,7 @@ class LumaGuildsCommandTest {
         // Verify player received permission denied message
         val message = player.nextMessage()
         assertNotNull(message)
-        assertTrue(message!!.contains("permission") || message.contains("§c"))
+        assertTrue(message!!.contains(PERMISSION_MESSAGE_FRAGMENT) || message.contains("§c"))
     }
 
     @Test
@@ -425,6 +427,8 @@ class LumaGuildsCommandTest {
 
     private companion object {
         const val COMMAND_NAME = "lumaguilds"
+        const val LEGACY_ADMIN_PERMISSION = "bellclaims.admin"
+        const val PERMISSION_MESSAGE_FRAGMENT = "permission"
         const val XP_PERMISSION = "lumaguilds.admin.xp"
         const val GUILD_NAME = "Vibe"
         const val MULTI_WORD_NAME = "Two Words"

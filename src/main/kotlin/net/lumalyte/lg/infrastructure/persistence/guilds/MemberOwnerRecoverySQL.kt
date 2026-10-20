@@ -20,43 +20,47 @@ import java.util.UUID
 import java.util.logging.Level
 import java.util.logging.Logger
 
-/** Recovery reads and writes share database locks, including when separate adapters race. */
-// Keep transaction sequencing, row validation, and JDBC binding together for ownership review.
-@Suppress("TooManyFunctions")
+/**
+ * Recovery reads and writes share database locks, including when separate adapters race.
+ *
+ * Keep transaction sequencing, row validation, and JDBC binding together for ownership review.
+ *
+ * Codacy's FunctionSignature and MultilineExpressionWrapping conflict on expression-body placement.
+ * Fitting function expressions stay beside their signatures; variable expressions remain explicitly wrapped.
+ */
+@Suppress("TooManyFunctions", "MultilineExpressionWrapping")
 internal class MemberOwnerRecoverySQL(private val storage: Storage<Database>) {
-    fun preview(guildId: UUID, playerId: UUID): OwnerRecoveryPreviewResult =
-        try {
-            val preview =
-                storage.connection.connection.use { connection ->
-                    connection.committingTransaction {
-                        readState(connection, guildId, playerId, locking = false).preview
-                    }
-                }
-            OwnerRecoveryPreviewResult.Ready(preview)
-        } catch (rejected: RecoveryRejected) {
-            OwnerRecoveryPreviewResult.Rejected(rejected.reason)
-        } catch (error: SQLException) {
-            logStorageFailure("preview", guildId, playerId, error)
-            OwnerRecoveryPreviewResult.Rejected(OwnerRecoveryRejection.STORAGE_FAILURE)
-        }
-
-    fun recover(preview: OwnerRecoveryPreview): OwnerRecoveryResult =
-        try {
+    fun preview(guildId: UUID, playerId: UUID): OwnerRecoveryPreviewResult = try {
+        val preview =
             storage.connection.connection.use { connection ->
                 connection.committingTransaction {
-                    reserveSqliteWrite(connection)
-                    val current = readState(connection, preview.guildId, preview.member.playerId, locking = true)
-                    if (current.preview != preview) reject(OwnerRecoveryRejection.STALE_PREVIEW)
-                    replaceRank(connection, current)
+                    readState(connection, guildId, playerId, locking = false).preview
                 }
             }
-            OwnerRecoveryResult.Recovered(preview)
-        } catch (rejected: RecoveryRejected) {
-            OwnerRecoveryResult.Rejected(rejected.reason)
-        } catch (error: SQLException) {
-            logStorageFailure("commit", preview.guildId, preview.member.playerId, error)
-            OwnerRecoveryResult.Rejected(OwnerRecoveryRejection.STORAGE_FAILURE)
+        OwnerRecoveryPreviewResult.Ready(preview)
+    } catch (rejected: RecoveryRejected) {
+        OwnerRecoveryPreviewResult.Rejected(rejected.reason)
+    } catch (error: SQLException) {
+        logStorageFailure("preview", guildId, playerId, error)
+        OwnerRecoveryPreviewResult.Rejected(OwnerRecoveryRejection.STORAGE_FAILURE)
+    }
+
+    fun recover(preview: OwnerRecoveryPreview): OwnerRecoveryResult = try {
+        storage.connection.connection.use { connection ->
+            connection.committingTransaction {
+                reserveSqliteWrite(connection)
+                val current = readState(connection, preview.guildId, preview.member.playerId, locking = true)
+                if (current.preview != preview) reject(OwnerRecoveryRejection.STALE_PREVIEW)
+                replaceRank(connection, current)
+            }
         }
+        OwnerRecoveryResult.Recovered(preview)
+    } catch (rejected: RecoveryRejected) {
+        OwnerRecoveryResult.Rejected(rejected.reason)
+    } catch (error: SQLException) {
+        logStorageFailure("commit", preview.guildId, preview.member.playerId, error)
+        OwnerRecoveryResult.Rejected(OwnerRecoveryRejection.STORAGE_FAILURE)
+    }
 
     private fun readState(connection: Connection, guildId: UUID, playerId: UUID, locking: Boolean): RecoveryState {
         val guildName = readGuild(connection, guildId, locking)
@@ -168,14 +172,13 @@ internal class MemberOwnerRecoverySQL(private val storage: Storage<Database>) {
     private fun lockingSuffix(locking: Boolean): String =
         if (locking && storage.dialect == SqlDialect.MARIADB) " FOR UPDATE" else ""
 
-    private fun parseUuid(value: String?, reason: OwnerRecoveryRejection): UUID =
-        try {
-            val id = UUID.fromString(value ?: reject(reason))
-            if (!id.toString().equals(value, ignoreCase = true)) reject(reason)
-            id
-        } catch (_: IllegalArgumentException) {
-            reject(reason)
-        }
+    private fun parseUuid(value: String?, reason: OwnerRecoveryRejection): UUID = try {
+        val id = UUID.fromString(value ?: reject(reason))
+        if (!id.toString().equals(value, ignoreCase = true)) reject(reason)
+        id
+    } catch (_: IllegalArgumentException) {
+        reject(reason)
+    }
 
     private fun parseJoinedAt(rows: ResultSet): Instant {
         val value = rows.getObject("joined_at")

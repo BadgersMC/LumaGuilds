@@ -25,9 +25,15 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** The shared recovery fixture keeps each distinct rejection and rollback contract independently runnable. */
-// Scenario SQL stays beside its assertions so fault injection and validation cases can be reviewed independently.
-@Suppress("TooManyFunctions", "StringLiteralDuplication")
+/**
+ * The shared recovery fixture keeps each distinct rejection and rollback contract independently runnable.
+ *
+ * Scenario SQL stays beside its assertions so fault injection and validation cases can be reviewed independently.
+ *
+ * Codacy's FunctionSignature and MultilineExpressionWrapping conflict on expression-body placement.
+ * Fitting function expressions stay beside their signatures; variable expressions remain explicitly wrapped.
+ */
+@Suppress("TooManyFunctions", "StringLiteralDuplication", "MultilineExpressionWrapping")
 internal class MemberOwnerRecoveryTest {
     // JUnit injects a fresh directory before each test; it is not a runtime nullable dependency.
     @Suppress("LateinitUsage")
@@ -36,95 +42,90 @@ internal class MemberOwnerRecoveryTest {
 
     @Test
     @DisplayName("Preview reads current database state without writing")
-    fun previewIsReadOnly() =
-        fixture { f ->
+    fun previewIsReadOnly() = fixture { f ->
+        f.storage.connection.executeUpdate(
+            "UPDATE members SET rank_id = ? WHERE player_id = ?",
+            f.thirdRank.toString(),
+            f.target.playerId.toString(),
+        )
+        for (table in listOf("guilds", "ranks", "members")) {
             f.storage.connection.executeUpdate(
-                "UPDATE members SET rank_id = ? WHERE player_id = ?",
-                f.thirdRank.toString(),
-                f.target.playerId.toString(),
+                "CREATE TRIGGER reject_${table}_write BEFORE UPDATE ON $table " +
+                    "BEGIN SELECT RAISE(ABORT, 'preview must not write'); END",
             )
-            for (table in listOf("guilds", "ranks", "members")) {
-                f.storage.connection.executeUpdate(
-                    "CREATE TRIGGER reject_${table}_write BEFORE UPDATE ON $table " +
-                        "BEGIN SELECT RAISE(ABORT, 'preview must not write'); END",
-                )
-            }
-            val preview = f.preview()
-            assertEquals(f.thirdRank, preview.member.rankId)
-            assertEquals(f.lowerRank, f.repo.getRankId(f.target.playerId, f.guild))
-            assertEquals(0, f.ownerCount())
-            f.assertProgressUnchanged()
         }
+        val preview = f.preview()
+        assertEquals(f.thirdRank, preview.member.rankId)
+        assertEquals(f.lowerRank, f.repo.getRankId(f.target.playerId, f.guild))
+        assertEquals(0, f.ownerCount())
+        f.assertProgressUnchanged()
+    }
 
     @Test
     @DisplayName("Recovery preserves membership dates and guild progress")
-    fun recoveryPreservesData() =
-        fixture { f ->
-            val joinedBefore = f.storedJoinedAt(f.target)
-            val preview = f.preview()
-            assertEquals("Founder", preview.ownerRankName)
-            assertEquals(0, f.ownerCount())
-            assertIs<OwnerRecoveryResult.Recovered>(f.repo.recoverOwnership(preview))
-            assertEquals(f.ownerRank, f.storedRank(f.target))
-            assertEquals(f.ownerRank, f.repo.getRankId(f.target.playerId, f.guild))
-            assertEquals(f.thirdRank, f.storedRank(f.other))
-            assertEquals(joinedBefore, f.storedJoinedAt(f.target))
-            assertEquals(2, f.repo.getMemberCount(f.guild))
-            assertEquals(1, f.ownerCount())
-            f.assertProgressUnchanged()
-            assertEquals(f.ownerRank, MemberRepositorySQLite(f.storage).getRankId(f.target.playerId, f.guild))
-            assertRejected(f.repo.recoverOwnership(preview), OwnerRecoveryRejection.ALREADY_OWNED)
-        }
+    fun recoveryPreservesData() = fixture { f ->
+        val joinedBefore = f.storedJoinedAt(f.target)
+        val preview = f.preview()
+        assertEquals("Founder", preview.ownerRankName)
+        assertEquals(0, f.ownerCount())
+        assertIs<OwnerRecoveryResult.Recovered>(f.repo.recoverOwnership(preview))
+        assertEquals(f.ownerRank, f.storedRank(f.target))
+        assertEquals(f.ownerRank, f.repo.getRankId(f.target.playerId, f.guild))
+        assertEquals(f.thirdRank, f.storedRank(f.other))
+        assertEquals(joinedBefore, f.storedJoinedAt(f.target))
+        assertEquals(2, f.repo.getMemberCount(f.guild))
+        assertEquals(1, f.ownerCount())
+        f.assertProgressUnchanged()
+        assertEquals(f.ownerRank, MemberRepositorySQLite(f.storage).getRankId(f.target.playerId, f.guild))
+        assertRejected(f.repo.recoverOwnership(preview), OwnerRecoveryRejection.ALREADY_OWNED)
+    }
 
     @Test
     @DisplayName("Recovery does not touch guild or rank rows")
-    fun onlyTargetMemberIsUpdated() =
-        fixture { f ->
-            val preview = f.preview()
-            for (table in listOf("guilds", "ranks")) {
-                f.storage.connection.executeUpdate(
-                    "CREATE TRIGGER reject_${table}_write BEFORE UPDATE ON $table " +
-                        "BEGIN SELECT RAISE(ABORT, 'unrelated row modified'); END",
-                )
-            }
+    fun onlyTargetMemberIsUpdated() = fixture { f ->
+        val preview = f.preview()
+        for (table in listOf("guilds", "ranks")) {
             f.storage.connection.executeUpdate(
-                "CREATE TRIGGER reject_noop BEFORE UPDATE ON members WHEN NEW.rank_id = OLD.rank_id " +
-                    "BEGIN SELECT RAISE(ABORT, 'reservation must match no rows'); END",
+                "CREATE TRIGGER reject_${table}_write BEFORE UPDATE ON $table " +
+                    "BEGIN SELECT RAISE(ABORT, 'unrelated row modified'); END",
             )
-            assertIs<OwnerRecoveryResult.Recovered>(f.repo.recoverOwnership(preview))
-            assertEquals(1, f.ownerCount())
-            f.assertProgressUnchanged()
         }
+        f.storage.connection.executeUpdate(
+            "CREATE TRIGGER reject_noop BEFORE UPDATE ON members WHEN NEW.rank_id = OLD.rank_id " +
+                "BEGIN SELECT RAISE(ABORT, 'reservation must match no rows'); END",
+        )
+        assertIs<OwnerRecoveryResult.Recovered>(f.repo.recoverOwnership(preview))
+        assertEquals(1, f.ownerCount())
+        f.assertProgressUnchanged()
+    }
 
     @Test
     @DisplayName("Missing guilds and nonmember targets are rejected")
-    fun missingRecordsRejected() =
-        fixture { f ->
-            assertPreviewRejected(
-                f.repo.previewOwnerRecovery(UUID.randomUUID(), f.target.playerId),
-                OwnerRecoveryRejection.GUILD_NOT_FOUND,
-            )
-            val foreign = f.other.copy(playerId = UUID.randomUUID(), guildId = UUID.randomUUID())
-            f.insertMember(foreign)
-            for (id in listOf(UUID.randomUUID(), foreign.playerId)) {
-                assertPreviewRejected(f.repo.previewOwnerRecovery(f.guild, id), OwnerRecoveryRejection.MEMBER_NOT_FOUND)
-            }
-            assertEquals(0, f.ownerCount())
+    fun missingRecordsRejected() = fixture { f ->
+        assertPreviewRejected(
+            f.repo.previewOwnerRecovery(UUID.randomUUID(), f.target.playerId),
+            OwnerRecoveryRejection.GUILD_NOT_FOUND,
+        )
+        val foreign = f.other.copy(playerId = UUID.randomUUID(), guildId = UUID.randomUUID())
+        f.insertMember(foreign)
+        for (id in listOf(UUID.randomUUID(), foreign.playerId)) {
+            assertPreviewRejected(f.repo.previewOwnerRecovery(f.guild, id), OwnerRecoveryRejection.MEMBER_NOT_FOUND)
         }
+        assertEquals(0, f.ownerCount())
+    }
 
     @Test
     @DisplayName("An existing Owner is detected despite stale cached membership")
-    fun existingOwnerDetected() =
-        fixture { f ->
-            val preview = f.preview()
-            f.insertMember(f.other.copy(playerId = UUID.randomUUID(), rankId = f.ownerRank))
-            assertPreviewRejected(
-                f.repo.previewOwnerRecovery(f.guild, f.target.playerId),
-                OwnerRecoveryRejection.ALREADY_OWNED,
-            )
-            assertRejected(f.repo.recoverOwnership(preview), OwnerRecoveryRejection.ALREADY_OWNED)
-            assertEquals(f.lowerRank, f.storedRank(f.target))
-        }
+    fun existingOwnerDetected() = fixture { f ->
+        val preview = f.preview()
+        f.insertMember(f.other.copy(playerId = UUID.randomUUID(), rankId = f.ownerRank))
+        assertPreviewRejected(
+            f.repo.previewOwnerRecovery(f.guild, f.target.playerId),
+            OwnerRecoveryRejection.ALREADY_OWNED,
+        )
+        assertRejected(f.repo.recoverOwnership(preview), OwnerRecoveryRejection.ALREADY_OWNED)
+        assertEquals(f.lowerRank, f.storedRank(f.target))
+    }
 
     @Test
     @DisplayName("A guild must have exactly one Owner rank")
@@ -221,98 +222,92 @@ internal class MemberOwnerRecoveryTest {
 
     @Test
     @DisplayName("Confirmation cannot recreate a vanished membership")
-    fun missingMemberNotRecreated() =
-        fixture { f ->
-            val preview = f.preview()
-            assertTrue(f.repo.remove(f.target.playerId, f.guild))
-            assertRejected(f.repo.recoverOwnership(preview), OwnerRecoveryRejection.MEMBER_NOT_FOUND)
-            assertNull(f.storedRank(f.target))
-            assertNull(f.repo.getRankId(f.target.playerId, f.guild))
-        }
+    fun missingMemberNotRecreated() = fixture { f ->
+        val preview = f.preview()
+        assertTrue(f.repo.remove(f.target.playerId, f.guild))
+        assertRejected(f.repo.recoverOwnership(preview), OwnerRecoveryRejection.MEMBER_NOT_FOUND)
+        assertNull(f.storedRank(f.target))
+        assertNull(f.repo.getRankId(f.target.playerId, f.guild))
+    }
 
     @Test
     @DisplayName("A failed write leaves database and cache unchanged")
-    fun writeFailurePreservesState() =
-        fixture { f ->
-            val preview = f.preview()
-            f.storage.connection.executeUpdate(
-                "CREATE TRIGGER reject_recovery BEFORE UPDATE ON members " +
-                    "BEGIN SELECT RAISE(ABORT, 'test fault'); END",
-            )
-            assertRejected(f.repo.recoverOwnership(preview), OwnerRecoveryRejection.STORAGE_FAILURE)
-            assertEquals(f.lowerRank, f.storedRank(f.target))
-            assertEquals(f.lowerRank, f.repo.getRankId(f.target.playerId, f.guild))
-            assertEquals(0, f.ownerCount())
-            f.storage.connection.executeUpdate("DROP TRIGGER reject_recovery")
-            assertIs<OwnerRecoveryResult.Recovered>(f.repo.recoverOwnership(preview))
-        }
+    fun writeFailurePreservesState() = fixture { f ->
+        val preview = f.preview()
+        f.storage.connection.executeUpdate(
+            "CREATE TRIGGER reject_recovery BEFORE UPDATE ON members " +
+                "BEGIN SELECT RAISE(ABORT, 'test fault'); END",
+        )
+        assertRejected(f.repo.recoverOwnership(preview), OwnerRecoveryRejection.STORAGE_FAILURE)
+        assertEquals(f.lowerRank, f.storedRank(f.target))
+        assertEquals(f.lowerRank, f.repo.getRankId(f.target.playerId, f.guild))
+        assertEquals(0, f.ownerCount())
+        f.storage.connection.executeUpdate("DROP TRIGGER reject_recovery")
+        assertIs<OwnerRecoveryResult.Recovered>(f.repo.recoverOwnership(preview))
+    }
 
     @Test
     @DisplayName("A failed commit rolls back without publishing cache state")
-    fun commitFailurePreservesState() =
-        fixture { f ->
-            val preview = f.preview()
-            val failedCommitRepo = MemberRepositorySQLite(commitFailingStorage(f.storage))
-            assertRejected(failedCommitRepo.recoverOwnership(preview), OwnerRecoveryRejection.STORAGE_FAILURE)
-            assertEquals(f.lowerRank, f.storedRank(f.target))
-            assertEquals(f.lowerRank, failedCommitRepo.getRankId(f.target.playerId, f.guild))
-            assertEquals(0, f.ownerCount())
-            f.assertProgressUnchanged()
-        }
+    fun commitFailurePreservesState() = fixture { f ->
+        val preview = f.preview()
+        val failedCommitRepo = MemberRepositorySQLite(commitFailingStorage(f.storage))
+        assertRejected(failedCommitRepo.recoverOwnership(preview), OwnerRecoveryRejection.STORAGE_FAILURE)
+        assertEquals(f.lowerRank, f.storedRank(f.target))
+        assertEquals(f.lowerRank, failedCommitRepo.getRankId(f.target.playerId, f.guild))
+        assertEquals(0, f.ownerCount())
+        f.assertProgressUnchanged()
+    }
 
     @Test
     @DisplayName("Concurrent recovery through separate adapters produces one Owner")
-    fun concurrentRecoveryIsExclusive() =
-        fixture { f ->
-            val secondRepo = MemberRepositorySQLite(f.storage)
-            val previews = listOf(f.preview(), f.preview(f.other.playerId))
-            val start = CountDownLatch(1)
-            val attempts =
-                listOf(f.repo, secondRepo).mapIndexed { index, repo ->
-                    CompletableFuture.supplyAsync {
-                        check(start.await(START_TIMEOUT_SECONDS, TimeUnit.SECONDS))
-                        repo.recoverOwnership(previews[index])
-                    }
+    fun concurrentRecoveryIsExclusive() = fixture { f ->
+        val secondRepo = MemberRepositorySQLite(f.storage)
+        val previews = listOf(f.preview(), f.preview(f.other.playerId))
+        val start = CountDownLatch(1)
+        val attempts =
+            listOf(f.repo, secondRepo).mapIndexed { index, repo ->
+                CompletableFuture.supplyAsync {
+                    check(start.await(START_TIMEOUT_SECONDS, TimeUnit.SECONDS))
+                    repo.recoverOwnership(previews[index])
                 }
-            start.countDown()
-            val results = attempts.map { it.get(RESULT_TIMEOUT_SECONDS, TimeUnit.SECONDS) }
-            assertEquals(1, results.count { it is OwnerRecoveryResult.Recovered })
-            assertRejected(results.single { it is OwnerRecoveryResult.Rejected }, OwnerRecoveryRejection.ALREADY_OWNED)
-            assertEquals(1, f.ownerCount())
-            f.assertProgressUnchanged()
-        }
+            }
+        start.countDown()
+        val results = attempts.map { it.get(RESULT_TIMEOUT_SECONDS, TimeUnit.SECONDS) }
+        assertEquals(1, results.count { it is OwnerRecoveryResult.Recovered })
+        assertRejected(results.single { it is OwnerRecoveryResult.Rejected }, OwnerRecoveryRejection.ALREADY_OWNED)
+        assertEquals(1, f.ownerCount())
+        f.assertProgressUnchanged()
+    }
 
     @Test
     @DisplayName("A stale repository cannot remove or demote the recovered Owner")
-    fun staleWritesPreserveOwner() =
-        fixture { f ->
-            val staleRepo = MemberRepositorySQLite(f.storage)
-            assertIs<OwnerRecoveryResult.Recovered>(f.repo.recoverOwnership(f.preview()))
-            assertEquals(f.lowerRank, staleRepo.getRankId(f.target.playerId, f.guild))
-            assertFalse(staleRepo.remove(f.target.playerId, f.guild))
-            assertFalse(staleRepo.update(f.target.copy(rankId = f.thirdRank)))
-            assertFalse(staleRepo.update(f.other.copy(rankId = f.ownerRank)))
-            assertEquals(f.ownerRank, f.storedRank(f.target))
-            assertEquals(f.thirdRank, f.storedRank(f.other))
-            assertEquals(1, f.ownerCount())
-        }
+    fun staleWritesPreserveOwner() = fixture { f ->
+        val staleRepo = MemberRepositorySQLite(f.storage)
+        assertIs<OwnerRecoveryResult.Recovered>(f.repo.recoverOwnership(f.preview()))
+        assertEquals(f.lowerRank, staleRepo.getRankId(f.target.playerId, f.guild))
+        assertFalse(staleRepo.remove(f.target.playerId, f.guild))
+        assertFalse(staleRepo.update(f.target.copy(rankId = f.thirdRank)))
+        assertFalse(staleRepo.update(f.other.copy(rankId = f.ownerRank)))
+        assertEquals(f.ownerRank, f.storedRank(f.target))
+        assertEquals(f.thirdRank, f.storedRank(f.other))
+        assertEquals(1, f.ownerCount())
+    }
 
     @Test
     @DisplayName("Ordinary rank changes, transfer, and disband remain available")
-    fun normalChangesRemainAvailable() =
-        fixture { f ->
-            assertTrue(f.repo.update(f.other.copy(rankId = f.lowerRank)))
-            assertTrue(f.repo.update(f.other))
-            val preview = f.preview()
-            assertIs<OwnerRecoveryResult.Recovered>(f.repo.recoverOwnership(preview))
-            val owner = preview.member.copy(rankId = f.ownerRank)
-            assertTrue(f.repo.update(owner))
-            assertTrue(f.repo.transferOwnership(owner, f.other, f.lowerRank))
-            assertTrue(f.repo.remove(owner.playerId, f.guild))
-            assertEquals(f.ownerRank, f.storedRank(f.other))
-            assertTrue(f.repo.removeByGuild(f.guild))
-            assertEquals(0, f.repo.getMemberCount(f.guild))
-        }
+    fun normalChangesRemainAvailable() = fixture { f ->
+        assertTrue(f.repo.update(f.other.copy(rankId = f.lowerRank)))
+        assertTrue(f.repo.update(f.other))
+        val preview = f.preview()
+        assertIs<OwnerRecoveryResult.Recovered>(f.repo.recoverOwnership(preview))
+        val owner = preview.member.copy(rankId = f.ownerRank)
+        assertTrue(f.repo.update(owner))
+        assertTrue(f.repo.transferOwnership(owner, f.other, f.lowerRank))
+        assertTrue(f.repo.remove(owner.playerId, f.guild))
+        assertEquals(f.ownerRank, f.storedRank(f.other))
+        assertTrue(f.repo.removeByGuild(f.guild))
+        assertEquals(0, f.repo.getMemberCount(f.guild))
+    }
 
     private fun fixture(block: (OwnerRecoveryFixture) -> Unit) {
         val storage = VirtualThreadSQLiteStorage(Files.createTempDirectory(directory, "recovery-").toFile())

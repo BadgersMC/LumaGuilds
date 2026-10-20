@@ -13,9 +13,12 @@ import java.time.Instant
 import java.util.UUID
 import java.util.logging.Logger
 
-/** Administrative orphan recovery. All invocations and cache updates run on the command thread. */
-// Parsing, confirmation, messages, and audit helpers share this one command-thread state machine.
-@Suppress("TooManyFunctions")
+/**
+ * Administrative orphan recovery. All invocations and cache updates run on the command thread.
+ * Parsing, confirmation, messages, and audit helpers share this one command-thread state machine.
+ * Expression bodies follow FunctionSignature; MultilineExpressionWrapping requires conflicting placement.
+ */
+@Suppress("TooManyFunctions", "MultilineExpressionWrapping")
 internal class GuildOwnerRecoveryCommand(
     private val members: MemberService,
     private val lang: LangService,
@@ -48,7 +51,9 @@ internal class GuildOwnerRecoveryCommand(
                 sender.sendMessage(lang.msg("admin.common.no_permission"))
                 null
             }
-            else -> actor
+            else -> {
+                actor
+            }
         }
     }
 
@@ -119,14 +124,13 @@ internal class GuildOwnerRecoveryCommand(
         actor: String,
         request: Request,
         operation: () -> T,
-    ): T? =
-        try {
-            operation()
-        } catch (error: Exception) {
-            recordFailure(actor, request, error)
-            reject(sender, OwnerRecoveryRejection.STORAGE_FAILURE)
-            null
-        }
+    ): T? = try {
+        operation()
+    } catch (error: Exception) {
+        recordFailure(actor, request, error)
+        reject(sender, OwnerRecoveryRejection.STORAGE_FAILURE)
+        null
+    }
 
     private fun reportRecovery(
         sender: CommandSender,
@@ -223,19 +227,18 @@ internal class GuildOwnerRecoveryCommand(
         auditRequest(actor, request, "STORAGE_FAILURE_${error.javaClass.simpleName}")
     }
 
-    private fun actorKey(sender: CommandSender): String? =
-        when (sender) {
-            is Player -> "PLAYER:${sender.uniqueId}"
-            is ConsoleCommandSender -> "CONSOLE"
-            else -> null
-        }
+    private fun actorKey(sender: CommandSender): String? = when (sender) {
+        is Player -> "PLAYER:${sender.uniqueId}"
+        is ConsoleCommandSender -> "CONSOLE"
+        else -> null
+    }
 
     private fun parseUuid(value: String): UUID? =
         runCatching { UUID.fromString(value) }.getOrNull()?.takeIf { it.toString().equals(value, true) }
 
     private data class Request(val guildId: UUID, val playerId: UUID, val token: String?)
 
-    private data class PendingRecovery(
+    private class PendingRecovery(
         val preview: OwnerRecoveryPreview,
         val token: String,
         val expiresAt: Instant,
