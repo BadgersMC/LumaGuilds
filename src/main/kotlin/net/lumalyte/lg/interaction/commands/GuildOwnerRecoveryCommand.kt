@@ -41,19 +41,16 @@ internal class GuildOwnerRecoveryCommand(
 
     private fun authorize(sender: CommandSender): String? {
         val actor = actorKey(sender)
-        return when {
-            actor == null -> {
-                sender.sendMessage(lang.msg("admin.owner_recovery.sender_required"))
-                null
-            }
-            !sender.hasPermission(BASE_PERMISSION) || !sender.hasPermission(PERMISSION) -> {
-                pending.remove(actor)
-                sender.sendMessage(lang.msg("admin.common.no_permission"))
-                null
-            }
-            else -> {
-                actor
-            }
+        if (actor == null) {
+            sender.sendMessage(lang.msg("admin.owner_recovery.sender_required"))
+            return null
+        }
+        return if (!sender.hasPermission(BASE_PERMISSION) || !sender.hasPermission(PERMISSION)) {
+            pending.remove(actor)
+            sender.sendMessage(lang.msg("admin.common.no_permission"))
+            null
+        } else {
+            actor
         }
     }
 
@@ -85,19 +82,27 @@ internal class GuildOwnerRecoveryCommand(
                 members.previewOwnerRecovery(request.guildId, request.playerId)
             } ?: return
         when (result) {
-            is OwnerRecoveryPreviewResult.Rejected -> {
-                auditRequest(actor, request, "PREVIEW_REJECTED_${result.reason}")
-                reject(sender, result.reason)
-            }
-            is OwnerRecoveryPreviewResult.Ready -> {
-                val preview = result.preview
-                val confirmation = PendingRecovery(preview, newToken(), now().plusSeconds(CONFIRM_SECONDS))
-                pending[actor] = confirmation
-                auditPreview(actor, preview, "PREVIEW")
-                showPreview(sender, preview)
-                showConfirmation(sender, confirmation)
-            }
+            is OwnerRecoveryPreviewResult.Rejected -> reportPreviewRejection(sender, actor, request, result.reason)
+            is OwnerRecoveryPreviewResult.Ready -> offerConfirmation(sender, actor, result.preview)
         }
+    }
+
+    private fun reportPreviewRejection(
+        sender: CommandSender,
+        actor: String,
+        request: Request,
+        reason: OwnerRecoveryRejection,
+    ) {
+        auditRequest(actor, request, "PREVIEW_REJECTED_$reason")
+        reject(sender, reason)
+    }
+
+    private fun offerConfirmation(sender: CommandSender, actor: String, preview: OwnerRecoveryPreview) {
+        val confirmation = PendingRecovery(preview, newToken(), now().plusSeconds(CONFIRM_SECONDS))
+        pending[actor] = confirmation
+        auditPreview(actor, preview, "PREVIEW")
+        showPreview(sender, preview)
+        showConfirmation(sender, confirmation)
     }
 
     private fun confirm(sender: CommandSender, actor: String, request: Request) {

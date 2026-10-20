@@ -69,10 +69,7 @@ internal class MemberOwnerRecoverySQL(private val storage: Storage<Database>) {
             ranks.values.singleOrNull { it.priority == 0 }
                 ?: reject(OwnerRecoveryRejection.INVALID_OWNER_RANKS)
         val members = readMembers(connection, guildId, locking)
-        if (members.map { it.member.playerId }.toSet().size != members.size) {
-            reject(OwnerRecoveryRejection.INVALID_MEMBER_RANKS)
-        }
-        if (members.any { it.member.rankId !in ranks }) reject(OwnerRecoveryRejection.INVALID_MEMBER_RANKS)
+        validateMemberRanks(members, ranks)
         if (members.any { it.member.rankId == ownerRank.id }) reject(OwnerRecoveryRejection.ALREADY_OWNED)
         val target =
             members.singleOrNull { it.member.playerId == playerId }
@@ -82,6 +79,13 @@ internal class MemberOwnerRecoverySQL(private val storage: Storage<Database>) {
             OwnerRecoveryPreview(guildId, guildName, target.member, previousRank.name, ownerRank.id, ownerRank.name),
             target.joinedAtValue,
         )
+    }
+
+    private fun validateMemberRanks(members: List<StoredMember>, ranks: Map<UUID, StoredRank>) {
+        if (members.map { it.member.playerId }.toSet().size != members.size) {
+            reject(OwnerRecoveryRejection.INVALID_MEMBER_RANKS)
+        }
+        if (members.any { it.member.rankId !in ranks }) reject(OwnerRecoveryRejection.INVALID_MEMBER_RANKS)
     }
 
     private fun reserveSqliteWrite(connection: Connection) {
@@ -112,21 +116,23 @@ internal class MemberOwnerRecoverySQL(private val storage: Storage<Database>) {
             statement.executeQuery().use { rows ->
                 buildMap {
                     while (rows.next()) {
-                        val id = parseUuid(rows.getString("id"), OwnerRecoveryRejection.INVALID_OWNER_RANKS)
-                        val name =
-                            rows.getString("name")
-                                ?: reject(OwnerRecoveryRejection.INVALID_OWNER_RANKS)
-                        val priority =
-                            rows.getObject("priority")?.toString()?.toIntOrNull()
-                                ?: reject(OwnerRecoveryRejection.INVALID_OWNER_RANKS)
-                        if (priority < 0 || name.isBlank() || id in this) {
-                            reject(OwnerRecoveryRejection.INVALID_OWNER_RANKS)
-                        }
-                        put(id, StoredRank(id, name, priority))
+                        val rank = readRank(rows)
+                        if (rank.id in this) reject(OwnerRecoveryRejection.INVALID_OWNER_RANKS)
+                        put(rank.id, rank)
                     }
                 }
             }
         }
+    }
+
+    private fun readRank(rows: ResultSet): StoredRank {
+        val id = parseUuid(rows.getString("id"), OwnerRecoveryRejection.INVALID_OWNER_RANKS)
+        val name = rows.getString("name") ?: reject(OwnerRecoveryRejection.INVALID_OWNER_RANKS)
+        val priority =
+            rows.getObject("priority")?.toString()?.toIntOrNull()
+                ?: reject(OwnerRecoveryRejection.INVALID_OWNER_RANKS)
+        if (priority < 0 || name.isBlank()) reject(OwnerRecoveryRejection.INVALID_OWNER_RANKS)
+        return StoredRank(id, name, priority)
     }
 
     private fun readMembers(connection: Connection, guildId: UUID, locking: Boolean): List<StoredMember> {
@@ -144,7 +150,8 @@ internal class MemberOwnerRecoverySQL(private val storage: Storage<Database>) {
                         val joinedAtValue =
                             rows.getObject("joined_at")
                                 ?: reject(OwnerRecoveryRejection.INVALID_MEMBER_RANKS)
-                        add(StoredMember(Member(playerId, guildId, rankId, parseJoinedAt(rows)), joinedAtValue))
+                        val member = Member(playerId, guildId, rankId, parseJoinedAt(joinedAtValue))
+                        add(StoredMember(member, joinedAtValue))
                     }
                 }
             }
@@ -180,22 +187,20 @@ internal class MemberOwnerRecoverySQL(private val storage: Storage<Database>) {
         reject(reason)
     }
 
-    private fun parseJoinedAt(rows: ResultSet): Instant {
-        val value = rows.getObject("joined_at")
-        return when (value) {
-            is Timestamp -> value.toInstant()
-            is LocalDateTime -> value.toInstant(ZoneOffset.UTC)
-            is String ->
-                try {
-                    Instant.parse(value)
-                } catch (_: DateTimeParseException) {
-                    try {
-                        LocalDateTime.parse(value.replace(' ', 'T')).toInstant(ZoneOffset.UTC)
-                    } catch (_: DateTimeParseException) {
-                        reject(OwnerRecoveryRejection.INVALID_MEMBER_RANKS)
-                    }
-                }
-            else -> reject(OwnerRecoveryRejection.INVALID_MEMBER_RANKS)
+    private fun parseJoinedAt(value: Any): Instant = when (value) {
+        is Timestamp -> value.toInstant()
+        is LocalDateTime -> value.toInstant(ZoneOffset.UTC)
+        is String -> parseJoinedAtText(value)
+        else -> reject(OwnerRecoveryRejection.INVALID_MEMBER_RANKS)
+    }
+
+    private fun parseJoinedAtText(value: String): Instant = try {
+        Instant.parse(value)
+    } catch (_: DateTimeParseException) {
+        try {
+            LocalDateTime.parse(value.replace(' ', 'T')).toInstant(ZoneOffset.UTC)
+        } catch (_: DateTimeParseException) {
+            reject(OwnerRecoveryRejection.INVALID_MEMBER_RANKS)
         }
     }
 
