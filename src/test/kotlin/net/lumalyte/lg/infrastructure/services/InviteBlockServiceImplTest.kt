@@ -5,6 +5,8 @@ import io.mockk.mockk
 import io.mockk.verify
 import net.lumalyte.lg.application.persistence.GuildInvitationRepository
 import net.lumalyte.lg.application.persistence.InviteBlockRepository
+import net.lumalyte.lg.application.persistence.InviteBlockWriteOutcome
+import net.lumalyte.lg.application.persistence.InviteBlockWriteResult
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.GuildInvitation
 import org.junit.jupiter.api.Test
@@ -31,6 +33,14 @@ internal class InviteBlockServiceImplTest {
 
             /** Returns a detached fixture snapshot for the owner. */
             override fun blockedBy(ownerId: UUID) = BLOCKED_PLAYERS[ownerId].orEmpty().toSet()
+
+            override fun isBlockedDurable(ownerId: UUID, targetId: UUID) = isBlocked(ownerId, targetId)
+
+            override fun setBlockedDurable(ownerId: UUID, targetId: UUID, blocked: Boolean): InviteBlockWriteResult {
+                val saved = setBlocked(ownerId, targetId, blocked)
+                val outcome = if (saved) InviteBlockWriteOutcome.COMMITTED else InviteBlockWriteOutcome.NOT_APPLIED
+                return InviteBlockWriteResult(outcome, cacheReconciled = saved)
+            }
 
             /** Simulates durable-save availability before mutating fixture blocks. */
             override fun setBlocked(ownerId: UUID, targetId: UUID, blocked: Boolean): Boolean {

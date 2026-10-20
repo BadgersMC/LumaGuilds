@@ -16,8 +16,9 @@ interface InviteBlockService {
     fun blockedBy(ownerId: UUID): Set<UUID>
 
     /**
-     * Blocks or unblocks [targetId] for [ownerId], saved durably; a new block also deletes the pending invites it
-     * covers. False when it could not be saved. Idempotent.
+     * Blocks or unblocks [targetId] for [ownerId]. True confirms the SQL state and cache; false can also mean an
+     * unknown write outcome and never promises rollback. A saved block attempts synchronous pending-invite cleanup,
+     * with cleanup failures diagnosed separately. Idempotent, including when the cache already matches.
      */
     fun setBlocked(ownerId: UUID, targetId: UUID, blocked: Boolean): Boolean
 

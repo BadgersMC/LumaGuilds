@@ -2,6 +2,8 @@ package net.lumalyte.lg.infrastructure.persistence.guilds
 
 import co.aikar.idb.Database
 import net.lumalyte.lg.application.persistence.InviteBlockRepository
+import net.lumalyte.lg.application.persistence.InviteBlockWriteOutcome
+import net.lumalyte.lg.application.persistence.InviteBlockWriteResult
 import net.lumalyte.lg.infrastructure.persistence.migrations.InviteBlockSchema
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.slf4j.LoggerFactory
@@ -9,11 +11,14 @@ import java.sql.Connection
 import java.sql.ResultSet
 import java.sql.SQLException
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 
-/** Durable personal blocks with memory-only reads and serialized write/cache publication. */
-internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) : InviteBlockRepository {
-    private val blocks = ConcurrentHashMap<UUID, MutableSet<UUID>>()
+/** Personal blocks with legacy cache reads, authoritative durable reads, and serialized SQL/cache publication. */
+internal class InviteBlockRepositorySQL(
+    private val storage: Storage<Database>,
+    private val blocks: InviteBlockCache = InviteBlockCache(),
+) : InviteBlockRepository {
+    private val transactions = InviteBlockSqlTransactions(storage)
+    private val logger = LoggerFactory.getLogger(InviteBlockRepositorySQL::class.java)
 
     @Volatile
     override var isAvailable: Boolean = false
@@ -25,7 +30,7 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
             isAvailable = true
         } catch (error: SQLException) {
             blocks.clear()
-            LoggerFactory.getLogger(InviteBlockRepositorySQL::class.java).error(
+            logger.error(
                 "Unable to load invite blocks; guild invites disabled until storage repair and plugin restart",
                 error,
             )
@@ -46,41 +51,68 @@ internal class InviteBlockRepositorySQL(private val storage: Storage<Database>) 
         while (rows.next()) {
             val owner = readBlockIdentity(rows.getString(OWNER_COLUMN))
             val target = readBlockIdentity(rows.getString(TARGET_COLUMN))
-            blocks.computeIfAbsent(owner) { ConcurrentHashMap.newKeySet() }.add(target)
+            blocks.publish(owner, target, true)
         }
     }
 
     /** Reads the directional block from memory without acquiring a database connection. */
-    override fun isBlocked(ownerId: UUID, targetId: UUID): Boolean = blocks[ownerId]?.contains(targetId) == true
+    override fun isBlocked(ownerId: UUID, targetId: UUID): Boolean = blocks.isBlocked(ownerId, targetId)
 
     /** Copies the owner cache so callers cannot mutate stored blocks. */
-    override fun blockedBy(ownerId: UUID): Set<UUID> = blocks[ownerId]?.toSet().orEmpty()
+    override fun blockedBy(ownerId: UUID): Set<UUID> = blocks.blockedBy(ownerId)
 
-    /** Serializes per-instance mutations and treats an already matching cache state as success. */
+    /** Keeps v1 failure availability behavior while routing every attempted write through authoritative SQL. */
     @Synchronized
     override fun setBlocked(ownerId: UUID, targetId: UUID, blocked: Boolean): Boolean {
-        return when {
-            !isAvailable || ownerId == targetId -> false
-            isBlocked(ownerId, targetId) == blocked -> true
-            else -> saveBlock(ownerId, targetId, blocked)
-        }
+        return isAvailable && setBlockedDurable(ownerId, targetId, blocked).succeeded
     }
 
-    private fun saveBlock(ownerId: UUID, targetId: UUID, blocked: Boolean): Boolean {
+    /** A successful read is committed storage evidence, not a cache or availability guess. */
+    @Synchronized
+    override fun isBlockedDurable(ownerId: UUID, targetId: UUID): Boolean {
+        val result = transactions.execute { hasStoredBlock(it, ownerId, targetId) }
+        if (result.outcome != InviteBlockWriteOutcome.COMMITTED) {
+            throw IllegalStateException("Unable to read committed invite block state", result.failure)
+        }
+        val stored = checkNotNull(result.value)
+        blocks.publish(ownerId, targetId, stored)
+        return stored
+    }
+
+    /** No cache fast path: compensation must remove a stored row even when this instance never cached it. */
+    @Synchronized
+    override fun setBlockedDurable(ownerId: UUID, targetId: UUID, blocked: Boolean): InviteBlockWriteResult {
+        if (ownerId == targetId) {
+            return InviteBlockWriteResult(
+                InviteBlockWriteOutcome.NOT_APPLIED,
+                failure = IllegalArgumentException("A player cannot block themselves"),
+            )
+        }
+        val result = transactions.execute { connection ->
+            if (blocked) insertBlock(connection, ownerId, targetId) else deleteBlock(connection, ownerId, targetId)
+        }
+        if (result.outcome != InviteBlockWriteOutcome.COMMITTED) {
+            logger.error(
+                "Unable to confirm invite block {} -> {} ({})",
+                ownerId,
+                targetId,
+                result.outcome,
+                result.failure,
+            )
+            return InviteBlockWriteResult(result.outcome, failure = result.failure)
+        }
         return try {
-            storage.connection.connection.use { connection ->
-                if (blocked) insertBlock(connection, ownerId, targetId) else deleteBlock(connection, ownerId, targetId)
-            }
-            if (blocked) {
-                blocks.computeIfAbsent(ownerId) { ConcurrentHashMap.newKeySet() }.add(targetId)
-            } else {
-                blocks[ownerId]?.remove(targetId)
-            }
-            true
-        } catch (error: SQLException) {
-            LoggerFactory.getLogger(InviteBlockRepositorySQL::class.java)
-                .error("Unable to save invite block {} -> {}", ownerId, targetId, error)
-            false
+            blocks.publish(ownerId, targetId, blocked)
+            InviteBlockWriteResult(result.outcome, cacheReconciled = true, failure = result.failure)
+        } catch (publication: Exception) {
+            // The database commit remains known, but V2 completion cannot succeed with an unreconciled cache.
+            logger.error(
+                "Invite block committed but cache reconciliation failed {} -> {}",
+                ownerId,
+                targetId,
+                publication,
+            )
+            InviteBlockWriteResult(result.outcome, failure = publication)
         }
     }
 

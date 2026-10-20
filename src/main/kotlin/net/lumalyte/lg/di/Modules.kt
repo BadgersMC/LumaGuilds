@@ -413,8 +413,14 @@ fun guildsModule() = module {
     single<net.lumalyte.lg.application.persistence.InviteBlockRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.InviteBlockRepositorySQL(get())
     }
-    single<net.lumalyte.lg.application.services.InviteBlockService> {
+    single {
         net.lumalyte.lg.infrastructure.services.InviteBlockServiceImpl(get(), get(), get())
+    }
+    single<net.lumalyte.lg.application.services.InviteBlockService> {
+        get<net.lumalyte.lg.infrastructure.services.InviteBlockServiceImpl>()
+    }
+    single<net.lumalyte.lg.application.services.DurableInviteBlockService> {
+        get<net.lumalyte.lg.infrastructure.services.InviteBlockServiceImpl>()
     }
     single { net.lumalyte.lg.application.services.InvitationStatisticsService(get()) }
     single<GuildBannerRepository> { GuildBannerRepositorySQLite(get()) }

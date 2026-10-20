@@ -20,7 +20,10 @@ interface GuildInviteBlocks {
     /** Returns whether the owner personally blocked the target. */
     fun isBlocked(ownerId: UUID, targetId: UUID): Boolean
 
-    /** True when the block is saved (or already in that state); false when it could not be saved. */
+    /**
+     * True when the requested SQL state and cache are confirmed. False includes an unknown write outcome and
+     * never promises rollback. Consumers requiring authoritative reads and completion use [GuildInviteBlocksV2].
+     */
     fun setBlocked(ownerId: UUID, targetId: UUID, blocked: Boolean): Boolean
 
     /** Returns a detached set of personally blocked player identities. */

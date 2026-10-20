@@ -55,6 +55,7 @@ class LumaGuilds : JavaPlugin() {
     private var chapterRolloverScheduler: net.lumalyte.lg.infrastructure.services.ChapterRolloverScheduler? = null
     private var liteBansStrikeHookRegistered = false
     private var enthusiaStaffStrikeFeed: AutoCloseable? = null
+    private var inviteBlockLifecycle: net.lumalyte.lg.application.services.DurableInviteBlockService? = null
     internal lateinit var vaultProtectionListener: net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener
     internal var enabledAtMillis: Long = 0L
         private set
@@ -164,11 +165,13 @@ class LumaGuilds : JavaPlugin() {
         logColored("✓ GuildCosmeticUnlocks registered in ServicesManager for cross-plugin integration")
 
         // EnthusiaFriends' Block Everywhere blocks guild invites through this API.
-        Bukkit.getServicesManager().register(
-            net.lumalyte.lg.api.GuildInviteBlocks::class.java,
-            net.lumalyte.lg.api.GuildInviteBlocksImpl(get().get<net.lumalyte.lg.application.services.InviteBlockService>()),
+        val durableInviteBlocks = get().get<net.lumalyte.lg.application.services.DurableInviteBlockService>()
+        inviteBlockLifecycle = durableInviteBlocks
+        net.lumalyte.lg.infrastructure.services.registerGuildInviteBlocks(
             this,
-            ServicePriority.Normal
+            storage.dialect,
+            get().get<net.lumalyte.lg.application.services.InviteBlockService>(),
+            durableInviteBlocks,
         )
         logColored("✓ GuildInviteBlocks registered in ServicesManager")
 
@@ -1500,6 +1503,9 @@ class LumaGuilds : JavaPlugin() {
     }
 
     override fun onDisable() {
+        // This irreversible gate must run before unrelated cleanup can throw or services are unregistered.
+        inviteBlockLifecycle?.close()
+        inviteBlockLifecycle = null
         get().getOrNull<net.lumalyte.lg.infrastructure.listeners.ChatDestinationIndicator>()?.close()
         enthusiaStaffStrikeFeed?.close()
         enthusiaStaffStrikeFeed = null

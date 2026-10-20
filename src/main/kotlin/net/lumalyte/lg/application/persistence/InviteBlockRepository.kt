@@ -16,6 +16,12 @@ internal interface InviteBlockRepository {
     /** Returns a detached cache snapshot for the owner. */
     fun blockedBy(ownerId: UUID): Set<UUID>
 
-    /** Saves the change durably before it takes effect; false when it could not be saved. Idempotent. */
+    /** Confirms the saved state and cache; false includes an UNKNOWN database outcome, not only rollback. */
     fun setBlocked(ownerId: UUID, targetId: UUID, blocked: Boolean): Boolean
+
+    /** Reads committed SQL state and reconciles the pair cache, or throws without claiming absence. */
+    fun isBlockedDurable(ownerId: UUID, targetId: UUID): Boolean
+
+    /** Always consults SQL, including already matching cache states; preserves commit certainty separately. */
+    fun setBlockedDurable(ownerId: UUID, targetId: UUID, blocked: Boolean): InviteBlockWriteResult
 }
