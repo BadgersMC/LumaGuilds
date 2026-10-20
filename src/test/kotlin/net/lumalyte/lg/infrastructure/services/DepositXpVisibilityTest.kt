@@ -1,6 +1,7 @@
 package net.lumalyte.lg.infrastructure.services
 
 import io.mockk.mockk
+import net.lumalyte.lg.application.persistence.GuildShopXpSale
 import net.lumalyte.lg.application.services.ChapterTwoGuildAwardService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.PermanentExperienceService
@@ -11,9 +12,11 @@ import net.lumalyte.lg.domain.entities.GuildProgression
 import net.lumalyte.lg.domain.values.CapPeriod
 import net.lumalyte.lg.domain.values.ExperiencePolicy
 import net.lumalyte.lg.domain.values.ExperienceSource
+import net.lumalyte.lg.domain.values.GuildShopXpPolicy
 import net.lumalyte.lg.domain.values.ProgressionCurve
 import net.lumalyte.lg.infrastructure.persistence.guilds.BankProgressionRepositorySQL
 import net.lumalyte.lg.infrastructure.persistence.guilds.ExperienceAwardRepositorySQL
+import net.lumalyte.lg.infrastructure.persistence.guilds.GuildShopXpRepositorySQL
 import net.lumalyte.lg.infrastructure.persistence.guilds.ProgressionRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteStorage
 import org.junit.jupiter.api.AfterEach
@@ -37,6 +40,7 @@ internal class DepositXpVisibilityTest {
     private var cached: ProgressionRepositorySQLite by Delegates.notNull()
     private var awards: ExperienceAwardRepositorySQL by Delegates.notNull()
     private var bank: ChapterTwoGuildAwardService by Delegates.notNull()
+    private var progression: ProgressionServiceBukkit by Delegates.notNull()
     private var sink: QuestRewardSinkBukkit by Delegates.notNull()
     private val guildId = UUID.randomUUID()
 
@@ -54,7 +58,7 @@ internal class DepositXpVisibilityTest {
         awards = ExperienceAwardRepositorySQL(storage, curve)
         val activity = object : PlaytimeActivityService { override fun isXpBlocked(playerId: UUID) = false }
         val permanent = PermanentExperienceService(awards, activity)
-        val progression =
+        progression =
             ProgressionServiceBukkit(
                 cached,
                 mockk(relaxed = true),
@@ -120,6 +124,24 @@ internal class DepositXpVisibilityTest {
         assertEquals(1, receipts())
     }
 
+    /** A completed shop receipt repairs a missed publication without another award. */
+    @Test fun shopRewardReplayRefreshesCache() {
+        createShopTables()
+        val repository = GuildShopXpRepositorySQL(storage, awards)
+        val sale = GuildShopXpSale(UUID.randomUUID(), guildId, UUID.randomUUID(), Instant.now().toEpochMilli())
+        repository.prepare(sale, GuildShopXpPolicy(enabled = true))
+        assertEquals("AWARDED:$SHOP_XP", repository.complete(sale.id).status)
+        assertEquals(SHOP_XP, persistedXp())
+        assertEquals(0, cached.getGuildProgression(guildId)?.totalExperience)
+
+        val provider = GuildShopXpProvider(repository, mockk(relaxed = true), progression)
+        assertEquals("AWARDED:$SHOP_XP", provider.complete(sale.id))
+
+        assertEquals(SHOP_XP, cached.getGuildProgression(guildId)?.totalExperience)
+        assertEquals(SHOP_XP, persistedXp())
+        assertEquals(1, receipts())
+    }
+
     /** Numeric and legacy text timestamps retain their exact meanings. */
     @Test fun mixedTimestampsRemainReadable() {
         val instant = Instant.parse("2026-08-28T12:00:00Z")
@@ -138,6 +160,18 @@ internal class DepositXpVisibilityTest {
 
     private fun questPolicy() =
         ExperiencePolicy(ExperienceSource.WEEKLY_ACTIVITY, "WEEKLY_ACTIVITY", 1, 0, CapPeriod.UNLIMITED, true)
+
+    private fun createShopTables() {
+        storage.connection.executeUpdate("CREATE TABLE members (player_id VARCHAR(36), guild_id VARCHAR(36))")
+        storage.connection.executeUpdate(
+            "CREATE TABLE guild_reward_accounts (guild_id VARCHAR(36) PRIMARY KEY, prestige_count INT)",
+        )
+        storage.connection.executeUpdate("INSERT INTO guild_reward_accounts VALUES (?, 0)", guildId.toString())
+        storage.connection.executeUpdate(
+            "CREATE TABLE chapter_lifecycle " +
+                "(chapter_id VARCHAR(64) PRIMARY KEY, phase VARCHAR(32), starts_at BIGINT, ends_at BIGINT)",
+        )
+    }
 
     private fun questRequest(receipt: UUID): ExperienceAwardRequest {
         return ExperienceAwardRequest(
@@ -181,6 +215,7 @@ internal class DepositXpVisibilityTest {
     private companion object {
         const val BANK_AMOUNT = 100L
         const val QUEST_XP = 500
+        const val SHOP_XP = 5
         const val TOTAL_XP = QUEST_XP + 1
         const val CLOSE_SECONDS = 5L
     }
