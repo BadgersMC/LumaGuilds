@@ -158,7 +158,7 @@ class BankDepositPublicationTest : BankDepositDeliveryFixture() {
         assertAccounting(100, 100, 1, 1)
     }
 
-    class PublicationEvents : Listener {
+    internal class PublicationEvents : Listener {
         val levelChanges = mutableListOf<GuildLevelChangedEvent>()
         val levelUps = mutableListOf<GuildLevelUpEvent>()
         val deposits = mutableListOf<GuildBankDepositEvent>()
