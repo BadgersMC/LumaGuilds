@@ -156,6 +156,11 @@ tasks.test {
     inputs.files(marketApiJar.map { path -> if (path.isBlank()) files() else files(path) })
         .withPropertyName("marketApiJarContents")
     environment("MARKET_API_JAR", marketApiJar.get())
+    val marketRuntimeJar = providers.environmentVariable("MARKET_RUNTIME_JAR").filter { it.isNotBlank() }.orElse("")
+    inputs.property("marketRuntimeJarPath", marketRuntimeJar)
+    inputs.files(marketRuntimeJar.map { path -> if (path.isBlank()) files() else files(path) })
+        .withPropertyName("marketRuntimeJarContents")
+    environment("MARKET_RUNTIME_JAR", marketRuntimeJar.get())
     val testMariaPort = providers.environmentVariable("GUILD_SHOP_XP_TEST_MARIA_PORT")
     inputs.property("guildShopXpTestMariaPort", testMariaPort.orElse(""))
     testMariaPort.orNull?.let { environment("GUILD_SHOP_XP_TEST_MARIA_PORT", it) }
