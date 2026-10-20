@@ -46,7 +46,7 @@ internal class GuildStallRuntimeContractTest {
             val result = GuildStallReadClient { provider }.read(guildId, memberId).join()
             val stall = assertIs<StallReadResult.Available>(result).stalls.single()
             assertEquals(expectedStall(memberId), stall)
-            assertEquals(listOf(listOf(guildId, memberId)), calls)
+            assertEquals<List<List<Any?>>>(listOf(listOf(guildId, memberId)), calls)
         }
     }
 
@@ -72,7 +72,7 @@ internal class GuildStallRuntimeContractTest {
 
             plugin.server.servicesManager.unregisterAll(plugin)
             assertEquals(StallReadResult.Unavailable, client.read(guildId, memberId).join())
-            assertEquals(listOf(listOf(guildId, memberId)), calls)
+            assertEquals<List<List<Any?>>>(listOf(listOf(guildId, memberId)), calls)
         }
     }
 
@@ -89,7 +89,7 @@ internal class GuildStallRuntimeContractTest {
 
             response = CompletableFuture.failedFuture(IllegalStateException("Companion unavailable"))
             assertEquals(StallReadResult.Unavailable, client.read(guildId, memberId).join())
-            assertEquals(listOf(listOf(guildId, memberId), listOf(guildId, memberId)), calls)
+            assertEquals<List<List<Any?>>>(listOf(listOf(guildId, memberId), listOf(guildId, memberId)), calls)
         }
     }
 
@@ -105,7 +105,7 @@ internal class GuildStallRuntimeContractTest {
                 )
             }
             assertEquals(StallReadResult.Unavailable, GuildStallReadClient { provider }.read(guildId, memberId).join())
-            assertEquals(listOf(listOf(guildId, memberId)), calls)
+            assertEquals<List<List<Any?>>>(listOf(listOf(guildId, memberId)), calls)
         }
     }
 
