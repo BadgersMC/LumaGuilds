@@ -58,6 +58,9 @@ class PartyModerationMenu(
         // Check permission
         if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS)) {
             player.sendMessage(lang.msg("menu.party.moderation.feedback.no_permission"))
+            menuNavigator.returnTo(GuildPartyManagementMenu::class.java) {
+                menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild)
+            }
             return
         }
 

@@ -2,6 +2,7 @@ package net.lumalyte.lg.interaction.menus.guild
 
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.spyk
 import io.mockk.verify
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
@@ -12,7 +13,9 @@ import net.lumalyte.lg.application.services.PartyService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.Party
+import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.listeners.ChatInputListener
+import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.Material
 import org.junit.jupiter.api.Test
@@ -145,6 +148,57 @@ internal class GuildPartyReturnTest : GuildParentReturnFixture() {
         assertEquals(0, field(selection, "currentPage"))
         assertEquals(0, visibleGuilds())
         assertTrue(pageLabel().contains("1/1"))
+    }
+
+    @Test fun `revoked moderation permission skips the denied parent and management Back reaches dashboard`() {
+        var allowed = true
+        every { members.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS) } answers { allowed }
+        val navigator = MenuNavigator(player)
+        val visits = mutableListOf<String>()
+        val party = Party(UUID.randomUUID(), "RaidNight", setOf(guild.id), player.uniqueId, createdAt = Instant.EPOCH)
+        val management = traced(GuildPartyManagementMenu(navigator, player, guild), "management", visits)
+        val moderation = traced(PartyModerationMenu(navigator, player, guild, party), "moderation", visits)
+        val detail = traced(
+            PlayerModerationMenu(navigator, player, guild, party, UUID.randomUUID()), "detail", visits,
+        )
+        navigator.openMenu(dashboard(visits))
+        navigator.openMenu(management)
+        navigator.openMenu(moderation)
+        navigator.openMenu(detail)
+        allowed = false
+        every { moderation.open() } answers { callOriginal() }
+
+        click(paneFor(detail, "addBackButton"), 4, 2)
+
+        assertEquals("management", visits.last())
+        click(paneFor(management, "addBackButton", 4, 5), 4, 5)
+        assertEquals("dashboard", visits.last())
+        assertEquals(1, visits.count { it == "detail" })
+        verify(exactly = 2) { moderation.open() }
+        verify(exactly = 0) { factory.createGuildPartyManagementMenu(navigator, player, guild) }
+    }
+
+    @Test fun `denied direct moderation entries replace themselves with one management fallback`() {
+        every { members.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS) } returns false
+        val party = Party(UUID.randomUUID(), "RaidNight", setOf(guild.id), player.uniqueId, createdAt = Instant.EPOCH)
+        val constructors: List<(MenuNavigator) -> Menu> = listOf(
+            { PartyModerationMenu(it, player, guild, party) },
+            { PlayerModerationMenu(it, player, guild, party, UUID.randomUUID()) },
+        )
+        constructors.forEach { create ->
+            val navigator = MenuNavigator(player)
+            val visits = mutableListOf<String>()
+            val management = traced(GuildPartyManagementMenu(navigator, player, guild), "management", visits)
+            every { factory.createGuildPartyManagementMenu(navigator, player, guild) } returns management
+            val denied = spyk(create(navigator))
+            navigator.openMenu(denied)
+            assertEquals(listOf("management"), visits, denied.javaClass.simpleName)
+            click(paneFor(management, "addBackButton", 4, 5), 4, 5)
+            navigator.goBack()
+            verify(exactly = 1) { denied.open() }
+            verify(exactly = 1) { management.open() }
+            verify(exactly = 1) { factory.createGuildPartyManagementMenu(navigator, player, guild) }
+        }
     }
 
     private fun visibleGuilds(): Int =

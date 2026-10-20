@@ -18,8 +18,8 @@ used `openMenu` for returns, leaving the old child under a duplicate parent.
 | --- | --- | --- |
 | Party creation: Back and successful creation | Reuse party management, so its next Back reaches the dashboard without revisiting creation. | `GuildPartyReturnTest`: cancellation, repeated Back, successful creation and retained submitted values. |
 | Party guild selector: Back | Reuse the party editor and transfer only selected guild IDs. Retain its name, role restrictions and other draft state. | `GuildPartyReturnTest`: guild selection returns without discarding name or roles. |
-| Party moderation: Back | Reuse party management and discard moderation descendants. | `GuildPartyReturnTest`: complete moderation return journey. |
-| Player moderation: Back | Transfer the updated party into the existing moderation screen; retain its browsed page. | `GuildPartyReturnTest`: actual Next callback, detail return, updated party and page, management, dashboard. |
+| Party moderation: Back and revoked permission | Reuse party management and discard moderation descendants, including a parent that can no longer render after permission revocation. | `GuildPartyReturnTest`: complete moderation return journey and real denial-open unwinding. |
+| Player moderation: Back and denied entry | Transfer updated party data into the existing moderation screen on Back. A denied open returns directly to accessible party management, skipping denied moderation screens. | `GuildPartyReturnTest`: page/state retention, revoked-permission Back, and denied direct-entry fallback. |
 | Home access: Back, revoked permission, removed home | Reuse the homes screen, or replace a direct entry with one fallback. Denied editors cannot reappear through Back. | `GuildHomeReturnTest`: both access editors, repeated Back, revoked permissions, removed home and direct entry. |
 | Ally home access: Back and revoked permission | Use the same homes return policy. | `GuildHomeReturnTest`. |
 | Rank permission category: Save, Cancel, Back and revoked permission | Reuse the existing rank editor and deliver the corresponding rank data before reopening it. Retain its other draft state, including the chosen icon. | `GuildPermissionReturnTest`: Save, Cancel, draft Back, failed Save and permission revocation. |
@@ -70,7 +70,7 @@ checks the resulting empty first page.
 
 ## Validation handoff
 
-Nineteen focused regression tests are added. The worker performed source review
+Twenty-one focused regression tests are added. The worker performed source review
 and `git diff --check`; it did **not** run Gradle. The coordinator owns the
 serialized Java 25 validation environment and should run this focused command
 against the committed source snapshot:
