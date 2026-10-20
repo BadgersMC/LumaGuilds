@@ -7,6 +7,9 @@ This review branch continues Codex session
 It retains the combined unmerged source previously recorded on TEST, then adds
 the remaining navigation, shop XP replay, and owner-recovery follow-ups. A second
 dispatch adds atomic bank growth awards and current Market companion contracts.
+The later GUILDS-10–12 dispatch adds durable new-deposit XP delivery and schema 47.
+The verified checkpoint below is source-specific; later documentation or contract
+changes do not inherit its artifact or executed-test identity.
 
 | Component | Verified source |
 | --- | --- |
@@ -24,6 +27,7 @@ dispatch adds atomic bank growth awards and current Market companion contracts.
 | Atomic bank growth follow-up | `6efe3704112ca99da6a2cc524308f4da1deb4302` |
 | Current Market contract follow-up | `aa41228965afe0c60cd2172d5b375fa43f18227d` |
 | Paired Market combined candidate | `654db0eec2bcf5afa69e4791a271f4877c9bcac4` |
+| Verified schema-47 delivery candidate | `0106651cb4c7857412e4c7fe410b80c04d0f5a7a` |
 
 Git ancestry confirms that the historical combined source contains the pinned
 heads of PRs #236, #237 and #238. It does not contain #239. Owner recovery is
@@ -56,6 +60,9 @@ local renderer captures are not a new live verification.
 | GUILDS-07 | Bank worker: reproduce reservation loss and commit bank high-water and XP together. |
 | GUILDS-08 | Companion worker: execute the actual Market gateway and stall record contracts. |
 | GUILDS-09 | Independent bank transaction and recovery-boundary review. |
+| GUILDS-10 | Durable quote, canonical settlement, ordered XP delivery and acknowledged cache recovery. |
+| GUILDS-11 | Independent SQLite/MariaDB delivery and publication contracts. |
+| GUILDS-12 | Independent delivery implementation/contract review. |
 
 Three native workers executed in each dispatch, using isolated checkouts. Roundtable records their
 actual source acknowledgments and results; logical task seats are routing labels,
@@ -97,7 +104,7 @@ membership timestamp comparison and cache-after-commit behavior. Six of the
 dispositions. Only fresh hosted analysis can establish the new issue count.
 No gate configuration or test assertions were weakened.
 
-The bank regression separately demonstrated that an XP SQL rollback left a
+The earlier bank regression separately demonstrated that an XP SQL rollback left a
 committed high-water reservation, making the same recorded growth ineligible on
 retry. At test-only `09ab68bf1949a6196c7d32d49b11f3afd39792f0`, Java 25 executed
 one case with one expected assertion failure and no skips, from 18:31:32 to
@@ -107,49 +114,65 @@ group back. Non-awarding policy dispositions and the ordinary award service's
 boost/overflow behavior are preserved. The bank contribution adds 25 cases when
 the native profile is enabled; see the [atomicity note](2026-10-20-bank-xp-atomicity.md).
 
-## Validation and remaining gates
+The [durable delivery follow-up](2026-10-20-bank-xp-delivery.md) now connects new
+configured deposits to XP consumption with a retained quote and READY receipt.
+True canonical APPLIED settlement assigns the guild sequence and makes delivery
+READY in the same transaction. Consumption commits high-water, usage, progression,
+XP audit and terminal decision together, then acknowledges the exact receipt only
+after actual cache refresh. Currency operation, delivery and bank XP audit use the
+same UUID. The startup timer independently retries bounded delivery/cache work.
+Existing unquoted operations remain legacy; deposit events are not replayed and
+historical compensation is not inferred. See the
+[independent review](2026-10-20-bank-xp-delivery-review.md) for retained boundaries.
 
-The coordinator records the final candidate commit/tree, executed test counts,
-JUnit results and JAR checksum with the PR and Roundtable task. Source review,
-ordinary tests, native database contracts, paired artifact tests and live player
-acceptance are distinct results. A skipped external profile is not a passing
-compatibility test.
+## Verified delivery candidate
 
-The first candidate at `243370dd` passed 2,103 cases across 414 suites: 2,097
-passed, six skipped and no failures or errors. Its 17 native MariaDB contracts
-executed. Those results are historical evidence for that exact candidate.
+The coordinator's retained `DELIVERY-CANDIDATE-VERIFIED.json` and
+`DELIVERY-REMOTE-RECOVERY-CHECKPOINT.json` record the following completed checkpoint.
+This documentation update reads those receipts; it runs no native or live tests.
 
-The second dispatch's current-artifact profile passed all 16 gateway/stall cases,
-with no failures, errors or skips, at Guilds `aa41228965afe0c60cd2172d5b375fa43f18227d`
-on October 20, 18:42:51–18:43:22 UTC. Both Market artifact variables pointed to the
-same independently copied and hash-verified combined JAR from `654db0eec2bc`:
-4,477,968 bytes, SHA-256
-`230504aa0243d0ff3145c5fb95723cbbd8db0ff01b60d39de54f57a21257c064`.
-The [contract note](2026-10-20-guilds-market-contracts.md) distinguishes actual
-classloader/API coverage from Market payment, stock and durable queue execution.
+| Evidence | Exact checkpoint |
+| --- | --- |
+| Guilds source / tree | `0106651cb4c7857412e4c7fe410b80c04d0f5a7a` / `6492dee6b43d532ffc780e68d48a44fabc27db6f` |
+| Native execution | `delivery-full-native-v2`, Java 25 `check shadowJar`; 2026-10-20 20:25:52.725–20:30:16.036 UTC, exit 0, clean source before/after |
+| Fresh JUnit result | 2,192 cases across 419 suites; 2,188 passed, four known skips, zero failures/errors |
+| Executed native contracts | 49 MariaDB cases, including 23 bank delivery cases; 23 SQLite delivery and two publication cases; 16 paired Market cases, all without skips |
+| Guilds review artifact | `LumaGuilds-3.0.0-roundtable-delivery-v2-20261020-UNMERGED-REVIEW.jar`; 26,048,600 bytes; SHA-256 `5410744243025939030554a5d670e0c0777e3cde8070d6840cd484fac40c5f17` |
+| Paired Market source / artifact | `654db0eec2bcf5afa69e4791a271f4877c9bcac4`; 4,477,968 bytes; SHA-256 `230504aa0243d0ff3145c5fb95723cbbd8db0ff01b60d39de54f57a21257c064` |
+| Hosted receipt at 20:39:15 UTC | `PR-240-DELIVERY-HOSTED-CHECKS.json`: six check runs passed at that head; Codacy reported no source issues. CodeRabbit skipped the draft and is not counted as a review. |
 
-- Run the combined Java 25 test/build profile and inspect the new navigation,
-  replay, bank and owner-recovery cases at the final integrated head.
-- Run the nine bank, six recovery and two transfer contracts, plus the nine shop contracts,
-  on the coordinator's dedicated disposable loopback MariaDB fixture.
-- Include the pinned current Market artifact in the final combined run. The
-  earlier two-case Market-owned result applies to `243370dd`; the new 16-case
-  result applies to `aa412289`. Neither replaces final integrated verification.
-- Verify current TEST plugin, backend, pack and fixture state before requesting
-  a bounded shared resource window. GUILDS-05 remains pending until overlapping
-  owners acknowledge that window; no reply does not establish ownership.
-- Execute and record the bounded purchase, bank, quest and menu journeys, including
-  before/after currency, stock, bank, XP and receipts. See the
-  [XP/shop acceptance procedure](2026-10-20-guilds-xp-shop-acceptance.md).
+The four skips are the existing-schema rehearsal without an offline snapshot and
+three unimplemented Bukkit quest-target fixtures. None of the configured MariaDB,
+delivery or paired profiles skipped. Full command arguments, XML identities and
+artifact checks remain in the coordinator's receipts. These results belong to
+the source and artifacts above, not a later head or an installed TEST binary. The
+[Market contract note](2026-10-20-guilds-market-contracts.md) separates API/classloader
+proof from live payment, stock and durable Market queue execution.
 
-Bank currency credit remains separate from the now-atomic high-water/XP group.
-Missed post-credit callbacks, original operation/time/run identity, event delivery
-and startup currency reconciliation still need a durable recovery design. The
-correction preserves a same-snapshot retry; it does not automatically replay old
-deposits or authorize compensating awards. Shared TEST acceptance still requires
-current installed binary/rollback and backend/pack evidence. Market withdrew its
-earlier ungranted TEST window while those external prerequisites remain unresolved.
+## Remaining GUILDS-05 acceptance
 
-This is a draft review candidate. Canonical merge, production deployment, TEST
-deployment/restart, monorepo version-pin updates and live player mutations are not
-performed by this integration record.
+Native verification and review at the checkpoint are complete. Continue from
+current operational evidence rather than rerunning that work:
+
+- Collect installed/loaded Guilds provenance, actual backend/schema, fixture rows
+  and configuration read-only. Label evidence from the older installed build
+  **OLD_BUILD**; it cannot pass acceptance for schema-47 delivery or the new menus.
+- Resolve the verified rollback route, shared loaded-artifact and exact-player
+  durable-state evidence owned by SHARED-02, private pack and paired runtime, and
+  acknowledged TEST/client window. The coordinator owns those runtime decisions.
+- Before startup, verify a consistent restore point covering affected Guilds,
+  personal economy/inventory and Market state together with the exact old binary
+  and configuration. Schema 47 is an additive same-database upgrade, but an old JAR
+  alone is insufficient rollback evidence; mixed writers or resuming transient
+  awarding against outstanding delivery receipts are unsupported. Do not use the
+  incomplete cross-engine copy utility or rewind shared state while others write.
+- Execute the existing bounded bank, quest, shop and menu journeys and agreed
+  cleanup, recording exact operation/receipt IDs and external asset deltas. Both
+  bank menus withdraw to personal Vault balances; a physical redeposit consumes
+  separately available items. The
+  [acceptance procedure](2026-10-20-guilds-xp-shop-acceptance.md) specifies that flow,
+  schema-47 queries, expected delivery states and remaining fixture inputs.
+
+PR #240 was recorded as a draft and unmerged at the checkpoint. No canonical merge,
+production deployment, TEST deployment/restart, monorepo version-pin update or live
+player mutation is performed by this documentation update.
