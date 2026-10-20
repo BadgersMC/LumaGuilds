@@ -122,7 +122,7 @@ internal class KoinGraphSmokeTest {
                 "Koin graph has ${failures.size} unresolvable definition(s):\n" +
                     failures.joinToString("\n")
             )
-            assertSame(
+            assertSame<Any>(
                 koin.get<InviteBlockService>(),
                 koin.get<DurableInviteBlockService>(),
                 "V1 and V2 must share the same cache and irreversible lifecycle gate",
