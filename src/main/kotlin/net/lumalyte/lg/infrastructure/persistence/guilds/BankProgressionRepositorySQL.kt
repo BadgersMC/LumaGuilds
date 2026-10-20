@@ -70,7 +70,8 @@ class BankProgressionRepositorySQL(
         check(present) { "Guild $guildId does not exist" }
     }
 
-    private fun reserve(
+    /** Caller holds the guild writer; high-water and the delivery decision commit together. */
+    internal fun reserve(
         connection: Connection,
         guildId: UUID,
         openingBalance: Long,
@@ -78,6 +79,7 @@ class BankProgressionRepositorySQL(
         valuePerUnit: Long,
         window: PeriodWindow,
     ): Int {
+        check(!connection.autoCommit) { "Bank high-water reservation requires a transaction" }
         connection.updateStatement(
             seedSql(), guildId.toString(), window.startInclusive.toEpochMilli(),
             window.endExclusive.toEpochMilli(), openingBalance,
