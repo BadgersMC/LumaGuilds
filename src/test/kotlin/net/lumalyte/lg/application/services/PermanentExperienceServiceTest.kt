@@ -177,6 +177,14 @@ class PermanentExperienceServiceTest {
         assertNull(repository.lastCall)
     }
 
+    @Test fun preparedBoostArithmeticFailureRetainsRejection() {
+        val preparing = PermanentExperienceService(repository, activity) { throw ArithmeticException("boost unavailable") }
+        val calculate = preparing.prepareForUnits(request, mobPolicy)
+
+        assertEquals(PreparedExperienceAward.Rejected(AwardRejection.INVALID_UNITS), calculate(1))
+        assertNull(repository.lastCall)
+    }
+
     private class RecordingActivityService : PlaytimeActivityService {
         val blockedPlayers = mutableSetOf<UUID>()
         val checkedPlayers = mutableListOf<UUID>()

@@ -90,11 +90,13 @@ are defined in `BankGrowthAwardContract` and inherited by both
 - Rejection and rollback of mismatched prepared identity, units, source, period,
   eligibility, policy or XP amount.
 
-Five service tests also exercise captured eligibility/boost inputs, complete
+Six service tests also exercise captured eligibility/boost inputs, complete
 award rounding, preparation without XP writes, source rejection and overflow.
 They preserve ordinary award evaluation order and arithmetic-error handling:
 multiplication overflow does not resolve a boost, and an arithmetic exception
 from the ordinary boost provider remains an invalid-units rejection.
+An arithmetic exception while capturing a bank boost is likewise retained as a
+prepared invalid-units rejection, preserving its high-water disposition.
 Existing bank service, visibility and source-policy tests remain present.
 
 Native MariaDB uses the existing `GUILD_SHOP_XP_TEST_MARIA_PORT` profile, fixed

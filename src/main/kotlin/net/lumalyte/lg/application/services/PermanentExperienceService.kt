@@ -26,7 +26,11 @@ class PermanentExperienceService(
         policy: ExperiencePolicy,
     ): (Int) -> PreparedExperienceAward {
         val rejection = sourceRejection(request, policy) ?: actorRejection(request)
-        val boost = if (rejection == null) boostProvider() else null
+        val boost = try {
+            if (rejection == null) boostProvider() else null
+        } catch (_: ArithmeticException) {
+            return { PreparedExperienceAward.Rejected(AwardRejection.INVALID_UNITS) }
+        }
         return { units ->
             val actual = request.copy(units = units)
             val reason = rejection ?: AwardRejection.INVALID_UNITS.takeIf { units <= 0 }
