@@ -1,5 +1,9 @@
 package net.lumalyte.lg.application.persistence
 
+import net.lumalyte.lg.application.results.OwnerRecoveryPreview
+import net.lumalyte.lg.application.results.OwnerRecoveryPreviewResult
+import net.lumalyte.lg.application.results.OwnerRecoveryRejection
+import net.lumalyte.lg.application.results.OwnerRecoveryResult
 import net.lumalyte.lg.domain.entities.Member
 import java.util.UUID
 
@@ -77,7 +81,9 @@ interface MemberRepository {
     fun add(member: Member): Boolean
 
     /**
-     * Updates the data of an existing member.
+     * Updates an existing member without assigning or removing ownership.
+     * Adapters must guard the stored rank in the mutation itself; a stale caller
+     * must not demote a member who became Owner after its permission checks.
      *
      * @param member The member to update.
      * @return true if successful, false otherwise.
@@ -85,7 +91,8 @@ interface MemberRepository {
     fun update(member: Member): Boolean
 
     /**
-     * Removes an existing member.
+     * Removes an existing non-Owner member. An Owner must transfer ownership first.
+     * Adapters must enforce the stored rank guard atomically with the deletion.
      *
      * @param playerId The id of the player.
      * @param guildId The id of the guild.
@@ -122,4 +129,19 @@ interface MemberRepository {
      * Unsupported adapters fail closed; cache state must change only after a committed transfer.
      */
     fun transferOwnership(current: Member, next: Member, demotedRankId: UUID): Boolean = false
+
+    /**
+     * Reads a consistent database preview for an existing member of an ownerless guild.
+     * This must not infer ownership from a potentially stale repository cache.
+     */
+    fun previewOwnerRecovery(guildId: UUID, playerId: UUID): OwnerRecoveryPreviewResult =
+        OwnerRecoveryPreviewResult.Rejected(OwnerRecoveryRejection.UNSUPPORTED_REPOSITORY)
+
+    /**
+     * Atomically recovers an ownerless guild only if all previewed state still matches.
+     * The adapter revalidates membership, same-guild ranks, and absence of Owners inside
+     * the transaction; it publishes cache changes only after commit. No member is created.
+     */
+    fun recoverOwnership(preview: OwnerRecoveryPreview): OwnerRecoveryResult =
+        OwnerRecoveryResult.Rejected(OwnerRecoveryRejection.UNSUPPORTED_REPOSITORY)
 }
