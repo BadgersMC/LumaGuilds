@@ -79,8 +79,13 @@ class MemberLimitBatchTest {
     fun `leaving a guild invalidates cached claim membership`() {
         val playerId = UUID.randomUUID()
         val guildId = UUID.randomUUID()
+        val rank = Rank(UUID.randomUUID(), guildId, "Member", 4)
+        val member = Member(playerId, guildId, rank.id, Instant.EPOCH)
         val members = mockk<MemberRepository>()
+        val ranks = mockk<RankRepository>()
         every { members.isPlayerInGuild(playerId, guildId) } returns true
+        every { members.getByPlayerAndGuild(playerId, guildId) } returns member
+        every { ranks.getById(rank.id) } returns rank
         every { members.remove(playerId, guildId) } returns true
         val invalidated = mutableListOf<UUID>()
 
@@ -89,7 +94,7 @@ class MemberLimitBatchTest {
             every { Bukkit.getPluginManager() } returns mockk(relaxed = true)
             val service = MemberServiceBukkit(
                 members,
-                mockk<RankRepository>(relaxed = true),
+                ranks,
                 mockk<GuildRepository>(relaxed = true),
                 mockk<ProgressionRepository>(relaxed = true),
                 mockk<ProgressionConfigService>(relaxed = true),

@@ -5,6 +5,7 @@ import net.lumalyte.lg.LumaGuilds
 import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.GuildRolePermissionResolver
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.ProgressionService
 import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.domain.entities.SpawnBannerCategory
@@ -50,6 +51,8 @@ class LumaGuildsCommand(
     private val spawnBannerService: SpawnBannerServiceBukkit by inject()
     private val warService: WarService by inject()
     private val progressionService: ProgressionService by inject()
+    private val memberService: MemberService by inject()
+    private val ownerRecovery by lazy { GuildOwnerRecoveryCommand(memberService, lang) }
 
     // Resolved lazily and nullable: GuildRolePermissionResolver is only registered when
     // claims are enabled. Touching it via `by inject()` would crash the override command
@@ -72,6 +75,7 @@ class LumaGuildsCommand(
             "migrate" -> handleMigrate(sender, args)
             "chapter" -> handleChapter(sender, args)
             "override" -> handleOverride(sender)
+            "owner" -> ownerRecovery.execute(sender, args)
             "spawnbanner" -> handleSpawnBanner(sender, args)
             "warcutover" -> handleWarCutover(sender, args)
             "help" -> showHelp(sender)
@@ -715,6 +719,9 @@ class LumaGuildsCommand(
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_reload_reload_plugin_configuration_op_only"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_progressionreload_reload_progression_yml_op_only"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.xp_give"))
+        if (sender.hasPermission(GuildOwnerRecoveryCommand.PERMISSION)) {
+            sender.sendMessage(lang.msg("admin.owner_recovery.help"))
+        }
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_disband_guild_confirm_force_disband_a"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_migrate_confirm_migrate_sqlite_mariadb_op"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.chapter_admin_controls"))
@@ -733,9 +740,15 @@ class LumaGuildsCommand(
 
         return when (args.size) {
             1 -> mutableListOf(
-                "reload", "progressionreload", "xp", "disband", "migrate", "chapter", "override", "spawnbanner", "warcutover", "help"
-            ).filter { it.startsWith(args[0]) }.toMutableList()
+                "reload", "progressionreload", "xp", "disband", "migrate", "chapter", "override", "owner",
+                "spawnbanner", "warcutover", "help"
+            ).filter {
+                it.startsWith(args[0]) && (it != "owner" || sender.hasPermission(GuildOwnerRecoveryCommand.PERMISSION))
+            }.toMutableList()
             2 -> when (args[0].lowercase()) {
+                "owner" -> if (sender.hasPermission(GuildOwnerRecoveryCommand.PERMISSION)) {
+                    mutableListOf("recover").filter { it.startsWith(args[1], true) }.toMutableList()
+                } else mutableListOf()
                 "disband" -> {
                     net.lumalyte.lg.utils.GuildResolver.suggestions(guildService)
                         .filter { it.contains(args[1], ignoreCase = true) }

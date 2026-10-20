@@ -13,7 +13,10 @@ import io.mockk.verify
 import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.GuildRolePermissionResolver
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.ProgressionService
+import net.lumalyte.lg.application.results.OwnerRecoveryPreviewResult
+import net.lumalyte.lg.application.results.OwnerRecoveryRejection
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.values.ExperienceSource.ADMIN_BONUS
 import org.bukkit.command.Command
@@ -41,6 +44,7 @@ class LumaGuildsCommandTest {
     private lateinit var permissionResolver: GuildRolePermissionResolver
     private var guildService: GuildService = mockk(relaxed = true)
     private var progressionService: ProgressionService = mockk(relaxed = true)
+    private lateinit var memberService: MemberService
     private val xpTasks = java.util.ArrayDeque<Runnable>()
     private val xpReplies = java.util.ArrayDeque<Runnable>()
     private lateinit var mockCommand: Command
@@ -60,6 +64,7 @@ class LumaGuildsCommandTest {
         permissionResolver = mockk(relaxed = true)
         guildService = mockk(relaxed = true)
         progressionService = mockk(relaxed = true)
+        memberService = mockk(relaxed = true)
 
         // Set up Koin with mocked services
         stopKoin() // Stop any existing Koin instance
@@ -79,6 +84,7 @@ class LumaGuildsCommandTest {
                 single { permissionResolver }
                 single { guildService }
                 single { progressionService }
+                single { memberService }
             })
         }
 
@@ -96,6 +102,45 @@ class LumaGuildsCommandTest {
     fun tearDown() {
         MockBukkit.unmock()
         stopKoin()
+    }
+
+    @Test
+    fun ownerRecoverySubcommandUsesTheAuthoritativeMemberService() {
+        player.addAttachment(mockPlugin, GuildOwnerRecoveryCommand.BASE_PERMISSION, true)
+        player.addAttachment(mockPlugin, GuildOwnerRecoveryCommand.PERMISSION, true)
+        val guildId = UUID.randomUUID()
+        val memberId = UUID.randomUUID()
+        every { memberService.previewOwnerRecovery(guildId, memberId) } returns
+            OwnerRecoveryPreviewResult.Rejected(OwnerRecoveryRejection.MEMBER_NOT_FOUND)
+
+        assertTrue(command.onCommand(
+            player,
+            mockCommand,
+            COMMAND_NAME,
+            arrayOf("owner", "recover", guildId.toString(), memberId.toString()),
+        ))
+
+        verify(exactly = 1) { memberService.previewOwnerRecovery(guildId, memberId) }
+        verify(exactly = 0) { memberService.recoverOwnership(any()) }
+        assertTrue(player.nextMessage()?.contains("not an existing member") == true)
+    }
+
+    @Test
+    fun activeOverrideDoesNotGrantTheOwnerRecoveryPermission() {
+        player.addAttachment(mockPlugin, GuildOwnerRecoveryCommand.BASE_PERMISSION, true)
+        player.addAttachment(mockPlugin, "bellclaims.admin", true)
+        every { adminOverrideService.hasOverride(player.uniqueId) } returns true
+
+        command.onCommand(
+            player,
+            mockCommand,
+            COMMAND_NAME,
+            arrayOf("owner", "recover", UUID.randomUUID().toString(), UUID.randomUUID().toString()),
+        )
+
+        verify(exactly = 0) { memberService.previewOwnerRecovery(any(), any()) }
+        verify(exactly = 0) { memberService.recoverOwnership(any()) }
+        assertTrue(player.nextMessage()?.contains("permission") == true)
     }
 
     /** The database award waits for the worker; the Bukkit reply waits for the main thread. */
