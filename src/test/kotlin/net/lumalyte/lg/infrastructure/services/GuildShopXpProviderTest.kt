@@ -8,6 +8,8 @@ import net.lumalyte.lg.application.persistence.GuildShopXpRepository
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.ProgressionService
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import java.util.UUID
 import kotlin.test.assertEquals
 
@@ -24,10 +26,11 @@ internal class GuildShopXpProviderTest {
     }
 
     @Test
-    fun replayDoesNotRefireProgression() {
+    fun replayRefreshesWithoutLevelEffects() {
         every { repository.complete(sale) } returns GuildShopXpCompletion(AWARDED_FIVE, guild, 2, awardedNow = false)
         assertEquals(AWARDED_FIVE, provider.complete(sale))
-        verify(exactly = 0) { progression.onCommittedExperience(any(), any()) }
+        verify(exactly = 1) { progression.onCommittedExperience(guild, null) }
+        verify(exactly = 0) { progression.onCommittedExperience(guild, 2) }
     }
 
     @Test
@@ -35,6 +38,14 @@ internal class GuildShopXpProviderTest {
         every { repository.complete(sale) } returns GuildShopXpCompletion(AWARDED_FIVE, guild, 2, awardedNow = true)
         assertEquals(AWARDED_FIVE, provider.complete(sale))
         verify(exactly = 1) { progression.onCommittedExperience(guild, 2) }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = ["OWN_GUILD", "DISABLED", "COOLDOWN", "CAPPED", "STALE_RUN", "ABORTED", "CHAPTER_FROZEN"])
+    fun nonAwardsSkipPublication(status: String) {
+        every { repository.complete(sale) } returns GuildShopXpCompletion(status, guild)
+        assertEquals(status, provider.complete(sale))
+        verify(exactly = 0) { progression.onCommittedExperience(any(), any()) }
     }
 
     @Test

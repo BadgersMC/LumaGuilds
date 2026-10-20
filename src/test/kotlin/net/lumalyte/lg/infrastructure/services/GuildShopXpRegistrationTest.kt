@@ -13,8 +13,8 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockbukkit.mockbukkit.MockBukkit
+import java.io.File
 import java.net.URLClassLoader
-import java.nio.file.Path
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -52,13 +52,15 @@ internal class GuildShopXpRegistrationTest {
 
     @Test
     fun marketLifecycle() {
-        val marketJar = System.getenv("MARKET_RUNTIME_JAR")
+        val marketJar = System.getenv("MARKET_RUNTIME_JAR")?.takeIf(String::isNotBlank)?.let(::File)
         assumeTrue(marketJar != null, "Set MARKET_RUNTIME_JAR for actual Market artifact contract")
+        val artifact = checkNotNull(marketJar)
+        require(artifact.isFile) { "Configured MARKET_RUNTIME_JAR does not exist: $artifact" }
         val plugin = MockBukkit.createMockPlugin()
         registerGuildShopXpApi(plugin, repository, config, progression)
         val failedSale = UUID.randomUUID()
         prepareRepository(failedSale)
-        URLClassLoader(arrayOf(Path.of(checkNotNull(marketJar)).toUri().toURL()), javaClass.classLoader).use { loader ->
+        URLClassLoader(arrayOf(artifact.toURI().toURL()), javaClass.classLoader).use { loader ->
             val type = loader.loadClass("net.badgersmc.em.infrastructure.guild.BukkitGuildShopXpGateway")
             val gateway = type.getConstructor().newInstance()
             assertMarketCalls(type, gateway, failedSale)
@@ -71,6 +73,7 @@ internal class GuildShopXpRegistrationTest {
         }
         verify(exactly = 1) { repository.abort(failedSale) }
         verify(exactly = 1) { progression.onCommittedExperience(guild, 2) }
+        verify(exactly = 1) { progression.onCommittedExperience(guild, null) }
     }
 
     private fun prepareRepository(failedSale: UUID) {
