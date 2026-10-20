@@ -16,6 +16,7 @@ the remaining navigation, shop XP replay, and owner-recovery follow-ups.
 | Deposit/quest XP PR [#237](https://github.com/BadgersMC/LumaGuilds/pull/237) | `f2da62900e6974404cb1db2e02059d1b173f16c6` |
 | API registration PR [#238](https://github.com/BadgersMC/LumaGuilds/pull/238) | `8a32cba4d36f419be0f83387963ffc5ed221835b` |
 | Owner-recovery PR [#239](https://github.com/BadgersMC/LumaGuilds/pull/239) at intake | `b8270521a3fcb4fb0220a4f9c0f06195f9021ebd` |
+| Navigation follow-up after independent review | `9526400604b0438f1a7824d81cc4d7988b094e51` |
 | Shop replay follow-up | `c406d067393d2272d36db3ef536a410dd2da55fb` |
 | Owner-recovery analysis follow-up | `b2f2eb6a800df44c40552a44d8dad1a3377ee8b3` |
 
@@ -56,6 +57,16 @@ the XP repair and build wiring; the XP worker reviews navigation. The coordinato
 reviews owner-recovery changes and integrates the exact contributions.
 
 ## Follow-up behavior
+
+Menu returns restore the existing parent and carry edited child data before it
+opens. Party drafts, moderation pages and rank icon drafts survive the return.
+Guild selection redraws its page and clamps an emptied list. The remaining
+recruitment Close labels use the shared fallback, and purchase review keeps the
+reward and price without displaying its internal UUID as standalone content.
+Independent review also caught denied party-moderation opens that left the old
+detail visible; both denial paths now unwind to accessible party management.
+The navigation contribution adds 21 regression cases. Recruitment filter width
+was already fitted at the starting pin and did not need another layout change.
 
 The shop provider now refreshes retained `AWARDED:n` receipts with a null level.
 This repairs a missed cache publication while leaving durable XP, receipt identity
