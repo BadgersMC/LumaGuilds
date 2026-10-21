@@ -41,3 +41,15 @@ Optional projection registers only `lumaguilds_mastery` through the observed pro
 Outstanding contracts: Market's retained post-transaction event lacks a durable transaction ID; only same-instance duplicate dispatch is suppressed for that API. No current committed guild-stall acquisition event has been verified for Prime Real Estate. Roundtable request 757 asks the Market owner for immutable supported contracts; do not mark those integration gates passed. KOTH optional lifecycle adapter excludes private test fixtures, retains arena streak state and uses event IDs; native companion compatibility and replay/crash recovery remain unproved.
 
 No historical RED run is claimed: local native execution is held by shared capacity/owner coordination. Added tests are pending execution. Python JSON and YAML parse checks and Git whitespace validation passed. No TEST mutation, build or deployment has happened.
+
+## First hosted proof and refinement
+
+Head eb51eab9 compiled on hosted Java 25 and discovered 2,220 test cases: six failures and 68 skips. This is real failure evidence, not a passing build. Failures: Koin graph eager runtime construction (2 profiles), locale dynamic/dead reference baselines (2), new player fixture completion and new prestige fixture (2). Refinements defer resource/PDC construction until runtime use, retain literal locale keys without changing baselines, use a valid one-selection/one-prestige fixture, and explicitly stub the spy player's online state. Fresh CI must verify these fixes.
+
+The weak Market notification hook is removed. The existing GuildShopXpApi v2 complete path already supplies an immutable sale UUID after durable paid guild SELL settlement. An optional callback publishes that same receipt to personal achievement tracking for AWARDED, CAPPED, COOLDOWN and DISABLED outcomes. OWN_GUILD, ABORTED, STALE_RUN and CHAPTER_FROZEN do not count. Callback failures never change the returned economic API result. No prepare/payment/award semantics changed. Barter/BUY/personal/free trades remain excluded under that existing API contract; they are not represented as supported achievement transactions.
+
+Progress-only updates are cached and checkpointed each minute and on quit/disable; completions and tracked-goal writes save immediately. An ambiguous personal XP delivery now persists a review-required quarantine marker and never auto-replays. Data corruption is preserved and fails closed.
+
+Read-only TEST UAAPI SQLite snapshot: SHA256 940985e9716a40c515eff406af7440b7ff7f9225a69ede9e5eb776d4a83fcdfa, only enthusia (602 rows) and holidays (30 rows); no guild namespace progress or unredeemed guild reward rows. This clears legacy guild duplicate-reward concern for this snapshot only; recheck immediately before activation. No identities were exported and no table was modified.
+
+GitHub PR241 is stacked against PR240's exact integration head. The hosted workflow checks out the PR head explicitly and retains a clearly marked unmerged TEST shadow JAR plus source/hash manifests only after tests pass; failed test diagnostics are retained separately. No local native build was started below the capacity gate.

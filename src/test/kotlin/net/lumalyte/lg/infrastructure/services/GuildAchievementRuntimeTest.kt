@@ -21,6 +21,7 @@ internal class GuildAchievementRuntimeTest {
             javaClass.classLoader.getResourceAsStream("guild-achievements.json")
         }
         val player = spyk(server.addPlayer())
+        every { player.isOnline } returns true
         every { player.saveData() } just Runs
         var paid = 0
         every { player.giveExp(any<Int>()) } answers { paid += firstArg<Int>() }
@@ -45,6 +46,7 @@ internal class GuildAchievementRuntimeTest {
         val plugin = spyk(MockBukkit.createMockPlugin("LumaGuilds"))
         every { plugin.getResource("guild-achievements.json") } answers { javaClass.classLoader.getResourceAsStream("guild-achievements.json") }
         val player = spyk(server.addPlayer())
+        every { player.isOnline } returns true
         val key = NamespacedKey(plugin, "guild_achievements_v1")
         player.persistentDataContainer.set(key, PersistentDataType.STRING, "invalid retained data")
         val members = mockk<MemberRepository>()

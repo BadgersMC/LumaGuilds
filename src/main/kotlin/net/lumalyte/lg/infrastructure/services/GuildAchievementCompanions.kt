@@ -30,18 +30,6 @@ internal class GuildAchievementCompanions(private val plugin: JavaPlugin, privat
     @EventHandler fun enabled(event: PluginEnableEvent) { bind(); runtime.refreshProjection() }
 
     private fun bind() {
-        hook("EnthusiaMarket", "net.badgersmc.em.events.PostShopTransactionEvent") { event ->
-            val guild = value(event, "GuildId") as? UUID ?: return@hook
-            val buyer = value(event, "Buyer") as? Player ?: return@hook
-            if (runtime.isMember(buyer.uniqueId, guild)) return@hook
-            val quantity = value(event, "Quantity") as? Number ?: return@hook
-            val paid = value(event, "PricePaid") as? Number ?: return@hook
-            if (quantity.toLong() <= 0 || !paid.toDouble().isFinite() || paid.toDouble() <= 0) return@hook
-            // Existing Market publishes this event only after a successful transaction.
-            // Same-instance duplicate dispatch is ignored; older Market API has no durable transaction ID.
-            val receipt = runCatching { value(event, "TransactionId")?.toString() }.getOrNull()?.let { "market:$it" }
-            runtime.shared(guild, "GUILD_SHOP_SALE", receipt = receipt)
-        }
         hook("EnthusiaMarket", "net.badgersmc.em.events.ShopCreatedEvent") { event ->
             val owner = value(event, "OwnerId") as? UUID ?: return@hook
             Bukkit.getPlayer(owner)?.let { runtime.signal(it, "SHOP_CREATED") }

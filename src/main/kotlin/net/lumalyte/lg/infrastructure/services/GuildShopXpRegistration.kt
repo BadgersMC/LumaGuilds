@@ -13,10 +13,11 @@ internal fun registerGuildShopXpApi(
     repository: GuildShopXpRepository,
     config: ConfigService,
     progression: ProgressionService,
+    completedSale: (java.util.UUID, java.util.UUID) -> Unit = { _, _ -> },
 ) {
     plugin.server.servicesManager.register(
         GuildShopXpApi::class.java,
-        GuildShopXpProvider(repository, config, progression),
+        GuildShopXpProvider(repository, config, progression, completedSale),
         plugin,
         ServicePriority.Normal,
     )

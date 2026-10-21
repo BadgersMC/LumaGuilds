@@ -53,7 +53,8 @@ internal class GuildAchievementsMenu(
         val complete = progress >= node.goal
         val cards = listOf(
             referenceItem(icon(node), listOf(Component.text(node.title),
-                lang.gui(if (complete) "achievements.completed" else "achievements.progress", "current" to progress, "goal" to node.goal),
+                if (complete) lang.gui("achievements.completed", "current" to progress, "goal" to node.goal)
+                else lang.gui("achievements.progress", "current" to progress, "goal" to node.goal),
                 *node.description.map { Component.text(it) }.toTypedArray())),
             referenceItem("lg_sources", listOf(lang.gui("achievements.how"),
                 Component.text(earning(node)), Component.text(credit(node)))),
@@ -66,7 +67,7 @@ internal class GuildAchievementsMenu(
         val actions = buildList {
             if (page > 0) add(action(lang.gui("achievements.previous")) { page--; selected = null; open() })
             if (page + 1 < pages) add(action(lang.gui("achievements.next")) { page++; selected = null; open() })
-            add(action(lang.gui(if (record.tracked == node.id) "achievements.untrack" else "achievements.track")) {
+            add(action(if (record.tracked == node.id) lang.gui("achievements.untrack") else lang.gui("achievements.track")) {
                 if (valid(token)) runtime.track(player, if (record.tracked == node.id) null else node.id)
                 open()
             })
@@ -78,7 +79,7 @@ internal class GuildAchievementsMenu(
                 }; open()
             }) }
             add(action(lang.gui("achievements.vanilla")) {
-                player.sendMessage(lang.gui(if (runtime.projectionAvailable()) "achievements.open_vanilla" else "achievements.renderer_unavailable"))
+                player.sendMessage(if (runtime.projectionAvailable()) lang.gui("achievements.open_vanilla") else lang.gui("achievements.renderer_unavailable"))
                 open()
             })
         }

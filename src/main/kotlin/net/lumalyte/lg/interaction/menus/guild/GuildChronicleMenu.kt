@@ -162,7 +162,8 @@ internal class GuildChronicleMenu(
             val settings = config.loadConfig().progression.prestige
             for (tier in 1..overview.maxPrestigeCount) add(referenceItem("lg_prestige", listOf(
                 lang.gui("chronicle.prestige.milestone", "tier" to tier, "fee" to settings.feeFor(tier - 1)),
-                lang.gui(if (tier <= overview.prestigeCount) "chronicle.prestige.milestone_earned" else "chronicle.prestige.milestone_locked"),
+                if (tier <= overview.prestigeCount) lang.gui("chronicle.prestige.milestone_earned")
+                else lang.gui("chronicle.prestige.milestone_locked"),
             )))
             retained.forEach { offer -> add(referenceItem("lg_prestige", listOf(
                 lang.gui("chronicle.prestige.seal"), Component.text(offer.reward.name), effect(offer.reward.effect),

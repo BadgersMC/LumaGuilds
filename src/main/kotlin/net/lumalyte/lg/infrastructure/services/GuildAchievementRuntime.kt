@@ -19,11 +19,13 @@ internal class GuildAchievementRuntime(
     private val members: MemberRepository,
     private val progression: ProgressionRepository,
 ) {
-    private val key = NamespacedKey(plugin, "guild_achievements_v1")
-    val engine = GuildAchievementEngine(loadDefinitions())
-    private val projection = GuildAchievementProjection(plugin, engine.definitions)
+    private val key by lazy { NamespacedKey(plugin, "guild_achievements_v1") }
+    val engine by lazy { GuildAchievementEngine(loadDefinitions()) }
+    private val projection by lazy { GuildAchievementProjection(plugin, engine.definitions) }
     private val dirty = mutableSetOf<UUID>()
     private val failed = mutableSetOf<UUID>()
+    private val records = mutableMapOf<UUID, AchievementRecord>()
+    private val reviewRequired = mutableSetOf<UUID>()
 
     fun start() {
         projection.register()
@@ -32,7 +34,7 @@ internal class GuildAchievementRuntime(
             .onFailure { plugin.logger.severe("Achievement companion state unavailable; core tracking remains active: ${it.javaClass.simpleName}") }
         plugin.server.scheduler.runTaskTimer(plugin, Runnable {
             Bukkit.getOnlinePlayers().forEach { player ->
-                if (player.uniqueId in dirty) runCatching { player.saveData(); dirty.remove(player.uniqueId) }
+                if (player.uniqueId in dirty) runCatching { flush(player) }
             }
             Bukkit.getOnlinePlayers().groupBy { guild(it.uniqueId) }.forEach { (guild, players) ->
                 if (guild != null) {
@@ -50,7 +52,7 @@ internal class GuildAchievementRuntime(
     }
 
     fun stop() {
-        Bukkit.getOnlinePlayers().filter { it.uniqueId in dirty }.forEach { it.saveData() }
+        Bukkit.getOnlinePlayers().filter { it.uniqueId in dirty }.forEach { flush(it) }
         projection.close()
     }
 
@@ -73,9 +75,11 @@ internal class GuildAchievementRuntime(
     fun read(player: Player): AchievementRecord? = runCatching {
         check(Bukkit.isPrimaryThread())
         check(player.uniqueId !in failed) { "Achievement record is quarantined until reconnect/review" }
+        records[player.uniqueId]?.let { return@runCatching it }
         val raw = player.persistentDataContainer.get(key, PersistentDataType.STRING) ?: return@runCatching AchievementRecord()
         val json = JSONObject(raw)
         require(json.getInt("schema") == 1)
+        check(!json.optBoolean("reviewRequired", false)) { "Ambiguous XP delivery requires administrator review" }
         val counts = json.getJSONObject("progress")
         val progress = counts.keySet().associateWith { id ->
             val count = counts.getInt(id)
@@ -84,7 +88,7 @@ internal class GuildAchievementRuntime(
             count
         }
         AchievementRecord(progress, strings(json.getJSONArray("rewarded")), strings(json.getJSONArray("receipts")),
-            json.optString("tracked").takeIf { it.isNotBlank() && it != "null" })
+            json.optString("tracked").takeIf { it.isNotBlank() && it != "null" }).also { records[player.uniqueId] = it }
     }.onFailure { error ->
         if (failed.add(player.uniqueId)) plugin.logger.warning("Guild achievements unavailable for ${player.uniqueId}: ${error.javaClass.simpleName}; retained data was not cleared")
     }.getOrNull()
@@ -93,7 +97,7 @@ internal class GuildAchievementRuntime(
         if (guild(player.uniqueId) == null || id != null && engine.definitions.none { it.id == id }) return false
         val before = read(player) ?: return false
         write(player, before.copy(tracked = id))
-        player.saveData()
+        flush(player)
         return true
     }
 
@@ -117,7 +121,7 @@ internal class GuildAchievementRuntime(
             // Claimed IDs and experience are saved together in player.dat; no guild XP or bank calls here.
             write(player, change.record)
             if (xp > 0) player.giveExp(xp)
-            if (change.completed.isNotEmpty()) player.saveData()
+            if (change.completed.isNotEmpty()) flush(player)
             if (change.completed.isNotEmpty()) projection.project(player, change.record)
             change.completed.forEach { node ->
                 projection.celebrate(player, node.id)
@@ -129,7 +133,10 @@ internal class GuildAchievementRuntime(
             // Only a verified unchanged XP outcome is retryable. Ambiguous outcomes retain claimed IDs.
             if (Triple(player.totalExperience, player.level, player.exp) == oldXp) {
                 write(player, change.record.copy(rewarded = before.rewarded))
-                runCatching { player.saveData() }
+                runCatching { flush(player) }
+            } else {
+                reviewRequired += player.uniqueId
+                runCatching { flush(player) }
             }
             failed += player.uniqueId
             plugin.logger.severe("Achievement delivery needs review for ${player.uniqueId}; no automatic replay: ${error.javaClass.simpleName}")
@@ -149,16 +156,30 @@ internal class GuildAchievementRuntime(
 
     fun refreshProjection() { if (!projection.available) projection.register() }
 
+    fun leave(player: Player) {
+        if (player.uniqueId in dirty) flush(player)
+        records.remove(player.uniqueId)
+        failed.remove(player.uniqueId)
+    }
+
     private fun combinedHours(guild: UUID): Int = (members.getByGuild(guild).sumOf {
         Bukkit.getOfflinePlayer(it.playerId).getStatistic(Statistic.PLAY_ONE_MINUTE).toLong()
     } / 72000L).coerceAtMost(1000L).toInt()
 
     private fun write(player: Player, record: AchievementRecord) {
+        records[player.uniqueId] = record
+        dirty += player.uniqueId
+    }
+
+    private fun flush(player: Player) {
+        val record = records[player.uniqueId] ?: return
         val json = JSONObject().put("schema", 1).put("progress", JSONObject(record.progress))
             .put("rewarded", JSONArray(record.rewarded.toList())).put("receipts", JSONArray(record.receipts.toList()))
             .put("tracked", record.tracked ?: JSONObject.NULL)
+            .put("reviewRequired", player.uniqueId in reviewRequired)
         player.persistentDataContainer.set(key, PersistentDataType.STRING, json.toString())
-        dirty += player.uniqueId
+        player.saveData()
+        dirty.remove(player.uniqueId)
     }
 
     private fun strings(array: JSONArray): Set<String> = (0 until array.length()).map { array.getString(it) }.toSet()

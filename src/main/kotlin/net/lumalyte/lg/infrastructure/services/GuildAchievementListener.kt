@@ -18,6 +18,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.inventory.FurnaceExtractEvent
 import org.bukkit.event.player.PlayerJoinEvent
+import org.bukkit.event.player.PlayerQuitEvent
 import java.util.UUID
 
 /** Completed, non-cancelled game activity only. Shared events credit online guild members. */
@@ -47,6 +48,7 @@ internal class GuildAchievementListener(private val runtime: GuildAchievementRun
     @EventHandler(priority = EventPriority.MONITOR) fun rank(e: GuildLeaderboardRankChangeEvent) =
         runtime.shared(e.guildId, "GUILD_LEADERBOARD_RANK", e.newRank.toString())
     @EventHandler(priority = EventPriority.MONITOR) fun joined(e: PlayerJoinEvent) { runtime.initialize(e.player) }
+    @EventHandler(priority = EventPriority.MONITOR) fun left(e: PlayerQuitEvent) { runtime.leave(e.player) }
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true) fun smelt(e: FurnaceExtractEvent) = activity(e.player, "GUILD_COLLECTIVE_SMELT", e.itemAmount)
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true) fun block(e: BlockBreakEvent) {
         activity(e.player, "GUILD_COLLECTIVE_BLOCK_BREAK")

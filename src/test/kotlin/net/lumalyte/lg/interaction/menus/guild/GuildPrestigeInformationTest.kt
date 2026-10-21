@@ -28,7 +28,7 @@ internal class GuildPrestigeInformationTest : RecruitmentDialogFixture() {
         every { guilds.getGuild(guild.id) } returns guild
         every { members.getMember(actor, guild.id) } returns mockk()
         val catalog = RewardCatalog.chapterTwo()
-        val owners = RewardOwnership(permanent = setOf("bank-1", "home-1"), prestigeCount = 2)
+        val owners = RewardOwnership(permanent = setOf("bank-1", "home-1"), prestigeCount = 1)
         val goals = mockk<ChronicleGoalRepository>()
         every { goals.read(guild.id) } returns ChronicleGoal(null, 0)
         val service = GuildChronicleService(catalog, goals, { _, _ -> true }, { _, _ -> false }, {
@@ -36,7 +36,7 @@ internal class GuildPrestigeInformationTest : RecruitmentDialogFixture() {
         })
         val config = mockk<ConfigService>()
         every { config.loadConfig() } returns net.lumalyte.lg.config.MainConfig()
-        every { prestige.overview(guild.id) } returns PrestigeOverview(true, 26, 2, 6, 30000, emptyList())
+        every { prestige.overview(guild.id) } returns PrestigeOverview(true, 26, 1, 6, 20000, emptyList())
         loadKoinModules(module { single { service }; single { members }; single { config }; single { prestige }; single { purchases } })
         var reviews = 0
         val nav = MenuNavigator(player)

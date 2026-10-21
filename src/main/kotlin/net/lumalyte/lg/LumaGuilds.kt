@@ -131,6 +131,10 @@ class LumaGuilds : JavaPlugin() {
             get().get(),
             get().get(),
             get().get(),
+            completedSale = { sale, guild ->
+                get().get<net.lumalyte.lg.infrastructure.services.GuildAchievementRuntime>()
+                    .shared(guild, "GUILD_SHOP_SALE", receipt = "market:$sale")
+            },
         )
         logColored("✓ GuildShopXpApi v2 registered in ServicesManager for Market purchases")
 
