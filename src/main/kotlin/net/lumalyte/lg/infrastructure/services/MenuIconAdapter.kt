@@ -166,8 +166,7 @@ internal class MenuIconAdapter(
 
     private fun replacementTitle(playerId: UUID, title: Component): Component? {
         return when {
-            !MenuTitleGlyphs.hasBackgroundGlyph(title) -> null
-            cleansTitlesFor(playerId) -> BedrockIcons.plainTitle(title)
+            cleansTitlesFor(playerId) -> if (MenuTitleGlyphs.hasBackgroundGlyph(title)) BedrockIcons.plainTitle(title) else null
             // Give the background glyph its Nexo font so it draws instead of showing as a box.
             else -> MenuTitleGlyphs.withGlyphFonts(title, glyphLookup).takeIf { it != title }
         }

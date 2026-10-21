@@ -27,15 +27,10 @@ object MenuTitleGlyphs {
                 .map { it.groupValues[1] }
                 .distinct()
                 .toList()
+        if (ids.isEmpty()) return plateForResolvedBackground(title, lookup)
         val resolved = ids.mapNotNull { id -> lookup(id)?.let { background ->
-            // The optional plate owns a zero-net-advance pair in its dedicated font.
-            // Vanilla draws Inventory after this title, so its localized text stays intact.
             val plate = lookup(id.replace("guild_bg_", "guild_inventory_label_"))
-            id to if (plate == null) background else background
-                .append(Component.text("\uE000").font(Key.key("lumaguilds:inventory_label_spacing")))
-                .append(plate.color(net.kyori.adventure.text.format.NamedTextColor.WHITE)
-                    .decoration(net.kyori.adventure.text.format.TextDecoration.BOLD, false)
-                    .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
+            id to if (plate == null) background else withPlate(background, plate)
         } }.toMap()
         if (resolved.isEmpty()) return title
         return title.replaceText(
@@ -45,4 +40,32 @@ object MenuTitleGlyphs {
                 .build(),
         )
     }
+
+    /** Nexo can resolve tags before our InventoryOpenEvent listener sees the title. */
+    private fun plateForResolvedBackground(title: Component, lookup: (String) -> Component?): Component {
+        val serializer = PlainTextComponentSerializer.plainText()
+        val text = serializer.serialize(title)
+        for (theme in GuiTheme.SELECTABLE.filter { it.hasBackground }) {
+            for (rows in 1..6) {
+                val suffix = "${theme.name.lowercase()}_${rows}_row"
+                val background = lookup("guild_bg_$suffix") ?: continue
+                val glyph = serializer.serialize(background)
+                // Restrict recognition to one non-ASCII registered glyph, never ordinary title text.
+                if (glyph.codePointCount(0, glyph.length) != 1 || glyph.codePointAt(0) < 128) continue
+                if (!text.contains(glyph)) continue
+                val plate = lookup("guild_inventory_label_$suffix") ?: return title
+                val plateText = serializer.serialize(plate)
+                if (plateText.isEmpty() || text.contains(plateText)) return title
+                return title.replaceText(TextReplacementConfig.builder()
+                    .matchLiteral(glyph).replacement(withPlate(background, plate)).build())
+            }
+        }
+        return title
+    }
+
+    private fun withPlate(background: Component, plate: Component): Component = background
+        .append(Component.text("\uE000").font(Key.key("lumaguilds:inventory_label_spacing")))
+        .append(plate.color(net.kyori.adventure.text.format.NamedTextColor.WHITE)
+            .decoration(net.kyori.adventure.text.format.TextDecoration.BOLD, false)
+            .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
 }

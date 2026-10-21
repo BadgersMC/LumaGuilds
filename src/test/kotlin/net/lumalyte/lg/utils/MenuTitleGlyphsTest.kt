@@ -30,6 +30,24 @@ internal class MenuTitleGlyphsTest {
         assertTrue(PlainTextComponentSerializer.plainText().serialize(fixed).endsWith("<shift:-162>Statistics"))
     }
 
+    @Test fun alreadyResolvedBackgroundStillReceivesItsPlateExactlyOnce() {
+        val background = Component.text("\uE900").font(nexoFont)
+        val plate = Component.text("\uE901").font(nexoFont)
+        val resolvedLookup: (String) -> Component? = { id -> when (id) {
+            "guild_bg_enthusia_3_row" -> background
+            "guild_inventory_label_enthusia_3_row" -> plate
+            else -> null
+        } }
+        // Nexo may resolve the literal tag before InventoryOpenEvent reaches our adapter.
+        val title = Component.text("<shift:-8>").append(background).append(Component.text("Statistics"))
+        val fixed = MenuTitleGlyphs.withGlyphFonts(title, resolvedLookup)
+        assertEquals("<shift:-8>\uE900\uE000\uE901Statistics", PlainTextComponentSerializer.plainText().serialize(fixed))
+        assertEquals(fixed, MenuTitleGlyphs.withGlyphFonts(fixed, resolvedLookup))
+        assertEquals(title, MenuTitleGlyphs.withGlyphFonts(title) { id ->
+            if (id == "guild_bg_enthusia_3_row") background else null
+        })
+    }
+
     private fun fonts(c: Component): List<Pair<String, Key?>> {
         val out = mutableListOf<Pair<String, Key?>>()
         fun walk(x: Component, inherited: Key?) {

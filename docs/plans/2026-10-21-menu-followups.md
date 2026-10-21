@@ -39,3 +39,30 @@ contracts rejected the new dynamic conditional key expression; use literal
 calls rather than weakening the baseline. The new scope-navigation fixture
 also needs the same LangService.msg stub as the existing personal-tree fixture.
 This is recorded failure evidence; a fresh hosted run must pass the refinement.
+
+## Live followup and remaining label correction
+
+Exact source654075e1 passed2,164 tests with68 skips in hosted39603917233 and
+was activated on TEST with SHA2564fe2dd426cd3ccc461788e31e9a85b6fee95b9b00ae434d4e8d926a8fc2a8013.
+Native paging worked after145 seconds idle. Both combat pages, personal scope,
+Back to Statistics and Statistics Back passed. All106 companion plugins and
+protected Nexo/Holidays configs stayed unchanged. No economic/reward mutation
+or exhaustive theme matrix was performed. Codacy still reports573 broader PR
+findings; draft CodeRabbit did not independently review the source.
+
+MF-003 failed native acceptance. Six retained server packs included an old
+empty Inventory translation. A reconnect restored the label, but the patterned
+divider still overlaps it. Switching the new plate to the background font in
+PackPR9 source4a111d7 (CI39610373102 green) did not fix that overlap.
+
+The adapter currently exits when Nexo has already converted the literal tag.
+The next source correction recognizes only registered single non-ASCII guild
+background glyphs and adds a missing plate once, including through the actual
+InventoryOpenEvent path. Missing plates and repeated adaptation stay unchanged.
+New regression coverage models the early-resolved title; no historical red CI
+is claimed for that new test. Native acceptance remains required after CI.
+
+TEST/client windows802/803 were released by Roundtable805 at14:13:42UTC.
+Both clients are back on TEST with menus closed. Further shared TEST/client
+use requires a new owner handoff. Screenshots and failed-label evidence:
+https://chatgpt.com/space/page_7ef3bde67cf481918bf3b8a0f5b90e99.

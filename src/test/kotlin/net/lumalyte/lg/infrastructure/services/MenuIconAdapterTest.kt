@@ -2,12 +2,17 @@ package net.lumalyte.lg.infrastructure.services
 
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.key.Key
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.PlatformDetectionService
 import net.lumalyte.lg.config.BedrockConfig
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.utils.GuiTheme
 import org.bukkit.entity.Player
+import org.bukkit.event.inventory.InventoryOpenEvent
 import org.bukkit.plugin.Plugin
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -42,6 +47,27 @@ internal class MenuIconAdapterTest {
         val guilds = if (theme == null) emptySet() else setOf(mockk<Guild> { every { guiTheme } returns theme })
         every { guildService.getPlayerGuilds(id) } returns guilds
         return p
+    }
+
+    @Test fun resolvedNexoTitleStillGetsInventoryPlateOnOpen() {
+        val p = player(bedrock = false, theme = GuiTheme.ENTHUSIA)
+        val background = Component.text("\uE900").font(Key.key("nexo:default"))
+        val title = background.append(Component.text("Statistics"))
+        val event = mockk<InventoryOpenEvent>(relaxed = true)
+        every { event.player } returns p
+        every { event.titleOverride() } returns null
+        every { event.view.title() } returns title
+        val adapted = MenuIconAdapter(mockk<Plugin>(relaxed = true), platform, guildService, { bedrock },
+            glyphLookup = { id -> when (id) {
+                "guild_bg_enthusia_3_row" -> background
+                "guild_inventory_label_enthusia_3_row" -> Component.text("\uE901").font(Key.key("nexo:default"))
+                else -> null
+            } })
+        adapted.onInventoryOpen(event)
+        verify { event.titleOverride(match { replacement ->
+            replacement != null && PlainTextComponentSerializer.plainText().serialize(replacement)
+                .contains("\uE900\uE000\uE901Statistics")
+        }) }
     }
 
     /** Java player in a themed guild keeps custom icons. */
