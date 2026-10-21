@@ -22,19 +22,26 @@ internal class GuildChronicleMenu(
     private val presenter: GuildDialogPresenter = GuildMenuDialog(),
     private val initialRewardId: String? = null,
     private val returnToBrowser: (() -> Unit)? = null,
+    private val initialPrestige: Boolean = false,
+    private val reviewPrestige: (() -> Unit)? = null,
 ) : Menu, KoinComponent {
     private val chronicle: GuildChronicleService by inject()
     private val members: MemberService by inject()
     private val purchases: GuildRewardPurchaseService by inject()
     private val config: ConfigService by inject()
     private val lang: LangService by inject()
+    private val prestigeService: GuildPrestigeService by inject()
     private var page: Int? = null
     private var branch = ChronicleBranch.ALL
 
     override fun open() {
         val snapshot = read() ?: return
         if (page == null) page = (snapshot.state.level - 1) / 10
-        if (initialRewardId != null) detail(initialRewardId) else tree()
+        when {
+            initialPrestige -> prestige()
+            initialRewardId != null -> detail(initialRewardId)
+            else -> tree()
+        }
     }
 
     private fun read(): GuildChronicle? = chronicle.read(player.uniqueId, guild.id, page ?: 0, branch)
@@ -57,6 +64,7 @@ internal class GuildChronicleMenu(
             if (snapshot.page < 9) add(referenceAction(lang.gui("chronicle.later"), "lg_page_next") { page = snapshot.page + 1; tree() })
             snapshot.goal.rewardId?.let { id -> add(referenceAction(lang.gui("chronicle.goal"), "lg_reward") { detail(id) }) }
             add(referenceAction(lang.gui("chronicle.automatic"), "lg_bank") { automatic() })
+            add(referenceAction(lang.gui("chronicle.prestige.title"), "lg_prestige") { prestige() })
         }
         show(cards, actions, referenceAction(lang.gui("recruitment.dialog.back"), "lg_back", navigator::goBack),
             lang.gui("chronicle.range", "guild" to guild.name, "level" to snapshot.state.level,
@@ -80,9 +88,7 @@ internal class GuildChronicleMenu(
                 lang.gui("chapter_two_rewards.capacity_bank", "capacity" to benefits.bankCapacity),
                 lang.gui("chapter_two_rewards.capacity_home_member", "homes" to benefits.homeCapacity, "members" to benefits.memberCapacity),
                 lang.gui("chapter_two_rewards.multipliers", "cooldown" to benefits.homeCooldownMultiplier, "fee" to benefits.withdrawalFeeMultiplier))),
-            referenceItem("lg_prestige", listOf(
-                if (reward.permanentOnPurchase) lang.gui("chronicle.permanent") else lang.gui("chronicle.retention"),
-                lang.gui("chronicle.optional"))),
+            referenceItem("lg_prestige", earningDetails(offer)),
         )
         val actions = buildList {
             if (snapshot.canTrack) add(referenceAction(
@@ -119,6 +125,75 @@ internal class GuildChronicleMenu(
         },
             lang.gui("chronicle.detail", "guild" to guild.name, "level" to snapshot.state.level))
     }
+
+    /** Information only: purchasing and prestiging remain behind existing quotes and confirmations. */
+    private fun prestige() {
+        val snapshot = read() ?: return
+        val overview = prestigeService.overview(guild.id) ?: run {
+            player.sendMessage(lang.msg("chapter_two_rewards.unavailable"))
+            return
+        }
+        val retained = snapshot.state.entitlements.offers.filter {
+            it.status == RewardOfferStatus.PERMANENT && !it.reward.permanentOnPurchase
+        }
+        val cards = buildList {
+            add(referenceItem("lg_prestige", listOf(
+                lang.gui("chronicle.prestige.title"),
+                lang.gui("chronicle.prestige.progress", "count" to overview.prestigeCount,
+                    "max" to overview.maxPrestigeCount, "level" to overview.currentLevel),
+                lang.gui("chronicle.prestige.home_bonus", "count" to overview.prestigeCount),
+                overview.nextFee?.let { lang.gui("chronicle.prestige.fee", "fee" to it) }
+                    ?: lang.gui("chronicle.prestige.maximum"),
+            )))
+            add(referenceItem("lg_sources", listOf(
+                lang.gui("chronicle.prestige.earn_title"),
+                lang.gui("chronicle.prestige.earn_level"),
+                lang.gui("chronicle.prestige.earn_purchase"),
+                lang.gui("chronicle.prestige.earn_confirm"),
+            )))
+            add(referenceItem("lg_home_add", listOf(
+                lang.gui("chronicle.prestige.preserved_title"),
+                lang.gui("chronicle.prestige.preserved_homes"),
+                lang.gui("chronicle.prestige.preserved_rewards"),
+                lang.gui("chronicle.prestige.reset"),
+                lang.gui("chronicle.prestige.chapter"),
+            )))
+            if (retained.isEmpty()) add(referenceItem("lg_prestige", listOf(lang.gui("chronicle.prestige.none"))))
+            val settings = config.loadConfig().progression.prestige
+            for (tier in 1..overview.maxPrestigeCount) add(referenceItem("lg_prestige", listOf(
+                lang.gui("chronicle.prestige.milestone", "tier" to tier, "fee" to settings.feeFor(tier - 1)),
+                lang.gui(if (tier <= overview.prestigeCount) "chronicle.prestige.milestone_earned" else "chronicle.prestige.milestone_locked"),
+            )))
+            retained.forEach { offer -> add(referenceItem("lg_prestige", listOf(
+                lang.gui("chronicle.prestige.seal"), Component.text(offer.reward.name), effect(offer.reward.effect),
+                lang.gui("chronicle.prestige.retained"),
+            ), referenceAction(Component.text(offer.reward.name), "lg_prestige") { detail(offer.reward.id) })) }
+        }
+        val actions = buildList {
+            if (reviewPrestige != null && overview.enabled && overview.currentLevel == 100 &&
+                overview.prestigeCount < overview.maxPrestigeCount && overview.choices.isNotEmpty()) {
+                add(referenceAction(lang.gui("chronicle.prestige.review"), "lg_prestige", reviewPrestige))
+            }
+            add(referenceAction(lang.gui("chronicle.back_tree"), "lg_back") { tree() })
+        }
+        show(cards, actions, referenceAction(lang.gui("recruitment.dialog.back"), "lg_back", navigator::goBack),
+            lang.gui("chronicle.prestige.subtitle"))
+    }
+
+    private fun earningDetails(offer: RewardOffer): List<Component> = listOf(
+        when {
+            offer.reward.permanentOnPurchase -> lang.gui("chronicle.earning.purchase_permanent")
+            offer.status == RewardOfferStatus.PERMANENT -> lang.gui("chronicle.prestige.seal")
+            else -> lang.gui("chronicle.earning.optional")
+        },
+        lang.gui("chronicle.earning.level_price", "level" to offer.reward.level, "price" to offer.reward.price),
+        lang.gui("chronicle.earning.purchase"),
+        when {
+            offer.reward.permanentOnPurchase -> lang.gui("chronicle.earning.home_kept")
+            offer.status == RewardOfferStatus.PERMANENT -> lang.gui("chronicle.prestige.retained")
+            else -> lang.gui("chronicle.earning.retain")
+        },
+    )
 
     private fun automatic() {
         val snapshot = read() ?: return

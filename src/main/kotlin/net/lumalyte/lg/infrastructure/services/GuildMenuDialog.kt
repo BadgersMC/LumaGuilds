@@ -45,6 +45,7 @@ internal data class GuildDialogPage(
     val bodyActions: List<GuildDialogAction> = emptyList(),
     val showCategoryInput: Boolean = true,
     val framedHeading: Boolean = false,
+    val diagram: List<List<GuildDialogAction>> = emptyList(),
 )
 
 /** Uses public Paper dialog APIs; Nexo item models remain owned by the private pack. */
@@ -159,7 +160,15 @@ internal class GuildMenuDialog : GuildDialogPresenter {
                     ),
                 )
             }
-        val bodies = links + page.items.flatMap { itemBodies(it, callbacks, skin) }
+        val diagram = page.diagram.map { row ->
+            val connected = row.map { action -> clickableGuildDialogCard(action.label, action) {
+                ClickEvent.callback({ audience -> callbacks.submit(audience, it.action) }, callbackOptions())
+            } }
+            DialogBody.plainMessage(Component.join(
+                net.kyori.adventure.text.JoinConfiguration.separator(Component.text("  ──  ", net.kyori.adventure.text.format.NamedTextColor.DARK_GRAY)),
+                connected), TEXT_WIDTH)
+        }
+        val bodies = links + diagram + page.items.flatMap { itemBodies(it, callbacks, skin) }
         val frame = if (page.framedHeading) skin?.referenceFrame(page.title, page.subtitle) else null
         val surface = GuildDialogSurface.resolve(page.theme)?.heading(page.title, page.subtitle, bodies)
         return DialogBase.builder(if (surface != null || frame != null) Component.empty() else page.title.color(guildDialogAccent(page.theme)))
