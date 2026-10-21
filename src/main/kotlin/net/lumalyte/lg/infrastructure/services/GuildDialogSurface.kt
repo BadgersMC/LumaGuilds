@@ -12,7 +12,7 @@ import net.lumalyte.lg.utils.GuiTheme
 import kotlin.math.ceil
 
 /** Decorative underlay only. Existing body widgets, banners and callbacks remain native. */
-internal class GuildDialogSurface private constructor(theme: GuiTheme, private val version: Int) {
+internal class GuildDialogSurface private constructor(private val theme: GuiTheme, private val version: Int) {
     private val font = Key.key("lumaguilds:dialog_surface_${theme.name.lowercase()}" + if (version == 2) "_v2" else "")
     private fun glyph(code: Int): Component = Component.text(code.toChar(), NamedTextColor.WHITE).font(font)
         .shadowColor(ShadowColor.none())
