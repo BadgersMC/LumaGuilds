@@ -12,8 +12,8 @@ import net.lumalyte.lg.utils.GuiTheme
 import kotlin.math.ceil
 
 /** Decorative underlay only. Existing body widgets, banners and callbacks remain native. */
-internal class GuildDialogSurface private constructor(private val theme: GuiTheme) {
-    private val font = Key.key("lumaguilds:dialog_surface_${theme.name.lowercase()}")
+internal class GuildDialogSurface private constructor(theme: GuiTheme, private val version: Int) {
+    private val font = Key.key("lumaguilds:dialog_surface_${theme.name.lowercase()}" + if (version == 2) "_v2" else "")
     private fun glyph(code: Int): Component = Component.text(code.toChar(), NamedTextColor.WHITE).font(font)
         .shadowColor(ShadowColor.none())
         .decoration(TextDecoration.BOLD, false).decoration(TextDecoration.ITALIC, false)
@@ -39,7 +39,11 @@ internal class GuildDialogSurface private constructor(private val theme: GuiThem
                 in 1 until headingRows -> 0xE200 + index
                 else -> 0xE100 + index
             }
-            result.append(glyph(code)).append(glyph(0xE000))
+            // 180px cells fit the vanilla 256px atlas. A -1px seam correction
+            // preserves the original 361px advance and all native widget positions.
+            result.append(glyph(code))
+            if (version == 2) result.append(glyph(0xE002)).append(glyph(code + 0x800))
+            result.append(glyph(0xE000))
         }
         result.append(pad(361)).append(Component.newline())
         for ((line, halfWidth) in rows) {
@@ -57,11 +61,14 @@ internal class GuildDialogSurface private constructor(private val theme: GuiThem
         fun resolve(theme: GuiTheme, resolver: NexoGlyphResolver = NexoPublicGlyphResolver): GuildDialogSurface? {
             val selected = theme.resolved()
             if (!selected.hasBackground) return null
-            val id = "guild_dialog_surface_${selected.name.lowercase()}_v1"
-            val marker = resolveOptionalGlyph(resolver, id) ?: return null
-            return if (marker.matchesId(id) && marker.font == "lumaguilds:dialog_surface_contract" &&
-                !marker.isEmoji && marker.character.codePointCount(0, marker.character.length) == 1
-            ) GuildDialogSurface(selected) else null
+            for (version in listOf(2, 1)) {
+                val id = "guild_dialog_surface_${selected.name.lowercase()}_v$version"
+                val marker = resolveOptionalGlyph(resolver, id) ?: continue
+                if (marker.matchesId(id) && marker.font == "lumaguilds:dialog_surface_contract" &&
+                    !marker.isEmoji && marker.character.codePointCount(0, marker.character.length) == 1
+                ) return GuildDialogSurface(selected, version)
+            }
+            return null
         }
 
         fun bodyHeight(body: DialogBody): Int? = when (body) {

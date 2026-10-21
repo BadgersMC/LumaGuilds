@@ -1,5 +1,13 @@
 # Achievement tree and prestige presentation
 
+## Current rendering regression and navigation follow-up
+
+AP-006: WHEN the pack advertises the v2 continuous-surface contract THE SYSTEM SHALL render each 360px strip as two 180px bitmap cells with a -1px seam correction, keeping the total 361px advance, line offsets and native widget callbacks unchanged. Without v2 it SHALL retain the existing v1/plain compatibility path. Every theme SHALL use its own versioned font. This is a renderer/pack pairing, not a replacement of action widgets.
+
+Read-only evidence from the current Dawn client: Minecraft 26.3; ImmediatelyFast reports font-atlas resizing disabled. Local vanilla FontTexture bytecode constructs a 256x256 DynamicAtlasTree and inserts the bitmap pixel width/height. The existing single 360x9 cell cannot fit that atlas. Missing backgrounds and white missing-glyph boxes are consistent with this failure. Native v2 acceptance still requires an acknowledged TEST/client window. No client configuration workaround or shared pack source edit is used.
+
+The user also requested linking the old Statistics combat achievements into the newer menu. Source inspection found its summary counts six different predicates while the detail evaluates eight. Planned improvement: one entry, explicit Personal achievements versus Guild milestones, readable icons and exact current-stat conditions, preserving the eight old predicates without new XP or historical permanent-award claims. This expansion remains pending while rendering is prioritized. The inventory label crossing its decorative divider is a separate issue under investigation; no global font/translation suppression is applied.
+
 ## Scope and requirements
 
 - AP-001: WHEN a guild member browses achievements THE SYSTEM SHALL render a vanilla-inspired connected milestone tree with selectable category and node controls, actual provider progress or explicitly unavailable tracking, and earning, recipient and reward details. The viewer SHALL NOT fabricate progress or execute rewards.
