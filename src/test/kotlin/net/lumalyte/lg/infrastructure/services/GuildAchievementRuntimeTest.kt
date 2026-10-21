@@ -14,6 +14,32 @@ import kotlin.test.*
 internal class GuildAchievementRuntimeTest {
     @AfterEach fun cleanup() { unmockkAll(); MockBukkit.unmock() }
 
+    @Test fun `initial projection waits until after the vanilla join reset`() {
+        val server = MockBukkit.mock()
+        val plugin = spyk(MockBukkit.createMockPlugin("LumaGuilds"))
+        every { plugin.getResource("guild-achievements.json") } answers { javaClass.classLoader.getResourceAsStream("guild-achievements.json") }
+        val player = spyk(server.addPlayer())
+        every { player.isOnline } returns true
+        every { player.saveData() } just Runs
+        val guild = UUID.randomUUID()
+        val members = mockk<MemberRepository>()
+        every { members.getGuildsByPlayer(player.uniqueId) } returns setOf(guild)
+        every { members.getByGuild(guild) } returns emptySet()
+        val progression = mockk<ProgressionRepository>()
+        every { progression.getGuildProgression(guild) } returns null
+        val stalls = mockk<net.lumalyte.lg.application.services.GuildStallReadService>()
+        every { stalls.read(guild, player.uniqueId) } returns java.util.concurrent.CompletableFuture.completedFuture(
+            net.lumalyte.lg.application.services.StallReadResult.Unavailable)
+        val runtime = GuildAchievementRuntime(plugin, members, progression, stalls)
+        runtime.initializeAfterJoin(player)
+        assertTrue(runtime.read(player)!!.progress.isEmpty())
+        server.scheduler.performTicks(19L)
+        assertTrue(runtime.read(player)!!.progress.isEmpty())
+        server.scheduler.performTicks(2L)
+        assertEquals(1, runtime.read(player)!!.progress["guilds_root"])
+        verify(exactly = 0) { player.giveExp(any<Int>()) }
+    }
+
     @Test fun `existing owned stall qualifies once but unavailable unowned and stale results do not`() {
         val server = MockBukkit.mock()
         val plugin = spyk(MockBukkit.createMockPlugin("LumaGuilds"))

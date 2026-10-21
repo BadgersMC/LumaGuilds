@@ -65,6 +65,13 @@ internal class GuildAchievementRuntime(
     fun isMember(playerId: UUID, guildId: UUID): Boolean = guildId in members.getGuildsByPlayer(playerId)
     fun online(guildId: UUID): List<Player> = members.getByGuild(guildId).mapNotNull { Bukkit.getPlayer(it.playerId) }
 
+    /** Let vanilla's join-time advancement reset finish before the first custom definition packet. */
+    fun initializeAfterJoin(player: Player) {
+        plugin.server.scheduler.runTaskLater(plugin, Runnable {
+            if (player.isOnline) initialize(player)
+        }, 20L)
+    }
+
     fun initialize(player: Player) {
         val guild = guild(player.uniqueId) ?: return
         read(player)?.let { record ->
