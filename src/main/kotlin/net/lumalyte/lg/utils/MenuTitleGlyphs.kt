@@ -50,8 +50,12 @@ object MenuTitleGlyphs {
                 val suffix = "${theme.name.lowercase()}_${rows}_row"
                 val background = lookup("guild_bg_$suffix") ?: continue
                 val glyph = serializer.serialize(background)
-                // Restrict recognition to one non-ASCII registered glyph, never ordinary title text.
-                if (glyph.codePointCount(0, glyph.length) != 1 || glyph.codePointAt(0) < 128) continue
+                // Nexo 1.29 registers the bitmap with a trailing spacing character.
+                // Match only a bounded registered non-ASCII sequence, never ordinary title text.
+                val points = glyph.codePoints().toArray()
+                if (points.isEmpty() || points.size > 8 || points.any {
+                    it < 128 || Character.isWhitespace(it) || Character.isISOControl(it)
+                }) continue
                 if (!text.contains(glyph)) continue
                 val plate = lookup("guild_inventory_label_$suffix") ?: return title
                 val plateText = serializer.serialize(plate)

@@ -48,6 +48,23 @@ internal class MenuTitleGlyphsTest {
         })
     }
 
+    @Test fun registeredBackgroundWithNexoSpacingReceivesItsPlateOnce() {
+        // Nexo 1.29.1 Glyph.registerComponent joins the unicode with Shift.of(-1).
+        val background = Component.text("\uE900\uF801").font(nexoFont)
+        val plate = Component.text("\uE901\uF801").font(nexoFont)
+        val registered: (String) -> Component? = { id -> when (id) {
+            "guild_bg_enthusia_3_row" -> background
+            "guild_inventory_label_enthusia_3_row" -> plate
+            else -> null
+        } }
+        val title = background.append(Component.text("Statistics"))
+        val fixed = MenuTitleGlyphs.withGlyphFonts(title, registered)
+        assertEquals("\uE900\uF801\uE000\uE901\uF801Statistics",
+            PlainTextComponentSerializer.plainText().serialize(fixed))
+        assertEquals(fixed, MenuTitleGlyphs.withGlyphFonts(fixed, registered))
+        assertEquals(Component.text("Statistics"), MenuTitleGlyphs.withGlyphFonts(Component.text("Statistics"), registered))
+    }
+
     private fun fonts(c: Component): List<Pair<String, Key?>> {
         val out = mutableListOf<Pair<String, Key?>>()
         fun walk(x: Component, inherited: Key?) {

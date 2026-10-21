@@ -66,3 +66,21 @@ TEST/client windows802/803 were released by Roundtable805 at14:13:42UTC.
 Both clients are back on TEST with menus closed. Further shared TEST/client
 use requires a new owner handoff. Screenshots and failed-label evidence:
 https://chatgpt.com/space/page_7ef3bde67cf481918bf3b8a0f5b90e99.
+
+### CLAIM808 native result and registered spacing refinement
+
+HUMAN handoff10:40-11:10 EDT authorized one Guilds-only restart. Sourcec1bd3fae
+passed2234 discovered tests:2166 passed68 skipped0 failures/errors in39616904637.
+TEST loaded SHA25681ec569aadb63cdc263224c0c605c21feecaa19cbf1be6e5b27da28e85f86554;
+106 companion entries and protected configs unchanged. Backup archive
+2026-10-21T144800Z.tar.gz retained. Native3/6-row Inventory labels still overlap;
+MF-003 remains FAILED. A connection reset occurred and was recovered through
+the normal network entry; no GuildMenuDialog error appeared in the server log.
+
+Exact TEST Nexo1.29.1 binary5dd73151763da3625ef37d473d745c02172eeffcf932c1b1d5a8f5c8216484c2
+was checked with javap. Glyph.registerComponent joins each unicode with
+Shift.of(-1), so registered glyph text is not one character. The c1 recognition
+guard therefore excludes this runtime shape. Regression now covers a registered
+bitmap plus spacing sequence; matching remains bounded to registered non-ASCII
+strings and idempotent. This source refinement requires new hosted CI and native
+acceptance. No second restart is authorized by CLAIM808 and no pack changes made.
