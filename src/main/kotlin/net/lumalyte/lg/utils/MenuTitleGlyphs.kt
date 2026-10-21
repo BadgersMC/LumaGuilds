@@ -33,7 +33,9 @@ object MenuTitleGlyphs {
             val plate = lookup(id.replace("guild_bg_", "guild_inventory_label_"))
             id to if (plate == null) background else background
                 .append(Component.text("\uE000").font(Key.key("lumaguilds:inventory_label_spacing")))
-                .append(plate)
+                .append(plate.color(net.kyori.adventure.text.format.NamedTextColor.WHITE)
+                    .decoration(net.kyori.adventure.text.format.TextDecoration.BOLD, false)
+                    .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
         } }.toMap()
         if (resolved.isEmpty()) return title
         return title.replaceText(

@@ -22,6 +22,7 @@ internal class GuildAchievementsMenu(
     private val guild: Guild,
     private val presenter: GuildDialogPresenter = GuildMenuDialog(),
     private var guildMilestones: Boolean = false,
+    private val fromStatistics: Boolean = false,
 ) : Menu, KoinComponent {
     private val runtime: GuildAchievementRuntime by inject()
     private val members: MemberService by inject()
@@ -110,7 +111,7 @@ internal class GuildAchievementsMenu(
             })
         }
         presenter.show(player, GuildDialogPage(lang.gui("achievements.title"), cards, actions,
-            action(lang.gui("achievements.back"), navigator::goBack), columns = 2,
+            action(backLabel(), navigator::goBack), columns = 2,
             theme = guilds.getGuild(guild.id)?.guiTheme ?: guild.guiTheme,
             subtitle = lang.gui("achievements.subtitle", "category" to category, "page" to page + 1, "pages" to pages),
             bodyActions = listOf(action(lang.gui("achievements.guild_scope")) {
@@ -141,12 +142,13 @@ internal class GuildAchievementsMenu(
         }
         presenter.show(player, GuildDialogPage(lang.gui("achievements.guild_scope"), cards +
             referenceItem("lg_sources", listOf(lang.gui("achievements.guild_rules"))), actions,
-            referenceAction(lang.gui("achievements.back"), "lg_back", navigator::goBack), columns = 2,
+            referenceAction(backLabel(), "lg_back", navigator::goBack), columns = 2,
             theme = guilds.getGuild(guild.id)?.guiTheme ?: guild.guiTheme,
             subtitle = lang.gui("achievements.guild_summary", "count" to badges.count { it.achieved }, "page" to guildPage + 1)),
             { valid(token) }, { player.sendMessage(lang.gui("achievements.unavailable")) })
     }
 
+    private fun backLabel() = if (fromStatistics) lang.gui("achievements.back_statistics") else lang.gui("achievements.back")
     private fun valid(token: Long) = player.isOnline && navigator.isNavigationCurrent(token) && members.getMember(player.uniqueId, guild.id) != null
     private fun shortName(name: String) = if (name.length <= 19) name else name.take(18) + "…"
     private fun icon(node: GuildAchievement) = when (node.category) {

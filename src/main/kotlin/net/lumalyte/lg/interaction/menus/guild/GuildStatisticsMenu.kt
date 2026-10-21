@@ -741,7 +741,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
         val guiItem = GuiItem(item) {
             if (net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.supportsDialog(player)) {
-                menuNavigator.openMenu(GuildAchievementsMenu(menuNavigator, player, guild, guildMilestones = true))
+                menuNavigator.openMenu(GuildAchievementsMenu(menuNavigator, player, guild, guildMilestones = true, fromStatistics = true))
             } else {
                 openAchievementsDetail()
             }
