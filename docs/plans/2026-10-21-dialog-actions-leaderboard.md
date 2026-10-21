@@ -42,3 +42,22 @@ record. Hosted build, independent review and native acceptance are separate.
 No TEST/client window, deployment, reload, restart, merge or production action is
 authorized by this source/design unit. The previous window was released832.
 Interactive proposal: https://chatgpt.com/space/page_15340b17f1148191aa947127d230a501.
+
+## Verification evidence
+
+Pack d08df39 passes hosted lint/build39640415310 and the local palette, icon,
+control-clearance, action geometry and full pack checks. New artwork has no
+random grain. Browser checks cover both command entries, tabs, Back, keyboard
+focus and all eight theme/fallback selections at320px;390px and768px fit without
+horizontal overflow. Browser sample data is not native rendering proof.
+
+Guilds f55e581c hosted39640401398 compiled and executed2,247 cases: one existing
+locale-contract check failed because two new Bedrock references were dynamic.
+All nine new regression cases passed. Correction2d920143 makes the three keys
+explicit rather than relaxing that baseline. Recruitment input Submit/Cancel
+also use the shared artwork helper, retaining each unsupported-label width.
+The local build could not compile unrelated companion adapters because RoseChat,
+CombatLogX and EnthusiaStaff API artifacts are missing; canonical hosted CI
+supplies the pinned APIs. Final corrected-head hosted results are recorded in
+the delivery evidence and PR. Native button alignment, hover, focus, click and
+pack delivery acceptance remain pending a new authorized coordination window.
