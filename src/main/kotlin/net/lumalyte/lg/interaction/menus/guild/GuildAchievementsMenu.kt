@@ -130,7 +130,7 @@ internal class GuildAchievementsMenu(
         val cards = badges.drop(guildPage * 4).take(4).map { badge ->
             referenceItem(if (badge.achieved) "lg_confirm" else "lg_combat", listOf(
                 Component.text(badge.title, if (badge.achieved) NamedTextColor.GOLD else NamedTextColor.GRAY),
-                lang.gui(if (badge.achieved) "achievements.guild_met" else "achievements.guild_not_met"),
+                if (badge.achieved) lang.gui("achievements.guild_met") else lang.gui("achievements.guild_not_met"),
                 Component.text(badge.condition), Component.text(badge.progress),
             ))
         }

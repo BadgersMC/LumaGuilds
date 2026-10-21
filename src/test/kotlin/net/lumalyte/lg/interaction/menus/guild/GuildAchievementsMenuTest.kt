@@ -23,6 +23,7 @@ internal class GuildAchievementsMenuTest : RecruitmentDialogFixture() {
         every { player.uniqueId } returns actor
         every { player.isOnline } returns true
         every { guilds.getGuild(guild.id) } returns guild
+        every { lang.msg(any(), *anyVararg()) } answers { Component.text(firstArg<String>()) }
         val members = mockk<MemberService>()
         every { members.getMember(actor, guild.id) } returns mockk()
         val kills = mockk<net.lumalyte.lg.application.services.KillService>()

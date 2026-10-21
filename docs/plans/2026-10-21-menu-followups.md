@@ -33,3 +33,9 @@ under an unacknowledged build-capacity claim; use hosted exact-head CI.
 Project EARS/state helpers remain absent. Manual requirement/evidence tracking
 is used. Economy mutation and exhaustive live theme matrix require a new
 acknowledged resource window and fixture scope; no live acceptance is implied.
+
+Hosted baseline 9584f534 ran 2,232 tests: three failures, 68 skips. Two locale
+contracts rejected the new dynamic conditional key expression; use literal
+calls rather than weakening the baseline. The new scope-navigation fixture
+also needs the same LangService.msg stub as the existing personal-tree fixture.
+This is recorded failure evidence; a fresh hosted run must pass the refinement.
