@@ -71,6 +71,34 @@ internal class MenuIconAdapterTest {
     }
 
     /** Java player in a themed guild keeps custom icons. */
+    @Test fun finalPacketTitleUsesMainThreadSnapshotWithoutAnotherNexoLookup() {
+        val p = player(bedrock = false, theme = GuiTheme.ENTHUSIA)
+        val background = Component.text("\uE900\uF801").font(Key.key("nexo:default"))
+        val title = background.append(Component.text("Statistics"))
+        var allowLookup = true
+        val adapted = MenuIconAdapter(mockk<Plugin>(relaxed = true), platform, guildService, { bedrock },
+            glyphLookup = { id ->
+                check(allowLookup) { "Nexo lookup from final packet path" }
+                when (id) {
+                    "guild_bg_enthusia_3_row" -> background
+                    "guild_inventory_label_enthusia_3_row" -> Component.text("\uE901\uF801").font(Key.key("nexo:default"))
+                    else -> null
+                }
+            })
+        val event = mockk<InventoryOpenEvent>(relaxed = true)
+        every { event.player } returns p
+        every { event.titleOverride() } returns null
+        every { event.view.title() } returns title
+        adapted.onInventoryOpen(event)
+        allowLookup = false
+        // Model the event override being discarded: the outgoing packet still has the original title.
+        val finalTitle = requireNotNull(adapted.packetTitle(p.uniqueId, title))
+        assertTrue(PlainTextComponentSerializer.plainText().serialize(finalTitle).contains("\uE000\uE901"))
+        assertNull(adapted.packetTitle(p.uniqueId, finalTitle))
+        assertNull(adapted.packetTitle(p.uniqueId, Component.text("Ordinary chest")))
+    }
+
+    /** Java player in a themed guild keeps custom icons. */
     @Test
     fun themedJavaKeepsIcons() {
         val p = player(bedrock = false, theme = GuiTheme.ENTHUSIA)

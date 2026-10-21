@@ -84,3 +84,22 @@ guard therefore excludes this runtime shape. Regression now covers a registered
 bitmap plus spacing sequence; matching remains bounded to registered non-ASCII
 strings and idempotent. This source refinement requires new hosted CI and native
 acceptance. No second restart is authorized by CLAIM808 and no pack changes made.
+
+### Final packet title boundary candidate
+
+HUMAN window815 activated bd7136f2 after hosted39621821267 passed2167 tests,
+68 skipped, zero failures/errors. Native3/6-row labels still overlap. Client
+download577cdda6 includes the correct E102 nexo:default bitmap provider and
+its valid PNG; glyphinfo confirms the background and plate IDs. Therefore
+registration/asset absence is excluded. Event title handling remains unproven.
+
+Add final OPEN_WINDOW title composition to the existing packet adapter using an
+immutable glyph snapshot built on InventoryOpen's Bukkit thread. Packet handling
+does not call Nexo or guild services. Reapplication is idempotent, missing plates
+and ordinary titles remain unchanged; slot/action packets retain their existing
+path. Four structural log entries per adapter startup identify event versus packet
+composition without player/title/token contents. Regression models discarded event
+override, no Nexo calls at packet boundary, idempotence and ordinary chest fallback.
+The intended visual is unchanged from the existing interactive plate proposal.
+This candidate requires hosted CI and another explicitly handed-off TEST window;
+815's one authorized restart is already used. No native success is claimed.

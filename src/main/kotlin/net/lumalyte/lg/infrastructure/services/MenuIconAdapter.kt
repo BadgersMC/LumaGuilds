@@ -8,6 +8,7 @@ import com.github.retrooper.packetevents.protocol.component.ComponentTypes
 import com.github.retrooper.packetevents.protocol.packettype.PacketType
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSetSlot
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerWindowItems
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerOpenWindow
 import io.github.retrooper.packetevents.util.SpigotConversionUtil
 import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.services.GuildService
@@ -31,6 +32,7 @@ import org.bukkit.plugin.Plugin
 import java.util.Optional
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 import com.github.retrooper.packetevents.protocol.item.ItemStack as PacketItemStack
 
 /**
@@ -78,6 +80,10 @@ internal class MenuIconAdapter(
         hookPacketEvents ?: { PacketEvents.getAPI().eventManager.registerListener(it) }
 
     @Volatile private var hooked = false
+
+    // Published on the Bukkit thread; packet callbacks never call Nexo or Bukkit services.
+    @Volatile private var titleGlyphs: Map<String, Component> = emptyMap()
+    private val titleDiagnostics = AtomicInteger(4)
 
     /** Registers the Bukkit listeners and hooks the packet listener once packetevents is up. */
     fun register() {
@@ -160,20 +166,48 @@ internal class MenuIconAdapter(
     fun onInventoryOpen(event: InventoryOpenEvent) {
         val player = event.player as? Player ?: return
         refresh(player)
+        titleGlyphs = GuiTheme.SELECTABLE.filter { it.hasBackground }.flatMap { theme ->
+            (1..6).flatMap { rows ->
+                val suffix = "${theme.name.lowercase()}_${rows}_row"
+                listOf("guild_bg_$suffix", "guild_inventory_label_$suffix")
+            }
+        }.mapNotNull { id -> glyphLookup(id)?.let { id to it } }.toMap()
         val title = event.titleOverride() ?: event.view.title()
-        replacementTitle(player.uniqueId, title)?.let(event::titleOverride)
+        val replacement = replacementTitle(player.uniqueId, title)
+        traceTitle("event", replacement != null)
+        replacement?.let(event::titleOverride)
     }
 
     private fun replacementTitle(playerId: UUID, title: Component): Component? {
         return when {
             cleansTitlesFor(playerId) -> if (MenuTitleGlyphs.hasBackgroundGlyph(title)) BedrockIcons.plainTitle(title) else null
             // Give the background glyph its Nexo font so it draws instead of showing as a box.
-            else -> MenuTitleGlyphs.withGlyphFonts(title, glyphLookup).takeIf { it != title }
+            else -> MenuTitleGlyphs.withGlyphFonts(title, titleGlyphs::get).takeIf { it != title }
         }
+    }
+
+    /** Final title boundary, including inventories whose event override is not retained. */
+    internal fun packetTitle(playerId: UUID, title: Component): Component? = replacementTitle(playerId, title)
+
+    private fun traceTitle(stage: String, changed: Boolean) {
+        if (titleDiagnostics.getAndUpdate { if (it > 0) it - 1 else 0 } <= 0) return
+        // Bounded structural evidence only: no player, guild name, title content or callback token.
+        runCatching { plugin.logger.info("Menu title plate: stage=$stage registered=${titleGlyphs.size} changed=$changed") }
     }
 
     override fun onPacketSend(event: PacketSendEvent) {
         val type = event.packetType
+        if (type == PacketType.Play.Server.OPEN_WINDOW) {
+            val uuid = event.user?.uuid ?: return
+            val wrapper = WrapperPlayServerOpenWindow(event)
+            val replacement = packetTitle(uuid, wrapper.title)
+            traceTitle("packet", replacement != null)
+            replacement?.let {
+                wrapper.title = it
+                event.markForReEncode(true)
+            }
+            return
+        }
         if (type != PacketType.Play.Server.WINDOW_ITEMS && type != PacketType.Play.Server.SET_SLOT) return
         val uuid = event.user?.uuid ?: return
         val standIn: (PacketItemStack?) -> PacketItemStack? =
