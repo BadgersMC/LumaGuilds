@@ -313,4 +313,7 @@ internal fun registeredNexoBitmap(provider: Any, id: String): Component? {
     if (unicode.codePointCount(0, unicode.length) != 1 || unicode.codePointAt(0) < 128) return null
     val font = glyph.javaClass.getMethod("getFont").invoke(glyph) as? net.kyori.adventure.key.Key ?: return null
     return Component.text(unicode).font(font)
+        .color(net.kyori.adventure.text.format.NamedTextColor.WHITE)
+        .decoration(net.kyori.adventure.text.format.TextDecoration.BOLD, false)
+        .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false)
 }

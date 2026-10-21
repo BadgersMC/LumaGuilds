@@ -24,7 +24,10 @@ class NexoBitmapLookupTest {
 
     @Test fun liveBitmapIdentityPreservesFontAndDoesNotUseFallback() {
         val provider = Provider()
-        assertEquals(Component.text("\uA042").font(Key.key("nexo:default")),
+        assertEquals(Component.text("\uA042").font(Key.key("nexo:default"))
+            .color(net.kyori.adventure.text.format.NamedTextColor.WHITE)
+            .decoration(net.kyori.adventure.text.format.TextDecoration.BOLD, false)
+            .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false),
             registeredNexoBitmap(provider, "guild_bg_enthusia_3_row"))
         assertNull(registeredNexoBitmap(provider, "missing"))
     }

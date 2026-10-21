@@ -121,3 +121,12 @@ insertion. Regression covers real split-node shape, preserved font, missing IDs,
 no presentation method call and idempotence. Native validation remains required;
 this is a compatibility candidate, not a confirmed root-cause resolution. CLAIM821
 allows one more CI-passed Guilds-only restart before16:35UTC. No pack/config changes.
+
+01ca4bc1 activated with SHA4059759c, hosted39632260783 passed2170/68skipped.
+Native dashboard label is now readable; event registered84 changedtrue and packet
+changedfalse confirms one insertion. A new visual regression dims the background:
+normalized bitmap components lack Nexo's explicit WHITE styling and inherit the
+inventory title tint. Preserve WHITE and disable bold/italic in bitmap identities;
+regression assertion now checks those inherited-style boundaries. Native acceptance
+of the tint correction remains pending. CLAIM821's two restarts are both used;
+an additional activation requires explicit new authorization, even within the window.
