@@ -103,3 +103,21 @@ override, no Nexo calls at packet boundary, idempotence and ordinary chest fallb
 The intended visual is unchanged from the existing interactive plate proposal.
 This candidate requires hosted CI and another explicitly handed-off TEST window;
 815's one authorized restart is already used. No native success is claimed.
+
+### CLAIM821 runtime lookup refinement
+
+7dd6c1fc was activated with exact SHA3187d763; native label acceptance still fails.
+Both event and packet diagnostics report registered=0 changed=false, so composition
+has no registered bitmap identities. The previous default lookup silently catches
+provider/API failures. The refinement obtains the live Bukkit Nexo provider and reads
+its public fontManager/glyphFromID/getUnicodes/getFont methods through that provider's
+classloader. It avoids the Kotlin singleton/default-argument presentation ABI and
+never substitutes the required fallback for missing optional IDs. One structural
+failure class may be logged; no player/title data is logged.
+
+Matching uses the single registered bitmap, preserving any original trailing Nexo
+spacing node. The existing -177 spacing plus bare plate advance177 yields zero net
+insertion. Regression covers real split-node shape, preserved font, missing IDs,
+no presentation method call and idempotence. Native validation remains required;
+this is a compatibility candidate, not a confirmed root-cause resolution. CLAIM821
+allows one more CI-passed Guilds-only restart before16:35UTC. No pack/config changes.

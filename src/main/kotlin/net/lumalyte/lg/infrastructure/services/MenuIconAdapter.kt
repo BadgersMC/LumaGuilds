@@ -285,10 +285,32 @@ internal class MenuIconAdapter(
     }
 }
 
-/** Nexo's glyph component (with its font) for a glyph id, or null when Nexo or the glyph is missing. */
+private val glyphLookupDiagnostics = AtomicInteger(1)
+
+/** Live Nexo bitmap identity, or null when the provider or optional glyph is unavailable. */
 internal fun nexoGlyph(id: String): Component? {
     return runCatching {
-        val fonts = com.nexomc.nexo.NexoPlugin.instance().fontManager()
-        (fonts.glyphFromID(id) ?: fonts.glyphFromName(id))?.glyphComponent()
+        val provider = org.bukkit.Bukkit.getPluginManager().getPlugin("Nexo") ?: return null
+        registeredNexoBitmap(provider, id)
+    }.onFailure { failure ->
+        if (glyphLookupDiagnostics.getAndSet(0) > 0) runCatching {
+            org.bukkit.Bukkit.getLogger().warning("[LumaGuilds] Nexo bitmap lookup unavailable: " +
+                (failure.cause ?: failure).javaClass.simpleName)
+        }
     }.getOrNull()
+}
+
+/** Read the live provider's bitmap identity, without Kotlin default-argument ABI or hover styles.
+ * Nexo's registered component can split its bitmap and trailing shift into separate text nodes.
+ * Matching only the registered bitmap leaves the original shift intact and permits a zero-width
+ * plate insertion. Missing optional IDs must not resolve to Nexo's fallback 'required' glyph.
+ */
+internal fun registeredNexoBitmap(provider: Any, id: String): Component? {
+    val fonts = provider.javaClass.getMethod("fontManager").invoke(provider)
+    val glyph = fonts.javaClass.getMethod("glyphFromID", String::class.java).invoke(fonts, id) ?: return null
+    val unicodes = glyph.javaClass.getMethod("getUnicodes").invoke(glyph) as? List<*> ?: return null
+    val unicode = unicodes.singleOrNull() as? String ?: return null
+    if (unicode.codePointCount(0, unicode.length) != 1 || unicode.codePointAt(0) < 128) return null
+    val font = glyph.javaClass.getMethod("getFont").invoke(glyph) as? net.kyori.adventure.key.Key ?: return null
+    return Component.text(unicode).font(font)
 }
