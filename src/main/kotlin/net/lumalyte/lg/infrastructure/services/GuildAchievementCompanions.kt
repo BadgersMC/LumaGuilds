@@ -34,7 +34,7 @@ internal class GuildAchievementCompanions(private val plugin: JavaPlugin, privat
             val owner = value(event, "OwnerId") as? UUID ?: return@hook
             Bukkit.getPlayer(owner)?.let { runtime.signal(it, "SHOP_CREATED") }
         }
-        hook("EnthusiaKoth", "net.badgersmc.ek.api.KothLifecycleEvent") { event ->
+        hook("EnthusiaKOTH", "net.badgersmc.ek.api.KothLifecycleEvent") { event ->
             if (value(event, "Lifecycle").toString() != "COMPLETED") return@hook
             val snapshot = value(event, "Snapshot") ?: return@hook
             if (value(snapshot, "PrivateTest") != false) return@hook
