@@ -113,6 +113,7 @@ internal class GuildAchievementsMenu(
     }
     private fun earning(node: GuildAchievement): String = when (node.requirement) {
         "GUILD_STALL_OWNED" -> "Market must confirm your guild owns a stall (active or rent grace). Existing ownership qualifies; checked on join and each minute. No purchase receipt is required."
+        "GUILD_SHOP_SALE" -> "Complete ${node.goal} paid guild SELL shop sales confirmed by Market. Own-guild, personal, free, BUY and barter transactions do not count."
         "GUILD_LEVEL_UP" -> "Reach guild level ${node.target}; current level is checked when joining."
         "GUILD_COMBINED_PLAYTIME" -> "Accumulate 1,000 combined vanilla playtime hours among current guild members."
         "GUILD_COLLECTIVE_CROP_HARVEST" -> "Break mature eligible crops, melons or pumpkins in Survival or Adventure."

@@ -81,6 +81,8 @@ internal class GuildAchievementRuntimeTest {
         reopened.signal(player, "GUILD_WAR_WON", receipt = "war-456")
         assertEquals(300, paid)
         assertEquals(30, reopened.engine.definitions.size)
+        assertEquals(30, reopened.engine.definitions.map { it.x to it.y }.distinct().size,
+            "Vanilla advancement frames must not overlap")
     }
 
     @Test fun `malformed saved data is preserved and awards fail closed`() {

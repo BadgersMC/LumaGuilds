@@ -16,8 +16,8 @@
       "category": "Foundations",
       "icon": "SHIELD",
       "frame": "TASK",
-      "x": 0.0,
-      "y": 0.0
+      "x": 1.0,
+      "y": 15.0
     },
     {
       "id": "founding",
@@ -34,8 +34,8 @@
       "category": "Foundations",
       "icon": "WRITABLE_BOOK",
       "frame": "TASK",
-      "x": 1.0,
-      "y": 0.0
+      "x": 2.0,
+      "y": 1.5
     },
     {
       "id": "colors_of_the_vanguard",
@@ -52,7 +52,7 @@
       "category": "Foundations",
       "icon": "WHITE_BANNER",
       "frame": "TASK",
-      "x": 2.0,
+      "x": 3.0,
       "y": 0.0
     },
     {
@@ -70,8 +70,8 @@
       "category": "Foundations",
       "icon": "CAMPFIRE",
       "frame": "TASK",
-      "x": 2.0,
-      "y": 0
+      "x": 3.0,
+      "y": 1.5
     },
     {
       "id": "the_vault_master",
@@ -88,8 +88,8 @@
       "category": "Foundations",
       "icon": "CHEST",
       "frame": "TASK",
-      "x": 2.0,
-      "y": 1.0
+      "x": 3.0,
+      "y": 3.0
     },
     {
       "id": "expanding_the_empire",
@@ -106,8 +106,8 @@
       "category": "Foundations",
       "icon": "EXPERIENCE_BOTTLE",
       "frame": "GOAL",
-      "x": 1.0,
-      "y": 2.0
+      "x": 2.0,
+      "y": 4.5
     },
     {
       "id": "vanguard_status",
@@ -126,8 +126,8 @@
       "category": "Foundations",
       "icon": "DRAGON_EGG",
       "frame": "CHALLENGE",
-      "x": 2.0,
-      "y": 2.0
+      "x": 3.0,
+      "y": 4.5
     },
     {
       "id": "cry_havoc",
@@ -144,8 +144,8 @@
       "category": "Combat",
       "icon": "IRON_SWORD",
       "frame": "TASK",
-      "x": 1.0,
-      "y": 0
+      "x": 2.0,
+      "y": 7.5
     },
     {
       "id": "to_the_victor",
@@ -162,8 +162,8 @@
       "category": "Combat",
       "icon": "GOLDEN_HELMET",
       "frame": "GOAL",
-      "x": 2.0,
-      "y": 0
+      "x": 3.0,
+      "y": 6.0
     },
     {
       "id": "taking_the_high_ground",
@@ -180,8 +180,8 @@
       "category": "Combat",
       "icon": "BELL",
       "frame": "GOAL",
-      "x": 2.0,
-      "y": 0
+      "x": 3.0,
+      "y": 7.5
     },
     {
       "id": "unstoppable_force",
@@ -200,8 +200,8 @@
       "category": "Combat",
       "icon": "NETHERITE_HELMET",
       "frame": "CHALLENGE",
-      "x": 3.0,
-      "y": 0
+      "x": 4.0,
+      "y": 7.5
     },
     {
       "id": "bounty_hunter",
@@ -219,7 +219,7 @@
       "icon": "BOW",
       "frame": "CHALLENGE",
       "x": 3.0,
-      "y": 0
+      "y": 9.0
     },
     {
       "id": "time_is_money",
@@ -238,8 +238,8 @@
       "category": "Cooperation",
       "icon": "CLOCK",
       "frame": "CHALLENGE",
-      "x": 1.0,
-      "y": 9.0
+      "x": 2.0,
+      "y": 10.5
     },
     {
       "id": "the_exile",
@@ -256,8 +256,8 @@
       "category": "Reputation",
       "icon": "BARRIER",
       "frame": "TASK",
-      "x": 1.0,
-      "y": 3.0
+      "x": 2.0,
+      "y": 12.0
     },
     {
       "id": "open_for_business",
@@ -274,8 +274,8 @@
       "category": "Commerce",
       "icon": "OAK_SIGN",
       "frame": "TASK",
-      "x": 1.0,
-      "y": 0
+      "x": 2.0,
+      "y": 13.5
     },
     {
       "id": "prime_real_estate",
@@ -292,8 +292,8 @@
       "category": "Commerce",
       "icon": "FILLED_MAP",
       "frame": "GOAL",
-      "x": 1.0,
-      "y": 0
+      "x": 2.0,
+      "y": 15.0
     },
     {
       "id": "art_of_the_deal",
@@ -310,8 +310,8 @@
       "category": "Commerce",
       "icon": "EMERALD",
       "frame": "TASK",
-      "x": 1.0,
-      "y": 0
+      "x": 3.0,
+      "y": 13.5
     },
     {
       "id": "supply_chain",
@@ -328,8 +328,8 @@
       "category": "Commerce",
       "icon": "CHEST_MINECART",
       "frame": "GOAL",
-      "x": 2.0,
-      "y": 0
+      "x": 4.0,
+      "y": 13.5
     },
     {
       "id": "market_dominance",
@@ -348,8 +348,8 @@
       "category": "Commerce",
       "icon": "GOLD_BLOCK",
       "frame": "CHALLENGE",
-      "x": 3.0,
-      "y": 0
+      "x": 5.0,
+      "y": 13.5
     },
     {
       "id": "industrial_revolution",
@@ -366,8 +366,8 @@
       "category": "Cooperation",
       "icon": "FURNACE",
       "frame": "GOAL",
-      "x": 1.0,
-      "y": 4.0
+      "x": 2.0,
+      "y": 16.5
     },
     {
       "id": "clear_cutting",
@@ -384,8 +384,8 @@
       "category": "Cooperation",
       "icon": "DIAMOND_PICKAXE",
       "frame": "CHALLENGE",
-      "x": 1.0,
-      "y": 5.0
+      "x": 2.0,
+      "y": 18.0
     },
     {
       "id": "bountiful_harvest",
@@ -402,8 +402,8 @@
       "category": "Cooperation",
       "icon": "WHEAT",
       "frame": "GOAL",
-      "x": 1.0,
-      "y": 6.0
+      "x": 2.0,
+      "y": 19.5
     },
     {
       "id": "mob_grinder",
@@ -420,8 +420,8 @@
       "category": "Cooperation",
       "icon": "ZOMBIE_HEAD",
       "frame": "GOAL",
-      "x": 1.0,
-      "y": 7.0
+      "x": 2.0,
+      "y": 21.75
     },
     {
       "id": "free_the_end",
@@ -440,8 +440,8 @@
       "category": "Cooperation",
       "icon": "DRAGON_HEAD",
       "frame": "CHALLENGE",
-      "x": 2.0,
-      "y": 7.0
+      "x": 3.0,
+      "y": 21.0
     },
     {
       "id": "withered_away",
@@ -458,8 +458,8 @@
       "category": "Cooperation",
       "icon": "WITHER_SKELETON_SKULL",
       "frame": "CHALLENGE",
-      "x": 2.0,
-      "y": 8.0
+      "x": 3.0,
+      "y": 22.5
     },
     {
       "id": "climbing_the_ranks",
@@ -476,8 +476,8 @@
       "category": "Reputation",
       "icon": "LADDER",
       "frame": "GOAL",
-      "x": 1.0,
-      "y": 10.0
+      "x": 2.0,
+      "y": 24.0
     },
     {
       "id": "the_one_percent",
@@ -496,8 +496,8 @@
       "category": "Reputation",
       "icon": "NETHER_STAR",
       "frame": "CHALLENGE",
-      "x": 2.0,
-      "y": 10.0
+      "x": 3.0,
+      "y": 24.0
     },
     {
       "id": "diplomatic_immunity",
@@ -514,8 +514,8 @@
       "category": "Reputation",
       "icon": "GOLDEN_APPLE",
       "frame": "GOAL",
-      "x": 1.0,
-      "y": 11.0
+      "x": 2.0,
+      "y": 25.5
     },
     {
       "id": "friendly_fire",
@@ -532,8 +532,8 @@
       "category": "Reputation",
       "icon": "SNOWBALL",
       "frame": "TASK",
-      "x": 3.0,
-      "y": 0.0
+      "x": 2.0,
+      "y": 27.0
     },
     {
       "id": "coup_detat",
@@ -550,8 +550,8 @@
       "category": "Reputation",
       "icon": "GOLDEN_APPLE",
       "frame": "CHALLENGE",
-      "x": 3.0,
-      "y": 1.0
+      "x": 2.0,
+      "y": 28.5
     }
   ]
 }
