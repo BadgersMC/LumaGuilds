@@ -49,15 +49,19 @@ internal class BedrockGuildLeaderboardMenu(
             val snapshot = guildLeaderboardSnapshot(player, guilds, members, quests, tab, page)
             page = snapshot.page
             builder.content("${page + 1}/${snapshot.pages} · " + lang.bedrock("dialog_v2.guild_rankings"))
-            val keys = listOf("dialog_v2.rank_level", "dialog_v2.rank_wins", "dialog_v2.sort_online")
-            keys.forEachIndexed { index, key ->
-                action((if (tab == index) "[" else "") + lang.bedrock(key) + if (tab == index) "]" else "") {
+            val labels = listOf(
+                lang.bedrock("dialog_v2.rank_level"),
+                lang.bedrock("dialog_v2.rank_wins"),
+                lang.bedrock("dialog_v2.sort_online"),
+            )
+            labels.forEachIndexed { index, label ->
+                action((if (tab == index) "[" else "") + label + if (tab == index) "]" else "") {
                     tab = index; page = 0; open()
                 }
             }
             snapshot.rows.forEach { row ->
                 action("#${row.rank} ${row.guild.name}${if (row.guild.id == own.id) " (you)" else ""}\n" +
-                    "${row.score} ${lang.bedrock(keys[tab])} · ${row.members} ${lang.bedrock("dialog_v2.members")}") {
+                    "${row.score} ${labels[tab]} · ${row.members} ${lang.bedrock("dialog_v2.members")}") {
                     menuNavigator.openMenu(BedrockGuildRecruitmentMenu(menuNavigator, player, logger, row.guild.id))
                 }
             }

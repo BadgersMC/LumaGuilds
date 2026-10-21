@@ -39,6 +39,11 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
         val epoch = GuildMenuLifecycle.generation(player)
         val token = epoch.get()
         val skin = GuildDialogTheme().resolve(fields.theme)
+        val art = GuildDialogButtons.resolve(fields.theme)
+        fun label(text: String): Component {
+            val original = skin?.label(Component.text(text)) ?: Component.text(text)
+            return art?.label(original, 180) ?: original
+        }
 
         var consumed = false
         var presentation = -1L
@@ -64,14 +69,12 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
                     factory.empty().base(inputBase(fields, skin))
                         .type(
                             DialogType.multiAction(listOf(
-                                ActionButton.builder(
-                                    skin?.label(Component.text(fields.submitLabel)) ?: Component.text(fields.submitLabel),
-                                )
+                                ActionButton.builder(label(fields.submitLabel))
+                                    .width(if (art == null) 150 else 180)
                                     .action(action { actions.accept(it ?: "") })
                                     .build(),
-                                ActionButton.builder(
-                                    skin?.label(Component.text(fields.cancelLabel)) ?: Component.text(fields.cancelLabel),
-                                )
+                                ActionButton.builder(label(fields.cancelLabel))
+                                    .width(if (art == null) 150 else 180)
                                     .action(action { actions.cancel() })
                                     .build()),
                                 ActionButton.builder(GUILD_DIALOG_CLOSE_LABEL)
