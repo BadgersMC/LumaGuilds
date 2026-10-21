@@ -1,6 +1,7 @@
 package net.lumalyte.lg.utils
 
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.key.Key
 import net.kyori.adventure.text.TextReplacementConfig
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 
@@ -26,7 +27,14 @@ object MenuTitleGlyphs {
                 .map { it.groupValues[1] }
                 .distinct()
                 .toList()
-        val resolved = ids.mapNotNull { id -> lookup(id)?.let { id to it } }.toMap()
+        val resolved = ids.mapNotNull { id -> lookup(id)?.let { background ->
+            // The optional plate owns a zero-net-advance pair in its dedicated font.
+            // Vanilla draws Inventory after this title, so its localized text stays intact.
+            val plate = lookup(id.replace("guild_bg_", "guild_inventory_label_"))
+            id to if (plate == null) background else background
+                .append(Component.text("\uE000").font(Key.key("lumaguilds:inventory_label_spacing")))
+                .append(plate)
+        } }.toMap()
         if (resolved.isEmpty()) return title
         return title.replaceText(
             TextReplacementConfig.builder()

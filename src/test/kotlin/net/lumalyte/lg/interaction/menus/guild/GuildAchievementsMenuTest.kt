@@ -17,6 +17,36 @@ import java.util.UUID
 import kotlin.test.*
 
 internal class GuildAchievementsMenuTest : RecruitmentDialogFixture() {
+    @Test fun `guild badges page independently and return to personal tree without reward writes`() {
+        val actor = UUID.randomUUID()
+        val guild = Guild(UUID.randomUUID(), "Mastery", createdAt = Instant.EPOCH)
+        every { player.uniqueId } returns actor
+        every { player.isOnline } returns true
+        every { guilds.getGuild(guild.id) } returns guild
+        val members = mockk<MemberService>()
+        every { members.getMember(actor, guild.id) } returns mockk()
+        val kills = mockk<net.lumalyte.lg.application.services.KillService>()
+        every { kills.getGuildKillStats(guild.id) } returns net.lumalyte.lg.domain.entities.GuildKillStats(guild.id, 1)
+        val wars = mockk<net.lumalyte.lg.application.services.WarService>()
+        every { wars.getWarHistory(guild.id, 100) } returns emptyList()
+        val runtime = mockk<GuildAchievementRuntime>()
+        every { runtime.engine } returns GuildAchievementEngine(listOf(GuildAchievement("one", null, "Personal", emptyList(),
+            "EVENT", null, 1, 0, emptyList(), "Foundations", "BOOK", "TASK", 0f, 0f)))
+        every { runtime.read(player) } returns AchievementRecord()
+        loadKoinModules(module { single { members }; single { kills }; single { wars }; single { runtime } })
+        val nav = MenuNavigator(player)
+        nav.openMenu(GuildAchievementsMenu(nav, player, guild, presenter, guildMilestones = true))
+        val plain = PlainTextComponentSerializer.plainText()
+        assertEquals(5, renderedPage!!.items.size)
+        assertTrue(plain.serialize(renderedPage!!.items.first().text).contains("First Blood"))
+        renderedPage!!.actions.first().action()
+        assertTrue(plain.serialize(renderedPage!!.items.first().text).contains("Champion"))
+        renderedPage!!.actions.last().action()
+        assertEquals(1, renderedPage!!.items.size)
+        assertTrue(plain.serialize(renderedPage!!.items.first().text).contains("Personal"))
+        io.mockk.verify(exactly = 0) { runtime.track(any(), any()) }
+    }
+
     @Test fun `inspector sections stay compact and tracking preserves the selected milestone`() {
         val actor = UUID.randomUUID()
         val guild = Guild(UUID.randomUUID(), "Mastery", createdAt = Instant.EPOCH)

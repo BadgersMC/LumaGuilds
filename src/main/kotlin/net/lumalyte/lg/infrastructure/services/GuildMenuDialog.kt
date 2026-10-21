@@ -11,7 +11,6 @@ import net.kyori.adventure.text.event.ClickCallback
 import net.kyori.adventure.text.event.ClickEvent
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import java.time.Duration
 
 private const val ITEM_WIDTH = 16
 private const val ITEM_HEIGHT = 16
@@ -64,7 +63,7 @@ private class GuildDialogAudience(private val player: Player, valid: () -> Boole
     private val token = epoch.get()
     private var presentation = -1L
     val session =
-        GuildDialogSession(player.uniqueId, Duration.ofMinutes(2).toMillis()) {
+        GuildDialogSession(player.uniqueId, GUILD_DIALOG_LIFETIME.toMillis()) {
             player.isOnline && epoch.get() == token && presentation == GuildDialogTransitions.revision(player) &&
                 inventory != null && player.openInventory.topInventory === inventory && valid()
         }
@@ -131,7 +130,7 @@ internal class GuildMenuDialog : GuildDialogPresenter {
     private fun closeButton(callbacks: GuildDialogCallbacks): ActionButton =
         ActionButton.builder(GUILD_DIALOG_CLOSE_LABEL).width(ACTION_WIDTH)
             .action(DialogAction.customClick({ _, audience -> callbacks.dismiss(audience) },
-                ClickCallback.Options.builder().uses(1).lifetime(Duration.ofHours(1)).build()))
+                ClickCallback.Options.builder().uses(1).lifetime(GUILD_DIALOG_LIFETIME).build()))
             .build()
 
     private fun dialogBase(
@@ -278,9 +277,5 @@ internal class GuildMenuDialog : GuildDialogPresenter {
     private fun callbackOptions(): ClickCallback.Options =
         ClickCallback.Options.builder().uses(
             1,
-        ).lifetime(LIFETIME).build()
-
-    private companion object {
-        val LIFETIME: Duration = Duration.ofMinutes(2)
-    }
+        ).lifetime(GUILD_DIALOG_LIFETIME).build()
 }

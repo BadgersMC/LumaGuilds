@@ -17,6 +17,19 @@ internal class MenuTitleGlyphsTest {
         if (id == "guild_bg_enthusia_6_row") Component.text("ꁅ").font(nexoFont) else null
     }
 
+    @Test fun optionalPlateKeepsTitleAndUsesItsOwnRewindFont() {
+        val raw = Component.text(MenuTitleBuilder.build(GuiTheme.ENTHUSIA, 3, "Statistics"))
+        val fixed = MenuTitleGlyphs.withGlyphFonts(raw) { id -> when (id) {
+            "guild_bg_enthusia_3_row" -> Component.text("B").font(nexoFont)
+            "guild_inventory_label_enthusia_3_row" -> Component.text("P").font(Key.key("lumaguilds:inventory_labels"))
+            else -> null
+        } }
+        val parts = fonts(fixed)
+        assertTrue(parts.contains("\uE000" to Key.key("lumaguilds:inventory_label_spacing")))
+        assertTrue(parts.contains("P" to Key.key("lumaguilds:inventory_labels")))
+        assertTrue(PlainTextComponentSerializer.plainText().serialize(fixed).endsWith("<shift:-162>Statistics"))
+    }
+
     private fun fonts(c: Component): List<Pair<String, Key?>> {
         val out = mutableListOf<Pair<String, Key?>>()
         fun walk(x: Component, inherited: Key?) {

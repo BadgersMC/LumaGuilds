@@ -731,7 +731,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun addAchievementsButton(pane: StaticPane, x: Int, y: Int) {
         val killStats = killService.getGuildKillStats(guild.id)
-        val achievementCount = calculateAchievementCount(killStats)
+        val achievementCount = combatMilestones().count { it.achieved }
 
         val item = NexoItemProvider.getItemStackOrFallback("lg_stats_achievements") { ItemStack.of(Material.TROPICAL_FISH_BUCKET) }
             .name(lang.gui("menu.statistics.item.achievements.name"))
@@ -740,7 +740,11 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             .lore(achievementNetKillsLore(killStats.netKills))
 
         val guiItem = GuiItem(item) {
-            openAchievementsDetail()
+            if (net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.supportsDialog(player)) {
+                menuNavigator.openMenu(GuildAchievementsMenu(menuNavigator, player, guild, guildMilestones = true))
+            } else {
+                openAchievementsDetail()
+            }
         }
         pane.addItem(guiItem, x, y)
     }
@@ -874,15 +878,13 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         }
     }
 
-    private fun calculateAchievementCount(killStats: GuildKillStats): Int {
-        var count = 0
-        if (killStats.totalKills >= 100) count++
-        if (killStats.totalKills >= 500) count++
-        if (killStats.totalKills >= 1000) count++
-        if (killStats.netKills >= 100) count++
-        if (killStats.netKills >= 500) count++
-        if (killStats.killDeathRatio >= 2.0) count++
-        return count
+    private fun combatMilestones(): List<net.lumalyte.lg.domain.achievements.GuildCombatMilestone> {
+        val stats = killService.getGuildKillStats(guild.id)
+        val wars = warService.getWarHistory(guild.id, 100)
+        return net.lumalyte.lg.domain.achievements.GuildCombatMilestones.evaluate(
+            stats.totalKills, stats.totalDeaths, stats.netKills, stats.killDeathRatio,
+            wars.size, wars.count { it.winner == guild.id },
+        )
     }
 
     private fun getAchievementColor(value: Int): String {
@@ -1308,25 +1310,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
     private fun openAchievementsDetail() {
         try {
-            val killStats = killService.getGuildKillStats(guild.id)
-            val warHistory = warService.getWarHistory(guild.id, 100)
-            val warsFought = warHistory.size
-            val warsWon = warHistory.count { it.winner == guild.id }
-
-            data class Achievement(val key: String, val unlockCondition: Boolean)
-
-            val achievements = listOf(
-                Achievement("first_blood", killStats.totalKills >= 1),
-                Achievement("centurion", killStats.totalKills >= 100),
-                Achievement("warlord", killStats.totalKills >= 1000),
-                Achievement("survivor", warsFought >= 10),
-                Achievement("champion", warsWon >= 5),
-                Achievement("veteran", warsFought >= 25),
-                Achievement("net_positive", killStats.netKills > 0),
-                Achievement("well_rounded",
-                    killStats.totalKills > 0 && killStats.totalDeaths > 0 &&
-                            killStats.killDeathRatio > 0.0 && warsFought > 0)
-            )
+            val achievements = combatMilestones()
 
             val gui = statisticsGui(3)
             gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
@@ -1338,13 +1322,16 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             gui.addPane(pane)
 
             achievements.forEachIndexed { index, achievement ->
-                val material = if (achievement.unlockCondition) Material.LIME_STAINED_GLASS_PANE else Material.GRAY_STAINED_GLASS_PANE
-                val itemName = if (achievement.unlockCondition)
+                val material = if (achievement.achieved) Material.LIME_STAINED_GLASS_PANE else Material.GRAY_STAINED_GLASS_PANE
+                val itemName = if (achievement.achieved)
                     lang.gui("menu.statistics.detail.achievements.${achievement.key}.unlocked")
                 else
                     lang.gui("menu.statistics.detail.achievements.${achievement.key}.locked")
                 val item = ItemStack.of(material)
                     .name(itemName)
+                    .lore(Component.text(achievement.condition))
+                    .lore(Component.text(achievement.progress))
+                    .lore(lang.gui("achievements.guild_rules"))
                 val col = index % 7
                 val row = index / 7
                 pane.addItem(GuiItem(item), 1 + col, row)

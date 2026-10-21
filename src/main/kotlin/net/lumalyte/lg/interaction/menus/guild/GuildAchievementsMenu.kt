@@ -21,11 +21,15 @@ internal class GuildAchievementsMenu(
     private val player: Player,
     private val guild: Guild,
     private val presenter: GuildDialogPresenter = GuildMenuDialog(),
+    private var guildMilestones: Boolean = false,
 ) : Menu, KoinComponent {
     private val runtime: GuildAchievementRuntime by inject()
     private val members: MemberService by inject()
     private val guilds: GuildService by inject()
     private val lang: LangService by inject()
+    private val kills: net.lumalyte.lg.application.services.KillService by inject()
+    private val wars: net.lumalyte.lg.application.services.WarService by inject()
+    private var guildPage = 0
     private var category = "Foundations"
     private var page = 0
     private var selected: String? = null
@@ -34,6 +38,10 @@ internal class GuildAchievementsMenu(
     override fun open() {
         val token = navigator.currentNavigationToken()
         if (!valid(token)) return
+        if (guildMilestones) {
+            showGuildMilestones(token)
+            return
+        }
         val record = runtime.read(player) ?: return player.sendMessage(lang.gui("achievements.unavailable"))
         val nodes = runtime.engine.definitions.filter { it.category == category && it.requirement != "ROOT" }
         val pages = ((nodes.size + 3) / 4).coerceAtLeast(1)
@@ -105,9 +113,38 @@ internal class GuildAchievementsMenu(
             action(lang.gui("achievements.back"), navigator::goBack), columns = 2,
             theme = guilds.getGuild(guild.id)?.guiTheme ?: guild.guiTheme,
             subtitle = lang.gui("achievements.subtitle", "category" to category, "page" to page + 1, "pages" to pages),
-            bodyActions = CATEGORIES.map { cat -> action(Component.text(if (cat == category) "[$cat]" else cat)) {
+            bodyActions = listOf(action(lang.gui("achievements.guild_scope")) {
+                guildMilestones = true; guildPage = 0; open()
+            }) + CATEGORIES.map { cat -> action(Component.text(if (cat == category) "[$cat]" else cat)) {
                 category = cat; page = 0; selected = null; open()
             } }, diagram = diagram), { valid(token) }, { player.sendMessage(lang.gui("achievements.unavailable")) })
+    }
+
+    private fun showGuildMilestones(token: Long) {
+        val stats = kills.getGuildKillStats(guild.id)
+        val history = wars.getWarHistory(guild.id, 100)
+        val badges = net.lumalyte.lg.domain.achievements.GuildCombatMilestones.evaluate(
+            stats.totalKills, stats.totalDeaths, stats.netKills, stats.killDeathRatio,
+            history.size, history.count { it.winner == guild.id },
+        )
+        val cards = badges.drop(guildPage * 4).take(4).map { badge ->
+            referenceItem(if (badge.achieved) "lg_confirm" else "lg_combat", listOf(
+                Component.text(badge.title, if (badge.achieved) NamedTextColor.GOLD else NamedTextColor.GRAY),
+                lang.gui(if (badge.achieved) "achievements.guild_met" else "achievements.guild_not_met"),
+                Component.text(badge.condition), Component.text(badge.progress),
+            ))
+        }
+        val actions = buildList {
+            if (guildPage > 0) add(referenceAction(lang.gui("achievements.previous"), "lg_back") { guildPage--; open() })
+            if (guildPage == 0) add(referenceAction(lang.gui("achievements.next"), "lg_next") { guildPage++; open() })
+            add(referenceAction(lang.gui("achievements.personal_scope"), "lg_banner") { guildMilestones = false; open() })
+        }
+        presenter.show(player, GuildDialogPage(lang.gui("achievements.guild_scope"), cards +
+            referenceItem("lg_sources", listOf(lang.gui("achievements.guild_rules"))), actions,
+            referenceAction(lang.gui("achievements.back"), "lg_back", navigator::goBack), columns = 2,
+            theme = guilds.getGuild(guild.id)?.guiTheme ?: guild.guiTheme,
+            subtitle = lang.gui("achievements.guild_summary", "count" to badges.count { it.achieved }, "page" to guildPage + 1)),
+            { valid(token) }, { player.sendMessage(lang.gui("achievements.unavailable")) })
     }
 
     private fun valid(token: Long) = player.isOnline && navigator.isNavigationCurrent(token) && members.getMember(player.uniqueId, guild.id) != null

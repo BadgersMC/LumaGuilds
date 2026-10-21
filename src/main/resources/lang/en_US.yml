@@ -7983,6 +7983,12 @@ chronicle:
     milestone_locked: '<gray>Reach level 100 in that run, meet the existing restrictions, select an eligible owned reward and confirm the exact fee.</gray>'
 
 achievements:
+  personal_scope: '<gold>Personal achievements</gold>'
+  guild_scope: '<gold>Guild combat milestones</gold>'
+  guild_summary: '<gray><count>/8 current conditions met · Page <page>/2</gray>'
+  guild_met: '<green>Current condition met</green>'
+  guild_not_met: '<gray>Current condition not met</gray>'
+  guild_rules: '<gray>Current guild statistics; wars use the latest 100 retained records. These badges can change and grant no extra XP or permanent award.</gray>'
   title: '<gold>Guild Advancements</gold>'
   inspect_overview: '<white>Overview</white>'
   inspect_earning: '<white>How to earn</white>'
