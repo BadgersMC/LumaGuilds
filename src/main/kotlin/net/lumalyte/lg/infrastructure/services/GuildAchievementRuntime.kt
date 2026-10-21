@@ -2,6 +2,8 @@ package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.application.persistence.ProgressionRepository
+import net.lumalyte.lg.application.services.GuildStallReadService
+import net.lumalyte.lg.application.services.StallReadResult
 import net.lumalyte.lg.domain.achievements.*
 import org.bukkit.Bukkit
 import org.bukkit.NamespacedKey
@@ -18,6 +20,7 @@ internal class GuildAchievementRuntime(
     private val plugin: JavaPlugin,
     private val members: MemberRepository,
     private val progression: ProgressionRepository,
+    private val stalls: GuildStallReadService = GuildStallReadClient(),
 ) {
     private val key by lazy { NamespacedKey(plugin, "guild_achievements_v1") }
     val engine by lazy { GuildAchievementEngine(loadDefinitions()) }
@@ -26,6 +29,7 @@ internal class GuildAchievementRuntime(
     private val failed = mutableSetOf<UUID>()
     private val records = mutableMapOf<UUID, AchievementRecord>()
     private val reviewRequired = mutableSetOf<UUID>()
+    private val ownershipReads = mutableSetOf<UUID>()
 
     fun start() {
         projection.register()
@@ -38,6 +42,7 @@ internal class GuildAchievementRuntime(
             }
             Bukkit.getOnlinePlayers().groupBy { guild(it.uniqueId) }.forEach { (guild, players) ->
                 if (guild != null) {
+                    refreshStallOwnership(players.first(), guild)
                     val hours = combinedHours(guild)
                     val level = progression.getGuildProgression(guild)?.currentLevel
                     players.forEach { player ->
@@ -70,6 +75,26 @@ internal class GuildAchievementRuntime(
         progression.getGuildProgression(guild)?.let { signal(player, "GUILD_LEVEL_UP", it.currentLevel.toString()) }
         signal(player, "GUILD_COMBINED_PLAYTIME", amount = combinedHours(guild), absolute = true)
         read(player)?.let { projection.project(player, it) }
+        refreshStallOwnership(player, guild)
+    }
+
+    /** Existing ownership qualifies. Unavailable or late data never invents a purchase or an award. */
+    internal fun refreshStallOwnership(viewer: Player, guildId: UUID) {
+        if (!ownershipReads.add(guildId)) return
+        runCatching { stalls.read(guildId, viewer.uniqueId) }.getOrElse {
+            ownershipReads.remove(guildId)
+            return
+        }.whenComplete { result, error ->
+            plugin.server.scheduler.runTask(plugin, Runnable {
+                ownershipReads.remove(guildId)
+                if (error == null && viewer.isOnline && guild(viewer.uniqueId) == guildId &&
+                    result is StallReadResult.Available && result.stalls.any { it.state in setOf("OWNED", "GRACE") }) {
+                    online(guildId).filter { isMember(it.uniqueId, guildId) }.forEach {
+                        signal(it, "GUILD_STALL_OWNED", absolute = true)
+                    }
+                }
+            })
+        }
     }
 
     fun read(player: Player): AchievementRecord? = runCatching {

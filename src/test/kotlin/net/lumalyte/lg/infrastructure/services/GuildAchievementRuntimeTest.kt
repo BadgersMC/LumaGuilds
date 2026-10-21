@@ -14,6 +14,48 @@ import kotlin.test.*
 internal class GuildAchievementRuntimeTest {
     @AfterEach fun cleanup() { unmockkAll(); MockBukkit.unmock() }
 
+    @Test fun `existing owned stall qualifies once but unavailable unowned and stale results do not`() {
+        val server = MockBukkit.mock()
+        val plugin = spyk(MockBukkit.createMockPlugin("LumaGuilds"))
+        every { plugin.getResource("guild-achievements.json") } answers { javaClass.classLoader.getResourceAsStream("guild-achievements.json") }
+        val player = spyk(server.addPlayer())
+        every { player.isOnline } returns true
+        every { player.saveData() } just Runs
+        val guild = UUID.randomUUID()
+        var memberships = setOf(guild)
+        val members = mockk<MemberRepository>()
+        every { members.getGuildsByPlayer(player.uniqueId) } answers { memberships }
+        every { members.getByGuild(guild) } returns setOf(net.lumalyte.lg.domain.entities.Member(
+            player.uniqueId, guild, UUID.randomUUID(), java.time.Instant.EPOCH))
+        val stalls = mockk<net.lumalyte.lg.application.services.GuildStallReadService>()
+        var next = java.util.concurrent.CompletableFuture<net.lumalyte.lg.application.services.StallReadResult>()
+        every { stalls.read(guild, player.uniqueId) } answers { next }
+        val runtime = GuildAchievementRuntime(plugin, members, mockk(), stalls)
+        fun result(state: String) = net.lumalyte.lg.application.services.StallReadResult.Available(listOf(
+            net.lumalyte.lg.application.services.GuildStallInfo("stall", "region", "world", state, 1, 60, null, null, null, emptyList())))
+        fun complete(value: net.lumalyte.lg.application.services.StallReadResult) {
+            runtime.refreshStallOwnership(player, guild)
+            next.complete(value)
+            server.scheduler.performOneTick()
+            next = java.util.concurrent.CompletableFuture()
+        }
+        complete(net.lumalyte.lg.application.services.StallReadResult.Unavailable)
+        complete(result("UNOWNED"))
+        assertNull(runtime.read(player)!!.progress["prime_real_estate"])
+        runtime.refreshStallOwnership(player, guild)
+        memberships = emptySet()
+        next.complete(result("OWNED"))
+        server.scheduler.performOneTick()
+        assertNull(runtime.read(player)!!.progress["prime_real_estate"])
+        memberships = setOf(guild)
+        next = java.util.concurrent.CompletableFuture()
+        complete(result("GRACE"))
+        complete(result("OWNED"))
+        assertEquals(1, runtime.read(player)!!.progress["prime_real_estate"])
+        assertTrue("prime_real_estate" in runtime.read(player)!!.rewarded)
+        verify(exactly = 0) { player.giveExp(any<Int>()) }
+    }
+
     @Test fun `completion and track survive a new runtime without paying again`() {
         val server = MockBukkit.mock()
         val plugin = spyk(MockBukkit.createMockPlugin("LumaGuilds"))

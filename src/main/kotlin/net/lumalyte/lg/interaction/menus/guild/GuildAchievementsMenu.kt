@@ -41,14 +41,24 @@ internal class GuildAchievementsMenu(
         val node = runtime.engine.definitions.find { it.id == selected } ?: visible.first()
         selected = node.id
         fun action(label: Component, run: () -> Unit) = GuildDialogAction(label, Component.empty(), run)
-        val diagram = visible.chunked(2).map { row -> row.map { n ->
+        fun nodeAction(n: GuildAchievement): GuildDialogAction {
             val complete = (record.progress[n.id] ?: 0) >= n.goal
             val prefix = if (complete) "[✓] " else "[◇] "
             val label = Component.text(prefix + shortName(n.title), if (complete) NamedTextColor.GOLD else NamedTextColor.GRAY)
-            GuildDialogAction(label, Component.text(n.title + " · " + (record.progress[n.id] ?: 0) + "/" + n.goal)) {
-                selected = n.id; open()
+            return GuildDialogAction(label, Component.text(n.title + " · " + (record.progress[n.id] ?: 0) + "/" + n.goal)) {
+                selected = n.id
+                if (n.category != category) {
+                    category = n.category
+                    page = runtime.engine.definitions.filter { it.category == category && it.requirement != "ROOT" }
+                        .indexOf(n).coerceAtLeast(0) / 4
+                }
+                open()
             }
-        } }
+        }
+        val diagram = visible.map { child ->
+            val parent = runtime.engine.definitions.find { it.id == child.parent }
+            listOfNotNull(parent?.let(::nodeAction), nodeAction(child))
+        }
         val progress = record.progress[node.id] ?: 0
         val complete = progress >= node.goal
         val cards = listOf(
@@ -102,6 +112,7 @@ internal class GuildAchievementsMenu(
         else -> "lg_banner"
     }
     private fun earning(node: GuildAchievement): String = when (node.requirement) {
+        "GUILD_STALL_OWNED" -> "Market must confirm your guild owns a stall (active or rent grace). Existing ownership qualifies; checked on join and each minute. No purchase receipt is required."
         "GUILD_LEVEL_UP" -> "Reach guild level ${node.target}; current level is checked when joining."
         "GUILD_COMBINED_PLAYTIME" -> "Accumulate 1,000 combined vanilla playtime hours among current guild members."
         "GUILD_COLLECTIVE_CROP_HARVEST" -> "Break mature eligible crops, melons or pumpkins in Survival or Adventure."

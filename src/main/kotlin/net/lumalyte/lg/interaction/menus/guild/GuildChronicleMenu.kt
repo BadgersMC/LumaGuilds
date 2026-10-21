@@ -33,6 +33,7 @@ internal class GuildChronicleMenu(
     private val prestigeService: GuildPrestigeService by inject()
     private var page: Int? = null
     private var branch = ChronicleBranch.ALL
+    private var prestigeTab = 0
 
     override fun open() {
         val snapshot = read() ?: return
@@ -137,6 +138,7 @@ internal class GuildChronicleMenu(
             it.status == RewardOfferStatus.PERMANENT && !it.reward.permanentOnPurchase
         }
         val cards = buildList {
+            if (prestigeTab == 0) {
             add(referenceItem("lg_prestige", listOf(
                 lang.gui("chronicle.prestige.title"),
                 lang.gui("chronicle.prestige.progress", "count" to overview.prestigeCount,
@@ -158,14 +160,15 @@ internal class GuildChronicleMenu(
                 lang.gui("chronicle.prestige.reset"),
                 lang.gui("chronicle.prestige.chapter"),
             )))
-            if (retained.isEmpty()) add(referenceItem("lg_prestige", listOf(lang.gui("chronicle.prestige.none"))))
+            }
+            if (prestigeTab == 2 && retained.isEmpty()) add(referenceItem("lg_prestige", listOf(lang.gui("chronicle.prestige.none"))))
             val settings = config.loadConfig().progression.prestige
-            for (tier in 1..overview.maxPrestigeCount) add(referenceItem("lg_prestige", listOf(
+            if (prestigeTab == 1) for (tier in 1..overview.maxPrestigeCount) add(referenceItem("lg_prestige", listOf(
                 lang.gui("chronicle.prestige.milestone", "tier" to tier, "fee" to settings.feeFor(tier - 1)),
                 if (tier <= overview.prestigeCount) lang.gui("chronicle.prestige.milestone_earned")
                 else lang.gui("chronicle.prestige.milestone_locked"),
             )))
-            retained.forEach { offer -> add(referenceItem("lg_prestige", listOf(
+            if (prestigeTab == 2) retained.forEach { offer -> add(referenceItem("lg_prestige", listOf(
                 lang.gui("chronicle.prestige.seal"), Component.text(offer.reward.name), effect(offer.reward.effect),
                 lang.gui("chronicle.prestige.retained"),
             ), referenceAction(Component.text(offer.reward.name), "lg_prestige") { detail(offer.reward.id) })) }
@@ -178,7 +181,11 @@ internal class GuildChronicleMenu(
             add(referenceAction(lang.gui("chronicle.back_tree"), "lg_back") { tree() })
         }
         show(cards, actions, referenceAction(lang.gui("recruitment.dialog.back"), "lg_back", navigator::goBack),
-            lang.gui("chronicle.prestige.subtitle"))
+            lang.gui("chronicle.prestige.subtitle"), listOf(
+                referenceAction(lang.gui("chronicle.prestige.overview"), "lg_prestige") { prestigeTab = 0; prestige() },
+                referenceAction(lang.gui("chronicle.prestige.milestones"), "lg_prestige") { prestigeTab = 1; prestige() },
+                referenceAction(lang.gui("chronicle.prestige.legacy"), "lg_prestige") { prestigeTab = 2; prestige() },
+            ))
     }
 
     private fun earningDetails(offer: RewardOffer): List<Component> = listOf(

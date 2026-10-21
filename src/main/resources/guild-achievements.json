@@ -282,9 +282,9 @@
       "parent": "guilds_root",
       "title": "Prime Real Estate",
       "description": [
-        "Purchase a market region for your guild"
+        "Own a Market guild stall, including an existing one"
       ],
-      "requirement": "GUILD_REGION_PURCHASED",
+      "requirement": "GUILD_STALL_OWNED",
       "target": null,
       "goal": 1,
       "personalXp": 0,
@@ -300,7 +300,7 @@
       "parent": "open_for_business",
       "title": "The Art of the Deal",
       "description": [
-        "Complete your first successful barter using your guild stall"
+        "Complete your first paid guild SELL shop sale"
       ],
       "requirement": "GUILD_SHOP_SALE",
       "target": null,
@@ -318,7 +318,7 @@
       "parent": "art_of_the_deal",
       "title": "Supply Chain",
       "description": [
-        "Complete 100 successful barters as a guild"
+        "Complete 100 paid guild SELL shop sales"
       ],
       "requirement": "GUILD_SHOP_SALE",
       "target": null,
@@ -336,7 +336,7 @@
       "parent": "supply_chain",
       "title": "Market Dominance",
       "description": [
-        "Complete 1,000 successful barters as a guild"
+        "Complete 1,000 paid guild SELL shop sales"
       ],
       "requirement": "GUILD_SHOP_SALE",
       "target": null,

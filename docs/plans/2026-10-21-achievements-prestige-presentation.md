@@ -53,3 +53,9 @@ Progress-only updates are cached and checkpointed each minute and on quit/disabl
 Read-only TEST UAAPI SQLite snapshot: SHA256 940985e9716a40c515eff406af7440b7ff7f9225a69ede9e5eb776d4a83fcdfa, only enthusia (602 rows) and holidays (30 rows); no guild namespace progress or unredeemed guild reward rows. This clears legacy guild duplicate-reward concern for this snapshot only; recheck immediately before activation. No identities were exported and no table was modified.
 
 GitHub PR241 is stacked against PR240's exact integration head. The hosted workflow checks out the PR head explicitly and retains a clearly marked unmerged TEST shadow JAR plus source/hash manifests only after tests pass; failed test diagnostics are retained separately. No local native build was started below the capacity gate.
+
+## Ownership clarification and second hosted proof
+
+User selected existing guild-stall ownership for Prime Real Estate, without XP. The existing GuildStallReadService now supplies active/grace ownership on join and each minute. Unavailable, unowned and late results after guild departure cannot award it. No purchase event is inferred. A focused runtime regression checks these cases and repeated reads. Market sales descriptions now explicitly match the supported paid guild SELL completion contract rather than advertising barter tracking.
+
+Head 605eb43 compiled and ran 2,222 tests: one failure (prestige test missing LangService.msg stub), 68 skipped. The missing stub is corrected without changing locale baselines. Fresh tests remain required. Native dialog parent/child rows now show actual relationships instead of sibling links; prestige details are split into earning, milestones and retained tabs to bound screen height. No TEST resources claimed: Holiday remains the current restart/client owner through SHARED 771.

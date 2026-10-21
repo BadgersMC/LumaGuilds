@@ -25,6 +25,7 @@ internal class GuildPrestigeInformationTest : RecruitmentDialogFixture() {
         val members = mockk<MemberService>()
         every { player.uniqueId } returns actor
         every { player.isOnline } returns true
+        every { lang.msg(any(), *anyVararg()) } answers { net.kyori.adventure.text.Component.text(firstArg<String>()) }
         every { guilds.getGuild(guild.id) } returns guild
         every { members.getMember(actor, guild.id) } returns mockk()
         val catalog = RewardCatalog.chapterTwo()
@@ -41,9 +42,11 @@ internal class GuildPrestigeInformationTest : RecruitmentDialogFixture() {
         var reviews = 0
         val nav = MenuNavigator(player)
         nav.openMenu(GuildChronicleMenu(nav, player, guild, presenter, initialPrestige = true, reviewPrestige = { reviews++ }))
-        val view = renderedPage!!
         val plain = PlainTextComponentSerializer.plainText()
-        assertEquals(6, view.items.count { plain.serialize(it.text).contains("chronicle.prestige.milestone") })
+        renderedPage!!.bodyActions[1].action()
+        assertEquals(6, renderedPage!!.items.count { plain.serialize(it.text).contains("chronicle.prestige.milestone") })
+        renderedPage!!.bodyActions[2].action()
+        val view = renderedPage!!
         val retained = view.items.filter { plain.serialize(it.text).contains("chronicle.prestige.retained") }
         assertEquals(1, retained.size)
         assertTrue(plain.serialize(retained.single().text).contains("Bank Extension 1"))

@@ -27,7 +27,9 @@ internal class GuildAchievementProjection(private val plugin: Plugin, private va
                 n.description + if (n.personalXp > 0) listOf("Reward: ${n.personalXp} personal Minecraft XP") else emptyList(),
                 Material.matchMaterial(n.icon) ?: Material.SHIELD, n.frame, n.x, n.y) }
             type.getMethod("registerTree", Plugin::class.java, String::class.java, ItemStack::class.java, List::class.java)
-                .invoke(instance, plugin, NAMESPACE, ItemStack.of(Material.WHITE_BANNER), definitions)
+                .invoke(instance, plugin, NAMESPACE, net.lumalyte.lg.utils.NexoItemProvider.getItemStackOrFallback("lg_banner") {
+                    ItemStack.of(Material.WHITE_BANNER)
+                }, definitions)
             provider = instance
             service = type
             plugin.logger.info("Guild Mastery projection registered with EnthusiaAdvancements")

@@ -7958,6 +7958,9 @@ chronicle:
   prestige:
     title: '<gold>Prestige rewards and earning guide</gold>'
     subtitle: '<gray>Permanent rewards, retention choices and exact acquisition rules</gray>'
+    overview: '<gold>Earning guide</gold>'
+    milestones: '<gold>Prestige milestones</gold>'
+    legacy: '<gold>Retained legacy perks</gold>'
     seal: '<gold>✦ PRESTIGE LEGACY · PERMANENT ✦</gold>'
     progress: '<gold>Prestige <count>/<max> · Current guild level <level></gold>'
     home_bonus: '<green>Permanent prestige home-capacity bonus: +<count></green>'
