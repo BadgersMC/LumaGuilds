@@ -21,6 +21,8 @@ internal class GuildAchievementRuntimeTest {
         val player = spyk(server.addPlayer())
         every { player.isOnline } returns true
         every { player.saveData() } just Runs
+        mockkStatic(org.bukkit.Bukkit::class)
+        every { org.bukkit.Bukkit.getPlayer(player.uniqueId) } returns player
         val guild = UUID.randomUUID()
         var memberships = setOf(guild)
         val members = mockk<MemberRepository>()

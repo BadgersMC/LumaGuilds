@@ -44,13 +44,13 @@ internal class GuildPrestigeInformationTest : RecruitmentDialogFixture() {
         nav.openMenu(GuildChronicleMenu(nav, player, guild, presenter, initialPrestige = true, reviewPrestige = { reviews++ }))
         val plain = PlainTextComponentSerializer.plainText()
         renderedPage!!.bodyActions[1].action()
-        assertEquals(6, renderedPage!!.items.count { plain.serialize(it.text).contains("chronicle.prestige.milestone") })
+        assertEquals(6, renderedPage!!.items.size)
         renderedPage!!.bodyActions[2].action()
         val view = renderedPage!!
-        val retained = view.items.filter { plain.serialize(it.text).contains("chronicle.prestige.retained") }
+        val retained = view.items
         assertEquals(1, retained.size)
         assertTrue(plain.serialize(retained.single().text).contains("Bank Extension 1"))
-        assertFalse(view.actions.any { plain.serialize(it.label).contains("chronicle.prestige.review") })
+        assertEquals(1, view.actions.size) // Back only; a locked guild never receives a review action.
         assertEquals(0, reviews)
         verify(exactly = 0) { prestige.quote(any(), any(), any()) }
         verify(exactly = 0) { prestige.confirm(any(), any()) }
