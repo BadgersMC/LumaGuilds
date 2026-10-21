@@ -29,6 +29,7 @@ internal class GuildAchievementsMenu(
     private var category = "Foundations"
     private var page = 0
     private var selected: String? = null
+    private var detailTab = 0
 
     override fun open() {
         val token = navigator.currentNavigationToken()
@@ -55,12 +56,19 @@ internal class GuildAchievementsMenu(
                 open()
             }
         }
-        val diagram = visible.map { child ->
+        val detailTabs = listOf(lang.gui("achievements.inspect_overview"), lang.gui("achievements.inspect_earning"),
+            lang.gui("achievements.inspect_reward"), lang.gui("achievements.inspect_rules")).mapIndexed { index, label ->
+            action(if (index == detailTab) Component.text("[").append(label).append(Component.text("]")) else label) {
+                detailTab = index; open()
+            }
+        }
+        val diagram = listOf(detailTabs) + visible.map { child ->
             val parent = runtime.engine.definitions.find { it.id == child.parent }
             listOfNotNull(parent?.let(::nodeAction), nodeAction(child))
         }
         val progress = record.progress[node.id] ?: 0
         val complete = progress >= node.goal
+        // One inspector section at a time keeps the underlay and actions inside the native viewport.
         val cards = listOf(
             referenceItem(icon(node), listOf(Component.text(node.title),
                 if (complete) lang.gui("achievements.completed", "current" to progress, "goal" to node.goal)
@@ -73,7 +81,7 @@ internal class GuildAchievementsMenu(
                 else lang.gui("achievements.no_extra"), lang.gui("achievements.no_guild_xp"))),
             referenceItem("lg_prestige", listOf(lang.gui("achievements.record_rules"), lang.gui("achievements.offline"),
                 lang.gui("achievements.retained"), lang.gui("achievements.connections"))),
-        )
+        ).let { listOf(it[detailTab]) }
         val actions = buildList {
             if (page > 0) add(action(lang.gui("achievements.previous")) { page--; selected = null; open() })
             if (page + 1 < pages) add(action(lang.gui("achievements.next")) { page++; selected = null; open() })

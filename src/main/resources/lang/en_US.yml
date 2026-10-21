@@ -7984,6 +7984,10 @@ chronicle:
 
 achievements:
   title: '<gold>Guild Advancements</gold>'
+  inspect_overview: '<white>Overview</white>'
+  inspect_earning: '<white>How to earn</white>'
+  inspect_reward: '<white>Reward</white>'
+  inspect_rules: '<white>Record rules</white>'
   subtitle: '<gray><category> · Branch page <page>/<pages> · Select a connected milestone</gray>'
   unavailable: '<red>Achievement data is unavailable. Existing progress was not cleared.</red>'
   completed: '<gold>✓ Completed · <current>/<goal></gold>'
@@ -8003,6 +8007,6 @@ achievements:
   untrack: '<white>Untrack achievement</white>'
   goal: '<gold>Tracked achievement</gold>'
   vanilla: '<white>Full vanilla advancement tree</white>'
-  open_vanilla: '<gold>Open the Minecraft Advancements screen (default key L) and select the Guild Mastery banner tab. The dialog uses branch pages; the vanilla screen supports panning.</gold>'
+  open_vanilla: '<gold>Open Minecraft Advancements (default L) and look for the banner tab; the current renderer may call it Enthusia. Guild Mastery milestones have their own descriptions. Dialog branches use pages; the vanilla screen supports panning.</gold>'
   renderer_unavailable: '<yellow>The optional EnthusiaAdvancements renderer is unavailable. Tracking and personal rewards remain available in this dialog.</yellow>'
   back: '<white>Back to guild menu</white>'
