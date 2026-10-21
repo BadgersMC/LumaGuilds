@@ -115,11 +115,13 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         callbacks: GuildDialogCallbacks,
         skin: GuildDialogSkin?,
     ): Dialog {
+        val art = GuildDialogButtons.resolve(page.theme)
         return Dialog.create { factory ->
             factory.empty().base(dialogBase(page, callbacks, skin)).type(
                 DialogType.multiAction(
-                    listOfNotNull(page.search?.let { searchButton(it, callbacks, skin, page.showCategoryInput) }) +
-                        page.actions.map { button(it, callbacks, skin, page.search != null) } + button(page.back, callbacks, skin),
+                    listOfNotNull(page.search?.let { searchButton(it, callbacks, skin, page.showCategoryInput, art) }) +
+                        page.actions.map { button(it, callbacks, skin, page.search != null, art, page.columns) } +
+                        button(page.back, callbacks, skin, art = art, columns = page.columns),
                     closeButton(callbacks),
                     page.columns,
                 ),
@@ -232,11 +234,15 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         callbacks: GuildDialogCallbacks,
         skin: GuildDialogSkin?,
         board: Boolean = false,
+        art: GuildDialogButtons? = null,
+        columns: Int = 1,
     ): ActionButton {
-        val width = if (board) BOARD_CONTROL_WIDTH else ACTION_WIDTH
+        val standardWidth = if (board) BOARD_CONTROL_WIDTH else ACTION_WIDTH
+        val themedWidth = if (!board && columns == 1) GuildDialogButtons.PANEL_WIDTH else standardWidth
         val fullLabel = skin?.label(action.label) ?: action.label
-        return ActionButton.builder(GuildDialogText.buttonLabel(fullLabel, (width - 16) * 2))
-            .width(if (board) BOARD_CONTROL_WIDTH else ACTION_WIDTH)
+        val themed = art?.label(fullLabel, themedWidth)
+        return ActionButton.builder(themed ?: GuildDialogText.buttonLabel(fullLabel, (standardWidth - 16) * 2))
+            .width(if (themed == null) standardWidth else themedWidth)
             .tooltip(action.label.append(Component.newline()).append(action.tooltip))
             .action(
                 DialogAction.customClick({ _, audience ->
@@ -251,8 +257,10 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         callbacks: GuildDialogCallbacks,
         skin: GuildDialogSkin?,
         showCategory: Boolean,
+        art: GuildDialogButtons?,
     ): ActionButton {
-        return ActionButton.builder(skin?.label(search.submitLabel) ?: search.submitLabel)
+        val label = skin?.label(search.submitLabel) ?: search.submitLabel
+        return ActionButton.builder(art?.label(label, BOARD_CONTROL_WIDTH) ?: label)
             .width(BOARD_CONTROL_WIDTH)
             .action(searchAction(search, callbacks, showCategory))
             .build()

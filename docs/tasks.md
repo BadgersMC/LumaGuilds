@@ -1043,3 +1043,8 @@ Menu audit follow-up (REQ-063):
 
 - [x] **GUI-RETURN-ROUTING** Restore named GUI ancestors instead of pushing duplicate parents; reproduce diplomacy child -> Relations -> Dashboard and cover direct-entry fallback/state/token handling. Full local check: 1,991 cases, zero failures/errors, 16 optional skips. Manual SPEAR evidence: docs/plans/2026-10-17-gui-return-routing.md. Hosted CI and corrected TEST acceptance remain separate gates.
 - [x] **DEPOSIT-XP-VISIBILITY** Refresh committed XP without a level-up, publish Chapter Two bank XP, and read numeric/legacy progression timestamps. Two baseline cache regressions and a real SQL mapper failure reproduced; full local check passes 1,775 tests with zero failures/errors and 16 optional skips. Evidence: docs/plans/2026-10-18-deposit-xp-visibility.md. Hosted review and corrected TEST acceptance remain separate; no deployment.
+
+- [ ] **DIALOG-ACTIONS-LEADERBOARD** Direct member leaderboard commands and native
+  theme controls; DN-001 through DN-003 in
+  `plans/2026-10-21-dialog-actions-leaderboard.md`. Source and paired pack work;
+  hosted checks and live acceptance pending. No runtime use authorized.

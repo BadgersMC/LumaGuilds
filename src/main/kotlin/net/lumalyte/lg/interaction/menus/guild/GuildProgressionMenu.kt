@@ -223,8 +223,7 @@ class GuildProgressionMenu(
             } else null,
             nativeAction(lang.gui("guild_dialogs.progression.quests"), ::openNativeQuests),
             nativeAction(lang.gui("dialog_v2.leaderboard")) {
-                menuNavigator.openMenu(GuildLeaderboardDialogMenu(menuNavigator, player, guild, guildService, memberService,
-                    getKoin().get(), lang))
+                menuNavigator.openMenu(menuFactory.createGuildLeaderboardMenu(menuNavigator, player, guild))
             },
             nativeAction(lang.gui("guild_dialogs.progression.sources")) {
                 sourceDetails = true

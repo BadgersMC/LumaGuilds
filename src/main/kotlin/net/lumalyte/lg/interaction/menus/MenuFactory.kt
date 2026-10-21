@@ -831,6 +831,20 @@ class MenuFactory(
         }
     }
 
+    fun createGuildLeaderboardMenu(
+        menuNavigator: MenuNavigator,
+        player: Player,
+        guild: net.lumalyte.lg.domain.entities.Guild,
+    ): Menu {
+        if (shouldUseBedrockMenus(player)) {
+            return net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildLeaderboardMenu(menuNavigator, player, guild, logger)
+        }
+        val koin = org.koin.core.context.GlobalContext.get()
+        return net.lumalyte.lg.interaction.menus.guild.GuildLeaderboardDialogMenu(
+            menuNavigator, player, guild, koin.get(), koin.get(), koin.get(), koin.get(),
+        )
+    }
+
     fun createGuildQuestsMenu(
         menuNavigator: MenuNavigator,
         player: Player,

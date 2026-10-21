@@ -18,6 +18,7 @@ internal class RecruitmentReaderDialog(
     private val actions: RecruitmentReaderActions,
 ) {
     private val skin = GuildDialogTheme().resolve(content.theme)
+    private val buttonArt = GuildDialogButtons.resolve(content.theme)
 
     private fun heading(): Component {
         return Component.text(
@@ -35,7 +36,10 @@ internal class RecruitmentReaderDialog(
             action: () -> Unit,
         ): ActionButton {
             val text = Component.text(label)
-            return ActionButton.builder(skin?.label(text) ?: text).action(
+            val fullLabel = skin?.label(text) ?: text
+            val themed = buttonArt?.label(fullLabel, 180)
+            return ActionButton.builder(themed ?: fullLabel).width(if (themed == null) 150 else 180)
+                .tooltip(text).action(
                 DialogAction.customClick({ _, audience ->
                     if (audience is Player && audience.uniqueId == player.uniqueId && actions.valid()) action()
                 }, ClickCallback.Options.builder().uses(1).lifetime(GUILD_DIALOG_LIFETIME).build()),

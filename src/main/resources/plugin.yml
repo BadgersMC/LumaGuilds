@@ -78,6 +78,7 @@ permissions:
       lumaguilds.guild.disband: true
       lumaguilds.guild.menu: true
       lumaguilds.guild.quests: true
+      lumaguilds.guild.leaderboard: true
       lumaguilds.guild.invite: true
       lumaguilds.guild.kick: true
       lumaguilds.guild.tag: true
@@ -144,6 +145,9 @@ permissions:
     default: true
   lumaguilds.guild.quests:
     description: View your guild quests and their leaderboards without management access
+    default: true
+  lumaguilds.guild.leaderboard:
+    description: View guild rankings without management access
     default: true
   lumaguilds.guild.invite:
     description: Invite players to guild

@@ -20,12 +20,19 @@ internal class BedrockGuildRecruitmentMenu(
     navigator: MenuNavigator,
     player: Player,
     logger: Logger,
+    initialGuild: java.util.UUID? = null,
 ) : BaseBedrockMenu(navigator, player, logger) {
     private val controller =
         RecruitmentController(player, ::open) {
             val token = navigator.currentNavigationToken()
             val guard: () -> Boolean = { navigator.isNavigationCurrent(token) }
             guard
+        }.apply {
+            if (initialGuild != null) {
+                initialized = true
+                selected = initialGuild
+                screen = net.lumalyte.lg.interaction.menus.guild.RecruitmentScreen.PROFILE
+            }
         }
     private val responses =
         net.lumalyte.lg.interaction.menus.guild.RecruitmentResponseSession {
