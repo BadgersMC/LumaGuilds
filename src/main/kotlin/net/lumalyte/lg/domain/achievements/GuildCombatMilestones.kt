@@ -1,7 +1,7 @@
 package net.lumalyte.lg.domain.achievements
 
 /** Current-stat badges, not retained awards or personal XP achievements. */
-data class GuildCombatMilestone(
+internal data class GuildCombatMilestone(
     val key: String,
     val title: String,
     val condition: String,
@@ -9,7 +9,7 @@ data class GuildCombatMilestone(
     val achieved: Boolean,
 )
 
-object GuildCombatMilestones {
+internal object GuildCombatMilestones {
     fun evaluate(kills: Int, deaths: Int, netKills: Int, ratio: Double, wars: Int, wins: Int): List<GuildCombatMilestone> = listOf(
         GuildCombatMilestone("first_blood", "First Blood", "At least 1 total guild kill.", "$kills / 1 kills", kills >= 1),
         GuildCombatMilestone("centurion", "Centurion", "At least 100 total guild kills.", "$kills / 100 kills", kills >= 100),
