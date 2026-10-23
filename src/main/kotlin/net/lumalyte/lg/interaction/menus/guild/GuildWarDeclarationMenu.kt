@@ -620,7 +620,9 @@ class GuildWarDeclarationMenu(
 
                 // Close menu and return to war management
                 player.closeInventory()
-                menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
+                menuNavigator.returnTo(GuildWarManagementMenu::class.java) {
+                    menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild)
+                }
 
                 return
             } else {
@@ -715,7 +717,9 @@ class GuildWarDeclarationMenu(
             .lore(lang.gui("menu.war_declaration.item.back.lore"))
 
         val guiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
+            menuNavigator.returnTo(GuildWarManagementMenu::class.java) {
+                menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild)
+            }
         }
         pane.addItem(guiItem, x, y)
     }

@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.persistence.guilds
 
 import co.aikar.idb.Database
 import net.lumalyte.lg.application.persistence.GuildGoldRepository
+import net.lumalyte.lg.domain.entities.BankDepositXpQuote
 import net.lumalyte.lg.domain.gold.GuildGoldDirection
 import net.lumalyte.lg.domain.gold.GuildGoldMutation
 import net.lumalyte.lg.domain.gold.GuildGoldOperationRecord
@@ -12,6 +13,7 @@ import net.lumalyte.lg.domain.gold.GuildGoldResult
 import net.lumalyte.lg.domain.gold.GuildGoldRoute
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import net.lumalyte.lg.infrastructure.persistence.migrations.GuildGoldSchema
+import net.lumalyte.lg.infrastructure.persistence.migrations.BankDepositXpSchema
 import java.sql.Connection
 import java.sql.ResultSet
 import java.util.UUID
@@ -24,6 +26,7 @@ class GuildGoldRepositorySQL(
 ) : GuildGoldRepository {
     private val mariaDb = storage.dialect == net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect.MARIADB
     private val guildLocks = ConcurrentHashMap<UUID, ReentrantLock>()
+    private val bankDeliveries = BankDepositXpLedger(mariaDb)
 
     init {
         createTables()
@@ -88,9 +91,21 @@ class GuildGoldRepositorySQL(
     }
 
     override fun prepare(mutation: GuildGoldMutation): GuildGoldPreparation =
+        prepareOperation(mutation, null)
+
+    override fun prepareDeposit(mutation: GuildGoldMutation, quote: BankDepositXpQuote): GuildGoldPreparation {
+        require(mutation.direction == GuildGoldDirection.CREDIT && mutation.route in setOf(
+            GuildGoldRoute.PERSONAL_ACCOUNT, GuildGoldRoute.PHYSICAL_ITEM,
+        ))
+        return prepareOperation(mutation, quote)
+    }
+
+    private fun prepareOperation(mutation: GuildGoldMutation, quote: BankDepositXpQuote?): GuildGoldPreparation =
         guildLock(mutation.guildId).withLock {
             storage.connection.connection.use { connection ->
                 transaction(connection) {
+                    // Quote capture locks before gold rows; finalization never takes these locks.
+                    val run = if (quote != null) bankDeliveries.fence(connection, mutation.guildId) else null
                     val existing = findOperation(connection, mutation.transactionId, forUpdate = true)
                     if (existing != null) {
                         return@transaction if (existing.mutation == mutation) {
@@ -113,7 +128,9 @@ class GuildGoldRepositorySQL(
                             }
                         }
                     }
+                    if (run != null) check(run.guildExists) { "Guild no longer exists for a new bank deposit" }
                     insertPrepared(connection, mutation)
+                    if (quote != null) bankDeliveries.capture(connection, mutation, quote, checkNotNull(run))
                     GuildGoldPreparation.New(
                         GuildGoldOperationRecord(
                             mutation = mutation,
@@ -310,24 +327,22 @@ class GuildGoldRepositorySQL(
         finishApplied(connection, mutation.transactionId, oldBalance, newBalance.value, finalStatus)
         return GuildGoldResult.Applied(mutation.transactionId, oldBalance, newBalance.value, mutation.fee)
     }
-    override fun completeExternal(transactionId: UUID): Boolean =
-        storage.connection.connection.use { connection ->
-            connection.prepareStatement(
-                "UPDATE guild_gold_operations SET status = ? WHERE transaction_id = ? AND status = ?"
-            ).use { statement ->
-                statement.setString(1, GuildGoldOperationStatus.APPLIED.name)
-                statement.setString(2, transactionId.toString())
-                statement.setString(3, GuildGoldOperationStatus.BALANCE_APPLIED.name)
-                statement.executeUpdate() == 1
-            }
+    override fun completeExternal(transactionId: UUID): Boolean = storage.connection.connection.use { connection ->
+        transaction(connection) {
+            val operation = findOperation(connection, transactionId, forUpdate = true)
+                ?: return@transaction false
+            if (operation.status != GuildGoldOperationStatus.BALANCE_APPLIED) return@transaction false
+            finishApplied(connection, transactionId, requireNotNull(operation.oldBalance), requireNotNull(operation.newBalance))
+            true
         }
+    }
 
     override fun recordCompensation(
         transactionId: UUID,
         succeeded: Boolean,
         details: String
-    ): Boolean = storage.connection.connection.use { connection ->
-        connection.prepareStatement(
+    ): Boolean = storage.connection.connection.use { connection -> transaction(connection) {
+        val changed = connection.prepareStatement(
             "UPDATE guild_gold_operations SET status = ?, compensation_details = ? WHERE transaction_id = ?"
         ).use { statement ->
             statement.setString(
@@ -339,11 +354,13 @@ class GuildGoldRepositorySQL(
             statement.setString(3, transactionId.toString())
             statement.executeUpdate() == 1
         }
-    }
+        if (changed) bankDeliveries.cancel(connection, transactionId)
+        changed
+    } }
 
     override fun rejectPrepared(transactionId: UUID, reason: GuildGoldRejection): Boolean =
-        storage.connection.connection.use { connection ->
-            connection.prepareStatement(
+        storage.connection.connection.use { connection -> transaction(connection) {
+            val changed = connection.prepareStatement(
                 "UPDATE guild_gold_operations SET status = ?, rejection_reason = ? WHERE transaction_id = ? AND status = ?"
             ).use { statement ->
                 statement.setString(1, GuildGoldOperationStatus.REJECTED.name)
@@ -352,7 +369,9 @@ class GuildGoldRepositorySQL(
                 statement.setString(4, GuildGoldOperationStatus.PREPARED.name)
                 statement.executeUpdate() == 1
             }
-        }
+            if (changed) bankDeliveries.cancel(connection, transactionId)
+            changed
+        } }
 
     override fun compensateDebit(
         originalTransactionId: UUID,
@@ -414,7 +433,10 @@ class GuildGoldRepositorySQL(
             )
             """.trimIndent()
         )
-        storage.connection.connection.use { connection -> GuildGoldSchema.create(connection, mariaDb) }
+        storage.connection.connection.use { connection ->
+            GuildGoldSchema.create(connection, mariaDb)
+            BankDepositXpSchema.create(connection, mariaDb)
+        }
     }
 
     private fun calculateNewBalance(
@@ -532,6 +554,10 @@ class GuildGoldRepositorySQL(
             statement.setString(4, transactionId.toString())
             check(statement.executeUpdate() == 1) { "Gold operation was not finalized" }
         }
+        if (status == GuildGoldOperationStatus.APPLIED) {
+            val operation = checkNotNull(findOperation(connection, transactionId, forUpdate = false))
+            bankDeliveries.settle(connection, operation.mutation, oldBalance, newBalance)
+        }
     }
 
     private fun finishRejected(
@@ -550,6 +576,7 @@ class GuildGoldRepositorySQL(
             statement.setString(5, transactionId.toString())
             check(statement.executeUpdate() == 1) { "Gold rejection was not finalized" }
         }
+        bankDeliveries.cancel(connection, transactionId)
     }
 
     private fun selectBalance(connection: Connection, guildId: UUID, forUpdate: Boolean): Long {
@@ -614,16 +641,7 @@ class GuildGoldRepositorySQL(
     }
 
     private fun <T> transaction(connection: Connection, block: () -> T): T {
-        val previousAutoCommit = connection.autoCommit
-        connection.autoCommit = false
-        return try {
-            block().also { connection.commit() }
-        } catch (error: Exception) {
-            connection.rollback()
-            throw error
-        } finally {
-            connection.autoCommit = previousAutoCommit
-        }
+        return connection.committingTransaction { block() }
     }
 
     internal fun <T> withGuildLock(guildId: UUID, action: () -> T): T = guildLock(guildId).withLock(action)

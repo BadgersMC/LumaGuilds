@@ -53,7 +53,9 @@ data class QuestSystemConfig(
     val fullSetBonusXp: Int = 5_000,
     val leaderboardWinnerXp: Int = 5_000,
     val rewardXp: QuestRewardXpConfig = QuestRewardXpConfig(),
-    val generation: QuestGenerationConfig = QuestGenerationConfig()
+    val generation: QuestGenerationConfig = QuestGenerationConfig(),
+    val notifyOnJoin: Boolean = true,
+    val notifyOnReset: Boolean = true
 )
 
 data class QuestRewardXpConfig(

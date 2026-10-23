@@ -17,16 +17,16 @@ internal class GuildStallManagerControls(
     private val lang: LangService,
 ) {
     /** Presentation and an authority-rechecking click callback for either client menu. */
-    internal data class Control(val name: Component, val action: () -> Unit)
+    internal data class Control(val name: Component, val icon: GuildStallIcon, val action: () -> Unit)
 
     /** Current permitted companion commands, omitted when unavailable. */
     fun rows(stall: String): List<Control> {
         return buildList {
             if (available(SALES, stall)) {
-                add(Control(lang.gui("community.stall.sales")) { run(SALES, stall) })
+                add(Control(lang.gui("community.stall.sales"), GuildStallIcon.SALES) { run(SALES, stall) })
             }
             if (available(ACCESS, stall)) {
-                add(Control(lang.gui("community.stall.access")) { run(ACCESS, stall) })
+                add(Control(lang.gui("community.stall.access"), GuildStallIcon.ACCESS) { run(ACCESS, stall) })
             }
         }
     }

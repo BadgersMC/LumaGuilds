@@ -59,6 +59,12 @@ class PrestigeRepositorySQL(
             gold.withGuildLock(request.guildId) {
                 storage.connection.connection.use { connection ->
                     transaction(connection) {
+                        // Fence before replay opens a MariaDB snapshot. An absent guild can still
+                        // replay its retained receipt; fresh execution keeps its existing guards.
+                        connection.prepareStatement("UPDATE guilds SET level = level WHERE id = ?").use {
+                            it.setString(1, request.guildId.toString())
+                            it.executeUpdate()
+                        }
                         replay(connection, request)
                             ?: execute(connection, request, guard).also { saveReceipt(connection, request, it) }
                     }

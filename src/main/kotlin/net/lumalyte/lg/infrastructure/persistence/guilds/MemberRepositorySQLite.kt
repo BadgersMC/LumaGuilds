@@ -3,16 +3,26 @@ package net.lumalyte.lg.infrastructure.persistence.guilds
 import co.aikar.idb.Database
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.MemberRepository
+import net.lumalyte.lg.application.results.OwnerRecoveryPreview
+import net.lumalyte.lg.application.results.OwnerRecoveryPreviewResult
+import net.lumalyte.lg.application.results.OwnerRecoveryResult
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.infrastructure.persistence.getInstantNotNull
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect
+import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 class MemberRepositorySQLite(private val storage: Storage<Database>) : MemberRepository {
+    private val logger = LoggerFactory.getLogger(MemberRepositorySQLite::class.java)
+
+    private fun persistedJoinedAt(instant: Instant): Any =
+        if (storage.dialect == SqlDialect.MARIADB) java.sql.Timestamp.from(instant) else instant.toString()
     
-    private val members: MutableMap<Pair<UUID, UUID>, Member> = mutableMapOf() // (playerId, guildId) -> Member
+    private val members = ConcurrentHashMap<Pair<UUID, UUID>, Member>() // (playerId, guildId) -> Member
     
     init {
         createMemberTable()
@@ -86,6 +96,7 @@ class MemberRepositorySQLite(private val storage: Storage<Database>) : MemberRep
     
     override fun getMemberCount(guildId: UUID): Int = getByGuild(guildId).size
     
+    @Synchronized
     override fun add(member: Member): Boolean {
         val sql = """
             INSERT INTO members (player_id, guild_id, rank_id, joined_at)
@@ -97,17 +108,19 @@ class MemberRepositorySQLite(private val storage: Storage<Database>) : MemberRep
                 member.playerId.toString(),
                 member.guildId.toString(),
                 member.rankId.toString(),
-                member.joinedAt.toString()
+                persistedJoinedAt(member.joinedAt)
             )
             if (rowsAffected > 0) {
                 members[Pair(member.playerId, member.guildId)] = member
             }
             rowsAffected > 0
         } catch (e: SQLException) {
+            logger.error("Failed to persist member {} in guild {}", member.playerId, member.guildId, e)
             false
         }
     }
     
+    @Synchronized
     override fun transferOwnership(current: Member, next: Member, demotedRankId: UUID): Boolean {
         if (current.guildId != next.guildId || current.playerId == next.playerId ||
             current.rankId == next.rankId
@@ -122,18 +135,46 @@ class MemberRepositorySQLite(private val storage: Storage<Database>) : MemberRep
         return committed
     }
 
+    override fun previewOwnerRecovery(guildId: UUID, playerId: UUID): OwnerRecoveryPreviewResult =
+        MemberOwnerRecoverySQL(storage).preview(guildId, playerId)
+
+    @Synchronized
+    override fun recoverOwnership(preview: OwnerRecoveryPreview): OwnerRecoveryResult {
+        val result = MemberOwnerRecoverySQL(storage).recover(preview)
+        if (result is OwnerRecoveryResult.Recovered) {
+            val recovered = preview.member.copy(rankId = preview.ownerRankId)
+            members[Pair(recovered.playerId, recovered.guildId)] = recovered
+        }
+        return result
+    }
+
+    @Synchronized
     override fun update(member: Member): Boolean {
         val sql = """
             UPDATE members SET rank_id = ?, joined_at = ?
             WHERE player_id = ? AND guild_id = ?
+                AND EXISTS (
+                    SELECT 1 FROM ranks current_rank
+                    WHERE current_rank.id = members.rank_id AND current_rank.guild_id = members.guild_id
+                        AND current_rank.priority >= 0
+                        AND (current_rank.priority > 0 OR current_rank.id = ?)
+                )
+                AND EXISTS (
+                    SELECT 1 FROM ranks next_rank
+                    WHERE next_rank.id = ? AND next_rank.guild_id = members.guild_id
+                        AND next_rank.priority >= 0
+                        AND (next_rank.priority > 0 OR next_rank.id = members.rank_id)
+                )
         """.trimIndent()
         
         return try {
             val rowsAffected = storage.connection.executeUpdate(sql,
                 member.rankId.toString(),
-                member.joinedAt.toString(),
+                persistedJoinedAt(member.joinedAt),
                 member.playerId.toString(),
-                member.guildId.toString()
+                member.guildId.toString(),
+                member.rankId.toString(),
+                member.rankId.toString(),
             )
             if (rowsAffected > 0) {
                 members[Pair(member.playerId, member.guildId)] = member
@@ -144,8 +185,17 @@ class MemberRepositorySQLite(private val storage: Storage<Database>) : MemberRep
         }
     }
     
+    @Synchronized
     override fun remove(playerId: UUID, guildId: UUID): Boolean {
-        val sql = "DELETE FROM members WHERE player_id = ? AND guild_id = ?"
+        // Check the stored rank in the deleting statement: a concurrent recovery/transfer
+        // must not turn an already-approved non-Owner removal into an Owner deletion.
+        val sql = """
+            DELETE FROM members WHERE player_id = ? AND guild_id = ?
+                AND EXISTS (
+                    SELECT 1 FROM ranks
+                    WHERE ranks.id = members.rank_id AND ranks.guild_id = members.guild_id AND ranks.priority > 0
+                )
+        """.trimIndent()
         
         return try {
             val rowsAffected = storage.connection.executeUpdate(sql, playerId.toString(), guildId.toString())
@@ -158,6 +208,7 @@ class MemberRepositorySQLite(private val storage: Storage<Database>) : MemberRep
         }
     }
     
+    @Synchronized
     override fun removeByGuild(guildId: UUID): Boolean {
         val sql = "DELETE FROM members WHERE guild_id = ?"
         
@@ -176,6 +227,8 @@ class MemberRepositorySQLite(private val storage: Storage<Database>) : MemberRep
         getByPlayerAndGuild(playerId, guildId) != null
     
     override fun getTotalCount(): Int = members.size
+
+    @Synchronized
     override fun evictGuild(guildId: UUID) {
         members.entries.removeIf { it.value.guildId == guildId }
     }

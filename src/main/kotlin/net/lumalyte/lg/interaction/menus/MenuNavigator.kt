@@ -1,17 +1,13 @@
 package net.lumalyte.lg.interaction.menus
 
 import org.bukkit.entity.Player
-import java.util.WeakHashMap
-import java.util.concurrent.atomic.AtomicLong
+import net.lumalyte.lg.infrastructure.services.GuildMenuLifecycle
 
 /** Public navigation contract used by the existing Java and Bedrock menu constructors. */
 @Suppress("LibraryEntitiesShouldNotBePublic") // Preserve the public menu-constructor contract.
 class MenuNavigator(private val player: Player) {
     private val menuStack = ArrayDeque<Menu>()
-    private val navigationGeneration =
-        synchronized(GENERATIONS) {
-            GENERATIONS.getOrPut(player) { AtomicLong() }
-        }
+    private val navigationGeneration = GuildMenuLifecycle.generation(player)
 
     /**
      * Opens the provided menu for the target player.
@@ -36,6 +32,41 @@ class MenuNavigator(private val player: Player) {
     fun goBack() {
         navigationGeneration.incrementAndGet()
         navigateBack()
+    }
+
+    /**
+     * Returns to a named parent without putting a duplicate parent above its child.
+     * Reuses the nearest parent instance (including its page/filter state). Direct
+     * entries replace the current screen with the fallback, so Back cannot revisit it.
+     * Only explicit parent-return actions use this; forward opens remain unchanged.
+     */
+    fun returnTo(parentType: Class<out Menu>, fallback: () -> Menu) {
+        navigationGeneration.incrementAndGet()
+        restoreParent(parentType, fallback).open()
+    }
+
+    /**
+     * Returns to a named parent with updated child data while retaining the parent's
+     * other state. Data is delivered before opening either the existing parent or
+     * its direct-entry fallback. Descendants cannot be revisited by another Back.
+     */
+    fun returnToWithData(parentType: Class<out Menu>, data: Any?, fallback: () -> Menu) {
+        navigationGeneration.incrementAndGet()
+        val parent = restoreParent(parentType, fallback)
+        parent.passData(data)
+        parent.open()
+    }
+
+    private fun restoreParent(parentType: Class<out Menu>, fallback: () -> Menu): Menu {
+        val parent = menuStack.firstOrNull { parentType.isInstance(it) }
+        if (parent != null) {
+            while (menuStack.first() !== parent) menuStack.removeFirst()
+            return parent
+        }
+        val replacement = fallback()
+        if (menuStack.isNotEmpty()) menuStack.removeFirst()
+        menuStack.addFirst(replacement)
+        return replacement
     }
 
     /**
@@ -90,14 +121,12 @@ class MenuNavigator(private val player: Player) {
                 menuStack.first().passData(data)
                 menuStack.first().open()
             } else {
+                if (net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.supportsDialog(player)) {
+                    player.closeDialog()
+                }
                 player.closeInventory()
             }
         }
     }
 
-    private companion object {
-        // Commands may create separate navigators for the same live player.
-        // Weak keys avoid retaining disconnected players after their menus are released.
-        val GENERATIONS = WeakHashMap<Player, AtomicLong>()
-    }
 }

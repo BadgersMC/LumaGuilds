@@ -1,5 +1,9 @@
 package net.lumalyte.lg.application.services
 
+import net.lumalyte.lg.application.results.OwnerRecoveryPreview
+import net.lumalyte.lg.application.results.OwnerRecoveryPreviewResult
+import net.lumalyte.lg.application.results.OwnerRecoveryRejection
+import net.lumalyte.lg.application.results.OwnerRecoveryResult
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.RankPermission
 import java.util.UUID
@@ -151,4 +155,18 @@ interface MemberService {
      * @return true if successful, false otherwise.
      */
     fun transferOwnership(guildId: UUID, currentOwnerId: UUID, newOwnerId: UUID): Boolean
+
+    /**
+     * Reads authoritative ownership state for an administrative recovery preview without changing it.
+     * The administrative caller must enforce the dedicated owner recovery permission.
+     */
+    fun previewOwnerRecovery(guildId: UUID, playerId: UUID): OwnerRecoveryPreviewResult =
+        OwnerRecoveryPreviewResult.Rejected(OwnerRecoveryRejection.UNSUPPORTED_REPOSITORY)
+
+    /**
+     * Recovers an ownerless guild to the existing member in a confirmed preview, rechecking live state.
+     * The administrative caller must authorize and confirm the request before invoking this method.
+     */
+    fun recoverOwnership(preview: OwnerRecoveryPreview): OwnerRecoveryResult =
+        OwnerRecoveryResult.Rejected(OwnerRecoveryRejection.UNSUPPORTED_REPOSITORY)
 }

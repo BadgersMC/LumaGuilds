@@ -12,6 +12,9 @@ interface ProgressionService {
     /** Refresh committed SQL progression and publish a level change without awarding again. */
     fun onCommittedExperience(guildId: UUID, leveledUpTo: Int?) {}
 
+    /** Acknowledge only after the actual platform cache refresh, including asynchronously scheduled work. */
+    fun onCommittedBankDepositExperience(guildId: UUID, leveledUpTo: Int?, onRefreshed: () -> Unit) {}
+
     fun getRewardState(guildId: UUID): net.lumalyte.lg.domain.rewards.GuildRewardRead =
         net.lumalyte.lg.domain.rewards.GuildRewardRead.Disabled
 

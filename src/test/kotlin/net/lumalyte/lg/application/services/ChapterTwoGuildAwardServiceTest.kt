@@ -8,6 +8,7 @@ import net.lumalyte.lg.domain.entities.DepartureReason
 import net.lumalyte.lg.domain.entities.ExperienceAwardRequest
 import net.lumalyte.lg.domain.entities.ExperienceAwardResult
 import net.lumalyte.lg.domain.entities.MembershipHistory
+import net.lumalyte.lg.domain.entities.PreparedExperienceAward
 import net.lumalyte.lg.domain.values.ExperiencePolicy
 import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.domain.values.PeriodWindow
@@ -19,16 +20,18 @@ import java.util.UUID
 class ChapterTwoGuildAwardServiceTest {
     private val now = Instant.parse("2026-08-28T12:00:00Z")
     private val awards = RecordingAwards()
-    private val bank = InMemoryBankProgression()
+    private val bank = InMemoryBankProgression(awards)
     private val history = InMemoryMembershipHistory()
     private val activity = RecordingActivity()
     private val config = MainConfig()
+    private val committed = mutableListOf<Pair<UUID, Int?>>()
     private val service = ChapterTwoGuildAwardService(
         bank,
         history,
         PermanentExperienceService(awards, activity),
         object : ConfigService { override fun loadConfig() = config },
         activity,
+        onCommittedExperience = { guildId, level -> committed += guildId to level },
     )
 
     @Test
@@ -42,6 +45,19 @@ class ChapterTwoGuildAwardServiceTest {
 
         assertEquals(listOf(100), awards.calls.map { it.requestedXp })
         assertEquals(ExperienceSource.BANK_DEPOSIT, awards.calls.single().request.source)
+        assertEquals(listOf(guildId to null), committed)
+    }
+
+    /** Publishing a committed bank level does not issue a second award. */
+    @Test
+    fun bankLevelUpPublishesOnce() {
+        val guildId = UUID.randomUUID()
+        awards.leveledUpTo = 2
+
+        service.awardBankGrowth(guildId, UUID.randomUUID(), 0, BANK_TEST_AMOUNT, now)
+
+        assertEquals(listOf(guildId to 2), committed)
+        assertEquals(1, awards.calls.size)
     }
 
     @Test
@@ -51,6 +67,7 @@ class ChapterTwoGuildAwardServiceTest {
         activity.blocked += actorId
 
         service.awardBankGrowth(guildId, actorId, 0, 10_000, now)
+        assertEquals(emptyList<Pair<UUID, Int?>>(), committed)
         activity.blocked -= actorId
         service.awardBankGrowth(guildId, actorId, 0, 10_000, now)
 
@@ -95,6 +112,7 @@ class ChapterTwoGuildAwardServiceTest {
     }
 
     private class RecordingAwards : ExperienceAwardRepository {
+        var leveledUpTo: Int? = null
         data class Call(val request: ExperienceAwardRequest, val requestedXp: Int)
         val calls = mutableListOf<Call>()
         private val transactionIds = mutableSetOf<UUID>()
@@ -106,7 +124,7 @@ class ChapterTwoGuildAwardServiceTest {
         ): ExperienceAwardResult {
             if (!transactionIds.add(request.transactionId)) return ExperienceAwardResult.Duplicate
             calls += Call(request, requestedXp)
-            return ExperienceAwardResult.Awarded(requestedXp, requestedXp, policy.isCapped)
+            return ExperienceAwardResult.Awarded(requestedXp, requestedXp, policy.isCapped, leveledUpTo)
         }
     }
 
@@ -115,8 +133,30 @@ class ChapterTwoGuildAwardServiceTest {
         override fun isXpBlocked(playerId: UUID) = playerId in blocked
     }
 
-    private class InMemoryBankProgression : BankProgressionRepository {
+    private companion object {
+        const val BANK_TEST_AMOUNT = 100L
+    }
+
+    private class InMemoryBankProgression(private val awards: ExperienceAwardRepository) : BankProgressionRepository {
         private val highs = mutableMapOf<Pair<UUID, Instant>, Long>()
+        override fun awardNetNewUnits(
+            guildId: UUID,
+            openingBalance: Long,
+            currentBalance: Long,
+            valuePerUnit: Long,
+            window: PeriodWindow,
+            prepareAward: (Int) -> PreparedExperienceAward,
+        ): ExperienceAwardResult? {
+            val units = reserveNetNewUnits(guildId, openingBalance, currentBalance, valuePerUnit, window)
+            if (units <= 0) return null
+            return when (val prepared = prepareAward(units)) {
+                is PreparedExperienceAward.Rejected -> ExperienceAwardResult.Rejected(prepared.reason)
+                is PreparedExperienceAward.Ready -> awards.awardAtomically(
+                    prepared.request, prepared.policy, prepared.requestedXp, window,
+                )
+            }
+        }
+
         override fun reserveNetNewUnits(
             guildId: UUID,
             openingBalance: Long,

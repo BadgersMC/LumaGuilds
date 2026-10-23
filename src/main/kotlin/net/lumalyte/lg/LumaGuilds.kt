@@ -55,12 +55,14 @@ class LumaGuilds : JavaPlugin() {
     private var chapterRolloverScheduler: net.lumalyte.lg.infrastructure.services.ChapterRolloverScheduler? = null
     private var liteBansStrikeHookRegistered = false
     private var enthusiaStaffStrikeFeed: AutoCloseable? = null
+    private var inviteBlockLifecycle: net.lumalyte.lg.application.services.DurableInviteBlockService? = null
     internal lateinit var vaultProtectionListener: net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener
     internal var enabledAtMillis: Long = 0L
         private set
     private val componentLogger = getComponentLogger()
 
 
+    /** Initializes persistence, services and optional integrations before registering player-facing listeners. */
     override fun onEnable() {
         enabledAtMillis = System.currentTimeMillis()
 
@@ -124,6 +126,14 @@ class LumaGuilds : JavaPlugin() {
         )
         logColored("✓ GuildLookup registered in ServicesManager for cross-plugin integration")
 
+        net.lumalyte.lg.infrastructure.services.registerGuildShopXpApi(
+            this,
+            get().get(),
+            get().get(),
+            get().get(),
+        )
+        logColored("✓ GuildShopXpApi v2 registered in ServicesManager for Market purchases")
+
         val guildVisualLookup = net.lumalyte.lg.api.GuildVisualLookupImpl(
             get().get<net.lumalyte.lg.application.services.GuildService>(),
             get().get<net.lumalyte.lg.application.services.MemberService>(),
@@ -154,12 +164,24 @@ class LumaGuilds : JavaPlugin() {
         )
         logColored("✓ GuildCosmeticUnlocks registered in ServicesManager for cross-plugin integration")
 
+        // EnthusiaFriends' Block Everywhere blocks guild invites through this API.
+        val durableInviteBlocks = get().get<net.lumalyte.lg.application.services.DurableInviteBlockService>()
+        inviteBlockLifecycle = durableInviteBlocks
+        net.lumalyte.lg.infrastructure.services.registerGuildInviteBlocks(
+            this,
+            storage.dialect,
+            get().get<net.lumalyte.lg.application.services.InviteBlockService>(),
+            durableInviteBlocks,
+        )
+        logColored("✓ GuildInviteBlocks registered in ServicesManager")
+
         // Initialize Apollo AFTER Koin is started (requires Koin DI)
         initialiseApolloIntegration()
 
         // Initialize GuildInvitationManager with the repository from Koin
         net.lumalyte.lg.infrastructure.services.GuildInvitationManager.initialize(
-            get().get<net.lumalyte.lg.application.persistence.GuildInvitationRepository>()
+            get().get<net.lumalyte.lg.application.persistence.GuildInvitationRepository>(),
+            get().get<net.lumalyte.lg.application.services.InviteBlockService>(),
         )
 
         // Initialize Gold Balance Button
@@ -1019,6 +1041,9 @@ class LumaGuilds : JavaPlugin() {
 
         // Register player session cleanup listener
         server.pluginManager.registerEvents(get().get<net.lumalyte.lg.infrastructure.listeners.GuildOnboardingListener>(), this)
+        val recruitmentListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildRecruitmentListener>()
+        server.pluginManager.registerEvents(recruitmentListener, this)
+        recruitmentListener.start()
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.PlayerSessionListener(), this)
 
         // Register war kill tracking listener
@@ -1127,6 +1152,10 @@ class LumaGuilds : JavaPlugin() {
             // already seated in a guild channel when a mute lands).
             val guildMuteChatListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildMuteChatListener>()
             server.pluginManager.registerEvents(guildMuteChatListener, this)
+            // Hide blocked players' guild, ally and mod channel messages from the players who blocked them.
+            server.pluginManager.registerEvents(
+                get().get<net.lumalyte.lg.infrastructure.listeners.InviteBlockChatListener>(), this
+            )
 
             // Register RoseChat ChannelProvider so guild/ally/modchat channels
             // resolve from channels.yml. A delayed reload re-reads the config
@@ -1317,11 +1346,23 @@ class LumaGuilds : JavaPlugin() {
             bankInterestScheduler = net.lumalyte.lg.infrastructure.services.BankInterestScheduler(this, bankAutomationService)
             bankInterestScheduler.start()
             val gold = get().get<net.lumalyte.lg.application.services.GuildGoldService>()
+            val bankXp = get().get<net.lumalyte.lg.application.services.BankDepositXpDeliveryService>()
             server.scheduler.runTaskTimer(this, Runnable {
                 try {
                     gold.reconcilePending(System.currentTimeMillis() - 300_000L)
                 } catch (error: Exception) {
                     logger.severe("Guild gold recovery failed; unfinished transfers remain held: ${error.message}")
+                }
+                // Already-credited deposits must still drain if another currency transfer is held or fails.
+                try {
+                    bankXp.drain()
+                } catch (error: Exception) {
+                    logger.warning("Bank XP delivery remains queued: ${error.message}")
+                }
+                try {
+                    bankXp.retryCache()
+                } catch (error: Exception) {
+                    logger.warning("Bank XP cache publication remains queued: ${error.message}")
                 }
             }, 1L, 1_200L)
             logColored("✓ Bank interest scheduler started")
@@ -1462,6 +1503,9 @@ class LumaGuilds : JavaPlugin() {
     }
 
     override fun onDisable() {
+        // This irreversible gate must run before unrelated cleanup can throw or services are unregistered.
+        inviteBlockLifecycle?.close()
+        inviteBlockLifecycle = null
         get().getOrNull<net.lumalyte.lg.infrastructure.listeners.ChatDestinationIndicator>()?.close()
         enthusiaStaffStrikeFeed?.close()
         enthusiaStaffStrikeFeed = null

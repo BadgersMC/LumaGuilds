@@ -37,6 +37,7 @@ class SpawnBannerMigrationTest {
         }
     }
 
+    /** Releases the spawn-banner migration fixture after each scenario. */
     @AfterEach
     fun tearDown() = connection.close()
 
@@ -48,7 +49,7 @@ class SpawnBannerMigrationTest {
         assertTrue(columnExists("spawn_banners", "banner_id"))
         assertTrue(columnExists("spawn_banners", "category"))
         assertTrue(columnExists("spawn_banners", "rank"))
-        assertEquals(44, databaseVersion())
+        assertEquals(BankDepositXpSchema.VERSION, databaseVersion())
     }
 
     private fun tableExists(table: String): Boolean =

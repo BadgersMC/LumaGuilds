@@ -4,6 +4,9 @@ import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.application.persistence.RankRepository
+import net.lumalyte.lg.application.results.OwnerRecoveryPreview
+import net.lumalyte.lg.application.results.OwnerRecoveryPreviewResult
+import net.lumalyte.lg.application.results.OwnerRecoveryResult
 import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.DepartureReason
@@ -130,6 +133,15 @@ class MemberServiceBukkit(
         // Check if player is actually a member
         if (!memberRepository.isPlayerInGuild(playerId, guildId)) {
             logger.warn("Player $playerId is not a member of guild $guildId")
+            return false
+        }
+
+        // Voluntary leave transfers ownership first. No individual removal may delete an Owner,
+        // including admin override; the repository repeats this guard against persisted state.
+        val member = memberRepository.getByPlayerAndGuild(playerId, guildId) ?: return false
+        val rank = rankRepository.getById(member.rankId)
+        if (rank == null || rank.guildId != guildId || rank.priority == 0) {
+            logger.warn("Cannot remove Owner or invalid-rank member $playerId from guild $guildId (actor=$actorId)")
             return false
         }
 
@@ -441,6 +453,27 @@ class MemberServiceBukkit(
             logger.error("Error during ownership transfer: ${e.message}", e)
             return false
         }
+    }
+
+    override fun previewOwnerRecovery(guildId: UUID, playerId: UUID): OwnerRecoveryPreviewResult =
+        memberRepository.previewOwnerRecovery(guildId, playerId)
+
+    override fun recoverOwnership(preview: OwnerRecoveryPreview): OwnerRecoveryResult {
+        val result = memberRepository.recoverOwnership(preview)
+        if (result is OwnerRecoveryResult.Recovered) {
+            // Permission refresh is post-commit. A notification failure must not misreport a committed
+            // recovery as rejected, which could encourage an unsafe retry.
+            try {
+                invalidateClaimPermissionCache(result.preview.member.playerId)
+            } catch (error: Exception) {
+                java.util.logging.Logger.getLogger("LumaGuilds").log(
+                    java.util.logging.Level.SEVERE,
+                    "Owner recovery committed for guild ${preview.guildId}; permission cache refresh failed",
+                    error,
+                )
+            }
+        }
+        return result
     }
 
     override fun hasPermission(playerId: UUID, guildId: UUID, permission: RankPermission): Boolean {

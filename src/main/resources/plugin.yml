@@ -77,6 +77,7 @@ permissions:
       lumaguilds.guild.mode: true
       lumaguilds.guild.disband: true
       lumaguilds.guild.menu: true
+      lumaguilds.guild.quests: true
       lumaguilds.guild.invite: true
       lumaguilds.guild.kick: true
       lumaguilds.guild.tag: true
@@ -94,6 +95,7 @@ permissions:
       lumaguilds.guild.lfg: true
       lumaguilds.guild.decline: true
       lumaguilds.guild.invites: true
+      lumaguilds.guild.block: true
       lumaguilds.guild.leave: true
       lumaguilds.guild.transfer: true
       lumaguilds.guild.getvault: true
@@ -140,6 +142,9 @@ permissions:
   lumaguilds.guild.menu:
     description: Open guild management menu
     default: true
+  lumaguilds.guild.quests:
+    description: View your guild quests and their leaderboards without management access
+    default: true
   lumaguilds.guild.invite:
     description: Invite players to guild
     default: true
@@ -184,6 +189,9 @@ permissions:
     default: true
   lumaguilds.guild.invites:
     description: View pending guild invitations
+    default: true
+  lumaguilds.guild.block:
+    description: Block players from sending you guild invites and from your guild, ally and party chat
     default: true
   lumaguilds.guild.leave:
     description: Leave your guild
@@ -309,6 +317,10 @@ permissions:
 
   lumaguilds.admin.xp:
     description: Grant permanent guild XP with /lumaguilds xp give
+    default: op
+
+  lumaguilds.admin.owner.recover:
+    description: Preview and confirm recovery of an ownerless guild to an existing member
     default: op
 
   # Guild Strikes Admin Permissions

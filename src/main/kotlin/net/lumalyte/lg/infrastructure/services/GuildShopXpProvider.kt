@@ -25,8 +25,10 @@ internal class GuildShopXpProvider(
 
     override fun complete(saleId: UUID): String {
         val result = repository.complete(saleId)
-        if (result.awardedNow) {
-            progression.onCommittedExperience(result.guildId, result.level)
+        if (result.awardedNow || result.status.startsWith("AWARDED:")) {
+            // A retained award repairs missed cache publication without replaying level-up effects.
+            val level = result.level.takeIf { result.awardedNow }
+            progression.onCommittedExperience(result.guildId, level)
         }
         return result.status
     }
