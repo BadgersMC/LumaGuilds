@@ -5,6 +5,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.domain.achievements.AchievementRecord
 import net.lumalyte.lg.domain.achievements.GuildAchievement
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.infrastructure.i18n.gui
@@ -50,39 +51,56 @@ internal class GuildAchievementsMenu(
         val visible = nodes.drop(page * 4).take(4)
         val node = runtime.engine.definitions.find { it.id == selected } ?: visible.first()
         selected = node.id
-        fun action(label: Component, run: () -> Unit) = GuildDialogAction(label, Component.empty(), run)
-        fun nodeAction(n: GuildAchievement): GuildDialogAction {
-            val complete = (record.progress[n.id] ?: 0) >= n.goal
-            val prefix = if (complete) "[✓] " else "[◇] "
-            val label = Component.text(prefix + shortName(n.title), if (complete) NamedTextColor.GOLD else NamedTextColor.GRAY)
-            return GuildDialogAction(label, Component.text(n.title + " · " + (record.progress[n.id] ?: 0) + "/" + n.goal)) {
-                selected = n.id
-                if (n.category != category) {
-                    category = n.category
-                    page = runtime.engine.definitions.filter { it.category == category && it.requirement != "ROOT" }
-                        .indexOf(n).coerceAtLeast(0) / 4
-                }
-                open()
+        presenter.show(player, GuildDialogPage(lang.gui("achievements.title"), inspectorCards(node, record), personalActions(token, record, node, pages),
+            action(backLabel(), navigator::goBack), columns = 2,
+            theme = guilds.getGuild(guild.id)?.guiTheme ?: guild.guiTheme,
+            subtitle = lang.gui("achievements.subtitle", "category" to category, "page" to page + 1, "pages" to pages),
+            bodyActions = listOf(action(lang.gui("achievements.guild_scope")) {
+                guildMilestones = true; guildPage = 0; open()
+            }) + CATEGORIES.map { cat -> action(Component.text(if (cat == category) "[$cat]" else cat)) {
+                category = cat; page = 0; selected = null; open()
+            } }, diagram = diagram(visible, record)), { valid(token) }, { player.sendMessage(lang.gui("achievements.unavailable")) })
+    }
+
+
+    private fun action(label: Component, run: () -> Unit) = GuildDialogAction(label, Component.empty(), run)
+
+    private fun nodeAction(n: GuildAchievement, record: AchievementRecord): GuildDialogAction {
+        val complete = (record.progress[n.id] ?: 0) >= n.goal
+        val prefix = if (complete) "[✓] " else "[◇] "
+        val label = Component.text(prefix + shortName(n.title), if (complete) NamedTextColor.GOLD else NamedTextColor.GRAY)
+        return GuildDialogAction(label, Component.text(n.title + " · " + (record.progress[n.id] ?: 0) + "/" + n.goal)) {
+            selected = n.id
+            if (n.category != category) {
+                category = n.category
+                page = runtime.engine.definitions.filter { it.category == category && it.requirement != "ROOT" }
+                    .indexOf(n).coerceAtLeast(0) / 4
             }
+            open()
         }
-        val detailTabs = listOf(lang.gui("achievements.inspect_overview"), lang.gui("achievements.inspect_earning"),
-            lang.gui("achievements.inspect_reward"), lang.gui("achievements.inspect_rules")).mapIndexed { index, label ->
-            action(if (index == detailTab) Component.text("[").append(label).append(Component.text("]")) else label) {
-                detailTab = index; open()
-            }
+    }
+
+    private fun inspectorTabs(): List<GuildDialogAction> = listOf(lang.gui("achievements.inspect_overview"), lang.gui("achievements.inspect_earning"),
+        lang.gui("achievements.inspect_reward"), lang.gui("achievements.inspect_rules")).mapIndexed { index, label ->
+        action(if (index == detailTab) Component.text("[").append(label).append(Component.text("]")) else label) {
+            detailTab = index; open()
         }
-        val diagram = listOf(detailTabs) + visible.map { child ->
-            val parent = runtime.engine.definitions.find { it.id == child.parent }
-            listOfNotNull(parent?.let(::nodeAction), nodeAction(child))
-        }
+    }
+
+    private fun diagram(visible: List<GuildAchievement>, record: AchievementRecord): List<List<GuildDialogAction>> = listOf(inspectorTabs()) + visible.map { child ->
+        val parent = runtime.engine.definitions.find { it.id == child.parent }
+        listOfNotNull(parent?.let { nodeAction(it, record) }, nodeAction(child, record))
+    }
+
+    private fun inspectorCards(node: GuildAchievement, record: AchievementRecord): List<GuildDialogItem> {
         val progress = record.progress[node.id] ?: 0
         val complete = progress >= node.goal
         // One inspector section at a time keeps the underlay and actions inside the native viewport.
-        val cards = listOf(
+        return listOf(
             referenceItem(icon(node), listOf(Component.text(node.title),
                 if (complete) lang.gui("achievements.completed", "current" to progress, "goal" to node.goal)
                 else lang.gui("achievements.progress", "current" to progress, "goal" to node.goal),
-                *node.description.map { Component.text(it) }.toTypedArray())),
+            ) + node.description.map { Component.text(it) }),
             referenceItem("lg_sources", listOf(lang.gui("achievements.how"),
                 Component.text(earning(node)), Component.text(credit(node)))),
             referenceItem("lg_reward", listOf(lang.gui("achievements.reward"),
@@ -91,34 +109,26 @@ internal class GuildAchievementsMenu(
             referenceItem("lg_prestige", listOf(lang.gui("achievements.record_rules"), lang.gui("achievements.offline"),
                 lang.gui("achievements.retained"), lang.gui("achievements.connections"))),
         ).let { listOf(it[detailTab]) }
-        val actions = buildList {
-            if (page > 0) add(action(lang.gui("achievements.previous")) { page--; selected = null; open() })
-            if (page + 1 < pages) add(action(lang.gui("achievements.next")) { page++; selected = null; open() })
-            add(action(if (record.tracked == node.id) lang.gui("achievements.untrack") else lang.gui("achievements.track")) {
-                if (valid(token)) runtime.track(player, if (record.tracked == node.id) null else node.id)
-                open()
-            })
-            record.tracked?.let { id -> add(action(lang.gui("achievements.goal")) {
-                runtime.engine.definitions.find { it.id == id }?.let {
-                    category = it.category
-                    page = runtime.engine.definitions.filter { n -> n.category == category && n.requirement != "ROOT" }.indexOf(it) / 4
-                    selected = id
-                }; open()
-            }) }
-            add(action(lang.gui("achievements.vanilla")) {
-                player.sendMessage(if (runtime.projectionAvailable()) lang.gui("achievements.open_vanilla") else lang.gui("achievements.renderer_unavailable"))
-                open()
-            })
-        }
-        presenter.show(player, GuildDialogPage(lang.gui("achievements.title"), cards, actions,
-            action(backLabel(), navigator::goBack), columns = 2,
-            theme = guilds.getGuild(guild.id)?.guiTheme ?: guild.guiTheme,
-            subtitle = lang.gui("achievements.subtitle", "category" to category, "page" to page + 1, "pages" to pages),
-            bodyActions = listOf(action(lang.gui("achievements.guild_scope")) {
-                guildMilestones = true; guildPage = 0; open()
-            }) + CATEGORIES.map { cat -> action(Component.text(if (cat == category) "[$cat]" else cat)) {
-                category = cat; page = 0; selected = null; open()
-            } }, diagram = diagram), { valid(token) }, { player.sendMessage(lang.gui("achievements.unavailable")) })
+    }
+
+    private fun personalActions(token: Long, record: AchievementRecord, node: GuildAchievement, pages: Int): List<GuildDialogAction> = buildList {
+        if (page > 0) add(action(lang.gui("achievements.previous")) { page--; selected = null; open() })
+        if (page + 1 < pages) add(action(lang.gui("achievements.next")) { page++; selected = null; open() })
+        add(action(if (record.tracked == node.id) lang.gui("achievements.untrack") else lang.gui("achievements.track")) {
+            if (valid(token)) runtime.track(player, if (record.tracked == node.id) null else node.id)
+            open()
+        })
+        record.tracked?.let { id -> add(action(lang.gui("achievements.goal")) {
+            runtime.engine.definitions.find { it.id == id }?.let {
+                category = it.category
+                page = runtime.engine.definitions.filter { n -> n.category == category && n.requirement != "ROOT" }.indexOf(it) / 4
+                selected = id
+            }; open()
+        }) }
+        add(action(lang.gui("achievements.vanilla")) {
+            player.sendMessage(if (runtime.projectionAvailable()) lang.gui("achievements.open_vanilla") else lang.gui("achievements.renderer_unavailable"))
+            open()
+        })
     }
 
     private fun showGuildMilestones(token: Long) {

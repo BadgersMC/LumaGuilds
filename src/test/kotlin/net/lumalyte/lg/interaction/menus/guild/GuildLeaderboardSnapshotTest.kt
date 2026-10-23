@@ -27,9 +27,9 @@ internal class GuildLeaderboardSnapshotTest {
         val all = (1..6).map { guild("Guild $it", if (it <= 2) 50 else 10 - it) }
         every { guilds.getAllGuilds() } returns all.reversed().toSet()
         every { members.getMemberCount(any()) } returns 4
-        val first = guildLeaderboardSnapshot(viewer, guilds, members, quests, 0, -9)
+        val first = GuildLeaderboardSource(guilds, members, quests).snapshot(viewer, 0, -9)
         assertEquals(all.take(4).map { it.id }, first.rows.map { it.guild.id })
-        val last = guildLeaderboardSnapshot(viewer, guilds, members, quests, 0, 999)
+        val last = GuildLeaderboardSource(guilds, members, quests).snapshot(viewer, 0, 999)
         assertEquals(1, last.page)
         assertEquals(2, last.pages)
         assertEquals(listOf(5, 6), last.rows.map { it.rank })
@@ -41,10 +41,10 @@ internal class GuildLeaderboardSnapshotTest {
         every { guilds.getAllGuilds() } returns setOf(a, b)
         every { members.getMemberCount(any()) } returns 1
         every { quests.recordedWins() } returnsMany listOf(mapOf(a.id to 3), mapOf(b.id to 8))
-        assertEquals(a.id, guildLeaderboardSnapshot(viewer, guilds, members, quests, 1, 0).rows.first().guild.id)
-        assertEquals(b.id, guildLeaderboardSnapshot(viewer, guilds, members, quests, 1, 0).rows.first().guild.id)
+        assertEquals(a.id, GuildLeaderboardSource(guilds, members, quests).snapshot(viewer, 1, 0).rows.first().guild.id)
+        assertEquals(b.id, GuildLeaderboardSource(guilds, members, quests).snapshot(viewer, 1, 0).rows.first().guild.id)
         every { guilds.getAllGuilds() } returns emptySet()
-        val empty = guildLeaderboardSnapshot(viewer, guilds, members, quests, 0, 999)
+        val empty = GuildLeaderboardSource(guilds, members, quests).snapshot(viewer, 0, 999)
         assertEquals(0, empty.page); assertEquals(1, empty.pages); assertTrue(empty.rows.isEmpty())
     }
 
@@ -63,6 +63,6 @@ internal class GuildLeaderboardSnapshotTest {
             every { player.isOnline } returns (index != 2)
             every { viewer.canSee(player) } returns (index == 0)
         }
-        assertEquals(1, guildLeaderboardSnapshot(viewer, guilds, members, quests, 2, 0).rows.single().score)
+        assertEquals(1, GuildLeaderboardSource(guilds, members, quests).snapshot(viewer, 2, 0).rows.single().score)
     }
 }

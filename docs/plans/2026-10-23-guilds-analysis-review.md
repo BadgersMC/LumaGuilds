@@ -6,7 +6,7 @@ No rule/configuration changes or broad suppressions. Exact published-head analys
 
 | Baseline location | Finding | Disposition |
 | --- | --- | --- |
-| `src/main/kotlin/net/lumalyte/lg/LumaGuilds.kt:134` | Method (anonymous) has 65 lines of code (limit is 50) | Extracted shop registration and its completed-sale callback into named methods; preserves startup order, receipt and settlement contract. |
+| `src/main/kotlin/net/lumalyte/lg/LumaGuilds.kt:134` | Method (anonymous) has 65 lines of code (limit is 50) | Kept direct startup registration and extracted its completed-sale callback; preserves the unchanged startup guard, order, receipt and settlement contract. |
 | `src/main/kotlin/net/lumalyte/lg/domain/achievements/GuildAchievement.kt:6` | The property requirement is missing documentation. | Documented activity key, formatted constructor/signature and separated bounded counting, completion detection, record construction and numeric target matching. Existing replay/overflow tests retained; malformed target regression added. |
 | `src/main/kotlin/net/lumalyte/lg/domain/achievements/GuildAchievement.kt:7` | Parameter should start on a newline | Documented activity key, formatted constructor/signature and separated bounded counting, completion detection, record construction and numeric target matching. Existing replay/overflow tests retained; malformed target regression added. |
 | `src/main/kotlin/net/lumalyte/lg/domain/achievements/GuildAchievement.kt:38` | Method advance has 6 parameters (limit is 4) | Retained compatibility entry point with named arguments. Grouping unrelated inputs into a DTO only for this metric would add migration churn; no signature or guard changes. |
@@ -56,3 +56,23 @@ No rule/configuration changes or broad suppressions. Exact published-head analys
 | `src/main/kotlin/net/lumalyte/lg/infrastructure/services/MenuIconAdapter.kt:298` | Missing newline before ")" | Retained nonblocking style observation in unchanged code for this bounded integration. No functional error demonstrated; public/provider contract and existing test coverage preserved. |
 | `src/main/kotlin/net/lumalyte/lg/infrastructure/services/MenuIconAdapter.kt:308` | Method registeredNexoBitmap has a cyclomatic complexity of 7 (limit is 5) | Retained explicit fail-closed/optional-provider guard sequence. Review covers eligibility and exception paths; no suppression or reduced test assertions. Native acceptance remains separate. |
 | `src/main/kotlin/net/lumalyte/lg/interaction/menus/bedrock/BedrockGuildLeaderboardMenu.kt:22` | Parameter should start on a newline | Retained nonblocking style observation in unchanged code for this bounded integration. No functional error demonstrated; public/provider contract and existing test coverage preserved. |
+
+## Refine after exact-head 33baef8f analysis
+
+That run exposed additional findings in the layered menu changes. The unchanged
+startup source guard also failed locally. Preserve the direct registration call
+and extract only its completed-sale callback; do not weaken the guard.
+
+| Finding | Refinement |
+| --- | --- |
+| Achievement open cognitive52/cyclomatic30 | Extract node controls, inspector tabs/diagram/cards and personal actions; same selected node, page, guarded tracking and output. |
+| Achievement description spread copy | Concatenate the description component list directly; same contents and order. |
+| Prestige length56/complexity17 | Extract overview, milestone and retained cards plus review eligibility; same tabs, contents, prices, callback and all eligibility conditions. |
+| Bedrock getForm cognitive27 | Extract ranking population; response session, main-thread dispatch, actor/membership checks, callbacks and Back stay in getForm. |
+| Leaderboard projection argument count | Group the existing three read dependencies in internal GuildLeaderboardSource, with snapshot(viewer,tab,page). All consumers/tests migrated; same sorting, paging and viewer privacy assertions. No public API change. |
+
+Existing Chronicle/prestige, mastery navigation, privacy/paging, theme geometry and
+startup assertions are retained. The expanded focused run passes with no skipped
+cases; exact final full/hosted results remain separate. Nonblocking unchanged
+style/format notices are retained with the earlier scoped dispositions, without
+rule changes, broad suppressions or a claim of independent reviewer approval.

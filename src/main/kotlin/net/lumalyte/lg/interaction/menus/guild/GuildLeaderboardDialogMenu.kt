@@ -36,7 +36,7 @@ internal class GuildLeaderboardDialogMenu(
             navigator.goBack()
             return
         }
-        val snapshot = guildLeaderboardSnapshot(player, guilds, members, quests, tab, page)
+        val snapshot = GuildLeaderboardSource(guilds, members, quests).snapshot(player, tab, page)
         val pages = snapshot.pages
         page = snapshot.page
         val cards =
