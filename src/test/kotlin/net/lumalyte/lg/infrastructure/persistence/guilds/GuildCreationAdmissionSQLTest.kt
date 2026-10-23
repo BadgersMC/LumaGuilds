@@ -56,7 +56,9 @@ internal class GuildCreationAdmissionSQLTest : RewardSqlTestFixture() {
         val reader = RewardStateRepositorySQL(storage,
             RewardOwnershipRepositorySQL(storage, net.lumalyte.lg.domain.rewards.RewardCatalog.chapterTwo()))
         kotlin.test.assertIs<net.lumalyte.lg.domain.rewards.RewardStateRead.Found>(reader.read(guild.id))
-        assertEquals(1, assertNotNull(progression.getGuildProgression(guild.id)).currentLevel)
+        val saved = assertNotNull(progression.getGuildProgression(guild.id))
+        assertEquals(1, saved.currentLevel)
+        assertEquals(guild.createdAt.epochSecond, saved.createdAt.epochSecond)
     }
 
     @Test

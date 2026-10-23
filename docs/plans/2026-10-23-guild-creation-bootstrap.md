@@ -50,3 +50,12 @@ owner membership and reward resolution; it runs on SQLite and MariaDB. It checks
 one exact payment, a real owner and no unresolved receipt after success. Historical
 incident receipts remain untouched. Final checked-head results are in PR242 and
 the task-owned delivery evidence; initial failures are retained rather than relabeled.
+
+The complete-flow fixture originally hit MockBukkit's unimplemented saveData and
+was silently aborted. It now routes player lookup to the saveData-stubbed player
+and explicitly fails such aborts. Executed MariaDB admission then exposed the
+existing ISO joined_at write rejected by DATETIME. Member add/update now bind a
+JDBC Timestamp on MariaDB while retaining SQLite ISO text. Bootstrap progression
+also binds a Timestamp, avoiding a client-time-zone shift on readback. The flow
+checks membership update and cold reload, including timestamp roundtrip, as well
+as payment completion; the admission regression checks bootstrap timestamp too.

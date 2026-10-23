@@ -642,7 +642,7 @@ class GuildRepositorySQLite(
                     statement.setString(1, guild.id.toString())
                     statement.setInt(2, nextLevelXp)
                     val timestamp: Any = if (storage.dialect == net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect.MARIADB)
-                        guild.createdAt.toSqlDateTime() else guild.createdAt.toEpochMilli()
+                        java.sql.Timestamp.from(guild.createdAt) else guild.createdAt.toEpochMilli()
                     statement.setObject(3, timestamp)
                     statement.setObject(4, timestamp)
                     check(statement.executeUpdate() == 1) { "Failed to initialize guild progression" }

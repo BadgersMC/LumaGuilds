@@ -21,6 +21,12 @@ class GuildCreationFlowSQLTest : RewardSqlTestFixture() {
     @AfterEach fun clearRuntime() { stopKoin(); unmockkAll(); MockBukkit.unmock() }
 
     @Test fun paidCreationEstablishesOwnerAndCommitsExactlyOnePayment() {
+        try { runCreation() } catch (error: org.mockbukkit.mockbukkit.exception.UnimplementedOperationException) {
+            throw AssertionError("Creation contract must execute rather than silently skip", error)
+        }
+    }
+
+    private fun runCreation() {
         stopKoin()
         val server = MockBukkit.mock()
         val player = spyk(server.addPlayer())
@@ -46,13 +52,17 @@ class GuildCreationFlowSQLTest : RewardSqlTestFixture() {
         val guildService = GuildServiceBukkit(guilds, ranks, members, rankService, memberService,
             mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
             mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
-        val physical = BukkitPhysicalGoldAdapter({ server.getPlayer(it) }, Material.RAW_GOLD, null, 1,
+        val physical = BukkitPhysicalGoldAdapter({ id -> if (id == player.uniqueId) player else null }, Material.RAW_GOLD, null, 1,
             PhysicalGoldJournal(storage))
         val costs = GuildCostService({ cfg }, physical, mockk(relaxed = true))
         val result = assertIs<GuildCreationCostResult.Applied>(costs.createGuild(UUID.randomUUID(), player.uniqueId) {
             guildService.createGuild("Complete Guild", player.uniqueId, null)
         })
         val owner = assertNotNull(members.getByPlayerAndGuild(player.uniqueId, result.guild.id))
+        assertTrue(members.update(owner))
+        val reloadedOwner = assertNotNull(MemberRepositorySQLite(storage).getByPlayerAndGuild(player.uniqueId, result.guild.id))
+        assertEquals(owner.rankId, reloadedOwner.rankId)
+        assertEquals(owner.joinedAt.epochSecond, reloadedOwner.joinedAt.epochSecond)
         assertEquals(0, assertNotNull(ranks.getById(owner.rankId)).priority)
         assertIs<GuildRewardRead.Available>(rewards.read(result.guild.id))
         assertEquals(4321, assertNotNull(progression.getGuildProgression(result.guild.id)).experienceForNextLevel)
