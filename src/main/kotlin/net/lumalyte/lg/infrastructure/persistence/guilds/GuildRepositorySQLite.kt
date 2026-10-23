@@ -19,7 +19,14 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
-class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepository {
+class GuildRepositorySQLite(
+    private val storage: Storage<Database>,
+    private val initialLevelXp: () -> Int,
+) : GuildRepository {
+    constructor(storage: Storage<Database>) : this(storage, {
+        net.lumalyte.lg.domain.values.ProgressionCurve.from(net.lumalyte.lg.config.ProgressionConfig())
+            .experienceForNextLevel(1)
+    })
 
     private val guilds: MutableMap<UUID, Guild> = mutableMapOf()
     private val recruitmentAccess by lazy { GuildRecruitmentAccessSQL(storage) }
@@ -640,11 +647,32 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                         "Failed to initialize reward account for new guild ${guild.id}"
                     }
                 }
+                val nextLevelXp = initialLevelXp()
+                require(nextLevelXp >= 0) { "Invalid initial progression threshold" }
+                connection.prepareStatement("""
+                    INSERT INTO guild_progression
+                    (guild_id, total_experience, current_level, experience_this_level,
+                     experience_for_next_level, last_level_up, total_level_ups,
+                     unlocked_perks, created_at, last_updated)
+                    VALUES (?, 0, 1, 0, ?, NULL, 0, '[]', ?, ?)
+                """.trimIndent()).use { statement ->
+                    statement.setString(1, guild.id.toString())
+                    statement.setInt(2, nextLevelXp)
+                    val timestamp: Any = if (storage.dialect == net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect.MARIADB)
+                        java.sql.Timestamp.from(guild.createdAt) else guild.createdAt.toEpochMilli()
+                    statement.setObject(3, timestamp)
+                    statement.setObject(4, timestamp)
+                    check(statement.executeUpdate() == 1) { "Failed to initialize guild progression" }
+                }
                 true
             }
         }
         if (added) guilds[guild.id] = guild
         added
+    } catch (error: GuildCreationTransactionUncertainException) {
+        org.slf4j.LoggerFactory.getLogger(GuildRepositorySQLite::class.java)
+            .error("Uncertain creation for guild {} by creator {}", guild.id, creatorId, error)
+        throw error
     } catch (_: Exception) { false }
 
     @Synchronized
@@ -1126,6 +1154,10 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     lockGuildBeforeDeletion(connection, guildId)
                     GuildChatReconnectSettingsSchema.delete(connection, guildId)
                     deleteRewardOwnershipState(connection, guildId)
+                    connection.prepareStatement("DELETE FROM guild_progression WHERE guild_id = ?").use {
+                        it.setString(1, guildId.toString())
+                        it.executeUpdate()
+                    }
                     val rowsAffected = connection.prepareStatement("DELETE FROM guilds WHERE id = ?").use {
                         it.setString(1, guildId.toString())
                         it.executeUpdate()

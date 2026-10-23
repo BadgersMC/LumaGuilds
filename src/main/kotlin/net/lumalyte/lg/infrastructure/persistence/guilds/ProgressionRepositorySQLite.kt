@@ -232,7 +232,10 @@ class ProgressionRepositorySQLite(
      * Parses timestamp from database, handling both ISO-8601 format and legacy epoch milliseconds.
      * This ensures backward compatibility with existing data.
      */
-    private fun parseTimestamp(value: String): Instant {
+    private fun parseTimestamp(raw: Any): Instant {
+        if (raw is java.sql.Timestamp) return raw.toInstant()
+        if (raw is Number) return Instant.ofEpochMilli(raw.toLong())
+        val value = raw.toString()
         return try {
             // Try parsing as ISO-8601 first (new format)
             Instant.parse(value)
@@ -258,11 +261,11 @@ class ProgressionRepositorySQLite(
             currentLevel = rs.getInt("current_level"),
             experienceThisLevel = rs.getInt("experience_this_level"),
             experienceForNextLevel = rs.getInt("experience_for_next_level"),
-            lastLevelUp = rs.get<Any>("last_level_up")?.toString()?.let { parseTimestamp(it) },
+            lastLevelUp = rs.get<Any?>("last_level_up")?.let { parseTimestamp(it) },
             totalLevelUps = rs.getInt("total_level_ups"),
             unlockedPerks = unlockedPerks,
-            createdAt = parseTimestamp(rs.get<Any>("created_at").toString()),
-            lastUpdated = parseTimestamp(rs.get<Any>("last_updated").toString())
+            createdAt = parseTimestamp(requireNotNull(rs.get<Any?>("created_at"))),
+            lastUpdated = parseTimestamp(requireNotNull(rs.get<Any?>("last_updated")))
         )
     }
 
@@ -340,7 +343,8 @@ class ProgressionRepositorySQLite(
 
     override fun getGuildProgression(guildId: UUID): GuildProgression? {
         ensureTablesExist()
-        return guildProgressions[guildId] ?: createDefaultProgressionIfNotExists(guildId)
+        return guildProgressions[guildId] ?: refreshGuildProgression(guildId)
+            ?: createDefaultProgressionIfNotExists(guildId)
     }
 
     override fun refreshGuildProgression(guildId: UUID): GuildProgression? {

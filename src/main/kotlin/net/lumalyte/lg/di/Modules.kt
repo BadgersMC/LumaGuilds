@@ -399,7 +399,12 @@ fun claimsModule() = module {
  */
 fun guildsModule() = module {
     // Repositories
-    single<GuildRepository> { GuildRepositorySQLite(get()) }
+    single<GuildRepository> {
+        GuildRepositorySQLite(get()) {
+            net.lumalyte.lg.domain.values.ProgressionCurve.from(get<ConfigService>().loadConfig().progression)
+                .experienceForNextLevel(1)
+        }
+    }
     single<net.lumalyte.lg.application.persistence.GuildHomeActivationRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.GuildHomeActivationRepositorySQL(get())
     }
@@ -1097,6 +1102,10 @@ fun economyModule() = module {
             { get<ConfigService>().loadConfig() },
             get<net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter>(),
             get<net.lumalyte.lg.application.services.GuildGoldService>(),
+            reportCreationFailure = { transactionId, error ->
+                org.slf4j.LoggerFactory.getLogger("GuildCreationPayments")
+                    .error("Guild setup/payment requires review; transaction={}", transactionId, error)
+            },
         )
     }
     single {

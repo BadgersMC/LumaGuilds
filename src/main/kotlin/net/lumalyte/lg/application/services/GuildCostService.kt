@@ -17,6 +17,7 @@ sealed interface GuildCreationCostResult {
     data object ConfigurationError : GuildCreationCostResult
     data class CreationFailed(val compensated: Boolean) : GuildCreationCostResult
     data class Uncertain(val guild: Guild?, val transactionId: UUID) : GuildCreationCostResult
+    data class PendingReview(val transactionId: UUID) : GuildCreationCostResult
 }
 
 sealed interface HomeActivationCostResult {
@@ -27,10 +28,11 @@ sealed interface HomeActivationCostResult {
     data class ActivationFailed(val compensated: Boolean) : HomeActivationCostResult
 }
 
-class GuildCostService(
+class GuildCostService @JvmOverloads constructor(
     private val config: () -> MainConfig,
     private val physicalGold: PhysicalGoldPort,
     private val gold: GuildGoldService,
+    private val reportCreationFailure: (UUID, Exception) -> Unit = { _, _ -> },
 ) {
     fun homeActivationCost(homeOrdinal: Int): Long? {
         require(homeOrdinal >= 1)
@@ -61,27 +63,39 @@ class GuildCostService(
         }
         val cost = cfg.guild.createGuildCost.toLong()
         if (cost <= 0) return GuildCreationCostResult.ConfigurationError
+        try {
+            physicalGold.pendingReservation(playerId)?.let { return GuildCreationCostResult.PendingReview(it) }
+        } catch (error: Exception) {
+            reportCreationFailure(transactionId, error)
+            return GuildCreationCostResult.PaymentUnavailable
+        }
 
         return when (val reserved = physicalGold.reserve(transactionId, playerId, cost)) {
             PhysicalReservationResult.Insufficient -> GuildCreationCostResult.InsufficientGold
             PhysicalReservationResult.Unavailable -> GuildCreationCostResult.PaymentUnavailable
-            PhysicalReservationResult.Unknown -> GuildCreationCostResult.CreationFailed(compensated = false)
+            PhysicalReservationResult.Unknown -> GuildCreationCostResult.Uncertain(null, transactionId)
             is PhysicalReservationResult.Reserved -> {
                 val guild = try {
                     create()
-                } catch (_: Exception) {
+                } catch (error: Exception) {
+                    reportCreationFailure(transactionId, error)
                     return GuildCreationCostResult.Uncertain(null, transactionId)
                 }
                 if (guild == null) {
-                    GuildCreationCostResult.CreationFailed(physicalGold.restore(reserved.reservation))
+                    val restored = try { physicalGold.restore(reserved.reservation) } catch (error: Exception) {
+                        reportCreationFailure(transactionId, error)
+                        false
+                    }
+                    if (restored) GuildCreationCostResult.CreationFailed(true)
+                    else GuildCreationCostResult.Uncertain(null, transactionId)
                 } else {
-                    when (physicalGold.commit(reserved.reservation)) {
+                    val committed = try { physicalGold.commit(reserved.reservation) } catch (error: Exception) {
+                        reportCreationFailure(transactionId, error)
+                        return GuildCreationCostResult.Uncertain(guild, transactionId)
+                    }
+                    when (committed) {
                         PhysicalCommitResult.Committed -> GuildCreationCostResult.Applied(guild, cost)
-                        PhysicalCommitResult.NotConsumed -> {
-                            val restored = physicalGold.restore(reserved.reservation)
-                            if (restored) GuildCreationCostResult.CreationFailed(true)
-                            else GuildCreationCostResult.Uncertain(guild, transactionId)
-                        }
+                        PhysicalCommitResult.NotConsumed -> GuildCreationCostResult.Uncertain(guild, transactionId)
                         PhysicalCommitResult.Unknown -> GuildCreationCostResult.Uncertain(guild, transactionId)
                     }
                 }
