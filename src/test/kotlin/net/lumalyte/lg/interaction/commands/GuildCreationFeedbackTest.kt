@@ -1,0 +1,42 @@
+package net.lumalyte.lg.interaction.commands
+
+import io.mockk.*
+import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.application.persistence.GuildRepository
+import net.lumalyte.lg.application.services.*
+import net.lumalyte.lg.config.MainConfig
+import org.bukkit.entity.Player
+import org.junit.jupiter.api.*
+import org.koin.core.context.*
+import org.koin.dsl.module
+import java.util.UUID
+
+class GuildCreationFeedbackTest {
+    @AfterEach fun cleanup() { stopKoin(); unmockkAll() }
+
+    @Test fun uncertainAndPendingResultsDoNotClaimDuplicateNameOrSuccess() {
+        stopKoin()
+        val guilds = mockk<GuildService>()
+        val repository = mockk<GuildRepository>()
+        val costs = mockk<GuildCostService>()
+        val config = mockk<ConfigService>()
+        val lang = mockk<LangService>(relaxed = true)
+        val player = mockk<Player>(relaxed = true)
+        every { player.uniqueId } returns UUID.randomUUID()
+        every { guilds.getPlayerGuilds(any()) } returns emptySet()
+        every { repository.creationCooldownUntil(any()) } returns null
+        every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = true)
+        startKoin { modules(module {
+            single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
+        }) }
+        val tx = UUID.randomUUID()
+        for (result in listOf(GuildCreationCostResult.Uncertain(null, tx), GuildCreationCostResult.PendingReview(tx))) {
+            every { costs.createGuild(any(), any(), any()) } returns result
+            GuildCommand().onCreate(player, "Valid Name", null)
+        }
+        verify(exactly = 2) { lang.msg("command.migrated.guild.create.payment_outcome_uncertain", *anyVararg()) }
+        verify(exactly = 0) { lang.msg("command.migrated.guild.create.the_name_is_already_taken_by_another", *anyVararg()) }
+        verify(exactly = 0) { lang.msg("command.migrated.guild.create.guild_created_successfully", *anyVararg()) }
+        verify(exactly = 0) { guilds.createGuild(any(), any(), any()) }
+    }
+}

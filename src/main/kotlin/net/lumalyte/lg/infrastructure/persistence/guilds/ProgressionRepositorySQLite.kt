@@ -340,7 +340,8 @@ class ProgressionRepositorySQLite(
 
     override fun getGuildProgression(guildId: UUID): GuildProgression? {
         ensureTablesExist()
-        return guildProgressions[guildId] ?: createDefaultProgressionIfNotExists(guildId)
+        return guildProgressions[guildId] ?: refreshGuildProgression(guildId)
+            ?: createDefaultProgressionIfNotExists(guildId)
     }
 
     override fun refreshGuildProgression(guildId: UUID): GuildProgression? {

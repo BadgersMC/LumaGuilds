@@ -144,7 +144,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         // Check for invalid characters (only allow letters, numbers, spaces, and basic punctuation)
-        if (!name.matches(Regex("^[a-zA-Z0-9 '&-]+$"))) {
+        if (!GuildNameFilter.hasAllowedCharacters(name)) {
             player.sendMessage(lang.msg("command.migrated.guild.create.invalid_guild_name"))
             player.sendMessage(lang.msg("command.migrated.guild.create.guild_names_can_only_contain"))
             player.sendMessage(lang.msg("command.migrated.guild.create.letters_a_z_a_z"))
@@ -211,7 +211,12 @@ class GuildCommand : BaseCommand(), KoinComponent {
                         "command.migrated.guild.create.payment_outcome_uncertain",
                         "transaction" to result.transactionId,
                     ))
-                    result.guild
+                    result.guild ?: return
+                }
+                is net.lumalyte.lg.application.services.GuildCreationCostResult.PendingReview -> {
+                    player.sendMessage(lang.msg("command.migrated.guild.create.payment_outcome_uncertain",
+                        "transaction" to result.transactionId))
+                    return
                 }
             }
         }
