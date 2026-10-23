@@ -1873,7 +1873,7 @@ command:
         raw_gold_cost_misconfigured: '<red>❌ Guild creation raw-gold cost is not configured. Contact an administrator.'
         raw_gold_paid: '<gold>◆ <gray>Paid <gold><cost> raw-gold units <gray>to found the guild.'
         payment_requires_review: '<red>⚠ Guild creation failed and the raw-gold reservation could not be safely restored. Contact an administrator.'
-        payment_outcome_uncertain: '<yellow>⚠ Guild was created, but payment finalization needs review. Transaction: <transaction>'
+        payment_outcome_uncertain: '<yellow>⚠ Guild creation or payment could not be confirmed. Do not retry until staff reviews this transaction: <transaction>'
         guild_created_successfully: '<green>✅ Guild ''<name>'' created successfully!'
         guild_name_cannot_be_blank: '<red>❌ Guild name cannot be blank!'
         guild_name_is_too_long: '<red>❌ Guild name is too long!'

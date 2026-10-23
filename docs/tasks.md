@@ -1048,3 +1048,5 @@ Menu audit follow-up (REQ-063):
   theme controls; DN-001 through DN-003 in
   `plans/2026-10-21-dialog-actions-leaderboard.md`. Source and paired pack work;
   hosted checks and live acceptance pending. No runtime use authorized.
+
+- [ ] **GUILD-CREATION-BOOTSTRAP** Tag: TDD. GC-001 through GC-004. References: docs/plans/2026-10-23-guild-creation-bootstrap.md. Evidence: canonical main283d75f1 source, investigation839/841, baseline/new regression and final verification recorded in the plan. TEST/client pause remains in force.
