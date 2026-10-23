@@ -5,6 +5,21 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 
 class BukkitPhysicalGoldAdapterTest {
+    @Test fun `unresolved guard survives recreation and only clears at terminal phases`() {
+        val player = java.util.UUID.randomUUID()
+        val tx = java.util.UUID.randomUUID()
+        val reservation = net.lumalyte.lg.application.services.PhysicalGoldReservation(tx, player, 1000)
+        journal.insert(reservation, "")
+        val reopened = PhysicalGoldJournal(storage)
+        assertEquals(tx, reopened.pending(player))
+        assertEquals(null, reopened.pending(java.util.UUID.randomUUID()))
+        org.junit.jupiter.api.Assertions.assertTrue(reopened.transition(tx, "REMOVING", "RESERVED"))
+        assertEquals(tx, reopened.pending(player))
+        org.junit.jupiter.api.Assertions.assertTrue(reopened.transition(tx, "RESERVED", "RESTORING"))
+        assertEquals(tx, reopened.pending(player))
+        org.junit.jupiter.api.Assertions.assertTrue(reopened.transition(tx, "RESTORING", "RESTORED"))
+        assertNull(reopened.pending(player))
+    }
     @org.junit.jupiter.api.io.TempDir lateinit var directory: java.nio.file.Path
     private lateinit var storage: net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteStorage
     private lateinit var journal: PhysicalGoldJournal

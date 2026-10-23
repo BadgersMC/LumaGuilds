@@ -15,6 +15,8 @@ import net.lumalyte.lg.config.NameFilterConfig
  * [GuildTagValidator].
  */
 object GuildNameFilter {
+    private val NAME_CHARACTERS = Regex("^[a-zA-Z0-9 '&-]+$")
+    fun hasAllowedCharacters(name: String): Boolean = NAME_CHARACTERS.matches(name)
     private val LEET_MAP =
         mapOf(
             '@' to 'a', '4' to 'a',

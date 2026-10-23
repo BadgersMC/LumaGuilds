@@ -1001,3 +1001,5 @@ Menu audit follow-up (REQ-063):
   - Tag: `TDD`
   - References: REQ-149.
   - Evidence: the historical TEST branch reproduced stale-provider behavior and recorded 24 focused cases plus a 1,752-test full suite with zero failures/errors and 20 optional skips. This sanitized rebuild contains only the provider lifecycle source/test correction and evidence; fresh exact-head hosted checks remain required. See `docs/test-startup-cleanup.md`. Production remains unchanged.
+
+- [ ] **GUILD-CREATION-BOOTSTRAP** Tag: TDD. GC-001 through GC-004. References: docs/plans/2026-10-23-guild-creation-bootstrap.md. Evidence: canonical main283d75f1 source, investigation839/841, baseline/new regression and final verification recorded in the plan. TEST/client pause remains in force.
