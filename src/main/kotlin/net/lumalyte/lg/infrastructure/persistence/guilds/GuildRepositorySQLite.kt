@@ -653,6 +653,8 @@ class GuildRepositorySQLite(
         if (added) guilds[guild.id] = guild
         added
     } catch (error: GuildCreationTransactionUncertainException) {
+        org.slf4j.LoggerFactory.getLogger(GuildRepositorySQLite::class.java)
+            .error("Uncertain creation for guild {} by creator {}", guild.id, creatorId, error)
         throw error
     } catch (_: Exception) { false }
 

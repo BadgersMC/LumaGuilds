@@ -41,3 +41,12 @@ adapter serializes command use. It blocks new paid creation for any unresolved
 physical receipt, including intermediate phases and receipts predating restart.
 It does not resolve or refund old receipts. Public shop XP and companion APIs are
 unchanged. Existing constructors retain compatibility overloads.
+
+The isolated MariaDB profile reproduced a Timestamp-to-String cast failure in the
+cold progression read. The mapper now accepts JDBC Timestamp and numeric epoch
+values as well as existing text encodings. The complete-flow SQL regression uses
+real inventory reservation/journal, guild and progression writes, default ranks,
+owner membership and reward resolution; it runs on SQLite and MariaDB. It checks
+one exact payment, a real owner and no unresolved receipt after success. Historical
+incident receipts remain untouched. Final checked-head results are in PR242 and
+the task-owned delivery evidence; initial failures are retained rather than relabeled.
