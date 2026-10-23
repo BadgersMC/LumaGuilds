@@ -2,6 +2,11 @@
 
 Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` line, and an `Evidence:` block that MUST be filled with real source citations before any downstream SPEAR phase runs on it.
 
+- [~] **GUILDS-RELEASE-BLOCKERS** Native Inventory caption and optional advancement startup.
+  - Tag: `TDD`
+  - References: GB-001/002/003 in `docs/plans/2026-10-23-release-blockers.md`.
+  - Evidence: `GuildAchievementProjectionLifecycleTest` reproduces late-provider discovery and the descriptor cycle before the fix; service lifecycle tests cover both enable orders, removal, replacement and disable. Private Pack PR9 covers 42 caption apertures with title-after-caption compositing and unchanged protected pixels. Hosted checks and paired native acceptance remain separate gates.
+
 - [~] **LG-RECRUITMENT** Approved LFG recruitment upgrade and discovery.
   - Tag: `TDD`
   - References: REQ-150; REC-001 through REC-017 in `docs/plans/guild-recruitment.md`.
