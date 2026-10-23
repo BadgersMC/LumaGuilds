@@ -155,12 +155,7 @@ internal class GuildAchievementRuntime(
             if (xp > 0) player.giveExp(xp)
             if (change.completed.isNotEmpty()) flush(player)
             if (change.completed.isNotEmpty()) projection.project(player, change.record)
-            change.completed.forEach { node ->
-                projection.celebrate(player, node.id)
-                player.sendMessage(net.kyori.adventure.text.Component.text("Guild achievement: ${node.title}", net.kyori.adventure.text.format.NamedTextColor.GOLD))
-                node.messages.forEach { player.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(it)) }
-                if (node.personalXp > 0) player.sendMessage(net.kyori.adventure.text.Component.text("+${node.personalXp} personal Minecraft XP"))
-            }
+            change.completed.forEach { announce(player, it) }
         } catch (error: Exception) {
             // Only a verified unchanged XP outcome is retryable. Ambiguous outcomes retain claimed IDs.
             if (Triple(player.totalExperience, player.level, player.exp) == oldXp) {
@@ -172,6 +167,19 @@ internal class GuildAchievementRuntime(
             }
             failed += player.uniqueId
             plugin.logger.severe("Achievement delivery needs review for ${player.uniqueId}; no automatic replay: ${error.javaClass.simpleName}")
+        }
+    }
+
+    private fun announce(player: Player, node: GuildAchievement) {
+        projection.celebrate(player, node.id)
+        player.sendMessage(net.kyori.adventure.text.Component.text(
+            "Guild achievement: ${node.title}", net.kyori.adventure.text.format.NamedTextColor.GOLD,
+        ))
+        node.messages.forEach {
+            player.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(it))
+        }
+        if (node.personalXp > 0) {
+            player.sendMessage(net.kyori.adventure.text.Component.text("+${node.personalXp} personal Minecraft XP"))
         }
     }
 

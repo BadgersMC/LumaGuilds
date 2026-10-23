@@ -49,4 +49,21 @@ internal class GuildDialogButtonsTest {
         assertTrue(PlainTextComponentSerializer.plainText().serialize(label).contains("..."))
         assertEquals("Guild leaderboard ".repeat(30), PlainTextComponentSerializer.plainText().serialize(original))
     }
+
+    @Test fun malformedPackMarkersCannotEnableButtonOrSurfaceArtwork() {
+        for (invalid in listOf("alias", "font", "emoji", "multiple", "empty")) {
+            val resolver = NexoGlyphResolver { id ->
+                val font = if (id.contains("actions")) "lumaguilds:dialog_action_contract"
+                    else "lumaguilds:dialog_surface_contract"
+                ResolvedNexoGlyph(
+                    when (invalid) { "multiple" -> "\uE031\uE032"; "empty" -> ""; else -> "\uE031" },
+                    if (invalid == "font") "wrong:font" else font,
+                    invalid == "emoji",
+                    if (invalid == "alias") "required" else id,
+                )
+            }
+            assertNull(GuildDialogButtons.resolve(GuiTheme.ENTHUSIA, resolver), invalid)
+            assertNull(GuildDialogSurface.resolve(GuiTheme.ENTHUSIA, resolver), invalid)
+        }
+    }
 }

@@ -11,6 +11,13 @@ import net.kyori.adventure.text.format.ShadowColor
 import net.lumalyte.lg.utils.GuiTheme
 import kotlin.math.ceil
 
+/** Exact optional pack identity and single-cell format; fallback aliases are not contracts. */
+internal fun ResolvedNexoGlyph.isDialogContract(expectedId: String, expectedFont: String): Boolean {
+    val identityMatches = matchesId(expectedId) && font == expectedFont
+    val singleCell = !isEmoji && character.codePointCount(0, character.length) == 1
+    return identityMatches && singleCell
+}
+
 /** Decorative underlay only. Existing body widgets, banners and callbacks remain native. */
 internal class GuildDialogSurface private constructor(private val theme: GuiTheme, private val version: Int) {
     private val font = Key.key("lumaguilds:dialog_surface_${theme.name.lowercase()}" + if (version == 2) "_v2" else "")
@@ -64,9 +71,9 @@ internal class GuildDialogSurface private constructor(private val theme: GuiThem
             for (version in listOf(2, 1)) {
                 val id = "guild_dialog_surface_${selected.name.lowercase()}_v$version"
                 val marker = resolveOptionalGlyph(resolver, id) ?: continue
-                if (marker.matchesId(id) && marker.font == "lumaguilds:dialog_surface_contract" &&
-                    !marker.isEmoji && marker.character.codePointCount(0, marker.character.length) == 1
-                ) return GuildDialogSurface(selected, version)
+                if (marker.isDialogContract(id, "lumaguilds:dialog_surface_contract")) {
+                    return GuildDialogSurface(selected, version)
+                }
             }
             return null
         }

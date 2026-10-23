@@ -45,4 +45,15 @@ class GuildAchievementEngineTest {
         assertEquals(unpaid.progress, recovered.record.progress)
         assertTrue(engine.pending(recovered.record).completed.isEmpty())
     }
+
+    @Test fun `malformed numeric observations cannot unlock level or ranking goals`() {
+        val engine = GuildAchievementEngine(listOf(
+            node("level", "GUILD_LEVEL_UP", "10", 1),
+            node("rank", "GUILD_LEADERBOARD_RANK", "3", 1),
+        ))
+        for (target in listOf(null, "not-a-number", "2147483648", "-1")) {
+            assertTrue(engine.advance(AchievementRecord(), "GUILD_LEVEL_UP", target).completed.isEmpty())
+            assertTrue(engine.advance(AchievementRecord(), "GUILD_LEADERBOARD_RANK", target).completed.isEmpty())
+        }
+    }
 }

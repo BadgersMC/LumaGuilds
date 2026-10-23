@@ -61,6 +61,17 @@ class LumaGuilds : JavaPlugin() {
         private set
     private val componentLogger = getComponentLogger()
 
+    private fun registerShopXpWithAchievements() {
+        net.lumalyte.lg.infrastructure.services.registerGuildShopXpApi(
+            this, get().get(), get().get(), get().get(), completedSale = ::recordCompletedGuildSale,
+        )
+    }
+
+    private fun recordCompletedGuildSale(sale: java.util.UUID, guild: java.util.UUID) {
+        get().get<net.lumalyte.lg.infrastructure.services.GuildAchievementRuntime>()
+            .shared(guild, "GUILD_SHOP_SALE", receipt = "market:$sale")
+    }
+
 
     /** Initializes persistence, services and optional integrations before registering player-facing listeners. */
     override fun onEnable() {
@@ -126,16 +137,7 @@ class LumaGuilds : JavaPlugin() {
         )
         logColored("✓ GuildLookup registered in ServicesManager for cross-plugin integration")
 
-        net.lumalyte.lg.infrastructure.services.registerGuildShopXpApi(
-            this,
-            get().get(),
-            get().get(),
-            get().get(),
-            completedSale = { sale, guild ->
-                get().get<net.lumalyte.lg.infrastructure.services.GuildAchievementRuntime>()
-                    .shared(guild, "GUILD_SHOP_SALE", receipt = "market:$sale")
-            },
-        )
+        registerShopXpWithAchievements()
         logColored("✓ GuildShopXpApi v2 registered in ServicesManager for Market purchases")
 
         val guildVisualLookup = net.lumalyte.lg.api.GuildVisualLookupImpl(

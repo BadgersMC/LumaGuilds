@@ -64,10 +64,21 @@ internal class GuildAchievementListener(private val runtime: GuildAchievementRun
         val guild = runtime.guild(killer.uniqueId) ?: return
         val members = runtime.online(guild).filter { it.world == e.entity.world }
         when (e.entity.type) {
-            EntityType.ENDER_DRAGON -> if (e.entity.world.environment == World.Environment.THE_END && members.size >= 3)
-                members.forEach { runtime.signal(it, "GUILD_COLLECTIVE_BOSS_KILL", "ENDER_DRAGON", receipt = "boss:${e.entity.uniqueId}") }
-            EntityType.WITHER -> members.forEach { runtime.signal(it, "GUILD_COLLECTIVE_BOSS_KILL", "WITHER", receipt = "boss:${e.entity.uniqueId}") }
+            EntityType.ENDER_DRAGON -> dragon(e, members)
+            EntityType.WITHER -> boss(e, members, "WITHER")
             else -> if (e.entity is Monster) runtime.shared(guild, "GUILD_COLLECTIVE_MOB_KILL")
+        }
+    }
+
+    private fun dragon(event: EntityDeathEvent, members: List<Player>) {
+        if (event.entity.world.environment == World.Environment.THE_END && members.size >= 3) {
+            boss(event, members, "ENDER_DRAGON")
+        }
+    }
+
+    private fun boss(event: EntityDeathEvent, members: List<Player>, target: String) {
+        members.forEach {
+            runtime.signal(it, "GUILD_COLLECTIVE_BOSS_KILL", target, receipt = "boss:${event.entity.uniqueId}")
         }
     }
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true) fun friendly(e: EntityDamageByEntityEvent) {

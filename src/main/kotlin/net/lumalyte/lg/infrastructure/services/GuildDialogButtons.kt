@@ -26,13 +26,13 @@ internal class GuildDialogButtons private constructor(theme: GuiTheme) {
         val index = WIDTHS.indexOf(width).takeIf { it >= 0 } ?: return null
         val clipped = GuildDialogText.buttonLabel(text, (width - 16) * 2)
         val row = GuildDialogText.rows(clipped, (width - 16) * 2) { key, _ ->
-            if (key == "lumaguilds:dialog_icons") 22 else null
+            if (key == "lumaguilds:dialog_icons") ICON_HALF_WIDTH else null
         }?.singleOrNull() ?: return null
         val contentWidth = ceil(row.second / 2.0).toInt()
         val inside = width - 2
         if (contentWidth > inside) return null
         val left = (inside - contentWidth) / 2
-        val code = 0xE100 + index * 0x10
+        val code = 0xE100 + index * GLYPH_STRIDE
         return Component.text().append(glyph(code)).append(glyph(0xE000))
             .append(glyph(code + 1)).append(glyph(0xE001 + index))
             .append(pad(left)).append(row.first).append(pad(inside - left - contentWidth)).build()
@@ -41,15 +41,16 @@ internal class GuildDialogButtons private constructor(theme: GuiTheme) {
     companion object {
         val WIDTHS = listOf(180, 280, 360)
         const val PANEL_WIDTH = 360
+        private const val ICON_HALF_WIDTH = 22
+        private const val GLYPH_STRIDE = 0x10
 
         fun resolve(theme: GuiTheme, resolver: NexoGlyphResolver = NexoPublicGlyphResolver): GuildDialogButtons? {
             val selected = theme.resolved()
             if (!selected.hasBackground) return null
             val id = "guild_dialog_actions_${selected.name.lowercase()}_v1"
-            val marker = resolveOptionalGlyph(resolver, id) ?: return null
-            return if (marker.matchesId(id) && marker.font == "lumaguilds:dialog_action_contract" &&
-                !marker.isEmoji && marker.character.codePointCount(0, marker.character.length) == 1
-            ) GuildDialogButtons(selected) else null
+            return resolveOptionalGlyph(resolver, id)
+                ?.takeIf { it.isDialogContract(id, "lumaguilds:dialog_action_contract") }
+                ?.let { GuildDialogButtons(selected) }
         }
     }
 }

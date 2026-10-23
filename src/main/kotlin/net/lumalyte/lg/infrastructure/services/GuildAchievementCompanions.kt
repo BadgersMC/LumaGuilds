@@ -1,7 +1,6 @@
 package net.lumalyte.lg.infrastructure.services
 
 import org.bukkit.Bukkit
-import org.bukkit.entity.Player
 import org.bukkit.event.Event
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
@@ -30,32 +29,56 @@ internal class GuildAchievementCompanions(private val plugin: JavaPlugin, privat
     @EventHandler fun enabled(event: PluginEnableEvent) { bind(); runtime.refreshProjection() }
 
     private fun bind() {
-        hook("EnthusiaMarket", "net.badgersmc.em.events.ShopCreatedEvent") { event ->
-            val owner = value(event, "OwnerId") as? UUID ?: return@hook
-            Bukkit.getPlayer(owner)?.let { runtime.signal(it, "SHOP_CREATED") }
-        }
-        hook("EnthusiaKOTH", "net.badgersmc.ek.api.KothLifecycleEvent") { event ->
-            if (value(event, "Lifecycle").toString() != "COMPLETED") return@hook
-            val snapshot = value(event, "Snapshot") ?: return@hook
-            if (value(snapshot, "PrivateTest") != false) return@hook
-            val winner = value(snapshot, "Winner") ?: return@hook
-            if (value(winner, "Mode").toString() != "GUILD") return@hook
-            val guild = value(winner, "Id") as? UUID ?: return@hook
-            val eventId = value(snapshot, "EventId") as? UUID ?: return@hook
-            val arena = value(snapshot, "ArenaId") as? String ?: return@hook
-            val prior = streaks.optJSONObject(arena)
-            val seen = prior?.optJSONArray("seen")?.let { a -> (0 until a.length()).map { a.getString(it) }.toSet() } ?: emptySet()
-            if (eventId.toString() in seen) return@hook
-            val count = if (prior?.optString("guild") == guild.toString()) prior.optInt("count") + 1 else 1
-            streaks.put(arena, JSONObject().put("guild", guild.toString()).put("count", count.coerceAtMost(3))
-                .put("seen", org.json.JSONArray((seen + eventId.toString()).toList())))
-            val tmp = streakFile.resolveSibling(streakFile.fileName.toString() + ".tmp")
-            Files.createDirectories(streakFile.parent)
-            Files.writeString(tmp, streaks.toString())
-            Files.move(tmp, streakFile, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
-            runtime.shared(guild, "KOTH_CAPTURE", receipt = "koth:$eventId")
-            runtime.shared(guild, "KOTH_CONSECUTIVE_CAPTURE", amount = count.coerceAtMost(3), absolute = true, receipt = "streak:$eventId")
-        }
+        hook("EnthusiaMarket", "net.badgersmc.em.events.ShopCreatedEvent", ::shopCreated)
+        hook("EnthusiaKOTH", "net.badgersmc.ek.api.KothLifecycleEvent", ::completedKoth)
+    }
+
+    private fun shopCreated(event: Event) {
+        val owner = value(event, "OwnerId") as? UUID ?: return
+        Bukkit.getPlayer(owner)?.let { runtime.signal(it, "SHOP_CREATED") }
+    }
+
+    private data class Capture(val guild: UUID, val eventId: UUID, val arena: String)
+
+    private fun capture(event: Event): Capture? {
+        if (value(event, "Lifecycle").toString() != "COMPLETED") return null
+        val snapshot = value(event, "Snapshot") ?: return null
+        if (value(snapshot, "PrivateTest") != false) return null
+        val guild = winnerGuild(snapshot) ?: return null
+        val eventId = value(snapshot, "EventId") as? UUID ?: return null
+        val arena = value(snapshot, "ArenaId") as? String ?: return null
+        return Capture(guild, eventId, arena)
+    }
+
+    private fun winnerGuild(snapshot: Any): UUID? {
+        val winner = value(snapshot, "Winner") ?: return null
+        if (value(winner, "Mode").toString() != "GUILD") return null
+        return value(winner, "Id") as? UUID
+    }
+
+    private fun completedKoth(event: Event) {
+        val (guild, eventId, arena) = capture(event) ?: return
+        val prior = streaks.optJSONObject(arena)
+        val seen = prior?.optJSONArray("seen")?.let { a ->
+            (0 until a.length()).map { a.getString(it) }.toSet()
+        } ?: emptySet()
+        if (eventId.toString() in seen) return
+        val count = if (prior?.optString("guild") == guild.toString()) prior.optInt("count") + 1 else 1
+        streaks.put(arena, JSONObject().put("guild", guild.toString()).put("count", count.coerceAtMost(3))
+            .put("seen", org.json.JSONArray((seen + eventId.toString()).toList())))
+        persistStreaks()
+        runtime.shared(guild, "KOTH_CAPTURE", receipt = "koth:$eventId")
+        runtime.shared(
+            guild, "KOTH_CONSECUTIVE_CAPTURE", amount = count.coerceAtMost(3),
+            absolute = true, receipt = "streak:$eventId",
+        )
+    }
+
+    private fun persistStreaks() {
+        val tmp = streakFile.resolveSibling(streakFile.fileName.toString() + ".tmp")
+        Files.createDirectories(streakFile.parent)
+        Files.writeString(tmp, streaks.toString())
+        Files.move(tmp, streakFile, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
     }
 
     private fun hook(ownerName: String, className: String, callback: (Event) -> Unit) {

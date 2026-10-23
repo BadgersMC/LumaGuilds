@@ -165,9 +165,15 @@ internal class GuildMenuDialog : GuildDialogPresenter {
             val connected = row.map { action -> clickableGuildDialogCard(action.label, action) {
                 ClickEvent.callback({ audience -> callbacks.submit(audience, it.action) }, callbackOptions())
             } }
-            DialogBody.plainMessage(Component.join(
-                net.kyori.adventure.text.JoinConfiguration.separator(Component.text("  ──  ", net.kyori.adventure.text.format.NamedTextColor.DARK_GRAY)),
-                connected), TEXT_WIDTH)
+            DialogBody.plainMessage(
+                Component.join(
+                    net.kyori.adventure.text.JoinConfiguration.separator(
+                        Component.text("  ──  ", net.kyori.adventure.text.format.NamedTextColor.DARK_GRAY),
+                    ),
+                    connected,
+                ),
+                TEXT_WIDTH,
+            )
         }
         val bodies = links + diagram + page.items.flatMap { itemBodies(it, callbacks, skin) }
         val frame = if (page.framedHeading) skin?.referenceFrame(page.title, page.subtitle) else null
