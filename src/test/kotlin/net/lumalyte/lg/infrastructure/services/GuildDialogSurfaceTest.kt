@@ -17,6 +17,26 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 internal class GuildDialogSurfaceTest {
+    @Test fun atlasSafeFontIsPreferredWithoutChangingBodyOrHeadingWidth() {
+        for (theme in GuiTheme.SELECTABLE.filter { it.hasBackground }) {
+            for (version in listOf(1, 2)) {
+                val surface = assertNotNull(GuildDialogSurface.resolve(theme) { id ->
+                    if (version == 2 || id.endsWith("_v1"))
+                        ResolvedNexoGlyph("\ue021", "lumaguilds:dialog_surface_contract", false, id)
+                    else null
+                })
+                val heading = assertNotNull(surface.heading(Component.text("Guild"), Component.empty(), emptyList()))
+                val plain = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(heading)
+                assertTrue(plain.contains('\ue400'))
+                assertEquals(version == 2, plain.contains('\uec00'))
+                assertEquals(version == 2, plain.contains('\ue002'))
+                val json = GsonComponentSerializer.gson().serialize(heading)
+                assertTrue(json.contains("lumaguilds:dialog_surface_${theme.resolved().name.lowercase()}" + if (version == 2) "_v2" else "\""))
+                assertEquals(369, GuildDialogSurface.WIDTH)
+            }
+        }
+    }
+
     private fun message(text: Component, width: Int = 280) = mockk<PlainMessageDialogBody> {
         every { contents() } returns text
         every { width() } returns width

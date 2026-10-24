@@ -12,10 +12,12 @@ import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.services.GuildDialogItem
 import net.lumalyte.lg.infrastructure.services.GuildDialogPage
 import net.lumalyte.lg.infrastructure.services.GuildMenuDialog
+import net.lumalyte.lg.infrastructure.services.GuildDialogPresenter
+import net.lumalyte.lg.infrastructure.services.GuildDialogAction
+import net.lumalyte.lg.infrastructure.services.GUILD_DIALOG_CLOSE_LABEL
 import net.lumalyte.lg.interaction.menus.GuildBannerItemResolver
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
-import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 
 internal class GuildLeaderboardDialogMenu(
@@ -26,11 +28,10 @@ internal class GuildLeaderboardDialogMenu(
     private val members: MemberService,
     private val quests: QuestService,
     private val lang: LangService,
+    private val dialog: GuildDialogPresenter = GuildMenuDialog(),
 ) : Menu {
-    private val dialog = GuildMenuDialog()
     private var tab = 0
     private var page = 0
-    private var wins: Map<java.util.UUID, Int>? = null
 
     override fun open() {
         own = guilds.getGuild(own.id) ?: own
@@ -38,26 +39,13 @@ internal class GuildLeaderboardDialogMenu(
             navigator.goBack()
             return
         }
-        if (tab == 1 && wins == null) wins = quests.recordedWins()
-        val all = guilds.getAllGuilds()
-        val values =
-            all.associate { guild ->
-                guild.id to
-                    when (tab) {
-                        0 -> guild.level
-                        1 -> wins?.get(guild.id) ?: 0
-                        else ->
-                            members.getGuildMembers(guild.id).count { member ->
-                                Bukkit.getPlayer(member.playerId)?.let { it.isOnline && player.canSee(it) } == true
-                            }
-                    }
-            }
-        val sorted = all.sortedWith(compareByDescending<Guild> { values[it.id] }.thenBy { it.name.lowercase() })
-        val pages = maxOf(1, (sorted.size + 3) / 4)
-        page = page.coerceIn(0, pages - 1)
+        val snapshot = GuildLeaderboardSource(guilds, members, quests).snapshot(player, tab, page)
+        val pages = snapshot.pages
+        page = snapshot.page
         val cards =
-            sorted.drop(page * 4).take(4).mapIndexed { index, guild ->
-                val rank = page * 4 + index + 1
+            snapshot.rows.map { row ->
+                val guild = row.guild
+                val rank = row.rank
                 val lines =
                     listOf(
                         Component.text(
@@ -65,9 +53,7 @@ internal class GuildLeaderboardDialogMenu(
                             if (guild.id == own.id) NamedTextColor.GREEN else NamedTextColor.GOLD,
                         ),
                         Component.text(
-                            "${members.getMemberCount(
-                                guild.id,
-                            )} ${lang.raw("dialog_v2.members")}",
+                            "${row.members} ${lang.raw("dialog_v2.members")}",
                         ),
                     )
                 GuildDialogItem(
@@ -77,7 +63,7 @@ internal class GuildLeaderboardDialogMenu(
                     referenceAction(Component.text(guild.name), "lg_nav_info") {
                         navigator.openMenu(GuildRecruitmentMenu(navigator, player, guild.id))
                     },
-                    rightLines = listOf(Component.text(values[guild.id].toString()), when (tab) {
+                    rightLines = listOf(Component.text(row.score.toString()), when (tab) {
                         0 -> lang.gui("dialog_v2.rank_level")
                         1 -> lang.gui("dialog_v2.rank_wins")
                         else -> lang.gui("dialog_v2.sort_online")
@@ -110,7 +96,11 @@ internal class GuildLeaderboardDialogMenu(
                 lang.gui("dialog_v2.leaderboard"),
                 cards,
                 controls,
-                referenceAction(lang.gui("recruitment.dialog.back"), "lg_back") { navigator.goBack() },
+                if (navigator.hasParent()) {
+                    referenceAction(lang.gui("recruitment.dialog.back"), "lg_back", navigator::goBack)
+                } else {
+                    GuildDialogAction(GUILD_DIALOG_CLOSE_LABEL, Component.empty(), navigator::goBack)
+                },
                 theme = own.guiTheme,
                 columns = 2,
                 framedHeading = true,

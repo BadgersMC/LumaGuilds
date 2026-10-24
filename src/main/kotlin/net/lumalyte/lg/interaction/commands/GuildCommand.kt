@@ -1484,6 +1484,19 @@ class GuildCommand : BaseCommand(), KoinComponent {
     @CommandPermission("lumaguilds.guild.quests")
     fun onQuestMenu(player: Player) = onQuests(player)
 
+    /** Browsing rankings does not require access to the management control panel. */
+    @Subcommand("leaderboard")
+    @CommandPermission("lumaguilds.guild.leaderboard")
+    fun onLeaderboard(player: Player) {
+        val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
+        if (guild == null) {
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
+            return
+        }
+        val navigator = MenuNavigator(player)
+        navigator.openMenu(menuFactory.createGuildLeaderboardMenu(navigator, player, guild))
+    }
+
     @Subcommand("menu")
     @CommandPermission("lumaguilds.guild.menu")
     fun onMenu(player: Player) {

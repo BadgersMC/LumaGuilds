@@ -50,9 +50,9 @@ internal class GuildChronicleMenuTest : RecruitmentDialogFixture() {
         renderedPage!!.actions.first().action() // Track; no purchase permission granted.
         assertEquals("bank-1", repository.saved.rewardId)
         nav.openMenu(GuildChronicleMenu(nav, player, guild, presenter))
-        assertEquals(3, renderedPage!!.actions.size) // Later, tracked goal, automatic benefits.
+        assertEquals(4, renderedPage!!.actions.size) // Later, tracked goal, automatic benefits, prestige details.
         renderedPage!!.actions.first().action()
-        assertEquals(4, renderedPage!!.actions.size) // Earlier and later are both present.
+        assertEquals(5, renderedPage!!.actions.size) // Earlier and later are both present.
         renderedPage!!.bodyActions[2].action() // Travel, same range and saved goal.
         assertEquals("bank-1", repository.saved.rewardId)
         renderedPage!!.actions[2].action() // Tracked goal, despite selected branch/range.

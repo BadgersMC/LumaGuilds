@@ -73,6 +73,14 @@ class GuildControlPanelMenu(
         // Row 0: guild features
         addPartyManagementButton(pane, PARTY_SLOT, 0)
         addVaultButton(pane, VAULT_SLOT, 0)
+        pane.addItem(GuiItem(NexoItemProvider.getItemStackOrFallback("lg_prestige") {
+            ItemStack.of(Material.KNOWLEDGE_BOOK)
+        }.name(lang.gui("achievements.title"))) { event ->
+            event.isCancelled = true
+            if (memberService.getMember(player.uniqueId, guild.id) != null) {
+                menuNavigator.openMenu(GuildAchievementsMenu(menuNavigator, player, guild))
+            }
+        }, 4, 0)
         pane.addItem(
             GuiItem(ItemStack.of(Material.BOOK).name(lang.gui("recruitment.manage"))) {
                 menuNavigator.openMenu(menuFactory.createLfgBrowserMenu(menuNavigator, player))

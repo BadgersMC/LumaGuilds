@@ -11,7 +11,6 @@ import net.kyori.adventure.text.event.ClickCallback
 import net.kyori.adventure.text.event.ClickEvent
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import java.time.Duration
 
 private const val ITEM_WIDTH = 16
 private const val ITEM_HEIGHT = 16
@@ -45,6 +44,7 @@ internal data class GuildDialogPage(
     val bodyActions: List<GuildDialogAction> = emptyList(),
     val showCategoryInput: Boolean = true,
     val framedHeading: Boolean = false,
+    val diagram: List<List<GuildDialogAction>> = emptyList(),
 )
 
 /** Uses public Paper dialog APIs; Nexo item models remain owned by the private pack. */
@@ -63,7 +63,7 @@ private class GuildDialogAudience(private val player: Player, valid: () -> Boole
     private val token = epoch.get()
     private var presentation = -1L
     val session =
-        GuildDialogSession(player.uniqueId, Duration.ofMinutes(2).toMillis()) {
+        GuildDialogSession(player.uniqueId, GUILD_DIALOG_LIFETIME.toMillis()) {
             player.isOnline && epoch.get() == token && presentation == GuildDialogTransitions.revision(player) &&
                 inventory != null && player.openInventory.topInventory === inventory && valid()
         }
@@ -115,11 +115,13 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         callbacks: GuildDialogCallbacks,
         skin: GuildDialogSkin?,
     ): Dialog {
+        val art = GuildDialogButtons.resolve(page.theme)
         return Dialog.create { factory ->
             factory.empty().base(dialogBase(page, callbacks, skin)).type(
                 DialogType.multiAction(
-                    listOfNotNull(page.search?.let { searchButton(it, callbacks, skin, page.showCategoryInput) }) +
-                        page.actions.map { button(it, callbacks, skin, page.search != null) } + button(page.back, callbacks, skin),
+                    listOfNotNull(page.search?.let { searchButton(it, callbacks, skin, page.showCategoryInput, art) }) +
+                        page.actions.map { button(it, callbacks, skin, page.search != null, art, page.columns) } +
+                        button(page.back, callbacks, skin, art = art, columns = page.columns),
                     closeButton(callbacks),
                     page.columns,
                 ),
@@ -130,7 +132,7 @@ internal class GuildMenuDialog : GuildDialogPresenter {
     private fun closeButton(callbacks: GuildDialogCallbacks): ActionButton =
         ActionButton.builder(GUILD_DIALOG_CLOSE_LABEL).width(ACTION_WIDTH)
             .action(DialogAction.customClick({ _, audience -> callbacks.dismiss(audience) },
-                ClickCallback.Options.builder().uses(1).lifetime(Duration.ofHours(1)).build()))
+                ClickCallback.Options.builder().uses(1).lifetime(GUILD_DIALOG_LIFETIME).build()))
             .build()
 
     private fun dialogBase(
@@ -159,7 +161,21 @@ internal class GuildMenuDialog : GuildDialogPresenter {
                     ),
                 )
             }
-        val bodies = links + page.items.flatMap { itemBodies(it, callbacks, skin) }
+        val diagram = page.diagram.map { row ->
+            val connected = row.map { action -> clickableGuildDialogCard(action.label, action) {
+                ClickEvent.callback({ audience -> callbacks.submit(audience, it.action) }, callbackOptions())
+            } }
+            DialogBody.plainMessage(
+                Component.join(
+                    net.kyori.adventure.text.JoinConfiguration.separator(
+                        Component.text("  ──  ", net.kyori.adventure.text.format.NamedTextColor.DARK_GRAY),
+                    ),
+                    connected,
+                ),
+                TEXT_WIDTH,
+            )
+        }
+        val bodies = links + diagram + page.items.flatMap { itemBodies(it, callbacks, skin) }
         val frame = if (page.framedHeading) skin?.referenceFrame(page.title, page.subtitle) else null
         val surface = GuildDialogSurface.resolve(page.theme)?.heading(page.title, page.subtitle, bodies)
         return DialogBase.builder(if (surface != null || frame != null) Component.empty() else page.title.color(guildDialogAccent(page.theme)))
@@ -224,11 +240,15 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         callbacks: GuildDialogCallbacks,
         skin: GuildDialogSkin?,
         board: Boolean = false,
+        art: GuildDialogButtons? = null,
+        columns: Int = 1,
     ): ActionButton {
-        val width = if (board) BOARD_CONTROL_WIDTH else ACTION_WIDTH
+        val standardWidth = if (board) BOARD_CONTROL_WIDTH else ACTION_WIDTH
+        val themedWidth = if (!board && columns == 1) GuildDialogButtons.PANEL_WIDTH else standardWidth
         val fullLabel = skin?.label(action.label) ?: action.label
-        return ActionButton.builder(GuildDialogText.buttonLabel(fullLabel, (width - 16) * 2))
-            .width(if (board) BOARD_CONTROL_WIDTH else ACTION_WIDTH)
+        val themed = art?.label(fullLabel, themedWidth)
+        return ActionButton.builder(themed ?: GuildDialogText.buttonLabel(fullLabel, (standardWidth - 16) * 2))
+            .width(if (themed == null) standardWidth else themedWidth)
             .tooltip(action.label.append(Component.newline()).append(action.tooltip))
             .action(
                 DialogAction.customClick({ _, audience ->
@@ -243,8 +263,10 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         callbacks: GuildDialogCallbacks,
         skin: GuildDialogSkin?,
         showCategory: Boolean,
+        art: GuildDialogButtons?,
     ): ActionButton {
-        return ActionButton.builder(skin?.label(search.submitLabel) ?: search.submitLabel)
+        val label = skin?.label(search.submitLabel) ?: search.submitLabel
+        return ActionButton.builder(art?.label(label, BOARD_CONTROL_WIDTH) ?: label)
             .width(BOARD_CONTROL_WIDTH)
             .action(searchAction(search, callbacks, showCategory))
             .build()
@@ -269,9 +291,5 @@ internal class GuildMenuDialog : GuildDialogPresenter {
     private fun callbackOptions(): ClickCallback.Options =
         ClickCallback.Options.builder().uses(
             1,
-        ).lifetime(LIFETIME).build()
-
-    private companion object {
-        val LIFETIME: Duration = Duration.ofMinutes(2)
-    }
+        ).lifetime(GUILD_DIALOG_LIFETIME).build()
 }

@@ -61,6 +61,11 @@ class LumaGuilds : JavaPlugin() {
         private set
     private val componentLogger = getComponentLogger()
 
+    private fun recordCompletedGuildSale(sale: java.util.UUID, guild: java.util.UUID) {
+        get().get<net.lumalyte.lg.infrastructure.services.GuildAchievementRuntime>()
+            .shared(guild, "GUILD_SHOP_SALE", receipt = "market:$sale")
+    }
+
 
     /** Initializes persistence, services and optional integrations before registering player-facing listeners. */
     override fun onEnable() {
@@ -127,10 +132,7 @@ class LumaGuilds : JavaPlugin() {
         logColored("✓ GuildLookup registered in ServicesManager for cross-plugin integration")
 
         net.lumalyte.lg.infrastructure.services.registerGuildShopXpApi(
-            this,
-            get().get(),
-            get().get(),
-            get().get(),
+            this, get().get(), get().get(), get().get(), completedSale = ::recordCompletedGuildSale,
         )
         logColored("✓ GuildShopXpApi v2 registered in ServicesManager for Market purchases")
 
@@ -1044,6 +1046,7 @@ class LumaGuilds : JavaPlugin() {
         val recruitmentListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildRecruitmentListener>()
         server.pluginManager.registerEvents(recruitmentListener, this)
         recruitmentListener.start()
+        get().get<net.lumalyte.lg.infrastructure.services.GuildAchievementRuntime>().start()
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.PlayerSessionListener(), this)
 
         // Register war kill tracking listener
@@ -1503,6 +1506,7 @@ class LumaGuilds : JavaPlugin() {
     }
 
     override fun onDisable() {
+        runCatching { org.koin.core.context.GlobalContext.getOrNull()?.getOrNull<net.lumalyte.lg.infrastructure.services.GuildAchievementRuntime>()?.stop() }
         // This irreversible gate must run before unrelated cleanup can throw or services are unregistered.
         inviteBlockLifecycle?.close()
         inviteBlockLifecycle = null

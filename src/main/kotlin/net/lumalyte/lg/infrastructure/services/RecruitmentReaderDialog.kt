@@ -9,7 +9,6 @@ import io.papermc.paper.registry.data.dialog.type.DialogType
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickCallback
 import org.bukkit.entity.Player
-import java.time.Duration
 
 /** Java-native reader shell; callbacks retain the guarded navigation session. */
 internal class RecruitmentReaderDialog(
@@ -19,6 +18,7 @@ internal class RecruitmentReaderDialog(
     private val actions: RecruitmentReaderActions,
 ) {
     private val skin = GuildDialogTheme().resolve(content.theme)
+    private val buttonArt = GuildDialogButtons.resolve(content.theme)
 
     private fun heading(): Component {
         return Component.text(
@@ -36,10 +36,13 @@ internal class RecruitmentReaderDialog(
             action: () -> Unit,
         ): ActionButton {
             val text = Component.text(label)
-            return ActionButton.builder(skin?.label(text) ?: text).action(
+            val fullLabel = skin?.label(text) ?: text
+            val themed = buttonArt?.label(fullLabel, 180)
+            return ActionButton.builder(themed ?: fullLabel).width(if (themed == null) 150 else 180)
+                .tooltip(text).action(
                 DialogAction.customClick({ _, audience ->
                     if (audience is Player && audience.uniqueId == player.uniqueId && actions.valid()) action()
-                }, ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(2)).build()),
+                }, ClickCallback.Options.builder().uses(1).lifetime(GUILD_DIALOG_LIFETIME).build()),
             )
                 .build()
         }
@@ -57,7 +60,7 @@ internal class RecruitmentReaderDialog(
                             GuildMenuLifecycle.dismiss(player)
                     })
                 }
-            }, ClickCallback.Options.builder().uses(1).lifetime(Duration.ofHours(1)).build()),
+            }, ClickCallback.Options.builder().uses(1).lifetime(GUILD_DIALOG_LIFETIME).build()),
         ).build()
         GuildDialogTransitions.present(player, { epoch.get() == token && actions.valid() }, {
             player.showDialog(

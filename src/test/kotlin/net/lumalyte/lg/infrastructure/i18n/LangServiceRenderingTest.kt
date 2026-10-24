@@ -11,6 +11,18 @@ import java.io.File
 import java.nio.file.Path
 
 class LangServiceRenderingTest {
+    @Test
+    fun `new tree hints do not concatenate persisted legacy instruction sentences`() {
+        val locale = dataFolder.resolve("lang/en_US.yml").toFile()
+        locale.parentFile.mkdirs()
+        val old = "achievements:\n  vanilla: 'Full vanilla advancement tree'\n  open_vanilla: 'Legacy full instructions with default L.'\n"
+        locale.writeText(old)
+        val lang = langService()
+        assertEquals("Open advancement tree", plainText.serialize(lang.msg("achievements.tree_action")))
+        assertEquals("Open Minecraft Advancements with your configured key: ", plainText.serialize(lang.msg("achievements.tree_key_hint")))
+        org.junit.jupiter.api.Assertions.assertTrue(lang.raw("achievements.tree_find_hint").contains("Guild Mastery"))
+        assertEquals(old, locale.readText())
+    }
 
     @TempDir
     lateinit var dataFolder: Path

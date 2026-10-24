@@ -7,6 +7,22 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class MenuNavigatorTest {
+    @Test fun `parent presence distinguishes direct entry from nested menus without navigation`() {
+        val navigator = MenuNavigator(mockk(relaxed = true))
+        assertFalse(navigator.hasParent())
+        navigator.openMenu(mockk(relaxed = true))
+        assertFalse(navigator.hasParent())
+        val token = navigator.currentNavigationToken()
+        navigator.openMenu(mockk(relaxed = true))
+        assertTrue(navigator.hasParent())
+        val nestedToken = navigator.currentNavigationToken()
+        assertTrue(navigator.hasParent())
+        assertTrue(navigator.isNavigationCurrent(nestedToken))
+        assertFalse(navigator.isNavigationCurrent(token))
+        navigator.goBack()
+        assertFalse(navigator.hasParent())
+    }
+
     private class ParentMenu(val opened: () -> Unit) : Menu { override fun open() = opened() }
 
     private class EditorMenu(private val visits: MutableList<String>) : Menu {
