@@ -1793,7 +1793,7 @@ command:
         progression:
           menu: '<click:run_command:''/g help progression''><hover:show_text:''<gold>Open Progression, Rewards & Prestige help''><dark_gray>  [<yellow>Progression, Rewards & Prestige<dark_gray>] <gray>Track Chapter XP, unlock rewards, and use prestige when enabled.</hover></click>'
           page: |-
-            <gold><bold>─── Help · Progression, Rewards & Prestige ───<newline><gray>Track Chapter XP, reward state, source progress, seasonal competition, and prestige.<newline><yellow>Commands:<newline><click:suggest_command:'/g info'><hover:show_text:'<gold>See your guild overview.<newline><gray>Click to prefill in chat'><white>  /g info</hover></click><newline><newline><gray>Open Progression from /g menu for the full Chapter view.<newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/progression/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/progression/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
+            <gold><bold>─── Help · Progression, Rewards & Prestige ───<newline><gray>Track Chapter XP, reward state, source progress, seasonal competition, and prestige.<newline><yellow>Commands:<newline><click:suggest_command:'/g info'><hover:show_text:'<gold>See your guild overview.<newline><gray>Click to prefill in chat'><white>  /g info</hover></click><newline><newline><gray>All guild members can open rankings with /g leaderboard or /guild leaderboard.<newline><gray>Open Progression from /g menu for the full Chapter view.<newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/progression/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/progression/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
         vault:
           menu: '<click:run_command:''/g help vault''><hover:show_text:''<gold>Open Vault help''><dark_gray>  [<yellow>Vault<dark_gray>] <gray>Use the shared guild vault for storing items.</hover></click>'
           page: |-
@@ -7841,6 +7841,7 @@ recruitment:
     updated: "<gold>Recruitment updated: <offers> join offers and <pending> applications awaiting your review. <yellow>Click to open recruitment."
 
 dialog_v2:
+  close_menu: "Close"
   board_subtitle: "Find your next guild. Build your next chapter."
   action_subtitle: "Review the details before choosing an action."
   confirm_fee: "Confirm joining fee"
@@ -7912,7 +7913,6 @@ guild_dialogs:
     quests: "<gold>Guild Quests and Rankings"
     quests_denied: "<red>You do not have permission to open guild quests."
     sources: "<gold>XP Sources and Caps"
-    prestige_locked: "<yellow>Prestige is unavailable or its current requirements have not been met."
 
 chronicle:
   title: '<gold>Guild Chronicle</gold>'
@@ -7926,9 +7926,6 @@ chronicle:
   automatic: '<white>All level benefits</white>'
   auto_level: '<gold>Level <level></gold><gray> · Base bank capacity: <capacity></gray>'
   auto_explanation: '<gray>Automatic base capacity; purchased extensions and the configured ceiling apply separately.</gray>'
-  permanent: '<green>Home capacity is permanent on purchase. Home activation is separate.</green>'
-  retention: '<gray>Eligible for a separate prestige retention choice; not automatically permanent. Chapter rollover follows server policy.</gray>'
-  optional: '<gray>Optional guild-bank purchase, not an automatic level reward.</gray>'
   track: '<gold>Track guild goal</gold>'
   untrack: '<white>Untrack guild goal</white>'
   review: '<gold>Review purchase</gold>'
@@ -7951,3 +7948,75 @@ chronicle:
   percent_change: '<gold>Current: <current>% → after purchase: <after>% of base.</gold>'
   ally_owned: '<green>Allied home access is already unlocked.</green>'
   ally_after: '<gold>After purchase: allied home access unlocked.</gold>'
+
+  earning:
+    purchase_permanent: '<green>◆ PERMANENT ON PURCHASE · Home capacity</green>'
+    optional: '<gold>Optional guild-bank purchase</gold>'
+    level_price: '<gray>Reach guild level <level>, then pay <price> guild gold.</gray>'
+    purchase: '<gray>Level eligibility does not buy it automatically. Review the exact quote; Manage Guild Settings and Withdraw From Bank are required.</gray>'
+    home_kept: '<green>Purchased home capacity survives prestige without using the retention choice. Saved locations and paid activations remain separate.</green>'
+    retain: '<gray>To make this permanent: buy it first, reach level 100, then select it as your one eligible retention choice when confirming prestige.</gray>'
+  prestige:
+    action: '<gold>Prestige rewards</gold>'
+    title: '<gold>Prestige rewards and earning guide</gold>'
+    subtitle: '<gray>Permanent rewards, retention choices and exact acquisition rules</gray>'
+    overview: '<gold>Earning guide</gold>'
+    milestones: '<gold>Prestige milestones</gold>'
+    legacy: '<gold>Retained legacy perks</gold>'
+    seal: '<gold>✦ PRESTIGE LEGACY · PERMANENT ✦</gold>'
+    progress: '<gold>Prestige <count>/<max> · Current guild level <level></gold>'
+    home_bonus: '<green>Permanent prestige home-capacity bonus: +<count></green>'
+    fee: '<gold>Next prestige fee: <fee> guild gold, subject to the final quote.</gold>'
+    maximum: '<gray>Lifetime prestige maximum reached.</gray>'
+    earn_title: '<gold>How to earn the next prestige rewards</gold>'
+    earn_level: '<gray>1. Reach guild level 100 again in the current run.</gray>'
+    earn_purchase: '<gray>2. Already own an eligible Bank Extension, Quick Travel, Treasury Discount or Allied Waypoints reward.</gray>'
+    earn_confirm: '<gray>3. Select one eligible owned reward, review the fee and reset details, then confirm through the existing authorized prestige transaction. Each applied prestige also adds one permanent home-capacity slot.</gray>'
+    preserved_title: '<gold>What survives and what resets</gold>'
+    preserved_homes: '<green>Purchased home capacity, saved home locations and previously paid home activations survive prestige.</green>'
+    preserved_rewards: '<green>Previously permanent rewards remain; exactly one newly selected eligible owned reward becomes permanent.</green>'
+    reset: '<gray>Guild level resets to 1 and run XP to 0. Other non-permanent current-run purchases reset. No currency or guild-XP bonus is awarded.</gray>'
+    chapter: '<gray>Chapter rollover follows server policy separately from prestige.</gray>'
+    none: '<gray>No prestige-retained rewards recorded yet. Home capacity bought permanently is a separate acquisition route.</gray>'
+    retained: '<gold>Earned by purchasing this reward and selecting it during an applied prestige; retained under the existing rules.</gold>'
+    review: '<gold>Review eligible retention choices</gold>'
+    milestone: '<gold>Prestige <tier> · Fee: <fee> guild gold · +1 permanent home slot and one eligible retention choice.</gold>'
+    milestone_earned: '<green>✓ This prestige milestone is earned.</green>'
+    milestone_locked: '<gray>Reach level 100 in that run, meet the existing restrictions, select an eligible owned reward and confirm the exact fee.</gray>'
+
+achievements:
+  back_statistics: '<white>Back to Statistics</white>'
+  personal_scope: '<gold>Personal achievements</gold>'
+  guild_scope: '<gold>Guild combat milestones</gold>'
+  guild_summary: '<gray><count>/8 current conditions met · Page <page>/2</gray>'
+  guild_met: '<green>Current condition met</green>'
+  guild_not_met: '<gray>Current condition not met</gray>'
+  guild_rules: '<gray>Current guild statistics; wars use the latest 100 retained records. These badges can change and grant no extra XP or permanent award.</gray>'
+  title: '<gold>Guild Advancements</gold>'
+  inspect_overview: '<white>Overview</white>'
+  inspect_earning: '<white>How to earn</white>'
+  inspect_reward: '<white>Reward</white>'
+  inspect_rules: '<white>Record rules</white>'
+  subtitle: '<gray><category> · Branch page <page>/<pages> · Select a connected milestone</gray>'
+  unavailable: '<red>Achievement data is unavailable. Existing progress was not cleared.</red>'
+  completed: '<gold>✓ Completed · <current>/<goal></gold>'
+  progress: '<gray>◇ In progress · <current>/<goal></gray>'
+  how: '<gold>How to earn and who receives credit</gold>'
+  reward: '<gold>Completion reward</gold>'
+  personal_xp: '<green><amount> personal Minecraft XP, once per player.</green>'
+  no_extra: '<gray>Achievement completion; no extra XP configured.</gray>'
+  no_guild_xp: '<gray>These XP rewards are personal experience, not guild progression XP.</gray>'
+  record_rules: '<gold>Saved personal achievement record</gold>'
+  offline: '<gray>Shared activities credit online guild members. Offline activity is not replayed; current guild level and combined playtime are checked again when online.</gray>'
+  retained: '<gray>Completed achievements and tracked goals remain on your player record across reconnects, guild changes and prestige.</gray>'
+  connections: '<gray>Tree lines organize milestones; they do not add purchase requirements or consume skill points.</gray>'
+  previous: '<white>Earlier milestones</white>'
+  next: '<white>Later milestones</white>'
+  track: '<gold>Track achievement</gold>'
+  untrack: '<white>Untrack achievement</white>'
+  goal: '<gold>Tracked achievement</gold>'
+  tree_action: '<white>Open advancement tree</white>'
+  tree_key_hint: '<gold>Open Minecraft Advancements with your configured key: </gold>'
+  tree_find_hint: '<gold>. Select the banner tab (the renderer may call it Enthusia), then look for Guild Mastery milestones and their descriptions. Drag the tree to pan. Your saved progress and tracked goal are unchanged.</gold>'
+  renderer_unavailable: '<yellow>The optional EnthusiaAdvancements renderer is unavailable. Tracking and personal rewards remain available in this dialog.</yellow>'
+  back: '<white>Back to guild menu</white>'

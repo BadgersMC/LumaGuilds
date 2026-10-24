@@ -215,13 +215,15 @@ class GuildProgressionMenu(
 
     private fun progressionDialogActions() =
         listOfNotNull(
+            nativeAction(lang.gui("achievements.title")) {
+                menuNavigator.openMenu(GuildAchievementsMenu(menuNavigator, player, guild))
+            },
             if (rewardState is GuildRewardRead.Available) nativeAction(lang.gui("chronicle.title")) {
                 menuNavigator.openMenu(GuildChronicleMenu(menuNavigator, player, guild))
             } else null,
             nativeAction(lang.gui("guild_dialogs.progression.quests"), ::openNativeQuests),
             nativeAction(lang.gui("dialog_v2.leaderboard")) {
-                menuNavigator.openMenu(GuildLeaderboardDialogMenu(menuNavigator, player, guild, guildService, memberService,
-                    getKoin().get(), lang))
+                menuNavigator.openMenu(menuFactory.createGuildLeaderboardMenu(menuNavigator, player, guild))
             },
             nativeAction(lang.gui("guild_dialogs.progression.sources")) {
                 sourceDetails = true
@@ -247,20 +249,8 @@ class GuildProgressionMenu(
     }
 
     private fun openNativePrestige() {
-        val fresh = prestigeService.overview(guild.id)
-        if (fresh == null) return open()
-        val available = nativePrestigeChoices(fresh)
-        val ready = fresh.enabled && fresh.currentLevel == PRESTIGE_LEVEL
-        if (ready && available) {
-            openPrestigeSelection()
-        } else {
-            player.sendMessage(lang.msg("guild_dialogs.progression.prestige_locked"))
-            open()
-        }
-    }
-
-    private fun nativePrestigeChoices(fresh: net.lumalyte.lg.domain.rewards.PrestigeOverview): Boolean {
-        return fresh.prestigeCount < fresh.maxPrestigeCount && fresh.choices.isNotEmpty()
+        menuNavigator.openMenu(GuildChronicleMenu(menuNavigator, player, guild,
+            initialPrestige = true, reviewPrestige = ::openPrestigeSelection))
     }
 
     private fun repoProgression(): GuildProgressionDisplay? {
@@ -812,7 +802,6 @@ class GuildProgressionMenu(
     )
 
     private companion object {
-        const val PRESTIGE_LEVEL = 100
         val OWNED_REWARD_STATES = setOf(RewardOfferStatus.PURCHASED, RewardOfferStatus.PERMANENT)
     }
 }

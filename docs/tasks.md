@@ -2,6 +2,11 @@
 
 Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` line, and an `Evidence:` block that MUST be filled with real source citations before any downstream SPEAR phase runs on it.
 
+- [~] **GUILDS-RELEASE-BLOCKERS** Native Inventory caption and optional advancement startup.
+  - Tag: `TDD`
+  - References: GB-001/002/003 in `docs/plans/2026-10-23-release-blockers.md`.
+  - Evidence: `GuildAchievementProjectionLifecycleTest` reproduces late-provider discovery and the descriptor cycle before the fix; service lifecycle tests cover both enable orders, removal, replacement and disable. Private Pack PR9 covers 42 caption apertures with title-after-caption compositing and unchanged protected pixels. Hosted checks and paired native acceptance remain separate gates.
+
 - [~] **LG-RECRUITMENT** Approved LFG recruitment upgrade and discovery.
   - Tag: `TDD`
   - References: REQ-150; REC-001 through REC-017 in `docs/plans/guild-recruitment.md`.
@@ -1043,5 +1048,10 @@ Menu audit follow-up (REQ-063):
 
 - [x] **GUI-RETURN-ROUTING** Restore named GUI ancestors instead of pushing duplicate parents; reproduce diplomacy child -> Relations -> Dashboard and cover direct-entry fallback/state/token handling. Full local check: 1,991 cases, zero failures/errors, 16 optional skips. Manual SPEAR evidence: docs/plans/2026-10-17-gui-return-routing.md. Hosted CI and corrected TEST acceptance remain separate gates.
 - [x] **DEPOSIT-XP-VISIBILITY** Refresh committed XP without a level-up, publish Chapter Two bank XP, and read numeric/legacy progression timestamps. Two baseline cache regressions and a real SQL mapper failure reproduced; full local check passes 1,775 tests with zero failures/errors and 16 optional skips. Evidence: docs/plans/2026-10-18-deposit-xp-visibility.md. Hosted review and corrected TEST acceptance remain separate; no deployment.
+
+- [ ] **DIALOG-ACTIONS-LEADERBOARD** Direct member leaderboard commands and native
+  theme controls; DN-001 through DN-003 in
+  `plans/2026-10-21-dialog-actions-leaderboard.md`. Source and paired pack work;
+  hosted checks and live acceptance pending. No runtime use authorized.
 
 - [ ] **GUILD-CREATION-BOOTSTRAP** Tag: TDD. GC-001 through GC-004. References: docs/plans/2026-10-23-guild-creation-bootstrap.md. Evidence: canonical main283d75f1 source, investigation839/841, baseline/new regression and final verification recorded in the plan. TEST/client pause remains in force.

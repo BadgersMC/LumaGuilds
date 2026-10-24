@@ -17,6 +17,54 @@ internal class MenuTitleGlyphsTest {
         if (id == "guild_bg_enthusia_6_row") Component.text("ꁅ").font(nexoFont) else null
     }
 
+    @Test fun optionalPlateKeepsTitleAndUsesItsOwnRewindFont() {
+        val raw = Component.text(MenuTitleBuilder.build(GuiTheme.ENTHUSIA, 3, "Statistics"))
+        val fixed = MenuTitleGlyphs.withGlyphFonts(raw) { id -> when (id) {
+            "guild_bg_enthusia_3_row" -> Component.text("B").font(nexoFont)
+            "guild_inventory_label_enthusia_3_row" -> Component.text("P").font(Key.key("lumaguilds:inventory_labels"))
+            else -> null
+        } }
+        val parts = fonts(fixed)
+        assertTrue(parts.contains("\uE000" to Key.key("lumaguilds:inventory_label_spacing")))
+        assertTrue(parts.contains("P" to Key.key("lumaguilds:inventory_labels")))
+        assertTrue(PlainTextComponentSerializer.plainText().serialize(fixed).endsWith("<shift:-162>Statistics"))
+    }
+
+    @Test fun alreadyResolvedBackgroundStillReceivesItsPlateExactlyOnce() {
+        val background = Component.text("\uE900").font(nexoFont)
+        val plate = Component.text("\uE901").font(nexoFont)
+        val resolvedLookup: (String) -> Component? = { id -> when (id) {
+            "guild_bg_enthusia_3_row" -> background
+            "guild_inventory_label_enthusia_3_row" -> plate
+            else -> null
+        } }
+        // Nexo may resolve the literal tag before InventoryOpenEvent reaches our adapter.
+        val title = Component.text("<shift:-8>").append(background).append(Component.text("Statistics"))
+        val fixed = MenuTitleGlyphs.withGlyphFonts(title, resolvedLookup)
+        assertEquals("<shift:-8>\uE900\uE000\uE901Statistics", PlainTextComponentSerializer.plainText().serialize(fixed))
+        assertEquals(fixed, MenuTitleGlyphs.withGlyphFonts(fixed, resolvedLookup))
+        assertEquals(title, MenuTitleGlyphs.withGlyphFonts(title) { id ->
+            if (id == "guild_bg_enthusia_3_row") background else null
+        })
+    }
+
+    @Test fun registeredBackgroundWithNexoSpacingReceivesItsPlateOnce() {
+        // Nexo 1.29.1 Glyph.registerComponent joins the unicode with Shift.of(-1).
+        val background = Component.text("\uE900\uF801").font(nexoFont)
+        val plate = Component.text("\uE901\uF801").font(nexoFont)
+        val registered: (String) -> Component? = { id -> when (id) {
+            "guild_bg_enthusia_3_row" -> background
+            "guild_inventory_label_enthusia_3_row" -> plate
+            else -> null
+        } }
+        val title = background.append(Component.text("Statistics"))
+        val fixed = MenuTitleGlyphs.withGlyphFonts(title, registered)
+        assertEquals("\uE900\uF801\uE000\uE901\uF801Statistics",
+            PlainTextComponentSerializer.plainText().serialize(fixed))
+        assertEquals(fixed, MenuTitleGlyphs.withGlyphFonts(fixed, registered))
+        assertEquals(Component.text("Statistics"), MenuTitleGlyphs.withGlyphFonts(Component.text("Statistics"), registered))
+    }
+
     private fun fonts(c: Component): List<Pair<String, Key?>> {
         val out = mutableListOf<Pair<String, Key?>>()
         fun walk(x: Component, inherited: Key?) {

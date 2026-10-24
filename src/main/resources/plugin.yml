@@ -3,6 +3,8 @@ version: ${version}
 api-version: '26.2'
 load: STARTUP
 main: net.lumalyte.lg.LumaGuilds
+# Advancements is discovered through Bukkit service lifecycle events; ordering it
+# before Guilds creates a cycle with KOTH (Guilds -> KOTH -> Advancements).
 softdepend: [Vault, PlaceholderAPI, LiteBans, EnthusiaStaff, EnthusiaPlaytime, Nexo, packetevents, DiscordSRV]
 depend: [RoseChat]
 
@@ -78,6 +80,7 @@ permissions:
       lumaguilds.guild.disband: true
       lumaguilds.guild.menu: true
       lumaguilds.guild.quests: true
+      lumaguilds.guild.leaderboard: true
       lumaguilds.guild.invite: true
       lumaguilds.guild.kick: true
       lumaguilds.guild.tag: true
@@ -144,6 +147,9 @@ permissions:
     default: true
   lumaguilds.guild.quests:
     description: View your guild quests and their leaderboards without management access
+    default: true
+  lumaguilds.guild.leaderboard:
+    description: View guild rankings without management access
     default: true
   lumaguilds.guild.invite:
     description: Invite players to guild

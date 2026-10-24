@@ -9,6 +9,15 @@ import kotlin.test.assertTrue
 internal class GuildDialogSessionTest {
     private val owner = UUID.randomUUID()
 
+    @Test fun `reading past two minutes keeps current authorized controls usable`() {
+        val state = GuildDialogSession(owner, GUILD_DIALOG_LIFETIME.toMillis()) { true }
+        val page = state.beginPage(0)
+        assertTrue(state.consume(owner, page, 5 * 60 * 1000L))
+        assertFalse(state.consume(owner, page, 5 * 60 * 1000L + 1))
+        val expired = GuildDialogSession(owner, GUILD_DIALOG_LIFETIME.toMillis()) { true }
+        assertFalse(expired.consume(owner, expired.beginPage(0), GUILD_DIALOG_LIFETIME.toMillis()))
+    }
+
     @Test
     fun consumesOnceForOwner() {
         val state = GuildDialogSession(owner, 100L) { true }
