@@ -13,6 +13,8 @@ Current canonical main283d75f1 was fetched and inspected; continue clean owned P
 
 The parent-context regression first failed compilation on the missing read-only query. Initial full validation passed2272 cases with four existing skips and84 MariaDB cases with none, after fixing a missing disposable fixture account (49 authentication failures, no product failures). Review then exercised the unavailable-renderer action through the real transition dispatcher; that regression failed because no replacement dialog suppressed the terminal auto-dismiss. Refreshing the same authoritative dialog in that branch corrects the observed failure. Final full validation must include this correction. Native acceptance is still separate.
 
+The new split keybind hints use new locale keys: persisted legacy full-sentence instructions must not be concatenated with the key binding or keep the old long button label. A real Nexus LangService regression verifies bundled fallback for these new keys while preserving the existing locale file verbatim. No operator translation file is overwritten.
+
 ## Architecture and refine
 
 Navigation remains in the menu layer and read-only stack inspection does not alter existing transitions. Optional tree availability remains supplied by the infrastructure runtime. The domain reward/persistence engine is unchanged. Run focused tests, full configured suite, pinned Market and explicit native MariaDB profiles, canonical build and exact-head review/CI. Inspect all actionable annotations.

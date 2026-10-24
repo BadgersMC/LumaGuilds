@@ -125,13 +125,13 @@ internal class GuildAchievementsMenu(
                 selected = id
             }; open()
         }) }
-        add(action(lang.gui("achievements.vanilla")) {
+        add(action(lang.gui("achievements.tree_action")) {
             if (runtime.projectionAvailable()) {
                 navigator.invalidateCurrentNavigation()
                 player.closeDialog()
-                player.sendMessage(lang.gui("achievements.open_vanilla")
+                player.sendMessage(lang.gui("achievements.tree_key_hint")
                     .append(Component.keybind("key.advancements"))
-                    .append(lang.gui("achievements.open_vanilla_after")))
+                    .append(lang.gui("achievements.tree_find_hint")))
             } else {
                 player.sendMessage(lang.gui("achievements.renderer_unavailable"))
                 // afterAction NONE dismisses terminal callbacks unless a replacement is shown.
