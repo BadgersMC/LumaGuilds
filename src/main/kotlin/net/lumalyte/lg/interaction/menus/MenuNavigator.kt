@@ -100,6 +100,9 @@ class MenuNavigator(private val player: Player) {
      */
     fun currentNavigationToken(): Long = navigationGeneration.get()
 
+    /** Read-only exit-label context; direct command entry has no parent to restore. */
+    fun hasParent(): Boolean = menuStack.size > 1
+
     /**
      * Returns true while [token] still belongs to the player's current navigation state.
      */

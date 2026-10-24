@@ -68,7 +68,7 @@ internal class GuildAchievementsMenu(
     private fun nodeAction(n: GuildAchievement, record: AchievementRecord): GuildDialogAction {
         val complete = (record.progress[n.id] ?: 0) >= n.goal
         val prefix = if (complete) "[✓] " else "[◇] "
-        val label = Component.text(prefix + shortName(n.title), if (complete) NamedTextColor.GOLD else NamedTextColor.GRAY)
+        val label = Component.text(prefix + n.title, if (complete) NamedTextColor.GOLD else NamedTextColor.GRAY)
         return GuildDialogAction(label, Component.text(n.title + " · " + (record.progress[n.id] ?: 0) + "/" + n.goal)) {
             selected = n.id
             if (n.category != category) {
@@ -126,8 +126,17 @@ internal class GuildAchievementsMenu(
             }; open()
         }) }
         add(action(lang.gui("achievements.vanilla")) {
-            player.sendMessage(if (runtime.projectionAvailable()) lang.gui("achievements.open_vanilla") else lang.gui("achievements.renderer_unavailable"))
-            open()
+            if (runtime.projectionAvailable()) {
+                navigator.invalidateCurrentNavigation()
+                player.closeDialog()
+                player.sendMessage(lang.gui("achievements.open_vanilla")
+                    .append(Component.keybind("key.advancements"))
+                    .append(lang.gui("achievements.open_vanilla_after")))
+            } else {
+                player.sendMessage(lang.gui("achievements.renderer_unavailable"))
+                // afterAction NONE dismisses terminal callbacks unless a replacement is shown.
+                open()
+            }
         })
     }
 
@@ -160,7 +169,6 @@ internal class GuildAchievementsMenu(
 
     private fun backLabel() = if (fromStatistics) lang.gui("achievements.back_statistics") else lang.gui("achievements.back")
     private fun valid(token: Long) = player.isOnline && navigator.isNavigationCurrent(token) && members.getMember(player.uniqueId, guild.id) != null
-    private fun shortName(name: String) = if (name.length <= 19) name else name.take(18) + "…"
     private fun icon(node: GuildAchievement) = when (node.category) {
         "Combat" -> "lg_combat"
         "Commerce" -> "lg_bank"

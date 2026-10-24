@@ -17,6 +17,60 @@ import java.util.UUID
 import kotlin.test.*
 
 internal class GuildAchievementsMenuTest : RecruitmentDialogFixture() {
+    private fun openPersonalTree(available: Boolean): MenuNavigator {
+        every { lang.msg(any(), *anyVararg()) } answers { Component.text(firstArg<String>()) }
+        val actor = UUID.randomUUID()
+        val guild = Guild(UUID.randomUUID(), "Mastery", createdAt = Instant.EPOCH)
+        every { player.uniqueId } returns actor
+        every { player.isOnline } returns true
+        every { guilds.getGuild(guild.id) } returns guild
+        val members = mockk<MemberService>()
+        every { members.getMember(actor, guild.id) } returns mockk()
+        val runtime = mockk<GuildAchievementRuntime>()
+        every { runtime.engine } returns GuildAchievementEngine(listOf(GuildAchievement(
+            "one", null, "A complete milestone title that must remain visible", emptyList(),
+            "EVENT", null, 1, 0, emptyList(), "Foundations", "BOOK", "TASK", 0f, 0f,
+        )))
+        every { runtime.read(player) } returns AchievementRecord()
+        every { runtime.projectionAvailable() } returns available
+        loadKoinModules(module { single { members }; single { runtime } })
+        val observedPresenter = net.lumalyte.lg.infrastructure.services.GuildDialogPresenter { p, page, valid, failure ->
+            net.lumalyte.lg.infrastructure.services.GuildDialogTransitions.shown(p)
+            presenter.show(p, page, valid, failure)
+        }
+        return MenuNavigator(player).also { it.openMenu(GuildAchievementsMenu(it, player, guild, observedPresenter)) }
+    }
+
+    @Test fun `available native tree handoff closes dialog and invalidates old callbacks`() {
+        val nav = openPersonalTree(true)
+        val token = nav.currentNavigationToken()
+        renderedPage!!.actions.last().action()
+        val message = io.mockk.slot<Component>()
+        io.mockk.verify(exactly = 1) { player.closeDialog() }
+        io.mockk.verify(exactly = 1) { player.sendMessage(capture(message)) }
+        fun hasBinding(component: Component): Boolean =
+            component is net.kyori.adventure.text.KeybindComponent && component.keybind() == "key.advancements" ||
+                component.children().any(::hasBinding)
+        assertTrue(hasBinding(message.captured))
+        assertFalse(nav.isNavigationCurrent(token))
+    }
+
+    @Test fun `unavailable tree keeps authoritative dialog and its callbacks available`() {
+        val nav = openPersonalTree(false)
+        val token = nav.currentNavigationToken()
+        val original = renderedPage
+        net.lumalyte.lg.infrastructure.services.GuildDialogTransitions.dispatch(player, renderedPage!!.actions.last().action)
+        io.mockk.verify(exactly = 0) { player.closeDialog() }
+        assertTrue(nav.isNavigationCurrent(token))
+        assertNotSame(original, renderedPage)
+    }
+
+    @Test fun `branch links retain complete milestone titles instead of hardcoded ellipsis`() {
+        openPersonalTree(false)
+        val text = PlainTextComponentSerializer.plainText().serialize(renderedPage!!.diagram[1].last().label)
+        assertTrue(text.contains("A complete milestone title that must remain visible"))
+    }
+
     @Test fun `guild badges page independently and return to personal tree without reward writes`() {
         val actor = UUID.randomUUID()
         val guild = Guild(UUID.randomUUID(), "Mastery", createdAt = Instant.EPOCH)

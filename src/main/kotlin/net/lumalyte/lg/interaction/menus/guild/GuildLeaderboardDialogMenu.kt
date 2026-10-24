@@ -12,6 +12,9 @@ import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.services.GuildDialogItem
 import net.lumalyte.lg.infrastructure.services.GuildDialogPage
 import net.lumalyte.lg.infrastructure.services.GuildMenuDialog
+import net.lumalyte.lg.infrastructure.services.GuildDialogPresenter
+import net.lumalyte.lg.infrastructure.services.GuildDialogAction
+import net.lumalyte.lg.infrastructure.services.GUILD_DIALOG_CLOSE_LABEL
 import net.lumalyte.lg.interaction.menus.GuildBannerItemResolver
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -25,8 +28,8 @@ internal class GuildLeaderboardDialogMenu(
     private val members: MemberService,
     private val quests: QuestService,
     private val lang: LangService,
+    private val dialog: GuildDialogPresenter = GuildMenuDialog(),
 ) : Menu {
-    private val dialog = GuildMenuDialog()
     private var tab = 0
     private var page = 0
 
@@ -93,7 +96,11 @@ internal class GuildLeaderboardDialogMenu(
                 lang.gui("dialog_v2.leaderboard"),
                 cards,
                 controls,
-                referenceAction(lang.gui("recruitment.dialog.back"), "lg_back") { navigator.goBack() },
+                if (navigator.hasParent()) {
+                    referenceAction(lang.gui("recruitment.dialog.back"), "lg_back", navigator::goBack)
+                } else {
+                    GuildDialogAction(GUILD_DIALOG_CLOSE_LABEL, Component.empty(), navigator::goBack)
+                },
                 theme = own.guiTheme,
                 columns = 2,
                 framedHeading = true,
