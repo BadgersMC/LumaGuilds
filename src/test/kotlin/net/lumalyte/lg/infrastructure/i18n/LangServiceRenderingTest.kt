@@ -19,6 +19,8 @@ class LangServiceRenderingTest {
         locale.writeText(old)
         val lang = langService()
         assertEquals("Open advancement tree", plainText.serialize(lang.msg("achievements.tree_action")))
+        assertEquals("Close", plainText.serialize(lang.msg("dialog_v2.close_menu")))
+        assertEquals("Prestige rewards", plainText.serialize(lang.msg("chronicle.prestige.action")))
         assertEquals("Open Minecraft Advancements with your configured key: ", plainText.serialize(lang.msg("achievements.tree_key_hint")))
         org.junit.jupiter.api.Assertions.assertTrue(lang.raw("achievements.tree_find_hint").contains("Guild Mastery"))
         assertEquals(old, locale.readText())

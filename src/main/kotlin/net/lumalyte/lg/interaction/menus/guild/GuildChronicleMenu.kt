@@ -65,7 +65,7 @@ internal class GuildChronicleMenu(
             if (snapshot.page < 9) add(referenceAction(lang.gui("chronicle.later"), "lg_page_next") { page = snapshot.page + 1; tree() })
             snapshot.goal.rewardId?.let { id -> add(referenceAction(lang.gui("chronicle.goal"), "lg_reward") { detail(id) }) }
             add(referenceAction(lang.gui("chronicle.automatic"), "lg_bank") { automatic() })
-            add(referenceAction(lang.gui("chronicle.prestige.title"), "lg_prestige") { prestige() })
+            add(referenceAction(lang.gui("chronicle.prestige.action"), "lg_prestige") { prestige() })
         }
         show(cards, actions, referenceAction(lang.gui("recruitment.dialog.back"), "lg_back", navigator::goBack),
             lang.gui("chronicle.range", "guild" to guild.name, "level" to snapshot.state.level,

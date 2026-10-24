@@ -13,8 +13,6 @@ import net.lumalyte.lg.infrastructure.services.GuildDialogItem
 import net.lumalyte.lg.infrastructure.services.GuildDialogPage
 import net.lumalyte.lg.infrastructure.services.GuildMenuDialog
 import net.lumalyte.lg.infrastructure.services.GuildDialogPresenter
-import net.lumalyte.lg.infrastructure.services.GuildDialogAction
-import net.lumalyte.lg.infrastructure.services.GUILD_DIALOG_CLOSE_LABEL
 import net.lumalyte.lg.interaction.menus.GuildBannerItemResolver
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -99,7 +97,7 @@ internal class GuildLeaderboardDialogMenu(
                 if (navigator.hasParent()) {
                     referenceAction(lang.gui("recruitment.dialog.back"), "lg_back", navigator::goBack)
                 } else {
-                    GuildDialogAction(GUILD_DIALOG_CLOSE_LABEL, Component.empty(), navigator::goBack)
+                    referenceAction(lang.gui("dialog_v2.close_menu"), "lg_close", navigator::goBack)
                 },
                 theme = own.guiTheme,
                 columns = 2,

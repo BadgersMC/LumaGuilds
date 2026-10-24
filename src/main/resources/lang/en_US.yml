@@ -7841,6 +7841,7 @@ recruitment:
     updated: "<gold>Recruitment updated: <offers> join offers and <pending> applications awaiting your review. <yellow>Click to open recruitment."
 
 dialog_v2:
+  close_menu: "Close"
   board_subtitle: "Find your next guild. Build your next chapter."
   action_subtitle: "Review the details before choosing an action."
   confirm_fee: "Confirm joining fee"
@@ -7956,6 +7957,7 @@ chronicle:
     home_kept: '<green>Purchased home capacity survives prestige without using the retention choice. Saved locations and paid activations remain separate.</green>'
     retain: '<gray>To make this permanent: buy it first, reach level 100, then select it as your one eligible retention choice when confirming prestige.</gray>'
   prestige:
+    action: '<gold>Prestige rewards</gold>'
     title: '<gold>Prestige rewards and earning guide</gold>'
     subtitle: '<gray>Permanent rewards, retention choices and exact acquisition rules</gray>'
     overview: '<gold>Earning guide</gold>'

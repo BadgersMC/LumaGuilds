@@ -11,6 +11,7 @@ import net.lumalyte.lg.domain.values.ProgressionCurve
 import net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import java.sql.Connection
+import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 
@@ -204,7 +205,8 @@ class PrestigeRepositorySQL(
                WHERE guild_id = ? AND current_level = 100"""
         ).use {
             it.setInt(1, nextLevelXp)
-            it.setLong(2, now)
+            if (storage.dialect == SqlDialect.MARIADB) it.setTimestamp(2, Timestamp(now))
+            else it.setLong(2, now)
             it.setString(3, request.guildId.toString())
             it.executeUpdate() == 1
         }
