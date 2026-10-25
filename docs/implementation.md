@@ -212,3 +212,13 @@ success. Manage Guild Settings controls edits, membership controls reads. Guild
 deletion removes the preference transactionally. Reopening any supported Java
 Chronicle reads the committed goal afresh; no process-local goal cache exists.
 Native details preserve the existing quote and purchase confirmation service.
+
+## Bank contribution provenance (BF-001 through BF-008)
+
+Canonical confirmed player deposits and withdrawals settle a persistent contribution ledger in the same SQL transaction as their gold operation. Player withdrawals create guild-wide debt; deposits repay that debt before increasing cumulative fresh contribution. Neither source periods nor prestige reset this state. Failed payouts, fees, admission, admin, interest and system operations create no fresh contribution. A database preparation guard serializes new player operations across repository instances. Finalization never takes preparation or lifecycle locks.
+
+Durable BANK_DEPOSIT XP uses immutable fresh-contribution boundaries for unit rounding while preserving the original quote, cap window, activity disposition, boost, run fence and exactly-once award receipt. Legacy balance high-water remains consumed for legacy compatibility, but is not an additional threshold that would discard fresh fractions or deny refills after legitimate spending.
+
+GuildBankDepositEvent and its constructor/payload remain unchanged. A separate GuildBankContributionEvent carries only the canonical transaction ID and identities; quests no longer subscribe to gross deposit events and ignore generic DEPOSIT_BANK increments. The SQL adapter verifies the confirmed operation, actor, guild, captured run and original quest week, then consumes the receipt atomically with progress. Its marker survives week-progress cleanup. Existing claim recovery is unchanged; this does not add crash recovery for the best-effort post-deposit Bukkit notification.
+
+Upgrade uses additive schema v48. No historical rewards or eligibility are invented. First use derives outstanding withdrawal debt only from retained, confirmed canonical player operations, excluding the current transaction. System spending is never converted into debt. Equal-time historical credits precede withdrawals conservatively; pre-journal operations have no reconstructible provenance. Already-settled legacy XP without contribution provenance fails closed; no currency is removed. Rollback to an older writer is unsupported once the ledger is active because it would not record withdrawals.

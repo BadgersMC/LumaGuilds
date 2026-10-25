@@ -513,3 +513,146 @@ private class FakeQuestRepository(initial: WeeklyQuestSet?) : QuestRepository {
         }
     }
 }
+
+/** Real canonical deposit/withdrawal settlement plus the live path's post-credit event adapter. */
+abstract class BankQuestContributionContract : net.lumalyte.lg.infrastructure.persistence.guilds.BankDepositDeliveryFixture() {
+
+    @Test
+    fun `withdrawn raw gold cannot complete a quest through redeposit`() {
+        val bank = QuestDefinition(
+            id = "bank", nameKey = "bank.name", descriptionKey = "bank.description",
+            action = QuestAction.DEPOSIT_BANK,
+            target = QuestTarget("lumaguilds:bank/coins", setOf(QuestAction.DEPOSIT_BANK), 1, 100000),
+            targetCount = 5000, tier = QuestRewardTier.COMMON, experienceReward = 500,
+        )
+        val week = WeeklyQuestSet("2026-W43", occurredAt.minusSeconds(86400), occurredAt.plusSeconds(604800), listOf(bank))
+        db.connection.connection.use { net.lumalyte.lg.infrastructure.persistence.migrations.QuestSchema.create(it, db.dialect == net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect.MARIADB) }
+        val repository = net.lumalyte.lg.infrastructure.persistence.guilds.QuestRepositorySQLite(db)
+        repository.saveActiveQuestSet(week)
+        val rewards = RecordingRewardSink()
+        val quests = QuestService(repository, rewards, fullSetBonusExperience = 0)
+        val listener = net.lumalyte.lg.infrastructure.listeners.QuestProgressListener(
+            quests,
+            io.mockk.mockk<MemberService>(relaxed = true),
+            io.mockk.mockk<net.lumalyte.lg.application.persistence.BlockProvenanceRepository>(relaxed = true),
+            net.lumalyte.lg.infrastructure.listeners.BlockProvenanceOperationQueue(java.util.concurrent.Executor { it.run() }),
+        )
+        val first = physicalRequest(amount = 2500)
+        kotlin.test.assertIs<net.lumalyte.lg.domain.gold.GuildGoldResult.Applied>(service.depositPhysical(first))
+        assertEquals(25, delivery.complete(first.transactionId)!!.acceptedXp)
+        listener.onBankContribution(net.lumalyte.lg.api.events.GuildBankContributionEvent(guild, actor, first.transactionId))
+        assertEquals(2500, quests.progressFor(guild, "bank").currentCount)
+        // Duplicate and legacy gross notifications cannot inflate the leaderboard.
+        listener.onBankContribution(net.lumalyte.lg.api.events.GuildBankContributionEvent(guild, actor, first.transactionId))
+        assertTrue(listener.javaClass.declaredMethods.none { method ->
+            method.getAnnotation(org.bukkit.event.EventHandler::class.java) != null &&
+                method.parameterTypes.contains(net.lumalyte.lg.api.events.GuildBankDepositEvent::class.java)
+        })
+        quests.incrementProgress(guild, QuestAction.DEPOSIT_BANK, "lumaguilds:bank/coins", Long.MAX_VALUE)
+        assertEquals(2500, quests.progressFor(guild, "bank").currentCount)
+        kotlin.test.assertIs<net.lumalyte.lg.domain.gold.GuildGoldResult.Applied>(service.withdrawPersonal(personalRequest(amount = 2500)))
+        val recycled = physicalRequest(amount = 2500)
+        kotlin.test.assertIs<net.lumalyte.lg.domain.gold.GuildGoldResult.Applied>(service.depositPhysical(recycled))
+        assertEquals(net.lumalyte.lg.domain.entities.BankDepositXpStatus.NO_UNITS, delivery.complete(recycled.transactionId)!!.status)
+        // BankService emits this gross post-credit event after each successful deposit.
+        listener.onBankContribution(net.lumalyte.lg.api.events.GuildBankContributionEvent(guild, actor, recycled.transactionId))
+        assertTrue(rewards.experienceAwards.isEmpty(), "Recycled input must not award the 500 XP quest")
+        assertEquals(2500, quests.progressFor(guild, "bank").currentCount)
+        restart()
+        val fresh = physicalRequest(amount = 2500)
+        kotlin.test.assertIs<net.lumalyte.lg.domain.gold.GuildGoldResult.Applied>(service.depositPhysical(fresh))
+        val reopened = net.lumalyte.lg.infrastructure.persistence.guilds.QuestRepositorySQLite(db)
+        val resumed = QuestService(reopened, rewards, fullSetBonusExperience = 0)
+        resumed.incrementBankDeposit(guild, actor, fresh.transactionId)
+        resumed.incrementBankDeposit(guild, actor, fresh.transactionId)
+        resumed.incrementBankDeposit(guild, actor, first.transactionId)
+        assertEquals(5000, resumed.progressFor(guild, "bank").currentCount)
+        assertEquals(listOf(500), rewards.experienceAwards.map { it.second })
+    }
+
+    @Test fun `canonical identity week and run fences reject stale or fabricated quest input`() {
+        val (repository, quests, rewards) = bankQuests()
+        val request = physicalRequest(amount = 5000)
+        kotlin.test.assertIs<net.lumalyte.lg.domain.gold.GuildGoldResult.Applied>(service.depositPhysical(request))
+        quests.incrementBankDeposit(guild, UUID.randomUUID(), request.transactionId)
+        quests.incrementBankDeposit(UUID.randomUUID(), actor, request.transactionId)
+        quests.incrementBankDeposit(guild, actor, UUID.randomUUID())
+        assertEquals(0, quests.progressFor(guild, "bank").currentCount)
+        val original = repository.getActiveQuestSet()!!
+        repository.saveActiveQuestSet(original.copy(weekId = "next", startsAt = occurredAt.plusSeconds(604800), endsAt = occurredAt.plusSeconds(1209600)))
+        quests.incrementBankDeposit(guild, actor, request.transactionId)
+        assertEquals(0, quests.progressFor(guild, "bank").currentCount)
+        repository.saveActiveQuestSet(original)
+        execute("UPDATE guild_reward_accounts SET prestige_count = 1 WHERE guild_id = ?", guild.toString())
+        quests.incrementBankDeposit(guild, actor, request.transactionId)
+        assertEquals(0, quests.progressFor(guild, "bank").currentCount)
+        assertTrue(rewards.experienceAwards.isEmpty())
+    }
+
+    @Test fun `quest amount is fresh contribution independent of ordinary XP denial or cap`() {
+        val (_, quests, rewards) = bankQuests()
+        quote = quote.copy(eligibility = net.lumalyte.lg.domain.entities.BankDepositXpEligibility.AFK)
+        val request = physicalRequest(amount = 5000)
+        kotlin.test.assertIs<net.lumalyte.lg.domain.gold.GuildGoldResult.Applied>(service.depositPhysical(request))
+        assertEquals(net.lumalyte.lg.domain.entities.BankDepositXpStatus.AFK, delivery.complete(request.transactionId)!!.status)
+        quests.incrementBankDeposit(guild, actor, request.transactionId)
+        assertEquals(5000, quests.progressFor(guild, "bank").currentCount)
+        assertEquals(listOf(500), rewards.experienceAwards.map { it.second })
+    }
+
+    @Test fun `concurrent contribution progress and replay have no lost or repeated increments`() {
+        val (_, quests, _) = bankQuests()
+        val ids = (1..4).map {
+            val request = physicalRequest(amount = 1000)
+            kotlin.test.assertIs<net.lumalyte.lg.domain.gold.GuildGoldResult.Applied>(service.depositPhysical(request))
+            request.transactionId
+        }
+        val tasks = (ids + ids).map { id -> java.util.concurrent.CompletableFuture.runAsync {
+            quests.incrementBankDeposit(guild, actor, id)
+        } }
+        tasks.forEach { it.get(15, java.util.concurrent.TimeUnit.SECONDS) }
+        assertEquals(4000, quests.progressFor(guild, "bank").currentCount)
+    }
+
+    @Test fun `progress failure rolls back consumption marker so supported retry counts once`() {
+        val (_, quests, _) = bankQuests()
+        val request = physicalRequest(amount = 1000)
+        kotlin.test.assertIs<net.lumalyte.lg.domain.gold.GuildGoldResult.Applied>(service.depositPhysical(request))
+        rejectInsert("guild_quest_progress")
+        org.junit.jupiter.api.assertThrows<java.sql.SQLException> { quests.incrementBankDeposit(guild, actor, request.transactionId) }
+        assertEquals(0, scalar("SELECT COUNT(*) FROM guild_bank_contribution_quests"))
+        allowDeliveryWrites()
+        restart()
+        val resumed = QuestService(net.lumalyte.lg.infrastructure.persistence.guilds.QuestRepositorySQLite(db), RecordingRewardSink(), 0)
+        resumed.incrementBankDeposit(guild, actor, request.transactionId)
+        resumed.incrementBankDeposit(guild, actor, request.transactionId)
+        assertEquals(1000, resumed.progressFor(guild, "bank").currentCount)
+    }
+
+    private fun bankQuests(): Triple<net.lumalyte.lg.infrastructure.persistence.guilds.QuestRepositorySQLite, QuestService, RecordingRewardSink> {
+        db.connection.connection.use { net.lumalyte.lg.infrastructure.persistence.migrations.QuestSchema.create(it, db.dialect == net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect.MARIADB) }
+        val definition = QuestDefinition(
+            id = "bank", nameKey = "bank.name", descriptionKey = "bank.description", action = QuestAction.DEPOSIT_BANK,
+            target = QuestTarget("lumaguilds:bank/coins", setOf(QuestAction.DEPOSIT_BANK), 1, 100000),
+            targetCount = 5000, tier = QuestRewardTier.COMMON, experienceReward = 500,
+        )
+        val week = WeeklyQuestSet("2026-W43", occurredAt.minusSeconds(86400), occurredAt.plusSeconds(604800), listOf(definition))
+        val repository = net.lumalyte.lg.infrastructure.persistence.guilds.QuestRepositorySQLite(db)
+        repository.saveActiveQuestSet(week)
+        val rewards = RecordingRewardSink()
+        return Triple(repository, QuestService(repository, rewards, fullSetBonusExperience = 0), rewards)
+    }
+}
+
+class BankQuestRecyclingProbeTest : BankQuestContributionContract() {
+    @org.junit.jupiter.api.io.TempDir lateinit var directory: java.nio.file.Path
+    override fun newStorage() = net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteStorage(directory.toFile())
+}
+
+class BankQuestContributionMariaDbTest : BankQuestContributionContract() {
+    override fun newStorage(): net.lumalyte.lg.infrastructure.persistence.storage.MariaDBStorage {
+        val port = System.getenv("GUILD_SHOP_XP_TEST_MARIA_PORT")?.toIntOrNull()
+        org.junit.jupiter.api.Assumptions.assumeTrue(port != null, "Disposable loopback MariaDB XP test instance not configured")
+        return net.lumalyte.lg.infrastructure.persistence.storage.MariaDBStorage("127.0.0.1", checkNotNull(port), "lg_shop_xp_test", "xp_test", "xp_test")
+    }
+}

@@ -105,7 +105,7 @@ class QuestService(
         context: QuestProgressContext = QuestProgressContext(),
         actorId: UUID? = null,
     ) {
-        if (amount <= 0) return
+        if (amount <= 0 || action == QuestAction.DEPOSIT_BANK) return
         val active = repository.getActiveQuestSet() ?: return
         active.quests.asSequence()
             .filter { it.action == action && targetMatches(it.target.id, targetId) }
@@ -124,6 +124,19 @@ class QuestService(
                     claimCompletedQuest(active, quest, guildId, actorId)
                 }
             }
+    }
+
+    /** Gross bank notifications are not evidence of new contribution. */
+    fun incrementBankDeposit(guildId: UUID, actorId: UUID, transactionId: UUID) {
+        val active = repository.getActiveQuestSet() ?: return
+        active.quests.filter { it.action == QuestAction.DEPOSIT_BANK &&
+            targetMatches(it.target.id, "lumaguilds:bank/coins") && conditionsMatch(it.conditions, QuestProgressContext())
+        }.forEach { quest ->
+            val updated = repository.applyBankContribution(transactionId, active.weekId, quest.id, guildId, actorId, quest.targetCount)
+            if (updated != null && !updated.claimed && updated.completedAt != null) {
+                claimCompletedQuest(active, quest, guildId, actorId)
+            }
+        }
     }
 
     fun claimQuest(actorId: UUID, guildId: UUID, questId: String): Boolean {

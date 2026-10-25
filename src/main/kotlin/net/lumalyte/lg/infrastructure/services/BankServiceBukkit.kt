@@ -8,6 +8,7 @@ import net.lumalyte.lg.application.services.BankStats
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.BankDepositXpDeliveryService
 import net.lumalyte.lg.api.events.GuildBankDepositEvent
+import net.lumalyte.lg.api.events.GuildBankContributionEvent
 import net.lumalyte.lg.domain.entities.BankAudit
 import net.lumalyte.lg.domain.entities.BankTransaction
 import net.lumalyte.lg.domain.entities.MemberContribution
@@ -248,6 +249,9 @@ class BankServiceBukkit(
         runCatching {
             Bukkit.getPluginManager().callEvent(GuildBankDepositEvent(guildId, playerId, amount))
         }.onFailure { logger.warn("Post-deposit notification failed for $transactionId", it) }
+        runCatching {
+            Bukkit.getPluginManager().callEvent(GuildBankContributionEvent(guildId, playerId, transactionId))
+        }.onFailure { logger.warn("Post-contribution notification failed for $transactionId", it) }
     }
 
     override fun withdraw(guildId: UUID, playerId: UUID, amount: Int, description: String?): BankTransaction? =

@@ -70,6 +70,55 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
     } else {
         "INSERT OR IGNORE INTO quest_leaderboard_payouts (week_id, quest_id, guild_id) VALUES (?, ?, ?)"
     }
+    override fun applyBankContribution(
+        transactionId: UUID, weekId: String, questId: String, guildId: UUID, actorId: UUID, targetCount: Long,
+    ): GuildQuestProgress? = storage.connection.connection.use { c ->
+        c.committingTransaction {
+            val run = BankDepositXpLedger(mariaDb).fence(c, guildId)
+            if (!run.guildExists || run.chapter?.allows(Instant.now().toEpochMilli()) == false) return@committingTransaction null
+            // A retained receipt supplies the amount, identity, original time and run. Never trust event.amount.
+            val amount = c.selectOne("""
+                SELECT r.fresh_after - r.fresh_before
+                FROM guild_bank_contribution_receipts r
+                JOIN guild_gold_operations o ON o.transaction_id = r.transaction_id
+                JOIN guild_gold_external_attempts e ON e.transaction_id = o.transaction_id
+                JOIN guild_bank_xp_deliveries d ON d.transaction_id = o.transaction_id
+                JOIN weekly_quest_sets w ON w.week_id = ?
+                JOIN weekly_quest_definitions q ON q.week_id = w.week_id AND q.quest_id = ?
+                WHERE r.transaction_id = ? AND r.guild_id = ? AND o.guild_id = r.guild_id AND o.actor_id = ?
+                  AND o.status = 'APPLIED' AND o.direction = 'CREDIT'
+                  AND o.route IN ('PERSONAL_ACCOUNT', 'PHYSICAL_ITEM') AND e.phase = 'CONFIRMED' AND e.purpose = 'DEPOSIT'
+                  AND d.capture_denial IS NULL AND d.prestige_count = ? AND d.chapter_id = ?
+                  AND d.occurred_at >= w.starts_at AND d.occurred_at < w.ends_at
+                  AND w.active = 1 AND q.action = 'DEPOSIT_BANK' AND q.target_count = ?
+            """.trimIndent(), weekId, questId, transactionId.toString(), guildId.toString(), actorId.toString(), run.prestige, run.chapter?.id, targetCount,
+            ) { it.getLong(1) } ?: return@committingTransaction null
+            if (amount <= 0) return@committingTransaction null
+            val insert = if (mariaDb) "INSERT IGNORE" else "INSERT OR IGNORE"
+            if (c.updateStatement(
+                "$insert INTO guild_bank_contribution_quests (transaction_id, quest_id, week_id) VALUES (?, ?, ?)",
+                transactionId.toString(), questId, weekId,
+            ) == 0) return@committingTransaction null
+            c.updateStatement(
+                "$insert INTO guild_quest_progress (week_id, quest_id, guild_id, current_count, claimed, reward_delivered) VALUES (?, ?, ?, 0, 0, 0)",
+                weekId, questId, guildId.toString(),
+            )
+            val lock = if (mariaDb) " FOR UPDATE" else ""
+            val current = checkNotNull(c.selectOne(
+                "SELECT * FROM guild_quest_progress WHERE week_id = ? AND quest_id = ? AND guild_id = ?$lock",
+                weekId, questId, guildId.toString(),
+            ) { row -> GuildQuestProgress(weekId, questId, guildId, row.getLong("current_count"), row.getInt("claimed") != 0,
+                row.getObject("completed_at")?.let { Instant.ofEpochMilli(row.getLong("completed_at")) },
+                row.getString("claim_actor_id")?.let(UUID::fromString), row.getInt("reward_delivered") != 0) })
+            val updated = current.withIncrementedCount(amount, targetCount)
+            c.updateStatement(
+                "UPDATE guild_quest_progress SET current_count = ?, completed_at = ? WHERE week_id = ? AND quest_id = ? AND guild_id = ?",
+                updated.currentCount, updated.completedAt?.toEpochMilli(), weekId, questId, guildId.toString(),
+            )
+            updated
+        }
+    }
+
     override fun getActiveQuestSet(): WeeklyQuestSet? =
         storage.connection.getFirstRow(
             "SELECT week_id, starts_at, ends_at FROM weekly_quest_sets WHERE active = 1 LIMIT 1"

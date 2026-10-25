@@ -30,6 +30,7 @@ class GuildEventApiContractTest {
 
     private val eventTypes = listOf(
         GuildBankDepositEvent::class.java,
+        GuildBankContributionEvent::class.java,
         GuildBannerChangedEvent::class.java,
         GuildBannerSetEvent::class.java,
         GuildCreatedEvent::class.java,
@@ -51,6 +52,7 @@ class GuildEventApiContractTest {
     )
 
     private val constructorSignatures = mapOf(
+        GuildBankContributionEvent::class.java to List(3) { UUID::class.java },
         GuildBankDepositEvent::class.java to listOf(UUID::class.java, UUID::class.java, Int::class.javaPrimitiveType),
         GuildBannerChangedEvent::class.java to listOf(UUID::class.java, Boolean::class.javaPrimitiveType),
         GuildBannerSetEvent::class.java to listOf(UUID::class.java, UUID::class.java),
@@ -89,6 +91,11 @@ class GuildEventApiContractTest {
     )
 
     private val payloadContracts = mapOf(
+        GuildBankContributionEvent::class to listOf(
+            PayloadContract("guildId", typeOf<UUID>()),
+            PayloadContract("playerId", typeOf<UUID>()),
+            PayloadContract("transactionId", typeOf<UUID>())
+        ),
         GuildBankDepositEvent::class to listOf(
             PayloadContract("guildId", typeOf<UUID>()),
             PayloadContract("playerId", typeOf<UUID>()),
@@ -246,6 +253,7 @@ class GuildEventApiContractTest {
 
         return listOf(
             GuildBankDepositEvent(first, second, 1),
+            GuildBankContributionEvent(first, second, third),
             GuildBannerChangedEvent(first, true),
             GuildBannerSetEvent(first, second),
             GuildCreatedEvent(guild, first),

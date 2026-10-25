@@ -280,7 +280,7 @@ abstract class BankDepositDeliveryContract : BankDepositDeliveryFixture() {
         assertAccounting(400, 400, 2, 1)
     }
 
-    @Test fun stalePrePrestigeGrowthCannotBeEarnedAgainBySpendingAndRedepositing() {
+    @Test fun stalePrePrestigeGrowthStaysConsumedWhileFreshRefillAfterRealSpendingEarns() {
         seedHighWater(0)
         val request = personalRequest(amount = 1_000)
         assertIs<GuildGoldResult.Applied>(service.depositPersonal(request))
@@ -291,10 +291,11 @@ abstract class BankDepositDeliveryContract : BankDepositDeliveryFixture() {
         assertAccounting(900, 1_000, 0, 0)
         val later = personalRequest()
         assertIs<GuildGoldResult.Applied>(service.depositPersonal(later))
-        assertReplay(later.transactionId, BankDepositXpStatus.NO_UNITS)
+        // BF-008: this is new external money after a system purchase, not a player withdrawal.
+        assertAward(later.transactionId, 1)
         execute("UPDATE guild_reward_accounts SET prestige_count = 0 WHERE guild_id = ?", guild.toString())
         assertReplay(request.transactionId, BankDepositXpStatus.STALE_RUN)
-        assertAccounting(1_000, 1_000, 0, 0)
+        assertAccounting(1_000, 1_000, 1, 1)
     }
 
     @Test fun chapterIdentityChangeCannotDeliverIntoTheNextChapter() {
