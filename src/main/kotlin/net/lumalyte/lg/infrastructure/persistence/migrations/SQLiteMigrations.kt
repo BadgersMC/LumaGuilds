@@ -265,6 +265,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(BankDepositXpSchema.VERSION)
                 dbVersion = BankDepositXpSchema.VERSION
             }
+            BankContributionSchema.create(connection, mariaDb = false)
+            if (dbVersion < BankContributionSchema.VERSION) {
+                updateDatabaseVersion(BankContributionSchema.VERSION)
+                dbVersion = BankContributionSchema.VERSION
+            }
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
 
@@ -1459,7 +1464,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             "spawn_banners", "rank_claim_permission_profiles",
             QuestCompletionNotificationSchema.TABLE, GuildChatRankSettingsSchema.TABLE,
             GuildHomeActivationSchema.ACTIVATIONS_TABLE, GuildHomeActivationSchema.CREDITS_TABLE,
-            InviteBlockSchema.TABLE, BankDepositXpSchema.DELIVERIES, BankDepositXpSchema.SEQUENCES
+            InviteBlockSchema.TABLE, BankDepositXpSchema.DELIVERIES, BankDepositXpSchema.SEQUENCES,
+            BankContributionSchema.ACCOUNTS,
+            BankContributionSchema.RECEIPTS,
+            BankContributionSchema.QUESTS,
+            BankContributionSchema.GUARDS,
         )
 
         // Add claim tables to required list if claims are enabled

@@ -1,22 +1,45 @@
 package net.lumalyte.lg.application.services
 
+import io.mockk.mockk
+import java.nio.file.Path
+import java.time.Instant
+import java.util.UUID
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executor
+import java.util.concurrent.TimeUnit
+import kotlin.test.assertIs
+import net.lumalyte.lg.api.events.GuildBankContributionEvent
+import net.lumalyte.lg.api.events.GuildBankDepositEvent
+import net.lumalyte.lg.application.persistence.BlockProvenanceRepository
 import net.lumalyte.lg.application.persistence.QuestRepository
-import net.lumalyte.lg.domain.entities.GuildQuestProgress
+import net.lumalyte.lg.domain.entities.BankDepositXpEligibility
+import net.lumalyte.lg.domain.entities.BankDepositXpStatus
 import net.lumalyte.lg.domain.entities.BlockProvenancePolicy
+import net.lumalyte.lg.domain.entities.GuildQuestProgress
 import net.lumalyte.lg.domain.entities.QuestCondition
 import net.lumalyte.lg.domain.entities.QuestConditionType
 import net.lumalyte.lg.domain.entities.QuestDefinition
 import net.lumalyte.lg.domain.entities.QuestRewardTier
 import net.lumalyte.lg.domain.entities.QuestTarget
 import net.lumalyte.lg.domain.entities.WeeklyQuestSet
+import net.lumalyte.lg.domain.gold.GuildGoldResult
 import net.lumalyte.lg.domain.values.QuestAction
+import net.lumalyte.lg.infrastructure.listeners.BlockProvenanceOperationQueue
+import net.lumalyte.lg.infrastructure.listeners.QuestProgressListener
+import net.lumalyte.lg.infrastructure.persistence.guilds.BankDepositDeliveryFixture
+import net.lumalyte.lg.infrastructure.persistence.guilds.QuestRepositorySQLite
+import net.lumalyte.lg.infrastructure.persistence.migrations.QuestSchema
+import net.lumalyte.lg.infrastructure.persistence.storage.MariaDBStorage
+import net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect
+import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteStorage
+import org.bukkit.event.EventHandler
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import java.time.Instant
-import java.util.UUID
+import org.junit.jupiter.api.io.TempDir
 
 class QuestServiceTest {
     private val week = WeeklyQuestSet(
@@ -511,5 +534,172 @@ private class FakeQuestRepository(initial: WeeklyQuestSet?) : QuestRepository {
         progress.entries.removeIf { (key, value) ->
             key.first == weekId && !(value.claimed && !value.rewardDelivered)
         }
+    }
+}
+
+/** Real canonical deposit/withdrawal settlement plus the live path's post-credit event adapter. */
+// Shared native contracts use deliberate currency fixtures and separate failure scenarios.
+@Suppress("MagicNumber", "TooManyFunctions")
+internal abstract class BankQuestContributionContract : BankDepositDeliveryFixture() {
+
+    @Test
+    fun `withdrawn raw gold cannot complete a quest through redeposit`() {
+        val (_, quests, rewards) = bankQuests()
+        val listener = bankListener(quests)
+        val first = contributeViaEvent(listener, 2_500, 25)
+        assertEquals(2_500, quests.progressFor(guild, "bank").currentCount)
+        verifyDuplicateEvents(listener, quests, first)
+        assertIs<GuildGoldResult.Applied>(
+            service.withdrawPersonal(personalRequest(amount = 2_500)),
+        )
+        contributeViaEvent(listener, 2_500, 0)
+        assertTrue(rewards.experienceAwards.isEmpty(), "Recycled input must not award the 500 XP quest")
+        assertEquals(2_500, quests.progressFor(guild, "bank").currentCount)
+        restart()
+        verifyFreshQuestReward(rewards, first)
+    }
+
+    private fun bankListener(quests: QuestService): QuestProgressListener {
+        return QuestProgressListener(
+            quests,
+            mockk<MemberService>(relaxed = true),
+            mockk<BlockProvenanceRepository>(relaxed = true),
+            BlockProvenanceOperationQueue(Executor { it.run() }),
+        )
+    }
+
+    private fun contributeViaEvent(
+        listener: QuestProgressListener,
+        amount: Long,
+        expectedXp: Int,
+    ): UUID {
+        val request = physicalRequest(amount = amount)
+        assertIs<GuildGoldResult.Applied>(service.depositPhysical(request))
+        val completion = delivery.complete(request.transactionId)!!
+        assertEquals(expectedXp, completion.acceptedXp)
+        if (expectedXp == 0) assertEquals(BankDepositXpStatus.NO_UNITS, completion.status)
+        listener.onBankContribution(GuildBankContributionEvent(guild, actor, request.transactionId))
+        return request.transactionId
+    }
+
+    private fun verifyDuplicateEvents(
+        listener: QuestProgressListener,
+        quests: QuestService,
+        first: UUID,
+    ) {
+        listener.onBankContribution(GuildBankContributionEvent(guild, actor, first))
+        assertTrue(listener.javaClass.declaredMethods.none { method ->
+            method.getAnnotation(EventHandler::class.java) != null &&
+                method.parameterTypes.contains(GuildBankDepositEvent::class.java)
+        })
+        quests.incrementProgress(guild, QuestAction.DEPOSIT_BANK, "lumaguilds:bank/coins", Long.MAX_VALUE)
+        assertEquals(2_500, quests.progressFor(guild, "bank").currentCount)
+    }
+
+    private fun verifyFreshQuestReward(rewards: RecordingRewardSink, first: UUID) {
+        val fresh = physicalRequest(amount = 2_500)
+        assertIs<GuildGoldResult.Applied>(service.depositPhysical(fresh))
+        val reopened = QuestRepositorySQLite(db)
+        val resumed = QuestService(reopened, rewards, fullSetBonusExperience = 0)
+        resumed.incrementBankDeposit(guild, actor, fresh.transactionId)
+        resumed.incrementBankDeposit(guild, actor, fresh.transactionId)
+        resumed.incrementBankDeposit(guild, actor, first)
+        assertEquals(5_000, resumed.progressFor(guild, "bank").currentCount)
+        assertEquals(listOf(500), rewards.experienceAwards.map { it.second })
+    }
+
+    @Test fun `canonical identity week and run fences reject stale or fabricated quest input`() {
+        val (repository, quests, rewards) = bankQuests()
+        val request = physicalRequest(amount = 5_000)
+        assertIs<GuildGoldResult.Applied>(service.depositPhysical(request))
+        quests.incrementBankDeposit(guild, UUID.randomUUID(), request.transactionId)
+        quests.incrementBankDeposit(UUID.randomUUID(), actor, request.transactionId)
+        quests.incrementBankDeposit(guild, actor, UUID.randomUUID())
+        assertEquals(0, quests.progressFor(guild, "bank").currentCount)
+        val original = repository.getActiveQuestSet()!!
+        repository.saveActiveQuestSet(
+            original.copy(
+                weekId = "next",
+                startsAt = occurredAt.plusSeconds(604_800),
+                endsAt = occurredAt.plusSeconds(1_209_600),
+            ),
+        )
+        quests.incrementBankDeposit(guild, actor, request.transactionId)
+        assertEquals(0, quests.progressFor(guild, "bank").currentCount)
+        repository.saveActiveQuestSet(original)
+        execute("UPDATE guild_reward_accounts SET prestige_count = 1 WHERE guild_id = ?", guild.toString())
+        quests.incrementBankDeposit(guild, actor, request.transactionId)
+        assertEquals(0, quests.progressFor(guild, "bank").currentCount)
+        assertTrue(rewards.experienceAwards.isEmpty())
+    }
+
+    @Test fun `quest amount is fresh contribution independent of ordinary XP denial or cap`() {
+        val (_, quests, rewards) = bankQuests()
+        quote = quote.copy(eligibility = BankDepositXpEligibility.AFK)
+        val request = physicalRequest(amount = 5_000)
+        assertIs<GuildGoldResult.Applied>(service.depositPhysical(request))
+        assertEquals(BankDepositXpStatus.AFK, delivery.complete(request.transactionId)!!.status)
+        quests.incrementBankDeposit(guild, actor, request.transactionId)
+        assertEquals(5_000, quests.progressFor(guild, "bank").currentCount)
+        assertEquals(listOf(500), rewards.experienceAwards.map { it.second })
+    }
+
+    @Test fun `concurrent contribution progress and replay have no lost or repeated increments`() {
+        val (_, quests, _) = bankQuests()
+        val ids = (1..4).map {
+            val request = physicalRequest(amount = 1_000)
+            assertIs<GuildGoldResult.Applied>(service.depositPhysical(request))
+            request.transactionId
+        }
+        val tasks = (ids + ids).map { id -> CompletableFuture.runAsync {
+            quests.incrementBankDeposit(guild, actor, id)
+        } }
+        tasks.forEach { it.get(15, TimeUnit.SECONDS) }
+        assertEquals(4000, quests.progressFor(guild, "bank").currentCount)
+    }
+
+    @Test fun `progress failure rolls back consumption marker so supported retry counts once`() {
+        val (_, quests, _) = bankQuests()
+        val request = physicalRequest(amount = 1_000)
+        assertIs<GuildGoldResult.Applied>(service.depositPhysical(request))
+        rejectInsert("guild_quest_progress")
+        org.junit.jupiter.api.assertThrows<java.sql.SQLException> {
+            quests.incrementBankDeposit(guild, actor, request.transactionId)
+        }
+        assertEquals(0, scalar("SELECT COUNT(*) FROM guild_bank_contribution_quests"))
+        allowDeliveryWrites()
+        restart()
+        val resumed = QuestService(QuestRepositorySQLite(db), RecordingRewardSink(), 0)
+        resumed.incrementBankDeposit(guild, actor, request.transactionId)
+        resumed.incrementBankDeposit(guild, actor, request.transactionId)
+        assertEquals(1_000, resumed.progressFor(guild, "bank").currentCount)
+    }
+
+    private fun bankQuests(): Triple<QuestRepositorySQLite, QuestService, RecordingRewardSink> {
+        db.connection.connection.use { QuestSchema.create(it, db.dialect == SqlDialect.MARIADB) }
+        val definition = QuestDefinition(
+            id = "bank", nameKey = "bank.name", descriptionKey = "bank.description", action = QuestAction.DEPOSIT_BANK,
+            target = QuestTarget("lumaguilds:bank/coins", setOf(QuestAction.DEPOSIT_BANK), 1, 100_000),
+            targetCount = 5_000, tier = QuestRewardTier.COMMON, experienceReward = 500,
+        )
+        val week =
+            WeeklyQuestSet("2026-W43", occurredAt.minusSeconds(86_400), occurredAt.plusSeconds(604_800), listOf(definition))
+        val repository = QuestRepositorySQLite(db)
+        repository.saveActiveQuestSet(week)
+        val rewards = RecordingRewardSink()
+        return Triple(repository, QuestService(repository, rewards, fullSetBonusExperience = 0), rewards)
+    }
+}
+
+internal class BankQuestRecyclingProbeTest : BankQuestContributionContract() {
+    @TempDir lateinit var directory: Path
+    override fun newStorage() = VirtualThreadSQLiteStorage(directory.toFile())
+}
+
+internal class BankQuestContributionMariaDbTest : BankQuestContributionContract() {
+    override fun newStorage(): MariaDBStorage {
+        val port = System.getenv("GUILD_SHOP_XP_TEST_MARIA_PORT")?.toIntOrNull()
+        assumeTrue(port != null, "Disposable loopback MariaDB XP test instance not configured")
+        return MariaDBStorage("127.0.0.1", checkNotNull(port), "lg_shop_xp_test", "xp_test", "xp_test")
     }
 }

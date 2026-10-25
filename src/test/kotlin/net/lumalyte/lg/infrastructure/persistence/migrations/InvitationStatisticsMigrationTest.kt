@@ -48,7 +48,7 @@ class InvitationStatisticsMigrationTest {
         assertTrue(columnExists("guild_invitation_history", "inviter_player_id"))
         assertTrue(columnExists("guild_invitation_history", "invited_player_id"))
         assertTrue(columnExists("guild_invitation_history", "sent_at"))
-        assertEquals(BankDepositXpSchema.VERSION, databaseVersion())
+        assertEquals(BankContributionSchema.VERSION, databaseVersion())
     }
 
     private fun tableExists(table: String): Boolean =

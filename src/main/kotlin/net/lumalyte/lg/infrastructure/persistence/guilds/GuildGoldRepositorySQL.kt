@@ -14,6 +14,7 @@ import net.lumalyte.lg.domain.gold.GuildGoldRoute
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import net.lumalyte.lg.infrastructure.persistence.migrations.GuildGoldSchema
 import net.lumalyte.lg.infrastructure.persistence.migrations.BankDepositXpSchema
+import net.lumalyte.lg.infrastructure.persistence.migrations.BankContributionSchema
 import java.sql.Connection
 import java.sql.ResultSet
 import java.util.UUID
@@ -27,6 +28,7 @@ class GuildGoldRepositorySQL(
     private val mariaDb = storage.dialect == net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect.MARIADB
     private val guildLocks = ConcurrentHashMap<UUID, ReentrantLock>()
     private val bankDeliveries = BankDepositXpLedger(mariaDb)
+    private val contributions = BankContributionLedger(mariaDb)
 
     init {
         createTables()
@@ -100,12 +102,28 @@ class GuildGoldRepositorySQL(
         return prepareOperation(mutation, quote)
     }
 
+    private fun guardPlayerPreparation(connection: Connection, mutation: GuildGoldMutation) {
+        if (mutation.route !in setOf(GuildGoldRoute.PERSONAL_ACCOUNT, GuildGoldRoute.PHYSICAL_ITEM)) return
+        // Finalization never acquires this guard, preserving operation/balance lock order.
+        val insert = if (mariaDb) "INSERT IGNORE" else "INSERT OR IGNORE"
+        connection.updateStatement(
+            "$insert INTO guild_bank_contribution_guards (guild_id) VALUES (?)",
+            mutation.guildId.toString(),
+        )
+        val lock = if (mariaDb) " FOR UPDATE" else ""
+        connection.selectOne(
+            "SELECT guild_id FROM guild_bank_contribution_guards WHERE guild_id = ?$lock",
+            mutation.guildId.toString(),
+        ) { true }
+    }
+
     private fun prepareOperation(mutation: GuildGoldMutation, quote: BankDepositXpQuote?): GuildGoldPreparation =
         guildLock(mutation.guildId).withLock {
             storage.connection.connection.use { connection ->
                 transaction(connection) {
                     // Quote capture locks before gold rows; finalization never takes these locks.
                     val run = if (quote != null) bankDeliveries.fence(connection, mutation.guildId) else null
+                    guardPlayerPreparation(connection, mutation)
                     val existing = findOperation(connection, mutation.transactionId, forUpdate = true)
                     if (existing != null) {
                         return@transaction if (existing.mutation == mutation) {
@@ -436,6 +454,7 @@ class GuildGoldRepositorySQL(
         storage.connection.connection.use { connection ->
             GuildGoldSchema.create(connection, mariaDb)
             BankDepositXpSchema.create(connection, mariaDb)
+            BankContributionSchema.create(connection, mariaDb)
         }
     }
 
@@ -556,6 +575,7 @@ class GuildGoldRepositorySQL(
         }
         if (status == GuildGoldOperationStatus.APPLIED) {
             val operation = checkNotNull(findOperation(connection, transactionId, forUpdate = false))
+            contributions.settle(connection, operation.mutation, oldBalance)
             bankDeliveries.settle(connection, operation.mutation, oldBalance, newBalance)
         }
     }

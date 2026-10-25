@@ -2,6 +2,11 @@
 
 Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` line, and an `Evidence:` block that MUST be filled with real source citations before any downstream SPEAR phase runs on it.
 
+- [~] **BANK-CONTRIBUTION-ANTI-RECYCLING** Persist withdrawal debt and verify deposit quest provenance.
+  - Tag: `TDD`
+  - References: BF-001 through BF-008 in `docs/plans/2026-10-24-bank-farming-acceptance.md`.
+  - Evidence: two original regressions reproduced rollover XP and gross-event quest farming before engine edits. Canonical settlement now records persistent contribution receipts; atomic per-quest consumption rejects recycled or duplicate input. SQLite/MariaDB rollback, restart and concurrency contracts exercise the implementation. Local full suite2310/0 failures/4 unchanged skips and native reward profile95/0 failures/0 skips pass; the scoped plan records artifact and evidence. Hosted exact-head checks, independent review and live acceptance remain gates; no deployment claimed.
+
 - [~] **GUILDS-RELEASE-BLOCKERS** Native Inventory caption and optional advancement startup.
   - Tag: `TDD`
   - References: GB-001/002/003 in `docs/plans/2026-10-23-release-blockers.md`.

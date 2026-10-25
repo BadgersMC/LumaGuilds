@@ -4,6 +4,7 @@ import co.aikar.idb.Database
 import co.aikar.idb.DbRow
 import co.aikar.idb.DbStatement
 import net.lumalyte.lg.application.persistence.QuestRepository
+import net.lumalyte.lg.application.persistence.BankQuestContribution
 import net.lumalyte.lg.domain.entities.BlockProvenancePolicy
 import net.lumalyte.lg.domain.entities.GuildQuestProgress
 import net.lumalyte.lg.domain.entities.QuestCondition
@@ -70,6 +71,110 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
     } else {
         "INSERT OR IGNORE INTO quest_leaderboard_payouts (week_id, quest_id, guild_id) VALUES (?, ?, ?)"
     }
+    override fun applyBankContribution(input: BankQuestContribution): GuildQuestProgress? {
+        return storage.connection.connection.use { c ->
+            c.committingTransaction { consumeBankContribution(c, input) }
+        }
+    }
+
+    private fun consumeBankContribution(c: java.sql.Connection, input: BankQuestContribution): GuildQuestProgress? {
+        val amount = availableBankAmount(c, input)
+        return if (amount != null && amount > 0 && claimBankContribution(c, input)) {
+            updateBankProgress(c, input, amount)
+        } else {
+            null
+        }
+    }
+
+    private fun availableBankAmount(c: java.sql.Connection, input: BankQuestContribution): Long? {
+        val run = BankDepositXpLedger(mariaDb).fence(c, input.guildId)
+        return if (run.guildExists && run.chapter?.allows(Instant.now().toEpochMilli()) != false) {
+            verifiedBankAmount(c, input, run)
+        } else {
+            null
+        }
+    }
+
+    private fun updateBankProgress(
+        c: java.sql.Connection,
+        input: BankQuestContribution,
+        amount: Long,
+    ): GuildQuestProgress {
+        val updated = bankProgress(c, input).withIncrementedCount(amount, input.targetCount)
+        c.updateStatement(
+            "UPDATE guild_quest_progress SET current_count = ?, completed_at = ? " +
+                "WHERE week_id = ? AND quest_id = ? AND guild_id = ?",
+            updated.currentCount,
+            updated.completedAt?.toEpochMilli(),
+            input.weekId,
+            input.questId,
+            input.guildId.toString(),
+        )
+        return updated
+    }
+
+    private fun verifiedBankAmount(
+        c: java.sql.Connection,
+        input: BankQuestContribution,
+        run: BankDepositXpRun,
+    ): Long? {
+        // Retained provenance supplies the amount, identity, original time and run.
+        return c.selectOne(
+            VERIFIED_BANK_CONTRIBUTION_SQL,
+            input.weekId,
+            input.questId,
+            input.transactionId.toString(),
+            input.guildId.toString(),
+            input.actorId.toString(),
+            run.prestige,
+            run.chapter?.id,
+            input.targetCount,
+        ) { it.getLong(1) }
+    }
+
+    private fun claimBankContribution(c: java.sql.Connection, input: BankQuestContribution): Boolean {
+        val insert = if (mariaDb) "INSERT IGNORE" else "INSERT OR IGNORE"
+        return c.updateStatement(
+            "$insert INTO guild_bank_contribution_quests (transaction_id, quest_id, week_id) VALUES (?, ?, ?)",
+            input.transactionId.toString(),
+            input.questId,
+            input.weekId,
+        ) == 1
+    }
+
+    private fun bankProgress(c: java.sql.Connection, input: BankQuestContribution): GuildQuestProgress {
+        val insert = if (mariaDb) "INSERT IGNORE" else "INSERT OR IGNORE"
+        c.updateStatement(
+            "$insert INTO guild_quest_progress " +
+                "(week_id, quest_id, guild_id, current_count, claimed, reward_delivered) VALUES (?, ?, ?, 0, 0, 0)",
+            input.weekId,
+            input.questId,
+            input.guildId.toString(),
+        )
+        val lock = if (mariaDb) " FOR UPDATE" else ""
+        return checkNotNull(
+            c.selectOne(
+                "SELECT * FROM guild_quest_progress WHERE week_id = ? AND quest_id = ? AND guild_id = ?$lock",
+                input.weekId,
+                input.questId,
+                input.guildId.toString(),
+            ) { row -> mapBankProgress(row, input) },
+        )
+    }
+
+    private fun mapBankProgress(row: java.sql.ResultSet, input: BankQuestContribution): GuildQuestProgress {
+        return GuildQuestProgress(
+            input.weekId,
+            input.questId,
+            input.guildId,
+            row.getLong("current_count"),
+            row.getInt("claimed") != 0,
+            row.getObject("completed_at")?.let { Instant.ofEpochMilli(row.getLong("completed_at")) },
+            row.getString("claim_actor_id")?.let(UUID::fromString),
+            row.getInt("reward_delivered") != 0,
+        )
+    }
+
     override fun getActiveQuestSet(): WeeklyQuestSet? =
         storage.connection.getFirstRow(
             "SELECT week_id, starts_at, ends_at FROM weekly_quest_sets WHERE active = 1 LIMIT 1"
@@ -467,4 +572,21 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
 
     private fun decode(value: String): String =
         String(Base64.getUrlDecoder().decode(value))
+    private companion object {
+        const val VERIFIED_BANK_CONTRIBUTION_SQL = """
+            SELECT r.fresh_after - r.fresh_before
+            FROM guild_bank_contribution_receipts r
+            JOIN guild_gold_operations o ON o.transaction_id = r.transaction_id
+            JOIN guild_gold_external_attempts e ON e.transaction_id = o.transaction_id
+            JOIN guild_bank_xp_deliveries d ON d.transaction_id = o.transaction_id
+            JOIN weekly_quest_sets w ON w.week_id = ?
+            JOIN weekly_quest_definitions q ON q.week_id = w.week_id AND q.quest_id = ?
+            WHERE r.transaction_id = ? AND r.guild_id = ? AND o.guild_id = r.guild_id AND o.actor_id = ?
+              AND o.status = 'APPLIED' AND o.direction = 'CREDIT'
+              AND o.route IN ('PERSONAL_ACCOUNT', 'PHYSICAL_ITEM') AND e.phase = 'CONFIRMED' AND e.purpose = 'DEPOSIT'
+              AND d.capture_denial IS NULL AND d.prestige_count = ? AND d.chapter_id = ?
+              AND d.occurred_at >= w.starts_at AND d.occurred_at < w.ends_at
+              AND w.active = 1 AND q.action = 'DEPOSIT_BANK' AND q.target_count = ?
+        """
+    }
 }

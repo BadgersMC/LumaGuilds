@@ -5,6 +5,9 @@ import net.lumalyte.lg.domain.entities.WeeklyQuestSet
 import java.util.UUID
 
 interface QuestRepository {
+    /** Verify canonical contribution provenance and consume it atomically with progress, once per quest. */
+    fun applyBankContribution(input: BankQuestContribution): GuildQuestProgress? = null
+
     fun getActiveQuestSet(): WeeklyQuestSet?
     fun getQuestSet(weekId: String): WeeklyQuestSet?
     fun saveActiveQuestSet(questSet: WeeklyQuestSet)

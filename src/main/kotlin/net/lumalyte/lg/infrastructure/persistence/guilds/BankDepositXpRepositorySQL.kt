@@ -2,6 +2,8 @@ package net.lumalyte.lg.infrastructure.persistence.guilds
 
 import co.aikar.idb.Database
 import net.lumalyte.lg.application.persistence.BankDepositXpRepository
+import net.lumalyte.lg.application.services.ChapterTwoGuildAwardRules
+import net.lumalyte.lg.infrastructure.persistence.migrations.BankContributionSchema
 import net.lumalyte.lg.domain.entities.BankDepositXpCompletion
 import net.lumalyte.lg.domain.entities.BankDepositXpEligibility
 import net.lumalyte.lg.domain.entities.BankDepositXpStatus
@@ -25,6 +27,7 @@ class BankDepositXpRepositorySQL(
     private val highWater = BankProgressionRepositorySQL(storage, awards)
 
     init {
+        storage.connection.connection.use { BankContributionSchema.create(it, storage.dialect == SqlDialect.MARIADB) }
         storage.connection.connection.use { BankDepositXpSchema.create(it, storage.dialect == SqlDialect.MARIADB) }
     }
 
@@ -52,10 +55,34 @@ class BankDepositXpRepositorySQL(
                 val window = receipt.quote.policy.windowContaining(receipt.quote.occurredAt)
                 // Denied, confirmed money must not become eligible growth on a later deposit.
                 // A removed guild is the exception: recovery must not create orphan state.
-                val units = if (run.guildExists && window != null) highWater.reserve(
-                    c, guildId, checkNotNull(receipt.oldBalance), checkNotNull(receipt.newBalance),
-                    receipt.quote.valuePerUnit, window,
-                ) else 0
+                val contribution =
+                    c.selectOne(
+                        "SELECT fresh_before, fresh_after FROM guild_bank_contribution_receipts " +
+                            "WHERE transaction_id = ? AND guild_id = ?",
+                        transactionId.toString(),
+                        guildId.toString(),
+                    ) { it.getLong(1) to it.getLong(2) }
+                // Legacy settled receipts without contribution provenance cannot mint fresh rewards.
+                if (run.guildExists && window != null) {
+                    highWater.reserve(
+                        c,
+                        guildId,
+                        checkNotNull(receipt.oldBalance),
+                        checkNotNull(receipt.newBalance),
+                        receipt.quote.valuePerUnit,
+                        window,
+                    )
+                }
+                val units =
+                    if (run.guildExists && window != null && contribution != null) {
+                        ChapterTwoGuildAwardRules.netNewBankUnits(
+                            contribution.first,
+                            contribution.second,
+                            receipt.quote.valuePerUnit,
+                        )
+                    } else {
+                        0
+                    }
                 val denial = denial(receipt, run)
                 if (denial != null) finish(c, receipt, denial) else award(c, receipt, units)
             }

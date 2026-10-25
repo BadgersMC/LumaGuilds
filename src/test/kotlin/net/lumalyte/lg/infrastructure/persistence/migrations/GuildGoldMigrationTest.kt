@@ -65,7 +65,7 @@ class GuildGoldMigrationTest {
         assertTrue(tableExists("guild_gold_security"))
         assertTrue(tableExists(BankDepositXpSchema.DELIVERIES))
         assertTrue(tableExists(BankDepositXpSchema.SEQUENCES))
-        assertEquals(BankDepositXpSchema.VERSION, databaseVersion())
+        assertEquals(BankContributionSchema.VERSION, databaseVersion())
     }
 
     @Test
@@ -83,7 +83,7 @@ class GuildGoldMigrationTest {
         SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
         SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
 
-        assertEquals(BankDepositXpSchema.VERSION, databaseVersion())
+        assertEquals(BankContributionSchema.VERSION, databaseVersion())
         connection.createStatement().use { statement ->
             statement.executeQuery("SELECT COUNT(*) FROM guild_gold_operations WHERE transaction_id = 'legacy'").use {
                 assertTrue(it.next())
@@ -92,6 +92,31 @@ class GuildGoldMigrationTest {
             statement.executeQuery("SELECT COUNT(*) FROM ${BankDepositXpSchema.DELIVERIES}").use {
                 assertTrue(it.next())
                 assertEquals(0, it.getInt(1))
+            }
+        }
+    }
+
+    @Test fun `version 48 repairs contribution schema without resetting debt or inventing rewards`() {
+        SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
+        connection.createStatement().use {
+            it.execute("INSERT INTO guild_bank_contribution_accounts VALUES ('guild', 500, 1000)")
+            it.execute("INSERT INTO guild_bank_contribution_receipts VALUES ('paid', 'guild', 0, 1000)")
+            it.execute("INSERT INTO guild_bank_contribution_quests VALUES ('paid', 'bank', 'week')")
+            it.execute("DROP TABLE guild_bank_contribution_guards")
+            it.execute("PRAGMA user_version = 47")
+        }
+        repeat(2) { SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate() }
+        assertEquals(BankContributionSchema.VERSION, databaseVersion())
+        assertTrue(tableExists(BankContributionSchema.GUARDS))
+        connection.createStatement().use { s ->
+            s.executeQuery("SELECT withdrawal_debt, fresh_total FROM guild_bank_contribution_accounts").use {
+                assertTrue(it.next()); assertEquals(500, it.getLong(1)); assertEquals(1000, it.getLong(2))
+            }
+            s.executeQuery("SELECT COUNT(*) FROM guild_bank_contribution_quests").use {
+                assertTrue(it.next()); assertEquals(1, it.getInt(1))
+            }
+            s.executeQuery("SELECT COUNT(*) FROM guild_bank_xp_deliveries").use {
+                assertTrue(it.next()); assertEquals(0, it.getInt(1))
             }
         }
     }
