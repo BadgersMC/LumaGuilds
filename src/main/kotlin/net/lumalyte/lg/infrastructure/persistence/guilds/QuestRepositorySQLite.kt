@@ -4,6 +4,7 @@ import co.aikar.idb.Database
 import co.aikar.idb.DbRow
 import co.aikar.idb.DbStatement
 import net.lumalyte.lg.application.persistence.QuestRepository
+import net.lumalyte.lg.application.persistence.BankQuestContribution
 import net.lumalyte.lg.domain.entities.BlockProvenancePolicy
 import net.lumalyte.lg.domain.entities.GuildQuestProgress
 import net.lumalyte.lg.domain.entities.QuestCondition
@@ -70,27 +71,14 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
     } else {
         "INSERT OR IGNORE INTO quest_leaderboard_payouts (week_id, quest_id, guild_id) VALUES (?, ?, ?)"
     }
-    override fun applyBankContribution(
-        transactionId: UUID,
-        weekId: String,
-        questId: String,
-        guildId: UUID,
-        actorId: UUID,
-        targetCount: Long,
-    ): GuildQuestProgress? {
-        val input = BankContributionInput(transactionId, weekId, questId, guildId, actorId, targetCount)
+    override fun applyBankContribution(input: BankQuestContribution): GuildQuestProgress? {
         return storage.connection.connection.use { c ->
             c.committingTransaction { consumeBankContribution(c, input) }
         }
     }
 
-    private fun consumeBankContribution(c: java.sql.Connection, input: BankContributionInput): GuildQuestProgress? {
-        val run = BankDepositXpLedger(mariaDb).fence(c, input.guildId)
-        val amount = if (run.guildExists && run.chapter?.allows(Instant.now().toEpochMilli()) != false) {
-            verifiedBankAmount(c, input, run)
-        } else {
-            null
-        }
+    private fun consumeBankContribution(c: java.sql.Connection, input: BankQuestContribution): GuildQuestProgress? {
+        val amount = availableBankAmount(c, input)
         return if (amount != null && amount > 0 && claimBankContribution(c, input)) {
             updateBankProgress(c, input, amount)
         } else {
@@ -98,9 +86,18 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
         }
     }
 
+    private fun availableBankAmount(c: java.sql.Connection, input: BankQuestContribution): Long? {
+        val run = BankDepositXpLedger(mariaDb).fence(c, input.guildId)
+        return if (run.guildExists && run.chapter?.allows(Instant.now().toEpochMilli()) != false) {
+            verifiedBankAmount(c, input, run)
+        } else {
+            null
+        }
+    }
+
     private fun updateBankProgress(
         c: java.sql.Connection,
-        input: BankContributionInput,
+        input: BankQuestContribution,
         amount: Long,
     ): GuildQuestProgress {
         val updated = bankProgress(c, input).withIncrementedCount(amount, input.targetCount)
@@ -118,7 +115,7 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
 
     private fun verifiedBankAmount(
         c: java.sql.Connection,
-        input: BankContributionInput,
+        input: BankQuestContribution,
         run: BankDepositXpRun,
     ): Long? {
         // Retained provenance supplies the amount, identity, original time and run.
@@ -135,7 +132,7 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
         ) { it.getLong(1) }
     }
 
-    private fun claimBankContribution(c: java.sql.Connection, input: BankContributionInput): Boolean {
+    private fun claimBankContribution(c: java.sql.Connection, input: BankQuestContribution): Boolean {
         val insert = if (mariaDb) "INSERT IGNORE" else "INSERT OR IGNORE"
         return c.updateStatement(
             "$insert INTO guild_bank_contribution_quests (transaction_id, quest_id, week_id) VALUES (?, ?, ?)",
@@ -145,7 +142,7 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
         ) == 1
     }
 
-    private fun bankProgress(c: java.sql.Connection, input: BankContributionInput): GuildQuestProgress {
+    private fun bankProgress(c: java.sql.Connection, input: BankQuestContribution): GuildQuestProgress {
         val insert = if (mariaDb) "INSERT IGNORE" else "INSERT OR IGNORE"
         c.updateStatement(
             "$insert INTO guild_quest_progress " +
@@ -165,7 +162,7 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
         )
     }
 
-    private fun mapBankProgress(row: java.sql.ResultSet, input: BankContributionInput): GuildQuestProgress {
+    private fun mapBankProgress(row: java.sql.ResultSet, input: BankQuestContribution): GuildQuestProgress {
         return GuildQuestProgress(
             input.weekId,
             input.questId,
@@ -177,15 +174,6 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
             row.getInt("reward_delivered") != 0,
         )
     }
-
-    private data class BankContributionInput(
-        val transactionId: UUID,
-        val weekId: String,
-        val questId: String,
-        val guildId: UUID,
-        val actorId: UUID,
-        val targetCount: Long,
-    )
 
     override fun getActiveQuestSet(): WeeklyQuestSet? =
         storage.connection.getFirstRow(

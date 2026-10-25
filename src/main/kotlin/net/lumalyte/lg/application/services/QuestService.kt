@@ -1,6 +1,7 @@
 ﻿package net.lumalyte.lg.application.services
 
 import net.lumalyte.lg.application.persistence.QuestRepository
+import net.lumalyte.lg.application.persistence.BankQuestContribution
 import net.lumalyte.lg.domain.entities.GuildQuestProgress
 import net.lumalyte.lg.domain.entities.QuestCondition
 import net.lumalyte.lg.domain.entities.QuestConditionType
@@ -136,12 +137,7 @@ class QuestService(
         }.forEach { quest ->
             val updated =
                 repository.applyBankContribution(
-                    transactionId,
-                    active.weekId,
-                    quest.id,
-                    guildId,
-                    actorId,
-                    quest.targetCount,
+                    BankQuestContribution(transactionId, active.weekId, quest.id, guildId, actorId, quest.targetCount),
                 )
             if (updated != null && !updated.claimed && updated.completedAt != null) {
                 claimCompletedQuest(active, quest, guildId, actorId)

@@ -11,28 +11,27 @@ import java.sql.ResultSet
 internal class BankContributionLedger(private val mariaDb: Boolean) {
     fun settle(c: Connection, mutation: GuildGoldMutation, openingBalance: Long) {
         check(!c.autoCommit)
-        if (!isConfirmedPlayerTransfer(c, mutation) || hasReceipt(c, mutation)) return
+        if (!isUnsettledPlayerTransfer(c, mutation)) return
         val before = loadOrSeed(c, mutation, openingBalance)
         val after = before.after(mutation)
         saveAccount(c, mutation, after)
         saveReceipt(c, mutation, before.fresh, after.fresh)
     }
 
-    private fun isConfirmedPlayerTransfer(c: Connection, mutation: GuildGoldMutation): Boolean {
+    private fun isUnsettledPlayerTransfer(c: Connection, mutation: GuildGoldMutation): Boolean {
         if (mutation.route !in setOf(GuildGoldRoute.PHYSICAL_ITEM, GuildGoldRoute.PERSONAL_ACCOUNT)) return false
-        val purpose = c.selectOne(
-            "SELECT purpose FROM guild_gold_external_attempts WHERE transaction_id = ? AND phase = 'CONFIRMED'",
-            mutation.transactionId.toString(),
-        ) { it.getString(1) }
+        val purpose =
+            c.selectOne(
+                "SELECT purpose FROM guild_gold_external_attempts WHERE transaction_id = ? AND phase = 'CONFIRMED'",
+                mutation.transactionId.toString(),
+            ) { it.getString(1) }
         val expected = if (mutation.direction == GuildGoldDirection.CREDIT) "DEPOSIT" else "WITHDRAWAL"
-        return purpose == expected
-    }
-
-    private fun hasReceipt(c: Connection, mutation: GuildGoldMutation): Boolean {
-        return c.selectOne(
-            "SELECT 1 FROM ${BankContributionSchema.RECEIPTS} WHERE transaction_id = ?",
-            mutation.transactionId.toString(),
-        ) { true } == true
+        val settled =
+            c.selectOne(
+                "SELECT 1 FROM ${BankContributionSchema.RECEIPTS} WHERE transaction_id = ?",
+                mutation.transactionId.toString(),
+            ) { true } == true
+        return purpose == expected && !settled
     }
 
     private fun loadOrSeed(c: Connection, mutation: GuildGoldMutation, openingBalance: Long): Account {
@@ -53,7 +52,7 @@ internal class BankContributionLedger(private val mariaDb: Boolean) {
 
     private fun seedAccount(c: Connection, mutation: GuildGoldMutation, openingBalance: Long) {
         val guild = mutation.guildId.toString()
-        val debt = historicalDebt(c, guild, mutation.transactionId.toString())
+        val debt = recoverConfirmedWithdrawalDebt(c, guild, mutation.transactionId.toString())
         val baseline = maxOf(historicalHighWater(c, guild), openingBalance)
         val insert = if (mariaDb) "INSERT IGNORE" else "INSERT OR IGNORE"
         c.updateStatement(
@@ -93,8 +92,7 @@ internal class BankContributionLedger(private val mariaDb: Boolean) {
         )
     }
 
-    /** Existing journals are retained. Equal-time historical credits precede debits conservatively. */
-    private fun historicalDebt(c: Connection, guild: String, currentId: String): Long {
+    private fun recoverConfirmedWithdrawalDebt(c: Connection, guild: String, currentId: String): Long {
         return c.prepareStatement(HISTORICAL_SQL).use { statement ->
             statement.setString(1, guild)
             statement.setString(2, currentId)
@@ -107,19 +105,20 @@ internal class BankContributionLedger(private val mariaDb: Boolean) {
         while (rows.next()) {
             val amount = rows.getLong("amount")
             check(amount > 0) { "Historical contribution has invalid amount" }
-            debt = if (rows.getString("direction") == "DEBIT") {
-                Math.addExact(debt, amount)
-            } else {
-                debt - minOf(debt, amount)
-            }
+            debt =
+                if (rows.getString("direction") == "DEBIT") {
+                    Math.addExact(debt, amount)
+                } else {
+                    debt - minOf(debt, amount)
+                }
         }
         return debt
     }
 
-    private data class Account(val debt: Long, val fresh: Long) {
+    private class Account(val debt: Long, val fresh: Long) {
         fun after(mutation: GuildGoldMutation): Account {
             if (mutation.direction == GuildGoldDirection.DEBIT) {
-                return copy(debt = Math.addExact(debt, mutation.amount))
+                return Account(Math.addExact(debt, mutation.amount), fresh)
             }
             val repaid = minOf(debt, mutation.amount)
             return Account(debt - repaid, Math.addExact(fresh, mutation.amount - repaid))

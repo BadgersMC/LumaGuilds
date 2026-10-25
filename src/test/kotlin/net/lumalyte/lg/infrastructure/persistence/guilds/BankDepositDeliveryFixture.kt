@@ -57,7 +57,8 @@ abstract class BankDepositDeliveryFixture {
     @BeforeEach fun setupDeliveryDatabase() {
         storage = newStorage()
         listOf(
-            "guild_bank_contribution_guards", "guild_bank_contribution_quests", "guild_bank_contribution_receipts", "guild_bank_contribution_accounts",
+            "guild_bank_contribution_guards", "guild_bank_contribution_quests",
+            "guild_bank_contribution_receipts", "guild_bank_contribution_accounts",
             "guild_bank_xp_deliveries", "guild_bank_xp_delivery_sequences", "guild_bank_xp_high_water",
             "experience_transactions", "guild_experience_source_usage", "guild_progression",
             "guild_gold_external_attempts", "guild_gold_operations", "guild_gold_withdrawal_usage",
@@ -208,6 +209,8 @@ abstract class BankDepositDeliveryFixture {
         var restored = 0L
         var commitResult = PhysicalCommitResult.Committed
         var consumeBeforeUnknown = false
+        var deliverResult: ExternalTransferResult =
+            ExternalTransferResult.Rejected("Physical withdrawal is outside this delivery fixture")
         override fun availableValue(playerId: UUID) = 1_000_000L
         override fun reserve(transactionId: UUID, playerId: UUID, requestedValue: Long): PhysicalReservationResult {
             reserveCalls++
@@ -229,7 +232,6 @@ abstract class BankDepositDeliveryFixture {
             if (restoredIds.add(reservation.id)) restored += reservation.value
             return true
         }
-        var deliverResult: ExternalTransferResult = ExternalTransferResult.Rejected("Physical withdrawal is outside this delivery fixture")
         override fun deliver(playerId: UUID, value: Long, transactionId: UUID) = deliverResult
     }
 }

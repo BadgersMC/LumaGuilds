@@ -4,7 +4,6 @@ import java.sql.Connection
 
 /** Retained anti-recycling state. Never reset by daily caps or prestige. */
 internal object BankContributionSchema {
-
     /** Additive schema version for contribution provenance. */
     const val VERSION = 48
 
@@ -19,15 +18,6 @@ internal object BankContributionSchema {
 
     /** Per-quest consumption markers retained across progress cleanup. */
     const val QUESTS = "guild_bank_contribution_quests"
-
-
-    /** Creates missing tables without replacing retained contribution state. */
-    fun create(connection: Connection, mariaDb: Boolean) {
-        val engine = if (mariaDb) " ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" else ""
-        connection.createStatement().use { statement ->
-            listOf(GUARD_SQL, ACCOUNT_SQL, RECEIPT_SQL, QUEST_SQL).forEach { sql -> statement.execute(sql + engine) }
-        }
-    }
 
     private const val GUARD_SQL = "CREATE TABLE IF NOT EXISTS $GUARDS (guild_id VARCHAR(36) PRIMARY KEY)"
     private const val ACCOUNT_SQL = """
@@ -53,4 +43,12 @@ internal object BankContributionSchema {
             PRIMARY KEY (transaction_id, quest_id)
         )
     """
+
+    /** Creates missing tables without replacing retained contribution state. */
+    fun create(connection: Connection, mariaDb: Boolean) {
+        val engine = if (mariaDb) " ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" else ""
+        connection.createStatement().use { statement ->
+            listOf(GUARD_SQL, ACCOUNT_SQL, RECEIPT_SQL, QUEST_SQL).forEach { sql -> statement.execute(sql + engine) }
+        }
+    }
 }

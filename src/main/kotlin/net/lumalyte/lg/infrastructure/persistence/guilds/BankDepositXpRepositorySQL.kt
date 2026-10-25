@@ -63,18 +63,26 @@ class BankDepositXpRepositorySQL(
                         guildId.toString(),
                     ) { it.getLong(1) to it.getLong(2) }
                 // Legacy settled receipts without contribution provenance cannot mint fresh rewards.
-                if (run.guildExists && window != null) highWater.reserve(
-                    c,
-                    guildId,
-                    checkNotNull(receipt.oldBalance),
-                    checkNotNull(receipt.newBalance),
-                    receipt.quote.valuePerUnit,
-                    window,
-                )
-                val units = if (run.guildExists && window != null && contribution != null)
-                    ChapterTwoGuildAwardRules.netNewBankUnits(
-                        contribution.first, contribution.second, receipt.quote.valuePerUnit,
-                    ) else 0
+                if (run.guildExists && window != null) {
+                    highWater.reserve(
+                        c,
+                        guildId,
+                        checkNotNull(receipt.oldBalance),
+                        checkNotNull(receipt.newBalance),
+                        receipt.quote.valuePerUnit,
+                        window,
+                    )
+                }
+                val units =
+                    if (run.guildExists && window != null && contribution != null) {
+                        ChapterTwoGuildAwardRules.netNewBankUnits(
+                            contribution.first,
+                            contribution.second,
+                            receipt.quote.valuePerUnit,
+                        )
+                    } else {
+                        0
+                    }
                 val denial = denial(receipt, run)
                 if (denial != null) finish(c, receipt, denial) else award(c, receipt, units)
             }

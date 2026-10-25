@@ -6,14 +6,8 @@ import java.util.UUID
 
 interface QuestRepository {
     /** Verify canonical contribution provenance and consume it atomically with progress, once per quest. */
-    fun applyBankContribution(
-        transactionId: UUID,
-        weekId: String,
-        questId: String,
-        guildId: UUID,
-        actorId: UUID,
-        targetCount: Long,
-    ): GuildQuestProgress? = null
+    fun applyBankContribution(input: BankQuestContribution): GuildQuestProgress? = null
+
     fun getActiveQuestSet(): WeeklyQuestSet?
     fun getQuestSet(weekId: String): WeeklyQuestSet?
     fun saveActiveQuestSet(questSet: WeeklyQuestSet)
