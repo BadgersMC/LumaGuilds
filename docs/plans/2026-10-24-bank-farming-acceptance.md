@@ -69,3 +69,7 @@ Java25 / Paper26.2.build.129-stable, original pinned companion APIs and actual M
 Local unmerged artifact SHA256612c1e9d7733bcff04c5b84d892f9b568fdd4f93c29634e7470f157a1759b00f, version3.0.0-bank-contribution-UNMERGED-TEST. Evidence: operations/guilds-acceptance-20261024/{fix-full-final.log,fix-candidate.json,fix-concurrency.log,probe-results.json}. No new skip or test reduction;35 cases added over the2275-case candidate. Initial full verification caught the event-contract expansion and old schema-version expectations; a separate receipt event preserves the old API and migration assertions now track schema48.
 
 Hosted checks, independent review, canonical merge and live TEST/client acceptance remain separate gates. No deployment, restart, pack replacement, permission grant or production write occurred for this correction.
+
+## Hosted review refinement
+
+At77888730 hosted build and all four documentation checks passed. Codacy reported50 new style, public API documentation and method-complexity annotations. The adapter was split into bounded helpers that retain the same caller-owned SQL transaction; receipt and account mutation semantics are unchanged. The intentional public Bukkit receipt event uses the repository's existing scoped public-library suppression with documentation. No analysis exclusions or broad suppressions were added. Focused SQLite/MariaDB, API, async-queue and migration regressions pass after refactoring; final exact-head full checks are recorded in the PR and Roundtable.

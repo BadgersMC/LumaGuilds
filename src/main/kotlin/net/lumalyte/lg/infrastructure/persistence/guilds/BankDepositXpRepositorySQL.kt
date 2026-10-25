@@ -55,13 +55,21 @@ class BankDepositXpRepositorySQL(
                 val window = receipt.quote.policy.windowContaining(receipt.quote.occurredAt)
                 // Denied, confirmed money must not become eligible growth on a later deposit.
                 // A removed guild is the exception: recovery must not create orphan state.
-                val contribution = c.selectOne(
-                    "SELECT fresh_before, fresh_after FROM guild_bank_contribution_receipts WHERE transaction_id = ? AND guild_id = ?",
-                    transactionId.toString(), guildId.toString(),
-                ) { it.getLong(1) to it.getLong(2) }
+                val contribution =
+                    c.selectOne(
+                        "SELECT fresh_before, fresh_after FROM guild_bank_contribution_receipts " +
+                            "WHERE transaction_id = ? AND guild_id = ?",
+                        transactionId.toString(),
+                        guildId.toString(),
+                    ) { it.getLong(1) to it.getLong(2) }
                 // Legacy settled receipts without contribution provenance cannot mint fresh rewards.
                 if (run.guildExists && window != null) highWater.reserve(
-                    c, guildId, checkNotNull(receipt.oldBalance), checkNotNull(receipt.newBalance), receipt.quote.valuePerUnit, window,
+                    c,
+                    guildId,
+                    checkNotNull(receipt.oldBalance),
+                    checkNotNull(receipt.newBalance),
+                    receipt.quote.valuePerUnit,
+                    window,
                 )
                 val units = if (run.guildExists && window != null && contribution != null)
                     ChapterTwoGuildAwardRules.netNewBankUnits(

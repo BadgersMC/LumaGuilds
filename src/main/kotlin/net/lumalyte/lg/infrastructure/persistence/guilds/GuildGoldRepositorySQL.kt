@@ -102,20 +102,28 @@ class GuildGoldRepositorySQL(
         return prepareOperation(mutation, quote)
     }
 
+    private fun guardPlayerPreparation(connection: Connection, mutation: GuildGoldMutation) {
+        if (mutation.route !in setOf(GuildGoldRoute.PERSONAL_ACCOUNT, GuildGoldRoute.PHYSICAL_ITEM)) return
+        // Finalization never acquires this guard, preserving operation/balance lock order.
+        val insert = if (mariaDb) "INSERT IGNORE" else "INSERT OR IGNORE"
+        connection.updateStatement(
+            "$insert INTO guild_bank_contribution_guards (guild_id) VALUES (?)",
+            mutation.guildId.toString(),
+        )
+        val lock = if (mariaDb) " FOR UPDATE" else ""
+        connection.selectOne(
+            "SELECT guild_id FROM guild_bank_contribution_guards WHERE guild_id = ?$lock",
+            mutation.guildId.toString(),
+        ) { true }
+    }
+
     private fun prepareOperation(mutation: GuildGoldMutation, quote: BankDepositXpQuote?): GuildGoldPreparation =
         guildLock(mutation.guildId).withLock {
             storage.connection.connection.use { connection ->
                 transaction(connection) {
                     // Quote capture locks before gold rows; finalization never takes these locks.
                     val run = if (quote != null) bankDeliveries.fence(connection, mutation.guildId) else null
-                    if (mutation.route in setOf(GuildGoldRoute.PERSONAL_ACCOUNT, GuildGoldRoute.PHYSICAL_ITEM)) {
-                        // Cross-instance preparation guard; a deposit cannot race past an unfinished payout.
-                        // Finalization never acquires this guard, preserving operation/balance lock order.
-                        val insert = if (mariaDb) "INSERT IGNORE" else "INSERT OR IGNORE"
-                        connection.updateStatement("$insert INTO guild_bank_contribution_guards (guild_id) VALUES (?)", mutation.guildId.toString())
-                        val lock = if (mariaDb) " FOR UPDATE" else ""
-                        connection.selectOne("SELECT guild_id FROM guild_bank_contribution_guards WHERE guild_id = ?$lock", mutation.guildId.toString()) { true }
-                    }
+                    guardPlayerPreparation(connection, mutation)
                     val existing = findOperation(connection, mutation.transactionId, forUpdate = true)
                     if (existing != null) {
                         return@transaction if (existing.mutation == mutation) {

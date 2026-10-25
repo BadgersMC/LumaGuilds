@@ -129,10 +129,20 @@ class QuestService(
     /** Gross bank notifications are not evidence of new contribution. */
     fun incrementBankDeposit(guildId: UUID, actorId: UUID, transactionId: UUID) {
         val active = repository.getActiveQuestSet() ?: return
-        active.quests.filter { it.action == QuestAction.DEPOSIT_BANK &&
-            targetMatches(it.target.id, "lumaguilds:bank/coins") && conditionsMatch(it.conditions, QuestProgressContext())
+        active.quests.filter {
+            it.action == QuestAction.DEPOSIT_BANK &&
+                targetMatches(it.target.id, "lumaguilds:bank/coins") &&
+                conditionsMatch(it.conditions, QuestProgressContext())
         }.forEach { quest ->
-            val updated = repository.applyBankContribution(transactionId, active.weekId, quest.id, guildId, actorId, quest.targetCount)
+            val updated =
+                repository.applyBankContribution(
+                    transactionId,
+                    active.weekId,
+                    quest.id,
+                    guildId,
+                    actorId,
+                    quest.targetCount,
+                )
             if (updated != null && !updated.claimed && updated.completedAt != null) {
                 claimCompletedQuest(active, quest, guildId, actorId)
             }

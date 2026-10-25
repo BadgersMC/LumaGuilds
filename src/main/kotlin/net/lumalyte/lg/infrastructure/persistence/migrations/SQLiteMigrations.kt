@@ -1465,7 +1465,10 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             QuestCompletionNotificationSchema.TABLE, GuildChatRankSettingsSchema.TABLE,
             GuildHomeActivationSchema.ACTIVATIONS_TABLE, GuildHomeActivationSchema.CREDITS_TABLE,
             InviteBlockSchema.TABLE, BankDepositXpSchema.DELIVERIES, BankDepositXpSchema.SEQUENCES,
-            BankContributionSchema.ACCOUNTS, BankContributionSchema.RECEIPTS, BankContributionSchema.QUESTS, BankContributionSchema.GUARDS
+            BankContributionSchema.ACCOUNTS,
+            BankContributionSchema.RECEIPTS,
+            BankContributionSchema.QUESTS,
+            BankContributionSchema.GUARDS,
         )
 
         // Add claim tables to required list if claims are enabled
