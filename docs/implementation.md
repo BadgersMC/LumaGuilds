@@ -222,3 +222,15 @@ Durable BANK_DEPOSIT XP uses immutable fresh-contribution boundaries for unit ro
 GuildBankDepositEvent and its constructor/payload remain unchanged. A separate GuildBankContributionEvent carries only the canonical transaction ID and identities; quests no longer subscribe to gross deposit events and ignore generic DEPOSIT_BANK increments. The SQL adapter verifies the confirmed operation, actor, guild, captured run and original quest week, then consumes the receipt atomically with progress. Its marker survives week-progress cleanup. Existing claim recovery is unchanged; this does not add crash recovery for the best-effort post-deposit Bukkit notification.
 
 Upgrade uses additive schema v48. No historical rewards or eligibility are invented. First use derives outstanding withdrawal debt only from retained, confirmed canonical player operations, excluding the current transaction. System spending is never converted into debt. Equal-time historical credits precede withdrawals conservatively; pre-journal operations have no reconstructible provenance. Already-settled legacy XP without contribution provenance fails closed; no currency is removed. Rollback to an older writer is unsupported once the ledger is active because it would not record withdrawals.
+
+## Public prestige announcement (PA-001 through PA-004)
+
+The SQL prestige adapter returns a separate new-commit envelope after the existing
+transaction commits. Original receipt results and equality remain unchanged.
+Replay, including after reopening storage, never authorizes another announcement.
+The shared Java/Bedrock application service invokes a presentation port only for
+a newly committed Applied result. The Bukkit adapter resolves the guild name and
+broadcasts the localized gold/purple prestige tier to current-server public chat.
+Guild names are serialized literal text, and sender failures are logged without
+undoing settlement. There is no durable chat outbox: a crash after commit may
+lose the announcement, and replay remains silent. No schema or reward change.

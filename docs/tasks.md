@@ -1060,3 +1060,8 @@ Menu audit follow-up (REQ-063):
   hosted checks and live acceptance pending. No runtime use authorized.
 
 - [ ] **GUILD-CREATION-BOOTSTRAP** Tag: TDD. GC-001 through GC-004. References: docs/plans/2026-10-23-guild-creation-bootstrap.md. Evidence: canonical main283d75f1 source, investigation839/841, baseline/new regression and final verification recorded in the plan. TEST/client pause remains in force.
+
+- [ ] **PRESTIGE-PUBLIC-CHAT** PA-001 through PA-004. Source implementation and
+  behavioral regression evidence: `plans/2026-10-26-prestige-announcement.md`.
+  Requires exact-head hosted checks, source review and separate native acceptance;
+  no deployment or shared client use is included in this change.
