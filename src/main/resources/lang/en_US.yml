@@ -7405,6 +7405,8 @@ notification:
     moved_to_global: '<gray>[<gold>!<gray>] <yellow>You have been moved to Global chat because you are no longer in that channel''s guild or party.'
   guild:
     disbanded: '<red>✗ Your guild <white><guild> <red>has been disbanded.'
+    prestige:
+      broadcast: '<gold>✦ <bold><guild></bold></gold> <gray>has reached</gray> <light_purple><bold>Guild Prestige <tier></bold></light_purple><gold>!</gold>'
     disband:
       broadcast: '<red><bold>GUILD DISBANDED</bold> <gray>» <gold><guild> <gray>has disbanded.'
       toast:

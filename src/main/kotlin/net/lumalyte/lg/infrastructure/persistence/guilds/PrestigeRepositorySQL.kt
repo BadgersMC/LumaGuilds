@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.persistence.guilds
 
 import co.aikar.idb.Database
 import net.lumalyte.lg.application.persistence.PrestigeRepository
+import net.lumalyte.lg.application.persistence.PrestigeConfirmation
 import net.lumalyte.lg.application.services.GuildActionCoordinator
 import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.domain.entities.WarStatus
@@ -55,7 +56,13 @@ class PrestigeRepositorySQL(
         }
     }
 
-    override fun confirm(request: PrestigeQuote, guard: () -> PrestigeRejection?): PrestigeResult = try {
+    override fun confirm(request: PrestigeQuote, guard: () -> PrestigeRejection?): PrestigeResult =
+        confirmWithCommitStatus(request, guard).result
+
+    override fun confirmWithCommitStatus(
+        request: PrestigeQuote,
+        guard: () -> PrestigeRejection?,
+    ): PrestigeConfirmation = try {
         guildActions.withGuilds(request.guildId) {
             gold.withGuildLock(request.guildId) {
                 storage.connection.connection.use { connection ->
@@ -66,14 +73,18 @@ class PrestigeRepositorySQL(
                             it.setString(1, request.guildId.toString())
                             it.executeUpdate()
                         }
-                        replay(connection, request)
-                            ?: execute(connection, request, guard).also { saveReceipt(connection, request, it) }
+                        replay(connection, request)?.let { PrestigeConfirmation(it) }
+                            ?: execute(connection, request, guard).let { result ->
+                                saveReceipt(connection, request, result)
+                                // This envelope escapes only after transaction() commits.
+                                PrestigeConfirmation(result, result is PrestigeResult.Applied)
+                            }
                     }
                 }
             }
         }
     } catch (_: Exception) {
-        PrestigeResult.Failed(request.transactionId)
+        PrestigeConfirmation(PrestigeResult.Failed(request.transactionId))
     }
 
     private fun execute(
