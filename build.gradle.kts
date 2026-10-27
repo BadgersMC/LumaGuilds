@@ -228,3 +228,18 @@ tasks.processResources {
         expand(props)
     }
 }
+
+// Explicit opt-in test tooling. Never included in the production shadow JAR.
+val acceptanceProbe = sourceSets.create("acceptanceProbe") {
+    compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
+    runtimeClasspath += output + compileClasspath
+}
+sourceSets.test {
+    compileClasspath += acceptanceProbe.output
+    runtimeClasspath += acceptanceProbe.output
+}
+tasks.register<Jar>("acceptanceProbeJar") {
+    archiveBaseName.set("GuildsAcceptanceProbe")
+    archiveVersion.set("0.1.0-UNMERGED-TEST")
+    from(acceptanceProbe.output)
+}

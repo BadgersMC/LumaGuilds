@@ -2,6 +2,11 @@
 
 Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` line, and an `Evidence:` block that MUST be filled with real source citations before any downstream SPEAR phase runs on it.
 
+- [~] **LIVE-ACCEPTANCE-PROBE** Separate opt-in TEST quest definition fixture.
+  - Tag: `INFRA`
+  - References: AP-01 through AP-05 in `docs/plans/2026-10-26-live-acceptance-probe.md`.
+  - Evidence: Four definition restore/drift/rollover/duplicate cases pass; explicit separate JAR compiles. No product engine edits, fabricated progress or live acceptance claimed. Hosted checks and approved TEST activation remain separate gates.
+
 - [~] **BANK-CONTRIBUTION-ANTI-RECYCLING** Persist withdrawal debt and verify deposit quest provenance.
   - Tag: `TDD`
   - References: BF-001 through BF-008 in `docs/plans/2026-10-24-bank-farming-acceptance.md`.
