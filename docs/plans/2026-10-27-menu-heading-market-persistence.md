@@ -48,7 +48,6 @@ The user explicitly authorized temporary Founder, supported staffmode entry, TES
 
 The04:46:04Z shared window expired before explicit temporary-parent cleanup/readback. The cleanup script's scope assertion stopped it before any mutation. Both grants were short-lived and scheduled to expire by approximately04:46:15Z; their final effective removal still needs live readback under a fresh handoff. FainNoir remains on TEST in the detached state, existing GuildQA1024A balance16362, with no shop/fund/membership mutation. FainNeito remains on TEST in its prior StaffModeON/GoldProofOct26 state. Inputs stopped and a20-minute cleanup/test extension was requested; no new handoff is assumed from silence. Roundtable1628 records authorization and1629 records the stopped/uncertain cleanup state.
 
-
 ## Real Market acceptance and cleanup (2026-10-27, claim 1635)
 
 This later receipt supersedes the earlier blocked seller/purchase status, not the historical evidence. Fresh user handoff covered TEST and both clients until 07:53:21Z. FainNoir was recovered by the user; fresh staffwho confirmed staff-mode OFF and vanished NO. Expired temporary owner parents were absent; the user-added active-owner recovery parent was preserved. No session SQL, new rank mutation, restart, JAR or pack change occurred in this window. The exact loaded Guilds code remains 17ebe5de / f08dc5a0; companion pins remain unchanged.
