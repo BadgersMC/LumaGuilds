@@ -78,3 +78,8 @@ BC-001: A legacy, uncolored Bank title SHALL use a readable gold default on them
 The isolated clone required the existing pinned local companion API JARs before compilation. The pre-implementation focused test then failed to compile because the new fallback helper did not exist; this is not a claimed historical behavioral regression run. With the helper and Bank-only call wired, the focused BankMenuTitle and MenuTitleBuilder suite passes 44 tests, including all selectable themed styles, explicit legacy colors, Vanilla and the actual localized component serialization path. The presentation preview is a browser-font simulation and native TEST/client acceptance remains pending.
 
 Hosted Unit 40535283300 ran 2,330 tests and failed one locale inventory contract: literal section signs used as formatting control characters were classified as hardcoded player text. The helper now uses the escaped control-character codepoint; no scanner baseline or localization rule was relaxed. A first local edit had an invalid escape and failed compilation; after correcting the escape, all 63 selected Bank title, title builder and locale contract tests passed with no skips. Hosted full-suite revalidation is required for this correction.
+
+
+### Live follow-up: Bank Statistics heading
+
+TEST on 2026-10-27 showed the Bank heading readable on Enthusia and Frostbound, and the Statistics navigation opened the correct menu. The Statistics heading remained dark with the server locale. Apply the same theme-aware fallback to this title, preserving explicit locale colors and Vanilla behavior. The follow-up requires its own CI and later client acceptance; the running TEST build predates it. Seasonal frames were locked for the disposable guild.

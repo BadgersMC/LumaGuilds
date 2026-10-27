@@ -5,6 +5,7 @@ import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
+import net.lumalyte.lg.utils.BankMenuTitle
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -91,7 +92,7 @@ class GuildBankStatisticsMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.bank.stats.title")))
+        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, BankMenuTitle.forTheme(guild.guiTheme, lang.guiTitle("menu.bank.stats.title"))))
         gui.setOnGlobalClick { event -> event.isCancelled = true }
 
         // Create main navigation pane
