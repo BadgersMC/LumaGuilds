@@ -42,7 +42,6 @@ Real Market purchases remain unverified. Read-only em list and em stall info sta
 
 Current evidence: operations/guilds-heading-market-20261027 (heading-full-final.json, loaded-after.json, runtime-postheading.private.log, screenshots). Private interactive theme preview: https://chatgpt.com/space/page_085473b407bc8191b47dd4f3e3c1db14. It is a presentation simulation with browser-font and simplified slot-layout limits; local wrapper checked at390px/320px, including Frostbound/menu selection. Hosted Page readback succeeded; browser access requires the user's ChatGPT login, so authenticated mobile Page rendering is not claimed.
 
-
 ## Subsequent approved seller transfer attempt
 
 The user explicitly authorized temporary Founder, supported staffmode entry, TEST transfer and staffmode exit. The first TEST-local founder-group command failed without mutation because that literal group does not exist. Proxy discovery verified owner is the configured Founder prefix; original proxy parents were avid-founder/default/glorious-founders. A two-minute proxy owner grant allowed normal Staff Mode entry on SMP and TEST transfer. TEST has separate default/glorious parent state, so the handoff arrived without its explicit staff rank and reported backend __network_detached__. A one-minute TEST owner grant made its rank display Founder, but staffmode remained unavailable in the command field. No unsupported recovery or session SQL was used and no command was submitted from that unavailable field.
