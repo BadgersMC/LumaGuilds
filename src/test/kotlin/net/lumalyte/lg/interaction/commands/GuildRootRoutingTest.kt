@@ -67,6 +67,14 @@ class GuildRootRoutingTest {
         server.dispatchCommand(player, "guild menu")
         verify(exactly = 0) { info.open() }
         verify(exactly = 0) { menu.open() }
+        val browser = mockk<Menu>(relaxed = true)
+        every { guilds.getPlayerGuilds(player.uniqueId) } returns emptySet()
+        every { factory.createLfgBrowserMenu(any(), player) } returns browser
+        for (command in listOf("guild", "g")) {
+            clearMocks(browser, answers = false)
+            server.dispatchCommand(player, command)
+            verify(exactly = 1) { browser.open() }
+        }
         player.addAttachment(plugin, "lumaguilds.guild.menu", false)
         clearMocks(menu, answers = false)
         server.dispatchCommand(player, "guild")
