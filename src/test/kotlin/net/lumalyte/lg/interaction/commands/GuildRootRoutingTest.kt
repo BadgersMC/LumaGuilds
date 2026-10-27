@@ -47,6 +47,26 @@ class GuildRootRoutingTest {
             server.dispatchCommand(player, command)
             verify(exactly = 1) { menu.open() }
         }
+        // A regular member receives the public guild information menu instead of
+        // the management panel; the explicit management command remains restricted.
+        val highest = mockk<Rank>()
+        val info = mockk<Menu>(relaxed = true)
+        every { rank.id } returns UUID.randomUUID()
+        every { highest.id } returns UUID.randomUUID()
+        every { rank.permissions } returns emptySet()
+        every { ranks.getHighestRank(guildId) } returns highest
+        every { overrides.hasOverride(player.uniqueId) } returns false
+        every { factory.createGuildInfoMenu(any(), player, guild) } returns info
+        for (command in listOf("guild", "g")) {
+            clearMocks(info, menu, answers = false)
+            server.dispatchCommand(player, command)
+            verify(exactly = 1) { info.open() }
+            verify(exactly = 0) { menu.open() }
+        }
+        clearMocks(info, menu, answers = false)
+        server.dispatchCommand(player, "guild menu")
+        verify(exactly = 0) { info.open() }
+        verify(exactly = 0) { menu.open() }
         player.addAttachment(plugin, "lumaguilds.guild.menu", false)
         clearMocks(menu, answers = false)
         server.dispatchCommand(player, "guild")
