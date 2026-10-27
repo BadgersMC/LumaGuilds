@@ -79,7 +79,6 @@ The isolated clone required the existing pinned local companion API JARs before 
 
 Hosted Unit 40535283300 ran 2,330 tests and failed one locale inventory contract: literal section signs used as formatting control characters were classified as hardcoded player text. The helper now uses the escaped control-character codepoint; no scanner baseline or localization rule was relaxed. A first local edit had an invalid escape and failed compilation; after correcting the escape, all 63 selected Bank title, title builder and locale contract tests passed with no skips. Hosted full-suite revalidation is required for this correction.
 
-
 ### Live follow-up: Bank Statistics heading
 
 TEST on 2026-10-27 showed the Bank heading readable on Enthusia and Frostbound, and the Statistics navigation opened the correct menu. The Statistics heading remained dark with the server locale. Apply the same theme-aware fallback to this title, preserving explicit locale colors and Vanilla behavior. The follow-up requires its own CI and later client acceptance; the running TEST build predates it. Seasonal frames were locked for the disposable guild.
