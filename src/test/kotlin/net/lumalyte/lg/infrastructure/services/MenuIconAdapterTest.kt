@@ -49,7 +49,7 @@ internal class MenuIconAdapterTest {
         return p
     }
 
-    @Test fun resolvedNexoTitleStillGetsInventoryPlateOnOpen() {
+    @Test fun resolvedNexoTitleDoesNotReinsertRetiredInventoryPlate() {
         val p = player(bedrock = false, theme = GuiTheme.ENTHUSIA)
         val background = Component.text("\uE900").font(Key.key("nexo:default"))
         val title = background.append(Component.text("Statistics"))
@@ -64,17 +64,15 @@ internal class MenuIconAdapterTest {
                 else -> null
             } })
         adapted.onInventoryOpen(event)
-        verify { event.titleOverride(match { replacement ->
-            replacement != null && PlainTextComponentSerializer.plainText().serialize(replacement)
-                .contains("\uE900\uE000\uE901Statistics")
-        }) }
+        verify(exactly = 0) { event.titleOverride(any<Component>()) }
+        assertNull(adapted.packetTitle(p.uniqueId, title))
     }
 
     /** Java player in a themed guild keeps custom icons. */
     @Test fun finalPacketTitleUsesMainThreadSnapshotWithoutAnotherNexoLookup() {
         val p = player(bedrock = false, theme = GuiTheme.ENTHUSIA)
         val background = Component.text("\uE900\uF801").font(Key.key("nexo:default"))
-        val title = background.append(Component.text("Statistics"))
+        val title = Component.text("<shift:-8><glyph:guild_bg_enthusia_3_row><shift:-162>Statistics")
         var allowLookup = true
         val adapted = MenuIconAdapter(mockk<Plugin>(relaxed = true), platform, guildService, { bedrock },
             glyphLookup = { id ->
@@ -93,7 +91,8 @@ internal class MenuIconAdapterTest {
         allowLookup = false
         // Model the event override being discarded: the outgoing packet still has the original title.
         val finalTitle = requireNotNull(adapted.packetTitle(p.uniqueId, title))
-        assertTrue(PlainTextComponentSerializer.plainText().serialize(finalTitle).contains("\uE000\uE901"))
+        assertEquals("<shift:-8>\uE900\uF801<shift:-162>Statistics",
+            PlainTextComponentSerializer.plainText().serialize(finalTitle))
         assertNull(adapted.packetTitle(p.uniqueId, finalTitle))
         assertNull(adapted.packetTitle(p.uniqueId, Component.text("Ordinary chest")))
     }

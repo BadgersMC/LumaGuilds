@@ -169,7 +169,7 @@ internal class MenuIconAdapter(
         titleGlyphs = GuiTheme.SELECTABLE.filter { it.hasBackground }.flatMap { theme ->
             (1..6).flatMap { rows ->
                 val suffix = "${theme.name.lowercase()}_${rows}_row"
-                listOf("guild_bg_$suffix", "guild_inventory_label_$suffix")
+                listOf("guild_bg_$suffix")
             }
         }.mapNotNull { id -> glyphLookup(id)?.let { id to it } }.toMap()
         val title = event.titleOverride() ?: event.view.title()
@@ -192,7 +192,7 @@ internal class MenuIconAdapter(
     private fun traceTitle(stage: String, changed: Boolean) {
         if (titleDiagnostics.getAndUpdate { if (it > 0) it - 1 else 0 } <= 0) return
         // Bounded structural evidence only: no player, guild name, title content or callback token.
-        runCatching { plugin.logger.info("Menu title plate: stage=$stage registered=${titleGlyphs.size} changed=$changed") }
+        runCatching { plugin.logger.info("Menu title font: stage=$stage registered=${titleGlyphs.size} changed=$changed") }
     }
 
     override fun onPacketSend(event: PacketSendEvent) {
