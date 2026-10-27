@@ -2,7 +2,6 @@ package net.lumalyte.lg.infrastructure.persistence.guilds
 
 import co.aikar.idb.Database
 import co.aikar.idb.DbRow
-import co.aikar.idb.DbStatement
 import net.lumalyte.lg.application.persistence.QuestRepository
 import net.lumalyte.lg.application.persistence.BankQuestContribution
 import net.lumalyte.lg.domain.entities.BlockProvenancePolicy
@@ -17,6 +16,7 @@ import net.lumalyte.lg.domain.entities.QuestTargetRarity
 import net.lumalyte.lg.domain.entities.WeeklyQuestSet
 import net.lumalyte.lg.domain.values.QuestAction
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import java.sql.Connection
 import java.time.Instant
 import java.util.Base64
 import java.util.UUID
@@ -195,24 +195,24 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
     }
 
     override fun saveActiveQuestSet(questSet: WeeklyQuestSet) {
-        val committed = storage.connection.createTransaction { statement ->
-            statement.executeUpdateQuery("UPDATE weekly_quest_sets SET active = 0 WHERE active = 1")
-            statement.executeUpdateQuery(
-                questSetUpsertSql,
-                questSet.weekId,
-                questSet.startsAt.toEpochMilli(),
-                questSet.endsAt.toEpochMilli()
-            )
-            statement.executeUpdateQuery(
-                "DELETE FROM weekly_quest_definitions WHERE week_id = ?",
-                questSet.weekId
-            )
-            questSet.quests.forEachIndexed { index, quest ->
-                saveDefinition(statement, questSet.weekId, index, quest)
+        storage.connection.connection.use { connection ->
+            connection.committingTransaction {
+                connection.updateStatement("UPDATE weekly_quest_sets SET active = 0 WHERE active = 1")
+                connection.updateStatement(
+                    questSetUpsertSql,
+                    questSet.weekId,
+                    questSet.startsAt.toEpochMilli(),
+                    questSet.endsAt.toEpochMilli()
+                )
+                connection.updateStatement(
+                    "DELETE FROM weekly_quest_definitions WHERE week_id = ?",
+                    questSet.weekId
+                )
+                questSet.quests.forEachIndexed { index, quest ->
+                    saveDefinition(connection, questSet.weekId, index, quest)
+                }
             }
-            true
         }
-        check(committed) { "Weekly quest-set transaction did not commit" }
     }
 
     override fun deactivateActiveQuestSet() {
@@ -220,14 +220,14 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
     }
 
     private fun saveDefinition(
-        statement: DbStatement,
+        statement: Connection,
         weekId: String,
         order: Int,
         quest: QuestDefinition
     ) {
         val target = quest.target
         val firstCondition = quest.conditions.firstOrNull()
-        statement.executeUpdateQuery(
+        statement.updateStatement(
             """
             INSERT INTO weekly_quest_definitions (
                 week_id, quest_id, name_key, description_key, action, target_id, allowed_actions,
