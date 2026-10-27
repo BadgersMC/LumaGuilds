@@ -32,13 +32,13 @@ class NexoBitmapLookupTest {
         assertNull(registeredNexoBitmap(provider, "missing"))
     }
 
-    @Test fun separateNexoSpacingNodeDoesNotPreventPlateInsertion() {
+    @Test fun separateNexoSpacingNodeIsPreservedWithoutRetiredPlate() {
         val title = Component.text("\uA042").font(Key.key("nexo:default"))
             .append(Component.text("\uF801").font(Key.key("nexo:space")))
             .append(Component.text("Statistics"))
         val lookup = { id: String -> registeredNexoBitmap(Provider(), id) }
         val result = MenuTitleGlyphs.withGlyphFonts(title, lookup)
-        assertEquals("\uA042\uE000\uE102\uF801Statistics",
+        assertEquals("\uA042\uF801Statistics",
             PlainTextComponentSerializer.plainText().serialize(result))
         assertEquals(result, MenuTitleGlyphs.withGlyphFonts(result, lookup))
     }
