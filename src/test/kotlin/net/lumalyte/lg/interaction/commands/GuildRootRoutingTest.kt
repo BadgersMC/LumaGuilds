@@ -76,8 +76,9 @@ class GuildRootRoutingTest {
             verify(exactly = 1) { browser.open() }
         }
         player.addAttachment(plugin, "lumaguilds.guild.menu", false)
-        clearMocks(menu, answers = false)
+        clearMocks(menu, browser, answers = false)
         server.dispatchCommand(player, "guild")
         verify(exactly = 0) { menu.open() }
+        verify(exactly = 0) { browser.open() }
     }
 }
