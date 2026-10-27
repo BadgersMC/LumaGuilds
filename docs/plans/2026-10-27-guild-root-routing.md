@@ -7,3 +7,4 @@
 - Scope: source and local tests only; no GUI, economy, or RoseChat changes. No project-local SPEAR validator was identified; this note records requirements and evidence manually.
 
 - Review correction: the dispatch regression now covers regular-member fallback and verifies explicit management remains denied; focused root and leaderboard tests pass locally.
+- Missing rank records must never count as matching owner ranks. The command dispatcher test reproduced the unsafe null comparison before correction; management permissions and explicit administrator override remain valid.

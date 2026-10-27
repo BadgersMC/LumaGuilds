@@ -37,7 +37,7 @@ class GuildRootRoutingTest {
         every { guilds.getPlayerGuilds(player.uniqueId) } returns setOf(guild)
         every { ranks.getPlayerRank(player.uniqueId, guildId) } returns rank
         every { ranks.getHighestRank(guildId) } returns rank
-        every { overrides.hasOverride(player.uniqueId) } returns true
+        every { overrides.hasOverride(player.uniqueId) } returns false
         every { factory.createGuildControlPanelMenu(any(), player, guild) } returns menu
         startKoin { modules(module { single { guilds }; single { ranks }; single { overrides }; single { factory }; single { lang } }) }
         player.addAttachment(plugin, "lumaguilds.guild.menu", true)
@@ -66,6 +66,16 @@ class GuildRootRoutingTest {
         clearMocks(info, menu, answers = false)
         server.dispatchCommand(player, "guild menu")
         verify(exactly = 0) { info.open() }
+        verify(exactly = 0) { menu.open() }
+        // Missing rank records must not make null == null look like ownership.
+        every { ranks.getPlayerRank(player.uniqueId, guildId) } returns null
+        every { ranks.getHighestRank(guildId) } returns null
+        clearMocks(info, menu, answers = false)
+        server.dispatchCommand(player, "guild")
+        verify(exactly = 1) { info.open() }
+        verify(exactly = 0) { menu.open() }
+        clearMocks(info, menu, answers = false)
+        server.dispatchCommand(player, "guild menu")
         verify(exactly = 0) { menu.open() }
         val browser = mockk<Menu>(relaxed = true)
         every { guilds.getPlayerGuilds(player.uniqueId) } returns emptySet()

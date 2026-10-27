@@ -1521,7 +1521,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val playerRank = rankService.getPlayerRank(playerId, guild.id)
         val highestRank = rankService.getHighestRank(guild.id)
 
-        if (!adminOverrideService.hasOverride(playerId) && playerRank?.id != highestRank?.id) {
+        if (!adminOverrideService.hasOverride(playerId) && (playerRank == null || highestRank == null || playerRank.id != highestRank.id)) {
             // Check if player has management permissions
             val hasManagementPerms = playerRank?.permissions?.any { permission ->
                 permission in setOf(
