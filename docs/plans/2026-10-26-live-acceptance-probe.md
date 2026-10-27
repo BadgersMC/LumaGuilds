@@ -65,3 +65,32 @@ The repository's IDB callback transaction was replaced with its existing caller-
 Combined correction verification passed: **2322 tests, zero failures/errors, four unchanged skips**, plus **98 native MariaDB reward/cleanup tests, zero failures/errors/skips**. The three definition-failure/preservation cases execute on both databases. Packaging,42-page frontmatter,13-topic parity and strict MkDocs checks pass. The separate owned loopback fixture was shut down normally. Initial CLI argument parsing failed before tasks and was corrected by quoting the release-version property; this is not product failure evidence.
 
 Local unmerged Guilds artifact `3.0.0-quest-rollback-UNMERGED-TEST` SHA256 `c0801de16d7266857175a6aef2b1a8fc050c980e2a14303cc1b5a3e874b22407`. The helper remains unchanged at SHA256 `14e9b93451d74a77050967589266726437f17e7efe46902f5bc4e51bb59e0517`. These builds are not deployed or production releases. Source/CI/review and live activation permissions remain separate gates. Evidence: `operations/guilds-offline-readiness-20261026/cleanup-proof`, `probe-cleanup-sqlite.log`, `probe-cleanup-sqlite-fixed.log` and `probe-cleanup-full.log`.
+
+## Chapterless deposit quest acceptance correction
+
+Delivery now targets the user's fork, FainNeito/LumaGuilds PR7. Its initial head
+2acf0ae7 passed hosted build/docs and was activated on TEST under fresh human
+handoff1615. Loaded Guilds SHA256 5a6ba9b0 and helper14e9b934 were verified;
+Market/Staff hashes stayed unchanged. The corrected helper opens its fixture.
+Fresh1000 gold consumed1010 and awarded10 ordinary XP; a100 withdrawal and
+converted physical redeposit consumed101 and awarded no further ordinary XP.
+However the fresh deposit left quest progress at0. No quest acceptance is claimed.
+
+BQ-NULL-001: When both the recorded deposit and current run have no chapter,
+fresh canonical contribution SHALL count toward the active deposit quest exactly
+once. A deposit SHALL NOT cross either direction of a chapter identity boundary.
+The existing query's `chapter_id = ?` rejects SQL NULL compared with NULL.
+The new native SQLite regression fails before correction (seven cases, one
+assertion failure; console and XML retained), then passes with explicit null-safe
+equality. Three shared SQLite/MariaDB contracts cover chapterless reward/replay,
+chapterless-to-chapter rejection, and chapter-to-chapterless rejection. Existing
+identity, prestige, time, fresh-contribution and transaction fences remain intact.
+Focused corrected SQLite profile passes eight cases. Combined profiles and hosted
+checks remain required before a corrected live activation. No policy/config/SQL
+repair or fabricated quest progress is used. Original fixture definitions were
+closed through the helper before replacement. Evidence:
+`operations/guilds-pr7-live-20261027/quest-null-{before.log,before.xml,after.log}`.
+
+The first combined attempt began before disposable MariaDB user provisioning
+completed; two connection-authentication cases failed. This is retained fixture
+setup evidence, not a product regression. A clean configured rerun is required.

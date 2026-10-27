@@ -128,6 +128,7 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
             input.actorId.toString(),
             run.prestige,
             run.chapter?.id,
+            run.chapter?.id,
             input.targetCount,
         ) { it.getLong(1) }
     }
@@ -584,7 +585,8 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
             WHERE r.transaction_id = ? AND r.guild_id = ? AND o.guild_id = r.guild_id AND o.actor_id = ?
               AND o.status = 'APPLIED' AND o.direction = 'CREDIT'
               AND o.route IN ('PERSONAL_ACCOUNT', 'PHYSICAL_ITEM') AND e.phase = 'CONFIRMED' AND e.purpose = 'DEPOSIT'
-              AND d.capture_denial IS NULL AND d.prestige_count = ? AND d.chapter_id = ?
+              AND d.capture_denial IS NULL AND d.prestige_count = ?
+              AND (d.chapter_id = ? OR (d.chapter_id IS NULL AND ? IS NULL))
               AND d.occurred_at >= w.starts_at AND d.occurred_at < w.ends_at
               AND w.active = 1 AND q.action = 'DEPOSIT_BANK' AND q.target_count = ?
         """

@@ -542,6 +542,39 @@ private class FakeQuestRepository(initial: WeeklyQuestSet?) : QuestRepository {
 @Suppress("MagicNumber", "TooManyFunctions")
 internal abstract class BankQuestContributionContract : BankDepositDeliveryFixture() {
 
+    @Test fun `fresh deposits without a chapter count once and pay the quest once`() {
+        execute("DELETE FROM chapter_lifecycle")
+        val (_, quests, rewards) = bankQuests()
+        val request = physicalRequest(amount = 5_000)
+        assertIs<GuildGoldResult.Applied>(service.depositPhysical(request))
+        quests.incrementBankDeposit(guild, actor, request.transactionId)
+        quests.incrementBankDeposit(guild, actor, request.transactionId)
+        assertEquals(5_000, quests.progressFor(guild, "bank").currentCount)
+        assertEquals(listOf(500), rewards.experienceAwards.map { it.second })
+    }
+
+    @Test fun `chapterless deposit cannot count after a chapter begins`() {
+        execute("DELETE FROM chapter_lifecycle")
+        val (_, quests, rewards) = bankQuests()
+        val request = physicalRequest(amount = 5_000)
+        assertIs<GuildGoldResult.Applied>(service.depositPhysical(request))
+        execute("INSERT INTO chapter_lifecycle (chapter_id, phase, starts_at, ends_at) VALUES (?, 'SCHEDULED', ?, ?)",
+            "new-chapter", occurredAt.minusSeconds(1).toEpochMilli(), occurredAt.plusSeconds(604_800).toEpochMilli())
+        quests.incrementBankDeposit(guild, actor, request.transactionId)
+        assertEquals(0, quests.progressFor(guild, "bank").currentCount)
+        assertTrue(rewards.experienceAwards.isEmpty())
+    }
+
+    @Test fun `chapter deposit cannot count after the chapter fence disappears`() {
+        val (_, quests, rewards) = bankQuests()
+        val request = physicalRequest(amount = 5_000)
+        assertIs<GuildGoldResult.Applied>(service.depositPhysical(request))
+        execute("DELETE FROM chapter_lifecycle")
+        quests.incrementBankDeposit(guild, actor, request.transactionId)
+        assertEquals(0, quests.progressFor(guild, "bank").currentCount)
+        assertTrue(rewards.experienceAwards.isEmpty())
+    }
+
     @Test
     fun `withdrawn raw gold cannot complete a quest through redeposit`() {
         val (_, quests, rewards) = bankQuests()
