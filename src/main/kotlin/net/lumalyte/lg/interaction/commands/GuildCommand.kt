@@ -1497,6 +1497,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
         navigator.openMenu(menuFactory.createGuildLeaderboardMenu(navigator, player, guild))
     }
 
+    @Default
+    @CommandPermission("lumaguilds.guild.menu")
+    fun onDefault(player: Player) = onMenu(player)
+
     @Subcommand("menu")
     @CommandPermission("lumaguilds.guild.menu")
     fun onMenu(player: Player) {

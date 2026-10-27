@@ -1,0 +1,55 @@
+package net.lumalyte.lg.interaction.commands
+
+import co.aikar.commands.BukkitCommandManager
+import io.mockk.*
+import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.application.services.*
+import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.domain.entities.Rank
+import net.lumalyte.lg.interaction.menus.Menu
+import net.lumalyte.lg.interaction.menus.MenuFactory
+import org.junit.jupiter.api.*
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.dsl.module
+import org.mockbukkit.mockbukkit.MockBukkit
+import java.util.UUID
+
+class GuildRootRoutingTest {
+    @AfterEach fun cleanup() { stopKoin(); unmockkAll(); MockBukkit.unmock() }
+
+    @Test fun rootsUseMenuAndRespectPermission() {
+        stopKoin()
+        val server = MockBukkit.mock()
+        val plugin = MockBukkit.createMockPlugin()
+        val player = server.addPlayer()
+        val guilds = mockk<GuildService>()
+        val ranks = mockk<RankService>()
+        val overrides = mockk<AdminOverrideService>()
+        val factory = mockk<MenuFactory>()
+        val lang = mockk<LangService>(relaxed = true)
+        val menu = mockk<Menu>(relaxed = true)
+        val guild = mockk<Guild>()
+        val rank = mockk<Rank>()
+        val guildId = UUID.randomUUID()
+        every { guild.id } returns guildId
+        every { rank.id } returns UUID.randomUUID()
+        every { guilds.getPlayerGuilds(player.uniqueId) } returns setOf(guild)
+        every { ranks.getPlayerRank(player.uniqueId, guildId) } returns rank
+        every { ranks.getHighestRank(guildId) } returns rank
+        every { overrides.hasOverride(player.uniqueId) } returns true
+        every { factory.createGuildControlPanelMenu(any(), player, guild) } returns menu
+        startKoin { modules(module { single { guilds }; single { ranks }; single { overrides }; single { factory }; single { lang } }) }
+        player.addAttachment(plugin, "lumaguilds.guild.menu", true)
+        BukkitCommandManager(plugin).registerCommand(GuildCommand())
+        for (command in listOf("guild", "g", "guild menu")) {
+            clearMocks(menu, answers = false)
+            server.dispatchCommand(player, command)
+            verify(exactly = 1) { menu.open() }
+        }
+        player.addAttachment(plugin, "lumaguilds.guild.menu", false)
+        clearMocks(menu, answers = false)
+        server.dispatchCommand(player, "guild")
+        verify(exactly = 0) { menu.open() }
+    }
+}
