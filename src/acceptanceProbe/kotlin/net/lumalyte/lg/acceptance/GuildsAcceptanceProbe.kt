@@ -12,7 +12,6 @@ import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.plugin.java.JavaPlugin
 import org.json.JSONObject
-import org.koin.core.context.GlobalContext
 import java.nio.file.Files
 import java.nio.file.StandardOpenOption
 import java.security.MessageDigest
@@ -22,13 +21,18 @@ import java.util.UUID
 /** Separate opt-in TEST tool; absent from the LumaGuilds production artifact. */
 class GuildsAcceptanceProbe : JavaPlugin(), Listener {
     private val journal get() = dataFolder.toPath().resolve("quest-fixture.json")
-    private val repository get() = GlobalContext.get().get<QuestRepository>()
-    private val quests get() = GlobalContext.get().get<QuestService>()
-    private val guilds get() = GlobalContext.get().get<GuildService>()
+    private val repository get() = ProbeServices.resolve(QuestRepository::class.java)
+    private val quests get() = ProbeServices.resolve(QuestService::class.java)
+    private val guilds get() = ProbeServices.resolve(GuildService::class.java)
     private val actor get() = UUID.fromString(config.getString("actor-uuid"))
     private var latest: GuildBankContributionEvent? = null
 
     override fun onEnable() {
+        if (!config.getBoolean("enabled", false)) {
+            logger.info("Acceptance probe disabled by configuration")
+            server.pluginManager.disablePlugin(this)
+            return
+        }
         dataFolder.mkdirs()
         server.pluginManager.registerEvents(this, this)
         // An interrupted fixture is restored first, even after its action window expires.
@@ -65,6 +69,7 @@ class GuildsAcceptanceProbe : JavaPlugin(), Listener {
         check(marker["environment"] == "TEST" && marker["environment-id"] == config.getString("environment-id"))
         check(marker["deployment-nonce"] == bridge.config.getString("deployment-nonce"))
         val guildsPlugin = requireNotNull(server.pluginManager.getPlugin("LumaGuilds"))
+        ProbeServices.requireOwner(guildsPlugin.javaClass.classLoader)
         val jar = java.nio.file.Path.of(guildsPlugin.javaClass.protectionDomain.codeSource.location.toURI())
         val hash = MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar))
             .joinToString("") { "%02x".format(it) }

@@ -1,3 +1,5 @@
+import java.util.jar.JarFile
+
 plugins {
     kotlin("jvm") version "2.3.20"
     id("com.gradleup.shadow") version "8.3.11"
@@ -240,6 +242,21 @@ sourceSets.test {
 }
 tasks.register<Jar>("acceptanceProbeJar") {
     archiveBaseName.set("GuildsAcceptanceProbe")
-    archiveVersion.set("0.1.0-UNMERGED-TEST")
+    archiveVersion.set("0.1.1-UNMERGED-TEST")
     from(acceptanceProbe.output)
+}
+
+tasks.register("verifyAcceptanceProbePackaging") {
+    group = "verification"
+    dependsOn(tasks.shadowJar, "acceptanceProbeJar")
+    doLast {
+        JarFile(tasks.shadowJar.get().archiveFile.get().asFile).use { jar ->
+            check(jar.entries().asSequence().none { it.name.startsWith("net/lumalyte/lg/acceptance/") })
+        }
+        val probeJar = tasks.named<Jar>("acceptanceProbeJar").get().archiveFile.get().asFile
+        JarFile(probeJar).use { jar ->
+            check(jar.getEntry("net/lumalyte/lg/acceptance/ProbeServices.class") != null)
+            check(jar.entries().asSequence().none { it.name.startsWith("kotlin/") || it.name.startsWith("org/koin/") })
+        }
+    }
 }

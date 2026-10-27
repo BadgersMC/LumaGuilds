@@ -1065,3 +1065,5 @@ Menu audit follow-up (REQ-063):
   hosted checks and live acceptance pending. No runtime use authorized.
 
 - [ ] **GUILD-CREATION-BOOTSTRAP** Tag: TDD. GC-001 through GC-004. References: docs/plans/2026-10-23-guild-creation-bootstrap.md. Evidence: canonical main283d75f1 source, investigation839/841, baseline/new regression and final verification recorded in the plan. TEST/client pause remains in force.
+
+- [ ] **ACCEPTANCE-PROBE-RUNTIME** AP-01 through AP-07 in `plans/2026-10-26-live-acceptance-probe.md`. Isolated loader regression reproduces the original failure and verifies the Java boundary, wrong-owner rejection and disabled startup. Separate packaging/CI checks added. Local native database and actual Market artifact contracts are distinct from pending hosted review, TEST helper replacement, quest/replay acceptance and native purchases. No production activation authorized.

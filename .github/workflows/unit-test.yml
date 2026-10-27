@@ -134,7 +134,7 @@ jobs:
     - name: Test with Gradle
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: ./gradlew test --init-script ci/review-test-logging.init.gradle
+      run: ./gradlew test acceptanceProbeJar --init-script ci/review-test-logging.init.gradle
 
     - name: Retain test diagnostics
       if: always() && github.event_name == 'pull_request'
@@ -150,7 +150,7 @@ jobs:
     - name: Build unmerged TEST review artifact
       if: github.event_name == 'pull_request'
       run: |
-        ./gradlew shadowJar -PreleaseVersion=3.0.0-pr${{ github.event.pull_request.number }}-UNMERGED-TEST
+        ./gradlew shadowJar verifyAcceptanceProbePackaging -PreleaseVersion=3.0.0-pr${{ github.event.pull_request.number }}-UNMERGED-TEST
         git rev-parse HEAD > build/review-source.txt
         sha256sum build/libs/*UNMERGED-TEST*.jar > build/review-sha256.txt
 
