@@ -40,7 +40,7 @@ internal class RecruitmentBoardDialogTest : RecruitmentDialogFixture() {
         val page = requireNotNull(renderedPage)
         val labels = page.actions.map { PlainTextComponentSerializer.plainText().serialize(it.label) }
         assertTrue(labels.containsAll(listOf("recruitment.mine", "recruitment.manage")))
-        assertTrue("recruitment.filter" in labels)
+        assertTrue("dialog_v2.filters" in labels)
         assertTrue("Quick" !in labels)
         assertEquals(2, page.columns)
         page.actions.first().action()
