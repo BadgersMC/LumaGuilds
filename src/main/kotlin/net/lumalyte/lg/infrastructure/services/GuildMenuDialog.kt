@@ -46,6 +46,7 @@ internal data class GuildDialogPage(
     val search: GuildDialogSearch? = null,
     val subtitle: Component = Component.empty(),
     val bodyActions: List<GuildDialogAction> = emptyList(),
+    val bodyActionGroupSize: Int? = null,
     val showCategoryInput: Boolean = true,
     val framedHeading: Boolean = false,
     val diagram: List<List<GuildDialogAction>> = emptyList(),
@@ -148,11 +149,11 @@ internal class GuildMenuDialog : GuildDialogPresenter {
             if (page.bodyActions.isEmpty()) {
                 emptyList()
             } else {
-                listOf(
+                page.bodyActions.chunked(page.bodyActionGroupSize?.coerceAtLeast(1) ?: page.bodyActions.size).map { group ->
                     DialogBody.plainMessage(
                         Component.join(
                             net.kyori.adventure.text.JoinConfiguration.separator(Component.text("  ")),
-                            page.bodyActions.map { action ->
+                            group.map { action ->
                                 clickableGuildDialogCard(action.label, action) {
                                     ClickEvent.callback(
                                         { audience -> callbacks.submit(audience, it.action) },
@@ -162,8 +163,8 @@ internal class GuildMenuDialog : GuildDialogPresenter {
                             },
                         ),
                         TEXT_WIDTH,
-                    ),
-                )
+                    )
+                }
             }
         val diagram = page.diagram.map { row ->
             val connected = row.map { action -> clickableGuildDialogCard(action.label, action) {

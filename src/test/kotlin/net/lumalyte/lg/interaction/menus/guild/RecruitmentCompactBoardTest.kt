@@ -40,6 +40,8 @@ internal class RecruitmentCompactBoardTest : RecruitmentDialogFixture() {
         menu().show(RecruitmentView("Filters", emptyList(), emptyList()))
         val page = assertNotNull(renderedPage)
         assertNull(page.search)
+        assertEquals(3, page.bodyActionGroupSize)
+        assertTrue(PlainTextComponentSerializer.plainText().serialize(page.title).startsWith("dialog_v2.filters"))
         val labels = page.actions.map { PlainTextComponentSerializer.plainText().serialize(it.label) }
         assertTrue(page.bodyActions.size >= 9)
         page.bodyActions[2].action()

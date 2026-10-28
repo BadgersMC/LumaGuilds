@@ -89,6 +89,7 @@ internal class RecruitmentDialogMenu(
                             )
                         else -> emptyList()
                     },
+                bodyActionGroupSize = if (controller.screen == RecruitmentScreen.FILTER) 3 else null,
                 showCategoryInput = false,
             ),
         )
@@ -97,7 +98,7 @@ internal class RecruitmentDialogMenu(
     private fun pageTitle(view: RecruitmentView): String =
         when (controller.screen) {
             RecruitmentScreen.PROFILE -> controller.selected?.let { controller.guilds.getGuild(it)?.name } ?: view.title
-            RecruitmentScreen.FILTER -> controller.lang.raw("recruitment.filter")
+            RecruitmentScreen.FILTER -> controller.lang.raw("dialog_v2.filters")
             RecruitmentScreen.INBOX -> controller.lang.raw("recruitment.inbox")
             RecruitmentScreen.MINE -> controller.lang.raw("recruitment.mine")
             RecruitmentScreen.CONFIRM -> controller.lang.raw("dialog_v2.confirm_fee")
@@ -202,7 +203,7 @@ internal class RecruitmentDialogMenu(
                             Component.text(
                                 "${controller.lang.raw(
                                     filterKey,
-                                )}: ${if (selected) "[$value]" else value}",
+                                ).let { if (index == 0) "$it: " else "" }}${if (selected) "[$value]" else value}",
                             ),
                             Component.empty(),
                         ) {
