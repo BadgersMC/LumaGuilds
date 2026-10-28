@@ -3,6 +3,7 @@ package net.lumalyte.lg.interaction.menus.guild
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -13,7 +14,7 @@ internal class RecruitmentCompactBoardTest : RecruitmentDialogFixture() {
         val navigation =
             listOf(
                 RecruitmentButton("recruitment.manage") {},
-                RecruitmentButton("recruitment.filter") { controller.showScreen(RecruitmentScreen.FILTER) },
+                RecruitmentButton("recruitment.filter", listOf("Any")) { controller.showScreen(RecruitmentScreen.FILTER) },
             )
         menu().show(RecruitmentView("Browse", emptyList(), navigation))
         val page = assertNotNull(renderedPage)
@@ -22,11 +23,13 @@ internal class RecruitmentCompactBoardTest : RecruitmentDialogFixture() {
         assertEquals(false, page.showCategoryInput)
         assertEquals(2, page.columns)
         assertEquals(
-            listOf("recruitment.filter", "recruitment.mine", "recruitment.manage"),
+            listOf("dialog_v2.filters", "recruitment.mine", "recruitment.manage"),
             page.actions.map {
                 PlainTextComponentSerializer.plainText().serialize(it.label)
             },
         )
+        assertEquals("Any", PlainTextComponentSerializer.plainText().serialize(page.actions.first().tooltip))
+        assertFalse(page.actions.first().showTooltip)
         page.actions.first().action()
         assertEquals(RecruitmentScreen.FILTER, controller.screen)
     }

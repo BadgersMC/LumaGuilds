@@ -7863,6 +7863,7 @@ dialog_v2:
   more_settings: "More guild settings"
   more_listing_options: "More listing options"
   more_filters: "More filters and preferences"
+  filters: "Filters"
   open_recruitment: "Open recruitment"
   close_recruitment: "Close recruitment"
   setting_public: "Public listing"

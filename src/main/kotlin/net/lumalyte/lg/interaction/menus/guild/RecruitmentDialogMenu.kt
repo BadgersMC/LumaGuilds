@@ -269,7 +269,8 @@ internal class RecruitmentDialogMenu(
                 ?: RecruitmentButton(controller.lang.raw("recruitment.filter")) {
                     controller.showScreen(RecruitmentScreen.FILTER)
                 }
-        return listOf(action(filter), action(applications)) +
+        val shortFilter = filter.copy(label = controller.lang.raw("dialog_v2.filters"))
+        return listOf(action(shortFilter).apply { showTooltip = false }, action(applications)) +
             view.navigation.filter {
                 it.label == controller.lang.raw("recruitment.manage") && it.isInteractive()
             }.map { action(it) }

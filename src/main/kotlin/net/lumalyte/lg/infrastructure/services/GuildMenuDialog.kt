@@ -32,7 +32,9 @@ internal data class GuildDialogItem(
     val section: Component? = null,
 )
 
-internal data class GuildDialogAction(val label: Component, val tooltip: Component, val action: () -> Unit)
+internal data class GuildDialogAction(val label: Component, val tooltip: Component, val action: () -> Unit) {
+    var showTooltip: Boolean = true
+}
 
 internal data class GuildDialogPage(
     val title: Component,
@@ -251,7 +253,7 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         val themed = art?.label(fullLabel, themedWidth)
         return ActionButton.builder(themed ?: GuildDialogText.buttonLabel(fullLabel, (standardWidth - 16) * 2))
             .width(if (themed == null) standardWidth else themedWidth)
-            .tooltip(action.label.append(Component.newline()).append(action.tooltip))
+            .apply { if (action.showTooltip) tooltip(action.label.append(Component.newline()).append(action.tooltip)) }
             .action(
                 DialogAction.customClick({ _, audience ->
                     callbacks.submit(audience, action.action)
