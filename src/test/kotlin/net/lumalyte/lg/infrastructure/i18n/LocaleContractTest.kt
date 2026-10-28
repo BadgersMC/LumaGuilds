@@ -393,7 +393,11 @@ class LocaleContractTest {
         val inventory = LocaleSourceScanner.scan(projectRoot.resolve("src/main/kotlin"))
         val unused = localeKeys() - inventory.literalKeys - declaredDynamicKeys
 
-        assertEquals(BASELINE_UNUSED_KEYS, unused.size, unused.sorted().joinToString())
+        // Retain this former key for installations with customized locale files.
+        // The new key must be used so an existing override cannot send members to
+        // the management-only command.
+        val retainedLegacyKeys = setOf("command.migrated.guild.joinguilddirectly.use_guild_menu_to_get_started")
+        assertEquals(retainedLegacyKeys, unused, unused.sorted().joinToString())
     }
 
     @Test
@@ -491,7 +495,6 @@ class LocaleContractTest {
     private companion object {
         const val BASELINE_POSITIONAL_PLACEHOLDERS = 0
         const val BASELINE_MISSING_KEYS = 0
-        const val BASELINE_UNUSED_KEYS = 0
         // Reference dialogs add thirteen finite state-dependent calls.
         const val BASELINE_DYNAMIC_CALLS = 53 // Recruitment Back now uses one literal key.
         const val BASELINE_HARDCODED_PLAYER_TEXT = 0
