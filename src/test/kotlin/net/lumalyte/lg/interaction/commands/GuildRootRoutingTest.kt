@@ -77,6 +77,19 @@ class GuildRootRoutingTest {
         clearMocks(info, menu, answers = false)
         server.dispatchCommand(player, "guild menu")
         verify(exactly = 0) { menu.open() }
+        // Missing either rank record must also fall back unless the member has
+        // an actual management permission.
+        every { ranks.getPlayerRank(player.uniqueId, guildId) } returns rank
+        clearMocks(info, menu, answers = false)
+        server.dispatchCommand(player, "guild")
+        verify(exactly = 1) { info.open() }
+        verify(exactly = 0) { menu.open() }
+        every { ranks.getPlayerRank(player.uniqueId, guildId) } returns null
+        every { ranks.getHighestRank(guildId) } returns highest
+        clearMocks(info, menu, answers = false)
+        server.dispatchCommand(player, "guild")
+        verify(exactly = 1) { info.open() }
+        verify(exactly = 0) { menu.open() }
         val browser = mockk<Menu>(relaxed = true)
         every { guilds.getPlayerGuilds(player.uniqueId) } returns emptySet()
         every { factory.createLfgBrowserMenu(any(), player) } returns browser
