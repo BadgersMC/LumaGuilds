@@ -19,6 +19,20 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 
 internal class GuildLeaderboardDialogExitTest : RecruitmentDialogFixture() {
+    @Test fun `guildless rankings render with default theme and can change sorting`() {
+        every { lang.msg(any(), *anyVararg()) } answers { net.kyori.adventure.text.Component.text(firstArg<String>()) }
+        every { player.uniqueId } returns UUID.randomUUID()
+        every { player.isOnline } returns true
+        every { guilds.getAllGuilds() } returns emptySet()
+        val members = mockk<MemberService>()
+        val nav = MenuNavigator(player)
+        nav.openMenu(GuildLeaderboardDialogMenu(nav, player, null, guilds, members, mockk<QuestService>(relaxed = true), lang, presenter))
+        assertEquals(GuiTheme.DEFAULT, renderedPage!!.theme)
+        assertEquals(3, renderedPage!!.bodyActions.size)
+        renderedPage!!.bodyActions[1].action()
+        assertEquals(GuiTheme.DEFAULT, renderedPage!!.theme)
+        verify(exactly = 0) { members.getMember(any(), any()) }
+    }
     private fun leaderboard(nav: MenuNavigator): GuildLeaderboardDialogMenu {
         every { lang.msg(any(), *anyVararg()) } answers { net.kyori.adventure.text.Component.text(firstArg<String>()) }
         every { lang.msg("dialog_v2.close_menu", *anyVararg()) } returns net.kyori.adventure.text.Component.text("Close")

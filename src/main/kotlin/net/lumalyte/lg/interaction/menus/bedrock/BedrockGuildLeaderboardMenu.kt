@@ -19,7 +19,7 @@ import java.util.logging.Logger
 
 /** Same ranking snapshot as Java, presented through native Cumulus controls. */
 internal class BedrockGuildLeaderboardMenu(
-    navigator: MenuNavigator, player: Player, private val own: Guild, logger: Logger,
+    navigator: MenuNavigator, player: Player, private val own: Guild?, logger: Logger,
 ) : BaseBedrockMenu(navigator, player, logger) {
     private val guilds: GuildService by inject()
     private val members: MemberService by inject()
@@ -42,7 +42,7 @@ internal class BedrockGuildLeaderboardMenu(
             builder.button(label)
             actions += callback
         }
-        if (members.getMember(player.uniqueId, own.id) == null) {
+        if (own != null && members.getMember(player.uniqueId, own.id) == null) {
             builder.content(lang.bedrock("command.migrated.guild.rename.you_are_not_in_a_guild"))
             action(lang.bedrock("recruitment.dialog.back")) { bedrockNavigator.goBack() }
         } else {
@@ -52,7 +52,7 @@ internal class BedrockGuildLeaderboardMenu(
             Bukkit.getScheduler().runTask(plugin, Runnable {
                 if (player.isOnline && valid()) {
                     onFormResponseReceived()
-                    if (members.getMember(player.uniqueId, own.id) != null) callback()
+                    if (own == null || members.getMember(player.uniqueId, own.id) != null) callback()
                     else bedrockNavigator.goBack()
                 }
             })
@@ -80,7 +80,7 @@ internal class BedrockGuildLeaderboardMenu(
             }
         }
         snapshot.rows.forEach { row ->
-            action("#${row.rank} ${row.guild.name}${if (row.guild.id == own.id) " (you)" else ""}\n" +
+            action("#${row.rank} ${row.guild.name}${if (row.guild.id == own?.id) " (you)" else ""}\n" +
                 "${row.score} ${labels[tab]} · ${row.members} ${lang.bedrock("dialog_v2.members")}") {
                 menuNavigator.openMenu(BedrockGuildRecruitmentMenu(menuNavigator, player, logger, row.guild.id))
             }

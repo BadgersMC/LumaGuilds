@@ -17,11 +17,12 @@ import net.lumalyte.lg.interaction.menus.GuildBannerItemResolver
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
+import net.lumalyte.lg.utils.GuiTheme
 
 internal class GuildLeaderboardDialogMenu(
     private val navigator: MenuNavigator,
     private val player: Player,
-    private var own: Guild,
+    private var own: Guild?,
     private val guilds: GuildService,
     private val members: MemberService,
     private val quests: QuestService,
@@ -32,8 +33,9 @@ internal class GuildLeaderboardDialogMenu(
     private var page = 0
 
     override fun open() {
-        own = guilds.getGuild(own.id) ?: own
-        if (members.getMember(player.uniqueId, own.id) == null) {
+        own = own?.let { guilds.getGuild(it.id) ?: it }
+        val ownGuild = own
+        if (ownGuild != null && members.getMember(player.uniqueId, ownGuild.id) == null) {
             navigator.goBack()
             return
         }
@@ -47,8 +49,8 @@ internal class GuildLeaderboardDialogMenu(
                 val lines =
                     listOf(
                         Component.text(
-                            "#$rank ${guild.name}${if (guild.id == own.id) " (you)" else ""}",
-                            if (guild.id == own.id) NamedTextColor.GREEN else NamedTextColor.GOLD,
+                            "#$rank ${guild.name}${if (guild.id == ownGuild?.id) " (you)" else ""}",
+                            if (guild.id == ownGuild?.id) NamedTextColor.GREEN else NamedTextColor.GOLD,
                         ),
                         Component.text(
                             "${row.members} ${lang.raw("dialog_v2.members")}",
@@ -99,7 +101,7 @@ internal class GuildLeaderboardDialogMenu(
                 } else {
                     referenceAction(lang.gui("dialog_v2.close_menu"), "lg_close", navigator::goBack)
                 },
-                theme = own.guiTheme,
+                theme = ownGuild?.guiTheme ?: GuiTheme.DEFAULT,
                 columns = 2,
                 framedHeading = true,
                 subtitle =
@@ -123,7 +125,7 @@ internal class GuildLeaderboardDialogMenu(
             ),
             {
                 player.isOnline && navigator.isNavigationCurrent(token) &&
-                    members.getMember(player.uniqueId, own.id) != null
+                    (ownGuild == null || members.getMember(player.uniqueId, ownGuild.id) != null)
             },
         ) { player.sendMessage(lang.msg("recruitment.feedback.failed")) }
     }

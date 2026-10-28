@@ -32,7 +32,9 @@ internal class MenuFactoryLeaderboardTest {
         val guild = Guild(UUID.randomUUID(), "Guild", createdAt = Instant.EPOCH)
         every { platform.isBedrockPlayer(player) } returns false
         assertIs<GuildLeaderboardDialogMenu>(factory.createGuildLeaderboardMenu(mockk(), player, guild))
+        assertIs<GuildLeaderboardDialogMenu>(factory.createGuildLeaderboardMenu(mockk(), player, null))
         every { platform.isBedrockPlayer(player) } returns true
         assertIs<BedrockGuildLeaderboardMenu>(factory.createGuildLeaderboardMenu(mockk(), player, guild))
+        assertIs<BedrockGuildLeaderboardMenu>(factory.createGuildLeaderboardMenu(mockk(), player, null))
     }
 }

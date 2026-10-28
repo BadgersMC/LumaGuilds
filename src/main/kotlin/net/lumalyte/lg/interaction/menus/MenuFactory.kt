@@ -834,7 +834,7 @@ class MenuFactory(
     fun createGuildLeaderboardMenu(
         menuNavigator: MenuNavigator,
         player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild,
+        guild: net.lumalyte.lg.domain.entities.Guild?,
     ): Menu {
         if (shouldUseBedrockMenus(player)) {
             return net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildLeaderboardMenu(menuNavigator, player, guild, logger)
