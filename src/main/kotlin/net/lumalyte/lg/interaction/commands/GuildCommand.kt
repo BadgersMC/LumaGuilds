@@ -1703,7 +1703,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 player.sendMessage(lang.msg("command.migrated.guild.joinguilddirectly.guild_type_open_public"))
             }
             player.sendMessage(lang.msg("command.migrated.guild.joinguilddirectly.rank", "lowest_rank" to lowestRank.name))
-            player.sendMessage(lang.msg("command.migrated.guild.joinguilddirectly.use_guild_menu_to_get_started"))
+            player.sendMessage(lang.msg("onboarding.member_overview_hint"))
             player.sendMessage(lang.msg("command.common.blank_line"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.5f)
 

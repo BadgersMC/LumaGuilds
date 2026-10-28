@@ -7688,6 +7688,7 @@ onboarding:
   help: "All help topics"
   refresh: "Refresh progress"
   dismiss: "Dismiss prompt"
+  member_overview_hint: "<gray>Use <yellow>/guild<gray> to view your guild."
   dismissed: "<gray>Getting Started remains available with /g start. The first-time prompt will not repeat."
   open: " <green>[Open guide]"
   prompt: "<gold>Welcome to <guild>! Explore your guild's first steps."
