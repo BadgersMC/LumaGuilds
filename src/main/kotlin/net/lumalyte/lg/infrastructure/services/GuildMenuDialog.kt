@@ -16,6 +16,8 @@ private const val ITEM_WIDTH = 16
 private const val ITEM_HEIGHT = 16
 private const val TEXT_WIDTH = 280
 private const val ACTION_WIDTH = 180
+internal fun guildDialogActionWidth(board: Boolean, columns: Int): Int =
+    if (!board && columns == 1) GuildDialogButtons.PANEL_WIDTH else ACTION_WIDTH
 // FocusableTextWidget subtracts 4px per side from description.maxWidth.
 // Preserve the intended text area after that inset so 257px card advances fit.
 internal const val GUILD_DIALOG_ITEM_DESCRIPTION_WIDTH = TEXT_WIDTH - ITEM_WIDTH - 4 + 8
@@ -243,8 +245,8 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         art: GuildDialogButtons? = null,
         columns: Int = 1,
     ): ActionButton {
-        val standardWidth = if (board) BOARD_CONTROL_WIDTH else ACTION_WIDTH
-        val themedWidth = if (!board && columns == 1) GuildDialogButtons.PANEL_WIDTH else standardWidth
+        val standardWidth = ACTION_WIDTH
+        val themedWidth = guildDialogActionWidth(board, columns)
         val fullLabel = skin?.label(action.label) ?: action.label
         val themed = art?.label(fullLabel, themedWidth)
         return ActionButton.builder(themed ?: GuildDialogText.buttonLabel(fullLabel, (standardWidth - 16) * 2))
@@ -266,8 +268,9 @@ internal class GuildMenuDialog : GuildDialogPresenter {
         art: GuildDialogButtons?,
     ): ActionButton {
         val label = skin?.label(search.submitLabel) ?: search.submitLabel
-        return ActionButton.builder(art?.label(label, BOARD_CONTROL_WIDTH) ?: label)
-            .width(BOARD_CONTROL_WIDTH)
+        val width = guildDialogActionWidth(board = true, columns = 2)
+        return ActionButton.builder(art?.label(label, width) ?: label)
+            .width(width)
             .action(searchAction(search, callbacks, showCategory))
             .build()
     }

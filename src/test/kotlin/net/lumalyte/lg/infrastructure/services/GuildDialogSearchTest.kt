@@ -13,6 +13,16 @@ private const val OVERSIZED_QUERY = 100
 
 internal class GuildDialogSearchTest {
     @Test
+    fun recruitmentActionGridFitsTheThemedSurface() {
+        // Minecraft's multi-action layout adds a four-pixel gap between columns.
+        val width = guildDialogActionWidth(board = true, columns = 2)
+        assertEquals(180, width)
+        assertTrue(2 * width + 4 <= GuildDialogSurface.WIDTH)
+        assertTrue(width in GuildDialogButtons.WIDTHS)
+        assertEquals(GuildDialogButtons.PANEL_WIDTH, guildDialogActionWidth(board = false, columns = 1))
+    }
+
+    @Test
     fun validatesBoundedSearch() {
         var submitted: Pair<String, String>? = null
         val search =
