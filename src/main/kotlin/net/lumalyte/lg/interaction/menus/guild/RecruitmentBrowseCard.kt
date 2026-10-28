@@ -30,7 +30,7 @@ internal fun RecruitmentController.browseCardSummary(guild: Guild): List<Compone
         when {
             fee != null ->
                 lang.raw("guild_dialogs.board.fee")
-                    .replace("%amount%", fee.amount.toString()).replace("%currency%", fee.currencyName)
+                    .replace("%amount%", fee.amount.toString()).replace("%currency%", recruitmentCurrencyLabel(fee.currencyName))
             guild.joinFeeEnabled && guild.joinFeeAmount > 0 -> lang.raw("recruitment.fee_unavailable")
             else -> lang.raw("guild_dialogs.board.no_fee")
         }
@@ -40,10 +40,31 @@ internal fun RecruitmentController.browseCardSummary(guild: Guild): List<Compone
 
 private const val SUMMARY_LINE_LENGTH = 30
 
+internal fun recruitmentCurrencyLabel(name: String): String =
+    if (name.matches(Regex("[A-Z0-9_]+"))) name.replace('_', ' ').lowercase() else name
+
+internal fun wrapRecruitmentText(text: String, limit: Int = SUMMARY_LINE_LENGTH): List<String> {
+    require(limit > 0)
+    val points = text.codePoints().toArray()
+    val lines = mutableListOf<String>()
+    var start = 0
+    while (start < points.size) {
+        while (start < points.size && Character.isWhitespace(points[start])) start++
+        if (start == points.size) break
+        var end = minOf(start + limit, points.size)
+        if (end < points.size && !Character.isWhitespace(points[end])) {
+            var space = end - 1
+            while (space > start && !Character.isWhitespace(points[space])) space--
+            if (space > start) end = space
+        }
+        lines.add(String(points, start, end - start).trimEnd())
+        start = end
+    }
+    return lines.ifEmpty { listOf("") }
+}
+
 private fun cardText(
     text: String,
     color: NamedTextColor,
 ): List<Component> =
-    text.codePoints().toArray().toList().chunked(SUMMARY_LINE_LENGTH).map { points ->
-        Component.text(buildString { points.forEach(::appendCodePoint) }, color)
-    }
+    wrapRecruitmentText(text).map { Component.text(it, color) }

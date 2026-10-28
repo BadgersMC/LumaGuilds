@@ -10,7 +10,7 @@ internal fun RecruitmentController.details(guild: Guild): List<String> {
     val profile = service.listings.profile(guild)
     val fee = lfg.getJoinRequirement(guild)
     val feeText =
-        fee?.let { "${it.amount} ${it.currencyName}" }
+        fee?.let { "${it.amount} ${recruitmentCurrencyLabel(it.currencyName)}" }
             ?: if (guild.joinFeeEnabled && guild.joinFeeAmount > 0) {
                 lang.raw("recruitment.fee_unavailable")
             } else {

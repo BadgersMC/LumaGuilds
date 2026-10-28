@@ -19,6 +19,17 @@ import java.util.UUID
 import kotlin.test.assertTrue
 
 internal class RecruitmentBrowseCardTest : RecruitmentDialogFixture() {
+    @Test fun `card wrapping preserves words and handles long Unicode names`() {
+        val lines = wrapRecruitmentText("Building, PVPing, Base Hunting, Griefing - 2 spaces - 0 online")
+        assertTrue(lines.joinToString(" ").contains("0 online"))
+        assertTrue(lines.all { it.codePointCount(0, it.length) <= 30 })
+        assertTrue(wrapRecruitmentText("😀".repeat(31)).map { it.codePointCount(0, it.length) } == listOf(30, 1))
+    }
+
+    @Test fun `currency labels are readable while custom names are preserved`() {
+        assertTrue(recruitmentCurrencyLabel("RAW_GOLD") == "raw gold")
+        assertTrue(recruitmentCurrencyLabel("Guild Crowns") == "Guild Crowns")
+    }
     @Test
     fun summaryDoesNotCountHiddenMembersOrMisreportUnavailableFeeAsFree() {
         val guild =
@@ -52,7 +63,7 @@ internal class RecruitmentBrowseCardTest : RecruitmentDialogFixture() {
         every { lfg.getJoinRequirement(guild) } returns null
         every { lang.raw("guild_dialogs.board.summary") } returns "%activity% - %spaces% spaces - %online% online"
         val text =
-            controller.browseCardSummary(guild).joinToString("") {
+            controller.browseCardSummary(guild).joinToString(" ") {
                 PlainTextComponentSerializer.plainText().serialize(it)
             }
         assertTrue(text.contains("6 spaces - 1 online"))
