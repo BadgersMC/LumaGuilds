@@ -156,6 +156,10 @@ class QuestService(
      * Safe to call repeatedly: XP and item delivery use stable transaction identities.
      */
     fun reconcilePendingRewards(): Int {
+        repository.pendingBankContributions(128).forEach { contribution ->
+            incrementBankDeposit(contribution.guildId, contribution.actorId, contribution.transactionId)
+            repository.finishBankContributionRecovery(contribution.transactionId)
+        }
         var delivered = 0
 
         repository.getActiveQuestSet()?.let { active ->
@@ -185,11 +189,17 @@ class QuestService(
         return delivered
     }
 
+    /** A reset must not discard the remaining bounded recovery backlog. */
+    fun hasPendingBankContributionRecovery(): Boolean = repository.pendingBankContributions(1).isNotEmpty()
+
     fun resetWeeklyQuests(nextQuestSet: WeeklyQuestSet) {
         val active = repository.getActiveQuestSet()
         if (active?.weekId == nextQuestSet.weekId) return
 
         active?.let { current ->
+            check(repository.beginBankQuestTransition(current.weekId)) {
+                "Weekly quest reset blocked by unresolved bank contributions"
+            }
             check(reconcileFullSetBonuses(current)) {
                 "Unable to durably settle weekly quest completion bonuses"
             }

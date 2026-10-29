@@ -587,6 +587,8 @@ class GuildGoldService(
             is net.lumalyte.lg.domain.gold.GuildGoldPreparation.New -> null
             net.lumalyte.lg.domain.gold.GuildGoldPreparation.FingerprintMismatch ->
                 GuildGoldResult.Rejected(GuildGoldRejection.DUPLICATE_PENDING)
+            net.lumalyte.lg.domain.gold.GuildGoldPreparation.QuestTransition ->
+                GuildGoldResult.Rejected(GuildGoldRejection.WEEKLY_QUEST_TRANSITION)
             is net.lumalyte.lg.domain.gold.GuildGoldPreparation.Existing ->
                 preparation.record.toResult()
         }

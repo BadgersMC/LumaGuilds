@@ -1469,6 +1469,9 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             BankContributionSchema.RECEIPTS,
             BankContributionSchema.QUESTS,
             BankContributionSchema.GUARDS,
+            BankContributionSchema.QUEST_INTENTS,
+            BankContributionSchema.QUEST_RECOVERY,
+            BankContributionSchema.QUEST_TRANSITION,
         )
 
         // Add claim tables to required list if claims are enabled

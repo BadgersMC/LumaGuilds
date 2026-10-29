@@ -121,6 +121,27 @@ class GuildGoldMigrationTest {
         }
     }
 
+    @Test fun `version 49 adds recovery tables without fabricating old intents`() {
+        SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
+        connection.createStatement().use {
+            it.execute("INSERT INTO guild_bank_contribution_receipts VALUES ('old', 'guild', 0, 1000)")
+            it.execute("DROP TABLE guild_bank_quest_intents")
+            it.execute("DROP TABLE guild_bank_quest_recovery")
+            it.execute("DROP TABLE guild_bank_quest_transition")
+            it.execute("PRAGMA user_version = 48")
+        }
+        repeat(2) { SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate() }
+        assertEquals(BankContributionSchema.VERSION, databaseVersion())
+        assertTrue(tableExists(BankContributionSchema.QUEST_INTENTS))
+        assertTrue(tableExists(BankContributionSchema.QUEST_RECOVERY))
+        assertTrue(tableExists(BankContributionSchema.QUEST_TRANSITION))
+        connection.createStatement().use { s ->
+            s.executeQuery("SELECT COUNT(*) FROM guild_bank_quest_intents").use {
+                assertTrue(it.next()); assertEquals(0, it.getInt(1))
+            }
+        }
+    }
+
     private fun tableExists(table: String): Boolean = connection.prepareStatement(
         "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?"
     ).use { statement ->

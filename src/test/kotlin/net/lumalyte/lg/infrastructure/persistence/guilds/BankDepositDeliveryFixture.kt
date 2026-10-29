@@ -57,6 +57,9 @@ abstract class BankDepositDeliveryFixture {
     @BeforeEach fun setupDeliveryDatabase() {
         storage = newStorage()
         listOf(
+            "quest_leaderboard_payouts", "guild_quest_weekly_bonus", "guild_quest_progress",
+            "weekly_quest_definitions", "weekly_quest_sets",
+            "guild_bank_quest_transition", "guild_bank_quest_recovery", "guild_bank_quest_intents",
             "guild_bank_contribution_guards", "guild_bank_contribution_quests",
             "guild_bank_contribution_receipts", "guild_bank_contribution_accounts",
             "guild_bank_xp_deliveries", "guild_bank_xp_delivery_sequences", "guild_bank_xp_high_water",

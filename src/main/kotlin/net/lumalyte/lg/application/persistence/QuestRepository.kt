@@ -4,7 +4,20 @@ import net.lumalyte.lg.domain.entities.GuildQuestProgress
 import net.lumalyte.lg.domain.entities.WeeklyQuestSet
 import java.util.UUID
 
+data class PendingBankContribution(val transactionId: UUID, val guildId: UUID, val actorId: UUID)
+
 interface QuestRepository {
+    /** Candidates still require canonical receipt, run and definition validation on consumption. */
+    fun pendingBankContributions(limit: Int): List<PendingBankContribution> = emptyList()
+
+    /** Record a completed recovery attempt so ineligible receipts cannot starve the queue. */
+    fun finishBankContributionRecovery(transactionId: UUID) {}
+
+    fun hasUnresolvedBankContributions(weekId: String): Boolean = false
+
+    /** Fence new bank preparations before paying final scores for an old week. */
+    fun beginBankQuestTransition(weekId: String): Boolean = true
+
     /** Verify canonical contribution provenance and consume it atomically with progress, once per quest. */
     fun applyBankContribution(input: BankQuestContribution): GuildQuestProgress? = null
 

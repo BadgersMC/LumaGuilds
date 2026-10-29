@@ -12,6 +12,16 @@ import java.time.Instant
 import kotlin.test.assertEquals
 
 class WeeklyQuestDiscoveryResetTest {
+    @Test fun `pending bank recovery defers reset`() {
+        val quests = mockk<QuestService>(relaxed = true)
+        val config = mockk<ProgressionConfigService>(relaxed = true)
+        val catalog = mockk<QuestTargetCatalog>(relaxed = true)
+        every { quests.hasPendingBankContributionRecovery() } returns true
+        WeeklyQuestCoordinator(quests, config, catalog).refreshIfRequired(Instant.now())
+        verify(exactly = 1) { quests.reconcilePendingRewards() }
+        verify(exactly = 0) { quests.resetWeeklyQuests(any()) }
+        verify(exactly = 0) { quests.deactivate() }
+    }
     @Test fun `new set announces once and minute refresh does not repeat it`() {
         val quests = mockk<QuestService>(relaxed = true)
         val config = mockk<ProgressionConfigService>()

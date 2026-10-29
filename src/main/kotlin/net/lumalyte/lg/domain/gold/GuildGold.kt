@@ -69,7 +69,8 @@ enum class GuildGoldRejection {
     EXTERNAL_UNAVAILABLE,
     EXTERNAL_REJECTED,
     UNAUTHORIZED,
-    DUPLICATE_PENDING
+    DUPLICATE_PENDING,
+    WEEKLY_QUEST_TRANSITION
 }
 
 sealed interface GuildGoldResult {
@@ -110,6 +111,7 @@ sealed interface GuildGoldPreparation {
     data class Existing(val record: GuildGoldOperationRecord) : GuildGoldPreparation
     data class Pending(val transactionId: UUID) : GuildGoldPreparation
     data object FingerprintMismatch : GuildGoldPreparation
+    data object QuestTransition : GuildGoldPreparation
 }
 
 object GuildGoldCalculator {

@@ -42,6 +42,10 @@ class WeeklyQuestCoordinator(
 
     fun refreshIfRequired(now: Instant) {
         questService.reconcilePendingRewards()
+        if (questService.hasPendingBankContributionRecovery()) {
+            logger.warn("Deferring weekly quest reset while bank contribution recovery is pending")
+            return
+        }
         val config = configService.getProgressionConfig().quests
         if (!config.enabled) {
             questService.deactivate()
