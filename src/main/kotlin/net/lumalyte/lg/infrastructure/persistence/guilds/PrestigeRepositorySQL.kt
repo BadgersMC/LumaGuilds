@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.persistence.guilds
 
 import co.aikar.idb.Database
 import net.lumalyte.lg.application.persistence.PrestigeRepository
+import net.lumalyte.lg.application.persistence.PrestigeConfirmation
 import net.lumalyte.lg.application.services.GuildActionCoordinator
 import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.domain.entities.WarStatus
@@ -11,6 +12,7 @@ import net.lumalyte.lg.domain.values.ProgressionCurve
 import net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import java.sql.Connection
+import java.sql.Timestamp
 import java.time.Instant
 import java.util.UUID
 
@@ -54,19 +56,35 @@ class PrestigeRepositorySQL(
         }
     }
 
-    override fun confirm(request: PrestigeQuote, guard: () -> PrestigeRejection?): PrestigeResult = try {
+    override fun confirm(request: PrestigeQuote, guard: () -> PrestigeRejection?): PrestigeResult =
+        confirmWithCommitStatus(request, guard).result
+
+    override fun confirmWithCommitStatus(
+        request: PrestigeQuote,
+        guard: () -> PrestigeRejection?,
+    ): PrestigeConfirmation = try {
         guildActions.withGuilds(request.guildId) {
             gold.withGuildLock(request.guildId) {
                 storage.connection.connection.use { connection ->
                     transaction(connection) {
-                        replay(connection, request)
-                            ?: execute(connection, request, guard).also { saveReceipt(connection, request, it) }
+                        // Fence before replay opens a MariaDB snapshot. An absent guild can still
+                        // replay its retained receipt; fresh execution keeps its existing guards.
+                        connection.prepareStatement("UPDATE guilds SET level = level WHERE id = ?").use {
+                            it.setString(1, request.guildId.toString())
+                            it.executeUpdate()
+                        }
+                        replay(connection, request)?.let { PrestigeConfirmation(it) }
+                            ?: execute(connection, request, guard).let { result ->
+                                saveReceipt(connection, request, result)
+                                // This envelope escapes only after transaction() commits.
+                                PrestigeConfirmation(result, result is PrestigeResult.Applied)
+                            }
                     }
                 }
             }
         }
     } catch (_: Exception) {
-        PrestigeResult.Failed(request.transactionId)
+        PrestigeConfirmation(PrestigeResult.Failed(request.transactionId))
     }
 
     private fun execute(
@@ -198,7 +216,8 @@ class PrestigeRepositorySQL(
                WHERE guild_id = ? AND current_level = 100"""
         ).use {
             it.setInt(1, nextLevelXp)
-            it.setLong(2, now)
+            if (storage.dialect == SqlDialect.MARIADB) it.setTimestamp(2, Timestamp(now))
+            else it.setLong(2, now)
             it.setString(3, request.guildId.toString())
             it.executeUpdate() == 1
         }

@@ -12,6 +12,7 @@ internal class GuildShopXpProvider(
     private val repository: GuildShopXpRepository,
     private val config: ConfigService,
     private val progression: ProgressionService,
+    private val completedSale: (UUID, UUID) -> Unit = { _, _ -> },
 ) : GuildShopXpApi {
     override fun apiVersion(): Int = 2
 
@@ -25,8 +26,18 @@ internal class GuildShopXpProvider(
 
     override fun complete(saleId: UUID): String {
         val result = repository.complete(saleId)
-        if (result.awardedNow) {
-            progression.onCommittedExperience(result.guildId, result.level)
+        if (result.awardedNow || result.status.startsWith("AWARDED:")) {
+            // A retained award repairs missed cache publication without replaying level-up effects.
+            val level = result.level.takeIf { result.awardedNow }
+            progression.onCommittedExperience(result.guildId, level)
+        }
+        if (result.status.startsWith("AWARDED:") || result.status in setOf("CAPPED", "COOLDOWN", "DISABLED")) {
+            // The existing v2 contract only completes durably paid guild SELL purchases.
+            // Achievement publication is non-financial and may never alter the retained API outcome.
+            runCatching { completedSale(saleId, result.guildId) }.onFailure {
+                java.util.logging.Logger.getLogger(GuildShopXpProvider::class.java.name)
+                    .warning("Guild achievement sale publication failed for $saleId; retained sale outcome unchanged")
+            }
         }
         return result.status
     }

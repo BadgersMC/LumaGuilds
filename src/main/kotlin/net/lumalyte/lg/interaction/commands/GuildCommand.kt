@@ -43,10 +43,12 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
     private val lang: LangService by inject()
     private val guildService: GuildService by inject()
+    private val lfgService: net.lumalyte.lg.application.services.LfgService by inject()
     private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository by inject()
     private val rankService: RankService by inject()
     private val chatRankSettings: net.lumalyte.lg.application.services.GuildChatRankSettingsService by inject()
     private val memberService: MemberService by inject()
+    private val inviteBlocks: net.lumalyte.lg.application.services.InviteBlockService by inject()
     private val vaultService: net.lumalyte.lg.application.services.GuildVaultService by inject()
     private val warService: net.lumalyte.lg.application.services.WarService by inject()
     private val getClaimAtPosition: GetClaimAtPosition by inject()
@@ -144,7 +146,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         // Check for invalid characters (only allow letters, numbers, spaces, and basic punctuation)
-        if (!name.matches(Regex("^[a-zA-Z0-9 '&-]+$"))) {
+        if (!GuildNameFilter.hasAllowedCharacters(name)) {
             player.sendMessage(lang.msg("command.migrated.guild.create.invalid_guild_name"))
             player.sendMessage(lang.msg("command.migrated.guild.create.guild_names_can_only_contain"))
             player.sendMessage(lang.msg("command.migrated.guild.create.letters_a_z_a_z"))
@@ -165,7 +167,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         try {
             val until = guildRepository.creationCooldownUntil(playerId)
-            if (until != null && java.time.Instant.now() < until) {
+            if (until != null && java.time.Instant.now() < until &&
+                !player.hasPermission("lumaguilds.guild.creationcooldown.bypass")) {
                 player.sendMessage(lang.msg("guild_creation_cooldown.active", "until" to until.toString()))
                 return
             }
@@ -211,7 +214,12 @@ class GuildCommand : BaseCommand(), KoinComponent {
                         "command.migrated.guild.create.payment_outcome_uncertain",
                         "transaction" to result.transactionId,
                     ))
-                    result.guild
+                    result.guild ?: return
+                }
+                is net.lumalyte.lg.application.services.GuildCreationCostResult.PendingReview -> {
+                    player.sendMessage(lang.msg("command.migrated.guild.create.payment_outcome_uncertain",
+                        "transaction" to result.transactionId))
+                    return
                 }
             }
         }
@@ -1460,15 +1468,47 @@ class GuildCommand : BaseCommand(), KoinComponent {
         navigator.openMenu(menuFactory.createGuildStallMenu(navigator, player, guild))
     }
 
+    /** Direct member access; deliberately independent of management-menu permissions. */
+    @Subcommand("quests|quest")
+    @CommandPermission("lumaguilds.guild.quests")
+    fun onQuests(player: Player) {
+        val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
+        if (guild == null) {
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
+            return
+        }
+        val navigator = MenuNavigator(player)
+        navigator.openMenu(menuFactory.createGuildQuestsMenu(navigator, player, guild))
+    }
+
+    @Subcommand("quests|quest menu")
+    @CommandPermission("lumaguilds.guild.quests")
+    fun onQuestMenu(player: Player) = onQuests(player)
+
+    /** Browsing rankings does not require access to the management control panel. */
+    @Subcommand("leaderboard")
+    @CommandPermission("lumaguilds.guild.leaderboard")
+    fun onLeaderboard(player: Player) {
+        val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
+        val navigator = MenuNavigator(player)
+        navigator.openMenu(menuFactory.createGuildLeaderboardMenu(navigator, player, guild))
+    }
+
+    @Default
+    @CommandPermission("lumaguilds.guild.menu")
+    fun onDefault(player: Player) = openGuildMenu(player, fallbackToInfo = true)
+
     @Subcommand("menu")
     @CommandPermission("lumaguilds.guild.menu")
-    fun onMenu(player: Player) {
+    fun onMenu(player: Player) = openGuildMenu(player, fallbackToInfo = false)
+
+    private fun openGuildMenu(player: Player, fallbackToInfo: Boolean) {
         val playerId = player.uniqueId
 
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
+            onLfg(player)
             return
         }
 
@@ -1478,18 +1518,24 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val playerRank = rankService.getPlayerRank(playerId, guild.id)
         val highestRank = rankService.getHighestRank(guild.id)
 
-        if (!adminOverrideService.hasOverride(playerId) && playerRank?.id != highestRank?.id) {
+        if (!adminOverrideService.hasOverride(playerId) && (playerRank == null || highestRank == null || playerRank.id != highestRank.id)) {
             // Check if player has management permissions
             val hasManagementPerms = playerRank?.permissions?.any { permission ->
                 permission in setOf(
                     RankPermission.MANAGE_RANKS,
                     RankPermission.MANAGE_MEMBERS,
+                    RankPermission.MANAGE_RECRUITMENT,
+                    RankPermission.EDIT_RECRUITMENT_SETTINGS,
                     RankPermission.MANAGE_BANNER,
                     RankPermission.MANAGE_CLAIMS
                 )
             } ?: false
 
             if (!hasManagementPerms) {
+                if (fallbackToInfo) {
+                    onInfo(player, null)
+                    return
+                }
                 player.sendMessage(lang.msg("command.migrated.guild.menu.you_don_t_have_permission_to_access"))
                 player.sendMessage(lang.msg("command.migrated.guild.menu.only_guild_owners_and_members_with_management"))
                 return
@@ -1520,7 +1566,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val guild = guilds.first()
 
         // Check if player has member management permission
-        if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_MEMBERS)) {
+        if (!net.lumalyte.lg.application.services.GuildRecruitmentPermissions.canInvite(memberService, playerId, guild.id)) {
             player.sendMessage(lang.msg("command.migrated.guild.invite.you_don_t_have_permission_to_invite"))
             return
         }
@@ -1583,9 +1629,19 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         // Check if guild is open - if so, allow direct joining without invitation
-        if (guild.isOpen) {
+        val recruitment: net.lumalyte.lg.application.services.GuildRecruitmentService by inject()
+        if (recruitment.listings.profile(guild).mode == net.lumalyte.lg.domain.recruitment.RecruitmentMode.JOIN_IMMEDIATELY) {
             // Open guild - no invitation required
-            joinGuildDirectly(player, guild, isOpenGuild = true)
+            if (guild.joinFeeEnabled && guild.joinFeeAmount > 0) {
+                val factory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+                val navigator = net.lumalyte.lg.interaction.menus.MenuNavigator(player)
+                val menu = factory.createLfgBrowserMenu(navigator, player)
+                menu.passData(guild)
+                navigator.openMenu(menu)
+                return
+            }
+            val result = lfgService.joinGuild(player.uniqueId, guild)
+            player.sendMessage(net.lumalyte.lg.interaction.menus.guild.recruitmentAdmissionFeedback(lang, result))
             return
         }
 
@@ -1644,7 +1700,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 player.sendMessage(lang.msg("command.migrated.guild.joinguilddirectly.guild_type_open_public"))
             }
             player.sendMessage(lang.msg("command.migrated.guild.joinguilddirectly.rank", "lowest_rank" to lowestRank.name))
-            player.sendMessage(lang.msg("command.migrated.guild.joinguilddirectly.use_guild_menu_to_get_started"))
+            player.sendMessage(lang.msg("onboarding.member_overview_hint"))
             player.sendMessage(lang.msg("command.common.blank_line"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.5f)
 
@@ -1673,7 +1729,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         player.playSound(player.location, org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
     }
 
-    @Subcommand("lfg")
+    @Subcommand("lfg|browse|recruitment")
     @CommandPermission("lumaguilds.guild.lfg")
     fun onLfg(player: Player) {
         val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
@@ -1683,6 +1739,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         player.playSound(player.location, org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
     }
 
+    /** Declines an invitation still visible to this player after personal block filtering. */
     @Subcommand("decline")
     @CommandPermission("lumaguilds.guild.decline")
     @CommandCompletion("@pendinginvites")
@@ -1709,6 +1766,60 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         player.sendMessage(lang.msg("command.migrated.guild.decline.you_declined_the_invitation_to_join", "actual_guild_name" to actualGuildName))
         player.playSound(player.location, org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 0.8f)
+    }
+
+    /**
+     * `/g block <player>`: no more guild invites from them or from any guild they are in, and their guild, ally and
+     * party chat messages are hidden from you. Memberships are not changed.
+     */
+    @Subcommand("block")
+    @CommandPermission("lumaguilds.guild.block")
+    @CommandCompletion("@allplayers")
+    fun onBlock(player: Player, targetPlayerName: String) =
+        changeBlock(player, targetPlayerName, blocked = true)
+
+    /** Removes a previously saved personal guild invite block. */
+    @Subcommand("unblock")
+    @CommandPermission("lumaguilds.guild.block")
+    @CommandCompletion("@allplayers")
+    fun onUnblock(player: Player, targetPlayerName: String) =
+        changeBlock(player, targetPlayerName, blocked = false)
+
+    /** Lists personal blocks without changing guild membership. */
+    @Subcommand("blocked")
+    @CommandPermission("lumaguilds.guild.block")
+    fun onBlocked(player: Player) {
+        val names = inviteBlocks.blockedBy(player.uniqueId)
+            .map { Bukkit.getOfflinePlayer(it).name ?: it.toString() }
+            .sortedBy { it.lowercase() }
+        if (names.isEmpty()) {
+            player.sendMessage(lang.msg("command.migrated.guild.block.none"))
+            return
+        }
+        player.sendMessage(lang.msg("command.migrated.guild.block.list", "players" to names.joinToString(", ")))
+    }
+
+    private fun changeBlock(player: Player, targetPlayerName: String, blocked: Boolean) {
+        val target = findPlayerByName(targetPlayerName)?.let { it.uniqueId to it.name }
+            ?: Bukkit.getOfflinePlayerIfCached(targetPlayerName)?.let { it.uniqueId to (it.name ?: targetPlayerName) }
+        if (target == null) {
+            player.sendMessage(lang.msg("command.migrated.guild.block.unknown_player", "player" to targetPlayerName))
+            return
+        }
+        val (targetId, targetName) = target
+        if (targetId == player.uniqueId) {
+            player.sendMessage(lang.msg("command.migrated.guild.block.yourself"))
+            return
+        }
+        if (!inviteBlocks.setBlocked(player.uniqueId, targetId, blocked)) {
+            player.sendMessage(lang.msg("command.migrated.guild.block.failed"))
+            return
+        }
+        if (blocked) {
+            player.sendMessage(lang.msg("command.migrated.guild.block.blocked", "player" to targetName))
+        } else {
+            player.sendMessage(lang.msg("command.migrated.guild.block.unblocked", "player" to targetName))
+        }
     }
 
     @Subcommand("invites")

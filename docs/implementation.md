@@ -182,6 +182,10 @@ The XP/Elo/chapter contract lives in `docs/superpowers/specs/2026-08-27-chapter-
 
 See [guild-shop-xp.md](guild-shop-xp.md) for approved policy, durable delivery, SPEAR state and acceptance boundaries.
 
+### Committed XP visibility
+
+Committed XP must be published to the progression read cache even when no level changes. The progression facade refreshes successful awards and idempotent quest-reward receipt replays; Chapter Two bank/recruit/war awards invoke a deferred platform callback after the permanent award commits. This callback only refreshes state and existing level effects, never awards XP again. The progression mapper accepts both numeric epoch and legacy text timestamps. See [deposit XP verification](plans/2026-10-18-deposit-xp-visibility.md).
+
 ### Guild-wide reconnect chat preference (REQ-135)
 
 `GuildChatReconnectSettingsService` owns membership/permission policy through `GuildChatReconnectSettingsRepository`; the SQL adapter stores a default-off guild preference with atomic expected-state writes. Both menu clients submit a rendered snapshot without replacing newer unchanged fields. `GuildChatReconnectListener` is wired with RoseChat startup, runs one tick after join, and rechecks the current session/channel before switching only guild/ally chat to the configured default. Additive schema migration and transactional disband cleanup cover both supported databases. See `docs/chat-reconnect.md` for verification and release boundaries.
@@ -195,3 +199,38 @@ The shared interaction permission catalog drives creation and editing; selection
 GuildGettingStartedService derives permission-aware read models through existing guild/member/home services. Shared interaction navigation rechecks the selected guild at every click and opens existing menus; Java uses a themed three-row inventory with bounded description lore, while Bedrock uses a native uncached form with a navigation-generation guard on scheduled responses. `/g start` and dashboard access supplement the existing `/g help` browser. No guide action grants rewards, changes prices or purchases homes.
 
 GuildOnboardingRepository is the application persistence port; its infrastructure SQL adapter owns an additive player/guild prompt table. Registration never resets consumption; one conditional update claims delivery atomically. Creation/join events enroll new memberships, and reconnects deliver only pending rows for current online members with help permission. SQL failure preserves pending delivery and does not report successful dismissal. Consumed IDs remain as tombstones so duplicate events or restored memberships cannot replay a first-time prompt. See [guild-onboarding.md](guild-onboarding.md) for evidence and release boundaries.
+
+## Guild Chronicle
+
+`GuildChronicleService` projects the active RewardCatalog and resolved offers into
+bounded ten-level windows. Treasury, travel and outpost branches are filters, not
+new prerequisites. `ChronicleGoalRepository` stores a guild-wide preference,
+separate from ownership, payments and XP; both SQL migration chains own schema
+v46. Monotonic revisions prevent stale menus from overwriting/clearing newer
+choices. Reads fail closed on storage/corrupt state; failed writes never report
+success. Manage Guild Settings controls edits, membership controls reads. Guild
+deletion removes the preference transactionally. Reopening any supported Java
+Chronicle reads the committed goal afresh; no process-local goal cache exists.
+Native details preserve the existing quote and purchase confirmation service.
+
+## Bank contribution provenance (BF-001 through BF-008)
+
+Canonical confirmed player deposits and withdrawals settle a persistent contribution ledger in the same SQL transaction as their gold operation. Player withdrawals create guild-wide debt; deposits repay that debt before increasing cumulative fresh contribution. Neither source periods nor prestige reset this state. Failed payouts, fees, admission, admin, interest and system operations create no fresh contribution. A database preparation guard serializes new player operations across repository instances. Finalization never takes preparation or lifecycle locks.
+
+Durable BANK_DEPOSIT XP uses immutable fresh-contribution boundaries for unit rounding while preserving the original quote, cap window, activity disposition, boost, run fence and exactly-once award receipt. Legacy balance high-water remains consumed for legacy compatibility, but is not an additional threshold that would discard fresh fractions or deny refills after legitimate spending.
+
+GuildBankDepositEvent and its constructor/payload remain unchanged. A separate GuildBankContributionEvent carries only the canonical transaction ID and identities; quests no longer subscribe to gross deposit events and ignore generic DEPOSIT_BANK increments. The SQL adapter verifies the confirmed operation, actor, guild, captured run and original quest week, then consumes the receipt atomically with progress. Its marker survives week-progress cleanup. Existing claim recovery is unchanged; this does not add crash recovery for the best-effort post-deposit Bukkit notification.
+
+Upgrade uses additive schema v48. No historical rewards or eligibility are invented. First use derives outstanding withdrawal debt only from retained, confirmed canonical player operations, excluding the current transaction. System spending is never converted into debt. Equal-time historical credits precede withdrawals conservatively; pre-journal operations have no reconstructible provenance. Already-settled legacy XP without contribution provenance fails closed; no currency is removed. Rollback to an older writer is unsupported once the ledger is active because it would not record withdrawals.
+
+## Public prestige announcement (PA-001 through PA-004)
+
+The SQL prestige adapter returns a separate new-commit envelope after the existing
+transaction commits. Original receipt results and equality remain unchanged.
+Replay, including after reopening storage, never authorizes another announcement.
+The shared Java/Bedrock application service invokes a presentation port only for
+a newly committed Applied result. The Bukkit adapter resolves the guild name and
+broadcasts the localized gold/purple prestige tier to current-server public chat.
+Guild names are serialized literal text, and sender failures are logged without
+undoing settlement. There is no durable chat outbox: a crash after commit may
+lose the announcement, and replay remains silent. No schema or reward change.

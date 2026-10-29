@@ -4,6 +4,7 @@ import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.lumalyte.lg.infrastructure.i18n.bankHistoryTitle
 
 import net.lumalyte.lg.utils.MenuTitleBuilder
 
@@ -98,7 +99,7 @@ class GuildBankTransactionHistoryMenu(
      * Initialize the GUI structure
      */
     private fun initializeGui() {
-        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.bank.history.title", "guild" to guild.name)))
+        gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.bankHistoryTitle(guild.name)))
         gui.setOnGlobalClick { event -> event.isCancelled = true }
 
         // Create main pane for navigation and filters
@@ -126,11 +127,16 @@ class GuildBankTransactionHistoryMenu(
         val backItem = createMenuItem(
             Material.ARROW,
             getLocalizedString("menu.bank.back_to_control_panel"),
-            listOf(lang.gui("menu.bank.history.navigation.back_description"))
+            listOf(
+                lang.gui("menu.bank.history.guild_context", "guild" to guild.name),
+                lang.gui("menu.bank.history.navigation.back_description")
+            )
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
-            menuNavigator.openMenu(menuFactory.createGuildBankMenu(menuNavigator, player, guild))
+            menuNavigator.returnTo(GuildBankMenu::class.java) {
+                menuFactory.createGuildBankMenu(menuNavigator, player, guild)
+            }
         }
         mainPane.addItem(backGuiItem, 0, 0)
 
@@ -395,7 +401,7 @@ class GuildBankTransactionHistoryMenu(
         }
         val sortedMembers = members.sortedBy { memberNames[it.playerId]?.lowercase() }
 
-        val memberGui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.bank.history.title", "guild" to guild.name)))
+        val memberGui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.bankHistoryTitle(guild.name, memberFilter = true)))
         memberGui.setOnGlobalClick { event -> event.isCancelled = true }
 
         val memberPane = PaginatedPane(0, 0, 9, 5)
@@ -454,7 +460,10 @@ class GuildBankTransactionHistoryMenu(
         val backItem = createMenuItem(
             Material.ARROW,
             getLocalizedString("menu.bank.back_to_control_panel"),
-            listOf(lang.gui("menu.bank.history.member_filter.back_description"))
+            listOf(
+                lang.gui("menu.bank.history.guild_context", "guild" to guild.name),
+                lang.gui("menu.bank.history.member_filter.back_description")
+            )
         )
         navPane.addItem(GuiItem(backItem) { event ->
             event.isCancelled = true

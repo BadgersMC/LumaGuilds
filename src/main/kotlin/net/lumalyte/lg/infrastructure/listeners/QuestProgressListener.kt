@@ -2,7 +2,7 @@ package net.lumalyte.lg.infrastructure.listeners
 
 import com.nexomc.nexo.api.NexoBlocks
 import com.nexomc.nexo.api.NexoItems
-import net.lumalyte.lg.api.events.GuildBankDepositEvent
+import net.lumalyte.lg.api.events.GuildBankContributionEvent
 import net.lumalyte.lg.api.events.GuildWarEndEvent
 import net.lumalyte.lg.application.persistence.BlockProvenanceRepository
 import net.lumalyte.lg.application.services.MemberService
@@ -163,19 +163,13 @@ class QuestProgressListener(
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onBankDeposit(event: GuildBankDepositEvent) = safely("bank deposit") {
+    fun onBankContribution(event: GuildBankContributionEvent) = safely("bank deposit") {
         val guildId = event.guildId
         val playerId = event.playerId
-        val amount = event.amount.toLong()
+        val transactionId = event.transactionId
         background {
             progressSafely("bank deposit") {
-                questService.incrementProgress(
-                    guildId,
-                    QuestAction.DEPOSIT_BANK,
-                    "lumaguilds:bank/coins",
-                    amount,
-                    actorId = playerId,
-                )
+                questService.incrementBankDeposit(guildId, playerId, transactionId)
             }
         }
     }

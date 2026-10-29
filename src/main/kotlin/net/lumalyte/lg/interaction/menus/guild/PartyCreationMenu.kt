@@ -379,7 +379,9 @@ class PartyCreationMenu(
             .lore(lang.gui("menu.party.creation.action.back_lore"))
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild))
+            menuNavigator.returnTo(GuildPartyManagementMenu::class.java) {
+                menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild)
+            }
         }
         pane.addItem(backGuiItem, 7, 5)
     }
@@ -441,7 +443,9 @@ class PartyCreationMenu(
                 }
 
                 // Return to party management
-                menuNavigator.openMenu(menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild))
+                menuNavigator.returnTo(GuildPartyManagementMenu::class.java) {
+                    menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild)
+                }
             } else {
                 player.sendMessage(lang.msg("menu.party.creation.feedback.create_failed"))
             }

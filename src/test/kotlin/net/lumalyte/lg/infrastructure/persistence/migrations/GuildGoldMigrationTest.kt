@@ -50,6 +50,7 @@ class GuildGoldMigrationTest {
         }
     }
 
+    /** Releases the guild-gold migration fixture after each scenario. */
     @AfterEach
     fun tearDown() {
         connection.close()
@@ -62,7 +63,92 @@ class GuildGoldMigrationTest {
         assertTrue(tableExists("guild_gold_operations"))
         assertTrue(tableExists("guild_gold_withdrawal_usage"))
         assertTrue(tableExists("guild_gold_security"))
-        assertEquals(44, databaseVersion())
+        assertTrue(tableExists(BankDepositXpSchema.DELIVERIES))
+        assertTrue(tableExists(BankDepositXpSchema.SEQUENCES))
+        assertEquals(BankContributionSchema.VERSION, databaseVersion())
+    }
+
+    @Test
+    fun `version 47 retains legacy gold without inventing deposit quotes`() {
+        SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
+        connection.createStatement().use {
+            it.execute("""INSERT INTO guild_gold_operations
+                (transaction_id, guild_id, actor_id, route, direction, amount, fee, old_balance,
+                 new_balance, status, description, created_at)
+                VALUES ('legacy', 'guild', 'actor', 'PERSONAL_ACCOUNT', 'CREDIT', 100, 0, 0, 100,
+                        'APPLIED', 'Historical deposit without XP provenance', 1)""".trimIndent())
+            it.execute("PRAGMA user_version = 46")
+        }
+
+        SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
+        SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
+
+        assertEquals(BankContributionSchema.VERSION, databaseVersion())
+        connection.createStatement().use { statement ->
+            statement.executeQuery("SELECT COUNT(*) FROM guild_gold_operations WHERE transaction_id = 'legacy'").use {
+                assertTrue(it.next())
+                assertEquals(1, it.getInt(1))
+            }
+            statement.executeQuery("SELECT COUNT(*) FROM ${BankDepositXpSchema.DELIVERIES}").use {
+                assertTrue(it.next())
+                assertEquals(0, it.getInt(1))
+            }
+        }
+    }
+
+    @Test fun `version 48 repairs contribution schema without resetting debt or inventing rewards`() {
+        SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
+        connection.createStatement().use {
+            it.execute("INSERT INTO guild_bank_contribution_accounts VALUES ('guild', 500, 1000)")
+            it.execute("INSERT INTO guild_bank_contribution_receipts VALUES ('paid', 'guild', 0, 1000)")
+            it.execute("INSERT INTO guild_bank_contribution_quests VALUES ('paid', 'bank', 'week')")
+            it.execute("DROP TABLE guild_bank_contribution_guards")
+            it.execute("PRAGMA user_version = 47")
+        }
+        repeat(2) { SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate() }
+        assertEquals(BankContributionSchema.VERSION, databaseVersion())
+        assertTrue(tableExists(BankContributionSchema.GUARDS))
+        connection.createStatement().use { s ->
+            s.executeQuery("SELECT withdrawal_debt, fresh_total FROM guild_bank_contribution_accounts").use {
+                assertTrue(it.next()); assertEquals(500, it.getLong(1)); assertEquals(1000, it.getLong(2))
+            }
+            s.executeQuery("SELECT COUNT(*) FROM guild_bank_contribution_quests").use {
+                assertTrue(it.next()); assertEquals(1, it.getInt(1))
+            }
+            s.executeQuery("SELECT COUNT(*) FROM guild_bank_xp_deliveries").use {
+                assertTrue(it.next()); assertEquals(0, it.getInt(1))
+            }
+        }
+    }
+
+    @Test fun `version 49 adds recovery tables without fabricating old intents`() {
+        SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
+        connection.createStatement().use {
+            it.execute("INSERT INTO guild_bank_contribution_receipts VALUES ('old', 'guild', 0, 1000)")
+            it.execute("DROP TABLE guild_bank_quest_intents")
+            it.execute("DROP TABLE guild_bank_quest_recovery")
+            it.execute("DROP TABLE guild_bank_quest_attempts")
+            it.execute("DROP TABLE guild_bank_quest_transition")
+            it.execute("DROP TABLE guild_bank_quest_revision")
+            it.execute("PRAGMA user_version = 48")
+        }
+        SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
+        connection.createStatement().use { it.execute("UPDATE guild_bank_quest_revision SET revision = 7 WHERE id = 1") }
+        SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
+        assertEquals(BankContributionSchema.VERSION, databaseVersion())
+        assertTrue(tableExists(BankContributionSchema.QUEST_INTENTS))
+        assertTrue(tableExists(BankContributionSchema.QUEST_RECOVERY))
+        assertTrue(tableExists(BankContributionSchema.QUEST_ATTEMPTS))
+        assertTrue(tableExists(BankContributionSchema.QUEST_TRANSITION))
+        assertTrue(tableExists(BankContributionSchema.QUEST_REVISION))
+        connection.createStatement().use { s ->
+            s.executeQuery("SELECT revision FROM guild_bank_quest_revision WHERE id = 1").use {
+                assertTrue(it.next()); assertEquals(7, it.getInt(1))
+            }
+            s.executeQuery("SELECT COUNT(*) FROM guild_bank_quest_intents").use {
+                assertTrue(it.next()); assertEquals(0, it.getInt(1))
+            }
+        }
     }
 
     private fun tableExists(table: String): Boolean = connection.prepareStatement(

@@ -14,6 +14,7 @@ private const val BANNERMAN_MIGRATION_VERSION = 22
 class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: Connection) {
     private val componentLogger = plugin.getComponentLogger()
 
+    /** Advances the MariaDB schema and ensures the invite-block table exists before recording its version. */
     fun migrate() {
         try {
             connection.autoCommit = false
@@ -179,8 +180,29 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(44)
                 currentDbVersion = 44
             }
+            InviteBlockSchema.create(connection, mariaDb = true)
+            if (currentDbVersion < InviteBlockSchema.VERSION) {
+                updateDatabaseVersion(InviteBlockSchema.VERSION)
+                currentDbVersion = InviteBlockSchema.VERSION
+            }
             connection.commit()
 
+            ChronicleGoalSchema.create(connection, mariaDb = true)
+            if (currentDbVersion < ChronicleGoalSchema.VERSION) {
+                updateDatabaseVersion(ChronicleGoalSchema.VERSION)
+                currentDbVersion = ChronicleGoalSchema.VERSION
+            }
+            BankDepositXpSchema.create(connection, mariaDb = true)
+            if (currentDbVersion < BankDepositXpSchema.VERSION) {
+                updateDatabaseVersion(BankDepositXpSchema.VERSION)
+                currentDbVersion = BankDepositXpSchema.VERSION
+            }
+            BankContributionSchema.create(connection, mariaDb = true)
+            if (currentDbVersion < BankContributionSchema.VERSION) {
+                updateDatabaseVersion(BankContributionSchema.VERSION)
+                currentDbVersion = BankContributionSchema.VERSION
+            }
+            connection.commit()
             val finalVersion = getCurrentDatabaseVersion()
             componentLogger.info(Component.text("✓ Database migrations completed (v$finalVersion)"))
         } catch (e: SQLException) {

@@ -9,6 +9,8 @@ import net.lumalyte.lg.domain.entities.WeeklyQuestSet
 import net.lumalyte.lg.domain.values.QuestAction
 import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteStorage
 import net.lumalyte.lg.infrastructure.persistence.migrations.QuestSchema
+import net.lumalyte.lg.infrastructure.persistence.migrations.BankContributionSchema
+import net.lumalyte.lg.infrastructure.persistence.migrations.GuildGoldSchema
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -28,7 +30,11 @@ class QuestRepositorySQLiteTest {
 
     @BeforeEach fun setUp() {
         storage = VirtualThreadSQLiteStorage(tempDir.toFile())
-        storage.connection.getConnection().use { QuestSchema.create(it, mariaDb = false) }
+        storage.connection.getConnection().use {
+            QuestSchema.create(it, mariaDb = false)
+            GuildGoldSchema.create(it, mariaDb = false)
+            BankContributionSchema.create(it, mariaDb = false)
+        }
         repository = QuestRepositorySQLite(storage)
     }
 

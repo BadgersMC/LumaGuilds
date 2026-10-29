@@ -30,6 +30,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         persist-credentials: false
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
       
     - name: Setup JDK 25
       uses: actions/setup-java@v4
@@ -133,4 +134,35 @@ jobs:
     - name: Test with Gradle
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: ./gradlew test
+      run: ./gradlew test acceptanceProbeJar --init-script ci/review-test-logging.init.gradle
+
+    - name: Retain test diagnostics
+      if: always() && github.event_name == 'pull_request'
+      uses: actions/upload-artifact@v4
+      with:
+        name: guilds-pr${{ github.event.pull_request.number }}-test-diagnostics
+        path: |
+          build/test-results/test/*.xml
+          build/reports/tests/test/**
+        retention-days: 7
+        if-no-files-found: warn
+
+    - name: Build unmerged TEST review artifact
+      if: github.event_name == 'pull_request'
+      run: |
+        ./gradlew shadowJar verifyAcceptanceProbePackaging -PreleaseVersion=3.0.0-pr${{ github.event.pull_request.number }}-UNMERGED-TEST
+        git rev-parse HEAD > build/review-source.txt
+        sha256sum build/libs/*UNMERGED-TEST*.jar > build/review-sha256.txt
+
+    - name: Retain unmerged TEST review artifact
+      if: github.event_name == 'pull_request'
+      uses: actions/upload-artifact@v4
+      with:
+        name: guilds-pr${{ github.event.pull_request.number }}-unmerged-test
+        path: |
+          build/libs/*UNMERGED-TEST*.jar
+          build/review-source.txt
+          build/review-sha256.txt
+          build/test-results/test/*.xml
+        retention-days: 7
+        if-no-files-found: error

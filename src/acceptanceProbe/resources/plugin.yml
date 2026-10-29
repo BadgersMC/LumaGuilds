@@ -1,0 +1,8 @@
+name: GuildsAcceptanceProbe
+version: 0.1.1-UNMERGED-TEST
+main: net.lumalyte.lg.acceptance.GuildsAcceptanceProbe
+api-version: '26.2'
+depend: [LumaGuilds, EnthusiaTestBridge]
+commands:
+  guildsacceptance:
+    description: Console-only bounded TEST acceptance fixture

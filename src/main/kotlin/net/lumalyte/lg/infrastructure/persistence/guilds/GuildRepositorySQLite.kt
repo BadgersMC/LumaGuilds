@@ -19,9 +19,17 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
-class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepository {
+class GuildRepositorySQLite(
+    private val storage: Storage<Database>,
+    private val initialLevelXp: () -> Int,
+) : GuildRepository {
+    constructor(storage: Storage<Database>) : this(storage, {
+        net.lumalyte.lg.domain.values.ProgressionCurve.from(net.lumalyte.lg.config.ProgressionConfig())
+            .experienceForNextLevel(1)
+    })
 
     private val guilds: MutableMap<UUID, Guild> = mutableMapOf()
+    private val recruitmentAccess by lazy { GuildRecruitmentAccessSQL(storage) }
 
     /**
      * Format Instant as SQL datetime string compatible with both SQLite and MariaDB.
@@ -451,7 +459,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
 
         // Parse isOpen (default to false for existing guilds)
         val isOpen = try {
-            rs.get<Int?>("is_open")?.let { it == 1 } ?: false
+            rs.guildAccessFlag()
         } catch (e: Exception) {
             false
         }
@@ -572,6 +580,22 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     }
 
     override fun getAll(): Set<Guild> = guilds.values.toSet()
+
+    override fun refreshCachedAccess(guildId: UUID) {
+        val cached = guilds[guildId] ?: return
+        val row = storage.connection.getFirstRow("SELECT is_open FROM guilds WHERE id = ?", guildId.toString()) ?: return
+        guilds[guildId] = cached.copy(isOpen = row.guildAccessFlag())
+    }
+
+    override fun updateAccess(guildId: UUID, isOpen: Boolean): Boolean {
+        return try {
+            val changed = recruitmentAccess.setOpen(guildId, isOpen)
+            if (changed) refreshCachedAccess(guildId)
+            changed
+        } catch (failure: SQLException) {
+            throw DatabaseOperationException("Could not synchronize guild access", failure)
+        }
+    }
     
     override fun getById(id: UUID): Guild? = guilds[id]
     
@@ -603,9 +627,14 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     override fun creationCooldownUntil(playerId: UUID) = creationHistory.cooldownUntil(playerId)
 
     @Synchronized
-    override fun addCreated(guild: Guild, creatorId: UUID): Boolean = try {
+    override fun addCreated(guild: Guild, creatorId: UUID): Boolean = addCreatedInternal(guild, creatorId, false)
+
+    @Synchronized
+    override fun addCreatedBypassingCooldown(guild: Guild, creatorId: UUID): Boolean = addCreatedInternal(guild, creatorId, true)
+
+    private fun addCreatedInternal(guild: Guild, creatorId: UUID, bypassCooldown: Boolean): Boolean = try {
         require(guild.homes.homes.isEmpty()) { "New guild must not contain activated homes" }
-        val added = creationHistory.create(guild.id, creatorId, guild.createdAt) { connection ->
+        val added = creationHistory.create(guild.id, creatorId, guild.createdAt, bypassCooldown) { connection ->
             val inserted = insertGuild(guild, GuildSqlWriter { sql, args ->
                 connection.prepareStatement(sql).use { statement ->
                     args.forEachIndexed { index, value -> statement.setObject(index + 1, value) }
@@ -623,17 +652,39 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                         "Failed to initialize reward account for new guild ${guild.id}"
                     }
                 }
+                val nextLevelXp = initialLevelXp()
+                require(nextLevelXp >= 0) { "Invalid initial progression threshold" }
+                connection.prepareStatement("""
+                    INSERT INTO guild_progression
+                    (guild_id, total_experience, current_level, experience_this_level,
+                     experience_for_next_level, last_level_up, total_level_ups,
+                     unlocked_perks, created_at, last_updated)
+                    VALUES (?, 0, 1, 0, ?, NULL, 0, '[]', ?, ?)
+                """.trimIndent()).use { statement ->
+                    statement.setString(1, guild.id.toString())
+                    statement.setInt(2, nextLevelXp)
+                    val timestamp: Any = if (storage.dialect == net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect.MARIADB)
+                        java.sql.Timestamp.from(guild.createdAt) else guild.createdAt.toEpochMilli()
+                    statement.setObject(3, timestamp)
+                    statement.setObject(4, timestamp)
+                    check(statement.executeUpdate() == 1) { "Failed to initialize guild progression" }
+                }
                 true
             }
         }
         if (added) guilds[guild.id] = guild
         added
+    } catch (error: GuildCreationTransactionUncertainException) {
+        org.slf4j.LoggerFactory.getLogger(GuildRepositorySQLite::class.java)
+            .error("Uncertain creation for guild {} by creator {}", guild.id, creatorId, error)
+        throw error
     } catch (_: Exception) { false }
 
     @Synchronized
     override fun removeWithCreationCooldown(guildId: UUID,
         policy: net.lumalyte.lg.domain.values.GuildCreationCooldown, deletedAt: Instant): Boolean = try {
         val removed = creationHistory.delete(guildId, policy, deletedAt) { connection ->
+            lockGuildBeforeDeletion(connection, guildId)
             // These writes share the cooldown transaction; caches/world change only after commit.
             connection.prepareStatement("UPDATE membership_history SET departed_at = ?, departure_reason = 'DISBANDED' WHERE guild_id = ? AND departed_at IS NULL").use {
                 it.setString(1, deletedAt.toString())
@@ -874,6 +925,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     }
 
     override fun update(guild: Guild): Boolean {
+        val currentAccess = recruitmentAccess.publishedAccess(guild.id) ?: guild.isOpen
         // Use cached column existence check
         val sql = if (hasLfgColumns && hasTrackingColumn && hasBankFrozenColumn) {
             """
@@ -948,7 +1000,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.vaultChestLocation?.x,
                     guild.vaultChestLocation?.y,
                     guild.vaultChestLocation?.z,
-                    if (guild.isOpen) 1 else 0,
+                    if (currentAccess) 1 else 0,
                     if (guild.joinFeeEnabled) 1 else 0,
                     guild.joinFeeAmount,
                     if (guild.trackingEnabled) 1 else 0,
@@ -981,7 +1033,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.vaultChestLocation?.x,
                     guild.vaultChestLocation?.y,
                     guild.vaultChestLocation?.z,
-                    if (guild.isOpen) 1 else 0,
+                    if (currentAccess) 1 else 0,
                     if (guild.joinFeeEnabled) 1 else 0,
                     guild.joinFeeAmount,
                     if (guild.trackingEnabled) 1 else 0,
@@ -1013,7 +1065,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                     guild.vaultChestLocation?.x,
                     guild.vaultChestLocation?.y,
                     guild.vaultChestLocation?.z,
-                    if (guild.isOpen) 1 else 0,
+                    if (currentAccess) 1 else 0,
                     if (guild.joinFeeEnabled) 1 else 0,
                     guild.joinFeeAmount,
                     *bannermanArg(guild),
@@ -1086,7 +1138,7 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
             if (rowsAffected > 0) {
                 // Persist the full named-home map; legacy home_* columns above only cover the default home.
                 writeGuildHomes(guild)
-                guilds[guild.id] = guild
+                guilds[guild.id] = guild.copy(isOpen = currentAccess)
             }
             rowsAffected > 0
         } catch (e: SQLException) {
@@ -1104,8 +1156,13 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
                 var failure: Throwable? = null
                 var rolledBack = false
                 try {
+                    lockGuildBeforeDeletion(connection, guildId)
                     GuildChatReconnectSettingsSchema.delete(connection, guildId)
                     deleteRewardOwnershipState(connection, guildId)
+                    connection.prepareStatement("DELETE FROM guild_progression WHERE guild_id = ?").use {
+                        it.setString(1, guildId.toString())
+                        it.executeUpdate()
+                    }
                     val rowsAffected = connection.prepareStatement("DELETE FROM guilds WHERE id = ?").use {
                         it.setString(1, guildId.toString())
                         it.executeUpdate()
@@ -1146,7 +1203,16 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
         }
     }
 
+    private fun lockGuildBeforeDeletion(connection: java.sql.Connection, guildId: UUID) {
+        // Delivery and prestige take guild before reward account; preserve that order here.
+        connection.prepareStatement("UPDATE guilds SET level = level WHERE id = ?").use {
+            it.setString(1, guildId.toString())
+            it.executeUpdate()
+        }
+    }
+
     private fun deleteRewardOwnershipState(connection: java.sql.Connection, guildId: UUID) {
+        net.lumalyte.lg.infrastructure.persistence.migrations.ChronicleGoalSchema.delete(connection, guildId)
         connection.prepareStatement("DELETE FROM guild_reward_ownership WHERE guild_id = ?").use {
             it.setString(1, guildId.toString())
             it.executeUpdate()
@@ -1160,4 +1226,13 @@ class GuildRepositorySQLite(private val storage: Storage<Database>) : GuildRepos
     override fun isNameTaken(name: String): Boolean = getByName(name) != null
     
     override fun getCount(): Int = guilds.size
+}
+
+/** SQLite returns a numeric flag; MariaDB may expose TINYINT(1) as a Boolean. */
+private fun co.aikar.idb.DbRow.guildAccessFlag(): Boolean {
+    return when (val value = get<Any?>("is_open")) {
+        is Boolean -> value
+        is Number -> value.toInt() == 1
+        else -> false
+    }
 }

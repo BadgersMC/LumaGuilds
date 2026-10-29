@@ -22,11 +22,11 @@ class GuildCreationHistorySQL(private val storage: Storage<Database>) {
 
     fun cooldownUntil(playerId: UUID): Instant? = storage.connection.connection.use { readCooldown(it, playerId) }
 
-    fun create(guildId: UUID, creatorId: UUID, at: Instant, insert: (Connection) -> Boolean): Boolean =
+    fun create(guildId: UUID, creatorId: UUID, at: Instant, bypassCooldown: Boolean = false, insert: (Connection) -> Boolean): Boolean =
         transaction { connection ->
             lockCreator(connection, creatorId)
             val blocked = readCooldown(connection, creatorId)
-            if (blocked != null && at < blocked) return@transaction false
+            if (!bypassCooldown && blocked != null && at < blocked) return@transaction false
             if (!insert(connection)) return@transaction false
             execute(connection, "INSERT INTO guild_creators (guild_id, creator_id, created_at) VALUES (?, ?, ?)",
                 guildId.toString(), creatorId.toString(), at.toEpochMilli())
@@ -91,10 +91,17 @@ class GuildCreationHistorySQL(private val storage: Storage<Database>) {
         val autoCommit = connection.autoCommit
         connection.autoCommit = false
         var failure: Throwable? = null
+        var commitAttempted = false
         var rolledBack = false
         try {
             val changed = action(connection)
-            if (changed) connection.commit() else connection.rollback()
+            if (changed) {
+                commitAttempted = true
+                connection.commit()
+            } else {
+                connection.rollback()
+                rolledBack = true
+            }
             changed
         } catch (error: Throwable) {
             failure = error
@@ -104,16 +111,25 @@ class GuildCreationHistorySQL(private val storage: Storage<Database>) {
             } catch (rollback: Throwable) {
                 if (rollback !== error) error.addSuppressed(rollback)
             }
+            if (error is Exception && (commitAttempted || !rolledBack))
+                throw GuildCreationTransactionUncertainException(error)
             throw error
         } finally {
             // Switching auto-commit on after a failed rollback can commit partial writes.
             if (failure == null || rolledBack) {
                 try { connection.autoCommit = autoCommit }
                 catch (restore: Throwable) {
-                    if (failure == null) throw restore
+                    if (failure == null) {
+                        if (commitAttempted) throw GuildCreationTransactionUncertainException(restore)
+                        throw restore
+                    }
                     if (restore !== failure) failure.addSuppressed(restore)
                 }
             }
         }
     }
 }
+
+/** A failed commit acknowledgment or rollback is not proof that creation did not persist. */
+internal class GuildCreationTransactionUncertainException(cause: Throwable) :
+    RuntimeException("Guild creation transaction outcome needs reconciliation", cause)

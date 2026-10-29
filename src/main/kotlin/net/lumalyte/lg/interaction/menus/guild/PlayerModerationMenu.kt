@@ -19,6 +19,7 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.Party
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.menus.Menu
+import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
@@ -48,12 +49,16 @@ class PlayerModerationMenu(
 
     private val memberService: MemberService by inject()
     private val partyService: PartyService by inject()
+    private val menuFactory: MenuFactory by inject()
     private val lang: LangService by inject()
 
     override fun open() {
         // Check permission
         if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS)) {
             player.sendMessage(lang.msg("menu.player_moderation.feedback.no_permission"))
+            menuNavigator.returnTo(GuildPartyManagementMenu::class.java) {
+                menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild)
+            }
             return
         }
 
@@ -316,7 +321,9 @@ class PlayerModerationMenu(
             .lore(lang.gui("menu.player_moderation.back.description"))
 
         pane.addItem(GuiItem(backItem) {
-            menuNavigator.openMenu(PartyModerationMenu(menuNavigator, player, guild, party))
+            menuNavigator.returnToWithData(PartyModerationMenu::class.java, party) {
+                PartyModerationMenu(menuNavigator, player, guild, party)
+            }
         }, 4, 2)
     }
 

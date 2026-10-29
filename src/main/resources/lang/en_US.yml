@@ -2,6 +2,12 @@
 #
 # All values are MiniMessage strings. Placeholders use <name> syntax.
 #
+quest_discovery:
+  menu_name: '<gold>Guild Quests</gold>'
+  menu_description: '<gray>View weekly objectives, rewards and guild progress.</gray>'
+  denied: '<red>You must be a current guild member with quest access.</red>'
+  available: '<gold>Guild quests:</gold> <yellow><count> objectives available.</yellow> <green>Click here or use /g quests to view them.</green>'
+
 bedrock:
   guild_list:
     title: 'Guilds · <page>/<pages>'
@@ -1783,11 +1789,11 @@ command:
         quests:
           menu: '<click:run_command:''/g help quests''><hover:show_text:''<gold>Open Weekly Guild Quests help''><dark_gray>  [<yellow>Weekly Guild Quests<dark_gray>] <gray>Complete shared objectives, earn automatic rewards, and compete on quest leaderboards.</hover></click>'
           page: |-
-            <gold><bold>─── Help · Weekly Guild Quests ───<newline><gray>Complete shared objectives, earn automatic rewards, and compete on per-quest leaderboards.<newline><yellow>How it works:<newline><white>  Open Guild Quests from /g menu.<newline><white>  Rewards are automatic when the normal target is reached.<newline><white>  Progress can continue past completion for weekly leaderboard scoring.<newline><newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/quests/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/quests/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
+            <gold><bold>─── Help · Weekly Guild Quests ───<newline><gray>Complete shared objectives, earn automatic rewards, and compete on per-quest leaderboards.<newline><yellow>How it works:<newline><white>  All guild members can use /g quests or /guild quest menu.<newline><white>  Rewards are automatic when the normal target is reached.<newline><white>  Progress can continue past completion for weekly leaderboard scoring.<newline><newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/quests/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/quests/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
         progression:
           menu: '<click:run_command:''/g help progression''><hover:show_text:''<gold>Open Progression, Rewards & Prestige help''><dark_gray>  [<yellow>Progression, Rewards & Prestige<dark_gray>] <gray>Track Chapter XP, unlock rewards, and use prestige when enabled.</hover></click>'
           page: |-
-            <gold><bold>─── Help · Progression, Rewards & Prestige ───<newline><gray>Track Chapter XP, reward state, source progress, seasonal competition, and prestige.<newline><yellow>Commands:<newline><click:suggest_command:'/g info'><hover:show_text:'<gold>See your guild overview.<newline><gray>Click to prefill in chat'><white>  /g info</hover></click><newline><newline><gray>Open Progression from /g menu for the full Chapter view.<newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/progression/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/progression/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
+            <gold><bold>─── Help · Progression, Rewards & Prestige ───<newline><gray>Track Chapter XP, reward state, source progress, seasonal competition, and prestige.<newline><yellow>Commands:<newline><click:suggest_command:'/g info'><hover:show_text:'<gold>See your guild overview.<newline><gray>Click to prefill in chat'><white>  /g info</hover></click><newline><newline><gray>All guild members can open rankings with /g leaderboard or /guild leaderboard.<newline><gray>Open Progression from /g menu for the full Chapter view.<newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/progression/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/progression/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
         vault:
           menu: '<click:run_command:''/g help vault''><hover:show_text:''<gold>Open Vault help''><dark_gray>  [<yellow>Vault<dark_gray>] <gray>Use the shared guild vault for storing items.</hover></click>'
           page: |-
@@ -1867,7 +1873,7 @@ command:
         raw_gold_cost_misconfigured: '<red>❌ Guild creation raw-gold cost is not configured. Contact an administrator.'
         raw_gold_paid: '<gold>◆ <gray>Paid <gold><cost> raw-gold units <gray>to found the guild.'
         payment_requires_review: '<red>⚠ Guild creation failed and the raw-gold reservation could not be safely restored. Contact an administrator.'
-        payment_outcome_uncertain: '<yellow>⚠ Guild was created, but payment finalization needs review. Transaction: <transaction>'
+        payment_outcome_uncertain: '<yellow>⚠ Guild creation or payment could not be confirmed. Do not retry until staff reviews this transaction: <transaction>'
         guild_created_successfully: '<green>✅ Guild ''<name>'' created successfully!'
         guild_name_cannot_be_blank: '<red>❌ Guild name cannot be blank!'
         guild_name_is_too_long: '<red>❌ Guild name is too long!'
@@ -1987,6 +1993,14 @@ command:
         your_guild_has_home_slots: '<gray>Your guild has <white><size><gray>/<available_slots><gray> home slots:'
       info:
         no_guild_or_player_named_found: '<red>No guild or player named ''<target_guild>'' found.'
+      block:
+        blocked: '<green>Blocked <player>. You won''t get guild invites from them or their guild, or see their guild, ally and party chat.'
+        unblocked: '<green>Unblocked <player>.'
+        unknown_player: '<red>No player called ''<player>'' has played here.'
+        yourself: '<red>You cannot block yourself.'
+        failed: '<red>That could not be saved. Please try again.'
+        none: '<gray>You have not blocked anyone from guild invites.'
+        list: '<gray>Blocked from guild invites: <white><players>'
       invite:
         is_already_in_your_guild: '<red><player> is already in your guild!'
         player_is_not_online: '<red>Player ''<target_player_name>'' is not online.'
@@ -2476,7 +2490,7 @@ menu:
       quest:
         name: '<gold><objective>'
         description: '<gray><objective>'
-        progress: '<gray>Progress: <white><count>/<target> <dark_gray>(<percent>%)'
+        progress: '<gray>Progress: <white><count>/<target> <gray>(<percent>%)'
         reward: '<gray>Reward: <gold><xp> Guild EXP'
         rank: '<gray>Current rank: <aqua><rank>'
         completed: '<green>✔ Complete — reward on its way'
@@ -3185,6 +3199,8 @@ menu:
       withdraw_overlay: 'Withdrawal successful!'
     history:
       title: '<white>Bank Transaction History - <guild>'
+      compact_title: '<white>Bank History'
+      guild_context: '<gray>Guild: <white><guild>'
       no_transactions: No transactions yet
       recent: '<count> recent transactions'
       open_action: '<yellow>Click to view full history'
@@ -3226,6 +3242,7 @@ menu:
         last_7_days: Last 7 Days
         last_30_days: Last 30 Days
       member_filter:
+        title: '<white>Bank Members'
         all_name: All Members
         all_description: '<gray>Clear member filter'
         select_member: Click to filter by <player>
@@ -6680,7 +6697,7 @@ menu:
         category: '<gray>for this category'
         click: '<yellow>Click to reset'
       back:
-        saved: '<gray>(changes will be saved)'
+        saved: '<gray>Keep this draft; use Save in the rank editor to apply it'
     feedback:
       self_edit_denied: '<red>❌ You cannot modify your own rank''s permissions!'
       prevent_lockout: '<gray>This prevents you from locking yourself out of guild management.'
@@ -6695,6 +6712,8 @@ menu:
     description:
       manage_ranks: '<gray>Create, edit, and delete guild ranks'
       manage_members: '<gray>Invite, kick, and promote members'
+      manage_recruitment: '<gray>Send recruitment invites and review applications without member management'
+      edit_recruitment_settings: '<gray>Edit recruitment listings, joining method, requirements and Discord invite'
       manage_banner: '<gray>Change guild banner and appearance'
       manage_emoji: '<gray>Set guild emoji and icons'
       manage_description: '<gray>Set and edit guild description'
@@ -7007,6 +7026,8 @@ permission:
       bank: Deposit to Guild Bank
       vault: Deposit to Guild Vault
   edit:
+    recruitment:
+      settings: Edit Recruitment Settings
     shop:
       stock: Edit Shop Stock
   container:
@@ -7054,6 +7075,7 @@ permission:
     home: Manage Home
     integrations: Manage Integrations
     members: Manage Members
+    recruitment: Manage Recruitment
     mode: Manage Mode
     parties: Manage Parties
     permissions: Manage Permissions
@@ -7099,6 +7121,31 @@ permission:
     lore: Allows you to view lecterns
     name: View
 admin:
+  owner_recovery:
+    help: '<yellow>/lumaguilds owner recover \<guild-uuid> \<member-uuid> <gray>- Preview recovery of an ownerless guild'
+    usage: '<yellow>Usage: /lumaguilds owner recover \<guild-uuid> \<member-uuid> [confirm \<token>]. Use full UUIDs; first run without confirmation.'
+    sender_required: '<red>Owner recovery requires a player administrator or server console.'
+    preview: |-
+      <gold>Owner recovery preview <gray>(no changes made)
+      <yellow>Guild: <white><guild> <gray>(<guild_id>)
+      <yellow>Existing member: <white><member_id>
+      <yellow>Current rank: <white><current_rank> <gray>(<current_rank_id>)
+      <yellow>Owner rank: <white><owner_rank> <gray>(<owner_rank_id>)
+      <yellow>Current Owners: <white>0
+    confirm: |-
+      <yellow>Verify the intended member UUID, then confirm within 60 seconds:
+      <white>/lumaguilds owner recover <guild_id> <member_id> confirm <token>
+    invalid_confirmation: '<red>Confirmation is missing, expired, used, or does not match this administrator and member. Run a new recovery preview.'
+    success: '<green>Recovered ownership of <guild> (<guild_id>) to existing member <member_id>. Guild progress and other members are unchanged.'
+    rejected:
+      guild_not_found: '<red>Guild UUID was not found. No recovery was performed.'
+      member_not_found: '<red>The target UUID is not an existing member of this guild. No recovery was performed.'
+      invalid_owner_ranks: '<red>The guild must have exactly one Owner rank (priority 0). Repair the rank configuration before recovery.'
+      invalid_member_ranks: '<red>The guild contains a member with a missing or invalid rank. Review the membership data before recovery.'
+      already_owned: '<red>This guild already has an Owner. Use the normal ownership transfer flow.'
+      stale_preview: '<red>Guild ownership or membership changed after the preview. No recovery was performed; run a new preview.'
+      storage_failure: '<red>Could not confirm the recovery result. Check the server log and current ownership before trying a new preview.'
+      unsupported_repository: '<red>The configured member repository does not support owner recovery.'
   bank_credit:
     failure: '<red>✗ Failed to credit player'
     success: '<green>✓ Successfully credited <white><amount> <green>coins to <white><player>'
@@ -7361,6 +7408,8 @@ notification:
     moved_to_global: '<gray>[<gold>!<gray>] <yellow>You have been moved to Global chat because you are no longer in that channel''s guild or party.'
   guild:
     disbanded: '<red>✗ Your guild <white><guild> <red>has been disbanded.'
+    prestige:
+      broadcast: '<gold>✦ <bold><guild></bold></gold> <gray>has reached</gray> <light_purple><bold>Guild Prestige <tier></bold></light_purple><gold>!</gold>'
     disband:
       broadcast: '<red><bold>GUILD DISBANDED</bold> <gray>» <gold><guild> <gray>has disbanded.'
       toast:
@@ -7644,6 +7693,7 @@ onboarding:
   help: "All help topics"
   refresh: "Refresh progress"
   dismiss: "Dismiss prompt"
+  member_overview_hint: "<gray>Use <yellow>/guild<gray> to view your guild."
   dismissed: "<gray>Getting Started remains available with /g start. The first-time prompt will not repeat."
   open: " <green>[Open guide]"
   prompt: "<gold>Welcome to <guild>! Explore your guild's first steps."
@@ -7671,3 +7721,309 @@ onboarding:
     progression: "Earn guild XP through supported activities and quests. Review rewards, requirements and prices here."
     bank: "Bank deposits and withdrawals follow your rank permissions. Physical vault permissions are separate."
     stalls: "Guild Stalls shows authoritative ownership and member access, or explains unavailable Market data."
+
+recruitment:
+  category: "Activity"
+  category_quests: "Quests"
+  category_social: "Social"
+  update_results: "Update results"
+  open_guild: "View %guild%"
+  dialog:
+    navigation: Menu Navigation
+    back: Back to Parent Menu
+    close: Close Menus
+  age_hours: "Age (hours): "
+  filter_language: Filter by Language (blank clears)
+  filter_times: Filter by Play Times (blank clears)
+  profile_fields:
+    requirements: "Requirements"
+    interests: "Activities"
+    times: "Play times"
+    language: "Language"
+  listing_updated: "Listing updated (UTC): "
+  unknown: Not recorded
+  invalid_input: "<yellow>That value could not be accepted. Check the field length, Discord invite format, or current permissions and try again. Cancel returns to the menu.</yellow>"
+  submit_input: Submit
+  cancel_input: Cancel and Return
+  return_application: Back to Application
+  application_details: Application Details
+  return_profile: Back to Guild Profile
+  guide: Guild Guide
+  setup: Guided Recruitment Setup
+  publish: Publish Recruitment Listing
+  discard: Discard Draft
+  submitted_at: "Submitted (UTC): "
+  expires_at: "Expires (UTC): "
+  cancel_review: Back Without Sending
+  manage: Manage Recruitment
+  preview: Preview Our Listing
+  building: Building
+  pvp: PvP
+  sort: Sort Guilds
+  sort_0: Recruiting and Recruiters Online
+  sort_1: Guild Level
+  sort_2: Alphabetical
+  reset: Reset Filters
+  discord_setup: "<yellow>Add a Guild Discord Invite and application instructions in Recruitment Settings before choosing Discord.</yellow>"
+  title: Guild Recruitment
+  browse: Find a Guild
+  mine: My Applications
+  search: Search by Name or Interest
+  filter: "Guild Mode Filter (Any / Peaceful / Hostile)"
+  any: Any
+  enabled: Enabled
+  disabled: Disabled
+  peaceful: Peaceful
+  competitive: Hostile
+  status:
+    submitted: Awaiting Review
+    offered: Join Offer Available
+    declined: Declined
+    withdrawn: Withdrawn
+    expired: Expired
+    admission_pending: Admission Pending Staff Review
+    joined: Joined
+    closed: Closed
+  filter_recruiting: Only Guilds Recruiting With Space
+  filter_beginner: Only Beginner Friendly Guilds
+  reminders: Toggle Recruitment Reminders
+  inbox: Recruitment Inbox
+  settings: Recruitment Settings
+  spaces: Available Spaces
+  level: Guild Level
+  fee: Joining Fee
+  fee_unavailable: Unavailable
+  beginner: Beginners Welcome
+  introduction: "Introduce yourself (maximum 2000 characters)"
+  discord: Guild Discord Invite
+  withdraw: Withdraw Application
+  offer: Review Join Offer
+  pending: "Admission needs staff review. Do not pay again."
+  send_offer: Send Join Offer
+  decline: Decline Application
+  reason: "Decline reason (maximum 300 characters; optional)"
+  confirm: Confirm and Join
+  discord_notice: "Applications happen in Discord. Opening this invite does not submit an in-game application. Copy the invite on Bedrock if clicking is unavailable."
+  discord_confirm: Show Discord Link
+  method: Recruitment Method
+  pitch: "Recruitment Message (maximum 300 characters)"
+  requirements: "Requirements (maximum 500 characters)"
+  interests: "Interests (up to 8, comma separated)"
+  times: Preferred Play Times
+  language: Preferred Language
+  instructions: Discord Application Instructions
+  empty: No Entries Found
+  previous: Previous Page
+  next: Next Page
+  mode:
+    join: Join Immediately
+    apply: Apply In Game
+    discord: Apply Through Discord
+    closed: Recruitment Closed
+  feedback:
+    guild_full: "<yellow>This guild has no available member space. Refresh its listing or choose another guild."
+    payment_rejected: "<yellow>No payment was taken. Resolve the guild bank or payment restrictions, then reopen the listing or offer to review the current fee."
+    payment_refunded: "<yellow>Joining failed, but your payment was returned. Reopen the listing or offer before retrying. Reference: <reference>"
+    payment_uncertain: "<red>Your joining payment needs staff review. Do not pay again. Reference: <reference>"
+    already_member: "<yellow>You already belong to a guild. Open your guild menu or review My Applications."
+    insufficient_funds: "<yellow>Joining requires <required> <currency>; you currently have <current>. Review the offer again after obtaining enough currency."
+    edit_denied: "<red>You need Edit Recruitment Settings permission. Ask your guild owner to grant it, then reopen the menu."
+    review_denied: "<red>You need Manage Recruitment permission to view or decide applications. Reopen the menu after your rank is updated."
+    guild_removed: "<yellow>This guild is no longer available. Return to the recruitment board."
+    method_changed: "<yellow>This guild changed its application method. Reopen its listing for the current joining options."
+    application_limit: "<yellow>You already have an active application for this guild or reached your application limit. Review My Applications before applying again."
+    application_removed: "<yellow>This application is no longer available. Refresh My Applications or the recruitment inbox."
+    stale_application: "<yellow>This application or offer changed. Refresh the menu before trying again. Do not repeat a payment marked pending."
+    fee_changed: "<yellow>The joining fee or currency changed. Reopen the offer and review the current price before confirming."
+    ineligible: "<yellow>The applicant is no longer eligible or the guild has no available space. Refresh the listing and check current membership and requirements."
+    invite_changed: "<yellow>The guild Discord invite changed. Reopen the guild listing to see its current link."
+    failed: "<red>Could not complete recruitment. Refresh the menu and check your permissions, eligibility, space, joining fee or Discord invite. If admission is pending, contact staff before paying again."
+    input_expired: "<gray>Your recruitment input expired. Reopen recruitment to try again."
+    joined: "<green>You joined the guild. Your other active applications will be closed."
+    input: "<yellow><field><gray>. Enter your answer in chat, or type cancel."
+  discovery:
+    prompt: "<gold>Looking for people to play with? <yellow>Click to browse recruiting guilds. <gray>Use the reminder toggle to opt out."
+    leave: "<gray>Looking for another guild? <yellow>Click to browse recruiting guilds."
+    updated: "<gold>Recruitment updated: <offers> join offers and <pending> applications awaiting your review. <yellow>Click to open recruitment."
+
+dialog_v2:
+  close_menu: "Close"
+  board_subtitle: "Find your next guild. Build your next chapter."
+  action_subtitle: "Review the details before choosing an action."
+  confirm_fee: "Confirm joining fee"
+  filter_fee: "Joining fee"
+  filter_level: "Guild level"
+  filter_sort: "Sort by"
+  show_results: "Show results"
+  sort_online: "Online"
+  winner_reward: "<gold>Weekly winner reward: <xp> guild XP"
+  automatic_rewards: "<gray>Quest rewards settle automatically."
+  resets: "<gray>Resets in <time>"
+  top_three: "<gold>Top 3 guilds"
+  full_rankings: "Full rankings"
+  other_quests: "Other quests"
+  view_quest: "<gray>Click to view quest details."
+  guild_settings: "Guild Settings"
+  guild_frame: "Guild frame"
+  more_settings: "More guild settings"
+  more_listing_options: "More listing options"
+  more_filters: "More filters and preferences"
+  filters: "Filters"
+  open_recruitment: "Open recruitment"
+  close_recruitment: "Close recruitment"
+  setting_public: "Public listing"
+  setting_public_description: "Show the guild on the recruitment board."
+  setting_announcements: "Join announcements"
+  setting_announcements_description: "Tell guild members when someone joins."
+  setting_banner: "Banner on board"
+  setting_banner_description: "Use the saved banner on recruitment listings."
+  setting_reminders: "Quest reminders"
+  setting_reminders_description: "Remind members during the final hour before weekly reset."
+  'on': "<green>On"
+  'off': "<gray>Off"
+  frame_locked: "<gray>Locked: earn this seasonal frame first."
+  frame_current: "<green>In use"
+  frame_preview: "<gold>Preview selected"
+  frame_choose: "<gray>Click to preview"
+  frame_subtitle: "Preview a frame, then apply it to your guild."
+  apply_frame: "Apply selected frame"
+  leaderboard: "Guild Leaderboard"
+  guild_rankings: "Guild standings"
+  recorded_wins: "Wins from up to 52 retained completed quest sets"
+  rank_level: "Level"
+  rank_wins: "Quest wins"
+  members: "members"
+  perks: "Guild Perks"
+  perk_unlocked: "<green>Unlocked"
+  join_announcement: "<gold><player><gray> joined <gold><guild><gray>."
+  quest_reminder: "<gold><guild><gray>'s weekly quests reset within an hour. <yellow>Click to view quests."
+
+guild_dialogs:
+  board:
+    search_filters: "Search & filters"
+    summary: "%activity% - %spaces% spaces - %online% online"
+    no_fee: "No joining fee"
+    fee: "%amount% %currency% to join"
+  quests:
+    rankings: "<gold>Weekly rankings"
+    choose_ranking: "<gray>Choose a quest to view its weekly guild standings."
+  settings:
+    title: "<gold>Guild Settings"
+    description: "<gray>Choose a category. Guild editors retain their existing permissions; personal chat settings affect only you."
+    information: "<gold>Guild Information"
+    appearance: "<gold>Appearance"
+    access: "<gold>Homes, Access and Guild Chat"
+    chat: "<gold>Personal Chat Preferences"
+  progression:
+    title: "<gold>Guild Progression"
+    reward_states: "<gold>Chapter Rewards<newline><green>Owned: <purchased><newline><yellow>Available: <available><newline><gray>Locked: <locked>"
+    quests: "<gold>Guild Quests and Rankings"
+    quests_denied: "<red>You do not have permission to open guild quests."
+    sources: "<gold>XP Sources and Caps"
+
+chronicle:
+  title: '<gold>Guild Chronicle</gold>'
+  range: '<gray><guild> · Guild level <level> · Levels <first>–<last></gray>'
+  detail: '<gray><guild> · Guild level <level></gray>'
+  tracked: '<gold>Tracked guild goal</gold>'
+  empty: '<gray>No optional rewards in this branch and level range. Automatic benefits still apply.</gray>'
+  earlier: '<white>Earlier levels</white>'
+  later: '<white>Later levels</white>'
+  goal: '<gold>Tracked goal</gold>'
+  automatic: '<white>All level benefits</white>'
+  auto_level: '<gold>Level <level></gold><gray> · Base bank capacity: <capacity></gray>'
+  auto_explanation: '<gray>Automatic base capacity; purchased extensions and the configured ceiling apply separately.</gray>'
+  track: '<gold>Track guild goal</gold>'
+  untrack: '<white>Untrack guild goal</white>'
+  review: '<gold>Review purchase</gold>'
+  back_tree: '<white>Back to tree</white>'
+  saved: '<green>Guild goal saved.</green>'
+  conflict: '<yellow>The guild goal changed since this screen opened. Refreshed without overwriting it.</yellow>'
+  denied: '<red>Guild membership and Manage Guild Settings are required to edit the shared goal.</red>'
+  invalid: '<red>That reward is no longer in the configured catalog.</red>'
+  all: '<white>All</white>'
+  treasury: '<gold>Treasury</gold>'
+  travel: '<aqua>Travel</aqua>'
+  outposts: '<green>Outposts</green>'
+  bank_effect: '<gray>Bank capacity: +<amount> before the configured ceiling.</gray>'
+  home_effect: '<gray>Home capacity: +<amount> slots.</gray>'
+  cooldown_effect: '<gray>Home cooldown tier: <percent>% of base. Best owned tier applies.</gray>'
+  fee_effect: '<gray>Withdrawal fee tier: <percent>% of configured fee. Best owned tier applies.</gray>'
+  ally_effect: '<gray>Unlock access to allied guild homes under existing access rules.</gray>'
+  shared: '<gray>Shared guild goal; Manage Guild Settings is required to change it.</gray>'
+  change: '<gold>Current: <current> → after purchase: <after></gold>'
+  percent_change: '<gold>Current: <current>% → after purchase: <after>% of base.</gold>'
+  ally_owned: '<green>Allied home access is already unlocked.</green>'
+  ally_after: '<gold>After purchase: allied home access unlocked.</gold>'
+
+  earning:
+    purchase_permanent: '<green>◆ PERMANENT ON PURCHASE · Home capacity</green>'
+    optional: '<gold>Optional guild-bank purchase</gold>'
+    level_price: '<gray>Reach guild level <level>, then pay <price> guild gold.</gray>'
+    purchase: '<gray>Level eligibility does not buy it automatically. Review the exact quote; Manage Guild Settings and Withdraw From Bank are required.</gray>'
+    home_kept: '<green>Purchased home capacity survives prestige without using the retention choice. Saved locations and paid activations remain separate.</green>'
+    retain: '<gray>To make this permanent: buy it first, reach level 100, then select it as your one eligible retention choice when confirming prestige.</gray>'
+  prestige:
+    action: '<gold>Prestige rewards</gold>'
+    title: '<gold>Prestige rewards and earning guide</gold>'
+    subtitle: '<gray>Permanent rewards, retention choices and exact acquisition rules</gray>'
+    overview: '<gold>Earning guide</gold>'
+    milestones: '<gold>Prestige milestones</gold>'
+    legacy: '<gold>Retained legacy perks</gold>'
+    seal: '<gold>✦ PRESTIGE LEGACY · PERMANENT ✦</gold>'
+    progress: '<gold>Prestige <count>/<max> · Current guild level <level></gold>'
+    home_bonus: '<green>Permanent prestige home-capacity bonus: +<count></green>'
+    fee: '<gold>Next prestige fee: <fee> guild gold, subject to the final quote.</gold>'
+    maximum: '<gray>Lifetime prestige maximum reached.</gray>'
+    earn_title: '<gold>How to earn the next prestige rewards</gold>'
+    earn_level: '<gray>1. Reach guild level 100 again in the current run.</gray>'
+    earn_purchase: '<gray>2. Already own an eligible Bank Extension, Quick Travel, Treasury Discount or Allied Waypoints reward.</gray>'
+    earn_confirm: '<gray>3. Select one eligible owned reward, review the fee and reset details, then confirm through the existing authorized prestige transaction. Each applied prestige also adds one permanent home-capacity slot.</gray>'
+    preserved_title: '<gold>What survives and what resets</gold>'
+    preserved_homes: '<green>Purchased home capacity, saved home locations and previously paid home activations survive prestige.</green>'
+    preserved_rewards: '<green>Previously permanent rewards remain; exactly one newly selected eligible owned reward becomes permanent.</green>'
+    reset: '<gray>Guild level resets to 1 and run XP to 0. Other non-permanent current-run purchases reset. No currency or guild-XP bonus is awarded.</gray>'
+    chapter: '<gray>Chapter rollover follows server policy separately from prestige.</gray>'
+    none: '<gray>No prestige-retained rewards recorded yet. Home capacity bought permanently is a separate acquisition route.</gray>'
+    retained: '<gold>Earned by purchasing this reward and selecting it during an applied prestige; retained under the existing rules.</gold>'
+    review: '<gold>Review eligible retention choices</gold>'
+    milestone: '<gold>Prestige <tier> · Fee: <fee> guild gold · +1 permanent home slot and one eligible retention choice.</gold>'
+    milestone_earned: '<green>✓ This prestige milestone is earned.</green>'
+    milestone_locked: '<gray>Reach level 100 in that run, meet the existing restrictions, select an eligible owned reward and confirm the exact fee.</gray>'
+
+achievements:
+  back_statistics: '<white>Back to Statistics</white>'
+  personal_scope: '<gold>Personal achievements</gold>'
+  guild_scope: '<gold>Guild combat milestones</gold>'
+  guild_summary: '<gray><count>/8 current conditions met · Page <page>/2</gray>'
+  guild_met: '<green>Current condition met</green>'
+  guild_not_met: '<gray>Current condition not met</gray>'
+  guild_rules: '<gray>Current guild statistics; wars use the latest 100 retained records. These badges can change and grant no extra XP or permanent award.</gray>'
+  title: '<gold>Guild Advancements</gold>'
+  inspect_overview: '<white>Overview</white>'
+  inspect_earning: '<white>How to earn</white>'
+  inspect_reward: '<white>Reward</white>'
+  inspect_rules: '<white>Record rules</white>'
+  subtitle: '<gray><category> · Branch page <page>/<pages> · Select a connected milestone</gray>'
+  unavailable: '<red>Achievement data is unavailable. Existing progress was not cleared.</red>'
+  completed: '<gold>✓ Completed · <current>/<goal></gold>'
+  progress: '<gray>◇ In progress · <current>/<goal></gray>'
+  how: '<gold>How to earn and who receives credit</gold>'
+  reward: '<gold>Completion reward</gold>'
+  personal_xp: '<green><amount> personal Minecraft XP, once per player.</green>'
+  no_extra: '<gray>Achievement completion; no extra XP configured.</gray>'
+  no_guild_xp: '<gray>These XP rewards are personal experience, not guild progression XP.</gray>'
+  record_rules: '<gold>Saved personal achievement record</gold>'
+  offline: '<gray>Shared activities credit online guild members. Offline activity is not replayed; current guild level and combined playtime are checked again when online.</gray>'
+  retained: '<gray>Completed achievements and tracked goals remain on your player record across reconnects, guild changes and prestige.</gray>'
+  connections: '<gray>Tree lines organize milestones; they do not add purchase requirements or consume skill points.</gray>'
+  previous: '<white>Earlier milestones</white>'
+  next: '<white>Later milestones</white>'
+  track: '<gold>Track achievement</gold>'
+  untrack: '<white>Untrack achievement</white>'
+  goal: '<gold>Tracked achievement</gold>'
+  tree_action: '<white>Open advancement tree</white>'
+  tree_key_hint: '<gold>Open Minecraft Advancements with your configured key: </gold>'
+  tree_find_hint: '<gold>. Select the banner tab (the renderer may call it Enthusia), then look for Guild Mastery milestones and their descriptions. Drag the tree to pan. Your saved progress and tracked goal are unchanged.</gold>'
+  renderer_unavailable: '<yellow>The optional EnthusiaAdvancements renderer is unavailable. Tracking and personal rewards remain available in this dialog.</yellow>'
+  back: '<white>Back to guild menu</white>'

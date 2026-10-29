@@ -6,7 +6,7 @@ import io.mockk.verify
 import net.lumalyte.lg.application.persistence.BlockProvenanceRepository
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.QuestService
-import net.lumalyte.lg.api.events.GuildBankDepositEvent
+import net.lumalyte.lg.api.events.GuildBankContributionEvent
 import net.lumalyte.lg.domain.values.BlockPosition
 import org.bukkit.World
 import org.bukkit.block.Block
@@ -24,7 +24,7 @@ class QuestProvenanceAsyncTest {
         val queue = BlockProvenanceOperationQueue(Executor { it.run() })
         val questService = mockk<QuestService>()
         every {
-            questService.incrementProgress(any(), any(), any(), any(), any(), any())
+            questService.incrementBankDeposit(any(), any(), any())
         } throws IllegalStateException("quest persistence failed")
         val listener = QuestProgressListener(
             questService,
@@ -33,7 +33,7 @@ class QuestProvenanceAsyncTest {
             queue,
         )
 
-        listener.onBankDeposit(GuildBankDepositEvent(UUID.randomUUID(), UUID.randomUUID(), 500))
+        listener.onBankContribution(GuildBankContributionEvent(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()))
 
         var provenanceRan = false
         queue.submit { provenanceRan = true }.join()

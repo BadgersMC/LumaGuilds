@@ -1,0 +1,19 @@
+# Quest and stall menu refinement
+
+Spec: REQ-QUEST-DISCOVERY-4 and REQ-STALL-ICONS-1. Current upstream main 283d75f inspected; isolated codex/quest-stall-refine worktree carries local quest discovery forward with documentation conflict resolution preserving both main and local requirements. Keep local without PR as previously instructed; no production or test-server changes authorized this turn.
+
+Prove: user reports short commands fail while menu variants work. ACF treats pipe aliases at each whitespace-delimited path segment; the earlier mixed-depth annotation combined short and long paths in one declaration. Existing stall rows uniformly create PAPER controls and OAK_SIGN content items. Progression has no quest navigation. These are brownfield source and user-report findings; routing and presentation regressions will verify the change rather than claiming old annotation-only tests proved live routing.
+
+Engine/architecture: separate short and menu-path handlers sharing existing quest access. Progression navigation reuses MenuFactory and checks membership/quest permission on click. Stall icon identity is attached to each row, retaining async load guards, member checks and manager callbacks. Reuse established icons for controls. New stall artwork follows the website's small roofed storefront silhouette in the guild palette and is kept in the private asset directory.
+
+Verification pending: command routing, Java/Bedrock quest navigation, menu controls/fallbacks, locale and layer contracts, compile and full tests. Project-local EARS/state helpers and generic verification.md are absent; this record and requirement/task files track SPEAR manually. GitHub and live client acceptance are separate. No upload, reload or restart.
+
+## Local verification results
+
+Real BukkitCommandManager registration/dispatch verified all eight routes (both roots, both nouns, with/without menu), not just annotations. Focused quest/stall cases passed 39 tests with zero failures/errors and one optional runtime-artifact skip. The reflective stall-row safety fixture was adapted to the new semantic icon field; all its stale member/navigation checks pass. Full Java 25 offline test/shadowJar passed 1,789 tests with zero failures/errors and 16 optional environment skips, including locale and layer contracts. A final focused rerun extended the three progression cases to assert both Java and Bedrock allow/removed-membership/explicit-deny paths; all three execute with zero skips. No plugin source changed after the full suite; that final rerun only strengthened the test fixture. diff --check passed.
+
+The local artifact uses releaseVersion 3.0.0-quest-stall-LOCAL-UNMERGED. No GitHub workflow ran and no production/test server was modified. Companion APIs, persistence and financial behavior are unchanged. Real client command/menu/font/pack acceptance remains pending.
+
+Private artwork is a new transparent 16x16 native vector-derived PNG in the local operation assets directory, with Nexo and Bedrock copies. It follows the website's roofed storefront silhouette in the existing guild palette. All submenu controls reuse established guild icon IDs and useful vanilla fallbacks. The asset kit's item definition is a replacement template for an existing ID, never an instruction to create a duplicate or reassign production model data blindly.
+
+Clickable preview: https://chatgpt.com/space/page_506247d29dec81918ae933db999b8ddc . Progression-to-quests, stalls-to-members, back navigation and manager-only controls were checked. At 360px all images loaded and the page had no horizontal overflow. Server data, framing and simplified source/quest icons are illustrative; signed-in mobile Page rendering was not independently verified. Artifact hashes and private installation notes are retained outside the public source checkout.

@@ -6,9 +6,10 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class GuildQuestsSeason2ContractTest {
-    private val source = Paths.get(
-        "src/main/kotlin/net/lumalyte/lg/interaction/menus/guild/GuildQuestsMenu.kt"
-    ).toFile().readText()
+    private val source =
+        Paths.get(
+            "src/main/kotlin/net/lumalyte/lg/interaction/menus/guild/GuildQuestsMenu.kt",
+        ).toFile().readText()
     private val locale = Paths.get("src/main/resources/lang/en_US.yml").toFile().readText()
 
     @Test
@@ -19,10 +20,11 @@ class GuildQuestsSeason2ContractTest {
     }
 
     @Test
-    fun `weekly quest items use action artwork and click through to leaderboard`() {
+    fun `weekly quest items use action artwork and open read only details`() {
         assertTrue(source.contains("QuestIconProvider.itemFor(quest)"))
         assertTrue(source.contains("GuildQuestLeaderboardMenu("))
-        assertTrue(source.contains("menu.quests.item.quest.view_leaderboard"))
+        assertTrue(source.contains("GuildQuestDetailMenu("))
+        assertTrue(source.contains("dialog_v2.view_quest"))
         assertFalse(source.contains("questService.claimQuest("))
     }
 

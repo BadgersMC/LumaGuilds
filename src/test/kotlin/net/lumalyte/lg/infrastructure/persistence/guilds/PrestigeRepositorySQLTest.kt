@@ -11,6 +11,8 @@ import net.lumalyte.lg.domain.rewards.*
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.junit.jupiter.api.Test
 import java.time.Instant
+import java.sql.Timestamp
+import net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect
 import java.util.UUID
 import kotlin.test.*
 
@@ -58,7 +60,7 @@ class PrestigeRepositorySQLTest : RewardSqlTestFixture() {
                    (guild_id, total_experience, current_level, experience_this_level,
                     experience_for_next_level, total_level_ups, unlocked_perks, created_at, last_updated)
                    VALUES (?, 500000, 100, 0, 0, 99, '[]', ?, ?)""",
-                guildId.toString(), Instant.now().toEpochMilli(), Instant.now().toEpochMilli(),
+                guildId.toString(), progressionTimestamp(storage), progressionTimestamp(storage),
             )
             gold.apply(
                 GuildGoldMutation(
@@ -78,6 +80,9 @@ class PrestigeRepositorySQLTest : RewardSqlTestFixture() {
         )
     }
 
+    private fun progressionTimestamp(storage: Storage<Database>): Any =
+        if (storage.dialect == SqlDialect.MARIADB) Timestamp.from(Instant.now()) else Instant.now().toEpochMilli()
+
     private fun quote(id: UUID = UUID.randomUUID()) = PrestigeQuote(
         transactionId = id,
         guildId = guildId,
@@ -90,6 +95,100 @@ class PrestigeRepositorySQLTest : RewardSqlTestFixture() {
 
     private fun Subject.snapshot() =
         assertIs<RewardOwnershipRead.Found>(owners.read(guildId)).snapshot
+
+    @Test
+    fun `only new committed confirmation permits public announcement after reopen`() {
+        val subject = open()
+        val request = quote()
+        val first = subject.repository.confirmWithCommitStatus(request) { null }
+        assertIs<PrestigeResult.Applied>(first.result)
+        assertTrue(first.newlyCommitted)
+        assertFalse(subject.repository.confirmWithCommitStatus(request) { null }.newlyCommitted)
+        closeStorage(subject.storage)
+        val reopened = open(seed = false)
+        val replay = reopened.repository.confirmWithCommitStatus(request) { null }
+        assertEquals(first.result, replay.result)
+        assertFalse(replay.newlyCommitted)
+    }
+
+    @Test
+    fun `concurrent confirmations permit a single announcement and charge`() {
+        val subject = open()
+        val request = quote()
+        val executor = java.util.concurrent.Executors.newFixedThreadPool(2)
+        val start = java.util.concurrent.CountDownLatch(1)
+        try {
+            val calls = (1..2).map {
+                executor.submit<net.lumalyte.lg.application.persistence.PrestigeConfirmation> {
+                    check(start.await(10, java.util.concurrent.TimeUnit.SECONDS))
+                    subject.repository.confirmWithCommitStatus(request) { null }
+                }
+            }
+            start.countDown()
+            val results = calls.map { it.get(20, java.util.concurrent.TimeUnit.SECONDS) }
+            assertTrue(results.all { it.result is PrestigeResult.Applied })
+            assertEquals(1, results.count { it.newlyCommitted })
+            assertEquals(9_000L, subject.gold.getBalance(guildId))
+            assertEquals(1, subject.snapshot().ownership.prestigeCount)
+        } finally {
+            executor.shutdownNow()
+        }
+    }
+
+    @Test
+    fun `prestige preserves purchased homes locations paid activations and credits after reopen`() {
+        val subject = open()
+        val worldId = UUID.randomUUID().toString()
+        val transactionId = UUID.randomUUID()
+        subject.storage.connection.executeUpdate(
+            "INSERT INTO guild_homes (guild_id, name, world_id, x, y, z) VALUES (?, ?, ?, ?, ?, ?)",
+            guildId.toString(), "workshop", worldId, 12, 72, -34,
+        )
+        val activations = GuildHomeActivationRepositorySQL(subject.storage)
+        assertTrue(activations.activate(guildId, "workshop", transactionId))
+        subject.storage.connection.executeUpdate(
+            "INSERT INTO guild_home_activation_credits (guild_id, credits) VALUES (?, ?)", guildId.toString(), 2,
+        )
+        assertIs<PrestigeResult.Applied>(subject.repository.confirm(quote()) { null })
+        closeStorage(subject.storage)
+
+        val reopened = open(seed = false)
+        val home = assertNotNull(reopened.storage.connection.getFirstRow(
+            "SELECT world_id, x, y, z FROM guild_homes WHERE guild_id = ? AND name = ?", guildId.toString(), "workshop",
+        ))
+        assertEquals(worldId, home.getString("world_id"))
+        assertEquals(12, home.getInt("x"))
+        assertEquals(72, home.getInt("y"))
+        assertEquals(-34, home.getInt("z"))
+        val restored = GuildHomeActivationRepositorySQL(reopened.storage)
+        assertTrue(restored.isActive(guildId, "workshop"))
+        assertEquals(1, restored.activeCount(guildId))
+        assertEquals(2, restored.availableCredits(guildId))
+        assertEquals(transactionId.toString(), reopened.storage.connection.getFirstRow(
+            "SELECT transaction_id FROM guild_home_activations WHERE guild_id = ? AND home_name = ?",
+            guildId.toString(), "workshop",
+        )!!.getString("transaction_id"))
+        val ownership = reopened.snapshot().ownership
+        assertEquals(6, ownership.initialHomeCapacity)
+        assertEquals(7, RewardEntitlementResolver(catalog).resolve(
+            1, ownership, settings.bank.maxBankBalance.toLong(), settings.guild.maxMembersPerGuild,
+        ).homeCapacity)
+    }
+
+    @Test
+    fun `committed prestige receipt replays after reopen without a second charge`() {
+        val subject = open()
+        val request = quote()
+        val first = assertIs<PrestigeResult.Applied>(subject.repository.confirm(request) { null })
+        closeStorage(subject.storage)
+        val reopened = open(seed = false)
+        assertEquals(first, reopened.repository.confirm(request) { PrestigeRejection.UNAUTHORIZED })
+        assertEquals(9_000L, reopened.gold.getBalance(guildId))
+        assertEquals(1, reopened.snapshot().ownership.prestigeCount)
+        assertEquals(1, reopened.storage.connection.getFirstRow(
+            "SELECT COUNT(*) AS n FROM guild_prestige_transactions WHERE guild_id = ?", guildId.toString(),
+        )!!.getInt("n"))
+    }
 
     @Test
     fun `prestige atomically charges resets current run and retains exactly one selected perk`() {
@@ -202,7 +301,9 @@ class PrestigeRepositorySQLTest : RewardSqlTestFixture() {
         rejectInserts(subject.storage, "guild_prestige_transactions")
         val request = quote()
 
-        assertIs<PrestigeResult.Failed>(subject.repository.confirm(request) { null })
+        val confirmation = subject.repository.confirmWithCommitStatus(request) { null }
+        assertIs<PrestigeResult.Failed>(confirmation.result)
+        assertFalse(confirmation.newlyCommitted)
         assertEquals(19_000L, subject.gold.getBalance(guildId))
         assertEquals(0, subject.snapshot().ownership.prestigeCount)
         assertEquals(100, subject.storage.connection.getFirstRow(

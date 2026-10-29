@@ -15,6 +15,74 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 internal class GuildCreationAdmissionSQLTest : RewardSqlTestFixture() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = [false, true])
+    fun lostCommitAcknowledgmentMustNotBecomeRefundableFailure(bypass: Boolean) {
+        val actual = openStorage()
+        migrateProductionSchema(actual)
+        val database = io.mockk.spyk(actual.connection)
+        io.mockk.every { database.connection } answers {
+            val connection = actual.connection.connection
+            java.lang.reflect.Proxy.newProxyInstance(java.sql.Connection::class.java.classLoader,
+                arrayOf(java.sql.Connection::class.java)) { _, method, args ->
+                try {
+                    val result = method.invoke(connection, *(args ?: emptyArray()))
+                    if (method.name == "commit") throw java.sql.SQLException("lost commit acknowledgment")
+                    result
+                } catch (error: java.lang.reflect.InvocationTargetException) { throw error.cause!! }
+            } as java.sql.Connection
+        }
+        val storage = io.mockk.mockk<Storage<Database>>()
+        io.mockk.every { storage.connection } returns database
+        io.mockk.every { storage.dialect } returns actual.dialect
+        val repository = GuildRepositorySQLite(storage)
+        val guild = Guild(UUID.randomUUID(), "Commit Uncertain", createdAt = Instant.now())
+        kotlin.test.assertFailsWith<GuildCreationTransactionUncertainException> {
+            if (bypass) repository.addCreatedBypassingCooldown(guild, UUID.randomUUID())
+            else repository.addCreated(guild, UUID.randomUUID())
+        }
+        // The server committed; treating the exception as false would incorrectly restore gold.
+        assertEquals(1, actual.connection.getFirstRow(
+            "SELECT COUNT(*) AS n FROM guilds WHERE id = ?", guild.id.toString())!!.getInt("n"))
+    }
+
+    @Test
+    fun newGuildCanResolveRewardsBeforeOwnerAdmission() {
+        val storage = openStorage()
+        val repository = repository(storage)
+        val config = io.mockk.mockk<net.lumalyte.lg.application.services.ConfigService>()
+        io.mockk.every { config.loadConfig() } returns net.lumalyte.lg.config.MainConfig()
+        val progression = ProgressionRepositorySQLite(storage, config)
+        val guild = Guild(UUID.randomUUID(), "Bootstrap Ready", createdAt = Instant.now())
+        assertTrue(repository.addCreated(guild, UUID.randomUUID()))
+        val reader = RewardStateRepositorySQL(storage,
+            RewardOwnershipRepositorySQL(storage, net.lumalyte.lg.domain.rewards.RewardCatalog.chapterTwo()))
+        kotlin.test.assertIs<net.lumalyte.lg.domain.rewards.RewardStateRead.Found>(reader.read(guild.id))
+        val saved = assertNotNull(progression.getGuildProgression(guild.id))
+        assertEquals(1, saved.currentLevel)
+        assertEquals(guild.createdAt.epochSecond, saved.createdAt.epochSecond)
+    }
+
+    @Test
+    fun configuredThresholdAndBootstrapFailureStayAtomic() {
+        val storage = openStorage()
+        migrateProductionSchema(storage)
+        val repository = GuildRepositorySQLite(storage) { 4321 }
+        val guild = Guild(UUID.randomUUID(), "Configured Curve", createdAt = Instant.now())
+        assertTrue(repository.addCreated(guild, UUID.randomUUID()))
+        assertEquals(4321, storage.connection.getFirstRow(
+            "SELECT experience_for_next_level AS n FROM guild_progression WHERE guild_id = ?",
+            guild.id.toString())!!.getInt("n"))
+        val failed = Guild(UUID.randomUUID(), "Atomic Failure", createdAt = Instant.now())
+        val body = failureTriggerBody(storage)
+        storage.connection.executeUpdate("CREATE TRIGGER reject_progression BEFORE INSERT ON guild_progression $body")
+        assertFalse(repository.addCreated(failed, UUID.randomUUID()))
+        assertNull(repository.getById(failed.id))
+        assertCreationRowsMissing(storage, failed)
+        assertEquals(0, storage.connection.getFirstRow(
+            "SELECT COUNT(*) AS n FROM guild_reward_accounts WHERE guild_id = ?", failed.id.toString())!!.getInt("n"))
+    }
+
     @Test
     fun setupCleanupSkipsCooldown() {
         val storage = openStorage()
@@ -50,6 +118,58 @@ internal class GuildCreationAdmissionSQLTest : RewardSqlTestFixture() {
         val expires = requireNotNull(repository.creationCooldownUntil(creator))
         assertFalse(repository.addCreated(Guild(UUID.randomUUID(), "Blocked", createdAt = at.plusSeconds(2)), creator))
         assertTrue(repository.addCreated(Guild(UUID.randomUUID(), "Allowed", createdAt = expires), creator))
+    }
+
+    @Test
+    fun explicitBypassAdmitsOnlyThatCreationWithoutClearingCooldown() {
+        val storage = openStorage()
+        val repository = repository(storage)
+        val creator = UUID.randomUUID()
+        val at = Instant.parse("2026-09-17T00:00:00Z")
+        val original = Guild(UUID.randomUUID(), "Original", createdAt = at)
+        assertTrue(repository.addCreated(original, creator))
+        assertTrue(repository.removeWithCreationCooldown(original.id, GuildCreationCooldown(), at.plusSeconds(1)))
+        val expiry = requireNotNull(repository.creationCooldownUntil(creator))
+        val blocked = Guild(UUID.randomUUID(), "Blocked", createdAt = at.plusSeconds(2))
+        assertFalse(repository.addCreated(blocked, creator))
+        val permitted = Guild(UUID.randomUUID(), "Permitted", createdAt = at.plusSeconds(2))
+        assertTrue(repository.addCreatedBypassingCooldown(permitted, creator))
+        assertEquals(expiry, repository.creationCooldownUntil(creator))
+        val cold = GuildRepositorySQLite(storage)
+        assertEquals(expiry, cold.creationCooldownUntil(creator))
+        assertEquals(permitted.id, cold.getById(permitted.id)?.id)
+        assertEquals(creator.toString(), storage.connection.getFirstRow(
+            "SELECT creator_id FROM guild_creators WHERE guild_id = ?", permitted.id.toString())!!.getString("creator_id"))
+        assertFalse(cold.addCreated(Guild(UUID.randomUUID(), "Still Blocked", createdAt = at.plusSeconds(3)), creator))
+        val other = UUID.randomUUID()
+        storage.connection.executeUpdate("INSERT INTO guild_creation_cooldowns (player_id, blocked_until) VALUES (?, ?)",
+            other.toString(), expiry.toEpochMilli())
+        assertFalse(cold.addCreated(Guild(UUID.randomUUID(), "Other Blocked", createdAt = at.plusSeconds(3)), other))
+    }
+
+    @Test
+    fun bypassOriginFailureRollsBackEveryBootstrapRowAndPreservesCooldown() {
+        val storage = openStorage()
+        val repository = repository(storage)
+        val creator = UUID.randomUUID()
+        val expiry = Instant.now().plusSeconds(86400)
+        repository.creationCooldownUntil(creator)
+        storage.connection.executeUpdate("INSERT INTO guild_creation_cooldowns (player_id, blocked_until) VALUES (?, ?)",
+            creator.toString(), expiry.toEpochMilli())
+        val body = failureTriggerBody(storage)
+        storage.connection.executeUpdate("CREATE TRIGGER reject_bypass_creator BEFORE INSERT ON guild_creators $body")
+        val guild = Guild(UUID.randomUUID(), "Failed Bypass", createdAt = Instant.now())
+        assertFalse(repository.addCreatedBypassingCooldown(guild, creator))
+        assertNull(repository.getById(guild.id))
+        assertCreationRowsMissing(storage, guild)
+        for (table in listOf("guild_reward_accounts", "guild_progression")) {
+            assertEquals(0, storage.connection.getFirstRow(
+                "SELECT COUNT(*) AS n FROM $table WHERE guild_id = ?", guild.id.toString())!!.getInt("n"))
+        }
+        assertEquals(expiry.toEpochMilli(), repository.creationCooldownUntil(creator)!!.toEpochMilli())
+        storage.connection.executeUpdate("DROP TRIGGER reject_bypass_creator")
+        assertFalse(repository.addCreated(guild, creator))
+        assertTrue(repository.addCreatedBypassingCooldown(guild, creator))
     }
 
     @Test

@@ -26,6 +26,14 @@ class PhysicalGoldJournal(private val storage: Storage<Database>) {
         }
     }
 
+    fun pending(playerId: UUID): UUID? = storage.connection.connection.use { connection ->
+        connection.prepareStatement("SELECT transaction_id FROM guild_gold_reservations " +
+            "WHERE player_id = ? AND phase NOT IN ('COMMITTED', 'RESTORED') ORDER BY transaction_id LIMIT 1").use {
+            it.setString(1, playerId.toString())
+            it.executeQuery().use { rows -> if (rows.next()) UUID.fromString(rows.getString(1)) else null }
+        }
+    }
+
     fun insert(reservation: PhysicalGoldReservation, payload: String) {
         storage.connection.connection.use { connection ->
             connection.prepareStatement("INSERT INTO guild_gold_reservations (transaction_id, player_id, amount, phase, payload) VALUES (?, ?, ?, 'REMOVING', ?)").use {

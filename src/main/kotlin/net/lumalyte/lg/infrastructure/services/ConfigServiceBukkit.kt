@@ -51,6 +51,13 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             warBanner = loadWarBannerConfig(),
             discordGuildRoles = loadDiscordGuildRolesConfig(),
             guildList = loadGuildListConfig(),
+            recruitment = net.lumalyte.lg.config.RecruitmentConfig(
+                maximumApplications = config.getInt("recruitment.maximum_applications", 3),
+                applicationDays = config.getInt("recruitment.application_days", 7),
+                offerHours = config.getInt("recruitment.offer_hours", 48),
+                onboardingDelaySeconds = config.getInt("recruitment.onboarding_delay_seconds", 300),
+                reminderMinutes = config.getInt("recruitment.reminder_minutes", 0),
+            ),
             chapterTwoRewardsEnabled = config.getBoolean("progression.chapter_two_rewards_enabled", true),
             chapterTwoGoldCostsEnabled = config.getBoolean("progression.chapter_two_gold_costs_enabled", false)
         )
@@ -71,8 +78,7 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
         )
     }
 
-    private fun loadGuildListConfig(): GuildListConfig =
-        GuildListConfig(
+    private fun loadGuildListConfig(): GuildListConfig = GuildListConfig(
             pageSize = config.getInt("guild_list.page_size", 18).coerceIn(1, 36),
         )
 

@@ -26,6 +26,7 @@ object MenuTitleGlyphs {
                 .map { it.groupValues[1] }
                 .distinct()
                 .toList()
+        if (ids.isEmpty()) return title
         val resolved = ids.mapNotNull { id -> lookup(id)?.let { id to it } }.toMap()
         if (resolved.isEmpty()) return title
         return title.replaceText(
@@ -35,4 +36,7 @@ object MenuTitleGlyphs {
                 .build(),
         )
     }
+
+    // Already-resolved titles are deliberately untouched. The retired inventory-label
+    // layer must not add a second rewind after the registered background advance.
 }

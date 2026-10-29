@@ -69,13 +69,31 @@ lumaguilds.command.*     # All claim commands (default: op)
 ```
 lumaguilds.admin         # Admin commands (default: op)
 bellclaims.admin         # Admin override mode (default: op)
+lumaguilds.admin.owner.recover # Recover an ownerless guild (default: op)
 ```
 
 **Admin Override Mode** (`bellclaims.admin`): Allows administrators to toggle a special mode that grants owner-level permissions in all guild claims. When enabled:
 - Grants all 13 claim permissions (BUILD, CONTAINER, REDSTONE, etc.)
-- Bypasses guild membership and rank checks
+- Bypasses guild management permission checks; Owner assignment, direct
+  demotion, and removal remain protected
 - Automatically cleared on logout for security
 - Use `/lumaguilds override` or `/bellclaims override` to toggle
+
+**Owner recovery** requires both `lumaguilds.admin` and
+`lumaguilds.admin.owner.recover`. The specialist permission is not inherited
+from base admin access, `bellclaims.admin`, guild ranks, or an enabled override.
+For a non-operator administrator who should recover ownerless guilds:
+
+```text
+/lp user <admin> permission set lumaguilds.admin true
+/lp user <admin> permission set lumaguilds.admin.owner.recover true
+```
+
+`/lumaguilds owner recover <guild-uuid> <member-uuid>` previews the recovery of
+an existing member. The returned confirmation command uses a single-use token
+that expires after 60 seconds. Recovery refuses to replace an existing Owner.
+See the
+[recovery guide](wiki/docs/admins/override.md#recovering-an-ownerless-guild).
 
 ---
 
@@ -169,12 +187,14 @@ pex group <group> check lumaguilds.guild.*
 | Guild Info | `lumaguilds.guild.info: true` | Public information |
 | Guild List | `lumaguilds.guild.list: true` | View open guilds |
 | Guild LFG | `lumaguilds.guild.lfg: true` | Browse guilds looking for members |
+| Invite Blocks | `lumaguilds.guild.block: true` | Anyone may block players from inviting them |
 | Guild Management | `lumaguilds.guild.*: true` | Guild members should manage their guilds |
 | War Declarations | `lumaguilds.guild.war: true` | Guild members can wage war |
 | Claim Management | `lumaguilds.command.*: op` | Resource intensive |
 | Party Chat | `lumaguilds.partychat.*: op` | Prevent spam |
 | Admin Commands | `lumaguilds.admin: op` | Server management |
 | Admin Override | `bellclaims.admin: op` | Powerful debugging tool |
+| Owner Recovery | `lumaguilds.admin.owner.recover: op` plus `lumaguilds.admin` | Restore an existing member as Owner only in an ownerless guild |
 
 ---
 
@@ -186,3 +206,14 @@ pex group <group> check lumaguilds.guild.*
 4. **Operator**: Everything including claims and admin tools
 
 This setup provides a smooth experience where players can start with basic features and earn more permissions as they prove trustworthy.
+
+### Player-specific guild creation cooldown exception
+
+`lumaguilds.guild.creationcooldown.bypass` defaults to **false**, including for
+operators, and is not a declared child of the guild wildcard. Grant it explicitly
+to the intended player only. Permission plugins may independently expand wildcard
+grants; inspect the player's effective permission before use.
+
+The permission bypasses only creation cooldown admission. It does not erase or
+shorten the saved cooldown, remove creation costs, or skip other creation checks.
+Revoking it restores ordinary admission against the same saved cooldown.

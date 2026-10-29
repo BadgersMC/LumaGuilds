@@ -41,6 +41,7 @@ class QuestSchemaMigrationTest {
         }
     }
 
+    /** Releases the quest-schema fixture after each scenario. */
     @AfterEach
     fun tearDown() {
         connection.close()
@@ -61,7 +62,7 @@ class QuestSchemaMigrationTest {
         assertTrue(columnExists("weekly_quest_definitions", "target_rarity"))
         assertTrue(columnExists("weekly_quest_definitions", "conditions"))
         assertTrue(columnExists("weekly_quest_definitions", "quest_order"))
-        assertEquals(44, databaseVersion())
+        assertEquals(BankContributionSchema.VERSION, databaseVersion())
     }
 
     private fun tableExists(table: String): Boolean = connection.prepareStatement(

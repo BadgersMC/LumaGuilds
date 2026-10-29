@@ -81,7 +81,8 @@ class GuildRewardCatalogControlsTest {
         mockkConstructor(ChestGui::class)
         every { anyConstructed<ChestGui>().addPane(any(), capture(panes)) } just Runs
         every { anyConstructed<ChestGui>().show(any()) } just Runs
-        val menu = GuildProgressionMenu(mockk(), player, guild, mockk(), members, progression, mockk(), mockk(), mockk())
+        val guilds = mockk<GuildService> { every { getGuild(guild.id) } returns guild }
+        val menu = GuildProgressionMenu(mockk(), player, guild, guilds, members, progression, mockk(), mockk(), mockk())
         GuildProgressionMenu::class.java.getDeclaredMethod("openRewardCatalog").apply { isAccessible = true }.invoke(menu)
         val books = panes.flatMap { it.items }.filter { it.item.type == Material.BOOK }
         assertEquals(5, books.size)

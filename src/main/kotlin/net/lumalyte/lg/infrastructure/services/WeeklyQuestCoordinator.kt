@@ -20,13 +20,15 @@ import kotlin.random.Random
 class WeeklyQuestCoordinator(
     private val questService: QuestService,
     private val configService: ProgressionConfigService,
-    private val targetCatalog: QuestTargetCatalog
+    private val targetCatalog: QuestTargetCatalog,
+    private val onNewQuestSet: () -> Unit = {}
 ) {
     private val logger = LoggerFactory.getLogger(WeeklyQuestCoordinator::class.java)
     private var task: BukkitTask? = null
 
     fun start(plugin: Plugin) {
-        refreshIfRequired(Instant.now())
+        runCatching { refreshIfRequired(Instant.now()) }
+            .onFailure { logger.warn("Initial weekly quest reset check failed; it will be retried", it) }
         task?.cancel()
         task = plugin.server.scheduler.runTaskTimer(plugin, Runnable {
             runCatching { refreshIfRequired(Instant.now()) }
@@ -41,6 +43,10 @@ class WeeklyQuestCoordinator(
 
     fun refreshIfRequired(now: Instant) {
         questService.reconcilePendingRewards()
+        if (questService.hasPendingBankContributionRecovery()) {
+            logger.warn("Deferring weekly quest reset while bank contribution recovery is pending")
+            return
+        }
         val config = configService.getProgressionConfig().quests
         if (!config.enabled) {
             questService.deactivate()
@@ -99,6 +105,7 @@ class WeeklyQuestCoordinator(
         questService.resetWeeklyQuests(
             WeeklyQuestSet(period.weekId, period.startsAt, period.endsAt, quests)
         )
+        onNewQuestSet()
     }
 
     private fun periodBounds(now: Instant, config: QuestSystemConfig): PeriodBounds {

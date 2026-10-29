@@ -2,6 +2,30 @@
 
 Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` line, and an `Evidence:` block that MUST be filled with real source citations before any downstream SPEAR phase runs on it.
 
+- [~] **LIVE-ACCEPTANCE-PROBE** Separate opt-in TEST quest definition fixture.
+  - Tag: `INFRA`
+  - References: AP-01 through AP-05 in `docs/plans/2026-10-26-live-acceptance-probe.md`.
+  - Evidence: Four definition restore/drift/rollover/duplicate cases pass; explicit separate JAR compiles. No product engine edits, fabricated progress or live acceptance claimed. Hosted checks and approved TEST activation remain separate gates.
+
+- [~] **BANK-CONTRIBUTION-ANTI-RECYCLING** Persist withdrawal debt and verify deposit quest provenance.
+  - Tag: `TDD`
+  - References: BF-001 through BF-008 in `docs/plans/2026-10-24-bank-farming-acceptance.md`.
+  - Evidence: two original regressions reproduced rollover XP and gross-event quest farming before engine edits. Canonical settlement now records persistent contribution receipts; atomic per-quest consumption rejects recycled or duplicate input. SQLite/MariaDB rollback, restart and concurrency contracts exercise the implementation. Local full suite2310/0 failures/4 unchanged skips and native reward profile95/0 failures/0 skips pass; the scoped plan records artifact and evidence. Hosted exact-head checks, independent review and live acceptance remain gates; no deployment claimed.
+
+- [~] **GUILDS-RELEASE-BLOCKERS** Native Inventory caption and optional advancement startup.
+  - Tag: `TDD`
+  - References: GB-001/002/003 in `docs/plans/2026-10-23-release-blockers.md`.
+  - Evidence: `GuildAchievementProjectionLifecycleTest` reproduces late-provider discovery and the descriptor cycle before the fix; service lifecycle tests cover both enable orders, removal, replacement and disable. Private Pack PR9 covers 42 caption apertures with title-after-caption compositing and unchanged protected pixels. Hosted checks and paired native acceptance remain separate gates.
+
+- [~] **LG-RECRUITMENT** Approved LFG recruitment upgrade and discovery.
+  - Tag: `TDD`
+  - References: REQ-150; REC-001 through REC-017 in `docs/plans/guild-recruitment.md`.
+  - Evidence: runtime board/profile/private application/inbox/settings flows, canonical offer admission, durable notifications and discovery preferences are wired for Java and Bedrock. Local check: 1,807 cases, zero failures/errors, 16 existing optional skips; native disposable MariaDB: 13 cases, zero failures/errors/skips. Hosted review/checks, merged delivery and in-game acceptance remain gates. See the recruitment plan for failure evidence and integration boundaries. Private art is excluded; no production or TEST changes occurred.
+- [x] **SHOP-XP-REGISTRATION** Publish the existing v2 service during startup.
+  - Tag: `TDD`
+  - References: REQ-134.
+  - Evidence: `docs/plans/2026-10-18-shop-xp-registration.md`. Startup wiring regression fails on current main; real Bukkit discovery and actual Market 1.0.53 gateway lifecycle pass after registration. Full build and hosted/client evidence are recorded separately.
+
 - [~] **LG-2010** Guild stall menus and optional read adapter.
   - Tag: `TDD`
   - References: REQ-124/125; Market REQ-340/341.
@@ -1001,3 +1025,75 @@ Menu audit follow-up (REQ-063):
   - Tag: `TDD`
   - References: REQ-149.
   - Evidence: the historical TEST branch reproduced stale-provider behavior and recorded 24 focused cases plus a 1,752-test full suite with zero failures/errors and 20 optional skips. This sanitized rebuild contains only the provider lifecycle source/test correction and evidence; fresh exact-head hosted checks remain required. See `docs/test-startup-cleanup.md`. Production remains unchanged.
+
+## Personal invite block delivery (REQ-150/151)
+- [x] Refine PR #232 persistence, filtered lookup/counts, routing and viewer filtering; run focused/full checks and publish source fixes.
+- [x] Address all three manual CodeRabbit findings; prove native MariaDB repair and verify the installed TEST Friends connector against the current Guilds API. Cross-server caches remain startup snapshots; real-client acceptance is deferred.
+- [ ] Complete exact-head hosted quality/review gates and maintainer review; merge and real-client acceptance remain separate. Current main inspected at283d75f1; existing fork head db53a274. Project EARS/state helpers absent; manual evidence in docs/plans/2026-10-13-invite-block-review.md. No merge or production authorization.
+## Local quest discovery - no PR requested
+- [x] **QUEST-STALL-REFINEMENT** Verify all short/menu quest routes, add progression quest navigation and semantic stall icons (REQ-QUEST-DISCOVERY-4, REQ-STALL-ICONS-1). Local Java 25 full test/shadowJar passed 1,789 cases with zero failures/errors and 16 optional environment skips. Real ACF routing and Java/Bedrock permission checks execute without skips. Private artwork and local preview remain outside the public repository; no deployment or PR. Evidence: docs/plans/2026-10-13-quest-stall-refinement.md.
+- [x] **QUEST-DISCOVERY** Member command, availability reminders and spawn leaderboard placeholders.
+  - Tag: `TDD`
+  - References: REQ-QUEST-DISCOVERY-1/2/3.
+  - Evidence: current canonical main bfa6931 inspected. GuildCommand.onMenu gates management ranks; existing quest menus already check membership. Existing weekly quest placeholders cover objectives and own progress, but not top guild scores. No project EARS/state helpers or generic verification.md present. Local implementation complete: 1,643 tests passed, 14 optional/environment fixtures skipped; local unmerged shadow JAR built. See docs/plans/2026-10-11-quest-discovery-verification.md. No historical red/green claim; client/spawn acceptance remains deferred. No production modifications or PR.
+- [x] **RECRUITMENT-PAYMENT-REVIEW** Confirm paid command joins, preserve typed recovery outcomes and release only proven-safe reservations.
+  - Tag: `TDD`
+  - References: REC-018 in `docs/plans/guild-recruitment.md`.
+  - Evidence: two reproduced regressions; full local 1,839-case check with zero failures/errors and 16 existing optional skips; final focused checks and 22 native MariaDB cases pass. Hosted checks and client acceptance remain separate gates. No TEST or production changes.
+
+- [x] **RECRUITMENT-READERS** Preserve recruitment context when reading application details and guild guides.
+  - Tag: `TDD`
+  - References: REC-019 in `docs/plans/guild-recruitment.md`.
+  - Evidence: page ownership, authorization revocation, Unicode/word wrapping and inventory dismissal regressions; full local check passes. Modern Java dialog and Bedrock native form serialization compile against existing APIs; real client acceptance remains outstanding. Private interactive preview checked at 320, 390 and 760 pixels with all three client presentations. No server upload, reload or restart.
+
+- [x] **MODERN-GUILD-PRESENTATION** Native recruitment pages, grouped settings, progression overview and per-quest rankings with guarded callbacks.
+  - Tag: `TDD`
+  - References: REC-020 through REC-023 in `docs/plans/2026-10-14-modern-guild-menus.md`.
+  - Evidence: clean 1,857-case standalone and 1,894-case combined TEST checks, zero failures/errors, 16 existing optional skips; architecture/localization checks pass. Nexo item models are reused without public artwork. The private implementation preview distinguishes native UI from the proposed frames/graphs; hosted CI, TEST staging and real client acceptance are separate gates.
+
+- [x] **GUILD-CHRONICLE** Cover all catalog levels/rewards and persist a shared
+  guild goal using versioned SQL compare-and-set. Tag: TDD. Requirements and
+  local/SQLite/MariaDB evidence: `docs/plans/2026-10-16-guild-chronicle.md`.
+  Hosted review and real multiplayer/client acceptance remain separate gates.
+
+- [x] **GUI-RETURN-ROUTING** Restore named GUI ancestors instead of pushing duplicate parents; reproduce diplomacy child -> Relations -> Dashboard and cover direct-entry fallback/state/token handling. Full local check: 1,991 cases, zero failures/errors, 16 optional skips. Manual SPEAR evidence: docs/plans/2026-10-17-gui-return-routing.md. Hosted CI and corrected TEST acceptance remain separate gates.
+- [x] **DEPOSIT-XP-VISIBILITY** Refresh committed XP without a level-up, publish Chapter Two bank XP, and read numeric/legacy progression timestamps. Two baseline cache regressions and a real SQL mapper failure reproduced; full local check passes 1,775 tests with zero failures/errors and 16 optional skips. Evidence: docs/plans/2026-10-18-deposit-xp-visibility.md. Hosted review and corrected TEST acceptance remain separate; no deployment.
+
+- [ ] **DIALOG-ACTIONS-LEADERBOARD** Direct member leaderboard commands and native
+  theme controls; DN-001 through DN-003 in
+  `plans/2026-10-21-dialog-actions-leaderboard.md`. Source and paired pack work;
+  hosted checks and live acceptance pending. No runtime use authorized.
+
+- [ ] **GUILD-CREATION-BOOTSTRAP** Tag: TDD. GC-001 through GC-004. References: docs/plans/2026-10-23-guild-creation-bootstrap.md. Evidence: canonical main283d75f1 source, investigation839/841, baseline/new regression and final verification recorded in the plan. TEST/client pause remains in force.
+
+- [ ] **ACCEPTANCE-PROBE-RUNTIME** AP-01 through AP-07 in `plans/2026-10-26-live-acceptance-probe.md`. Isolated loader regression reproduces the original failure and verifies the Java boundary, wrong-owner rejection and disabled startup. Separate packaging/CI checks added. Local native database and actual Market artifact contracts are distinct from pending hosted review, TEST helper replacement, quest/replay acceptance and native purchases. No production activation authorized.
+
+- [ ] **QUEST-DEFINITION-ROLLBACK** QS-TX-001 in `plans/2026-10-26-live-acceptance-probe.md`. Injected definition writes reproduced a locked SQLite transaction and blocked cleanup retry. Use the existing caller-owned JDBC transaction helper; verify committed-row hashes and paid markers on SQLite/MariaDB. Source correction and combined checks remain distinct from hosted review, merge and activation.
+
+- [ ] **PRESTIGE-PUBLIC-CHAT** PA-001 through PA-004. Source implementation and
+  behavioral regression evidence: `plans/2026-10-26-prestige-announcement.md`.
+  Requires exact-head hosted checks, source review and separate native acceptance;
+  no deployment or shared client use is included in this change.
+
+- [ ] **QUEST-RESET-SNAPSHOT-FENCE** Tag: TDD.
+  - References: QS-RST-001 in `plans/2026-10-29-quest-reset-revision-fence.md`.
+  - Evidence: both unchanged-engine SQLite/MariaDB regressions paid stale500XP
+    after200XP edit. Revision-bound transition rejects before payment; retry
+    pays200XP. Focused70 passed/1 expected skip; native25 passed without skips;
+    full2284 passed/106 skipped/0 failures or errors. Local unmerged source only;
+    remote publication, hosted checks and TEST acceptance remain separate gates.
+
+- [ ] **CREATION-COOLDOWN-BYPASS** Tag: TDD.
+  - References: REQ-055; `plans/2026-10-29-creation-cooldown-bypass.md`.
+  - Evidence: retained draft a56e9593 on PR18 head076b7ad2; 36 focused tests
+    and 23 native MariaDB creation contracts pass without skips. Command,
+    authorization, paid SQL, concurrent admission and rollback coverage is in
+    PR19. Full/exact-head verification is recorded in the plan and PR19.
+    Roundtable, independent review and live TEST/client acceptance remain pending.
+
+- [ ] **MENU-LEGIBILITY** Compact original bank-history headings while preserving
+  customized title interpolation; retain guild context and lighten quest progress.
+  - References: UI-LEG-001 through003, plans/2026-10-29-menu-legibility.md.
+  - Local verification:79focused pass; full2298pass/106skip/0failure/error.
+    Source-only local follow-up to PR19; publication, hosted checks, real-client
+    visual acceptance and mobile-accessible preview delivery remain outstanding.

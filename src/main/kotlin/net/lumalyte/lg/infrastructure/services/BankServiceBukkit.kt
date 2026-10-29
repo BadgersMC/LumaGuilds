@@ -6,8 +6,9 @@ import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.BankWithdrawalResult
 import net.lumalyte.lg.application.services.BankStats
 import net.lumalyte.lg.application.services.ConfigService
-import net.lumalyte.lg.application.services.ChapterTwoGuildAwardService
+import net.lumalyte.lg.application.services.BankDepositXpDeliveryService
 import net.lumalyte.lg.api.events.GuildBankDepositEvent
+import net.lumalyte.lg.api.events.GuildBankContributionEvent
 import net.lumalyte.lg.domain.entities.BankAudit
 import net.lumalyte.lg.domain.entities.BankTransaction
 import net.lumalyte.lg.domain.entities.MemberContribution
@@ -32,7 +33,7 @@ class BankServiceBukkit(
     private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository,
     private val guildService: net.lumalyte.lg.application.services.GuildService,
     private val vaultInventoryManager: net.lumalyte.lg.infrastructure.vault.VaultInventoryManager,
-    private val chapterTwoGuildAwardService: ChapterTwoGuildAwardService? = null,
+    private val bankDepositXpDeliveryService: BankDepositXpDeliveryService? = null,
     private val goldService: net.lumalyte.lg.application.services.GuildGoldService,
 ) : BankService {
 
@@ -207,8 +208,6 @@ class BankServiceBukkit(
                         request.guildId,
                         request.playerId,
                         request.amount.toInt(),
-                        result.oldBalance,
-                        result.newBalance,
                     )
                 }
             }
@@ -229,7 +228,7 @@ class BankServiceBukkit(
             if (result !is net.lumalyte.lg.domain.gold.GuildGoldResult.Applied) return null
             val transaction = canonicalTransaction(result, guildId, playerId, amount, description, TransactionType.DEPOSIT)
             recordCanonicalHistory(transaction)
-            postDepositApplied(transactionId, guildId, playerId, amount, result.oldBalance, result.newBalance)
+            postDepositApplied(transactionId, guildId, playerId, amount)
             transaction
         } catch (error: Exception) {
             logger.error("Canonical deposit $transactionId requires inspection", error)
@@ -242,13 +241,17 @@ class BankServiceBukkit(
         guildId: UUID,
         playerId: UUID,
         amount: Int,
-        oldBalance: Long,
-        newBalance: Long,
     ) {
+        runCatching { bankDepositXpDeliveryService?.deliver(transactionId) }
+            .onFailure { logger.warn("Bank XP delivery remains queued for $transactionId", it) }
+        // Existing live notification only. Recovery cannot replay listeners that lack
+        // canonical operation receipts (including quest and activity counters).
         runCatching {
-            chapterTwoGuildAwardService?.awardBankGrowth(guildId, playerId, oldBalance, newBalance)
             Bukkit.getPluginManager().callEvent(GuildBankDepositEvent(guildId, playerId, amount))
         }.onFailure { logger.warn("Post-deposit notification failed for $transactionId", it) }
+        runCatching {
+            Bukkit.getPluginManager().callEvent(GuildBankContributionEvent(guildId, playerId, transactionId))
+        }.onFailure { logger.warn("Post-contribution notification failed for $transactionId", it) }
     }
 
     override fun withdraw(guildId: UUID, playerId: UUID, amount: Int, description: String?): BankTransaction? =

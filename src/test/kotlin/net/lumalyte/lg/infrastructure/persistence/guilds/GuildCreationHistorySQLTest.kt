@@ -68,6 +68,35 @@ class GuildCreationHistorySQLTest : RewardSqlTestFixture() {
         assertNotNull(history.cooldownUntil(creator))
     }
 
+    @Test fun `bypass and ordinary admissions serialize without clearing cooldown`() {
+        val storage = openStorage()
+        val history = GuildCreationHistorySQL(storage)
+        assertTrue(history.create(guild, creator, created) { true })
+        assertTrue(history.delete(guild, GuildCreationCooldown(), created.plusSeconds(1)) { true })
+        val expiry = history.cooldownUntil(creator)
+        val bypassCallbacks = java.util.concurrent.atomic.AtomicInteger()
+        val ordinaryCallbacks = java.util.concurrent.atomic.AtomicInteger()
+        val start = java.util.concurrent.CountDownLatch(1)
+        val attempts = (1..8).map { index ->
+            val bypass = index % 2 == 0
+            java.util.concurrent.CompletableFuture.supplyAsync {
+                check(start.await(10, java.util.concurrent.TimeUnit.SECONDS))
+                history.create(UUID.randomUUID(), creator, created.plusSeconds(2), bypass) {
+                    if (bypass) bypassCallbacks.incrementAndGet() else ordinaryCallbacks.incrementAndGet()
+                    true
+                }
+            }
+        }
+        start.countDown()
+        assertEquals(4, attempts.count { it.get(20, java.util.concurrent.TimeUnit.SECONDS) })
+        assertEquals(4, bypassCallbacks.get())
+        assertEquals(0, ordinaryCallbacks.get())
+        closeStorage(storage)
+        val reopened = GuildCreationHistorySQL(openStorage())
+        assertEquals(expiry, reopened.cooldownUntil(creator))
+        assertFalse(reopened.create(UUID.randomUUID(), creator, created.plusSeconds(3)) { error("Still blocked") })
+    }
+
     @Test fun `early deletion blocks original creator through restart and expires exactly`() {
         val storage = openStorage()
         val history = GuildCreationHistorySQL(storage)
