@@ -1077,6 +1077,8 @@ Menu audit follow-up (REQ-063):
 
 - [ ] **CREATION-COOLDOWN-BYPASS** Tag: TDD.
   - References: REQ-055; `plans/2026-10-29-creation-cooldown-bypass.md`.
-  - Evidence: retained draft a56e9593 on PR18 head076b7ad2; added command,
-    authorization, paid SQL and rollback coverage. Actual verification is recorded
-    in the plan. Roundtable and live TEST/client acceptance remain pending.
+  - Evidence: retained draft a56e9593 on PR18 head076b7ad2; 36 focused tests
+    and 23 native MariaDB creation contracts pass without skips. Command,
+    authorization, paid SQL, concurrent admission and rollback coverage is in
+    PR19. Full/exact-head verification is recorded in the plan and PR19.
+    Roundtable, independent review and live TEST/client acceptance remain pending.
