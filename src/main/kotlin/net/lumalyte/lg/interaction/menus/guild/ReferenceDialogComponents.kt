@@ -41,7 +41,7 @@ internal fun questProgressBar(
     val fraction = if (target <= 0) 0.0 else (current.coerceAtLeast(0).toDouble() / target).coerceIn(0.0, 1.0)
     val filled = (fraction * cells).toInt()
     return Component.text("▰".repeat(filled), NamedTextColor.GOLD)
-        .append(Component.text("▱".repeat(cells - filled), NamedTextColor.DARK_GRAY))
+        .append(Component.text("▱".repeat(cells - filled), NamedTextColor.GRAY))
 }
 
 internal fun referenceRewardEffect(lang: net.badgersmc.nexus.i18n.LangService,

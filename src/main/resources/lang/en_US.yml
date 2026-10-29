@@ -2490,7 +2490,7 @@ menu:
       quest:
         name: '<gold><objective>'
         description: '<gray><objective>'
-        progress: '<gray>Progress: <white><count>/<target> <dark_gray>(<percent>%)'
+        progress: '<gray>Progress: <white><count>/<target> <gray>(<percent>%)'
         reward: '<gray>Reward: <gold><xp> Guild EXP'
         rank: '<gray>Current rank: <aqua><rank>'
         completed: '<green>✔ Complete — reward on its way'
@@ -3199,6 +3199,8 @@ menu:
       withdraw_overlay: 'Withdrawal successful!'
     history:
       title: '<white>Bank Transaction History - <guild>'
+      compact_title: '<white>Bank History'
+      guild_context: '<gray>Guild: <white><guild>'
       no_transactions: No transactions yet
       recent: '<count> recent transactions'
       open_action: '<yellow>Click to view full history'
@@ -3240,6 +3242,7 @@ menu:
         last_7_days: Last 7 Days
         last_30_days: Last 30 Days
       member_filter:
+        title: '<white>Bank Members'
         all_name: All Members
         all_description: '<gray>Clear member filter'
         select_member: Click to filter by <player>

@@ -1090,3 +1090,10 @@ Menu audit follow-up (REQ-063):
     authorization, paid SQL, concurrent admission and rollback coverage is in
     PR19. Full/exact-head verification is recorded in the plan and PR19.
     Roundtable, independent review and live TEST/client acceptance remain pending.
+
+- [ ] **MENU-LEGIBILITY** Compact original bank-history headings while preserving
+  customized title interpolation; retain guild context and lighten quest progress.
+  - References: UI-LEG-001 through003, plans/2026-10-29-menu-legibility.md.
+  - Local verification:79focused pass; full2298pass/106skip/0failure/error.
+    Source-only local follow-up to PR19; publication, hosted checks, real-client
+    visual acceptance and mobile-accessible preview delivery remain outstanding.
