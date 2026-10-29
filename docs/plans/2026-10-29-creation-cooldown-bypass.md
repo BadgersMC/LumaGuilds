@@ -43,7 +43,6 @@ ordinary denial, explicit player grant, paid success, unchanged stored cooldown,
 revocation/re-denial and permission cleanup readback. FainNeito was only historically
 observed guildless and cooldown-blocked on TEST; no present state is assumed.
 
-
 ## Verification evidence
 
 JDK 25; the pinned official RoseChat 179483128, CombatLogX API 4812e85a and
@@ -59,8 +58,10 @@ stays outside the source tree.
   All per-test schemas were removed and the task-owned container was stopped and
   removed. No shared database or server was used.
 - `check shadowJar verifyAcceptanceProbePackaging -PreleaseVersion=3.0.0-pr19-UNMERGED-TEST`
-  is the full regression/packaging command; its final result is recorded on PR19.
-  Local packaging checks passed. Artifacts are explicitly unmerged TEST builds.
+  passed: 2,399 cases, 2,294 executed successfully, zero failures/errors and 105
+  skips in other opt-in native/companion/snapshot fixtures and three MockBukkit
+  operations. All creation tests and five layer rules executed without skips.
+  Probe exclusion/packaging passed. Artifacts are unmerged TEST builds.
 - Wiki front matter, topic parity and `git diff --check` passed locally. Hosted
   wiki checks also passed on the initial PR head; the final head is checked again.
 
