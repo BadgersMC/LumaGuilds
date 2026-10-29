@@ -27,7 +27,8 @@ class WeeklyQuestCoordinator(
     private var task: BukkitTask? = null
 
     fun start(plugin: Plugin) {
-        refreshIfRequired(Instant.now())
+        runCatching { refreshIfRequired(Instant.now()) }
+            .onFailure { logger.warn("Initial weekly quest reset check failed; it will be retried", it) }
         task?.cancel()
         task = plugin.server.scheduler.runTaskTimer(plugin, Runnable {
             runCatching { refreshIfRequired(Instant.now()) }

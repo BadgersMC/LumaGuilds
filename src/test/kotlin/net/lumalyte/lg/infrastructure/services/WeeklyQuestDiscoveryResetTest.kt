@@ -12,6 +12,21 @@ import java.time.Instant
 import kotlin.test.assertEquals
 
 class WeeklyQuestDiscoveryResetTest {
+    @Test fun `startup schedules retries when initial reset fails`() {
+        val quests = mockk<QuestService>(relaxed = true)
+        val config = mockk<ProgressionConfigService>()
+        val catalog = mockk<QuestTargetCatalog>(relaxed = true)
+        val plugin = mockk<org.bukkit.plugin.Plugin>()
+        val server = mockk<org.bukkit.Server>()
+        val scheduler = mockk<org.bukkit.scheduler.BukkitScheduler>()
+        val task = mockk<org.bukkit.scheduler.BukkitTask>(relaxed = true)
+        every { quests.reconcilePendingRewards() } throws IllegalStateException("unresolved payment")
+        every { plugin.server } returns server
+        every { server.scheduler } returns scheduler
+        every { scheduler.runTaskTimer(plugin, any<Runnable>(), 1_200L, 1_200L) } returns task
+        WeeklyQuestCoordinator(quests, config, catalog).start(plugin)
+        verify(exactly = 1) { scheduler.runTaskTimer(plugin, any<Runnable>(), 1_200L, 1_200L) }
+    }
     @Test fun `pending bank recovery defers reset`() {
         val quests = mockk<QuestService>(relaxed = true)
         val config = mockk<ProgressionConfigService>(relaxed = true)

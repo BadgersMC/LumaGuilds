@@ -147,7 +147,9 @@ class GuildGoldRepositorySQL(
                         }
                     }
                     if (run != null) check(run.guildExists) { "Guild no longer exists for a new bank deposit" }
-                    if (quote != null && !lockQuestPreparation(connection)) return@transaction GuildGoldPreparation.QuestTransition
+                    if (quote != null && !lockQuestPreparation(connection, quote.occurredAt.toEpochMilli())) {
+                        return@transaction GuildGoldPreparation.QuestTransition
+                    }
                     insertPrepared(connection, mutation)
                     if (quote != null) {
                         bankDeliveries.capture(connection, mutation, quote, checkNotNull(run))
@@ -165,7 +167,7 @@ class GuildGoldRepositorySQL(
             }
         }
 
-    private fun lockQuestPreparation(connection: Connection): Boolean {
+    private fun lockQuestPreparation(connection: Connection, occurredAt: Long): Boolean {
         val hasQuestTables = listOf("weekly_quest_sets", "weekly_quest_definitions").all { table ->
             connection.metaData.getTables(connection.catalog, null, table, null).use { it.next() }
         }
@@ -179,7 +181,11 @@ class GuildGoldRepositorySQL(
         }
         val transitionLock = if (mariaDb) " FOR UPDATE" else ""
         val transition = connection.selectOne("SELECT week_id FROM guild_bank_quest_transition WHERE id = 1$transitionLock") { it.getString(1) }
-        return transition == null
+        if (transition != null) return false
+        // A quote can be captured immediately before a transition but reach preparation
+        // after it completes. Refuse it before payment; retry will capture the new time.
+        val activeStart = connection.selectOne("SELECT starts_at FROM weekly_quest_sets WHERE active = 1$transitionLock") { it.getLong(1) }
+        return activeStart == null || occurredAt >= activeStart
     }
 
     private fun captureBankQuestIntents(connection: Connection, transactionId: UUID, occurredAt: Long) {

@@ -589,6 +589,19 @@ internal abstract class BankQuestContributionContract : BankDepositDeliveryFixtu
         assertIs<GuildGoldResult.Applied>(service.depositPhysical(physicalRequest(amount = 100)))
     }
 
+    @Test fun `a quote from before a completed transition is rejected before payment`() {
+        val (repository, _, _) = bankQuests()
+        val active = repository.getActiveQuestSet()!!
+        assertTrue(repository.beginBankQuestTransition(active.weekId))
+        repository.saveActiveQuestSet(active.copy(weekId = "following-week", startsAt = occurredAt.plusSeconds(1)))
+        val stale = physicalRequest(amount = 100)
+        assertEquals(GuildGoldResult.Rejected(net.lumalyte.lg.domain.gold.GuildGoldRejection.WEEKLY_QUEST_TRANSITION),
+            service.depositPhysical(stale))
+        assertEquals(0, scalar("SELECT COUNT(*) FROM guild_gold_operations WHERE transaction_id = ?", stale.transactionId.toString()))
+        quote = quote.copy(occurredAt = occurredAt.plusSeconds(2))
+        assertIs<GuildGoldResult.Applied>(service.depositPhysical(physicalRequest(amount = 100)))
+    }
+
     @Test fun `MariaDB deposit preparation and transition cannot both pass the fence`() {
         assumeTrue(db.dialect == SqlDialect.MARIADB)
         val (repository, _, _) = bankQuests()
