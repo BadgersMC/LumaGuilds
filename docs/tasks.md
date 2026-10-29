@@ -1074,3 +1074,11 @@ Menu audit follow-up (REQ-063):
   behavioral regression evidence: `plans/2026-10-26-prestige-announcement.md`.
   Requires exact-head hosted checks, source review and separate native acceptance;
   no deployment or shared client use is included in this change.
+
+- [ ] **QUEST-RESET-SNAPSHOT-FENCE** Tag: TDD.
+  - References: QS-RST-001 in `plans/2026-10-29-quest-reset-revision-fence.md`.
+  - Evidence: both unchanged-engine SQLite/MariaDB regressions paid stale500XP
+    after200XP edit. Revision-bound transition rejects before payment; retry
+    pays200XP. Focused70 passed/1 expected skip; native25 passed without skips;
+    full2284 passed/106 skipped/0 failures or errors. Local unmerged source only;
+    remote publication, hosted checks and TEST acceptance remain separate gates.

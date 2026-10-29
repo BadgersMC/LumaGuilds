@@ -416,6 +416,11 @@ private class FlakyCompletionNotifier : QuestCompletionNotifier {
 
 private class FakeQuestRepository(initial: WeeklyQuestSet?) : QuestRepository {
     private var active = initial
+    private var revision = 0L
+
+    override fun currentBankQuestRevision(): Long = revision
+    override fun beginBankQuestTransition(weekId: String, expectedRevision: Long): Boolean =
+        active?.weekId == weekId && revision == expectedRevision
     private val questSets = mutableMapOf<String, WeeklyQuestSet>().apply {
         initial?.let { put(it.weekId, it) }
     }
@@ -433,11 +438,15 @@ private class FakeQuestRepository(initial: WeeklyQuestSet?) : QuestRepository {
         questSets.values.sortedByDescending { it.startsAt }.take(limit)
 
     override fun saveActiveQuestSet(questSet: WeeklyQuestSet) {
+        revision++
         active = questSet
         questSets[questSet.weekId] = questSet
     }
 
-    override fun deactivateActiveQuestSet() { active = null }
+    override fun deactivateActiveQuestSet() {
+        if (active != null) revision++
+        active = null
+    }
 
     override fun getProgress(
         weekId: String,
@@ -541,6 +550,53 @@ private class FakeQuestRepository(initial: WeeklyQuestSet?) : QuestRepository {
 // Shared native contracts use deliberate currency fixtures and separate failure scenarios.
 @Suppress("MagicNumber", "TooManyFunctions")
 internal abstract class BankQuestContributionContract : BankDepositDeliveryFixture() {
+
+    @Test fun resetRejectsStaleDefinitionSnapshotBeforePayout() {
+        val (repository, _, rewards) = bankQuests()
+        val original = repository.getActiveQuestSet()!!
+        val first = original.copy(quests = listOf(original.quests.single().copy(
+            leaderboard = true, leaderboardPayouts = mapOf(1 to 500),
+        )))
+        repository.saveActiveQuestSet(first)
+        repository.saveProgress(GuildQuestProgress(first.weekId, "bank", guild, 1))
+        val captured = java.util.concurrent.CountDownLatch(1)
+        val resume = java.util.concurrent.CountDownLatch(1)
+        val pauseOnce = java.util.concurrent.atomic.AtomicBoolean(true)
+        val reader = object : QuestRepository by repository {
+            override fun getActiveQuestSet(): WeeklyQuestSet? {
+                val snapshot = repository.getActiveQuestSet()
+                if (pauseOnce.compareAndSet(true, false)) {
+                    captured.countDown()
+                    check(resume.await(15, TimeUnit.SECONDS)) { "Reset fixture was not resumed" }
+                }
+                return snapshot
+            }
+        }
+        val resetting = QuestService(reader, rewards, fullSetBonusExperience = 0)
+        val next = first.copy(weekId = "after-reset", startsAt = first.endsAt,
+            endsAt = first.endsAt.plusSeconds(604_800))
+        val reset = CompletableFuture.supplyAsync {
+            runCatching { resetting.resetWeeklyQuests(next) }.exceptionOrNull()
+        }
+        try {
+            assertTrue(captured.await(15, TimeUnit.SECONDS), "Reset did not capture the old definition")
+            // A separate adapter commits the edit before reset can acquire its fence.
+            QuestRepositorySQLite(db).saveActiveQuestSet(first.copy(quests = listOf(
+                first.quests.single().copy(leaderboardPayouts = mapOf(1 to 200)),
+            )))
+        } finally {
+            resume.countDown()
+        }
+        val failure = reset.get(15, TimeUnit.SECONDS)
+        assertTrue(rewards.experienceAwards.isEmpty(), "Stale reset paid ${rewards.experienceAwards}")
+        assertIs<IllegalStateException>(failure)
+        assertEquals(first.weekId, repository.getActiveQuestSet()!!.weekId)
+        assertFalse(repository.isLeaderboardRecipientPaid(first.weekId, "bank", guild))
+        assertEquals(0, scalar("SELECT COUNT(*) FROM guild_bank_quest_transition"))
+        QuestService(repository, rewards, fullSetBonusExperience = 0).resetWeeklyQuests(next)
+        assertEquals(listOf(guild to 200), rewards.experienceAwards)
+        assertEquals(next.weekId, repository.getActiveQuestSet()!!.weekId)
+    }
 
     @Test fun `one failed recovery does not prevent other deposits and remains retryable`() {
         val (repository, quests, _) = bankQuests()
