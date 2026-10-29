@@ -111,6 +111,30 @@ class GuildSchemaRehearsalTest {
         }
     }
 
+    @Test
+    fun `actual version 19 migration preserves guild rows and backfills homes`() {
+        MockBukkit.mock()
+        try {
+            val plugin = mockk<LumaGuilds>(relaxed = true)
+            every { plugin.getComponentLogger() } returns ComponentLogger.logger("GuildSchemaRehearsal")
+            DriverManager.getConnection("jdbc:sqlite::memory:").use { connection ->
+                connection.createStatement().use { statement ->
+                    statement.execute("CREATE TABLE guilds (id TEXT PRIMARY KEY, home_world TEXT, home_x INTEGER, home_y INTEGER, home_z INTEGER)")
+                    statement.execute("INSERT INTO guilds VALUES ('a', 'world', 1, 2, 3), ('b', NULL, NULL, NULL, NULL)")
+                }
+                val before = snapshot(connection)
+                val migration = SQLiteMigrations(plugin, connection)
+                val v19 = SQLiteMigrations::class.java.getDeclaredMethod("migrateToVersion19")
+                v19.isAccessible = true
+                v19.invoke(migration)
+                assertEquals(before, snapshot(connection, before.mapValues { it.value.columns }))
+                assertLegacyHomesBackfilled(connection)
+            }
+        } finally {
+            MockBukkit.unmock()
+        }
+    }
+
     private data class TableSnapshot(val columns: List<String>, val count: Long, val sum: BigInteger, val xor: BigInteger)
 
     private fun snapshot(connection: Connection, projection: Map<String, List<String>>? = null): Map<String, TableSnapshot> {
