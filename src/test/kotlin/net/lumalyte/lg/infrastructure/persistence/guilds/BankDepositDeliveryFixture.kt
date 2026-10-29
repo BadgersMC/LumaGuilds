@@ -43,6 +43,7 @@ abstract class BankDepositDeliveryFixture {
     protected val originalPolicy =
         ExperiencePolicy(ExperienceSource.BANK_DEPOSIT, "BANK_DEPOSIT", 1, 100, CapPeriod.DAILY, true)
     protected var quote = BankDepositXpQuote(occurredAt, originalPolicy)
+    protected var captureQuestRevision = true
     protected var moneyPolicy = GuildGoldPolicy(
         minDeposit = 1, maxDeposit = 100_000, withdrawalPercent = 1.0,
         dailyWithdrawalLimit = 100_000, depositFeePercent = 0.0, withdrawalFeePercent = 0.0,
@@ -59,7 +60,7 @@ abstract class BankDepositDeliveryFixture {
         listOf(
             "quest_leaderboard_payouts", "guild_quest_weekly_bonus", "guild_quest_progress",
             "weekly_quest_definitions", "weekly_quest_sets",
-            "guild_bank_quest_transition", "guild_bank_quest_recovery", "guild_bank_quest_intents",
+            "guild_bank_quest_revision", "guild_bank_quest_transition", "guild_bank_quest_recovery", "guild_bank_quest_intents",
             "guild_bank_contribution_guards", "guild_bank_contribution_quests",
             "guild_bank_contribution_receipts", "guild_bank_contribution_accounts",
             "guild_bank_xp_deliveries", "guild_bank_xp_delivery_sequences", "guild_bank_xp_high_water",
@@ -102,7 +103,10 @@ abstract class BankDepositDeliveryFixture {
         settingsProvider = GuildGoldSettingsProvider { GuildGoldSettings(moneyPolicy, GuildGoldCapacity(100_000, 0)) },
         personalEconomy = personal,
         physicalGold = physical,
-        depositXpQuote = if (captureQuote) ({ _: UUID -> quote }) else null,
+        depositXpQuote = if (captureQuote) ({ _: UUID ->
+            if (captureQuestRevision) quote.copy(questRevision = checkNotNull(scalar("SELECT revision FROM guild_bank_quest_revision WHERE id = 1")))
+            else quote
+        }) else null,
     )
 
     private fun openRepositories() {

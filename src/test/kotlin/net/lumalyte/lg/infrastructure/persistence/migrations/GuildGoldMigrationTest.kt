@@ -128,6 +128,7 @@ class GuildGoldMigrationTest {
             it.execute("DROP TABLE guild_bank_quest_intents")
             it.execute("DROP TABLE guild_bank_quest_recovery")
             it.execute("DROP TABLE guild_bank_quest_transition")
+            it.execute("DROP TABLE guild_bank_quest_revision")
             it.execute("PRAGMA user_version = 48")
         }
         repeat(2) { SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate() }
@@ -135,6 +136,7 @@ class GuildGoldMigrationTest {
         assertTrue(tableExists(BankContributionSchema.QUEST_INTENTS))
         assertTrue(tableExists(BankContributionSchema.QUEST_RECOVERY))
         assertTrue(tableExists(BankContributionSchema.QUEST_TRANSITION))
+        assertTrue(tableExists(BankContributionSchema.QUEST_REVISION))
         connection.createStatement().use { s ->
             s.executeQuery("SELECT COUNT(*) FROM guild_bank_quest_intents").use {
                 assertTrue(it.next()); assertEquals(0, it.getInt(1))

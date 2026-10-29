@@ -7,6 +7,8 @@ import java.util.UUID
 data class PendingBankContribution(val transactionId: UUID, val guildId: UUID, val actorId: UUID)
 
 interface QuestRepository {
+    /** Monotonic definition generation read before a bank deposit is prepared. */
+    fun currentBankQuestRevision(): Long = 0L
     /** Candidates still require canonical receipt, run and definition validation on consumption. */
     fun pendingBankContributions(limit: Int): List<PendingBankContribution> = emptyList()
 

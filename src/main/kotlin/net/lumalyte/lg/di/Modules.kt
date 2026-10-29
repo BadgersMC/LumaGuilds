@@ -750,7 +750,11 @@ fun progressionModule() = module {
     single<net.lumalyte.lg.application.persistence.BankDepositXpRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.BankDepositXpRepositorySQL(get(), get())
     }
-    single { net.lumalyte.lg.application.services.BankDepositXpQuotes(get(), get()) }
+    single {
+        net.lumalyte.lg.application.services.BankDepositXpQuotes(
+            get(), get(), questRevision = { get<net.lumalyte.lg.application.persistence.QuestRepository>().currentBankQuestRevision() },
+        )
+    }
     single {
         net.lumalyte.lg.application.services.BankDepositXpDeliveryService(
             get(),

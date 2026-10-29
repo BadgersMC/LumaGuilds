@@ -25,6 +25,10 @@ import java.util.UUID
 class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepository {
     private val mariaDb = storage.javaClass.simpleName.contains("MariaDB")
 
+    override fun currentBankQuestRevision(): Long = storage.connection.connection.use { connection ->
+        checkNotNull(connection.selectOne("SELECT revision FROM guild_bank_quest_revision WHERE id = 1") { it.getLong(1) })
+    }
+
     private val questSetUpsertSql = if (mariaDb) {
         """
         INSERT INTO weekly_quest_sets (week_id, starts_at, ends_at, active)
@@ -268,6 +272,9 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
                 if (previousWeek != null && previousWeek != questSet.weekId) {
                     checkNoUnresolvedBankIntents(connection, previousWeek)
                 }
+                check(connection.updateStatement("UPDATE guild_bank_quest_revision SET revision = revision + 1 WHERE id = 1") == 1) {
+                    "Bank quest revision is unavailable"
+                }
                 connection.updateStatement("UPDATE weekly_quest_sets SET active = 0 WHERE active = 1")
                 connection.updateStatement(
                     questSetUpsertSql,
@@ -292,7 +299,12 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
             connection.committingTransaction {
                 val lock = if (mariaDb) " FOR UPDATE" else ""
                 connection.selectOne("SELECT week_id FROM weekly_quest_sets WHERE active = 1$lock") { it.getString(1) }
-                    ?.let { checkNoUnresolvedBankIntents(connection, it) }
+                    ?.let {
+                        checkNoUnresolvedBankIntents(connection, it)
+                        check(connection.updateStatement("UPDATE guild_bank_quest_revision SET revision = revision + 1 WHERE id = 1") == 1) {
+                            "Bank quest revision is unavailable"
+                        }
+                    }
                 connection.updateStatement("UPDATE weekly_quest_sets SET active = 0 WHERE active = 1")
                 connection.updateStatement("DELETE FROM guild_bank_quest_transition WHERE id = 1")
             }

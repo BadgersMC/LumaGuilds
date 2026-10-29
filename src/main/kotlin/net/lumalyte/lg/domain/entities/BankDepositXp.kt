@@ -14,12 +14,14 @@ data class BankDepositXpQuote(
     val boostMultiplier: Double = 1.0,
     val eligibility: BankDepositXpEligibility = BankDepositXpEligibility.ELIGIBLE,
     val valuePerUnit: Long = 100L,
+    val questRevision: Long = 0L,
 ) {
     init {
         require(occurredAt.toEpochMilli() > 0)
         require(policy.source == ExperienceSource.BANK_DEPOSIT)
         require(boostMultiplier.isFinite() && boostMultiplier >= 1.0)
         require(valuePerUnit > 0)
+        require(questRevision >= 0)
     }
 
     /** Multiply the complete base award before rounding, matching ordinary XP boost semantics. */

@@ -11,8 +11,10 @@ class BankDepositXpQuotes(
     private val config: ConfigService,
     private val activity: PlaytimeActivityService,
     private val clock: () -> Instant = { Instant.now() },
+    private val questRevision: () -> Long = { 0L },
 ) {
     fun capture(actorId: UUID): BankDepositXpQuote {
+        val revision = questRevision()
         val occurredAt = clock()
         val blocked = activity.isXpBlocked(actorId)
         val settings = config.loadConfig().progression
@@ -26,6 +28,6 @@ class BankDepositXpQuotes(
         val multiplier = if (eligibility == BankDepositXpEligibility.ELIGIBLE && boost != null &&
             ExperienceSource.BANK_DEPOSIT in boost.sources && occurredAt >= boost.startsAt && occurredAt < boost.endsAt
         ) boost.multiplier else 1.0
-        return BankDepositXpQuote(occurredAt, policy, multiplier, eligibility)
+        return BankDepositXpQuote(occurredAt, policy, multiplier, eligibility, questRevision = revision)
     }
 }

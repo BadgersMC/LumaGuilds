@@ -147,7 +147,7 @@ class GuildGoldRepositorySQL(
                         }
                     }
                     if (run != null) check(run.guildExists) { "Guild no longer exists for a new bank deposit" }
-                    if (quote != null && !lockQuestPreparation(connection, quote.occurredAt.toEpochMilli())) {
+                    if (quote != null && !lockQuestPreparation(connection, quote.occurredAt.toEpochMilli(), quote.questRevision)) {
                         return@transaction GuildGoldPreparation.QuestTransition
                     }
                     insertPrepared(connection, mutation)
@@ -167,7 +167,7 @@ class GuildGoldRepositorySQL(
             }
         }
 
-    private fun lockQuestPreparation(connection: Connection, occurredAt: Long): Boolean {
+    private fun lockQuestPreparation(connection: Connection, occurredAt: Long, quoteRevision: Long): Boolean {
         val hasQuestTables = listOf("weekly_quest_sets", "weekly_quest_definitions").all { table ->
             connection.metaData.getTables(connection.catalog, null, table, null).use { it.next() }
         }
@@ -182,6 +182,9 @@ class GuildGoldRepositorySQL(
         val transitionLock = if (mariaDb) " FOR UPDATE" else ""
         val transition = connection.selectOne("SELECT week_id FROM guild_bank_quest_transition WHERE id = 1$transitionLock") { it.getString(1) }
         if (transition != null) return false
+        val revision = connection.selectOne("SELECT revision FROM guild_bank_quest_revision WHERE id = 1$transitionLock") { it.getLong(1) }
+            ?: error("Bank quest revision is unavailable")
+        if (revision != quoteRevision) return false
         // A quote can be captured immediately before a transition but reach preparation
         // after it completes. Refuse it before payment; retry will capture the new time.
         val activeStart = connection.selectOne("SELECT starts_at FROM weekly_quest_sets WHERE active = 1$transitionLock") { it.getLong(1) }

@@ -542,6 +542,34 @@ private class FakeQuestRepository(initial: WeeklyQuestSet?) : QuestRepository {
 @Suppress("MagicNumber", "TooManyFunctions")
 internal abstract class BankQuestContributionContract : BankDepositDeliveryFixture() {
 
+    @Test fun `quote captured before quest deactivation must not prepare after deactivation`() {
+        val (repository, _, _) = bankQuests()
+        val oldQuote = quote
+        repository.deactivateActiveQuestSet()
+        val mutation = net.lumalyte.lg.domain.gold.GuildGoldMutation(
+            UUID.randomUUID(), guild, actor, net.lumalyte.lg.domain.gold.GuildGoldRoute.PHYSICAL_ITEM,
+            net.lumalyte.lg.domain.gold.GuildGoldDirection.CREDIT, 100, 0, "stale quest quote",
+        )
+        assertEquals(net.lumalyte.lg.domain.gold.GuildGoldPreparation.QuestTransition, gold.prepareDeposit(mutation, oldQuote))
+        assertEquals(0, scalar("SELECT COUNT(*) FROM guild_gold_operations WHERE transaction_id = ?", mutation.transactionId.toString()))
+        val fresh = physicalRequest(amount = 100)
+        assertIs<GuildGoldResult.Applied>(service.depositPhysical(fresh))
+        assertEquals(0, scalar("SELECT COUNT(*) FROM guild_bank_quest_intents WHERE transaction_id = ?", fresh.transactionId.toString()))
+    }
+
+    @Test fun `quote captured before same-week definition edit must not prepare against replacement`() {
+        val (repository, _, _) = bankQuests()
+        val original = repository.getActiveQuestSet()!!
+        val oldQuote = quote
+        repository.saveActiveQuestSet(original.copy(quests = listOf(original.quests.single().copy(experienceReward = 900))))
+        val mutation = net.lumalyte.lg.domain.gold.GuildGoldMutation(
+            UUID.randomUUID(), guild, actor, net.lumalyte.lg.domain.gold.GuildGoldRoute.PHYSICAL_ITEM,
+            net.lumalyte.lg.domain.gold.GuildGoldDirection.CREDIT, 100, 0, "stale quest quote",
+        )
+        assertEquals(net.lumalyte.lg.domain.gold.GuildGoldPreparation.QuestTransition, gold.prepareDeposit(mutation, oldQuote))
+        assertEquals(0, scalar("SELECT COUNT(*) FROM guild_gold_operations WHERE transaction_id = ?", mutation.transactionId.toString()))
+    }
+
     @Test fun `weekly rotation waits for committed bank contribution recovery`() {
         val (repository, quests, rewards) = bankQuests()
         val original = repository.getActiveQuestSet()!!
@@ -591,6 +619,7 @@ internal abstract class BankQuestContributionContract : BankDepositDeliveryFixtu
 
     @Test fun `a quote from before a completed transition is rejected before payment`() {
         val (repository, _, _) = bankQuests()
+        captureQuestRevision = false
         val active = repository.getActiveQuestSet()!!
         assertTrue(repository.beginBankQuestTransition(active.weekId))
         repository.saveActiveQuestSet(active.copy(weekId = "following-week", startsAt = occurredAt.plusSeconds(1)))
@@ -598,7 +627,7 @@ internal abstract class BankQuestContributionContract : BankDepositDeliveryFixtu
         assertEquals(GuildGoldResult.Rejected(net.lumalyte.lg.domain.gold.GuildGoldRejection.WEEKLY_QUEST_TRANSITION),
             service.depositPhysical(stale))
         assertEquals(0, scalar("SELECT COUNT(*) FROM guild_gold_operations WHERE transaction_id = ?", stale.transactionId.toString()))
-        quote = quote.copy(occurredAt = occurredAt.plusSeconds(2))
+        quote = quote.copy(occurredAt = occurredAt.plusSeconds(2), questRevision = repository.currentBankQuestRevision())
         assertIs<GuildGoldResult.Applied>(service.depositPhysical(physicalRequest(amount = 100)))
     }
 
@@ -882,6 +911,7 @@ internal abstract class BankQuestContributionContract : BankDepositDeliveryFixtu
             WeeklyQuestSet("2026-W43", occurredAt.minusSeconds(86_400), occurredAt.plusSeconds(604_800), listOf(definition))
         val repository = QuestRepositorySQLite(db)
         repository.saveActiveQuestSet(week)
+        quote = quote.copy(questRevision = repository.currentBankQuestRevision())
         val rewards = RecordingRewardSink()
         return Triple(repository, QuestService(repository, rewards, fullSetBonusExperience = 0), rewards)
     }

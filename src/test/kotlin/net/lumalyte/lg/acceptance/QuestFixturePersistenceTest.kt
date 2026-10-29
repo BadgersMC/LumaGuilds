@@ -6,6 +6,8 @@ import net.lumalyte.lg.domain.values.QuestAction
 import net.lumalyte.lg.infrastructure.persistence.guilds.QuestRepositorySQLite
 import net.lumalyte.lg.infrastructure.persistence.guilds.RewardSqlTestFixture
 import net.lumalyte.lg.infrastructure.persistence.migrations.QuestSchema
+import net.lumalyte.lg.infrastructure.persistence.migrations.BankContributionSchema
+import net.lumalyte.lg.infrastructure.persistence.migrations.GuildGoldSchema
 import net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.junit.jupiter.api.Test
@@ -66,7 +68,12 @@ class QuestFixturePersistenceTest : RewardSqlTestFixture() {
     }
 
     private fun prepared(): Storage<Database> = openStorage().also { storage ->
-        storage.connection.connection.use { QuestSchema.create(it, storage.dialect == SqlDialect.MARIADB) }
+        storage.connection.connection.use {
+            val mariaDb = storage.dialect == SqlDialect.MARIADB
+            QuestSchema.create(it, mariaDb)
+            GuildGoldSchema.create(it, mariaDb)
+            BankContributionSchema.create(it, mariaDb)
+        }
         QuestRepositorySQLite(storage).apply {
             saveActiveQuestSet(original)
             saveProgress(GuildQuestProgress(original.weekId, "original-1", guild, 50, true,
