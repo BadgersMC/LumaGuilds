@@ -1069,3 +1069,8 @@ Menu audit follow-up (REQ-063):
 - [ ] **ACCEPTANCE-PROBE-RUNTIME** AP-01 through AP-07 in `plans/2026-10-26-live-acceptance-probe.md`. Isolated loader regression reproduces the original failure and verifies the Java boundary, wrong-owner rejection and disabled startup. Separate packaging/CI checks added. Local native database and actual Market artifact contracts are distinct from pending hosted review, TEST helper replacement, quest/replay acceptance and native purchases. No production activation authorized.
 
 - [ ] **QUEST-DEFINITION-ROLLBACK** QS-TX-001 in `plans/2026-10-26-live-acceptance-probe.md`. Injected definition writes reproduced a locked SQLite transaction and blocked cleanup retry. Use the existing caller-owned JDBC transaction helper; verify committed-row hashes and paid markers on SQLite/MariaDB. Source correction and combined checks remain distinct from hosted review, merge and activation.
+
+- [ ] **PRESTIGE-PUBLIC-CHAT** PA-001 through PA-004. Source implementation and
+  behavioral regression evidence: `plans/2026-10-26-prestige-announcement.md`.
+  Requires exact-head hosted checks, source review and separate native acceptance;
+  no deployment or shared client use is included in this change.

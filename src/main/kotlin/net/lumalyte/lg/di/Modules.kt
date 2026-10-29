@@ -709,9 +709,12 @@ fun progressionModule() = module {
             get(),
         ) { get<ConfigService>().loadConfig() }
     }
+    single<net.lumalyte.lg.application.services.GuildPrestigeAnnouncement> {
+        net.lumalyte.lg.infrastructure.services.GuildPrestigeAnnouncementBukkit(get(), get())
+    }
     single {
         net.lumalyte.lg.application.services.GuildPrestigeService(
-            get(), get(), get(), get(), get(), get(),
+            get(), get(), get(), get(), get(), get(), get(),
         )
     }
     single { net.lumalyte.lg.infrastructure.persistence.guilds.RewardStateRepositorySQL(get(), get()) }

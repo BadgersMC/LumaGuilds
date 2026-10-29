@@ -97,6 +97,45 @@ class PrestigeRepositorySQLTest : RewardSqlTestFixture() {
         assertIs<RewardOwnershipRead.Found>(owners.read(guildId)).snapshot
 
     @Test
+    fun `only new committed confirmation permits public announcement after reopen`() {
+        val subject = open()
+        val request = quote()
+        val first = subject.repository.confirmWithCommitStatus(request) { null }
+        assertIs<PrestigeResult.Applied>(first.result)
+        assertTrue(first.newlyCommitted)
+        assertFalse(subject.repository.confirmWithCommitStatus(request) { null }.newlyCommitted)
+        closeStorage(subject.storage)
+        val reopened = open(seed = false)
+        val replay = reopened.repository.confirmWithCommitStatus(request) { null }
+        assertEquals(first.result, replay.result)
+        assertFalse(replay.newlyCommitted)
+    }
+
+    @Test
+    fun `concurrent confirmations permit a single announcement and charge`() {
+        val subject = open()
+        val request = quote()
+        val executor = java.util.concurrent.Executors.newFixedThreadPool(2)
+        val start = java.util.concurrent.CountDownLatch(1)
+        try {
+            val calls = (1..2).map {
+                executor.submit<net.lumalyte.lg.application.persistence.PrestigeConfirmation> {
+                    check(start.await(10, java.util.concurrent.TimeUnit.SECONDS))
+                    subject.repository.confirmWithCommitStatus(request) { null }
+                }
+            }
+            start.countDown()
+            val results = calls.map { it.get(20, java.util.concurrent.TimeUnit.SECONDS) }
+            assertTrue(results.all { it.result is PrestigeResult.Applied })
+            assertEquals(1, results.count { it.newlyCommitted })
+            assertEquals(9_000L, subject.gold.getBalance(guildId))
+            assertEquals(1, subject.snapshot().ownership.prestigeCount)
+        } finally {
+            executor.shutdownNow()
+        }
+    }
+
+    @Test
     fun `prestige preserves purchased homes locations paid activations and credits after reopen`() {
         val subject = open()
         val worldId = UUID.randomUUID().toString()
@@ -262,7 +301,9 @@ class PrestigeRepositorySQLTest : RewardSqlTestFixture() {
         rejectInserts(subject.storage, "guild_prestige_transactions")
         val request = quote()
 
-        assertIs<PrestigeResult.Failed>(subject.repository.confirm(request) { null })
+        val confirmation = subject.repository.confirmWithCommitStatus(request) { null }
+        assertIs<PrestigeResult.Failed>(confirmation.result)
+        assertFalse(confirmation.newlyCommitted)
         assertEquals(19_000L, subject.gold.getBalance(guildId))
         assertEquals(0, subject.snapshot().ownership.prestigeCount)
         assertEquals(100, subject.storage.connection.getFirstRow(
