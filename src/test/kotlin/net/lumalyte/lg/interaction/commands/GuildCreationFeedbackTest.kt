@@ -37,6 +37,55 @@ class GuildCreationFeedbackTest {
         verify(exactly = 1) { guilds.createGuild(any(), any(), any()) }
     }
 
+    @Test fun bypassRetainsMembershipValidationAndPaidCreationFailures() {
+        stopKoin()
+        val guilds = mockk<GuildService>()
+        val repository = mockk<GuildRepository>()
+        val costs = mockk<GuildCostService>()
+        val config = mockk<ConfigService>()
+        val lang = mockk<LangService>(relaxed = true)
+        val player = mockk<Player>(relaxed = true)
+        every { player.uniqueId } returns UUID.randomUUID()
+        every { player.hasPermission("lumaguilds.guild.creationcooldown.bypass") } returns true
+        every { guilds.getPlayerGuilds(any()) } returns emptySet()
+        every { repository.creationCooldownUntil(any()) } returns java.time.Instant.now().plusSeconds(3600)
+        every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = true)
+        startKoin { modules(module {
+            single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
+        }) }
+        GuildCommand().onCreate(player, "<red>Invalid", null)
+        every { guilds.getPlayerGuilds(any()) } returns setOf(
+            net.lumalyte.lg.domain.entities.Guild(UUID.randomUUID(), "Existing"))
+        GuildCommand().onCreate(player, "Valid Name", null)
+        verify(exactly = 0) { costs.createGuild(any(), any(), any()) }
+        every { guilds.getPlayerGuilds(any()) } returns emptySet()
+        val results = listOf(GuildCreationCostResult.InsufficientGold,
+            GuildCreationCostResult.PaymentUnavailable, GuildCreationCostResult.ConfigurationError,
+            GuildCreationCostResult.PendingReview(UUID.randomUUID()))
+        for (result in results) {
+            every { costs.createGuild(any(), player.uniqueId, any()) } returns result
+            GuildCommand().onCreate(player, "Valid Name", null)
+        }
+        verify(exactly = 4) { costs.createGuild(any(), player.uniqueId, any()) }
+        verify(exactly = 0) { guilds.createGuild(any(), any(), any()) }
+        every { repository.creationCooldownUntil(any()) } throws IllegalStateException("database unavailable")
+        GuildCommand().onCreate(player, "Valid Name", null)
+        verify(exactly = 4) { costs.createGuild(any(), any(), any()) }
+        verify(exactly = 1) { lang.msg("guild_creation_cooldown.unavailable") }
+    }
+
+    @Test fun bypassPermissionDefaultsFalseEvenForOperatorsAndHasNoWildcardParent() {
+        val description = org.bukkit.plugin.PluginDescriptionFile(
+            requireNotNull(javaClass.classLoader.getResourceAsStream("plugin.yml")))
+        val permission = description.permissions.single { it.name == "lumaguilds.guild.creationcooldown.bypass" }
+        kotlin.test.assertEquals(org.bukkit.permissions.PermissionDefault.FALSE, permission.default)
+        kotlin.test.assertFalse(permission.default.getValue(true))
+        kotlin.test.assertFalse(permission.default.getValue(false))
+        kotlin.test.assertTrue(description.permissions.none {
+            it.children[permission.name] == true
+        })
+    }
+
     @Test fun uncertainAndPendingResultsDoNotClaimDuplicateNameOrSuccess() {
         stopKoin()
         val guilds = mockk<GuildService>()

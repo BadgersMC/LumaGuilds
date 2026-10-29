@@ -206,3 +206,14 @@ pex group <group> check lumaguilds.guild.*
 4. **Operator**: Everything including claims and admin tools
 
 This setup provides a smooth experience where players can start with basic features and earn more permissions as they prove trustworthy.
+
+### Player-specific guild creation cooldown exception
+
+`lumaguilds.guild.creationcooldown.bypass` defaults to **false**, including for
+operators, and is not a declared child of the guild wildcard. Grant it explicitly
+to the intended player only. Permission plugins may independently expand wildcard
+grants; inspect the player's effective permission before use.
+
+The permission bypasses only creation cooldown admission. It does not erase or
+shorten the saved cooldown, remove creation costs, or skip other creation checks.
+Revoking it restores ordinary admission against the same saved cooldown.

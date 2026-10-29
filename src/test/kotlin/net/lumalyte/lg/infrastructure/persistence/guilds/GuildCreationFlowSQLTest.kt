@@ -26,7 +26,13 @@ class GuildCreationFlowSQLTest : RewardSqlTestFixture() {
         }
     }
 
-    private fun runCreation() {
+    @Test fun paidBypassPreservesCooldownAndChargesTheNormalCost() {
+        try { runCreation(bypass = true) } catch (error: org.mockbukkit.mockbukkit.exception.UnimplementedOperationException) {
+            throw AssertionError("Bypass contract must execute rather than silently skip", error)
+        }
+    }
+
+    private fun runCreation(bypass: Boolean = false) {
         stopKoin()
         val server = MockBukkit.mock()
         val player = spyk(server.addPlayer())
@@ -52,6 +58,16 @@ class GuildCreationFlowSQLTest : RewardSqlTestFixture() {
         val guildService = GuildServiceBukkit(guilds, ranks, members, rankService, memberService,
             mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
             mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
+        val expiry = java.time.Instant.now().plusSeconds(86400)
+        if (bypass) {
+            guilds.creationCooldownUntil(player.uniqueId) // Initialize history schema.
+            storage.connection.executeUpdate(
+                "INSERT INTO guild_creation_cooldowns (player_id, blocked_until) VALUES (?, ?)",
+                player.uniqueId.toString(), expiry.toEpochMilli())
+            mockkStatic(org.bukkit.Bukkit::class)
+            every { org.bukkit.Bukkit.getPlayer(player.uniqueId) } returns player
+            every { player.hasPermission("lumaguilds.guild.creationcooldown.bypass") } returns true
+        }
         val physical = BukkitPhysicalGoldAdapter({ id -> if (id == player.uniqueId) player else null }, Material.RAW_GOLD, null, 1,
             PhysicalGoldJournal(storage))
         val costs = GuildCostService({ cfg }, physical, mockk(relaxed = true))
@@ -69,5 +85,10 @@ class GuildCreationFlowSQLTest : RewardSqlTestFixture() {
         assertEquals(10L, result.cost)
         assertEquals(10, player.inventory.getItem(0)!!.amount)
         assertNull(physical.pendingReservation(player.uniqueId))
+        if (bypass) {
+            assertEquals(expiry.toEpochMilli(), guilds.creationCooldownUntil(player.uniqueId)!!.toEpochMilli())
+            assertEquals(player.uniqueId.toString(), storage.connection.getFirstRow(
+                "SELECT creator_id FROM guild_creators WHERE guild_id = ?", result.guild.id.toString())!!.getString("creator_id"))
+        }
     }
 }

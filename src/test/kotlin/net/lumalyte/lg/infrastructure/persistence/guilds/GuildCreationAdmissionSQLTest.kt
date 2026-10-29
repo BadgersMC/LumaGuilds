@@ -15,8 +15,9 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 internal class GuildCreationAdmissionSQLTest : RewardSqlTestFixture() {
-    @Test
-    fun lostCommitAcknowledgmentMustNotBecomeRefundableFailure() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = [false, true])
+    fun lostCommitAcknowledgmentMustNotBecomeRefundableFailure(bypass: Boolean) {
         val actual = openStorage()
         migrateProductionSchema(actual)
         val database = io.mockk.spyk(actual.connection)
@@ -37,7 +38,8 @@ internal class GuildCreationAdmissionSQLTest : RewardSqlTestFixture() {
         val repository = GuildRepositorySQLite(storage)
         val guild = Guild(UUID.randomUUID(), "Commit Uncertain", createdAt = Instant.now())
         kotlin.test.assertFailsWith<GuildCreationTransactionUncertainException> {
-            repository.addCreated(guild, UUID.randomUUID())
+            if (bypass) repository.addCreatedBypassingCooldown(guild, UUID.randomUUID())
+            else repository.addCreated(guild, UUID.randomUUID())
         }
         // The server committed; treating the exception as false would incorrectly restore gold.
         assertEquals(1, actual.connection.getFirstRow(
@@ -133,7 +135,41 @@ internal class GuildCreationAdmissionSQLTest : RewardSqlTestFixture() {
         val permitted = Guild(UUID.randomUUID(), "Permitted", createdAt = at.plusSeconds(2))
         assertTrue(repository.addCreatedBypassingCooldown(permitted, creator))
         assertEquals(expiry, repository.creationCooldownUntil(creator))
-        assertFalse(repository.addCreated(Guild(UUID.randomUUID(), "Still Blocked", createdAt = at.plusSeconds(3)), creator))
+        val cold = GuildRepositorySQLite(storage)
+        assertEquals(expiry, cold.creationCooldownUntil(creator))
+        assertEquals(permitted.id, cold.getById(permitted.id)?.id)
+        assertEquals(creator.toString(), storage.connection.getFirstRow(
+            "SELECT creator_id FROM guild_creators WHERE guild_id = ?", permitted.id.toString())!!.getString("creator_id"))
+        assertFalse(cold.addCreated(Guild(UUID.randomUUID(), "Still Blocked", createdAt = at.plusSeconds(3)), creator))
+        val other = UUID.randomUUID()
+        storage.connection.executeUpdate("INSERT INTO guild_creation_cooldowns (player_id, blocked_until) VALUES (?, ?)",
+            other.toString(), expiry.toEpochMilli())
+        assertFalse(cold.addCreated(Guild(UUID.randomUUID(), "Other Blocked", createdAt = at.plusSeconds(3)), other))
+    }
+
+    @Test
+    fun bypassOriginFailureRollsBackEveryBootstrapRowAndPreservesCooldown() {
+        val storage = openStorage()
+        val repository = repository(storage)
+        val creator = UUID.randomUUID()
+        val expiry = Instant.now().plusSeconds(86400)
+        repository.creationCooldownUntil(creator)
+        storage.connection.executeUpdate("INSERT INTO guild_creation_cooldowns (player_id, blocked_until) VALUES (?, ?)",
+            creator.toString(), expiry.toEpochMilli())
+        val body = failureTriggerBody(storage)
+        storage.connection.executeUpdate("CREATE TRIGGER reject_bypass_creator BEFORE INSERT ON guild_creators $body")
+        val guild = Guild(UUID.randomUUID(), "Failed Bypass", createdAt = Instant.now())
+        assertFalse(repository.addCreatedBypassingCooldown(guild, creator))
+        assertNull(repository.getById(guild.id))
+        assertCreationRowsMissing(storage, guild)
+        for (table in listOf("guild_reward_accounts", "guild_progression")) {
+            assertEquals(0, storage.connection.getFirstRow(
+                "SELECT COUNT(*) AS n FROM $table WHERE guild_id = ?", guild.id.toString())!!.getInt("n"))
+        }
+        assertEquals(expiry.toEpochMilli(), repository.creationCooldownUntil(creator)!!.toEpochMilli())
+        storage.connection.executeUpdate("DROP TRIGGER reject_bypass_creator")
+        assertFalse(repository.addCreated(guild, creator))
+        assertTrue(repository.addCreatedBypassingCooldown(guild, creator))
     }
 
     @Test
