@@ -542,6 +542,15 @@ private class FakeQuestRepository(initial: WeeklyQuestSet?) : QuestRepository {
 @Suppress("MagicNumber", "TooManyFunctions")
 internal abstract class BankQuestContributionContract : BankDepositDeliveryFixture() {
 
+    @Test fun `unavailable quest revision rejects before creating a payment`() {
+        bankQuests()
+        execute("DROP TABLE guild_bank_quest_revision")
+        val request = physicalRequest(amount = 100)
+        assertEquals(GuildGoldResult.Rejected(net.lumalyte.lg.domain.gold.GuildGoldRejection.EXTERNAL_UNAVAILABLE),
+            service.depositPhysical(request))
+        assertEquals(0, scalar("SELECT COUNT(*) FROM guild_gold_operations WHERE transaction_id = ?", request.transactionId.toString()))
+    }
+
     @Test fun `quote captured before quest deactivation must not prepare after deactivation`() {
         val (repository, _, _) = bankQuests()
         val oldQuote = quote
@@ -633,25 +642,29 @@ internal abstract class BankQuestContributionContract : BankDepositDeliveryFixtu
 
     @Test fun `MariaDB deposit preparation and transition cannot both pass the fence`() {
         assumeTrue(db.dialect == SqlDialect.MARIADB)
-        val (repository, _, _) = bankQuests()
-        val active = repository.getActiveQuestSet()!!
-        val start = java.util.concurrent.CountDownLatch(1)
-        val deposit = CompletableFuture.supplyAsync {
-            start.await()
-            service.depositPhysical(physicalRequest(amount = 100))
-        }
-        val transition = CompletableFuture.supplyAsync {
-            start.await()
-            repository.beginBankQuestTransition(active.weekId)
-        }
-        start.countDown()
-        val result = deposit.get(15, TimeUnit.SECONDS)
-        val fenced = transition.get(15, TimeUnit.SECONDS)
-        if (fenced) {
-            assertEquals(GuildGoldResult.Rejected(net.lumalyte.lg.domain.gold.GuildGoldRejection.WEEKLY_QUEST_TRANSITION), result)
-        } else {
-            assertIs<GuildGoldResult.Applied>(result)
-            assertTrue(repository.hasUnresolvedBankContributions(active.weekId))
+        val (repository, quests, _) = bankQuests()
+        repeat(10) { index ->
+            val active = repository.getActiveQuestSet()!!
+            val start = java.util.concurrent.CountDownLatch(1)
+            val deposit = CompletableFuture.supplyAsync {
+                start.await()
+                service.depositPhysical(physicalRequest(amount = 100))
+            }
+            val transition = CompletableFuture.supplyAsync {
+                start.await()
+                repository.beginBankQuestTransition(active.weekId)
+            }
+            start.countDown()
+            val result = deposit.get(15, TimeUnit.SECONDS)
+            val fenced = transition.get(15, TimeUnit.SECONDS)
+            if (fenced) {
+                assertEquals(GuildGoldResult.Rejected(net.lumalyte.lg.domain.gold.GuildGoldRejection.WEEKLY_QUEST_TRANSITION), result)
+            } else {
+                assertIs<GuildGoldResult.Applied>(result)
+                assertTrue(repository.hasUnresolvedBankContributions(active.weekId))
+                quests.reconcilePendingRewards()
+            }
+            repository.saveActiveQuestSet(active.copy(weekId = "race-$index"))
         }
     }
 

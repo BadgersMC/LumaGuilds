@@ -47,9 +47,11 @@ class QuestFixturePersistenceTest : RewardSqlTestFixture() {
         val storage = prepared()
         val repository = QuestRepositorySQLite(storage)
         val before = persistedHash(storage)
+        val revision = repository.currentBankQuestRevision()
         rejectDefinition(storage, QuestFixturePlan.ID)
         assertFails { repository.saveActiveQuestSet(QuestFixturePlan.install(original)) }
         assertEquals(before, persistedHash(storage))
+        assertEquals(revision, repository.currentBankQuestRevision())
         assertEquals(original, repository.getActiveQuestSet())
     }
 

@@ -16,6 +16,7 @@ import net.lumalyte.lg.domain.gold.GuildGoldResult
 import net.lumalyte.lg.domain.gold.GuildGoldRoute
 import java.util.UUID
 import java.nio.charset.StandardCharsets
+import org.slf4j.LoggerFactory
 
 fun interface GuildGoldPolicyProvider {
     fun policyFor(guildId: UUID): GuildGoldPolicy
@@ -46,6 +47,7 @@ class GuildGoldService(
     private val rewardPurchasesEnabled: () -> Boolean = { true },
     private val depositXpQuote: ((UUID) -> BankDepositXpQuote)? = null,
 ) {
+    private val logger = LoggerFactory.getLogger(GuildGoldService::class.java)
     constructor(
         repository: GuildGoldRepository,
         policyProvider: GuildGoldPolicyProvider,
@@ -573,7 +575,15 @@ class GuildGoldService(
             return if (existing.mutation == mutation) existing.toResult()
             else GuildGoldResult.Rejected(GuildGoldRejection.DUPLICATE_PENDING)
         }
-        val quote = depositXpQuote?.invoke(mutation.actorId)
+        val quote = depositXpQuote?.let { capture ->
+            try {
+                capture(mutation.actorId)
+            } catch (error: Exception) {
+                // No payment or operation has been prepared yet; do not report an ambiguous charge.
+                logger.warn("Unable to capture bank deposit eligibility; rejecting before payment", error)
+                return GuildGoldResult.Rejected(GuildGoldRejection.EXTERNAL_UNAVAILABLE)
+            }
+        }
         return preparationResult(if (quote == null) repository.prepare(mutation) else repository.prepareDeposit(mutation, quote))
     }
 

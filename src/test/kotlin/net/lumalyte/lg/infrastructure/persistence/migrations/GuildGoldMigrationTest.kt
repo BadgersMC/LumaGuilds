@@ -131,13 +131,18 @@ class GuildGoldMigrationTest {
             it.execute("DROP TABLE guild_bank_quest_revision")
             it.execute("PRAGMA user_version = 48")
         }
-        repeat(2) { SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate() }
+        SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
+        connection.createStatement().use { it.execute("UPDATE guild_bank_quest_revision SET revision = 7 WHERE id = 1") }
+        SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
         assertEquals(BankContributionSchema.VERSION, databaseVersion())
         assertTrue(tableExists(BankContributionSchema.QUEST_INTENTS))
         assertTrue(tableExists(BankContributionSchema.QUEST_RECOVERY))
         assertTrue(tableExists(BankContributionSchema.QUEST_TRANSITION))
         assertTrue(tableExists(BankContributionSchema.QUEST_REVISION))
         connection.createStatement().use { s ->
+            s.executeQuery("SELECT revision FROM guild_bank_quest_revision WHERE id = 1").use {
+                assertTrue(it.next()); assertEquals(7, it.getInt(1))
+            }
             s.executeQuery("SELECT COUNT(*) FROM guild_bank_quest_intents").use {
                 assertTrue(it.next()); assertEquals(0, it.getInt(1))
             }
