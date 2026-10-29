@@ -22,11 +22,11 @@ class GuildCreationHistorySQL(private val storage: Storage<Database>) {
 
     fun cooldownUntil(playerId: UUID): Instant? = storage.connection.connection.use { readCooldown(it, playerId) }
 
-    fun create(guildId: UUID, creatorId: UUID, at: Instant, insert: (Connection) -> Boolean): Boolean =
+    fun create(guildId: UUID, creatorId: UUID, at: Instant, bypassCooldown: Boolean = false, insert: (Connection) -> Boolean): Boolean =
         transaction { connection ->
             lockCreator(connection, creatorId)
             val blocked = readCooldown(connection, creatorId)
-            if (blocked != null && at < blocked) return@transaction false
+            if (!bypassCooldown && blocked != null && at < blocked) return@transaction false
             if (!insert(connection)) return@transaction false
             execute(connection, "INSERT INTO guild_creators (guild_id, creator_id, created_at) VALUES (?, ?, ?)",
                 guildId.toString(), creatorId.toString(), at.toEpochMilli())

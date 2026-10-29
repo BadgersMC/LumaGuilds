@@ -92,7 +92,10 @@ class GuildServiceBukkit(
             createdAt = Instant.now()
         )
         
-        if (guildRepository.addCreated(guild, ownerId)) {
+        val bypassCooldown = Bukkit.getPlayer(ownerId)?.hasPermission("lumaguilds.guild.creationcooldown.bypass") == true
+        val admitted = if (bypassCooldown) guildRepository.addCreatedBypassingCooldown(guild, ownerId)
+            else guildRepository.addCreated(guild, ownerId)
+        if (admitted) {
             try {
                 check(rankService.createDefaultRanks(guildId, ownerId)) {
                     "Failed to create default ranks for guild $guildId"

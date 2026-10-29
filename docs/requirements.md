@@ -295,6 +295,8 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 ### REQ-055
 **State-driven.** THE SYSTEM SHALL enforce a 15-day guild-creation cooldown for players who create and then delete a guild within 7 days of creation (contract: `create_then_delete_window_days = 7`, `creation_cooldown_days = 15`, both operator-configurable). Deleting a guild older than the window does not start a cooldown. The cooldown starts at deletion time and blocks that player from creating a new guild until it expires.
 
+**Conditional.** GIVEN a player explicitly holds `lumaguilds.guild.creationcooldown.bypass`, WHEN that player creates a guild during their creation cooldown, THE SYSTEM SHALL allow cooldown admission without clearing or shortening the stored cooldown; all other creation checks and costs SHALL remain in force. Players without the permission SHALL retain the existing cooldown behavior. The permission SHALL default to false.
+
 ### REQ-056
 **Documented.** THE SYSTEM SHALL treat the prior level-200, unbounded-prestige proposal as superseded. Prestige SHALL use the bounded level-100 contract in REQ-093, SHALL reset only current-run level/XP and non-permanent purchased perks, and SHALL NOT reset seasonal Elo, source-cap usage, weekly-quest state, guild membership, ranks, relations, vault contents, canonical guild gold, activated homes, permanent home capacity, or previously selected permanent prestige perks.
 

@@ -14,6 +14,29 @@ import java.util.UUID
 class GuildCreationFeedbackTest {
     @AfterEach fun cleanup() { stopKoin(); unmockkAll() }
 
+    @Test fun cooldownPermissionOnlyBypassesTheCooldownGate() {
+        stopKoin()
+        val guilds = mockk<GuildService>()
+        val repository = mockk<GuildRepository>()
+        val config = mockk<ConfigService>()
+        val lang = mockk<LangService>(relaxed = true)
+        val player = mockk<Player>(relaxed = true)
+        every { player.uniqueId } returns UUID.randomUUID()
+        every { guilds.getPlayerGuilds(any()) } returns emptySet()
+        every { repository.creationCooldownUntil(any()) } returns java.time.Instant.now().plusSeconds(3600)
+        every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = false)
+        every { guilds.createGuild(any(), any(), any()) } returns null
+        startKoin { modules(module {
+            single { guilds }; single { repository }; single { config }; single { lang }
+        }) }
+        every { player.hasPermission("lumaguilds.guild.creationcooldown.bypass") } returns false
+        GuildCommand().onCreate(player, "Valid Name", null)
+        verify(exactly = 0) { guilds.createGuild(any(), any(), any()) }
+        every { player.hasPermission("lumaguilds.guild.creationcooldown.bypass") } returns true
+        GuildCommand().onCreate(player, "Valid Name", null)
+        verify(exactly = 1) { guilds.createGuild(any(), any(), any()) }
+    }
+
     @Test fun uncertainAndPendingResultsDoNotClaimDuplicateNameOrSuccess() {
         stopKoin()
         val guilds = mockk<GuildService>()

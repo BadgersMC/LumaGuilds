@@ -119,6 +119,24 @@ internal class GuildCreationAdmissionSQLTest : RewardSqlTestFixture() {
     }
 
     @Test
+    fun explicitBypassAdmitsOnlyThatCreationWithoutClearingCooldown() {
+        val storage = openStorage()
+        val repository = repository(storage)
+        val creator = UUID.randomUUID()
+        val at = Instant.parse("2026-09-17T00:00:00Z")
+        val original = Guild(UUID.randomUUID(), "Original", createdAt = at)
+        assertTrue(repository.addCreated(original, creator))
+        assertTrue(repository.removeWithCreationCooldown(original.id, GuildCreationCooldown(), at.plusSeconds(1)))
+        val expiry = requireNotNull(repository.creationCooldownUntil(creator))
+        val blocked = Guild(UUID.randomUUID(), "Blocked", createdAt = at.plusSeconds(2))
+        assertFalse(repository.addCreated(blocked, creator))
+        val permitted = Guild(UUID.randomUUID(), "Permitted", createdAt = at.plusSeconds(2))
+        assertTrue(repository.addCreatedBypassingCooldown(permitted, creator))
+        assertEquals(expiry, repository.creationCooldownUntil(creator))
+        assertFalse(repository.addCreated(Guild(UUID.randomUUID(), "Still Blocked", createdAt = at.plusSeconds(3)), creator))
+    }
+
+    @Test
     fun historyFailureRollsBackDelete() {
         val storage = openStorage()
         val repository = repository(storage)

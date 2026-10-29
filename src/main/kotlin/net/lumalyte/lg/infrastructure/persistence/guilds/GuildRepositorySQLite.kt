@@ -627,9 +627,14 @@ class GuildRepositorySQLite(
     override fun creationCooldownUntil(playerId: UUID) = creationHistory.cooldownUntil(playerId)
 
     @Synchronized
-    override fun addCreated(guild: Guild, creatorId: UUID): Boolean = try {
+    override fun addCreated(guild: Guild, creatorId: UUID): Boolean = addCreatedInternal(guild, creatorId, false)
+
+    @Synchronized
+    override fun addCreatedBypassingCooldown(guild: Guild, creatorId: UUID): Boolean = addCreatedInternal(guild, creatorId, true)
+
+    private fun addCreatedInternal(guild: Guild, creatorId: UUID, bypassCooldown: Boolean): Boolean = try {
         require(guild.homes.homes.isEmpty()) { "New guild must not contain activated homes" }
-        val added = creationHistory.create(guild.id, creatorId, guild.createdAt) { connection ->
+        val added = creationHistory.create(guild.id, creatorId, guild.createdAt, bypassCooldown) { connection ->
             val inserted = insertGuild(guild, GuildSqlWriter { sql, args ->
                 connection.prepareStatement(sql).use { statement ->
                     args.forEachIndexed { index, value -> statement.setObject(index + 1, value) }

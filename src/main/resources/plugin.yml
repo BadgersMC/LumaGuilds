@@ -64,6 +64,9 @@ commands:
     permission: lumaguilds.admin.vault.remove
 
 permissions:
+  lumaguilds.guild.creationcooldown.bypass:
+    description: Allows a player to create a guild during their creation cooldown.
+    default: false
   # Guild Management Permissions
   lumaguilds.guild.*:
     description: All guild management permissions

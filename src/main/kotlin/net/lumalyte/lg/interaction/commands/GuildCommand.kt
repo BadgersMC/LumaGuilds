@@ -167,7 +167,8 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         try {
             val until = guildRepository.creationCooldownUntil(playerId)
-            if (until != null && java.time.Instant.now() < until) {
+            if (until != null && java.time.Instant.now() < until &&
+                !player.hasPermission("lumaguilds.guild.creationcooldown.bypass")) {
                 player.sendMessage(lang.msg("guild_creation_cooldown.active", "until" to until.toString()))
                 return
             }
