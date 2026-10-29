@@ -127,6 +127,7 @@ class GuildGoldMigrationTest {
             it.execute("INSERT INTO guild_bank_contribution_receipts VALUES ('old', 'guild', 0, 1000)")
             it.execute("DROP TABLE guild_bank_quest_intents")
             it.execute("DROP TABLE guild_bank_quest_recovery")
+            it.execute("DROP TABLE guild_bank_quest_attempts")
             it.execute("DROP TABLE guild_bank_quest_transition")
             it.execute("DROP TABLE guild_bank_quest_revision")
             it.execute("PRAGMA user_version = 48")
@@ -137,6 +138,7 @@ class GuildGoldMigrationTest {
         assertEquals(BankContributionSchema.VERSION, databaseVersion())
         assertTrue(tableExists(BankContributionSchema.QUEST_INTENTS))
         assertTrue(tableExists(BankContributionSchema.QUEST_RECOVERY))
+        assertTrue(tableExists(BankContributionSchema.QUEST_ATTEMPTS))
         assertTrue(tableExists(BankContributionSchema.QUEST_TRANSITION))
         assertTrue(tableExists(BankContributionSchema.QUEST_REVISION))
         connection.createStatement().use { s ->

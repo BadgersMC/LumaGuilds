@@ -1471,6 +1471,7 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             BankContributionSchema.GUARDS,
             BankContributionSchema.QUEST_INTENTS,
             BankContributionSchema.QUEST_RECOVERY,
+            BankContributionSchema.QUEST_ATTEMPTS,
             BankContributionSchema.QUEST_TRANSITION,
             BankContributionSchema.QUEST_REVISION,
         )

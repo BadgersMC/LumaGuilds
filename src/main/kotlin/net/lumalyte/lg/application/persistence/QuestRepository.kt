@@ -12,6 +12,9 @@ interface QuestRepository {
     /** Candidates still require canonical receipt, run and definition validation on consumption. */
     fun pendingBankContributions(limit: Int): List<PendingBankContribution> = emptyList()
 
+    /** Raise the attempt count before processing, so failed receipts cannot monopolize a batch. */
+    fun noteBankContributionAttempt(transactionId: UUID) {}
+
     /** Record a completed recovery attempt so ineligible receipts cannot starve the queue. */
     fun finishBankContributionRecovery(transactionId: UUID) {}
 

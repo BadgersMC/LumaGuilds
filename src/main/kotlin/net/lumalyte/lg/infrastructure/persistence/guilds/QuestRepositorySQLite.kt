@@ -82,8 +82,9 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
         // Compare identifiers byte-for-byte across both schemas on MariaDB.
         fun same(left: String, right: String) = if (mariaDb) "BINARY $left = BINARY $right" else "$left = $right"
         val sql = """
-            SELECT DISTINCT i.transaction_id, r.guild_id, o.actor_id
+            SELECT DISTINCT i.transaction_id, r.guild_id, o.actor_id, COALESCE(attempts.attempts, 0) AS attempt_count
             FROM guild_bank_quest_intents i
+            LEFT JOIN guild_bank_quest_attempts attempts ON attempts.transaction_id = i.transaction_id
             JOIN guild_bank_contribution_receipts r ON ${same("r.transaction_id", "i.transaction_id")}
             JOIN guild_gold_operations o ON ${same("o.transaction_id", "i.transaction_id")} AND ${same("o.guild_id", "r.guild_id")}
             JOIN weekly_quest_sets w ON ${same("w.week_id", "i.week_id")} AND w.active = 1
@@ -93,7 +94,7 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
                 SELECT 1 FROM guild_bank_contribution_quests done
                 WHERE done.transaction_id = i.transaction_id AND done.quest_id = i.quest_id
             )
-            ORDER BY i.transaction_id LIMIT ?
+            ORDER BY attempt_count, i.transaction_id LIMIT ?
         """.trimIndent()
         return storage.connection.connection.use { c ->
             c.prepareStatement(sql).use { statement ->
@@ -106,6 +107,22 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
                         ))
                     }
                 }
+            }
+        }
+    }
+
+    override fun noteBankContributionAttempt(transactionId: UUID) {
+        val sql = if (mariaDb) {
+            "INSERT INTO guild_bank_quest_attempts (transaction_id, attempts) VALUES (?, 1) " +
+                "ON DUPLICATE KEY UPDATE attempts = CASE WHEN attempts < 9223372036854775807 THEN attempts + 1 ELSE attempts END"
+        } else {
+            "INSERT INTO guild_bank_quest_attempts (transaction_id, attempts) VALUES (?, 1) " +
+                "ON CONFLICT(transaction_id) DO UPDATE SET attempts = CASE WHEN attempts < 9223372036854775807 THEN attempts + 1 ELSE attempts END"
+        }
+        storage.connection.connection.use { c ->
+            c.prepareStatement(sql).use { statement ->
+                statement.setString(1, transactionId.toString())
+                statement.executeUpdate()
             }
         }
     }

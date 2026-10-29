@@ -22,6 +22,8 @@ internal object BankContributionSchema {
     /** Captured eligible definitions for a newly prepared deposit. */
     const val QUEST_INTENTS = "guild_bank_quest_intents"
     const val QUEST_RECOVERY = "guild_bank_quest_recovery"
+    const val QUEST_ATTEMPTS = "guild_bank_quest_attempts"
+    private const val ATTEMPTS_SQL = "CREATE TABLE IF NOT EXISTS $QUEST_ATTEMPTS (transaction_id VARCHAR(36) PRIMARY KEY, attempts BIGINT NOT NULL)"
     const val QUEST_TRANSITION = "guild_bank_quest_transition"
     const val QUEST_REVISION = "guild_bank_quest_revision"
     private const val REVISION_SQL = "CREATE TABLE IF NOT EXISTS $QUEST_REVISION (id INT PRIMARY KEY, revision BIGINT NOT NULL)"
@@ -66,7 +68,7 @@ internal object BankContributionSchema {
     fun create(connection: Connection, mariaDb: Boolean) {
         val engine = if (mariaDb) " ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci" else ""
         connection.createStatement().use { statement ->
-            listOf(GUARD_SQL, ACCOUNT_SQL, RECEIPT_SQL, QUEST_SQL, INTENT_SQL, RECOVERY_SQL, TRANSITION_SQL, REVISION_SQL).forEach { sql -> statement.execute(sql + engine) }
+            listOf(GUARD_SQL, ACCOUNT_SQL, RECEIPT_SQL, QUEST_SQL, INTENT_SQL, RECOVERY_SQL, ATTEMPTS_SQL, TRANSITION_SQL, REVISION_SQL).forEach { sql -> statement.execute(sql + engine) }
             val insert = if (mariaDb) "INSERT IGNORE" else "INSERT OR IGNORE"
             statement.execute("$insert INTO $QUEST_REVISION (id, revision) VALUES (1, 0)")
         }

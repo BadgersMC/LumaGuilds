@@ -542,6 +542,41 @@ private class FakeQuestRepository(initial: WeeklyQuestSet?) : QuestRepository {
 @Suppress("MagicNumber", "TooManyFunctions")
 internal abstract class BankQuestContributionContract : BankDepositDeliveryFixture() {
 
+    @Test fun `one failed recovery does not prevent other deposits and remains retryable`() {
+        val (repository, quests, _) = bankQuests()
+        val failed = physicalRequest(UUID(0, 1), 1_000)
+        val healthy = physicalRequest(UUID(0, 2), 1_000)
+        assertIs<GuildGoldResult.Applied>(service.depositPhysical(failed))
+        assertIs<GuildGoldResult.Applied>(service.depositPhysical(healthy))
+        val trigger = if (db.dialect == SqlDialect.MARIADB) {
+            "FOR EACH ROW BEGIN IF NEW.transaction_id = '${failed.transactionId}' THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'fixture fault'; END IF; END"
+        } else {
+            "WHEN NEW.transaction_id = '${failed.transactionId}' BEGIN SELECT RAISE(ABORT, 'fixture fault'); END"
+        }
+        execute("CREATE TRIGGER reject_one_bank_quest BEFORE INSERT ON guild_bank_contribution_quests $trigger")
+        quests.reconcilePendingRewards()
+        assertEquals(1_000, quests.progressFor(guild, "bank").currentCount)
+        assertEquals(listOf(failed.transactionId), repository.pendingBankContributions(128).map { it.transactionId })
+        execute("DROP TRIGGER reject_one_bank_quest")
+        quests.reconcilePendingRewards()
+        assertEquals(2_000, quests.progressFor(guild, "bank").currentCount)
+        assertTrue(repository.pendingBankContributions(128).isEmpty())
+    }
+
+    @Test fun `unattempted deposits are not starved by a full batch of retrying entries`() {
+        val (repository, quests, _) = bankQuests()
+        repeat(128) { index ->
+            val request = physicalRequest(UUID(0, index.toLong() + 1), 1)
+            assertIs<GuildGoldResult.Applied>(service.depositPhysical(request))
+            repository.noteBankContributionAttempt(request.transactionId)
+        }
+        val fresh = physicalRequest(UUID(0, 1_000), 1)
+        assertIs<GuildGoldResult.Applied>(service.depositPhysical(fresh))
+        assertEquals(fresh.transactionId, repository.pendingBankContributions(1).single().transactionId)
+        quests.reconcilePendingRewards()
+        assertEquals(1, scalar("SELECT COUNT(*) FROM guild_bank_contribution_quests WHERE transaction_id = ?", fresh.transactionId.toString()))
+    }
+
     @Test fun `unavailable quest revision rejects before creating a payment`() {
         bankQuests()
         execute("DROP TABLE guild_bank_quest_revision")

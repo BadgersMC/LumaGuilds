@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.util.UUID
 import kotlin.math.abs
+import org.slf4j.LoggerFactory
 
 interface QuestRewardSink {
     fun awardExperience(guildId: UUID, amount: Int, transactionId: UUID): Boolean
@@ -40,6 +41,7 @@ class QuestService(
     private val leaderboardWinnerExperience: Int = 0,
     private val completionNotifier: QuestCompletionNotifier = QuestCompletionNotifier.NOOP,
 ) {
+    private val logger = LoggerFactory.getLogger(QuestService::class.java)
     fun activeQuestSet(): WeeklyQuestSet? = repository.getActiveQuestSet()
     fun recentQuestSets(limit: Int): List<WeeklyQuestSet> = repository.getRecentQuestSets(limit)
 
@@ -157,8 +159,13 @@ class QuestService(
      */
     fun reconcilePendingRewards(): Int {
         repository.pendingBankContributions(128).forEach { contribution ->
-            incrementBankDeposit(contribution.guildId, contribution.actorId, contribution.transactionId)
-            repository.finishBankContributionRecovery(contribution.transactionId)
+            try {
+                repository.noteBankContributionAttempt(contribution.transactionId)
+                incrementBankDeposit(contribution.guildId, contribution.actorId, contribution.transactionId)
+                repository.finishBankContributionRecovery(contribution.transactionId)
+            } catch (error: Exception) {
+                logger.warn("Bank quest contribution {} remains pending for retry", contribution.transactionId, error)
+            }
         }
         var delivered = 0
 
