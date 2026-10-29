@@ -23,6 +23,9 @@ interface QuestRepository {
     /** Fence new bank preparations before paying final scores for an old week. */
     fun beginBankQuestTransition(weekId: String): Boolean = true
 
+    /** Atomically fence only the definition revision captured before reading the payout snapshot. */
+    fun beginBankQuestTransition(weekId: String, expectedRevision: Long): Boolean = false
+
     /** Verify canonical contribution provenance and consume it atomically with progress, once per quest. */
     fun applyBankContribution(input: BankQuestContribution): GuildQuestProgress? = null
 

@@ -200,12 +200,14 @@ class QuestService(
     fun hasPendingBankContributionRecovery(): Boolean = repository.pendingBankContributions(1).isNotEmpty()
 
     fun resetWeeklyQuests(nextQuestSet: WeeklyQuestSet) {
+        // Read generation first: edits during either snapshot read must invalidate the fence.
+        val revision = repository.currentBankQuestRevision()
         val active = repository.getActiveQuestSet()
         if (active?.weekId == nextQuestSet.weekId) return
 
         active?.let { current ->
-            check(repository.beginBankQuestTransition(current.weekId)) {
-                "Weekly quest reset blocked by unresolved bank contributions"
+            check(repository.beginBankQuestTransition(current.weekId, revision)) {
+                "Weekly quest reset blocked by changed definitions or unresolved bank contributions"
             }
             check(reconcileFullSetBonuses(current)) {
                 "Unable to durably settle weekly quest completion bonuses"

@@ -336,17 +336,32 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
     override fun hasUnresolvedBankContributions(weekId: String): Boolean =
         storage.connection.connection.use { unresolvedBankIntent(it, weekId, lockRows = false) != null }
 
-    override fun beginBankQuestTransition(weekId: String): Boolean = storage.connection.connection.use { connection ->
-        connection.committingTransaction {
-            val lock = if (mariaDb) " FOR UPDATE" else ""
-            val active = connection.selectOne("SELECT week_id FROM weekly_quest_sets WHERE active = 1$lock") { it.getString(1) }
-            if (active != weekId || unresolvedBankIntent(connection, weekId, lockRows = true) != null) return@committingTransaction false
-            val existing = connection.selectOne("SELECT week_id FROM guild_bank_quest_transition WHERE id = 1$lock") { it.getString(1) }
-            if (existing != null) return@committingTransaction existing == weekId
-            connection.updateStatement("INSERT INTO guild_bank_quest_transition (id, week_id) VALUES (1, ?)", weekId)
-            true
-        }
+    override fun beginBankQuestTransition(weekId: String): Boolean = beginBankQuestTransitionInternal(weekId, null)
+
+    override fun beginBankQuestTransition(weekId: String, expectedRevision: Long): Boolean {
+        require(expectedRevision >= 0)
+        return beginBankQuestTransitionInternal(weekId, expectedRevision)
     }
+
+    private fun beginBankQuestTransitionInternal(weekId: String, expectedRevision: Long?): Boolean =
+        storage.connection.connection.use { connection ->
+            connection.committingTransaction {
+                val lock = if (mariaDb) " FOR UPDATE" else ""
+                val active = connection.selectOne("SELECT week_id FROM weekly_quest_sets WHERE active = 1$lock") { it.getString(1) }
+                if (active != weekId) return@committingTransaction false
+                if (expectedRevision != null) {
+                    val revision = checkNotNull(connection.selectOne(
+                        "SELECT revision FROM guild_bank_quest_revision WHERE id = 1$lock"
+                    ) { it.getLong(1) }) { "Bank quest revision is unavailable" }
+                    if (revision != expectedRevision) return@committingTransaction false
+                }
+                if (unresolvedBankIntent(connection, weekId, lockRows = true) != null) return@committingTransaction false
+                val existing = connection.selectOne("SELECT week_id FROM guild_bank_quest_transition WHERE id = 1$lock") { it.getString(1) }
+                if (existing != null) return@committingTransaction existing == weekId
+                connection.updateStatement("INSERT INTO guild_bank_quest_transition (id, week_id) VALUES (1, ?)", weekId)
+                true
+            }
+        }
 
     private fun unresolvedBankIntent(connection: Connection, weekId: String, lockRows: Boolean): String? {
         val lock = if (mariaDb && lockRows) " FOR UPDATE" else ""
