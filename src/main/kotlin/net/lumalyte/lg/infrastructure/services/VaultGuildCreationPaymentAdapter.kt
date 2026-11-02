@@ -47,9 +47,10 @@ class VaultGuildCreationPaymentAdapter(
                 ExternalTransferResult.Applied ->
                     if (journal.transition(transactionId, "DEBITING", "DEBITED"))
                         PhysicalReservationResult.Reserved(receipt) else PhysicalReservationResult.Unknown
-                is ExternalTransferResult.Rejected, ExternalTransferResult.Unavailable ->
-                    if (journal.finish(receipt, "DEBITING", "REJECTED"))
-                        PhysicalReservationResult.Unavailable else PhysicalReservationResult.Unknown
+                // Once debit was invoked, a negative provider response is not a
+                // durable no-effect receipt. Keep DEBITING guarded for reconciliation.
+                ExternalTransferResult.Unavailable,
+                is ExternalTransferResult.Rejected,
                 is ExternalTransferResult.Failed -> PhysicalReservationResult.Unknown
             }
         } catch (_: Exception) {

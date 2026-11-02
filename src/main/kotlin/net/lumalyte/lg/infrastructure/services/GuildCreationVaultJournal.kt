@@ -14,7 +14,12 @@ import java.util.UUID
  * reach the external Vault withdrawal. Ambiguous phases are never auto-replayed.
  */
 class GuildCreationVaultJournal(private val storage: Storage<Database>) {
-    data class Receipt(val payment: PhysicalGoldReservation, val phase: String)
+    data class Receipt(
+        val payment: PhysicalGoldReservation,
+        val phase: String,
+        val createdAtEpochMillis: Long,
+        val updatedAtEpochMillis: Long,
+    )
     sealed interface Claim {
         data object Claimed : Claim
         data class Pending(val transactionId: UUID) : Claim
@@ -25,7 +30,8 @@ class GuildCreationVaultJournal(private val storage: Storage<Database>) {
         storage.connection.executeUpdate(
             "CREATE TABLE IF NOT EXISTS guild_creation_vault_payments (" +
                 "transaction_id VARCHAR(36) PRIMARY KEY, player_id VARCHAR(36) NOT NULL, " +
-                "amount BIGINT NOT NULL, phase VARCHAR(24) NOT NULL)$engine"
+                "amount BIGINT NOT NULL, phase VARCHAR(24) NOT NULL, " +
+                "created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)$engine"
         )
         storage.connection.executeUpdate(
             "CREATE TABLE IF NOT EXISTS guild_creation_vault_guards (" +
@@ -46,13 +52,16 @@ class GuildCreationVaultJournal(private val storage: Storage<Database>) {
 
     fun get(transactionId: UUID): Receipt? = storage.connection.connection.use { connection ->
         connection.prepareStatement(
-            "SELECT player_id, amount, phase FROM guild_creation_vault_payments WHERE transaction_id = ?"
+            "SELECT player_id, amount, phase, created_at, updated_at " +
+                "FROM guild_creation_vault_payments WHERE transaction_id = ?"
         ).use { statement ->
             statement.setString(1, transactionId.toString())
             statement.executeQuery().use { rows ->
                 if (!rows.next()) null else Receipt(
                     PhysicalGoldReservation(transactionId, UUID.fromString(rows.getString(1)), rows.getLong(2)),
                     rows.getString(3),
+                    rows.getLong(4),
+                    rows.getLong(5),
                 )
             }
         }
@@ -71,11 +80,15 @@ class GuildCreationVaultJournal(private val storage: Storage<Database>) {
                 }
                 connection.prepareStatement(
                     "INSERT INTO guild_creation_vault_payments " +
-                        "(transaction_id, player_id, amount, phase) VALUES (?, ?, ?, 'CLAIMED')"
+                        "(transaction_id, player_id, amount, phase, created_at, updated_at) " +
+                        "VALUES (?, ?, ?, 'CLAIMED', ?, ?)"
                 ).use {
+                    val now = System.currentTimeMillis() // UTC epoch milliseconds
                     it.setString(1, payment.id.toString())
                     it.setString(2, payment.playerId.toString())
                     it.setLong(3, payment.value)
+                    it.setLong(4, now)
+                    it.setLong(5, now)
                     check(it.executeUpdate() == 1)
                 }
                 Claim.Claimed
@@ -90,11 +103,13 @@ class GuildCreationVaultJournal(private val storage: Storage<Database>) {
     fun transition(transactionId: UUID, expected: String, next: String): Boolean =
         storage.connection.connection.use { connection ->
             connection.prepareStatement(
-                "UPDATE guild_creation_vault_payments SET phase = ? WHERE transaction_id = ? AND phase = ?"
+                "UPDATE guild_creation_vault_payments SET phase = ?, updated_at = ? " +
+                    "WHERE transaction_id = ? AND phase = ?"
             ).use {
                 it.setString(1, next)
-                it.setString(2, transactionId.toString())
-                it.setString(3, expected)
+                it.setLong(2, System.currentTimeMillis())
+                it.setString(3, transactionId.toString())
+                it.setString(4, expected)
                 it.executeUpdate() == 1
             }
         }
@@ -103,14 +118,15 @@ class GuildCreationVaultJournal(private val storage: Storage<Database>) {
     fun finish(payment: PhysicalGoldReservation, expected: String, terminal: String): Boolean =
         transaction { connection ->
             val changed = connection.prepareStatement(
-                "UPDATE guild_creation_vault_payments SET phase = ? " +
+                "UPDATE guild_creation_vault_payments SET phase = ?, updated_at = ? " +
                     "WHERE transaction_id = ? AND player_id = ? AND amount = ? AND phase = ?"
             ).use {
                 it.setString(1, terminal)
-                it.setString(2, payment.id.toString())
-                it.setString(3, payment.playerId.toString())
-                it.setLong(4, payment.value)
-                it.setString(5, expected)
+                it.setLong(2, System.currentTimeMillis())
+                it.setString(3, payment.id.toString())
+                it.setString(4, payment.playerId.toString())
+                it.setLong(5, payment.value)
+                it.setString(6, expected)
                 it.executeUpdate()
             }
             if (changed != 1) return@transaction false

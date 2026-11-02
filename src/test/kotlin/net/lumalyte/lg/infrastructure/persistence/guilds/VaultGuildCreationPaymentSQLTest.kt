@@ -43,8 +43,14 @@ class VaultGuildCreationPaymentSQLTest : RewardSqlTestFixture() {
         assertEquals(90L, economy.money)
         assertEquals(1, economy.debits.get())
         assertNull(journal.pending(player))
-        assertEquals("COMMITTED", journal.get(tx)?.phase)
-        assertEquals(10L, journal.get(tx)?.payment?.value)
+        val recorded = assertNotNull(journal.get(tx))
+        assertEquals("COMMITTED", recorded.phase)
+        assertEquals(10L, recorded.payment.value)
+        assertTrue(recorded.createdAtEpochMillis > 0L)
+        assertTrue(recorded.updatedAtEpochMillis >= recorded.createdAtEpochMillis)
+        val reopened = assertNotNull(GuildCreationVaultJournal(storage).get(tx))
+        assertEquals(recorded.createdAtEpochMillis, reopened.createdAtEpochMillis)
+        assertEquals(recorded.updatedAtEpochMillis, reopened.updatedAtEpochMillis)
     }
 
     @Test fun missingProviderAndInsufficientBalanceNeverCreatePaymentIntent() {
@@ -109,6 +115,31 @@ class VaultGuildCreationPaymentSQLTest : RewardSqlTestFixture() {
         assertEquals(tx, resumedJournal.pending(player))
     }
 
+    @Test fun postCallRejectedResponseNeverReleasesPaymentGuard() {
+        val storage = openStorage()
+        val journal = GuildCreationVaultJournal(storage)
+        for (providerMutated in listOf(false, true)) {
+            val economy = FakePersonal(100)
+            economy.debitEffect = { amount ->
+                if (providerMutated) economy.money -= amount
+                ExternalTransferResult.Rejected("negative response cannot prove no transfer")
+            }
+            val player = UUID.randomUUID()
+            val tx = UUID.randomUUID()
+            assertEquals(GuildCreationCostResult.Uncertain(null, tx),
+                service(port(economy, journal)).createGuild(tx, player) { fail("must not create") })
+            assertEquals("DEBITING", journal.get(tx)?.phase)
+            assertEquals(tx, journal.pending(player))
+            assertEquals(0, economy.credits.get())
+            assertEquals(1, economy.debits.get())
+            assertEquals(GuildCreationCostResult.PendingReview(tx),
+                service(port(economy, GuildCreationVaultJournal(storage))).createGuild(UUID.randomUUID(), player) {
+                    fail("cannot retry a rejected-but-uncertain withdrawal")
+                })
+            assertEquals(1, economy.debits.get())
+        }
+    }
+
     @Test fun creationPersistenceExceptionHoldsDebitedReceiptWithoutRefund() {
         val storage = openStorage()
         val journal = GuildCreationVaultJournal(storage)
@@ -154,20 +185,35 @@ class VaultGuildCreationPaymentSQLTest : RewardSqlTestFixture() {
         val economy = FakePersonal(100)
         val player = UUID.randomUUID()
         val journal = GuildCreationVaultJournal(storage)
-        val start = CountDownLatch(1)
+        val firstId = UUID.randomUUID()
+        val debitEntered = CountDownLatch(1)
+        val releaseDebit = CountDownLatch(1)
+        economy.debitEffect = { amount ->
+            // Keep the first SQL guard active throughout the second attempt.
+            debitEntered.countDown()
+            check(releaseDebit.await(15, TimeUnit.SECONDS)) { "timed out waiting to finish first debit" }
+            synchronized(economy) { economy.money -= amount }
+            ExternalTransferResult.Applied
+        }
         val pool = Executors.newFixedThreadPool(2)
         try {
-            val actions = (1..2).map {
-                pool.submit<GuildCreationCostResult> {
-                    start.await()
-                    service(port(economy, GuildCreationVaultJournal(storage)))
-                        .createGuild(UUID.randomUUID(), player) { guild() }
-                }
+            val first = pool.submit<GuildCreationCostResult> {
+                service(port(economy, journal)).createGuild(firstId, player) { guild() }
             }
-            start.countDown()
-            actions.forEach { it.get(20, TimeUnit.SECONDS) }
-            assertEquals(1, economy.debits.get(), "unique SQL guard must serialize paid founding")
+            assertTrue(debitEntered.await(15, TimeUnit.SECONDS), "first debit never started")
+            assertEquals(firstId, journal.pending(player))
+            val second = pool.submit<GuildCreationCostResult> {
+                service(port(economy, GuildCreationVaultJournal(storage)))
+                    .createGuild(UUID.randomUUID(), player) { fail("must block a concurrent founding") }
+            }
+            assertEquals(GuildCreationCostResult.PendingReview(firstId), second.get(15, TimeUnit.SECONDS))
+            assertEquals(1, economy.debits.get(), "second command must not invoke Vault")
+            releaseDebit.countDown()
+            assertIs<GuildCreationCostResult.Applied>(first.get(15, TimeUnit.SECONDS))
+            assertEquals(1, economy.debits.get())
+            assertNull(journal.pending(player))
         } finally {
+            releaseDebit.countDown()
             pool.shutdownNow()
         }
     }

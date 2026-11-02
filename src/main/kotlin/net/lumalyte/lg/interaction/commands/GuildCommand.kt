@@ -211,7 +211,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
                         "command.migrated.guild.create.payment_outcome_uncertain",
                         "transaction" to result.transactionId,
                     ))
-                    result.guild ?: return
+                    // Even if the guild row exists, payment finalization is unresolved.
+                    // Do not claim or broadcast success until staff reconciles the receipt.
+                    return
                 }
                 is net.lumalyte.lg.application.services.GuildCreationCostResult.PendingReview -> {
                     player.sendMessage(lang.msg("command.migrated.guild.create.payment_outcome_uncertain",
