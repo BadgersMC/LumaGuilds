@@ -30,7 +30,7 @@ sealed interface HomeActivationCostResult {
 
 class GuildCostService @JvmOverloads constructor(
     private val config: () -> MainConfig,
-    private val physicalGold: PhysicalGoldPort,
+    private val physicalGold: GuildCreationPaymentPort,
     private val gold: GuildGoldService,
     private val reportCreationFailure: (UUID, Exception) -> Unit = { _, _ -> },
 ) {
@@ -73,7 +73,16 @@ class GuildCostService @JvmOverloads constructor(
         return when (val reserved = physicalGold.reserve(transactionId, playerId, cost)) {
             PhysicalReservationResult.Insufficient -> GuildCreationCostResult.InsufficientGold
             PhysicalReservationResult.Unavailable -> GuildCreationCostResult.PaymentUnavailable
-            PhysicalReservationResult.Unknown -> GuildCreationCostResult.Uncertain(null, transactionId)
+            PhysicalReservationResult.Unknown -> {
+                // Another racing request may have claimed the durable per-player guard.
+                val existing = try { physicalGold.pendingReservation(playerId) } catch (error: Exception) {
+                    reportCreationFailure(transactionId, error)
+                    null
+                }
+                if (existing != null && existing != transactionId)
+                    GuildCreationCostResult.PendingReview(existing)
+                else GuildCreationCostResult.Uncertain(null, transactionId)
+            }
             is PhysicalReservationResult.Reserved -> {
                 val guild = try {
                     create()

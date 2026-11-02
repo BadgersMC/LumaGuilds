@@ -97,16 +97,27 @@ class VaultPersonalEconomyAdapterTest {
     }
 
     @Test
-    fun `payout exception with unchanged balance is definitive rejection`() {
+    fun `payout exception with unchanged immediate balance remains uncertain`() {
         val economy = mockk<Economy>()
         every { economy.getBalance(player) } returns 0.0
         every { economy.depositPlayer(player, 25.0) } throws IllegalStateException("before credit")
         val result = VaultPersonalEconomyAdapter({ economy }, { player }).credit(playerId, 25)
-        org.junit.jupiter.api.Assertions.assertTrue(result is ExternalTransferResult.Rejected)
+        org.junit.jupiter.api.Assertions.assertTrue(result is ExternalTransferResult.Failed)
     }
 
     @Test
-    fun `balance lookup exception prevents payout`() {
+    fun `provider failure response after changing balance is uncertain`() {
+        val economy = mockk<Economy>()
+        every { economy.getBalance(player) } returnsMany listOf(100.0, 75.0)
+        every { economy.withdrawPlayer(player, 25.0) } returns EconomyResponse(
+            0.0, 75.0, EconomyResponse.ResponseType.FAILURE, "failed after withdrawal"
+        )
+        val result = VaultPersonalEconomyAdapter({ economy }, { player }).debit(playerId, 25)
+        org.junit.jupiter.api.Assertions.assertTrue(result is ExternalTransferResult.Failed)
+    }
+
+    @Test
+    fun `balance lookup exception prevents payout`()  {
         val economy = mockk<Economy>()
         every { economy.getBalance(player) } throws UnsupportedOperationException("balance unavailable")
         val result = VaultPersonalEconomyAdapter({ economy }, { player }).credit(playerId, 25)
