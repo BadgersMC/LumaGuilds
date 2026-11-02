@@ -14,6 +14,16 @@ class SeasonalEloCoordinator(
     private val storage: Storage<Database>,
     private val configService: ConfigService,
 ) {
+    /** A recorded rating from an active chapter, without the UI's default starting rating. */
+    fun recordedCurrentRating(guildId: UUID): Int? {
+        val config = configService.loadConfig().seasonalElo
+        if (!config.enabled) return null
+        val now = System.currentTimeMillis()
+        return storage.connection.connection.use { connection ->
+            readRecordedCurrentRating(connection, storage.dialect == SqlDialect.MARIADB, config.settings(), guildId, now)
+        }
+    }
+
     fun currentRatedChapterId(): String? {
         val config = configService.loadConfig().seasonalElo
         if (!config.enabled) return null
@@ -139,6 +149,20 @@ class SeasonalEloCoordinator(
             )
         }
     }
+}
+
+internal fun readRecordedCurrentRating(
+    connection: java.sql.Connection,
+    mariaDb: Boolean,
+    settings: net.lumalyte.lg.domain.values.SeasonalEloSettings,
+    guildId: UUID,
+    now: Long,
+): Int? {
+    val chapter = ChapterReadSQL(connection).current() ?: return null
+    if (chapter.phase != "SCHEDULED" ||
+        (chapter.startsAt != null && now < chapter.startsAt) ||
+        (chapter.endsAt != null && now >= chapter.endsAt)) return null
+    return SeasonalEloRepositorySQL(connection, mariaDb, settings).rating(chapter.id, guildId)
 }
 
 data class SeasonalEloView(
