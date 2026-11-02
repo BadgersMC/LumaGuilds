@@ -23,22 +23,117 @@ class GuildCostServiceTest {
     }
 
     @Test
-    fun creationReservesPhysicalGoldAndRestoresWhenCreationFails() {
-        val physical = FakePhysicalGold()
-        val service = service(config(enabled = true, create = 250), physical = physical)
+    fun creationDebitsDigitalVaultBalanceAndRefundsWhenCreationFails() {
+        val economy = FakePersonalEconomy()
+        val service = service(config(enabled = true, create = 250), economy = economy)
         val player = UUID.randomUUID()
 
         val result = service.createGuild(UUID.randomUUID(), player) { null }
 
         assertTrue(result is GuildCreationCostResult.CreationFailed)
-        assertEquals(250, physical.lastReserved)
-        assertTrue(physical.restored)
+        assertTrue((result as GuildCreationCostResult.CreationFailed).compensated)
+        assertEquals(250L, economy.lastDebited)
+        assertEquals(250L, economy.lastCredited)
+        assertEquals(1000L, economy.currentBalance)
     }
 
     @Test
-    fun creationExceptionKeepsReservationForReconciliation() {
-        val physical = FakePhysicalGold()
-        val service = service(config(enabled = true, create = 250), physical = physical)
+    fun successfulCreationChargesDigitalVaultBalanceExactlyOnce() {
+        val economy = FakePersonalEconomy()
+        val service = service(config(enabled = true, create = 250), economy = economy)
+        val guild = mockk<Guild>()
+
+        val result = service.createGuild(UUID.randomUUID(), UUID.randomUUID()) { guild }
+
+        assertEquals(GuildCreationCostResult.Applied(guild, 250), result)
+        assertEquals(250L, economy.lastDebited)
+        assertEquals(null, economy.lastCredited)
+        assertEquals(750L, economy.currentBalance)
+    }
+
+    @Test
+    fun insufficientDigitalVaultBalanceNeverAttemptsCreation() {
+        val economy = FakePersonalEconomy(currentBalance = 100L)
+        val service = service(config(enabled = true, create = 250), economy = economy)
+        var created = false
+
+        val result = service.createGuild(UUID.randomUUID(), UUID.randomUUID()) {
+            created = true
+            mockk<Guild>()
+        }
+
+        assertEquals(GuildCreationCostResult.InsufficientGold, result)
+        assertEquals(null, economy.lastDebited)
+        assertTrue(!created)
+    }
+
+    @Test
+    fun unavailableDigitalVaultPaymentDoesNotCreateGuild() {
+        val economy = FakePersonalEconomy(currentBalance = null)
+        val service = service(config(enabled = true, create = 250), economy = economy)
+
+        val result = service.createGuild(UUID.randomUUID(), UUID.randomUUID()) { mockk<Guild>() }
+
+        assertEquals(GuildCreationCostResult.PaymentUnavailable, result)
+        assertEquals(null, economy.lastDebited)
+    }
+
+    @Test
+    fun rejectedDigitalVaultDebitDoesNotCreateGuild() {
+        val economy = FakePersonalEconomy(debitResult = ExternalTransferResult.Rejected("provider denied"))
+        val service = service(config(enabled = true, create = 250), economy = economy)
+        var created = false
+
+        val result = service.createGuild(UUID.randomUUID(), UUID.randomUUID()) {
+            created = true
+            mockk<Guild>()
+        }
+
+        assertEquals(GuildCreationCostResult.PaymentUnavailable, result)
+        assertTrue(!created)
+        assertEquals(null, economy.lastCredited)
+    }
+
+    @Test
+    fun disabledChapterTwoCostsDoNotChargeDigitalVaultBalance() {
+        val economy = FakePersonalEconomy(currentBalance = null)
+        val service = service(config(enabled = false), economy = economy)
+        val guild = mockk<Guild>()
+
+        val result = service.createGuild(UUID.randomUUID(), UUID.randomUUID()) { guild }
+
+        assertEquals(GuildCreationCostResult.Applied(guild, 0), result)
+        assertEquals(null, economy.lastDebited)
+    }
+
+    @Test
+    fun failedCreationReportsUncompensatedPaymentIfRefundFails() {
+        val economy = FakePersonalEconomy(creditResult = ExternalTransferResult.Rejected("refund denied"))
+        val service = service(config(enabled = true, create = 250), economy = economy)
+
+        val result = service.createGuild(UUID.randomUUID(), UUID.randomUUID()) { null }
+
+        assertEquals(GuildCreationCostResult.CreationFailed(compensated = false), result)
+        assertEquals(250L, economy.lastDebited)
+        assertEquals(250L, economy.lastCredited)
+    }
+
+    @Test
+    fun uncertainDigitalVaultDebitDoesNotCreateOrSpeculativelyRefund() {
+        val economy = FakePersonalEconomy(debitResult = ExternalTransferResult.Failed("timeout"))
+        val service = service(config(enabled = true, create = 250), economy = economy)
+        val tx = UUID.randomUUID()
+
+        val result = service.createGuild(tx, UUID.randomUUID()) { mockk<Guild>() }
+
+        assertEquals(GuildCreationCostResult.Uncertain(null, tx), result)
+        assertEquals(null, economy.lastCredited)
+    }
+
+    @Test
+    fun creationExceptionLeavesDigitalDebitForAdministratorReconciliation() {
+        val economy = FakePersonalEconomy()
+        val service = service(config(enabled = true, create = 250), economy = economy)
         val tx = UUID.randomUUID()
 
         val result = service.createGuild(tx, UUID.randomUUID()) {
@@ -48,7 +143,8 @@ class GuildCostServiceTest {
         assertTrue(result is GuildCreationCostResult.Uncertain)
         assertEquals(tx, (result as GuildCreationCostResult.Uncertain).transactionId)
         assertEquals(null, result.guild)
-        assertTrue(!physical.restored)
+        assertEquals(250L, economy.lastDebited)
+        assertEquals(null, economy.lastCredited)
     }
 
     @Test
@@ -81,9 +177,9 @@ class GuildCostServiceTest {
 
     private fun service(
         cfg: MainConfig,
-        physical: PhysicalGoldPort = FakePhysicalGold(),
+        economy: PersonalEconomyPort = FakePersonalEconomy(),
         gold: GuildGoldService = mockk(relaxed = true),
-    ) = GuildCostService({ cfg }, physical, gold)
+    ) = GuildCostService({ cfg }, economy, gold)
 
     private fun config(enabled: Boolean, create: Int = 100, base: Int = 100, scale: Double = 2.0) =
         MainConfig(
@@ -95,15 +191,24 @@ class GuildCostServiceTest {
             chapterTwoGoldCostsEnabled = enabled,
         )
 
-    private class FakePhysicalGold : PhysicalGoldPort {
-        var lastReserved: Long? = null
-        var restored = false
-        override fun reserve(transactionId: UUID, playerId: UUID, requestedValue: Long): PhysicalReservationResult {
-            lastReserved = requestedValue
-            return PhysicalReservationResult.Reserved(PhysicalGoldReservation(transactionId, playerId, requestedValue))
+    private class FakePersonalEconomy(
+        var currentBalance: Long? = 1000L,
+        val debitResult: ExternalTransferResult = ExternalTransferResult.Applied,
+        val creditResult: ExternalTransferResult = ExternalTransferResult.Applied,
+    ) : PersonalEconomyPort {
+        var lastDebited: Long? = null
+        var lastCredited: Long? = null
+        override fun isAvailable() = currentBalance != null
+        override fun balance(playerId: UUID) = currentBalance
+        override fun debit(playerId: UUID, amount: Long): ExternalTransferResult {
+            lastDebited = amount
+            if (debitResult == ExternalTransferResult.Applied) currentBalance = currentBalance!! - amount
+            return debitResult
         }
-        override fun commit(reservation: PhysicalGoldReservation) = PhysicalCommitResult.Committed
-        override fun restore(reservation: PhysicalGoldReservation): Boolean { restored = true; return true }
-        override fun deliver(playerId: UUID, value: Long, transactionId: UUID) = ExternalTransferResult.Applied
+        override fun credit(playerId: UUID, amount: Long): ExternalTransferResult {
+            lastCredited = amount
+            if (creditResult == ExternalTransferResult.Applied) currentBalance = currentBalance!! + amount
+            return creditResult
+        }
     }
 }

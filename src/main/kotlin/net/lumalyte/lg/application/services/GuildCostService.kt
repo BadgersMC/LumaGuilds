@@ -29,7 +29,7 @@ sealed interface HomeActivationCostResult {
 
 class GuildCostService(
     private val config: () -> MainConfig,
-    private val physicalGold: PhysicalGoldPort,
+    private val personalEconomy: PersonalEconomyPort,
     private val gold: GuildGoldService,
 ) {
     fun homeActivationCost(homeOrdinal: Int): Long? {
@@ -62,28 +62,39 @@ class GuildCostService(
         val cost = cfg.guild.createGuildCost.toLong()
         if (cost <= 0) return GuildCreationCostResult.ConfigurationError
 
-        return when (val reserved = physicalGold.reserve(transactionId, playerId, cost)) {
-            PhysicalReservationResult.Insufficient -> GuildCreationCostResult.InsufficientGold
-            PhysicalReservationResult.Unavailable -> GuildCreationCostResult.PaymentUnavailable
-            PhysicalReservationResult.Unknown -> GuildCreationCostResult.CreationFailed(compensated = false)
-            is PhysicalReservationResult.Reserved -> {
+        val balance = personalEconomy.balance(playerId) ?: return GuildCreationCostResult.PaymentUnavailable
+        if (balance < cost) return GuildCreationCostResult.InsufficientGold
+
+        val debit = try {
+            personalEconomy.debit(playerId, cost)
+        } catch (_: Exception) {
+            return GuildCreationCostResult.Uncertain(null, transactionId)
+        }
+        return when (debit) {
+            ExternalTransferResult.Unavailable -> GuildCreationCostResult.PaymentUnavailable
+            is ExternalTransferResult.Rejected -> {
+                if ((personalEconomy.balance(playerId) ?: balance) < cost) {
+                    GuildCreationCostResult.InsufficientGold
+                } else {
+                    GuildCreationCostResult.PaymentUnavailable
+                }
+            }
+            is ExternalTransferResult.Failed -> GuildCreationCostResult.Uncertain(null, transactionId)
+            ExternalTransferResult.Applied -> {
                 val guild = try {
                     create()
                 } catch (_: Exception) {
                     return GuildCreationCostResult.Uncertain(null, transactionId)
                 }
                 if (guild == null) {
-                    GuildCreationCostResult.CreationFailed(physicalGold.restore(reserved.reservation))
-                } else {
-                    when (physicalGold.commit(reserved.reservation)) {
-                        PhysicalCommitResult.Committed -> GuildCreationCostResult.Applied(guild, cost)
-                        PhysicalCommitResult.NotConsumed -> {
-                            val restored = physicalGold.restore(reserved.reservation)
-                            if (restored) GuildCreationCostResult.CreationFailed(true)
-                            else GuildCreationCostResult.Uncertain(guild, transactionId)
-                        }
-                        PhysicalCommitResult.Unknown -> GuildCreationCostResult.Uncertain(guild, transactionId)
+                    val refunded = try {
+                        personalEconomy.credit(playerId, cost) == ExternalTransferResult.Applied
+                    } catch (_: Exception) {
+                        false
                     }
+                    GuildCreationCostResult.CreationFailed(refunded)
+                } else {
+                    GuildCreationCostResult.Applied(guild, cost)
                 }
             }
         }

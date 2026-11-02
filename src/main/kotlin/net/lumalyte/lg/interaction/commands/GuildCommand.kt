@@ -182,21 +182,21 @@ class GuildCommand : BaseCommand(), KoinComponent {
             }) {
                 is net.lumalyte.lg.application.services.GuildCreationCostResult.Applied -> {
                     player.sendMessage(lang.msg(
-                        "command.migrated.guild.create.raw_gold_paid",
+                        "command.migrated.guild.create.vault_gold_paid",
                         "cost" to result.cost,
                     ))
                     result.guild
                 }
                 net.lumalyte.lg.application.services.GuildCreationCostResult.InsufficientGold -> {
-                    player.sendMessage(lang.msg("command.migrated.guild.create.insufficient_raw_gold"))
+                    player.sendMessage(lang.msg("command.migrated.guild.create.insufficient_vault_gold"))
                     return
                 }
                 net.lumalyte.lg.application.services.GuildCreationCostResult.PaymentUnavailable -> {
-                    player.sendMessage(lang.msg("command.migrated.guild.create.raw_gold_unavailable"))
+                    player.sendMessage(lang.msg("command.migrated.guild.create.vault_gold_unavailable"))
                     return
                 }
                 net.lumalyte.lg.application.services.GuildCreationCostResult.ConfigurationError -> {
-                    player.sendMessage(lang.msg("command.migrated.guild.create.raw_gold_cost_misconfigured"))
+                    player.sendMessage(lang.msg("command.migrated.guild.create.vault_gold_cost_misconfigured"))
                     return
                 }
                 is net.lumalyte.lg.application.services.GuildCreationCostResult.CreationFailed -> {
@@ -211,7 +211,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
                         "command.migrated.guild.create.payment_outcome_uncertain",
                         "transaction" to result.transactionId,
                     ))
-                    result.guild
+                    result.guild ?: return
                 }
             }
         }

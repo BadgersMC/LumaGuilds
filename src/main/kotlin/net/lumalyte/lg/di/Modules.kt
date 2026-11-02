@@ -912,6 +912,12 @@ fun economyModule() = module {
     single<net.lumalyte.lg.application.persistence.GuildGoldRepository> {
         get<net.lumalyte.lg.infrastructure.persistence.guilds.GuildGoldRepositorySQL>()
     }
+    single<net.lumalyte.lg.application.services.PersonalEconomyPort> {
+        net.lumalyte.lg.infrastructure.services.VaultPersonalEconomyAdapter(
+            { org.bukkit.Bukkit.getServicesManager().getRegistration(net.milkbowl.vault.economy.Economy::class.java)?.provider },
+            { org.bukkit.Bukkit.getOfflinePlayer(it) },
+        )
+    }
     single {
         val config = get<ConfigService>()
         val progression = get<net.lumalyte.lg.application.persistence.ProgressionRepository>()
@@ -936,10 +942,7 @@ fun economyModule() = module {
                 override fun canWithdraw(playerId: java.util.UUID, guildId: java.util.UUID) =
                     allowed(playerId, guildId, net.lumalyte.lg.domain.entities.RankPermission.WITHDRAW_FROM_BANK)
             },
-            personalEconomy = net.lumalyte.lg.infrastructure.services.VaultPersonalEconomyAdapter(
-                { org.bukkit.Bukkit.getServicesManager().getRegistration(net.milkbowl.vault.economy.Economy::class.java)?.provider },
-                { org.bukkit.Bukkit.getOfflinePlayer(it) },
-            ),
+            personalEconomy = get<net.lumalyte.lg.application.services.PersonalEconomyPort>(),
             physicalGold = get<net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter>(),
             additionalFrozen = { guildId -> guilds.getById(guildId)?.bankFrozen == true },
             rewardPurchases = object : net.lumalyte.lg.application.persistence.RewardPurchaseRepository {
@@ -1009,7 +1012,7 @@ fun economyModule() = module {
     single {
         net.lumalyte.lg.application.services.GuildCostService(
             { get<ConfigService>().loadConfig() },
-            get<net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter>(),
+            get<net.lumalyte.lg.application.services.PersonalEconomyPort>(),
             get<net.lumalyte.lg.application.services.GuildGoldService>(),
         )
     }
