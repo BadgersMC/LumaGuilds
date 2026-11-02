@@ -1506,6 +1506,7 @@ bedrock:
       title: 'Bank Transaction History - <guild>'
       date_format: MM/dd HH:mm
       unknown_player: Unknown
+      system_actor: System
       empty: |-
         <gold><bold>Guild Bank Transaction History
 
@@ -3211,6 +3212,7 @@ menu:
         all: All
         none: None
         unknown: Unknown
+        system: System
       type:
         deposit: Deposit
         withdrawal: Withdrawal

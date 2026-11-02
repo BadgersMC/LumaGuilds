@@ -522,11 +522,8 @@ class GuildBankTransactionHistoryMenu(
             TransactionType.DEDUCTION -> lang.gui("menu.bank.history.type.deduction")
         }
 
-        val amountDisplay = if (transaction.type == TransactionType.WITHDRAWAL) {
-            "-$${transaction.amount}"
-        } else {
-            "+$${transaction.amount}"
-        }
+        val signed = net.lumalyte.lg.interaction.menus.BankHistoryPresentation.signedAmount(transaction.type, transaction.amount)
+        val amountDisplay = "${signed.first()}$${signed.drop(1)}"
 
         return createMenuItem(
             material,
@@ -551,7 +548,9 @@ class GuildBankTransactionHistoryMenu(
         // profile lookup and both paths run on the main thread in response to a
         // menu click — do not call it per element).
         actorNames = allTransactions.map { it.actorId }.distinct().associateWith { actorId ->
-            Bukkit.getOfflinePlayer(actorId).name ?: lang.raw("menu.bank.history.value.unknown")
+            net.lumalyte.lg.interaction.menus.BankHistoryPresentation.actorName(
+                actorId, lang.raw("menu.bank.history.value.system"), lang.raw("menu.bank.history.value.unknown")
+            ) { Bukkit.getOfflinePlayer(it).name }
         }
 
         // Compute date cutoff once for the date range filter
