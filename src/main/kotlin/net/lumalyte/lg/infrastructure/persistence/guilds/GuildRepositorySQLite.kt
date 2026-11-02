@@ -939,7 +939,7 @@ class GuildRepositorySQLite(
             """
             UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
             level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
-            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = CASE WHEN EXISTS (SELECT 1 FROM guild_recruitment_profiles WHERE guild_id = guilds.id) THEN is_open ELSE ? END,
+            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = CASE WHEN EXISTS (SELECT 1 FROM guild_recruitment_profiles WHERE guild_id = ?) THEN is_open ELSE ? END,
             join_fee_enabled = ?, join_fee_amount = ?, tracking_enabled = ?, bank_frozen = ?, ${bannermanSetSql}${guiThemeSetSql}
             ally_home_world = ?, ally_home_x = ?, ally_home_y = ?, ally_home_z = ?, ally_home_allowed_guilds = ?
             WHERE id = ?
@@ -948,7 +948,7 @@ class GuildRepositorySQLite(
             """
             UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
             level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
-            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = CASE WHEN EXISTS (SELECT 1 FROM guild_recruitment_profiles WHERE guild_id = guilds.id) THEN is_open ELSE ? END,
+            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = CASE WHEN EXISTS (SELECT 1 FROM guild_recruitment_profiles WHERE guild_id = ?) THEN is_open ELSE ? END,
             join_fee_enabled = ?, join_fee_amount = ?, tracking_enabled = ?, ${bannermanSetSql}${guiThemeSetSql}
             ally_home_world = ?, ally_home_x = ?, ally_home_y = ?, ally_home_z = ?, ally_home_allowed_guilds = ?
             WHERE id = ?
@@ -957,7 +957,7 @@ class GuildRepositorySQLite(
             """
             UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
             level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
-            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = CASE WHEN EXISTS (SELECT 1 FROM guild_recruitment_profiles WHERE guild_id = guilds.id) THEN is_open ELSE ? END,
+            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = CASE WHEN EXISTS (SELECT 1 FROM guild_recruitment_profiles WHERE guild_id = ?) THEN is_open ELSE ? END,
             join_fee_enabled = ?, join_fee_amount = ?, ${bannermanSetSql}${guiThemeSetSql}
             ally_home_world = ?, ally_home_x = ?, ally_home_y = ?, ally_home_z = ?, ally_home_allowed_guilds = ?
             WHERE id = ?
@@ -1008,6 +1008,7 @@ class GuildRepositorySQLite(
                     guild.vaultChestLocation?.x,
                     guild.vaultChestLocation?.y,
                     guild.vaultChestLocation?.z,
+                    guild.id.toString(), // guild_recruitment_profiles existence is evaluated at SQL execution
                     if (currentAccess) 1 else 0,
                     if (guild.joinFeeEnabled) 1 else 0,
                     guild.joinFeeAmount,
@@ -1041,6 +1042,7 @@ class GuildRepositorySQLite(
                     guild.vaultChestLocation?.x,
                     guild.vaultChestLocation?.y,
                     guild.vaultChestLocation?.z,
+                    guild.id.toString(), // guild_recruitment_profiles existence is evaluated at SQL execution
                     if (currentAccess) 1 else 0,
                     if (guild.joinFeeEnabled) 1 else 0,
                     guild.joinFeeAmount,
@@ -1073,6 +1075,7 @@ class GuildRepositorySQLite(
                     guild.vaultChestLocation?.x,
                     guild.vaultChestLocation?.y,
                     guild.vaultChestLocation?.z,
+                    guild.id.toString(), // guild_recruitment_profiles existence is evaluated at SQL execution
                     if (currentAccess) 1 else 0,
                     if (guild.joinFeeEnabled) 1 else 0,
                     guild.joinFeeAmount,

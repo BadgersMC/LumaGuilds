@@ -166,6 +166,8 @@ jobs:
         path: |
           build/test-results/test/*.xml
           build/reports/tests/test/**
+          build/test-results/mariaDbRewardTest/*.xml
+          build/reports/tests/mariaDbRewardTest/**
         retention-days: 7
         if-no-files-found: warn
 
