@@ -27,6 +27,32 @@ class GuildCostServiceTest {
     }
 
     @Test
+    fun disablingCostsDoesNotBypassAnUnresolvedFoundingPayment() {
+        val payment = mockk<PhysicalGoldPort>()
+        val actor = UUID.randomUUID()
+        val unresolved = UUID.randomUUID()
+        every { payment.pendingReservation(actor) } returns unresolved
+        val result = service(config(enabled = false), payment)
+            .createGuild(UUID.randomUUID(), actor) { error("pending payment must block creation") }
+
+        assertEquals(GuildCreationCostResult.PendingReview(unresolved), result)
+        verify(exactly = 0) { payment.reserve(any(), any(), any()) }
+    }
+
+    @Test
+    fun freeCreationWithoutPendingPaymentRemainsAvailable() {
+        val payment = mockk<PhysicalGoldPort>()
+        val actor = UUID.randomUUID()
+        every { payment.pendingReservation(actor) } returns null
+        val guild = Guild(UUID.randomUUID(), "Free", createdAt = java.time.Instant.now())
+        val result = service(config(enabled = false), payment)
+            .createGuild(UUID.randomUUID(), actor) { guild }
+
+        assertEquals(GuildCreationCostResult.Applied(guild, 0), result)
+        verify(exactly = 0) { payment.reserve(any(), any(), any()) }
+    }
+
+    @Test
     fun unknownPendingReadFailsBeforeReservation() {
         val physical = mockk<PhysicalGoldPort>()
         every { physical.pendingReservation(any()) } throws IllegalStateException("storage unavailable")

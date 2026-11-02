@@ -176,18 +176,17 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage(lang.msg("guild_creation_cooldown.unavailable"))
             return
         }
-        val goldCostsEnabled = configService.loadConfig().chapterTwoGoldCostsEnabled
-        val guild = if (!goldCostsEnabled) {
+        // Route free and paid creation through the same pending-payment safety gate.
+        val guild = when (val result = guildCostService.createGuild(UUID.randomUUID(), playerId) {
             guildService.createGuild(name, playerId, banner)
-        } else {
-            when (val result = guildCostService.createGuild(UUID.randomUUID(), playerId) {
-                guildService.createGuild(name, playerId, banner)
-            }) {
+        }) {
                 is net.lumalyte.lg.application.services.GuildCreationCostResult.Applied -> {
-                    player.sendMessage(lang.msg(
-                        "command.migrated.guild.create.raw_gold_paid",
-                        "cost" to result.cost,
-                    ))
+                    if (result.cost > 0) {
+                        player.sendMessage(lang.msg(
+                            "command.migrated.guild.create.raw_gold_paid",
+                            "cost" to result.cost,
+                        ))
+                    }
                     result.guild
                 }
                 net.lumalyte.lg.application.services.GuildCreationCostResult.InsufficientGold -> {
@@ -223,7 +222,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
                         "transaction" to result.transactionId))
                     return
                 }
-            }
         }
         if (guild != null) {
             player.sendMessage(lang.msg("command.migrated.guild.create.guild_created_successfully", "name" to name))

@@ -18,6 +18,7 @@ class GuildCreationFeedbackTest {
         stopKoin()
         val guilds = mockk<GuildService>()
         val repository = mockk<GuildRepository>()
+        val costs = mockk<GuildCostService>()
         val config = mockk<ConfigService>()
         val lang = mockk<LangService>(relaxed = true)
         val player = mockk<Player>(relaxed = true)
@@ -26,8 +27,12 @@ class GuildCreationFeedbackTest {
         every { repository.creationCooldownUntil(any()) } returns java.time.Instant.now().plusSeconds(3600)
         every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = false)
         every { guilds.createGuild(any(), any(), any()) } returns null
+        every { costs.createGuild(any(), any(), any()) } answers {
+            thirdArg<() -> net.lumalyte.lg.domain.entities.Guild?>().invoke()
+            GuildCreationCostResult.CreationFailed(compensated = true)
+        }
         startKoin { modules(module {
-            single { guilds }; single { repository }; single { config }; single { lang }
+            single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
         }) }
         every { player.hasPermission("lumaguilds.guild.creationcooldown.bypass") } returns false
         GuildCommand().onCreate(player, "Valid Name", null)
@@ -35,6 +40,35 @@ class GuildCreationFeedbackTest {
         every { player.hasPermission("lumaguilds.guild.creationcooldown.bypass") } returns true
         GuildCommand().onCreate(player, "Valid Name", null)
         verify(exactly = 1) { guilds.createGuild(any(), any(), any()) }
+        verify(exactly = 1) { costs.createGuild(any(), any(), any()) }
+    }
+
+    @Test fun freeCreationStillReportsAnUnresolvedPaidReservation() {
+        stopKoin()
+        val guilds = mockk<GuildService>()
+        val repository = mockk<GuildRepository>()
+        val costs = mockk<GuildCostService>()
+        val config = mockk<ConfigService>()
+        val lang = mockk<LangService>(relaxed = true)
+        val player = mockk<Player>(relaxed = true)
+        val playerId = UUID.randomUUID()
+        val pending = UUID.randomUUID()
+        every { player.uniqueId } returns playerId
+        every { guilds.getPlayerGuilds(playerId) } returns emptySet()
+        every { repository.creationCooldownUntil(playerId) } returns null
+        every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = false)
+        every { costs.createGuild(any(), playerId, any()) } returns GuildCreationCostResult.PendingReview(pending)
+        startKoin { modules(module {
+            single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
+        }) }
+
+        GuildCommand().onCreate(player, "Valid Name", null)
+
+        verify(exactly = 1) { costs.createGuild(any(), playerId, any()) }
+        verify(exactly = 0) { guilds.createGuild(any(), any(), any()) }
+        verify(exactly = 1) {
+            lang.msg("command.migrated.guild.create.payment_outcome_uncertain", *anyVararg())
+        }
     }
 
     @Test fun bypassRetainsMembershipValidationAndPaidCreationFailures() {

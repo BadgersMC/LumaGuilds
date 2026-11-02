@@ -31,6 +31,9 @@ class GuildRepositorySQLite(
     private val guilds: MutableMap<UUID, Guild> = mutableMapOf()
     private val recruitmentAccess by lazy { GuildRecruitmentAccessSQL(storage) }
 
+    /** Test-only interleaving seam; unset in production. */
+    @Volatile internal var beforeGenericUpdateSql: (() -> Unit)? = null
+
     /**
      * Format Instant as SQL datetime string compatible with both SQLite and MariaDB.
      * MariaDB requires YYYY-MM-DD HH:MM:SS format, not ISO-8601.
@@ -581,12 +584,14 @@ class GuildRepositorySQLite(
 
     override fun getAll(): Set<Guild> = guilds.values.toSet()
 
+    @Synchronized
     override fun refreshCachedAccess(guildId: UUID) {
         val cached = guilds[guildId] ?: return
         val row = storage.connection.getFirstRow("SELECT is_open FROM guilds WHERE id = ?", guildId.toString()) ?: return
         guilds[guildId] = cached.copy(isOpen = row.guildAccessFlag())
     }
 
+    @Synchronized
     override fun updateAccess(guildId: UUID, isOpen: Boolean): Boolean {
         return try {
             val changed = recruitmentAccess.setOpen(guildId, isOpen)
@@ -924,14 +929,17 @@ class GuildRepositorySQLite(
         }
     }
 
+    @Synchronized
     override fun update(guild: Guild): Boolean {
+        // A profile-backed flag is owned by the recruitment transaction, not this stale Guild snapshot.
         val currentAccess = recruitmentAccess.publishedAccess(guild.id) ?: guild.isOpen
+        beforeGenericUpdateSql?.invoke()
         // Use cached column existence check
         val sql = if (hasLfgColumns && hasTrackingColumn && hasBankFrozenColumn) {
             """
             UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
             level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
-            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = ?,
+            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = CASE WHEN EXISTS (SELECT 1 FROM guild_recruitment_profiles WHERE guild_id = guilds.id) THEN is_open ELSE ? END,
             join_fee_enabled = ?, join_fee_amount = ?, tracking_enabled = ?, bank_frozen = ?, ${bannermanSetSql}${guiThemeSetSql}
             ally_home_world = ?, ally_home_x = ?, ally_home_y = ?, ally_home_z = ?, ally_home_allowed_guilds = ?
             WHERE id = ?
@@ -940,7 +948,7 @@ class GuildRepositorySQLite(
             """
             UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
             level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
-            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = ?,
+            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = CASE WHEN EXISTS (SELECT 1 FROM guild_recruitment_profiles WHERE guild_id = guilds.id) THEN is_open ELSE ? END,
             join_fee_enabled = ?, join_fee_amount = ?, tracking_enabled = ?, ${bannermanSetSql}${guiThemeSetSql}
             ally_home_world = ?, ally_home_x = ?, ally_home_y = ?, ally_home_z = ?, ally_home_allowed_guilds = ?
             WHERE id = ?
@@ -949,7 +957,7 @@ class GuildRepositorySQLite(
             """
             UPDATE guilds SET name = ?, banner = ?, emoji = ?, tag = ?, home_world = ?, home_x = ?, home_y = ?, home_z = ?,
             level = ?, bank_balance = ?, mode = ?, mode_changed_at = ?,
-            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = ?,
+            vault_status = ?, vault_chest_world = ?, vault_chest_x = ?, vault_chest_y = ?, vault_chest_z = ?, is_open = CASE WHEN EXISTS (SELECT 1 FROM guild_recruitment_profiles WHERE guild_id = guilds.id) THEN is_open ELSE ? END,
             join_fee_enabled = ?, join_fee_amount = ?, ${bannermanSetSql}${guiThemeSetSql}
             ally_home_world = ?, ally_home_x = ?, ally_home_y = ?, ally_home_z = ?, ally_home_allowed_guilds = ?
             WHERE id = ?
@@ -1139,6 +1147,8 @@ class GuildRepositorySQLite(
                 // Persist the full named-home map; legacy home_* columns above only cover the default home.
                 writeGuildHomes(guild)
                 guilds[guild.id] = guild.copy(isOpen = currentAccess)
+                // Reload the committed flag; a concurrent recruitment toggle may have changed it.
+                if (hasLfgColumns) refreshCachedAccess(guild.id)
             }
             rowsAffected > 0
         } catch (e: SQLException) {
