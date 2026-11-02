@@ -125,7 +125,7 @@ guild:
   max_name_length: 32
   min_name_length: 1
   max_guild_count: 1000
-  # Chapter 2 raw-gold costs. These must be positive before enabling chapter_two_gold_costs_enabled.
+  # Chapter 2 costs: guild creation uses personal digital Vault gold; home activation uses the guild bank. Values must be positive when enabled.
   # Numeric values are intentionally operator-selected; the approved design defines behavior, not prices.
   create_guild_cost: 0
   home_activation_base_cost: 0

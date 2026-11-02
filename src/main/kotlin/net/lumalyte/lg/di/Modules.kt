@@ -1012,9 +1012,18 @@ fun economyModule() = module {
         )
     }
     single {
+        net.lumalyte.lg.infrastructure.services.VaultGuildCreationPaymentAdapter(
+            net.lumalyte.lg.infrastructure.services.VaultPersonalEconomyAdapter(
+                { org.bukkit.Bukkit.getServicesManager().getRegistration(net.milkbowl.vault.economy.Economy::class.java)?.provider },
+                { org.bukkit.Bukkit.getOfflinePlayer(it) },
+            ),
+            net.lumalyte.lg.infrastructure.services.GuildCreationVaultJournal(get()),
+        )
+    }
+    single {
         net.lumalyte.lg.application.services.GuildCostService(
             { get<ConfigService>().loadConfig() },
-            get<net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter>(),
+            get<net.lumalyte.lg.infrastructure.services.VaultGuildCreationPaymentAdapter>(),
             get<net.lumalyte.lg.application.services.GuildGoldService>(),
             reportCreationFailure = { transactionId, error ->
                 org.slf4j.LoggerFactory.getLogger("GuildCreationPayments")

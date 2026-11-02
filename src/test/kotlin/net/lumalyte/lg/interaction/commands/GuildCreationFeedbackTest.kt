@@ -30,13 +30,21 @@ class GuildCreationFeedbackTest {
             single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
         }) }
         val tx = UUID.randomUUID()
-        for (result in listOf(GuildCreationCostResult.Uncertain(null, tx), GuildCreationCostResult.PendingReview(tx))) {
+        val persisted = net.lumalyte.lg.domain.entities.Guild(
+            UUID.randomUUID(), "Possibly Created", createdAt = java.time.Instant.now()
+        )
+        for (result in listOf(
+            GuildCreationCostResult.Uncertain(null, tx),
+            GuildCreationCostResult.Uncertain(persisted, tx),
+            GuildCreationCostResult.PendingReview(tx),
+        )) {
             every { costs.createGuild(any(), any(), any()) } returns result
             GuildCommand().onCreate(player, "Valid Name", null)
         }
-        verify(exactly = 2) { lang.msg("command.migrated.guild.create.payment_outcome_uncertain", *anyVararg()) }
+        verify(exactly = 3) { lang.msg("command.migrated.guild.create.payment_outcome_uncertain", *anyVararg()) }
         verify(exactly = 0) { lang.msg("command.migrated.guild.create.the_name_is_already_taken_by_another", *anyVararg()) }
         verify(exactly = 0) { lang.msg("command.migrated.guild.create.guild_created_successfully", *anyVararg()) }
+        verify(exactly = 0) { lang.msg("command.migrated.guild.create.a_new_guild_has_been_founded_by", *anyVararg()) }
         verify(exactly = 0) { guilds.createGuild(any(), any(), any()) }
     }
 }

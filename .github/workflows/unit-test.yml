@@ -14,6 +14,22 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    # This service exists only on the disposable GitHub Actions runner.
+    # Gradle's MariaDB fixture creates/drops a unique test database per class.
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: lg-ci-disposable-only
+          MARIADB_ROOT_HOST: '%'
+        ports:
+          - 3306/tcp
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 20
+
     # Single source of truth: cache key + build step both read this (see build.yml).
     env:
       ROSECHAT_UPSTREAM_REF: 179483128fa2020f3ad8b0e4192ada3d0a251c49 # official Rosewood 26.2 support commit
@@ -134,3 +150,9 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: ./gradlew test
+
+    - name: MariaDB guild creation and reward SQL tests
+      env:
+        LG_TEST_MARIADB_USER: root
+        LG_TEST_MARIADB_PASSWORD: lg-ci-disposable-only
+      run: ./gradlew mariaDbRewardTest -PmariaDbTestPort=${{ job.services.mariadb.ports['3306'] }} --no-daemon

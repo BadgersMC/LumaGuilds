@@ -40,20 +40,28 @@ class VaultPersonalEconomyAdapter(
         val before = runCatching { validBalance(economy.getBalance(player)) }.getOrNull()
             ?: return ExternalTransferResult.Rejected("Balance unavailable before transfer")
         return try {
-            action(economy, player, vaultAmount).toTransferResult()
+            val response = action(economy, player, vaultAmount)
+            if (response.transactionSuccess()) {
+                ExternalTransferResult.Applied
+            } else {
+                // A provider can report FAILURE after mutating the account.
+                // Only an unchanged observed balance is a definitive rejection.
+                val after = runCatching { validBalance(economy.getBalance(player)) }.getOrNull()
+                if (after == before)
+                    ExternalTransferResult.Rejected(response.errorMessage ?: "Vault Economy rejected the transaction")
+                else ExternalTransferResult.Failed("Vault rejection had an uncertain balance outcome")
+            }
         } catch (error: Exception) {
+            // Preserve the existing guild-bank compensation contract: an
+            // unchanged observed balance is treated as a rejected payout.
+            // Paid guild founding handles even Rejected as unresolved after
+            // a transfer call, so no founding withdrawal is blindly retried.
             val after = runCatching { validBalance(economy.getBalance(player)) }.getOrNull()
-            if (after == before) ExternalTransferResult.Rejected("Provider threw without balance change: ${error.message}")
+            if (after == before)
+                ExternalTransferResult.Rejected("Provider threw without balance change: ${error.message}")
             else ExternalTransferResult.Failed("Uncertain provider outcome: ${error.message}")
         }
     }
-
-    private fun EconomyResponse.toTransferResult(): ExternalTransferResult =
-        if (transactionSuccess()) {
-            ExternalTransferResult.Applied
-        } else {
-            ExternalTransferResult.Rejected(errorMessage ?: "Vault Economy rejected the transaction")
-        }
 
     private fun exactDouble(amount: Long): Double? {
         if (amount < 0 || amount > MAX_SAFE_DOUBLE_INTEGER) return null
