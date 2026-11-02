@@ -150,8 +150,9 @@ class BedrockGuildBankTransactionHistoryMenu(
     private fun resolveActorNames(transactions: List<BankTransaction>): Map<UUID, String> =
         transactions.map(BankTransaction::actorId).distinct().associateWith { actorId ->
             net.lumalyte.lg.interaction.menus.BankHistoryPresentation.actorName(
-                actorId, lang.bedrock("bedrock.bank.history.system_actor"),
-                lang.bedrock("bedrock.bank.history.unknown_player")
+                actorId,
+                lang.bedrock("bedrock.bank.history.system_actor"),
+                lang.bedrock("bedrock.bank.history.unknown_player"),
             ) { Bukkit.getOfflinePlayer(it).name }
         }
 

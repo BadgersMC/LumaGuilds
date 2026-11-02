@@ -6,21 +6,33 @@ import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.fail
 
-class BankHistoryPresentationTest {
+/** Covers the player-facing actor and amount projections of bank history. */
+internal class BankHistoryPresentationTest {
+    private val SYSTEM_LABEL = "System"
+    private val UNKNOWN_LABEL = "Unknown"
+
+    /** The reserved system actor must not trigger a player lookup. */
     @Test
-    fun `system actor does not invoke player lookup`() {
-        assertEquals("System", BankHistoryPresentation.actorName(UUID(0, 0), "System", "Unknown") { fail("system is not a player") })
+    fun systemSkipsPlayerLookup() {
+        val name = BankHistoryPresentation.actorName(UUID(0, 0), SYSTEM_LABEL, UNKNOWN_LABEL) {
+            fail("system is not a player")
+        }
+        assertEquals(SYSTEM_LABEL, name)
     }
 
+    /** Known names and unresolved player identities remain distinct. */
     @Test
-    fun `known and unknown player identities stay distinct`() {
+    fun playerNamesRemainDistinct() {
         val player = UUID.randomUUID()
-        assertEquals("FainNoir", BankHistoryPresentation.actorName(player, "System", "Unknown") { "FainNoir" })
-        assertEquals("Unknown", BankHistoryPresentation.actorName(player, "System", "Unknown") { null })
+        val known = BankHistoryPresentation.actorName(player, SYSTEM_LABEL, UNKNOWN_LABEL) { "FainNoir" }
+        val unknown = BankHistoryPresentation.actorName(player, SYSTEM_LABEL, UNKNOWN_LABEL) { null }
+        assertEquals("FainNoir", known)
+        assertEquals(UNKNOWN_LABEL, unknown)
     }
 
+    /** Only deposits appear as credits; every other transaction type is a debit. */
     @Test
-    fun `only deposits are credits`() {
+    fun onlyDepositsAreCredits() {
         assertEquals("+2", BankHistoryPresentation.signedAmount(TransactionType.DEPOSIT, 2))
         for (type in listOf(TransactionType.WITHDRAWAL, TransactionType.FEE, TransactionType.DEDUCTION)) {
             assertEquals("-2", BankHistoryPresentation.signedAmount(type, 2))
