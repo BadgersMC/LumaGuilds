@@ -97,12 +97,12 @@ class VaultPersonalEconomyAdapterTest {
     }
 
     @Test
-    fun `payout exception with unchanged immediate balance remains uncertain`() {
+    fun `payout exception with unchanged balance preserves bank compensation`() {
         val economy = mockk<Economy>()
         every { economy.getBalance(player) } returns 0.0
         every { economy.depositPlayer(player, 25.0) } throws IllegalStateException("before credit")
         val result = VaultPersonalEconomyAdapter({ economy }, { player }).credit(playerId, 25)
-        org.junit.jupiter.api.Assertions.assertTrue(result is ExternalTransferResult.Failed)
+        org.junit.jupiter.api.Assertions.assertTrue(result is ExternalTransferResult.Rejected)
     }
 
     @Test

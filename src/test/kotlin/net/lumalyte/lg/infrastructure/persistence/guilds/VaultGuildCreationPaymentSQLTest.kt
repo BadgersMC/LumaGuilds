@@ -1,12 +1,17 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.config.GuildConfig
 import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.infrastructure.services.GuildCreationVaultJournal
 import net.lumalyte.lg.infrastructure.services.VaultGuildCreationPaymentAdapter
+import net.lumalyte.lg.infrastructure.services.VaultPersonalEconomyAdapter
+import net.milkbowl.vault.economy.Economy
+import org.bukkit.OfflinePlayer
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.util.UUID
@@ -138,6 +143,28 @@ class VaultGuildCreationPaymentSQLTest : RewardSqlTestFixture() {
                 })
             assertEquals(1, economy.debits.get())
         }
+    }
+
+    @Test fun realVaultThrowWithUnchangedBalanceStillHoldsFoundingDebit() {
+        val storage = openStorage()
+        val journal = GuildCreationVaultJournal(storage)
+        val player = UUID.randomUUID()
+        val tx = UUID.randomUUID()
+        val offline = mockk<OfflinePlayer>()
+        val vault = mockk<Economy>()
+        every { vault.getBalance(offline) } returns 100.0
+        every { vault.withdrawPlayer(offline, 10.0) } throws IllegalStateException("Before debit")
+        val personal = VaultPersonalEconomyAdapter({ vault }, { offline })
+
+        assertEquals(GuildCreationCostResult.Uncertain(null, tx),
+            service(port(personal, journal)).createGuild(tx, player) { fail("must not create") })
+        assertEquals("DEBITING", journal.get(tx)?.phase)
+        assertEquals(tx, journal.pending(player))
+        assertEquals(GuildCreationCostResult.PendingReview(tx),
+            service(port(personal, GuildCreationVaultJournal(storage))).createGuild(UUID.randomUUID(), player) {
+                fail("must not retry an attempted withdrawal")
+            })
+        verify(exactly = 1) { vault.withdrawPlayer(offline, 10.0) }
     }
 
     @Test fun creationPersistenceExceptionHoldsDebitedReceiptWithoutRefund() {

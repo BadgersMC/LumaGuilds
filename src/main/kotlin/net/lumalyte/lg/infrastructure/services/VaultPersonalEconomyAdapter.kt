@@ -52,9 +52,14 @@ class VaultPersonalEconomyAdapter(
                 else ExternalTransferResult.Failed("Vault rejection had an uncertain balance outcome")
             }
         } catch (error: Exception) {
-            // Even an unchanged immediate balance does not establish that a
-            // throwing provider did not queue or complete a transfer.
-            ExternalTransferResult.Failed("Uncertain provider outcome: ${error.message}")
+            // Preserve the existing guild-bank compensation contract: an
+            // unchanged observed balance is treated as a rejected payout.
+            // Paid guild founding handles even Rejected as unresolved after
+            // a transfer call, so no founding withdrawal is blindly retried.
+            val after = runCatching { validBalance(economy.getBalance(player)) }.getOrNull()
+            if (after == before)
+                ExternalTransferResult.Rejected("Provider threw without balance change: ${error.message}")
+            else ExternalTransferResult.Failed("Uncertain provider outcome: ${error.message}")
         }
     }
 
