@@ -34,8 +34,45 @@ import java.util.UUID
 
 private const val DISCORD_ROLE_LEVEL = 50
 private const val AWARD_XP = 2_000
+private const val BANK_ACTIVITY_XP = 10
+private const val QUEST_REWARD_XP = 500
 
 class ProgressionServiceBukkitAwardTest {
+
+    /** A non-level bank award must update cached menu reads. */
+    @Test
+    fun bankXpRefreshesCachedTotal() {
+        val awards = RecordingRepository()
+        val progression = mockk<ProgressionRepository>(relaxed = true)
+        val guildId = UUID.randomUUID()
+        val service = serviceWith(awards, progression)
+
+        assertEquals(null, service.awardExperience(guildId, BANK_ACTIVITY_XP, ExperienceSource.BANK_DEPOSIT))
+
+        assertEquals(BANK_ACTIVITY_XP, awards.requestedXp)
+        verify(exactly = 1) { progression.refreshGuildProgression(guildId) }
+    }
+
+    /** Completing a quest publishes XP even when the guild stays at the same level. */
+    @Test
+    fun questXpRefreshesCachedTotal() {
+        val awards = RecordingRepository()
+        val progression = mockk<ProgressionRepository>(relaxed = true)
+        val guildId = UUID.randomUUID()
+        val service = serviceWith(awards, progression)
+
+        assertTrue(
+            service.awardUncappedSystemExperienceOnce(
+                guildId,
+                QUEST_REWARD_XP,
+                ExperienceSource.WEEKLY_ACTIVITY,
+                UUID.randomUUID(),
+            ),
+        )
+
+        assertEquals(QUEST_REWARD_XP, awards.requestedXp)
+        verify(exactly = 1) { progression.refreshGuildProgression(guildId) }
+    }
 
     @Test
     fun `legacy positive award delegates raw XP through capped permanent service`() {

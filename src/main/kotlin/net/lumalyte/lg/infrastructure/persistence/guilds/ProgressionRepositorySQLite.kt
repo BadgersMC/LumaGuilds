@@ -23,7 +23,7 @@ class ProgressionRepositorySQLite(
 ) : ProgressionRepository {
 
     private val logger = LoggerFactory.getLogger(ProgressionRepositorySQLite::class.java)
-    private val guildProgressions: MutableMap<UUID, GuildProgression> = mutableMapOf()
+    private val guildProgressions: MutableMap<UUID, GuildProgression> = java.util.concurrent.ConcurrentHashMap()
     private val activityMetrics: MutableMap<UUID, GuildActivityMetrics> = mutableMapOf()
 
     // Memoized curve, invalidated when the config values change (reload-safe).

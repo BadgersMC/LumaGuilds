@@ -11,6 +11,51 @@ import java.io.File
 import java.nio.file.Path
 
 class LangServiceRenderingTest {
+    @Test
+    fun `shipped bank titles are compact and independent of guild length`() {
+        val lang = langService()
+        assertEquals(lang.guiTitle("menu.bank.history.compact_title"), lang.bankHistoryTitle("G".repeat(32)))
+        assertEquals(lang.guiTitle("menu.bank.history.member_filter.title"), lang.bankHistoryTitle("G".repeat(32), true))
+    }
+
+    @Test
+    fun `persisted original bank title compacts without rewriting locale file`() {
+        val locale = dataFolder.resolve("lang/en_US.yml").toFile()
+        locale.parentFile.mkdirs()
+        val original = "menu:\n  bank:\n    history:\n      title: '<white>Bank Transaction History - <guild>'\n"
+        locale.writeText(original)
+        val lang = langService()
+        assertEquals(lang.guiTitle("menu.bank.history.compact_title"), lang.bankHistoryTitle("GoldProofOct26"))
+        assertEquals(original, locale.readText())
+    }
+
+    @Test
+    fun `custom bank titles keep interpolation in history and member filter`() {
+        val locale = dataFolder.resolve("lang/en_US.yml").toFile()
+        locale.parentFile.mkdirs()
+        val original = "menu:\n  bank:\n    history:\n      title: '<aqua>Ledger: <guild>'\n"
+        locale.writeText(original)
+        val lang = langService()
+        val expected = lang.guiTitle("menu.bank.history.title", "guild" to "North Farm")
+        assertEquals(expected, lang.bankHistoryTitle("North Farm"))
+        assertEquals(expected, lang.bankHistoryTitle("North Farm", true))
+        assertEquals(original, locale.readText())
+    }
+
+    @Test
+    fun `new tree hints do not concatenate persisted legacy instruction sentences`() {
+        val locale = dataFolder.resolve("lang/en_US.yml").toFile()
+        locale.parentFile.mkdirs()
+        val old = "achievements:\n  vanilla: 'Full vanilla advancement tree'\n  open_vanilla: 'Legacy full instructions with default L.'\n"
+        locale.writeText(old)
+        val lang = langService()
+        assertEquals("Open advancement tree", plainText.serialize(lang.msg("achievements.tree_action")))
+        assertEquals("Close", plainText.serialize(lang.msg("dialog_v2.close_menu")))
+        assertEquals("Prestige rewards", plainText.serialize(lang.msg("chronicle.prestige.action")))
+        assertEquals("Open Minecraft Advancements with your configured key: ", plainText.serialize(lang.msg("achievements.tree_key_hint")))
+        org.junit.jupiter.api.Assertions.assertTrue(lang.raw("achievements.tree_find_hint").contains("Guild Mastery"))
+        assertEquals(old, locale.readText())
+    }
 
     @TempDir
     lateinit var dataFolder: Path

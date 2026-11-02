@@ -21,10 +21,8 @@ import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.lumalyte.lg.utils.inventoryframework.addPane
 import org.bukkit.Bukkit
-import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.Inventory
-import org.bukkit.inventory.ItemStack
 import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
@@ -81,7 +79,7 @@ internal class GuildStallMenu(
 
     private fun isMember(): Boolean = members.getMember(player.uniqueId, guild.id) != null
 
-    private data class Row(val name: Component, val lore: List<Component>, val action: () -> Unit)
+    private data class Row(val name: Component, val lore: List<Component>, val icon: GuildStallIcon = GuildStallIcon.STALL, val action: () -> Unit)
 
     private fun showStalls(stalls: List<GuildStallInfo>, token: Long) {
         if (stalls.isEmpty()) {
@@ -103,7 +101,7 @@ internal class GuildStallMenu(
             } else {
                 stall.members.map { member ->
                     val name = Bukkit.getOfflinePlayer(member.playerId).name ?: member.playerId.toString()
-                    Row(Component.text(name), member.permissions.map(presentation::permissionText)) { open() }
+                    Row(Component.text(name), member.permissions.map(presentation::permissionText), GuildStallIcon.MEMBER) { open() }
                 }
             }
         val summary =
@@ -135,21 +133,21 @@ internal class GuildStallMenu(
         val navigation = navigationControls(maxPage, summary)
         val stall = selected ?: return navigation
         val manager = GuildStallManagerControls(player, guild.id, members, lang)
-        return navigation + manager.rows(stall).map { Row(it.name, emptyList(), it.action) }
+        return navigation + manager.rows(stall).map { Row(it.name, emptyList(), it.icon, it.action) }
     }
 
     private fun navigationControls(maxPage: Int, summary: Component): List<Row> {
         val navigation =
             listOf(
-                Row(lang.gui("guild_stall.back"), emptyList()) {
+                Row(lang.gui("guild_stall.back"), emptyList(), GuildStallIcon.BACK) {
                     goBack()
                 },
-                Row(lang.gui("guild_stall.previous"), emptyList()) {
+                Row(lang.gui("guild_stall.previous"), emptyList(), GuildStallIcon.PREVIOUS) {
                     page = (page - 1).coerceAtLeast(0)
                     open()
                 },
-                Row(lang.gui("guild_stall.refresh"), summaryLines(summary)) { open() },
-                Row(lang.gui("guild_stall.next"), emptyList()) {
+                Row(lang.gui("guild_stall.refresh"), summaryLines(summary), GuildStallIcon.REFRESH) { open() },
+                Row(lang.gui("guild_stall.next"), emptyList(), GuildStallIcon.NEXT) {
                     page = (page + 1).coerceAtMost(maxPage)
                     open()
                 },
@@ -176,12 +174,12 @@ internal class GuildStallMenu(
         gui.setOnClose { if (navigator.isNavigationCurrent(token)) navigator.invalidateCurrentNavigation() }
         visible.forEachIndexed { index, row -> addRow(pane, index, row, token) }
         controls.forEachIndexed { index, row -> addRow(pane, PAGE_SIZE + index, row, token) }
-        addRow(pane, STATUS_SLOT, Row(summary, emptyList()) {}, token)
+        addRow(pane, STATUS_SLOT, Row(summary, emptyList(), GuildStallIcon.STATUS) {}, token)
         gui.show(player)
     }
 
     private fun addRow(pane: StaticPane, slot: Int, row: Row, token: Long) {
-        val item = ItemStack.of(if (slot < PAGE_SIZE) Material.OAK_SIGN else Material.PAPER)
+        val item = row.icon.item()
         item.editMeta { meta ->
             meta.displayName(if (slot == STATUS_SLOT) lang.gui("guild_stall.title") else row.name)
             meta.lore(if (slot == STATUS_SLOT) summaryLines(row.name) else row.lore)

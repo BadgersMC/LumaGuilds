@@ -5,7 +5,7 @@ topic: troubleshooting
 summary: Operator-facing checks for LumaGuilds 3.0 startup, Chapter 2, quests, Bedrock forms, chat, homes, and recovery.
 keywords: [troubleshooting, issues, recovery, 3.0, chapter 2, quests, bedrock]
 related: [override, installation, upgrade-3.0, rosechat, geyser]
-updated: 2026-09-28
+updated: 2026-10-20
 ---
 
 # Troubleshooting
@@ -108,9 +108,27 @@ If the problem persists, include the RoseChat and LumaGuilds startup sections fr
 
 ## Owner or rank permissions are broken
 
-For emergency recovery, use `/lumaguilds override`. The override grants owner-level guild management checks to the admin for the session and also invalidates the relevant claim-permission cache.
+For a guild with no Owner, preview a recovery using the guild UUID and an
+existing member's Minecraft UUID:
 
-See [Override & recovery](override.md) for the recovery procedure. Disable override again as soon as the repair is complete.
+```text
+/lumaguilds owner recover <guild-uuid> <member-uuid>
+```
+
+Review the result, then use the confirmation command it supplies within 60
+seconds. This requires both `lumaguilds.admin` and
+`lumaguilds.admin.owner.recover`. Recovery preserves the guild's progress and
+refuses to replace an existing Owner, create a membership, or proceed with
+inconsistent ranks.
+
+For temporary management access, `/lumaguilds override` grants owner-level
+permission checks for the session. It does not assign the Owner rank or permit
+direct Owner demotion or removal. Use `/g transfer` when a current Owner is
+available.
+
+See [Override & recovery](override.md) for the complete procedure and rejection
+reasons. If a storage error leaves the result unconfirmed, inspect current
+ownership and the server logs before retrying.
 
 ## Home teleport is blocked as unsafe
 

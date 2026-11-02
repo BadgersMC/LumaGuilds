@@ -1,6 +1,7 @@
 package net.lumalyte.lg.infrastructure.services
 
 import net.lumalyte.lg.application.persistence.GuildInvitationRepository
+import net.lumalyte.lg.application.services.InviteBlockService
 import net.lumalyte.lg.domain.entities.GuildInvitation
 import java.time.Instant
 import java.util.UUID
@@ -13,12 +14,15 @@ object GuildInvitationManager {
 
     private lateinit var repository: GuildInvitationRepository
 
+    private var inviteBlocks: InviteBlockService? = null
+
     /**
      * Initialize the manager with a repository instance.
      * This must be called during plugin startup.
      */
-    fun initialize(repo: GuildInvitationRepository) {
+    fun initialize(repo: GuildInvitationRepository, blocks: InviteBlockService? = null) {
         repository = repo
+        inviteBlocks = blocks
     }
 
     /**
@@ -31,6 +35,10 @@ object GuildInvitationManager {
         inviterPlayerId: UUID,
         inviterName: String
     ): Boolean {
+        // Every guild invite passes here: refused, without saying why, when the invited player blocked the inviter or
+        // a member of the guild (and when the blocks could not be loaded).
+        if (inviteBlocks?.refusesGuildInvite(invitedPlayerId, guildId, inviterPlayerId) == true) return false
+
         val invitation = GuildInvitation(
             guildId = guildId,
             guildName = guildName,
@@ -55,7 +63,10 @@ object GuildInvitationManager {
      * Get all pending invites for a player
      */
     fun getInvites(playerId: UUID): List<Pair<UUID, String>> {
-        return repository.getByPlayer(playerId).map { it.guildId to it.guildName }
+        // An invite stops counting once the player blocks the inviter or someone who is now in that guild.
+        return repository.getByPlayer(playerId)
+            .filterNot { inviteBlocks?.refusesGuildInvite(playerId, it.guildId, it.inviterPlayerId) == true }
+            .map { it.guildId to it.guildName }
     }
 
     /**
@@ -64,6 +75,7 @@ object GuildInvitationManager {
     fun getInviteByGuildName(playerId: UUID, guildName: String): Pair<UUID, String>? {
         return repository.getByPlayer(playerId)
             .firstOrNull { it.guildName.equals(guildName, ignoreCase = true) }
+            ?.takeUnless { inviteBlocks?.refusesGuildInvite(playerId, it.guildId, it.inviterPlayerId) == true }
             ?.let { it.guildId to it.guildName }
     }
 
@@ -85,14 +97,16 @@ object GuildInvitationManager {
      * Check if player has a pending invite from a specific guild
      */
     fun hasInvite(playerId: UUID, guildId: UUID): Boolean {
-        return repository.hasInvitation(playerId, guildId)
+        if (inviteBlocks == null) return repository.hasInvitation(playerId, guildId)
+        return getInvites(playerId).any { it.first == guildId }
     }
 
     /**
      * Get the number of pending invites for a player
      */
     fun getInviteCount(playerId: UUID): Int {
-        return repository.getInvitationCount(playerId)
+        if (inviteBlocks == null) return repository.getInvitationCount(playerId)
+        return getInvites(playerId).size
     }
 
     /**

@@ -43,6 +43,48 @@ class GuildServiceCreationTest {
         mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
     )
 
+    @Test fun onlyTheOnlineOwnerPermissionSelectsBypassAdmission() {
+        val player = mockk<org.bukkit.entity.Player>()
+        mockkStatic(org.bukkit.Bukkit::class)
+        every { org.bukkit.Bukkit.getPlayer(owner) } returns player
+        every { player.hasPermission("lumaguilds.guild.creationcooldown.bypass") } returns false
+        every { guilds.addCreated(any(), owner) } returns false
+        every { guilds.addCreatedBypassingCooldown(any(), owner) } returns false
+        val service = service()
+        assertNull(service.createGuild("Ordinary", owner, null))
+        verify(exactly = 1) { guilds.addCreated(any(), owner) }
+        verify(exactly = 0) { guilds.addCreatedBypassingCooldown(any(), any()) }
+
+        every { player.hasPermission("lumaguilds.guild.creationcooldown.bypass") } returns true
+        assertNull(service.createGuild("Permitted", owner, null))
+        verify(exactly = 1) { guilds.addCreatedBypassingCooldown(any(), owner) }
+        verify(exactly = 0) { rankService.createDefaultRanks(any(), any()) }
+
+        // Recheck each call; revocation and an offline owner both fail closed.
+        every { player.hasPermission("lumaguilds.guild.creationcooldown.bypass") } returns false
+        assertNull(service.createGuild("Revoked", owner, null))
+        every { org.bukkit.Bukkit.getPlayer(owner) } returns null
+        assertNull(service.createGuild("Offline", owner, null))
+        verify(exactly = 3) { guilds.addCreated(any(), owner) }
+        verify(exactly = 1) { guilds.addCreatedBypassingCooldown(any(), owner) }
+    }
+
+    @Test fun bypassDoesNotSkipNameOrOwnerSetupChecks() {
+        val player = mockk<org.bukkit.entity.Player>()
+        mockkStatic(org.bukkit.Bukkit::class)
+        every { org.bukkit.Bukkit.getPlayer(owner) } returns player
+        every { player.hasPermission("lumaguilds.guild.creationcooldown.bypass") } returns true
+        every { guilds.addCreatedBypassingCooldown(any(), owner) } returns true
+        every { memberService.addMember(owner, any(), rankId) } returns null
+        assertNull(service().createGuild("<red>Invalid", owner, null))
+        every { guilds.isNameTaken("Duplicate") } returns true
+        assertNull(service().createGuild("Duplicate", owner, null))
+        verify(exactly = 0) { guilds.addCreatedBypassingCooldown(any(), any()) }
+        assertNull(service().createGuild("Setup Failure", owner, null))
+        verify(exactly = 1) { guilds.addCreatedBypassingCooldown(any(), owner) }
+        verify(exactly = 1) { guilds.remove(any()) }
+    }
+
     @Test fun missingOwnerRollsBackInsteadOfReportingSuccess() {
         every { memberService.addMember(owner, any(), rankId) } returns null
         assertNull(service().createGuild("No Owner", owner, null))

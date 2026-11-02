@@ -21,6 +21,7 @@ class InvitationStatisticsMigrationTest {
     private lateinit var connection: Connection
     private lateinit var plugin: JavaPlugin
 
+    /** Opens an isolated SQLite fixture for invitation-statistics schema migrations. */
     @BeforeEach
     fun setUp() {
         connection = DriverManager.getConnection("jdbc:sqlite:${tempDir.resolve("invite-stats.db")}")
@@ -47,7 +48,7 @@ class InvitationStatisticsMigrationTest {
         assertTrue(columnExists("guild_invitation_history", "inviter_player_id"))
         assertTrue(columnExists("guild_invitation_history", "invited_player_id"))
         assertTrue(columnExists("guild_invitation_history", "sent_at"))
-        assertEquals(44, databaseVersion())
+        assertEquals(BankContributionSchema.VERSION, databaseVersion())
     }
 
     private fun tableExists(table: String): Boolean =

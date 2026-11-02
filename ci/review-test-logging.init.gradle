@@ -1,0 +1,10 @@
+allprojects {
+    tasks.withType(org.gradle.api.tasks.testing.Test).configureEach {
+        testLogging {
+            events 'failed'
+            exceptionFormat 'full'
+            showCauses true
+            showStackTraces true
+        }
+    }
+}

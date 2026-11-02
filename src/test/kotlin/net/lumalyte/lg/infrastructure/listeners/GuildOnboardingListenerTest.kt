@@ -62,6 +62,15 @@ class GuildOnboardingListenerTest {
         verify(exactly = 0) { repository.consume(any(), any()) }
         verify(exactly = 0) { player.sendMessage(any<Component>()) }
     }
+    @Test fun `join prompt offers guide without a dismiss action`() {
+        val message = slot<Component>()
+        listener.deliver(playerId, guild.id)
+        verify { player.sendMessage(capture(message)) }
+        val children = message.captured.children()
+        org.junit.jupiter.api.Assertions.assertEquals(1, children.size)
+        org.junit.jupiter.api.Assertions.assertNotNull(children.single().clickEvent())
+        verify(exactly = 0) { lang.msg("onboarding.dismiss", *anyVararg()) }
+    }
     @Test fun `failed registration never schedules delivery`() {
         every { repository.register(playerId, guild.id) } returns false
         listener.onMemberJoin(GuildMemberJoinEvent(guild.id, playerId))

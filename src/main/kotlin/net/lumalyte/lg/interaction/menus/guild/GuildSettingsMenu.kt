@@ -1,43 +1,42 @@
 package net.lumalyte.lg.interaction.menus.guild
 
-import net.lumalyte.lg.utils.inventoryframework.addPane
-
-import net.lumalyte.lg.utils.NexoItemProvider
-import net.badgersmc.nexus.i18n.LangService
-import net.lumalyte.lg.utils.MenuTitleBuilder
-import net.lumalyte.lg.infrastructure.i18n.gui
-import net.lumalyte.lg.infrastructure.i18n.guiTitle
-import net.lumalyte.lg.infrastructure.services.NexoEmojiService
-
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
-import net.lumalyte.lg.utils.inventoryframework.StaticPane
-import net.lumalyte.lg.application.services.GuildChatReconnectSettingsService
+import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.application.services.GuildChatReconnectSettingsService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.ProgressionService
-import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.RankPermission
+import net.lumalyte.lg.infrastructure.i18n.gui
+import net.lumalyte.lg.infrastructure.i18n.guiTitle
+import net.lumalyte.lg.infrastructure.services.NexoEmojiService
+import net.lumalyte.lg.infrastructure.services.RecruitmentPresentation
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.GuildDescriptionContent
 import net.lumalyte.lg.utils.MenuItemBuilder
+import net.lumalyte.lg.utils.MenuTitleBuilder
+import net.lumalyte.lg.utils.NexoItemProvider
 import net.lumalyte.lg.utils.deserializeToItemStack
+import net.lumalyte.lg.utils.inventoryframework.StaticPane
+import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.lumalyte.lg.utils.lore
 import net.lumalyte.lg.utils.name
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 class GuildSettingsMenu(
     private val menuNavigator: MenuNavigator,
@@ -54,18 +53,63 @@ class GuildSettingsMenu(
     private val reconnectSettings: GuildChatReconnectSettingsService by inject()
     private val lang: LangService by inject()
     private val nexoEmojiService: NexoEmojiService by inject()
+    private var settingsGroup: GuildSettingsGroup? = null
+    private val settingsDialog by lazy { GuildSettingsDialog(lang) { guild.guiTheme } }
+    private fun presentationDialog(): GuildPresentationSettingsDialog {
+        val token = menuNavigator.currentNavigationToken()
+        return GuildPresentationSettingsDialog(player, { guildService.getGuild(guild.id) ?: guild }, guildService,
+            getKoin().get(), lang,
+            { menuNavigator.isNavigationCurrent(token) && guildService.getPlayerGuilds(player.uniqueId).any { it.id == guild.id } },
+            { theme -> !theme.requiresUnlock || themeAccess?.isThemeAvailable(guild.id, theme) == true },
+            { settingsGroup = GuildSettingsGroup.INFORMATION; open() }, { menuNavigator.goBack() })
+    }
     // Holiday styles (REQ-121) are locked until earned; without the ledger they stay locked.
     private val themeAccess by lazy {
         getKoin().getOrNull<net.lumalyte.lg.application.services.GuildCosmeticUnlockService>()
     }
 
     override fun open() {
+        if (guildService.getPlayerGuilds(player.uniqueId).none { it.id == guild.id }) {
+            menuNavigator.goBack()
+            return
+        }
         // Refresh guild data from database to ensure we have latest changes
         guild = guildService.getGuild(guild.id) ?: guild
 
+        if (settingsGroup == null && RecruitmentPresentation.supportsDialog(player)) {
+            if (presentationDialog().open()) return
+            val token = menuNavigator.currentNavigationToken()
+            if (settingsDialog.show(
+                    player,
+                    {
+                        player.isOnline && menuNavigator.isNavigationCurrent(token) &&
+                            guildService.getPlayerGuilds(player.uniqueId).any { it.id == guild.id }
+                    },
+                    GuildSettingsActions({
+                        settingsGroup = it
+                        open()
+                    }, {
+                        menuNavigator.openMenu(menuFactory.createLfgBrowserMenu(menuNavigator, player))
+                    }, {
+                        menuNavigator.openMenu(menuFactory.createPlayerChatSettingsMenu(menuNavigator, player))
+                    }, { menuNavigator.goBack() }),
+                )
+            ) {
+                return
+            }
+        }
+
         // Create 6x9 double chest GUI
-        val gui = ChestGui(6, MenuTitleBuilder.build(guild.guiTheme, 6, lang.guiTitle("menu.guild_settings.title", "guild" to guild.name)))
-        val pane = StaticPane(0, 0, 9, 6)
+        val gui =
+            ChestGui(
+                SETTINGS_ROWS,
+                MenuTitleBuilder.build(
+                    guild.guiTheme,
+                    SETTINGS_ROWS,
+                    lang.guiTitle("menu.guild_settings.title", "guild" to guild.name),
+                ),
+            )
+        val pane = StaticPane(0, 0, SETTINGS_COLUMNS, SETTINGS_ROWS)
         gui.setOnTopClick { guiEvent -> guiEvent.isCancelled = true }
         gui.setOnBottomClick { guiEvent ->
             if (guiEvent.click == ClickType.SHIFT_LEFT || guiEvent.click == ClickType.SHIFT_RIGHT) {
@@ -75,15 +119,47 @@ class GuildSettingsMenu(
         gui.addPane(pane)
 
         // Row 0-1: Guild Information Section
-        addGuildInfoSection(pane)
+        if (settingsGroup == null || settingsGroup == GuildSettingsGroup.INFORMATION) addGuildInfoSection(pane)
 
         // Row 2-3: Appearance Section
-        addAppearanceSection(pane)
+        if (settingsGroup == null || settingsGroup == GuildSettingsGroup.APPEARANCE) addAppearanceSection(pane)
 
         // Row 4-5: Location & Mode Section
-        addLocationModeSection(pane)
+        if (settingsGroup == null || settingsGroup == GuildSettingsGroup.ACCESS) addLocationModeSection(pane)
+        if (settingsGroup != null) addGroupNavigation(pane)
 
         gui.show(player)
+    }
+
+    private fun addGroupNavigation(pane: StaticPane) {
+        GuildSettingsGroup.entries.forEachIndexed { row, entry ->
+            val item =
+                NexoItemProvider.getItemStackOrFallback(entry.icon) { ItemStack.of(Material.BOOK) }
+                    .name(entry.label(lang))
+            pane.addItem(
+                GuiItem(item) {
+                    settingsGroup = entry
+                    open()
+                },
+                CATEGORY_COLUMN,
+                row,
+            )
+        }
+        addGroupBack(pane)
+    }
+
+    private fun addGroupBack(pane: StaticPane) {
+        val back =
+            NexoItemProvider.getItemStackOrFallback(BACK_ICON) { ItemStack.of(Material.ARROW) }
+                .name(lang.gui("recruitment.dialog.back"))
+        pane.addItem(
+            GuiItem(back) {
+                settingsGroup = null
+                open()
+            },
+            CATEGORY_COLUMN,
+            SETTINGS_ROWS - 1,
+        )
     }
 
     private fun addReconnectControl(pane: StaticPane) {
@@ -519,12 +595,17 @@ class GuildSettingsMenu(
         }
 
         // Back button
-        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
+        val backItem = NexoItemProvider.getItemStackOrFallback(BACK_ICON) { ItemStack.of(Material.BARRIER) }
             .name(lang.gui("menu.guild_settings.item.back.name"))
             .lore(lang.gui("menu.guild_settings.item.back.lore"))
 
         val backGuiItem = GuiItem(backItem) {
-            menuNavigator.goBack()
+            if (settingsGroup != null) {
+                settingsGroup = null
+                open()
+            } else {
+                menuNavigator.goBack()
+            }
         }
         pane.addItem(backGuiItem, 4, 5)
     }
@@ -614,7 +695,7 @@ class GuildSettingsMenu(
             }, index % 9, index / 9)
         }
 
-        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
+        val backItem = NexoItemProvider.getItemStackOrFallback(BACK_ICON) { ItemStack.of(Material.BARRIER) }
             .name(lang.gui("menu.guild_settings.item.back.name"))
         pane.addItem(GuiItem(backItem) { open() }, 4, 2)
 
@@ -623,6 +704,13 @@ class GuildSettingsMenu(
 
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return
+    }
+
+    private companion object {
+        const val SETTINGS_ROWS = 6
+        const val SETTINGS_COLUMNS = 9
+        const val CATEGORY_COLUMN = 8
+        const val BACK_ICON = "lg_back"
     }
 }
 

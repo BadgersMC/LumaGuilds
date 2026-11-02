@@ -120,10 +120,13 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     private val topCacheTtlSeconds = 30L
     private data class CachedQuestState(
         val expiresAt: Instant,
+        val weekId: String?,
         val progress: Map<String, net.lumalyte.lg.domain.entities.GuildQuestProgress>,
         val bonusAwarded: Boolean
     )
     private val questCache = ConcurrentHashMap<UUID, CachedQuestState>()
+    private val questTopCache = ConcurrentHashMap<String, Pair<Instant, List<net.lumalyte.lg.domain.entities.GuildQuestProgress>>>()
+    private val questRankCache = ConcurrentHashMap<String, Pair<Instant, String>>()
 
     override fun getIdentifier(): String = "lumaguilds"
 
@@ -348,6 +351,9 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
 
     private fun handleWeeklyQuestPlaceholderUnsafe(identifier: String, guildId: UUID?): String {
         val active = questService.activeQuestSet()
+        if (identifier == "guild_weekly_quests_available") {
+            return (active != null && active.startsAt <= Instant.now() && active.endsAt > Instant.now() && active.quests.isNotEmpty()).toString()
+        }
         if (identifier == "guild_weekly_quests_time_remaining") return net.lumalyte.lg.utils.QuestDisplayFormatter.duration(questService.timeRemaining())
         if (identifier == "guild_weekly_quests_count" || identifier == "guild_weekly_quests_total") {
             return active?.quests?.size?.toString() ?: "0"
@@ -371,6 +377,20 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         val index = match.groupValues[1].toIntOrNull()?.minus(1) ?: return ""
         val field = match.groupValues[2]
         val quest = active?.quests?.getOrNull(index) ?: return ""
+        val topMatch = Regex("top_(\\d+)_(guild|score)").matchEntire(field)
+        if (topMatch != null) {
+            val position = topMatch.groupValues[1].toIntOrNull()?.takeIf { it in 1..100 } ?: return ""
+            val key = "${active.weekId}:${quest.id}"
+            val now = Instant.now()
+            val rows = questTopCache[key]?.takeIf { it.first > now }?.second ?: run {
+                // Bound storage to the active week and keep hologram polling off the full leaderboard path.
+                questTopCache.keys.removeIf { !it.startsWith("${active.weekId}:") }
+                questService.leaderboardFor(quest.id, 100).also { questTopCache[key] = now.plusSeconds(30) to it }
+            }
+            val row = rows.getOrNull(position - 1) ?: return ""
+            return if (topMatch.groupValues[2] == "score") row.currentCount.toString()
+                else guildService.getGuild(row.guildId)?.name.orEmpty()
+        }
         val current = progress[quest.id]
         val count = current?.currentCount ?: 0
         val percentage = if (quest.targetCount > 0) ((count.coerceAtMost(quest.targetCount) * 100) / quest.targetCount) else 0
@@ -380,7 +400,17 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
             "action" -> quest.action.name
             "target" -> quest.target.id
             "required" -> quest.targetCount.toString()
-            "progress" -> count.toString()
+            "progress", "score" -> count.toString()
+            "rank" -> guildId?.let { id ->
+                val key = "${active.weekId}:${quest.id}:$id"
+                val now = Instant.now()
+                questRankCache[key]?.takeIf { it.first > now }?.second ?: run {
+                    questRankCache.keys.removeIf { !it.startsWith("${active.weekId}:") }
+                    questService.rankFor(id, quest.id)?.toString().orEmpty().also {
+                        questRankCache[key] = now.plusSeconds(30) to it
+                    }
+                }
+            }.orEmpty()
             "progress_percent" -> percentage.toString()
             "completed" -> (quest.targetCount > 0 && count >= quest.targetCount).toString()
             "claimed" -> (current?.claimed == true).toString()
@@ -391,9 +421,11 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
 
     private fun cachedQuestState(guildId: UUID): CachedQuestState {
         val now = Instant.now()
-        questCache[guildId]?.takeIf { it.expiresAt.isAfter(now) }?.let { return it }
+        val weekId = questService.activeQuestSet()?.weekId
+        questCache[guildId]?.takeIf { it.expiresAt.isAfter(now) && it.weekId == weekId }?.let { return it }
         return CachedQuestState(
             now.plusSeconds(topCacheTtlSeconds),
+            weekId,
             questService.guildProgress(guildId).associateBy { it.questId },
             questService.isWeeklyBonusAwarded(guildId)
         ).also { questCache[guildId] = it }

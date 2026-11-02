@@ -14,6 +14,15 @@
 # mariadb: Production-grade MySQL/MariaDB database (recommended for production)
 database_type: sqlite
 
+# Recruitment board and private in-game applications.
+recruitment:
+  maximum_applications: 3
+  application_days: 7
+  offer_hours: 48
+  onboarding_delay_seconds: 300
+  # 0 disables repeating discovery announcements. If enabled, minimum 30 minutes.
+  reminder_minutes: 0
+
 # Database performance settings
 database:
   # Enable virtual threads for database operations (Java 21+ only)

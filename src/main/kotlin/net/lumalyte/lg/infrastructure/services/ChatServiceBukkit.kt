@@ -35,6 +35,8 @@ class ChatServiceBukkit(
     private val partyRepository: PartyRepository,
     private val lang: LangService,
     private val chatRankSettings: GuildChatRankSettingsService,
+    /** Players who blocked the sender do not receive their guild, ally or party messages. */
+    private val inviteBlocks: net.lumalyte.lg.application.services.InviteBlockService? = null,
 ) : ChatService {
 
     private val logger = LoggerFactory.getLogger(ChatServiceBukkit::class.java)
@@ -220,7 +222,17 @@ class ChatServiceBukkit(
         }
     }
 
+    /** Resolves channel recipients with current visibility settings and personal party-chat blocks. */
     override fun getRecipientsForChannel(
+        senderId: UUID,
+        channel: ChatChannel,
+    ): Set<UUID> {
+        val recipients = recipientsForChannel(senderId, channel)
+        if (channel == ChatChannel.PUBLIC || inviteBlocks == null) return recipients
+        return recipients.filterNot { inviteBlocks.hidesChat(it, senderId) }.toSet()
+    }
+
+    private fun recipientsForChannel(
         senderId: UUID,
         channel: ChatChannel,
     ): Set<UUID> {
@@ -308,7 +320,6 @@ class ChatServiceBukkit(
         }
     }
 
-    /** Native Adventure rendering used by live localized chat delivery. */
     private fun formatLocalizedMessage(senderId: UUID, message: String, channel: ChatChannel): Component {
         val senderName = Bukkit.getPlayer(senderId)?.name ?: UNKNOWN_PLAYER
         val processedMessage = processEmojis(senderId, message)

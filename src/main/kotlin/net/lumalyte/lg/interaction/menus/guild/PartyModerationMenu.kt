@@ -58,6 +58,9 @@ class PartyModerationMenu(
         // Check permission
         if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS)) {
             player.sendMessage(lang.msg("menu.party.moderation.feedback.no_permission"))
+            menuNavigator.returnTo(GuildPartyManagementMenu::class.java) {
+                menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild)
+            }
             return
         }
 
@@ -250,7 +253,9 @@ class PartyModerationMenu(
             .name(lang.gui("menu.party.moderation.back.name"))
             .lore(lang.gui("menu.party.moderation.back.lore"))
         pane.addItem(GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild))
+            menuNavigator.returnTo(GuildPartyManagementMenu::class.java) {
+                menuFactory.createGuildPartyManagementMenu(menuNavigator, player, guild)
+            }
         }, 4, 5)
 
         // Refresh button

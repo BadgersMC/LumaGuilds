@@ -1,6 +1,7 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
 import net.lumalyte.lg.domain.values.PeriodWindow
+import net.lumalyte.lg.domain.values.ProgressionCurve
 import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteStorage
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -25,7 +26,10 @@ class BankProgressionRepositorySQLTest {
     @BeforeEach
     fun setUp() {
         storage = VirtualThreadSQLiteStorage(tempDir.toFile())
-        repository = BankProgressionRepositorySQL(storage)
+        repository = BankProgressionRepositorySQL(
+            storage,
+            ExperienceAwardRepositorySQL(storage, ProgressionCurve(500.0, 1.15, 150, 100)),
+        )
     }
 
     @AfterEach

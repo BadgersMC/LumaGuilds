@@ -5,6 +5,7 @@ import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.persistence.RewardOwnershipRepository
 import net.lumalyte.lg.domain.rewards.*
 import java.util.UUID
+import org.slf4j.LoggerFactory
 
 class GuildPrestigeService(
     private val owners: RewardOwnershipRepository,
@@ -13,8 +14,10 @@ class GuildPrestigeService(
     private val repository: PrestigeRepository,
     private val access: GuildRewardPurchaseAccess,
     private val config: ConfigService,
+    private val announcement: GuildPrestigeAnnouncement = GuildPrestigeAnnouncement { _, _ -> },
 ) {
     private val resolver = RewardEntitlementResolver(catalog)
+    private val logger = LoggerFactory.getLogger(GuildPrestigeService::class.java)
 
     fun overview(guildId: UUID): PrestigeOverview? {
         return try {
@@ -78,7 +81,7 @@ class GuildPrestigeService(
 
     fun confirm(actorId: UUID, quote: PrestigeQuote): PrestigeResult {
         if (actorId != quote.actorId) return PrestigeResult.Rejected(PrestigeRejection.UNAUTHORIZED)
-        val result = repository.confirm(quote) {
+        val confirmation = repository.confirmWithCommitStatus(quote) {
             val current = runCatching { config.loadConfig() }.getOrNull()
             when {
                 current == null -> PrestigeRejection.UNAVAILABLE
@@ -87,7 +90,12 @@ class GuildPrestigeService(
                 else -> null
             }
         }
+        val result = confirmation.result
         if (result is PrestigeResult.Applied) {
+            if (confirmation.newlyCommitted) {
+                runCatching { announcement.announce(quote.guildId, result.prestigeCount) }
+                    .onFailure { logger.warn("Failed to announce prestige for guild ${quote.guildId}", it) }
+            }
             progression.refreshGuildProgression(quote.guildId)
         }
         return result

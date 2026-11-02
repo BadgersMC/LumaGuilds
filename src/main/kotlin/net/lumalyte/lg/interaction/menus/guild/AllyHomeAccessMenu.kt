@@ -44,7 +44,7 @@ class AllyHomeAccessMenu(
     override fun open() {
         if (!rankService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_HOME)) {
             player.sendMessage(lang.msg("menu.ally_home_access.permission_denied"))
-            menuNavigator.openMenu(menuFactory.createGuildHomeMenu(menuNavigator, player, guild))
+            returnToHomes()
             return
         }
 
@@ -91,11 +91,21 @@ class AllyHomeAccessMenu(
             .lore(lang.gui("menu.ally_home_access.info.instructions"))
         pane.addItem(GuiItem(info), 4, 3)
 
-        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }.name(lang.gui("menu.ally_home_access.back"))
-        pane.addItem(GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildHomeMenu(menuNavigator, player, guild))
-        }, 8, 3)
-
+        addBackButton(pane)
         gui.show(player)
+    }
+
+    private fun addBackButton(pane: StaticPane) {
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
+            .name(lang.gui("menu.ally_home_access.back"))
+        pane.addItem(GuiItem(backItem) {
+            returnToHomes()
+        }, 8, 3)
+    }
+
+    private fun returnToHomes() {
+        menuNavigator.returnTo(GuildHomeMenu::class.java) {
+            menuFactory.createGuildHomeMenu(menuNavigator, player, guild)
+        }
     }
 }

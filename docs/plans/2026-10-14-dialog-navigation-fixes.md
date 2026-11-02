@@ -1,0 +1,14 @@
+# Dialog navigation and layout corrections
+
+Canonical main 283d75f1 fetched; continuing reviewed recruitment source 09340ef8 in isolated codex/dialog-navigation-fixes.
+
+- REC-024: WHEN a dialog action replaces the current dialog, THE SYSTEM SHALL keep the current screen visible until the replacement arrives, without revealing the underlying guild inventory. Explicit exit and failure paths SHALL close the dialog. Ownership, stale-page and authorization checks SHALL remain enforced.
+- REC-025: WHEN recruitment renders information and actions, THE SYSTEM SHALL expose only actionable entries as buttons, avoid duplicating menu choices as static rows, and use a stable single-column action order. The six management actions SHALL fit on one page; guild banners and complete payment quotes SHALL remain visible.
+
+SPEAR: reproduced from the player's shared screenshot and inspected CLOSE plus next-tick callback dispatch in both dialog shells. Project-local EARS/state helpers remain absent; manual evidence is used. No persistence, payment or membership policy change. Native Minecraft controls remain native: this fix does not claim custom Nexo frame artwork is implemented.
+
+Proof: the two new layout cases failed against the original renderer (dead informational button and duplicate management rows). After correction, focused dialog/session/reader/navigation checks pass. A full check/shadowJar passes 1,859 cases with zero failures/errors and 16 existing optional skips. Localization and architecture baselines remain unchanged. Final formatting and presentation helper refinement are rechecked before committing. The initial isolated compile lacked ignored companion API JARs; copying the same existing local API inputs restored the build, without changing dependencies.
+
+The shared shells now use NONE rather than CLOSE after actions; the server sends the replacement dialog directly. Explicit Close, navigation-stack exit and error paths close the dialog separately. Native input no longer closes the inventory before displaying its dialog, and Discord confirmation refreshes without closing the inventory. Existing ownership/revision/lifetime guards remain. Item decorations/tooltips are disabled for informational dialog models to avoid suggesting that they are controls. Management fits up to eight entries; browsing retains three cards and a compact two-column control grid, while other action menus use one column.
+
+The private interactive preview was updated and checked at widths 320/390/760/1024 without script errors or horizontal overflow. No deployment/restart is authorized by this bug report. Client packet transitions, native layout, Escape and models require actual TEST acceptance after a separately authorized deployment. Custom Nexo dialog frame artwork remains unimplemented and is not claimed as fixed here.

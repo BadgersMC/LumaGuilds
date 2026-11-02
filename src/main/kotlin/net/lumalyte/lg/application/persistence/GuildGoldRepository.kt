@@ -4,6 +4,7 @@ import net.lumalyte.lg.domain.gold.GuildGoldMutation
 import net.lumalyte.lg.domain.gold.GuildGoldOperationRecord
 import net.lumalyte.lg.domain.gold.GuildGoldPreparation
 import net.lumalyte.lg.domain.gold.GuildGoldResult
+import net.lumalyte.lg.domain.entities.BankDepositXpQuote
 import java.util.UUID
 
 interface GuildGoldRepository {
@@ -22,6 +23,9 @@ interface GuildGoldRepository {
     fun isFrozen(guildId: UUID): Boolean
     fun setFrozen(guildId: UUID, frozen: Boolean, actorId: UUID, reason: String): Boolean
     fun prepare(mutation: GuildGoldMutation): GuildGoldPreparation
+    /** Atomically retain a new player deposit's quote before external payment may start. */
+    fun prepareDeposit(mutation: GuildGoldMutation, quote: BankDepositXpQuote): GuildGoldPreparation =
+        error("Durable bank deposit preparation is unavailable")
     fun findOperation(transactionId: UUID): GuildGoldOperationRecord?
     fun apply(mutation: GuildGoldMutation, capacity: Long, periodStartEpochMs: Long?): GuildGoldResult
     fun applyExternalDebit(mutation: GuildGoldMutation, capacity: Long, periodStartEpochMs: Long): GuildGoldResult

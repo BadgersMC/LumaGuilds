@@ -1,3 +1,5 @@
+import java.util.jar.JarFile
+
 plugins {
     kotlin("jvm") version "2.3.20"
     id("com.gradleup.shadow") version "8.3.11"
@@ -156,6 +158,11 @@ tasks.test {
     inputs.files(marketApiJar.map { path -> if (path.isBlank()) files() else files(path) })
         .withPropertyName("marketApiJarContents")
     environment("MARKET_API_JAR", marketApiJar.get())
+    val marketRuntimeJar = providers.environmentVariable("MARKET_RUNTIME_JAR").filter { it.isNotBlank() }.orElse("")
+    inputs.property("marketRuntimeJarPath", marketRuntimeJar)
+    inputs.files(marketRuntimeJar.map { path -> if (path.isBlank()) files() else files(path) })
+        .withPropertyName("marketRuntimeJarContents")
+    environment("MARKET_RUNTIME_JAR", marketRuntimeJar.get())
     val testMariaPort = providers.environmentVariable("GUILD_SHOP_XP_TEST_MARIA_PORT")
     inputs.property("guildShopXpTestMariaPort", testMariaPort.orElse(""))
     testMariaPort.orNull?.let { environment("GUILD_SHOP_XP_TEST_MARIA_PORT", it) }
@@ -176,6 +183,8 @@ tasks.register<Test>("mariaDbRewardTest") {
     filter {
         includeTestsMatching("*Reward*RepositorySQLTest")
         includeTestsMatching("*ExperienceBoostRepositorySQLTest")
+        includeTestsMatching("*PrestigeRepositorySQLTest")
+        includeTestsMatching("*ChronicleGoalSQLTest")
         includeTestsMatching("*GuildCreation*SQLTest")
         includeTestsMatching("*GuildCosmeticUnlockRepositorySQLiteTest")
         includeTestsMatching("*GuildInsertColumnOrderTest")
@@ -184,6 +193,9 @@ tasks.register<Test>("mariaDbRewardTest") {
         includeTestsMatching("*GuildOnboardingRepositorySQLTest")
         includeTestsMatching("*ChatPreferencesPersistenceTest")
         includeTestsMatching("*GuildDirectoryDetailsTest")
+        includeTestsMatching("*InviteBlockMigrationSQLTest")
+        includeTestsMatching("*InviteBlockDurabilitySQLTest")
+        includeTestsMatching("*QuestFixturePersistenceTest")
     }
     doFirst {
         val port = providers.gradleProperty("mariaDbTestPort").orNull
@@ -217,5 +229,35 @@ tasks.processResources {
     filteringCharset = "UTF-8"
     filesMatching("plugin.yml") {
         expand(props)
+    }
+}
+
+// Explicit opt-in test tooling. Never included in the production shadow JAR.
+val acceptanceProbe = sourceSets.create("acceptanceProbe") {
+    compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
+    runtimeClasspath += output + compileClasspath
+}
+sourceSets.test {
+    compileClasspath += acceptanceProbe.output
+    runtimeClasspath += acceptanceProbe.output
+}
+tasks.register<Jar>("acceptanceProbeJar") {
+    archiveBaseName.set("GuildsAcceptanceProbe")
+    archiveVersion.set("0.1.1-UNMERGED-TEST")
+    from(acceptanceProbe.output)
+}
+
+tasks.register("verifyAcceptanceProbePackaging") {
+    group = "verification"
+    dependsOn(tasks.shadowJar, "acceptanceProbeJar")
+    doLast {
+        JarFile(tasks.shadowJar.get().archiveFile.get().asFile).use { jar ->
+            check(jar.entries().asSequence().none { it.name.startsWith("net/lumalyte/lg/acceptance/") })
+        }
+        val probeJar = tasks.named<Jar>("acceptanceProbeJar").get().archiveFile.get().asFile
+        JarFile(probeJar).use { jar ->
+            check(jar.getEntry("net/lumalyte/lg/acceptance/ProbeServices.class") != null)
+            check(jar.entries().asSequence().none { it.name.startsWith("kotlin/") || it.name.startsWith("org/koin/") })
+        }
     }
 }

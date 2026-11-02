@@ -57,7 +57,9 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         if (!hasPermission) {
             player.sendMessage(lang.msg("menu.rank_creation.feedback.no_permission"))
             player.sendMessage(lang.msg("menu.rank_edit.feedback.required_permission"))
-            menuNavigator.openMenu(menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild))
+            menuNavigator.returnTo(GuildRankManagementMenu::class.java) {
+                menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild)
+            }
             return
         }
 
@@ -332,7 +334,11 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
                     player.sendMessage(lang.msg("menu.rank_creation.feedback.create_failed"))
                 }
 
-                menuNavigator.openMenu(menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild))
+                menuNavigator.returnTo(GuildRankManagementMenu::class.java) {
+
+                    menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild)
+
+                }
             } else {
                 player.sendMessage(lang.msg("menu.rank_creation.feedback.missing_requirements"))
             }
@@ -363,7 +369,9 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
 
         val cancelGuiItem = GuiItem(cancelItem) {
             player.sendMessage(lang.msg("menu.rank_creation.feedback.cancelled"))
-            menuNavigator.openMenu(GuildRankManagementMenu(menuNavigator, player, guild))
+            menuNavigator.returnTo(GuildRankManagementMenu::class.java) {
+                GuildRankManagementMenu(menuNavigator, player, guild)
+            }
         }
         pane.addItem(cancelGuiItem, 7, 5)
     }
@@ -442,6 +450,7 @@ class RankCreationMenu(private val menuNavigator: MenuNavigator, private val pla
         return permissions.groupBy { permission ->
             when (permission) {
                 RankPermission.MANAGE_RANKS, RankPermission.MANAGE_MEMBERS,
+                RankPermission.MANAGE_RECRUITMENT, RankPermission.EDIT_RECRUITMENT_SETTINGS,
                 RankPermission.MANAGE_BANNER, RankPermission.MANAGE_EMOJI,
                 RankPermission.MANAGE_DESCRIPTION, RankPermission.MANAGE_HOME,
                 RankPermission.MANAGE_MODE, RankPermission.MANAGE_GUILD_SETTINGS -> "Guild Management"
