@@ -57,15 +57,9 @@ class GuildServiceBukkit(
     private val configService: ConfigService by inject()
     private val rewardService: net.lumalyte.lg.application.services.GuildRewardService by inject()
 
-    companion object {
-        // Allow only alphanumerics and spaces. Blocks color codes (&r, etc.),
-        // punctuation [&!@#$%^&*()"',.] and any other non-[a-zA-Z0-9 ] char.
-        private val GUILD_NAME_ALLOWED = Regex("^[A-Za-z0-9 ]+$")
-    }
-
     private fun isGuildNameValid(name: String): Boolean {
         if (name.isBlank() || name.length > 32) return false
-        if (!GUILD_NAME_ALLOWED.matches(name)) return false
+        if (!GuildNameFilter.hasAllowedCharacters(name)) return false
         val filterConfig = configService.loadConfig().guild.nameFilter
         if (GuildNameFilter.checkName(name, filterConfig) != null) return false
         return true
@@ -99,12 +93,17 @@ class GuildServiceBukkit(
         )
         
         if (guildRepository.addCreated(guild, ownerId)) {
-            // Create default ranks
-            if (rankService.createDefaultRanks(guildId, ownerId)) {
-                // Add owner as member with highest rank
+            try {
+                check(rankService.createDefaultRanks(guildId, ownerId)) {
+                    "Failed to create default ranks for guild $guildId"
+                }
                 val highestRank = rankRepository.getHighestRank(guildId)
-                if (highestRank != null) {
-                    memberService.addMember(ownerId, guildId, highestRank.id)
+                checkNotNull(highestRank) { "New guild $guildId has no owner rank" }
+                check(highestRank.priority == 0 && highestRank.guildId == guildId) {
+                    "Invalid owner rank for new guild $guildId"
+                }
+                checkNotNull(memberService.addMember(ownerId, guildId, highestRank.id)) {
+                    "Could not establish owner membership for new guild $guildId"
                 }
 
                 // Fire event to create default guild channels (decoupled)
@@ -112,10 +111,13 @@ class GuildServiceBukkit(
 
                 logger.info("Created guild: $name with owner: $ownerId")
                 return guild
-            } else {
-                // Rollback guild creation if ranks couldn't be created
-                guildRepository.remove(guildId)
-                logger.error("Failed to create default ranks for guild: $name")
+            } catch (error: Exception) {
+                logger.error("Guild creation setup failed for guild $guildId, owner $ownerId", error)
+                // A member write may have succeeded before a later observer/history failure.
+                // Never refund or delete that uncertain, established membership automatically.
+                if (memberRepository.getByPlayerAndGuild(ownerId, guildId) != null) throw error
+                if (!guildRepository.remove(guildId)) throw error
+                rankRepository.removeByGuild(guildId)
                 return null
             }
         }

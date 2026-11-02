@@ -27,6 +27,8 @@ interface PhysicalGoldPort {
 
     fun reserve(transactionId: UUID, playerId: UUID, requestedValue: Long): PhysicalReservationResult
     fun reservation(transactionId: UUID): PhysicalGoldReservation? = null
+    /** Durable unresolved receipt, including intermediate phases; never consumes currency. */
+    fun pendingReservation(playerId: UUID): UUID? = null
     fun commit(reservation: PhysicalGoldReservation): PhysicalCommitResult
     fun restore(reservation: PhysicalGoldReservation): Boolean
     fun deliver(playerId: UUID, value: Long, transactionId: UUID): ExternalTransferResult

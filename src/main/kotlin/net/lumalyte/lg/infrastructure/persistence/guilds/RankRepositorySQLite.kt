@@ -176,9 +176,8 @@ class RankRepositorySQLite(private val storage: Storage<Database>) : RankReposit
         
         return try {
             val rowsAffected = storage.connection.executeUpdate(sql, guildId.toString())
-            if (rowsAffected > 0) {
-                ranks.entries.removeIf { it.value.guildId == guildId }
-            }
+            // A parent deletion may already have cascaded the rows; still evict cached ranks.
+            ranks.entries.removeIf { it.value.guildId == guildId }
             rowsAffected > 0
         } catch (e: SQLException) {
             false

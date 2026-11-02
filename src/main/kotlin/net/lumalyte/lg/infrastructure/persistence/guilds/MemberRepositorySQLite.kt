@@ -6,11 +6,17 @@ import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.infrastructure.persistence.getInstantNotNull
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect
+import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
 
 class MemberRepositorySQLite(private val storage: Storage<Database>) : MemberRepository {
+    private val logger = LoggerFactory.getLogger(MemberRepositorySQLite::class.java)
+
+    private fun persistedJoinedAt(instant: Instant): Any =
+        if (storage.dialect == SqlDialect.MARIADB) java.sql.Timestamp.from(instant) else instant.toString()
     
     private val members: MutableMap<Pair<UUID, UUID>, Member> = mutableMapOf() // (playerId, guildId) -> Member
     
@@ -97,13 +103,14 @@ class MemberRepositorySQLite(private val storage: Storage<Database>) : MemberRep
                 member.playerId.toString(),
                 member.guildId.toString(),
                 member.rankId.toString(),
-                member.joinedAt.toString()
+                persistedJoinedAt(member.joinedAt)
             )
             if (rowsAffected > 0) {
                 members[Pair(member.playerId, member.guildId)] = member
             }
             rowsAffected > 0
         } catch (e: SQLException) {
+            logger.error("Failed to persist member {} in guild {}", member.playerId, member.guildId, e)
             false
         }
     }
@@ -131,7 +138,7 @@ class MemberRepositorySQLite(private val storage: Storage<Database>) : MemberRep
         return try {
             val rowsAffected = storage.connection.executeUpdate(sql,
                 member.rankId.toString(),
-                member.joinedAt.toString(),
+                persistedJoinedAt(member.joinedAt),
                 member.playerId.toString(),
                 member.guildId.toString()
             )

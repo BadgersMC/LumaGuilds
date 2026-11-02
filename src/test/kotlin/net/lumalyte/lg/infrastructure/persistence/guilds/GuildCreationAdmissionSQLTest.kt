@@ -16,6 +16,72 @@ import kotlin.test.assertTrue
 
 internal class GuildCreationAdmissionSQLTest : RewardSqlTestFixture() {
     @Test
+    fun lostCommitAcknowledgmentMustNotBecomeRefundableFailure() {
+        val actual = openStorage()
+        migrateProductionSchema(actual)
+        val database = io.mockk.spyk(actual.connection)
+        io.mockk.every { database.connection } answers {
+            val connection = actual.connection.connection
+            java.lang.reflect.Proxy.newProxyInstance(java.sql.Connection::class.java.classLoader,
+                arrayOf(java.sql.Connection::class.java)) { _, method, args ->
+                try {
+                    val result = method.invoke(connection, *(args ?: emptyArray()))
+                    if (method.name == "commit") throw java.sql.SQLException("lost commit acknowledgment")
+                    result
+                } catch (error: java.lang.reflect.InvocationTargetException) { throw error.cause!! }
+            } as java.sql.Connection
+        }
+        val storage = io.mockk.mockk<Storage<Database>>()
+        io.mockk.every { storage.connection } returns database
+        io.mockk.every { storage.dialect } returns actual.dialect
+        val repository = GuildRepositorySQLite(storage)
+        val guild = Guild(UUID.randomUUID(), "Commit Uncertain", createdAt = Instant.now())
+        kotlin.test.assertFailsWith<GuildCreationTransactionUncertainException> {
+            repository.addCreated(guild, UUID.randomUUID())
+        }
+        // The server committed; treating the exception as false would incorrectly restore gold.
+        assertEquals(1, actual.connection.getFirstRow(
+            "SELECT COUNT(*) AS n FROM guilds WHERE id = ?", guild.id.toString())!!.getInt("n"))
+    }
+
+    @Test
+    fun newGuildCanResolveRewardsBeforeOwnerAdmission() {
+        val storage = openStorage()
+        val repository = repository(storage)
+        val config = io.mockk.mockk<net.lumalyte.lg.application.services.ConfigService>()
+        io.mockk.every { config.loadConfig() } returns net.lumalyte.lg.config.MainConfig()
+        val progression = ProgressionRepositorySQLite(storage, config)
+        val guild = Guild(UUID.randomUUID(), "Bootstrap Ready", createdAt = Instant.now())
+        assertTrue(repository.addCreated(guild, UUID.randomUUID()))
+        val reader = RewardStateRepositorySQL(storage,
+            RewardOwnershipRepositorySQL(storage, net.lumalyte.lg.domain.rewards.RewardCatalog.chapterTwo()))
+        kotlin.test.assertIs<net.lumalyte.lg.domain.rewards.RewardStateRead.Found>(reader.read(guild.id))
+        val saved = assertNotNull(progression.getGuildProgression(guild.id))
+        assertEquals(1, saved.currentLevel)
+        assertEquals(guild.createdAt.epochSecond, saved.createdAt.epochSecond)
+    }
+
+    @Test
+    fun configuredThresholdAndBootstrapFailureStayAtomic() {
+        val storage = openStorage()
+        migrateProductionSchema(storage)
+        val repository = GuildRepositorySQLite(storage) { 4321 }
+        val guild = Guild(UUID.randomUUID(), "Configured Curve", createdAt = Instant.now())
+        assertTrue(repository.addCreated(guild, UUID.randomUUID()))
+        assertEquals(4321, storage.connection.getFirstRow(
+            "SELECT experience_for_next_level AS n FROM guild_progression WHERE guild_id = ?",
+            guild.id.toString())!!.getInt("n"))
+        val failed = Guild(UUID.randomUUID(), "Atomic Failure", createdAt = Instant.now())
+        val body = failureTriggerBody(storage)
+        storage.connection.executeUpdate("CREATE TRIGGER reject_progression BEFORE INSERT ON guild_progression $body")
+        assertFalse(repository.addCreated(failed, UUID.randomUUID()))
+        assertNull(repository.getById(failed.id))
+        assertCreationRowsMissing(storage, failed)
+        assertEquals(0, storage.connection.getFirstRow(
+            "SELECT COUNT(*) AS n FROM guild_reward_accounts WHERE guild_id = ?", failed.id.toString())!!.getInt("n"))
+    }
+
+    @Test
     fun setupCleanupSkipsCooldown() {
         val storage = openStorage()
         val repository = repository(storage)

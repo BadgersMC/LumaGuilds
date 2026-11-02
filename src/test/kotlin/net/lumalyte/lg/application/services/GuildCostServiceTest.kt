@@ -15,6 +15,44 @@ import java.util.UUID
 
 class GuildCostServiceTest {
     @Test
+    fun pendingReservationStopsAnotherChargeAndReportsSameReceipt() {
+        val physical = mockk<PhysicalGoldPort>()
+        val actor = UUID.randomUUID()
+        val receipt = UUID.randomUUID()
+        every { physical.pendingReservation(actor) } returns receipt
+        val service = service(config(enabled = true, create = 1000), physical)
+        assertEquals(GuildCreationCostResult.PendingReview(receipt),
+            service.createGuild(UUID.randomUUID(), actor) { error("must not create twice") })
+        verify(exactly = 0) { physical.reserve(any(), any(), any()) }
+    }
+
+    @Test
+    fun unknownPendingReadFailsBeforeReservation() {
+        val physical = mockk<PhysicalGoldPort>()
+        every { physical.pendingReservation(any()) } throws IllegalStateException("storage unavailable")
+        assertEquals(GuildCreationCostResult.PaymentUnavailable,
+            service(config(enabled = true, create = 1000), physical)
+                .createGuild(UUID.randomUUID(), UUID.randomUUID()) { error("must not create") })
+        verify(exactly = 0) { physical.reserve(any(), any(), any()) }
+    }
+
+    @Test
+    fun commitExceptionOrNotConsumedDoesNotRefundAnExistingGuild() {
+        val physical = mockk<PhysicalGoldPort>()
+        every { physical.pendingReservation(any()) } returns null
+        every { physical.reserve(any(), any(), any()) } answers {
+            PhysicalReservationResult.Reserved(PhysicalGoldReservation(firstArg(), secondArg(), thirdArg()))
+        }
+        val guild = Guild(UUID.randomUUID(), "Created", createdAt = java.time.Instant.now())
+        val tx = UUID.randomUUID()
+        every { physical.commit(any()) } throws IllegalStateException("commit uncertain")
+        val service = service(config(enabled = true, create = 1000), physical)
+        assertEquals(GuildCreationCostResult.Uncertain(guild, tx), service.createGuild(tx, UUID.randomUUID()) { guild })
+        every { physical.commit(any()) } returns PhysicalCommitResult.NotConsumed
+        assertEquals(GuildCreationCostResult.Uncertain(guild, tx), service.createGuild(tx, UUID.randomUUID()) { guild })
+        verify(exactly = 0) { physical.restore(any()) }
+    }
+    @Test
     fun homeCostUsesConfiguredExponentialOrdinal() {
         val service = service(config(enabled = true, base = 100, scale = 2.0))
         assertEquals(100, service.homeActivationCost(1))

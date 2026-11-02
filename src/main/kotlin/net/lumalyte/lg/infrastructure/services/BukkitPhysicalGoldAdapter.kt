@@ -70,6 +70,7 @@ class BukkitPhysicalGoldAdapter(
     }
 
     override fun reservation(transactionId: UUID): PhysicalGoldReservation? = journal.get(transactionId)?.reservation
+    override fun pendingReservation(playerId: UUID): UUID? = journal.pending(playerId)
 
     override fun reserve(transactionId: UUID, playerId: UUID, requestedValue: Long): PhysicalReservationResult {
         check(org.bukkit.Bukkit.isPrimaryThread())
