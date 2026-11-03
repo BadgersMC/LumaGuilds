@@ -338,7 +338,7 @@ class CommandLocalizationTest {
         val unsafeLocation = Location(world, 20.0, 64.0, 20.0)
         unsafeLocation.block.type = Material.LAVA
         player.teleport(unsafeLocation)
-        every { configService.loadConfig() } returns MainConfig(claimsEnabled = false)
+        every { configService.loadConfig() } returns MainConfig(claimsEnabled = true)
         every { guildService.getPlayerGuilds(player.uniqueId) } returns setOf(guild)
         every { guildService.getHome(guild.id, any()) } returns null
         every { guildService.setHome(guild.id, "main", any(), player.uniqueId) } returns true
@@ -386,12 +386,13 @@ class CommandLocalizationTest {
     }
 
     @Test
-    fun `sethome keeps a normal first argument as the named home`() {
+    fun `sethome accepts unclaimed Nether named home when claims enabled without claim provider`() {
         val guild = guild("Starlight")
-        val world = server.addSimpleWorld("named-home-world")
+        val world = server.addSimpleWorld("unclaimed-nether-world")
         player.teleport(Location(world, 4.0, 70.0, 6.0))
+        // No GetClaimAtPosition is registered in Koin; location must remain valid.
         every { configService.loadConfig() } returns MainConfig(
-            claimsEnabled = false,
+            claimsEnabled = true,
             guild = net.lumalyte.lg.config.GuildConfig(homeTeleportSafetyCheck = false),
         )
         every { guildService.getPlayerGuilds(player.uniqueId) } returns setOf(guild)

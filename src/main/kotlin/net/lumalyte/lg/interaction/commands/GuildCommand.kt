@@ -12,7 +12,6 @@ import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.DepartureReason
 import net.lumalyte.lg.application.services.ConfigService
-import net.lumalyte.lg.application.actions.claim.GetClaimAtPosition
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.entities.GuildMode
@@ -51,7 +50,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val inviteBlocks: net.lumalyte.lg.application.services.InviteBlockService by inject()
     private val vaultService: net.lumalyte.lg.application.services.GuildVaultService by inject()
     private val warService: net.lumalyte.lg.application.services.WarService by inject()
-    private val getClaimAtPosition: GetClaimAtPosition by inject()
     private val configService: ConfigService by inject()
     private val menuFactory: MenuFactory by inject()
     private val progressionService: net.lumalyte.lg.application.services.ProgressionService by inject()
@@ -374,40 +372,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
             }
         }
 
-        // Check if claims are enabled in config
+        // Guild homes are independent of land claims; outpost entitlement and safety
+        // are validated separately before the home is saved or activated.
         val config = configService.loadConfig()
-        if (config.claimsEnabled) {
-            // Check if player is standing in a claim
-            val claimResult = getClaimAtPosition.execute(location.world.uid, location.toPosition3D())
-            when (claimResult) {
-                is net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult.Success -> {
-                    val claim = claimResult.claim
-
-                    // Check if the claim is guild-owned
-                    if (claim.teamId == null) {
-                        player.sendMessage(lang.msg("command.migrated.guild.sethome.you_can_only_set_guild_home_in"))
-                        player.sendMessage(lang.msg("command.migrated.guild.sethome.use_the_bell_menu_to_convert_this"))
-                        return
-                    }
-
-                    // Check if the claim belongs to the player's guild
-                    if (claim.teamId != guild.id) {
-                        player.sendMessage(lang.msg("command.migrated.guild.sethome.you_can_only_set_guild_home_in_2"))
-                        player.sendMessage(lang.msg("command.migrated.guild.sethome.this_claim_belongs_to_a_different_guild"))
-                        return
-                    }
-                }
-                is net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult.NoClaimFound -> {
-                    player.sendMessage(lang.msg("command.migrated.guild.sethome.you_must_be_standing_in_a_guild"))
-                    player.sendMessage(lang.msg("command.migrated.guild.sethome.place_a_bell_and_convert_it_to"))
-                    return
-                }
-                is net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult.StorageError -> {
-                    player.sendMessage(lang.msg("command.migrated.guild.sethome.an_error_occurred_while_checking_your_location"))
-                    return
-                }
-            }
-        }
 
         // Block only when the *named* home being set already exists. Looking up by guild.id
         // alone returns the default ("main") home, which incorrectly blocked /g sethome <name>
@@ -2359,7 +2326,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
             position = location.toPosition3D()
         )
 
-        val config = configService.loadConfig()
         val existing = guildService.getHome(guild.id, homeName) != null
         val result = guildHomeActivationService.persistLocation(
             UUID.randomUUID(),
@@ -2382,10 +2348,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
                         "cost" to result.cost,
                     ))
                 }
-                if (config.claimsEnabled) {
-                    player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.this_location_is_within_your_guild_s"))
-                }
-                player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.members_can_now_use_guild_home_to"))
+                 player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.members_can_now_use_guild_home_to"))
             }
             is net.lumalyte.lg.application.services.HomeActivationCostResult.Rejected -> {
                 if (result.reason == net.lumalyte.lg.domain.gold.GuildGoldRejection.INSUFFICIENT_FUNDS) {

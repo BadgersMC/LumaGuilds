@@ -4,7 +4,6 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import net.lumalyte.lg.application.persistence.GuildHomeActivationRepository
-import net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult
 import net.lumalyte.lg.config.GuildConfig
 import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.domain.entities.GuildHome
@@ -150,44 +149,51 @@ class GuildHomeActivationServiceTest {
     }
 
     @Test
-    fun `unchanged legacy saved home activates but moved version cannot debit`() {
+    fun `legacy saved home and relocated Nether home activate without claim infrastructure`() {
         val repository = mockk<GuildHomeActivationRepository>()
         val costs = mockk<GuildCostService>()
+        val tx = UUID.randomUUID()
         every { repository.isActive(guildId, "main") } returns false
-        every { repository.availableCredits(guildId) } returns 1
+        every { repository.availableCredits(guildId) } returnsMany listOf(1, 0)
         every { repository.activateUsingCredit(guildId, "main") } returns true
+        every { repository.activeCount(guildId) } returns 1
+        every { repository.activate(guildId, "main", tx) } returns true
+        every { costs.activateHome(tx, guildId, actorId, 2, false, any()) } answers {
+            assertTrue(arg<() -> Boolean>(5)())
+            HomeActivationCostResult.Applied(100)
+        }
+        var examinedHome: GuildHome? = null
         val service = service(repository, costs, maySetHome = { _, _, _, _, candidate ->
-            GuildHomeClaimPolicy.allowsChange(
-                guildId, candidate ?: home, home, claimsEnabled = true,
-            ) { _, _ -> GetClaimAtPositionResult.NoClaimFound }
+            examinedHome = candidate
+            true // Permission/cap preflight allows home; there is no claims dependency.
         })
 
         assertEquals(
             HomeActivationCostResult.Applied(0),
             service.activateSavedHome(UUID.randomUUID(), guildId, "main", actorId),
         )
+        assertEquals(null, examinedHome)
         var movedPersisted = false
-        val movedHome = home.copy(position = Position3D(home.position.x + 1, home.position.y, home.position.z))
+        val netherHome = home.copy(worldId = UUID.randomUUID(), position = Position3D(-120, 75, 40))
         assertEquals(
-            HomeActivationCostResult.ActivationFailed(compensated = true),
+            HomeActivationCostResult.Applied(100),
             service.persistLocation(
-                UUID.randomUUID(), guildId, "main", actorId, existedBefore = true, proposedHome = movedHome,
+                tx, guildId, "main", actorId, existedBefore = true, proposedHome = netherHome,
             ) { movedPersisted = true; true },
         )
-        assertFalse(movedPersisted)
-        verify(exactly = 1) { repository.activateUsingCredit(guildId, "main") }
-        verify(exactly = 0) { costs.activateHome(any(), any(), any(), any(), any(), any()) }
+        assertEquals(netherHome, examinedHome)
+        assertTrue(movedPersisted)
     }
 
     @Test
-    fun `proposed home location denied by claim policy cannot consume gold or legacy credits`() {
+    fun `capacity preflight rejection stops gold and legacy credit consumption`() {
         val repository = mockk<GuildHomeActivationRepository>()
         val costs = mockk<GuildCostService>()
         var persisted = false
         var receivedHome: GuildHome? = null
         val service = service(repository, costs, maySetHome = { _, _, _, _, candidate ->
             receivedHome = candidate
-            false // Unclaimed or foreign-guild location
+            false // Stale capacity or MANAGE_HOME authorization from a previously opened menu
         })
         val result = service.persistLocation(
             UUID.randomUUID(), guildId, "home2", actorId, existedBefore = false, proposedHome = home,
