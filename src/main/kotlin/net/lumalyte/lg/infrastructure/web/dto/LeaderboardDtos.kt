@@ -8,6 +8,15 @@ data class GuildLeaderboardResponse(
     val entries: List<GuildLeaderboardEntryDto>
 )
 
+data class GuildDirectoryPageDto(
+    val generatedAt: String,
+    val directoryRevision: String,
+    val total: Int,
+    val offset: Int,
+    val nextOffset: Int?,
+    val entries: List<GuildLeaderboardEntryDto>
+)
+
 data class GuildLeaderboardEntryDto(
     val rank: Int,
     val id: String,
@@ -24,7 +33,12 @@ data class GuildLeaderboardEntryDto(
     val topMemberUuids: List<String>,
     val banner: BannerDto?,
     val createdAt: String,
-    val score: Double
+    val score: Double,
+    val prestige: Int? = null,
+    val peaceful: Boolean? = null,
+    val seasonalElo: Int? = null,
+    // Only the authenticated directory supplies the roster; public leaderboard responses omit it.
+    val memberUuids: List<String>? = null
 )
 
 data class BannerDto(

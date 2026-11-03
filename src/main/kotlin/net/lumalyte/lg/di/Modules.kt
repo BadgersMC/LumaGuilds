@@ -838,6 +838,8 @@ fun progressionModule() = module {
             progressionRepository = get(),
             leaderboardRepository = get(),
             bankService = get(),
+            rewardOwnershipRepository = get(),
+            seasonalElo = get(),
             config = get<ConfigService>().loadConfig().webApi
         )
     }
