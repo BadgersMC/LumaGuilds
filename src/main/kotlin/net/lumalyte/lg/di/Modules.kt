@@ -1092,7 +1092,7 @@ fun progressionModule() = module {
                 stallsLive = { org.bukkit.Bukkit.getPluginManager().isPluginEnabled("EnthusiaMarket") },
             ),
             playerGuildSnapshot = { players ->
-                net.lumalyte.lg.infrastructure.web.handlers.PlayerGuildSnapshotHandler(get(), get(), get()).build(players)
+                net.lumalyte.lg.infrastructure.persistence.guilds.PublicPlayerGuildSnapshotSql(get()).build(players)
             },
             guildQuestSnapshot = {
                 net.lumalyte.lg.infrastructure.web.handlers.GuildQuestSnapshotHandler(

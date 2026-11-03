@@ -28,8 +28,15 @@ or submitted as a PR. Canonical incorporation and runtime acceptance remain
 separate delivery gates.
 
 Current-base review: the membership and guild repositories use mutable caches,
-while HTTP handlers execute on a worker thread. Their concurrency and a coherent
-membership snapshot have not been established. Treat this endpoint as a draft;
-resolve thread safety and consistency without blocking the server tick before
-enabling or deploying it. The code must not infer absence from an unavailable
-lookup. MariaDB and live companion compatibility are also unverified.
+while HTTP handlers execute on a worker thread. The live endpoint now uses one
+bounded SQL query for membership, guild and banner data instead of reading those
+caches. Failed queries, ambiguous active banners and invalid designs fail closed;
+the endpoint reports a known empty membership only after a successful query.
+SQLite behavior is covered locally; MariaDB, concurrent update behavior and live
+companion compatibility remain unverified. Treat the endpoint as a draft until
+those integration gates and full-suite checks are complete.
+
+The fork-based full Gradle test task passed with 2,433 tests discovered, no
+failures and 106 skipped. This run included the SQLite snapshot tests; the
+later UUID-duplicate input change passed a focused run of 16 tests with no skips.
+Local companion JARs were reused and are not proof of runtime compatibility.

@@ -28,7 +28,7 @@ Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` li
 - [~] **LG-WEBSITE-FEEDS** Public quest and player-guild snapshots.
   - Tag: `TDD`
   - References: REQ-WEBSITE-QUEST-001; REQ-WEBSITE-MEMBERSHIP-002.
-  - Evidence: 13 focused local tests passed against main c0a144b plus candidate, including blank-token rejection. Thread safety of membership caches, MariaDB and companion runtime validation remain open; see `docs/WEBSITE-QUEST-EXPORT.md` and `docs/WEBSITE-PLAYER-GUILDS.md`.
+  - Evidence: 13 focused local tests passed against main c0a144b plus candidate, including blank-token rejection. The fork candidate replaces HTTP-thread cache reads with one bounded SQL snapshot. MariaDB, concurrent updates and companion runtime validation remain open; see `docs/WEBSITE-QUEST-EXPORT.md` and `docs/WEBSITE-PLAYER-GUILDS.md`.
 
 - [~] **LG-2010** Guild stall menus and optional read adapter.
   - Tag: `TDD`

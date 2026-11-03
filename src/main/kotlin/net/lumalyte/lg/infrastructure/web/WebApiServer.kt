@@ -194,7 +194,7 @@ class WebApiServer(
             }
             val query = parseQuery(exchange.requestURI.rawQuery)
             val raw = query["players"]?.split(',').orEmpty()
-            if (query.keys != setOf("players") || raw.size !in 1..50 || raw.distinct().size != raw.size ||
+            if (query.keys != setOf("players") || raw.size !in 1..50 || raw.map { it.lowercase() }.distinct().size != raw.size ||
                 raw.any { !it.matches(Regex("[a-fA-F0-9]{8}(-[a-fA-F0-9]{4}){3}-[a-fA-F0-9]{12}")) }) {
                 respondJson(exchange, 400, mapOf("error" to "invalid_players")); return
             }

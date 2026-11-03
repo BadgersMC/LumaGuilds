@@ -42,6 +42,8 @@ class GuildQuestHttpTest {
             assertEquals(401,request("?players=$id",false).statusCode())
             assertEquals(400,request("?players=bad").statusCode())
             assertEquals(400,request("?players=$id,$id").statusCode())
+            val mixed="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+            assertEquals(400,request("?players=$mixed,${mixed.uppercase()}").statusCode())
             assertEquals(400,request("?players=$id&private=true").statusCode())
         }finally{server.stop()}
     }
