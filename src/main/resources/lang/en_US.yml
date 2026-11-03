@@ -731,8 +731,10 @@ bedrock:
         <aqua>Saved Homes<gray>: <white><saved>
         <yellow>Available Slots<gray>: <red>0
         <gray>Existing locations are preserved. Earn more capacity before adding new homes.
+      locked_summary: '<gray><active> accessible homes, <locked> saved and locked'
     button:
       teleport: '<home> (Teleport)'
+      locked: '<red>🔒 <home> — Locked Outpost (repurchase after prestige)'
       activate: '<home> (Activate)'
       inactive: '<home> (Inactive)'
       no_homes: No homes have been set
@@ -766,6 +768,8 @@ bedrock:
       activation_review_no_transaction: '<yellow>? Home activation failed and automatic gold compensation did not complete. Contact an administrator.'
       removed: '<green>✅ Guild home ''<home>'' has been removed.'
       remove_failed: '<red>❌ Failed to remove the guild home.'
+      restored: '<green>Guild home ''<home>'' restored with your paid Outpost credit. No extra charge.'
+      restore_unavailable: '<red>''<home>'' is saved but locked. Purchase an Outpost after prestige first.'
   home_access:
     description: '<gray>Toggle which guild ranks may use this home. The owner rank is always allowed.'
   ally_home_access:
@@ -1985,6 +1989,10 @@ command:
         activation_failed: '<red>❌ Failed to activate home ''<target_home_name>''.'
         no_guild_homes_have_been_set: '<red>No guild homes have been set.'
         no_pending_unsafe_teleport_to_confirm_or: '<red>No pending unsafe teleport to confirm, or confirmation expired.'
+        restore_no_permission: '<red>You cannot restore guild homes.'
+        locked: '<red>Guild home ''<home>'' is locked. Repurchase one Outpost after prestige to restore it.'
+        restore_success: '<green>Guild home ''<home>'' restored. No additional gold was charged.'
+        restore_unavailable: '<red>Cannot restore ''<home>''. First purchase an Outpost at your current prestige.'
         please_wait_s_before_teleporting_again: '<red>◷ Please wait <remaining_seconds>s before teleporting again.'
         use_guild_home_name_to_teleport_to: '<gray>Use <gold>/guild home \<name> <gray>to teleport to a specific home.'
         use_guild_sethome_to_set_your_first: '<gray>Use <gold>/guild sethome <gray>to set your first home.'
@@ -1996,6 +2004,7 @@ command:
         guild_homes: '<gold>=== Guild Homes ==='
         home_row: '<gray>• <white><name> <gray>- <white><world_name>'
         home_row_main: '<gray>• <white><name> <yellow>[MAIN] <gray>- <white><world_name>'
+        locked_row: ' <red>[LOCKED — restore with /guild home unlock <home>]'
         no_homes_have_been_set_yet: '<gray>No homes have been set yet.'
         use_guild_home_name_to_teleport_to: '<gray>Use <gold>/guild home \<name> <gray>to teleport to a home.'
         use_guild_sethome_name_to_set_additional: '<gray>Use <gold>/guild sethome \<name> <gray>to set additional homes.'
@@ -6378,6 +6387,10 @@ menu:
       none: '<gray>No homes set yet'
       additional: '<yellow>Click to set additional homes'
       maximum: '<red>Maximum slots reached'
+      locked_count: '<red><count> saved homes are locked until an Outpost is repurchased'
+    locked:
+      name: '<red>Locked Outpost: <home>'
+      description: '<gray>Purchase an Outpost after prestige to restore this saved home.'
     set:
       main:
         name: '<green>Set Main Home'
@@ -6470,6 +6483,9 @@ menu:
       activation_review: '<yellow>? Home payment outcome needs administrator review. Transaction: <transaction>'
       activation_review_no_transaction: '<yellow>? Home activation failed and automatic gold compensation did not complete. Contact an administrator.'
       world_missing: '<red>❌ Could not find the world for guild home.'
+      locked_hint: '<red>  [LOCKED — /guild home unlock <home> after an Outpost purchase]'
+      restored: '<green>Guild home ''<home>'' restored using a paid Outpost credit.'
+      restore_unavailable: '<red>''<home>'' is locked. Purchase an Outpost at this prestige first.'
   tag_editor:
     title: '<white>Tag Editor - <guild>'
     current:

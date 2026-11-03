@@ -103,7 +103,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
         slotsItem.lore(lang.gui("menu.common.blank"))
         val lockedHomes = allHomes.homeNames.count { guildService.isHomeLocked(guild.id, it) }
-        if (lockedHomes > 0) slotsItem.lore(net.kyori.adventure.text.Component.text("$lockedHomes preserved homes locked until Outpost repurchase"))
+        if (lockedHomes > 0) slotsItem.lore(lang.gui("menu.guild_home.slots.locked_count", "count" to lockedHomes))
         if (guildService.canCreateNewHome(guild.id)) {
             slotsItem.lore(lang.gui("menu.guild_home.slots.additional"))
         } else {
@@ -184,7 +184,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             }
             pane.addItem(cancelGuiItem, x, y)
         } else if (allHomes.hasHomes()) {
-            // Show teleport/activation for the default home. Saved Season 1 locations remain locked until paid.
+            // Verified Chapter 1 originals remain usable; only premature paid Outposts stay locked.
             val mainEntry = allHomes.homes.entries.firstOrNull { it.key == "main" } ?: allHomes.homes.entries.firstOrNull()
             if (mainEntry != null) {
                 val mainHomeName = mainEntry.key
@@ -195,14 +195,16 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                     else if (active) teleportIcon() else ItemStack.of(Material.GOLD_INGOT)
                 val mainName =
                     if (locked) {
-                        net.kyori.adventure.text.Component.text("Locked Outpost: $mainHomeName")
+                        lang.gui("menu.guild_home.locked.name", "home" to mainHomeName)
                     } else if (active) {
                         lang.gui("menu.guild_home.teleport.main.name")
                     } else {
                         lang.gui("menu.guild_home.activation.name", "home" to mainHomeName)
                     }
                 val mainDescription =
-                    if (active) {
+                    if (locked) {
+                        lang.gui("menu.guild_home.locked.description")
+                    } else if (active) {
                         lang.gui("menu.guild_home.teleport.main.description")
                     } else {
                         lang.gui("menu.guild_home.activation.description")
@@ -257,8 +259,8 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             val active = homeActivationService.isActive(guild.id, homeName)
             val item = if (locked) {
                 ItemStack.of(Material.BARRIER)
-                    .name(net.kyori.adventure.text.Component.text("Locked Outpost: $homeName"))
-                    .lore(net.kyori.adventure.text.Component.text("Purchase an Outpost after prestige to restore"))
+                    .name(lang.gui("menu.guild_home.locked.name", "home" to homeName))
+                    .lore(lang.gui("menu.guild_home.locked.description"))
             } else if (active) {
                 NexoItemProvider.getItemStackOrFallback("lg_home_access") { ItemStack.of(Material.IRON_DOOR) }
                     .name(lang.gui("menu.guild_home.access.name", "home" to homeName))
@@ -438,7 +440,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             val worldName = Bukkit.getWorld(home.worldId)?.name ?: lang.raw("general.unknown")
             player.sendMessage(lang.msg("menu.guild_home.slots.row", "home" to name, "marker" to marker, "world" to worldName))
             if (guildService.isHomeLocked(guild.id, name)) {
-                player.sendMessage("§c  [LOCKED — /guild home unlock $name after an Outpost purchase]")
+                player.sendMessage(lang.msg("menu.guild_home.feedback.locked_hint", "home" to name))
             }
         }
         player.sendMessage(lang.msg("menu.guild_home.list.command"))
@@ -507,8 +509,8 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun restoreLockedOutpost(homeName: String) {
         val success = guildService.restoreLockedOutpost(guild.id, homeName, player.uniqueId)
-        if (success) player.sendMessage("§aGuild home '$homeName' restored using a paid Outpost credit.")
-        else player.sendMessage("§c'$homeName' is locked. Purchase an Outpost at this prestige first.")
+        if (success) player.sendMessage(lang.msg("menu.guild_home.feedback.restored", "home" to homeName))
+        else player.sendMessage(lang.msg("menu.guild_home.feedback.restore_unavailable", "home" to homeName))
         open()
     }
 

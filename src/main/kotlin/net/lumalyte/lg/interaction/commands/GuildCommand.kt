@@ -455,7 +455,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // `home unlock` route. Both routes must still authorize restoration.
         if (homeName.equals("unlock", ignoreCase = true) && !confirm.isNullOrBlank()) {
             if (!player.hasPermission("lumaguilds.guild.sethome")) {
-                player.sendMessage("§cYou cannot restore guild homes.")
+                player.sendMessage(lang.msg("command.migrated.guild.home.restore_no_permission"))
                 return
             }
             onHomeUnlock(player, confirm)
@@ -496,7 +496,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         if (home != null) {
             if (guildService.isHomeLocked(guild.id, targetHomeName)) {
-                player.sendMessage("§cGuild home '$targetHomeName' is locked. Repurchase one Outpost after prestige to restore it.")
+                player.sendMessage(lang.msg("command.migrated.guild.home.locked", "home" to targetHomeName))
                 return
             }
             if (!guildHomeActivationService.isActive(guild.id, targetHomeName)) {
@@ -604,7 +604,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 }
                 player.sendMessage(
                     if (guildService.isHomeLocked(guild.id, name))
-                        row.append(Component.text(" §c[LOCKED — restore with /guild home unlock $name]"))
+                        row.append(lang.msg("command.migrated.guild.homes.locked_row", "home" to name))
                     else row
                 )
             }
@@ -626,9 +626,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
     fun onHomeUnlock(player: Player, homeName: String) {
         val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull() ?: return
         if (guildService.restoreLockedOutpost(guild.id, homeName, player.uniqueId)) {
-            player.sendMessage("§aGuild home '$homeName' restored. No additional gold was charged.")
+            player.sendMessage(lang.msg("command.migrated.guild.home.restore_success", "home" to homeName))
         } else {
-            player.sendMessage("§cCannot restore '$homeName'. First purchase an Outpost at your current prestige.")
+            player.sendMessage(lang.msg("command.migrated.guild.home.restore_unavailable", "home" to homeName))
         }
     }
 

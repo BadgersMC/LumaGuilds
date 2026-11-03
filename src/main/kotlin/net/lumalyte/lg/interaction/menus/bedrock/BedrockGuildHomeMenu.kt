@@ -51,7 +51,8 @@ class BedrockGuildHomeMenu(
         return SimpleForm.builder()
             .title(lang.bedrock("bedrock.home.title", "guild" to guild.name))
             .content(buildHomeContent(maxHomes, availableSlots, homes.size) +
-                "\n${homes.size - lockedHomes} accessible, $lockedHomes saved and locked")
+                "\n" + lang.bedrock("bedrock.home.content.locked_summary",
+                    "active" to homes.size - lockedHomes, "locked" to lockedHomes))
             .apply {
                 // Add existing homes
                 if (homes.hasHomes()) {
@@ -59,7 +60,7 @@ class BedrockGuildHomeMenu(
                         val locked = guildService.isHomeLocked(guild.id, homeName)
                         val active = homeActivationService.isActive(guild.id, homeName)
                         button(if (locked) {
-                            "§c🔒 $homeName — Locked Outpost (repurchase after prestige)"
+                            lang.bedrock("bedrock.home.button.locked", "home" to homeName)
                         } else if (active) {
                             lang.bedrock("bedrock.home.button.teleport", "home" to homeName)
                         } else if (canManageHomes()) {
@@ -123,9 +124,9 @@ class BedrockGuildHomeMenu(
             if (home != null) {
                 if (guildService.isHomeLocked(guild.id, homeName)) {
                     if (canManageHomes() && guildService.restoreLockedOutpost(guild.id, homeName, player.uniqueId)) {
-                        player.sendMessage("§aGuild home '$homeName' restored with your paid Outpost credit. No extra charge.")
+                        player.sendMessage(lang.msg("bedrock.home.feedback.restored", "home" to homeName))
                     } else {
-                        player.sendMessage("§c'$homeName' is saved but locked. Purchase an Outpost after prestige first.")
+                        player.sendMessage(lang.msg("bedrock.home.feedback.restore_unavailable", "home" to homeName))
                     }
                     bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
                     return
