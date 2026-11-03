@@ -24,6 +24,7 @@ class GuildCreationFeedbackTest {
         val player = mockk<Player>(relaxed = true)
         every { player.uniqueId } returns UUID.randomUUID()
         every { guilds.getPlayerGuilds(any()) } returns emptySet()
+        every { repository.isNameTaken(any()) } returns false
         every { repository.creationCooldownUntil(any()) } returns java.time.Instant.now().plusSeconds(3600)
         every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = false)
         every { guilds.createGuild(any(), any(), any()) } returns null
@@ -55,6 +56,7 @@ class GuildCreationFeedbackTest {
         val pending = UUID.randomUUID()
         every { player.uniqueId } returns playerId
         every { guilds.getPlayerGuilds(playerId) } returns emptySet()
+        every { repository.isNameTaken(any()) } returns false
         every { repository.creationCooldownUntil(playerId) } returns null
         every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = false)
         every { costs.createGuild(any(), playerId, any()) } returns GuildCreationCostResult.PendingReview(pending)
@@ -83,6 +85,7 @@ class GuildCreationFeedbackTest {
         every { player.uniqueId } returns playerId
         every { player.hasPermission("lumaguilds.guild.creationcooldown.bypass") } returns true
         every { guilds.getPlayerGuilds(any()) } returns emptySet()
+        every { repository.isNameTaken(any()) } returns false
         every { repository.creationCooldownUntil(any()) } returns java.time.Instant.now().plusSeconds(3600)
         every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = true)
         startKoin { modules(module {
