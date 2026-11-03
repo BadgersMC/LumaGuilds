@@ -40,7 +40,7 @@ class RewardOwnershipRepositorySQLTest : RewardSqlTestFixture() {
         assertEquals(1L, snapshot.version)
         assertEquals(next.currentRun, snapshot.ownership.currentRun)
         assertEquals(next.permanent, snapshot.ownership.permanent)
-        assertEquals(8, RewardEntitlementResolver(catalog).resolve(100, snapshot.ownership).homeCapacity)
+        assertEquals(3, RewardEntitlementResolver(catalog).resolve(100, snapshot.ownership).homeCapacity)
     }
 
     @Test
@@ -106,7 +106,7 @@ class RewardOwnershipRepositorySQLTest : RewardSqlTestFixture() {
         val saved = assertIs<RewardOwnershipRead.Found>(repository.read(guildId)).snapshot
         assertEquals(2L, saved.version)
         assertEquals(9_000L, RewardEntitlementResolver(catalog).resolve(1, saved.ownership).bankCapacity)
-        assertEquals(8, RewardEntitlementResolver(catalog).resolve(1, saved.ownership).homeCapacity)
+        assertEquals(3, RewardEntitlementResolver(catalog).resolve(1, saved.ownership).homeCapacity)
         assertIs<RewardOwnershipWrite.Failed>(repository.save(guildId, 2, before))
     }
 

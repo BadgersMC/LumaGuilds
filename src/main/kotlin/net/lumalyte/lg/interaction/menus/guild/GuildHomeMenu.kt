@@ -362,6 +362,9 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             }
         }
         
+        // Deleting an over-cap saved home cannot be undone until enough capacity is earned.
+        val overEarnedCapacity = allHomes.size > guildService.getAvailableHomeSlots(guild.id)
+
         // List homes for removal
         var slot = 0
         allHomes.homes.forEach { entry ->
@@ -375,6 +378,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                         .lore(lang.gui("menu.guild_home.world", "world" to worldName))
                         .lore(lang.gui("menu.common.blank"))
                         .lore(lang.gui("menu.guild_home.remove.click"))
+                if (overEarnedCapacity) removeItem.lore(lang.gui("menu.guild_home.remove.over_cap_warning"))
 
                 val removeGuiItem = GuiItem(removeItem) {
                     val success = guildService.removeHome(guild.id, name, player.uniqueId)

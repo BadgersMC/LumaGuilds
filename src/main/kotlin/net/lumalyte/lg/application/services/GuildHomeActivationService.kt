@@ -8,6 +8,7 @@ import java.util.UUID
 class GuildHomeActivationService(
     private val repository: GuildHomeActivationRepository,
     private val costs: GuildCostService,
+    private val maySetHome: (UUID, String) -> Boolean,
     private val config: () -> MainConfig,
 ) {
     fun isActive(guildId: UUID, homeName: String): Boolean =
@@ -48,6 +49,10 @@ class GuildHomeActivationService(
         existedBefore: Boolean,
         persist: () -> Boolean,
     ): HomeActivationCostResult {
+        // All Java/Bedrock entry points share this guard before the guild-gold debit.
+        // The authoritative GuildService.setHome check still handles concurrent changes.
+        val allowed = try { maySetHome(guildId, homeName) } catch (_: Exception) { false }
+        if (!allowed) return HomeActivationCostResult.ActivationFailed(compensated = true)
         val alreadyActive = repository.isActive(guildId, homeName)
         if (!config().chapterTwoGoldCostsEnabled) {
             if (!persist()) return HomeActivationCostResult.ActivationFailed(compensated = true)

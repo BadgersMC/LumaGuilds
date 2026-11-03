@@ -42,11 +42,11 @@ class BedrockGuildHomeMenu(
     override fun getForm(): Form {
         val homes = guildService.getHomes(guild.id)
         val maxHomes = guildService.getAvailableHomeSlots(guild.id)
-        val availableSlots = maxHomes - homes.size
+        val availableSlots = (maxHomes - homes.size).coerceAtLeast(0)
 
         return SimpleForm.builder()
             .title(lang.bedrock("bedrock.home.title", "guild" to guild.name))
-            .content(buildHomeContent(maxHomes, availableSlots))
+            .content(buildHomeContent(maxHomes, availableSlots, homes.size))
             .apply {
                 // Add existing homes
                 if (homes.hasHomes()) {
@@ -89,11 +89,11 @@ class BedrockGuildHomeMenu(
             .build()
     }
 
-    private fun buildHomeContent(maxHomes: Int, availableSlots: Int): String {
-        return if (availableSlots > 0) {
-            lang.bedrock("bedrock.home.content.available", "maximum" to maxHomes, "available" to availableSlots)
-        } else {
-            lang.bedrock("bedrock.home.content.full", "maximum" to maxHomes, "available" to availableSlots)
+    private fun buildHomeContent(maxHomes: Int, availableSlots: Int, savedHomes: Int): String {
+        return when {
+            savedHomes > maxHomes -> lang.bedrock("bedrock.home.content.over_cap", "maximum" to maxHomes, "saved" to savedHomes)
+            availableSlots > 0 -> lang.bedrock("bedrock.home.content.available", "maximum" to maxHomes, "available" to availableSlots)
+            else -> lang.bedrock("bedrock.home.content.full", "maximum" to maxHomes, "available" to availableSlots)
         }
     }
 
@@ -310,7 +310,11 @@ class BedrockGuildHomeMenu(
         }
         val removeForm = SimpleForm.builder()
             .title(lang.bedrock("bedrock.home.remove.title", "guild" to guild.name))
-            .content(lang.bedrock("bedrock.home.remove.description"))
+            .content(if (homes.size > guildService.getAvailableHomeSlots(guild.id)) {
+                lang.bedrock("bedrock.home.remove.over_cap_warning")
+            } else {
+                lang.bedrock("bedrock.home.remove.description")
+            })
             .apply {
                 homes.homeNames.forEach { homeName ->
                     button(lang.bedrock("bedrock.home.remove.button", "home" to homeName))

@@ -723,6 +723,14 @@ bedrock:
         <gold><bold>━━━ HOME SLOTS ━━━
         <aqua>Maximum Homes<gray>: <white><maximum>
         <yellow>Available Slots<gray>: <red><available>
+      over_cap: |-
+        <gray>Teleport to or manage your saved guild homes.
+
+        <gold><bold>━━━ HOME SLOTS ━━━
+        <aqua>Earned Capacity<gray>: <white><maximum>
+        <aqua>Saved Homes<gray>: <white><saved>
+        <yellow>Available Slots<gray>: <red>0
+        <gray>Existing locations are preserved. Earn more capacity before adding new homes.
     button:
       teleport: '<home> (Teleport)'
       activate: '<home> (Activate)'
@@ -739,6 +747,7 @@ bedrock:
     remove:
       title: 'Remove Guild Home - <guild>'
       description: Select a guild home to remove.
+      over_cap_warning: '<red>Warning: Saved homes exceed earned capacity. Deleting one will permanently lose that location until your guild earns enough slots. Select a home to remove.'
       button: '<home> (Remove)'
     feedback:
       no_permission: '<red>❌ You do not have permission to use the home ''<home>''.'
@@ -6393,6 +6402,7 @@ menu:
       description: '<gray>Remove guild home locations'
       home: '<red>Remove ''<home>'''
       click: '<yellow>Click to remove this home'
+      over_cap_warning: '<red>Warning: Home cannot be restored until capacity catches up.'
       back:
         name: '<yellow>⬅ Back'
         description: '<gray>Return to the previous menu'

@@ -67,9 +67,12 @@ class RewardEntitlementResolver(private val catalog: RewardCatalog) {
         val permanentBank = permanent.bankCapacity()
         val currentBank = Math.addExact(tier.automaticBankCapacity, current.filterNot { it.id in ownership.permanent }.bankCapacity())
         val totalBank = Math.addExact(currentBank, permanentBank)
-        val homeCapacity = permanent.fold(Math.addExact(ownership.initialHomeCapacity, ownership.prestigeCount)) { total, reward ->
+        // Legacy saved-home count is retained in ownership for audit, not granted as free capacity.
+        // Earned capacity is one base slot + permanent Outposts + one slot per prestige (max 16).
+        val homeCapacity = permanent.fold(Math.addExact(1, ownership.prestigeCount)) { total, reward ->
             Math.addExact(total, (reward.effect as? RewardEffect.HomeCapacity)?.amount ?: 0)
         }
+        require(homeCapacity <= 16) { "Chapter 2 guild homes cannot exceed sixteen earned slots" }
         val cooldown = active.mapNotNull { (it.effect as? RewardEffect.HomeCooldown)?.multiplier }.minOrNull() ?: 1.0
         val fee = active.mapNotNull { (it.effect as? RewardEffect.WithdrawalFee)?.multiplier }.minOrNull() ?: 1.0
         val offers = catalog.rewards.map { reward ->

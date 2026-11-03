@@ -31,6 +31,10 @@ import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.UUID
 
+/** Preserve existing over-cap legacy homes while refusing new names until earned capacity catches up. */
+internal fun maySetGuildHome(existingCount: Int, earnedCapacity: Int, replacingExisting: Boolean): Boolean =
+    replacingExisting || existingCount < earnedCapacity
+
 class GuildServiceBukkit(
     private val guildRepository: GuildRepository,
     private val rankRepository: RankRepository,
@@ -375,8 +379,8 @@ class GuildServiceBukkit(
         try {
             val guild = guildRepository.getById(guildId) ?: return false
 
-            // Check if actor has permission to set home
-            if (!hasPermission(actorId, guildId, RankPermission.MANAGE_MEMBERS)) {
+            // Guild home management is distinct from member management.
+            if (!hasPermission(actorId, guildId, RankPermission.MANAGE_HOME)) {
                 logger.warn("Player $actorId attempted to set home for guild $guildId without permission")
                 return false
             }
@@ -384,7 +388,7 @@ class GuildServiceBukkit(
             // Check if the guild has available home slots
             val availableSlots = getAvailableHomeSlots(guildId)
             val currentHomes = guild.homes.size
-            if (currentHomes >= availableSlots && !guild.homes.homes.containsKey(homeName)) {
+            if (!maySetGuildHome(currentHomes, availableSlots, guild.homes.homes.containsKey(homeName))) {
                 logger.warn("Player $actorId attempted to set home for guild $guildId but maximum slots ($availableSlots) reached")
                 return false
             }
@@ -457,8 +461,8 @@ class GuildServiceBukkit(
         try {
             val guild = guildRepository.getById(guildId) ?: return false
 
-            // Check if actor has permission to remove home
-            if (!hasPermission(actorId, guildId, RankPermission.MANAGE_MEMBERS)) {
+            // Guild home removal requires MANAGE_HOME, not member management.
+            if (!hasPermission(actorId, guildId, RankPermission.MANAGE_HOME)) {
                 logger.warn("Player $actorId attempted to remove home for guild $guildId without permission")
                 return false
             }
@@ -488,8 +492,8 @@ class GuildServiceBukkit(
         try {
             val guild = guildRepository.getById(guildId) ?: return false
 
-            // Check if actor has permission to remove home
-            if (!hasPermission(actorId, guildId, RankPermission.MANAGE_MEMBERS)) {
+            // Guild home removal requires MANAGE_HOME, not member management.
+            if (!hasPermission(actorId, guildId, RankPermission.MANAGE_HOME)) {
                 logger.warn("Player $actorId attempted to remove home for guild $guildId without permission")
                 return false
             }

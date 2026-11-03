@@ -65,7 +65,7 @@ class RewardEntitlementsTest {
         )
         val result = resolver.resolve(1, state)
         assertEquals(9_000L, result.bankCapacity)
-        assertEquals(13, result.homeCapacity)
+        assertEquals(6, result.homeCapacity)
         assertEquals(0.5, result.homeCooldownMultiplier)
         assertTrue(result.allyHomes)
         assertEquals(50, result.memberCapacity)
@@ -162,9 +162,50 @@ class RewardEntitlementsTest {
     }
 
     @Test
-    fun `overflow in preserved home capacity fails rather than deleting entitlement`() {
-        assertFailsWith<ArithmeticException> {
-            resolver.resolve(100, RewardOwnership(permanent = setOf("home-1"), initialHomeCapacity = Int.MAX_VALUE))
+    fun `grandfathered home locations do not inflate earned home capacity`() {
+        val nineOutposts = (1..9).map { "home-$it" }.toSet()
+        val once = RewardOwnership(
+            permanent = nineOutposts + "bank-1",
+            initialHomeCapacity = 6,
+            prestigeCount = 1,
+        )
+        // Fifteen saved homes can survive, but only eleven slots have been earned.
+        assertEquals(11, resolver.resolve(1, once).homeCapacity)
+        assertEquals(6, once.initialHomeCapacity) // Historical migration evidence is not erased.
+
+        val sixth = RewardOwnership(
+            permanent = nineOutposts + (1..6).map { "bank-$it" },
+            initialHomeCapacity = 6,
+            prestigeCount = 6,
+        )
+        assertEquals(16, resolver.resolve(1, sixth).homeCapacity)
+    }
+
+    @Test
+    fun `invalid extra capacity in a corrupted reward catalog fails closed above sixteen`() {
+        val modifiedLevels = (1..100).map { level ->
+            val original = catalog.level(level)
+            if (level != 10) original else original.copy(rewards = original.rewards.map { reward ->
+                if (reward.id == "home-1") reward.copy(effect = RewardEffect.HomeCapacity(2)) else reward
+            })
         }
+        val corruptedCatalog = RewardCatalog(modifiedLevels)
+        val allEarned = RewardOwnership(
+            permanent = (1..9).map { "home-$it" }.toSet() + (1..6).map { "bank-$it" },
+            prestigeCount = 6,
+        )
+        assertFailsWith<IllegalArgumentException> {
+            RewardEntitlementResolver(corruptedCatalog).resolve(1, allEarned)
+        }
+    }
+
+    @Test
+    fun `historical home count never increases the absolute sixteen slot ceiling`() {
+        val earned = RewardOwnership(
+            permanent = (1..9).map { "home-$it" }.toSet() + (1..6).map { "bank-$it" },
+            initialHomeCapacity = Int.MAX_VALUE,
+            prestigeCount = 6,
+        )
+        assertEquals(16, resolver.resolve(1, earned).homeCapacity)
     }
 }

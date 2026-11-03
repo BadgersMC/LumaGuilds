@@ -1127,7 +1127,15 @@ fun economyModule() = module {
     }
     single {
         net.lumalyte.lg.application.services.GuildHomeActivationService(
-            get(), get(), { get<ConfigService>().loadConfig() },
+            repository = get(),
+            costs = get(),
+            maySetHome = { guildId, homeName ->
+                // The callback resolves GuildService lazily to avoid the constructor dependency cycle.
+                val guilds = get<net.lumalyte.lg.application.services.GuildService>()
+                val saved = guilds.getHomes(guildId)
+                saved.homes.containsKey(homeName) || saved.size < guilds.getAvailableHomeSlots(guildId)
+            },
+            config = { get<ConfigService>().loadConfig() },
         )
     }
     single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }

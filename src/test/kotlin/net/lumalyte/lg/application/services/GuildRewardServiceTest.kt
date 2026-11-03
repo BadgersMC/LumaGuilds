@@ -30,7 +30,7 @@ class GuildRewardServiceTest {
         val first = assertIs<GuildRewardRead.Available>(service.read(guild))
         assertEquals(4, first.version)
         assertEquals(48_500L, first.entitlements.bankCapacity)
-        assertEquals(7, first.entitlements.homeCapacity)
+        assertEquals(2, first.entitlements.homeCapacity)
         assertEquals(50, first.entitlements.memberCapacity)
         assertEquals(0.9, first.entitlements.withdrawalFeeMultiplier)
         assertEquals(1.0, first.entitlements.homeCooldownMultiplier)

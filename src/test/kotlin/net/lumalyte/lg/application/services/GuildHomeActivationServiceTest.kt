@@ -85,12 +85,33 @@ class GuildHomeActivationServiceTest {
         assertTrue(persisted)
     }
 
+    @Test
+    fun `over-cap Java and Bedrock home attempts fail before any charge or mutation`() {
+        listOf("new-java-home", "home16").forEach { newName ->
+            val repository = mockk<GuildHomeActivationRepository>()
+            val costs = mockk<GuildCostService>()
+            var persisted = false
+            val service = service(repository, costs, maySetHome = { _, name -> name != newName })
+
+            val result = service.persistLocation(
+                UUID.randomUUID(), guildId, newName, actorId, existedBefore = false,
+            ) { persisted = true; true }
+
+            assertEquals(HomeActivationCostResult.ActivationFailed(compensated = true), result)
+            assertFalse(persisted)
+            verify(exactly = 0) { costs.activateHome(any(), any(), any(), any(), any(), any()) }
+            verify(exactly = 0) { repository.isActive(any(), any()) }
+        }
+    }
+
     private fun service(
         repository: GuildHomeActivationRepository,
         costs: GuildCostService = mockk(relaxed = true),
+        maySetHome: (UUID, String) -> Boolean = { _, _ -> true },
     ) = GuildHomeActivationService(
         repository,
         costs,
+        maySetHome,
     ) {
         MainConfig(
             guild = GuildConfig(homeActivationBaseCost = 100, homeActivationScale = 2.0),
