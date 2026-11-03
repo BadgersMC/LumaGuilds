@@ -53,7 +53,12 @@ class RewardPurchaseRepositorySQL(
                         it.executeUpdate()
                     }
                     val replay = replay(connection, request)
-                    val result = replay ?: execute(connection, request, guard).also { saveReceipt(connection, request, it) }
+                    val result = replay ?: execute(connection, request, guard).also {
+                        // Audit pending is retryable once verified: no terminal receipt or gold journal.
+                        if (it != RewardPurchaseResult.Rejected(RewardPurchaseRejection.HOME_AUDIT_PENDING)) {
+                            saveReceipt(connection, request, it)
+                        }
+                    }
                     connection.commit()
                     result
                 } catch (error: Exception) {
@@ -85,6 +90,7 @@ class RewardPurchaseRepositorySQL(
         } ?: return reject(RewardPurchaseRejection.UNINITIALIZED)
         when (resolver.resolve(level, snapshot.ownership).offer(request.rewardId).status) {
             RewardOfferStatus.LOCKED -> return reject(RewardPurchaseRejection.LOCKED)
+            RewardOfferStatus.AUDIT_PENDING -> return reject(RewardPurchaseRejection.HOME_AUDIT_PENDING)
             RewardOfferStatus.PURCHASED, RewardOfferStatus.PERMANENT -> return reject(RewardPurchaseRejection.ALREADY_OWNED)
             RewardOfferStatus.NO_IMPROVEMENT -> return reject(RewardPurchaseRejection.NO_IMPROVEMENT)
             RewardOfferStatus.AVAILABLE -> Unit
@@ -101,6 +107,11 @@ class RewardPurchaseRepositorySQL(
             it.executeQuery().use { rows -> rows.next() }
         }
         if (pending) return reject(RewardPurchaseRejection.PENDING_GOLD)
+        // The v51 home policy might have changed since the UI quote. Lock its row
+        // in MariaDB and fail closed before any canonical debit or receipt.
+        if (reward.effect is RewardEffect.HomeCapacity && !GuildHomeOutpostPurchasePolicy.isReady(
+                connection, request.guildId, forUpdate = storage.dialect == SqlDialect.MARIADB
+            )) return reject(RewardPurchaseRejection.HOME_AUDIT_PENDING)
         val paid = gold.applyInTransaction(connection, mutation(request), Long.MAX_VALUE, null)
         if (paid is GuildGoldResult.Rejected) {
             check(paid.reason == GuildGoldRejection.INSUFFICIENT_FUNDS) { "Unexpected canonical debit rejection" }

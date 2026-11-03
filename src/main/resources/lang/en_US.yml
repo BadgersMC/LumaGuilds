@@ -7557,11 +7557,13 @@ chapter_two_rewards:
     no_quote: '<red>This offer is unavailable or you lack purchase permission. Refresh and check your guild rank.'
     insufficient: '<red>Your guild does not have enough gold for this reward.'
     bank_unavailable: '<red>The guild bank is frozen or has a pending transfer. Resolve it before purchasing.'
+    home_audit_pending: '<yellow>Guild Outpost purchases are paused until staff verifies your saved home ownership. No gold was charged.'
     changed: '<yellow>The offer changed. Review the refreshed catalog before purchasing.'
     ineligible: '<yellow>This reward is locked, already owned, or provides no additional benefit.'
   back: '<yellow>Back'
   status:
     locked: '<dark_gray>Locked'
+    audit_pending: '<yellow>Paused: home ownership audit required'
     available: '<yellow>Available to purchase'
     purchased: '<green>Purchased this run'
     permanent: '<aqua>Permanently owned'

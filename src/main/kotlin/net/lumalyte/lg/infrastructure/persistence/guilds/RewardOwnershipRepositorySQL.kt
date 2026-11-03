@@ -201,7 +201,8 @@ class RewardOwnershipRepositorySQL(
             connection, guildId, account.baseHomeSlotsEarned, account.prestigeCount
         )
         val ownership = RewardOwnership(current, permanent, account.initialHomeCapacity,
-            account.prestigeCount, earnedBase, activeOutposts)
+            account.prestigeCount, earnedBase, activeOutposts,
+            homeOutpostAuditPending = !GuildHomeOutpostPurchasePolicy.isReady(connection, guildId))
         resolver.resolve(100, ownership) // Unknown IDs or invalid permanence never turn into empty state.
         return RewardOwnershipSnapshot(account.version, ownership)
     }

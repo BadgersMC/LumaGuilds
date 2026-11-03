@@ -11,6 +11,7 @@ fun LangService.rewardStatus(status: RewardOfferStatus): Component {
     val lang = this
     return when (status) {
         RewardOfferStatus.LOCKED -> lang.gui("chapter_two_rewards.status.locked")
+        RewardOfferStatus.AUDIT_PENDING -> lang.gui("chapter_two_rewards.status.audit_pending")
         RewardOfferStatus.AVAILABLE -> lang.gui("chapter_two_rewards.status.available")
         RewardOfferStatus.PURCHASED -> lang.gui("chapter_two_rewards.status.purchased")
         RewardOfferStatus.PERMANENT -> lang.gui("chapter_two_rewards.status.permanent")

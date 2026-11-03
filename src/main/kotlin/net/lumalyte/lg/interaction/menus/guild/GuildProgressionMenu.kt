@@ -202,7 +202,7 @@ class GuildProgressionMenu(
                 "guild_dialogs.progression.reward_states",
                 "purchased" to owned,
                 "available" to offers.count { it.status == RewardOfferStatus.AVAILABLE },
-                "locked" to offers.count { it.status == RewardOfferStatus.LOCKED },
+                "locked" to offers.count { it.status == RewardOfferStatus.LOCKED || it.status == RewardOfferStatus.AUDIT_PENDING },
             )
         return GuildDialogItem(
             NexoItemProvider.getItemStackOrFallback("lg_reward") { ItemStack.of(Material.DIAMOND) },

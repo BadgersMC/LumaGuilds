@@ -13,6 +13,7 @@ fun LangService.purchaseFeedback(result: RewardPurchaseResult): Component {
             RewardPurchaseRejection.UNAUTHORIZED -> lang.msg("chapter_two_rewards.purchase.unauthorized")
             RewardPurchaseRejection.INSUFFICIENT_FUNDS -> lang.msg("chapter_two_rewards.purchase.insufficient")
             RewardPurchaseRejection.FROZEN, RewardPurchaseRejection.PENDING_GOLD -> lang.msg("chapter_two_rewards.purchase.bank_unavailable")
+            RewardPurchaseRejection.HOME_AUDIT_PENDING -> lang.msg("chapter_two_rewards.purchase.home_audit_pending")
             RewardPurchaseRejection.STALE_STATE, RewardPurchaseRejection.PRICE_CHANGED -> lang.msg("chapter_two_rewards.purchase.changed")
             RewardPurchaseRejection.LOCKED, RewardPurchaseRejection.ALREADY_OWNED,
             RewardPurchaseRejection.NO_IMPROVEMENT, RewardPurchaseRejection.UNKNOWN_REWARD -> lang.msg("chapter_two_rewards.purchase.ineligible")

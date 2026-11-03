@@ -9,7 +9,9 @@ class RewardOwnership(
     val initialHomeCapacity: Int = 1,
     val prestigeCount: Int = 0,
     val baseHomeSlotsEarned: Int = 1,
-    activeOutpostsByPrestige: Map<Int, String> = emptyMap()
+    activeOutpostsByPrestige: Map<Int, String> = emptyMap(),
+    /** Runtime projection only: unresolved historical home ownership must not be billed. */
+    val homeOutpostAuditPending: Boolean = false
 ) {
     val currentRun: Set<String> = Collections.unmodifiableSet(currentRun.toSet())
     val permanent: Set<String> = Collections.unmodifiableSet(permanent.toSet())
@@ -31,9 +33,10 @@ class RewardOwnership(
         initialHomeCapacity: Int = this.initialHomeCapacity,
         prestigeCount: Int = this.prestigeCount,
         baseHomeSlotsEarned: Int = this.baseHomeSlotsEarned,
-        activeOutpostsByPrestige: Map<Int, String> = this.activeOutpostsByPrestige
+        activeOutpostsByPrestige: Map<Int, String> = this.activeOutpostsByPrestige,
+        homeOutpostAuditPending: Boolean = this.homeOutpostAuditPending
     ) = RewardOwnership(currentRun, permanent, initialHomeCapacity, prestigeCount,
-        baseHomeSlotsEarned, activeOutpostsByPrestige)
+        baseHomeSlotsEarned, activeOutpostsByPrestige, homeOutpostAuditPending)
 }
 
 /** Chapter 1 progression slots are retained after a prestige level reset. */
@@ -45,7 +48,7 @@ fun earnedBaseHomeSlotsAtLevel(level: Int): Int = when {
     else -> 1
 }
 
-enum class RewardOfferStatus { LOCKED, AVAILABLE, PURCHASED, PERMANENT, NO_IMPROVEMENT }
+enum class RewardOfferStatus { LOCKED, AUDIT_PENDING, AVAILABLE, PURCHASED, PERMANENT, NO_IMPROVEMENT }
 data class RewardOffer(val reward: RewardDefinition, val status: RewardOfferStatus)
 
 data class RewardEntitlements(
@@ -115,6 +118,8 @@ class RewardEntitlementResolver(private val catalog: RewardCatalog) {
                     RewardOfferStatus.LOCKED
                 reward.effect is RewardEffect.HomeCapacity && homeCapacity >= 16 ->
                     RewardOfferStatus.NO_IMPROVEMENT
+                reward.effect is RewardEffect.HomeCapacity && ownership.homeOutpostAuditPending ->
+                    RewardOfferStatus.AUDIT_PENDING
                 reward.effect is RewardEffect.HomeCapacity -> RewardOfferStatus.AVAILABLE
                 reward.id in ownership.permanent -> RewardOfferStatus.PERMANENT
                 reward.id in ownership.currentRun -> RewardOfferStatus.PURCHASED
