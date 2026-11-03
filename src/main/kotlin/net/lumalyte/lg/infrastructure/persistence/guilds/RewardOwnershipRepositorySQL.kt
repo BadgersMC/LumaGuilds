@@ -8,7 +8,6 @@ import net.lumalyte.lg.domain.rewards.RewardOwnership
 import net.lumalyte.lg.domain.rewards.RewardOwnershipRead
 import net.lumalyte.lg.domain.rewards.RewardOwnershipSnapshot
 import net.lumalyte.lg.domain.rewards.RewardOwnershipWrite
-import net.lumalyte.lg.domain.rewards.earnedBaseHomeSlotsAtLevel
 import net.lumalyte.lg.infrastructure.persistence.migrations.OutpostAcquisitionSchema
 import net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
@@ -198,9 +197,9 @@ class RewardOwnershipRepositorySQL(
                 }
             }
         }
-        val earnedBase = maxOf(account.baseHomeSlotsEarned,
-            if (account.prestigeCount > 0) 6 else 1,
-            earnedBaseHomeSlotsAtLevel(highestLevelEvidence(connection, guildId)))
+        val earnedBase = EarnedBaseHomeSlots.resolve(
+            connection, guildId, account.baseHomeSlotsEarned, account.prestigeCount
+        )
         val ownership = RewardOwnership(current, permanent, account.initialHomeCapacity,
             account.prestigeCount, earnedBase, activeOutposts)
         resolver.resolve(100, ownership) // Unknown IDs or invalid permanence never turn into empty state.
@@ -214,27 +213,9 @@ class RewardOwnershipRepositorySQL(
         val baseHomeSlotsEarned: Int
     )
 
-    private fun highestLevelEvidence(connection: Connection, guildId: UUID): Int {
-        val current = if (tableExists(connection, "guild_progression")) {
-            connection.prepareStatement("SELECT current_level FROM guild_progression WHERE guild_id = ?").use {
-                it.setString(1, guildId.toString())
-                it.executeQuery().use { rows -> if (rows.next()) rows.getInt(1) else 1 }
-            }
-        } else 1
-        val migration = if (tableExists(connection, "chapter_migration_receipts")) {
-            connection.prepareStatement(
-                "SELECT MAX(before_level) FROM chapter_migration_receipts WHERE guild_id = ? AND status = 'APPLIED'"
-            ).use {
-                it.setString(1, guildId.toString())
-                it.executeQuery().use { rows -> if (rows.next()) rows.getInt(1) else 1 }
-            }
-        } else 1
-        return maxOf(1, current, migration)
-    }
-
     private fun insertAccount(connection: Connection, guildId: UUID, initialHomeCapacity: Int) {
         require(initialHomeCapacity >= 1)
-        val baseSlots = earnedBaseHomeSlotsAtLevel(highestLevelEvidence(connection, guildId))
+        val baseSlots = EarnedBaseHomeSlots.initial(connection, guildId)
         connection.prepareStatement(
             "INSERT INTO guild_reward_accounts (guild_id, version, initial_home_capacity, prestige_count, base_home_slots_earned) VALUES (?, 0, ?, 0, ?)"
         ).use {
@@ -254,7 +235,17 @@ class RewardOwnershipRepositorySQL(
     private fun hasOrphanedRewardState(connection: Connection, guildId: UUID): Boolean =
         hasOwnedRewards(connection, guildId) ||
             hasAppliedRewardPurchase(connection, guildId) ||
-            hasAppliedPrestige(connection, guildId)
+            hasAppliedPrestige(connection, guildId) ||
+            hasOutpostAcquisition(connection, guildId)
+
+    private fun hasOutpostAcquisition(connection: Connection, guildId: UUID): Boolean =
+        tableExists(connection, "guild_outpost_acquisitions") &&
+            connection.prepareStatement(
+                "SELECT 1 FROM guild_outpost_acquisitions WHERE guild_id = ? LIMIT 1"
+            ).use {
+                it.setString(1, guildId.toString())
+                it.executeQuery().use { rows -> rows.next() }
+            }
 
     private fun hasAppliedRewardPurchase(connection: Connection, guildId: UUID): Boolean =
         tableExists(connection, "guild_reward_purchases") &&

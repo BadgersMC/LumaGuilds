@@ -170,7 +170,7 @@ class PrestigeRepositorySQLTest : RewardSqlTestFixture() {
         )!!.getString("transaction_id"))
         val ownership = reopened.snapshot().ownership
         assertEquals(6, ownership.initialHomeCapacity)
-        assertEquals(2, RewardEntitlementResolver(catalog).resolve(
+        assertEquals(7, RewardEntitlementResolver(catalog).resolve(
             1, ownership, settings.bank.maxBankBalance.toLong(), settings.guild.maxMembersPerGuild,
         ).homeCapacity)
     }
@@ -195,7 +195,7 @@ class PrestigeRepositorySQLTest : RewardSqlTestFixture() {
 
         val request = quote().copy(expectedOwnershipVersion = purchased.snapshot.version)
         val applied = assertIs<PrestigeResult.Applied>(subject.repository.confirm(request) { null })
-        assertEquals(11, applied.homeCapacity) // 1 base + 9 permanent outposts + 1 prestige
+        assertEquals(7, applied.homeCapacity) // Six earned base + one free prestige; historical Outposts grant none.
         closeStorage(subject.storage)
 
         val reopened = open(seed = false)
@@ -207,7 +207,7 @@ class PrestigeRepositorySQLTest : RewardSqlTestFixture() {
         val ownership = reopened.snapshot().ownership
         assertEquals(6, ownership.initialHomeCapacity) // Retained only as migration evidence.
         assertEquals(1, ownership.prestigeCount)
-        assertEquals(11, RewardEntitlementResolver(catalog).resolve(1, ownership).homeCapacity)
+        assertEquals(7, RewardEntitlementResolver(catalog).resolve(1, ownership).homeCapacity)
     }
 
     @Test
@@ -230,18 +230,19 @@ class PrestigeRepositorySQLTest : RewardSqlTestFixture() {
         val subject = open()
         val request = quote()
         assertIs<PrestigeResult.Applied>(subject.repository.confirm(request) { null })
-        // Model a receipt committed before the capacity correction (legacy count 6 + prestige 1).
+        // Model the old one-base-slot formula: 1 base + 1 prestige = 2.
+        // The original stored receipt must replay verbatim after the new six-base rule.
         subject.storage.connection.executeUpdate(
             "UPDATE guild_prestige_transactions SET home_capacity = ? WHERE transaction_id = ?",
-            7, request.transactionId.toString(),
+            2, request.transactionId.toString(),
         )
         closeStorage(subject.storage)
 
         val reopened = open(seed = false)
         val replay = assertIs<PrestigeResult.Applied>(reopened.repository.confirm(request) { null })
-        assertEquals(7, replay.homeCapacity) // Immutable historical audit snapshot.
+        assertEquals(2, replay.homeCapacity) // Immutable historical audit snapshot.
         val current = RewardEntitlementResolver(catalog).resolve(1, reopened.snapshot().ownership)
-        assertEquals(2, current.homeCapacity) // Live UI must use current entitlement read.
+        assertEquals(7, current.homeCapacity) // Live UI re-evaluates base and active grants.
         assertEquals(9_000L, reopened.gold.getBalance(guildId)) // No replay charge.
     }
 
@@ -252,7 +253,7 @@ class PrestigeRepositorySQLTest : RewardSqlTestFixture() {
 
         assertEquals(9_000L, result.newBalance)
         assertEquals(1, result.prestigeCount)
-        assertEquals(2, result.homeCapacity)
+        assertEquals(7, result.homeCapacity)
         assertEquals(9_000L, subject.gold.getBalance(guildId))
 
         val ownership = subject.snapshot().ownership

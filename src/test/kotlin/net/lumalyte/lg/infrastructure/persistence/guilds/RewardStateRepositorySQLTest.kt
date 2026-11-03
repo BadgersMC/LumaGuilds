@@ -19,7 +19,7 @@ class RewardStateRepositorySQLTest : RewardSqlTestFixture() {
         assertEquals(100, before.level)
         assertEquals(0L, before.snapshot.version)
         assertIs<RewardOwnershipWrite.Saved>(owners.save(guild, 0,
-            RewardOwnership(currentRun = setOf("bank-1"), permanent = setOf("home-1"), initialHomeCapacity = 8)))
+            before.snapshot.ownership.copy(currentRun = setOf("bank-1"), permanent = setOf("home-1"))))
         val after = assertIs<RewardStateRead.Found>(reader.read(guild))
         assertEquals(1L, after.snapshot.version)
         assertEquals(setOf("home-1"), after.snapshot.ownership.permanent)
