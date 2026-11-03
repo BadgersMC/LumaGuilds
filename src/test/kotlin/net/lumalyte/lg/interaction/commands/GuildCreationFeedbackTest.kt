@@ -168,17 +168,44 @@ class GuildCreationFeedbackTest {
         every { player.uniqueId } returns UUID.randomUUID()
         every { guilds.getPlayerGuilds(any()) } returns emptySet()
         every { repository.creationCooldownUntil(any()) } returns null
-        every { repository.isNameTaken("Taken Guild") } returns true
+        every { repository.isNameTaken(any()) } answers {
+            firstArg<String>().equals("Taken Guild", ignoreCase = true)
+        }
         every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = true)
         startKoin { modules(module {
             single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
         }) }
 
         GuildCommand().onCreate(player, "Taken Guild", null)
+        GuildCommand().onCreate(player, "tAkEn GuIlD", null)
 
-        verify(exactly = 1) {
+        verify(exactly = 2) {
             lang.msg("command.migrated.guild.create.the_name_is_already_taken_by_another", *anyVararg())
         }
+        verify(exactly = 0) { costs.createGuild(any(), any(), any()) }
+        verify(exactly = 0) { guilds.createGuild(any(), any(), any()) }
+    }
+
+    @Test fun unavailableNameLookupFailsClosedWithoutPayment() {
+        stopKoin()
+        val guilds = mockk<GuildService>()
+        val repository = mockk<GuildRepository>()
+        val costs = mockk<GuildCostService>()
+        val config = mockk<ConfigService>()
+        val lang = mockk<LangService>(relaxed = true)
+        val player = mockk<Player>(relaxed = true)
+        every { player.uniqueId } returns UUID.randomUUID()
+        every { player.server.logger } returns java.util.logging.Logger.getLogger("GuildCreationFeedbackTest")
+        every { guilds.getPlayerGuilds(any()) } returns emptySet()
+        every { repository.isNameTaken(any()) } throws IllegalStateException("repository offline")
+        every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = true)
+        startKoin { modules(module {
+            single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
+        }) }
+
+        GuildCommand().onCreate(player, "Valid New Guild", null)
+
+        verify(exactly = 1) { lang.msg("guild_creation_cooldown.unavailable") }
         verify(exactly = 0) { costs.createGuild(any(), any(), any()) }
         verify(exactly = 0) { guilds.createGuild(any(), any(), any()) }
     }

@@ -167,7 +167,15 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         // Reject known duplicate names before any payment reservation or debit.
         // GuildServiceBukkit still validates the name during creation for races.
-        if (guildRepository.isNameTaken(name)) {
+        val nameTaken = try {
+            guildRepository.isNameTaken(name)
+        } catch (e: Exception) {
+            player.server.logger.log(java.util.logging.Level.WARNING,
+                "Guild name availability check failed for creator $playerId; no payment attempted", e)
+            player.sendMessage(lang.msg("guild_creation_cooldown.unavailable"))
+            return
+        }
+        if (nameTaken) {
             player.sendMessage(lang.msg("command.migrated.guild.create.the_name_is_already_taken_by_another", "name" to name))
             player.sendMessage(lang.msg("command.migrated.guild.create.please_choose_a_different_name"))
             return
