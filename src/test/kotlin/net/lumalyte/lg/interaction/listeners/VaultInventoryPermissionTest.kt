@@ -141,7 +141,7 @@ internal class VaultSessionPermissionTest {
         assertFalse(event.isCancelled)
     }
 
-    @Test fun postPrestigeOverflowIsWithdrawalOnly() {
+    @Test fun unentitledOverflowIsWithdrawalOnly() {
         val fixture = Fixture(RankPermission.entries.toSet(), unlockedCapacity = 9)
 
         for (action in listOf(
@@ -172,9 +172,9 @@ internal class VaultSessionPermissionTest {
         assertFalse(unlockedDeposit.isCancelled, "The unlocked first row must still accept items")
     }
 
-    @Test fun alreadyOpenVaultCannotAcceptOverflowAfterPrestige() {
-        // The cached guild record and open holder can still describe level 100;
-        // progression is refreshed from the committed prestige transaction.
+    @Test fun alreadyOpenVaultKeepsEarnedRowsAfterPrestige() {
+        // Permanent capacity is captured when the holder is created. Resetting
+        // the run level to 1 must not revoke a previously earned sixth row.
         val fixture = Fixture(
             RankPermission.entries.toSet(),
             unlockedCapacity = 54,
@@ -183,40 +183,43 @@ internal class VaultSessionPermissionTest {
         )
         val place = fixture.click(InventoryAction.PLACE_ALL, 53)
         fixture.listener.onInventoryClick(place)
-        assertTrue(place.isCancelled)
+        assertFalse(place.isCancelled, "Prestige must not lock earned vault storage")
         val pickup = fixture.click(InventoryAction.PICKUP_ALL, 53)
         fixture.listener.onInventoryClick(pickup)
         assertFalse(pickup.isCancelled)
+        verify(exactly = 0) { fixture.progression.readCommittedLevel(fixture.guildId) }
     }
 
-    @Test fun staleCachedLevelCannotBypassPrestigeOverflow() {
+    @Test fun staleCachedLevelCannotBypassUnentitledOverflow() {
+        // A high cached or committed run level is never an excuse to bypass
+        // the authoritative durable capacity captured by the vault holder.
         val fixture = Fixture(
-            RankPermission.entries.toSet(), unlockedCapacity = 54,
-            progressionLevel = 1, cachedProgressionLevel = 100,
+            RankPermission.entries.toSet(), unlockedCapacity = 9,
+            progressionLevel = 100, cachedProgressionLevel = 100,
         )
         val attemptedDeposit = fixture.click(InventoryAction.PLACE_ALL, 53)
         fixture.listener.onInventoryClick(attemptedDeposit)
-        assertTrue(attemptedDeposit.isCancelled, "Authoritative refreshed level, not cached level, governs deposits")
-        verify(exactly = 1) { fixture.progression.readCommittedLevel(fixture.guildId) }
+        assertTrue(attemptedDeposit.isCancelled, "Rows beyond the durable unlock stay withdrawal-only")
+        verify(exactly = 0) { fixture.progression.readCommittedLevel(fixture.guildId) }
 
         val ordinaryClick = fixture.click(InventoryAction.PLACE_ALL, 5)
         fixture.listener.onInventoryClick(ordinaryClick)
         assertFalse(ordinaryClick.isCancelled)
-        verify(exactly = 1) { fixture.progression.readCommittedLevel(fixture.guildId) }
     }
 
-    @Test fun failureToRefreshProgressionFailsClosedForUpperRows() {
+    @Test fun unavailableProgressionRefreshDoesNotRevokeEarnedRows() {
         val fixture = Fixture(
             RankPermission.entries.toSet(), unlockedCapacity = 54,
-            progressionLevel = 100, cachedProgressionLevel = 100,
+            progressionLevel = 1, cachedProgressionLevel = 100,
         )
         every { fixture.progression.readCommittedLevel(fixture.guildId) } throws IllegalStateException("SQLite unavailable")
         val attemptedDeposit = fixture.click(InventoryAction.PLACE_ALL, 53)
         fixture.listener.onInventoryClick(attemptedDeposit)
-        assertTrue(attemptedDeposit.isCancelled)
+        assertFalse(attemptedDeposit.isCancelled, "Previously persisted rows stay writable")
         val withdrawal = fixture.click(InventoryAction.PICKUP_ALL, 53)
         fixture.listener.onInventoryClick(withdrawal)
-        assertFalse(withdrawal.isCancelled, "Existing overflow items remain withdrawable")
+        assertFalse(withdrawal.isCancelled)
+        verify(exactly = 0) { fixture.progression.readCommittedLevel(fixture.guildId) }
     }
 
     @Test fun dragIntoOverflowIsCancelledBeforeInventoryMutation() {

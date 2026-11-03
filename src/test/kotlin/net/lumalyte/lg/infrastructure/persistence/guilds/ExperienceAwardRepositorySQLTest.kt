@@ -40,6 +40,12 @@ class ExperienceAwardRepositorySQLTest {
     fun setUp() {
         storage = VirtualThreadSQLiteStorage(tempDir.toFile())
         storage.connection.executeUpdate("CREATE TABLE guilds (id TEXT PRIMARY KEY, level INTEGER NOT NULL DEFAULT 1)")
+        storage.connection.executeUpdate(
+            "CREATE TABLE guild_vault_capacity_unlocks (" +
+                "guild_id TEXT PRIMARY KEY, capacity_slots INTEGER NOT NULL " +
+                "CHECK (capacity_slots BETWEEN 9 AND 54 AND capacity_slots % 9 = 0), " +
+                "FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE)"
+        )
         storage.connection.executeUpdate("INSERT INTO guilds (id, level) VALUES (?, 1)", guildId.toString())
         repository = ExperienceAwardRepositorySQL(storage, curve)
     }
