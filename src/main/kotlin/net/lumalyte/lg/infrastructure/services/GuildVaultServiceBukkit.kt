@@ -8,6 +8,7 @@ import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildVaultService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.infrastructure.vault.VaultInventoryManager
+import net.lumalyte.lg.infrastructure.vault.VaultLevelCapacity
 import net.lumalyte.lg.application.services.VaultResult
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildVaultLocation
@@ -278,17 +279,7 @@ class GuildVaultServiceBukkit(
         }
     }
 
-    override fun getCapacityForLevel(level: Int): Int {
-        // Default capacity configuration
-        return when {
-            level == 1 -> 9      // 1 row
-            level in 2..5 -> 18  // 2 rows
-            level in 6..10 -> 27 // 3 rows
-            level in 11..15 -> 36 // 4 rows
-            level in 16..20 -> 45 // 5 rows
-            else -> 54           // 6 rows (full double chest)
-        }
-    }
+    override fun getCapacityForLevel(level: Int): Int = VaultLevelCapacity.slots(level)
 
     override fun isValidVaultLocation(location: Location, guild: Guild): VaultResult<Boolean> {
         val world = location.world ?: return VaultResult.Failure("Invalid world")

@@ -72,17 +72,27 @@ class VaultInventoryManager(
      *
      * @param guildId The guild ID.
      * @param guildName The guild name (used for inventory title).
-     * @param capacity The inventory capacity (must be multiple of 9).
+     * @param capacity The level-unlocked capacity (multiple of 9); occupied overflow rows may remain visible for withdrawal.
      * @return The shared Inventory for this guild.
      */
     fun getOrCreateSharedInventory(guildId: UUID, guildName: String, capacity: Int): Inventory {
         return sharedInventories.computeIfAbsent(guildId) { id ->
             logger.debug("Creating shared inventory for guild $guildName ($id)")
 
-            // Load vault data from cache (or database if not cached)
+            // Prestige resets the guild level and unlocked row count, but must never
+            // strand already-stored items in rows that are no longer unlocked.
             val vault = getOrLoadVault(id)
+            val highestStoredSlot = vault.slots.keys.filter { it in 1..53 }.maxOrNull()
+            val visibleCapacity = maxOf(
+                capacity,
+                highestStoredSlot?.let { (it / 9 + 1) * 9 } ?: capacity,
+            )
+            if (vault.slots.keys.any { it > 53 }) {
+                logger.error("Vault for guild $id contains slots outside the 54-slot UI; manual recovery required")
+            }
 
-            // Create the shared Bukkit Inventory with a holder
+            // Holder capacity remains the level-unlocked limit. Extra rows are
+            // visible for withdrawal only and protected by VaultInventoryListener.
             val holder = VaultInventoryHolder(
                 guildId = id,
                 guildName = guildName,
@@ -92,7 +102,7 @@ class VaultInventoryManager(
 
             val inventory = Bukkit.createInventory(
                 holder,
-                capacity,
+                visibleCapacity,
                 Component.text("$guildName Vault")
             )
 
@@ -101,7 +111,7 @@ class VaultInventoryManager(
 
             // Load existing items from cache into the inventory
             vault.slots.forEach { (slot, item) ->
-                if (slot in 0 until capacity && item != null) {
+                if (slot in 0 until visibleCapacity && item != null) {
                     inventory.setItem(slot, item)
                 }
             }

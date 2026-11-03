@@ -32,6 +32,9 @@ interface ProgressionRepository {
      */
     fun refreshGuildProgression(guildId: UUID): GuildProgression? = getGuildProgression(guildId)
 
+    /** Authoritative current level for storage guards; implementations must bypass caches. */
+    fun readCommittedLevel(guildId: UUID): Int? = refreshGuildProgression(guildId)?.currentLevel
+
     /**
      * Records an experience transaction.
      *

@@ -358,4 +358,45 @@ class VaultInventoryManagerSharedInventoryTest {
             }
         }
     }
+
+    @Test
+    fun `prestige level reset keeps occupied upper rows visible across close and reopen`() {
+        val guildId = UUID.randomUUID()
+        val level100 = mockk<Inventory>(relaxed = true)
+        val prestiged = mockk<Inventory>(relaxed = true)
+        val reopened = mockk<Inventory>(relaxed = true)
+        // This fixture statically mocks Bukkit, so using real ItemStack here would
+        // initialize Paper's item registry against a fake Bukkit.getTag() and poison
+        // MockBukkit for later test classes in the same Gradle worker.
+        val contents = mapOf(
+            5 to mockk<ItemStack>(relaxed = true),
+            24 to mockk<ItemStack>(relaxed = true),
+            53 to mockk<ItemStack>(relaxed = true),
+        )
+        every { vaultRepository.getVaultInventory(guildId) } returns contents
+        for (inventory in listOf(level100, prestiged, reopened)) {
+            every { inventory.size } returns 54
+            every { inventory.getItem(any()) } answers { contents[firstArg<Int>()] }
+            every { inventory.viewers } returns emptyList()
+        }
+        every {
+            Bukkit.createInventory(any<InventoryHolder>(), eq(54), any<net.kyori.adventure.text.Component>())
+        } returnsMany listOf(level100, prestiged, reopened)
+
+        assertSame(level100, manager.getOrCreateSharedInventory(guildId, "Everlights", 54))
+        manager.syncInventoryToCache(guildId, level100)
+        manager.evictSharedInventory(guildId)
+
+        // Prestige sets guilds.level = 1; inventory must still expose occupied upper rows.
+        assertSame(prestiged, manager.getOrCreateSharedInventory(guildId, "Everlights", 9))
+        verify { prestiged.setItem(5, contents.getValue(5)) }
+        verify { prestiged.setItem(24, contents.getValue(24)) }
+        verify { prestiged.setItem(53, contents.getValue(53)) }
+        manager.syncInventoryToCache(guildId, prestiged)
+        manager.evictSharedInventory(guildId)
+        assertSame(reopened, manager.getOrCreateSharedInventory(guildId, "Everlights", 9))
+        verify { reopened.setItem(53, contents.getValue(53)) }
+        verify(exactly = 0) { vaultRepository.saveVaultItem(guildId, 24, null) }
+        verify(exactly = 0) { vaultRepository.saveVaultItem(guildId, 53, null) }
+    }
 }

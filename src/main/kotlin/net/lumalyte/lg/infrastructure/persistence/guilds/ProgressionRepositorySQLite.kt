@@ -347,6 +347,19 @@ class ProgressionRepositorySQLite(
             ?: createDefaultProgressionIfNotExists(guildId)
     }
 
+    override fun readCommittedLevel(guildId: UUID): Int? {
+        // Hot vault click path: a single PK read, not ensureTablesExist()'s repeated
+        // schema CREATE/INDEX roundtrips. Propagate errors so the caller fails closed.
+        return try {
+            storage.connection.getFirstRow(
+                "SELECT current_level FROM guild_progression WHERE guild_id = ?",
+                guildId.toString(),
+            )?.getInt("current_level")
+        } catch (e: SQLException) {
+            throw DatabaseOperationException("Failed to read committed guild level", e)
+        }
+    }
+
     override fun refreshGuildProgression(guildId: UUID): GuildProgression? {
         ensureTablesExist()
         val sql = """
