@@ -39,3 +39,5 @@ checks that behavior. Thirteen focused tests passed locally on c0a144b plus the
 candidate; MariaDB and full-suite acceptance remain separate. Existing local
 companion JARs were used for compilation and their runtime provenance is not
 established.
+
+The candidate was also carried onto fork main e925b28b22372435f80d175d8da999b1822bbc11. The same 13 focused tests passed there with no skips; this is not a full-suite, MariaDB or deployed-runtime result.
