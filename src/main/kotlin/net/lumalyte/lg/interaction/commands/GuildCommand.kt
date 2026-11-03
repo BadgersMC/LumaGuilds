@@ -451,6 +451,16 @@ class GuildCommand : BaseCommand(), KoinComponent {
     @CommandPermission("lumaguilds.guild.home")
     @CommandCompletion("@guildaccessiblehomes")
     fun onHome(player: Player, @Optional homeName: String?, @Optional confirm: String?) {
+        // ACF may dispatch an optional-argument `home` route before its nested
+        // `home unlock` route. Both routes must still authorize restoration.
+        if (homeName.equals("unlock", ignoreCase = true) && !confirm.isNullOrBlank()) {
+            if (!player.hasPermission("lumaguilds.guild.sethome")) {
+                player.sendMessage("§cYou cannot restore guild homes.")
+                return
+            }
+            onHomeUnlock(player, confirm)
+            return
+        }
         // Handle "/guild home confirm" — ACF puts "confirm" into homeName, not confirm param
         val isConfirm = confirm?.lowercase() == "confirm" || homeName?.lowercase() == "confirm"
         if (isConfirm) {
