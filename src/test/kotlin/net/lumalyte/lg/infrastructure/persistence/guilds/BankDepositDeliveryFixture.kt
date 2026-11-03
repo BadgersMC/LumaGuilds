@@ -66,11 +66,18 @@ abstract class BankDepositDeliveryFixture {
             "guild_bank_xp_deliveries", "guild_bank_xp_delivery_sequences", "guild_bank_xp_high_water",
             "experience_transactions", "guild_experience_source_usage", "guild_progression",
             "guild_gold_external_attempts", "guild_gold_operations", "guild_gold_withdrawal_usage",
-            "guild_gold_security", "vault_gold", "guild_reward_accounts", "chapter_lifecycle", "guilds",
+            "guild_gold_security", "vault_gold", "guild_vault_capacity_unlocks",
+            "guild_reward_accounts", "chapter_lifecycle", "guilds",
         ).forEach { execute("DROP TABLE IF EXISTS $it") }
         val engine = if (db.dialect == SqlDialect.MARIADB) " ENGINE=InnoDB" else ""
         execute("CREATE TABLE guilds (id VARCHAR(36) PRIMARY KEY, level INT NOT NULL)$engine")
         execute("INSERT INTO guilds VALUES (?, 1)", guild.toString())
+        execute(
+            "CREATE TABLE guild_vault_capacity_unlocks (" +
+                "guild_id VARCHAR(36) PRIMARY KEY, capacity_slots INT NOT NULL, " +
+                "CONSTRAINT vault_capacity_range CHECK (capacity_slots BETWEEN 9 AND 54 AND capacity_slots % 9 = 0), " +
+                "FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE)$engine",
+        )
         execute("CREATE TABLE guild_reward_accounts (guild_id VARCHAR(36) PRIMARY KEY, prestige_count INT)$engine")
         execute("INSERT INTO guild_reward_accounts VALUES (?, 0)", guild.toString())
         execute(
