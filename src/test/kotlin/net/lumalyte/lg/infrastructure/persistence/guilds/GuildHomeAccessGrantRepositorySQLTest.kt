@@ -51,7 +51,8 @@ class GuildHomeAccessGrantRepositorySQLTest : RewardSqlTestFixture() {
                 guildId.toString(), name, world.toString(), index * 5, 64, -index * 7,
             )
         }
-        return Subject(storage, guilds, GuildHomeAccessGrantRepositorySQL(storage))
+        // Reopen the repository after planting legacy SQL rows, as a production startup does.
+        return Subject(storage, GuildRepositorySQLite(storage), GuildHomeAccessGrantRepositorySQL(storage))
     }
 
     private fun classifications(): Map<String, VerifiedGuildHomeGrant> = buildMap {
@@ -126,8 +127,10 @@ class GuildHomeAccessGrantRepositorySQLTest : RewardSqlTestFixture() {
             subject.access.state(guildId, it) == GuildHomeAccessState.LOCKED_PREMATURE
         })
         assertFalse(subject.access.canGrantNewHome(guildId, 6))
-        val saved = assertNotNull(subject.guildRepository.getById(guildId))
-        assertTrue(subject.guildRepository.update(saved.copy(description = "persist with 26 names")))
+        // Reload once more: this test inserted the extra 11 homes via SQL after open().
+        val reloaded = GuildRepositorySQLite(subject.storage)
+        val saved = assertNotNull(reloaded.getById(guildId))
+        assertTrue(reloaded.update(saved.copy(description = "persist with 26 names")))
         assertEquals(before, homeRows(subject.storage))
         assertEquals(GuildHomeAccessState.LOCKED_PREMATURE, subject.access.state(guildId, "outpost-20"))
     }
