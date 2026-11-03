@@ -209,7 +209,9 @@ class GuildHomeAccessGrantRepositorySQL(private val storage: Storage<Database>) 
         reviewer: UUID,
     ): Boolean = runCatching {
         if (provenance.isBlank() || provenance.length > 512) return@runCatching false
-        if (grants.size > 16 || grants.values.any {
+        // Historical exploits can exceed 16 physically saved rows. Preserve all
+        // names and coordinates; only accessible entitlements are capped at 16.
+        if (grants.values.any {
             it.state == GuildHomeAccessState.UNRECONCILED ||
                 it.state == GuildHomeAccessState.REVIEW_REQUIRED ||
                 (it.state.accessible != !it.sourceKey.isNullOrBlank())

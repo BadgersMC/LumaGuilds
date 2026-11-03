@@ -68,6 +68,7 @@ class GuildServiceHomeAccessTest {
             historyRepository = mockk<MembershipHistoryRepository>(relaxed = true),
             adminOverrideService = mockk(relaxed = true),
             homeActivationService = mockk { every { isActive(any(), any()) } returns true },
+            homeAccess = LegacyHomeAccessTestAdapter,
         )
     }
 

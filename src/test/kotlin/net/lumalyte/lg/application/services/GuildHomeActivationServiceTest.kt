@@ -246,6 +246,66 @@ class GuildHomeActivationServiceTest {
     }
 
     @Test
+    fun `verified base and restored paid Outpost moves persist without a second debit`() {
+        listOf(
+            net.lumalyte.lg.application.persistence.GuildHomeAccessState.ACTIVE_BASE,
+            net.lumalyte.lg.application.persistence.GuildHomeAccessState.ACTIVE_OUTPOST,
+        ).forEach { grant ->
+            val repository = mockk<GuildHomeActivationRepository>()
+            val costs = mockk<GuildCostService>()
+            var persisted = false
+            var examined: GuildHome? = null
+            val service = GuildHomeActivationService(
+                repository = repository,
+                costs = costs,
+                maySetHome = { _, _, _, _, proposed -> examined = proposed; true },
+                homeAccessState = { _, _ -> grant },
+                config = { MainConfig(chapterTwoGoldCostsEnabled = true) },
+            )
+            val moved = home.copy(worldId = UUID.randomUUID(), position = Position3D(95, 75, -200))
+            assertEquals(
+                HomeActivationCostResult.Applied(0),
+                service.persistLocation(
+                    UUID.randomUUID(), guildId, "legacy-home", actorId,
+                    existedBefore = true, proposedHome = moved,
+                ) { persisted = true; true },
+            )
+            assertTrue(persisted)
+            assertEquals(moved, examined)
+            verify(exactly = 0) { costs.activateHome(any(), any(), any(), any(), any(), any()) }
+            verify(exactly = 0) { repository.activate(any(), any(), any()) }
+            verify(exactly = 0) { repository.isActive(any(), any()) }
+        }
+    }
+
+    @Test
+    fun `paid activation ordinal still counts only activation ledger rows`() {
+        val repository = mockk<GuildHomeActivationRepository>()
+        val costs = mockk<GuildCostService>()
+        val tx = UUID.randomUUID()
+        every { repository.isActive(guildId, "prestige-free-home") } returns false
+        every { repository.availableCredits(guildId) } returns 0
+        every { repository.activeCount(guildId) } returns 0
+        every { repository.activate(guildId, "prestige-free-home", tx) } returns true
+        every { costs.activateHome(tx, guildId, actorId, 1, false, any()) } answers {
+            assertTrue(arg<() -> Boolean>(5)())
+            HomeActivationCostResult.Applied(100)
+        }
+        val service = GuildHomeActivationService(
+            repository = repository, costs = costs,
+            maySetHome = { _, _, _, _, _ -> true },
+            homeAccessState = { _, _ ->
+                net.lumalyte.lg.application.persistence.GuildHomeAccessState.ACTIVE_PRESTIGE
+            },
+            config = { MainConfig(chapterTwoGoldCostsEnabled = true) },
+        )
+        assertEquals(
+            HomeActivationCostResult.Applied(100),
+            service.persistLocation(tx, guildId, "prestige-free-home", actorId, false, home) { true },
+        )
+    }
+
+    @Test
     fun `new paid Outpost home consumes no duplicate activation debit`() {
         val repository = mockk<GuildHomeActivationRepository>()
         val costs = mockk<GuildCostService>()

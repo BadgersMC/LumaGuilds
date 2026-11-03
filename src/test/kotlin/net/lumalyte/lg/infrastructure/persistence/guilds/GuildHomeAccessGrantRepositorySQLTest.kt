@@ -104,6 +104,35 @@ class GuildHomeAccessGrantRepositorySQLTest : RewardSqlTestFixture() {
     }
 
     @Test
+    fun `verified migration preserves twenty locked historical homes beyond physical cap`() {
+        val subject = open()
+        val extra = (10..20).map { "outpost-$it" }
+        extra.forEachIndexed { index, name ->
+            subject.storage.connection.executeUpdate(
+                "INSERT INTO guild_homes (guild_id, name, world_id, x, y, z) VALUES (?, ?, ?, ?, 64, ?)",
+                guildId.toString(), name, world.toString(), index * 3, index * -5,
+            )
+        }
+        val before = homeRows(subject.storage)
+        assertEquals(26, before.size)
+        val classifications = classifications() + extra.associateWith {
+            VerifiedGuildHomeGrant(GuildHomeAccessState.LOCKED_PREMATURE, null)
+        }
+        assertTrue(subject.access.reconcileVerified(guildId, classifications, "verified sha + audited 26 names", reviewer))
+        assertEquals(before, homeRows(subject.storage))
+        assertEquals(20, prematureNames.count {
+            subject.access.state(guildId, it) == GuildHomeAccessState.LOCKED_PREMATURE
+        } + extra.count {
+            subject.access.state(guildId, it) == GuildHomeAccessState.LOCKED_PREMATURE
+        })
+        assertFalse(subject.access.canGrantNewHome(guildId, 6))
+        val saved = assertNotNull(subject.guildRepository.getById(guildId))
+        assertTrue(subject.guildRepository.update(saved.copy(description = "persist with 26 names")))
+        assertEquals(before, homeRows(subject.storage))
+        assertEquals(GuildHomeAccessState.LOCKED_PREMATURE, subject.access.state(guildId, "outpost-20"))
+    }
+
+    @Test
     fun `one paid Outpost credit can restore exactly one locked location without gold`() {
         val subject = open()
         assertTrue(subject.access.reconcileVerified(guildId, classifications(), "sha256:verified-ch1", reviewer))

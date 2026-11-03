@@ -75,6 +75,15 @@ class GuildHomeActivationService(
         if (!allowedToSet(guildId, homeName, actorId, existedBefore, proposedHome)) {
             return HomeActivationCostResult.ActivationFailed(compensated = true)
         }
+        // Verified original homes and restored paid Outposts are already usable,
+        // even when they have no legacy activation-ledger row. Moving their
+        // coordinates must not create another debit or synthetic activation.
+        if (existedBefore && homeAccessState(guildId, homeName) in setOf(
+                GuildHomeAccessState.ACTIVE_BASE, GuildHomeAccessState.ACTIVE_OUTPOST,
+            )) {
+            return if (persist()) HomeActivationCostResult.Applied(0)
+            else HomeActivationCostResult.ActivationFailed(compensated = true)
+        }
         // Outpost acquisition already charged gold in the reward purchase
         // transaction. Assign this newly purchased extra slot without a second
         // per-home activation debit (and verify the actual stored grant).

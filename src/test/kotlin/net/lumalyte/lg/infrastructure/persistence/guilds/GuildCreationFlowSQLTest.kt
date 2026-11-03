@@ -61,7 +61,8 @@ class GuildCreationFlowSQLTest : RewardSqlTestFixture() {
         val rankService = RankServiceBukkit(ranks, members, guilds, memberService, mockk(relaxed = true))
         val guildService = GuildServiceBukkit(guilds, ranks, members, rankService, memberService,
             mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
-            mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
+            mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
+            homeAccess = net.lumalyte.lg.infrastructure.services.LegacyHomeAccessTestAdapter)
         val expiry = java.time.Instant.now().plusSeconds(86400)
         if (bypass) {
             guilds.creationCooldownUntil(playerId) // Initialize history schema.

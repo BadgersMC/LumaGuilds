@@ -77,6 +77,7 @@ class GuildServiceAllyHomeAccessTest {
             historyRepository = mockk<MembershipHistoryRepository>(relaxed = true),
             adminOverrideService = mockk(relaxed = true),
             homeActivationService = mockk(relaxed = true),
+            homeAccess = LegacyHomeAccessTestAdapter,
         )
     }
 

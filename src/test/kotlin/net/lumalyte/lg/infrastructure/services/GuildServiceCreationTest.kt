@@ -41,6 +41,7 @@ class GuildServiceCreationTest {
         guilds, ranks, members, rankService, memberService,
         mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
         mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
+        homeAccess = LegacyHomeAccessTestAdapter,
     )
 
     @Test fun onlyTheOnlineOwnerPermissionSelectsBypassAdmission() {

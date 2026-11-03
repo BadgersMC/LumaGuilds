@@ -43,6 +43,7 @@ internal class GuildEmojiPersistenceSafetyTest {
                 relationRepository = mockk(relaxed = true),
                 historyRepository = mockk(relaxed = true),
                 adminOverrideService = mockk(relaxed = true),
+                homeAccess = LegacyHomeAccessTestAdapter,
             )
         return service
     }
