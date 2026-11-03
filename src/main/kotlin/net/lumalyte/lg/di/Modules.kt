@@ -1129,11 +1129,21 @@ fun economyModule() = module {
         net.lumalyte.lg.application.services.GuildHomeActivationService(
             repository = get(),
             costs = get(),
-            maySetHome = { guildId, homeName ->
-                // The callback resolves GuildService lazily to avoid the constructor dependency cycle.
+            maySetHome = { guildId, homeName, actorId, existedBefore ->
+                // Resolve lazily to avoid a constructor cycle; never debit when the actor
+                // lost MANAGE_HOME or a "new" name appeared after the UI was opened.
                 val guilds = get<net.lumalyte.lg.application.services.GuildService>()
-                val saved = guilds.getHomes(guildId)
-                saved.homes.containsKey(homeName) || saved.size < guilds.getAvailableHomeSlots(guildId)
+                if (!guilds.hasPermission(actorId, guildId, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_HOME)) {
+                    false
+                } else {
+                    val saved = guilds.getHomes(guildId)
+                    if (existedBefore) {
+                        saved.homes.containsKey(homeName)
+                    } else {
+                        saved.homeNames.none { it.equals(homeName, ignoreCase = true) } &&
+                            saved.size < guilds.getAvailableHomeSlots(guildId)
+                    }
+                }
             },
             config = { get<ConfigService>().loadConfig() },
         )

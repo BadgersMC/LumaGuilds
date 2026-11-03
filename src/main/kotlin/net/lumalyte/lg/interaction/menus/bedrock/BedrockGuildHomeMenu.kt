@@ -208,9 +208,9 @@ class BedrockGuildHomeMenu(
     }
 
     private fun showSetHomeMenu() {
-        // Get current homes to generate proper name
+        // Generate a genuinely vacant name, even when earlier numbered homes were removed.
         val homes = guildService.getHomes(guild.id)
-        val homeName = "home${homes.size + 1}"
+        val homeName = nextAvailableGuildHomeName(homes.homeNames)
         val currentLocation = player.location
 
         val home = GuildHome(
@@ -368,4 +368,11 @@ class BedrockGuildHomeMenu(
         /** Half-block offset so the player spawns centered on the home block. */
         private const val BLOCK_CENTER_OFFSET = 0.5
     }
+}
+
+/** First vacant numbered name; never silently rewrite a saved home after gaps in the list. */
+internal fun nextAvailableGuildHomeName(existingNames: Collection<String>): String {
+    var number = 1
+    while (existingNames.any { it.equals("home$number", ignoreCase = true) }) number++
+    return "home$number"
 }

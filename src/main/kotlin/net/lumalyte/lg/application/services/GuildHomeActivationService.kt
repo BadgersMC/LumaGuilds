@@ -8,7 +8,7 @@ import java.util.UUID
 class GuildHomeActivationService(
     private val repository: GuildHomeActivationRepository,
     private val costs: GuildCostService,
-    private val maySetHome: (UUID, String) -> Boolean,
+    private val maySetHome: (UUID, String, UUID, Boolean) -> Boolean,
     private val config: () -> MainConfig,
 ) {
     fun isActive(guildId: UUID, homeName: String): Boolean =
@@ -23,6 +23,10 @@ class GuildHomeActivationService(
         homeName: String,
         actorId: UUID,
     ): HomeActivationCostResult {
+        // Recheck the actor at execution time, including when the UI was opened before a rank change.
+        if (!allowedToSet(guildId, homeName, actorId, existedBefore = true)) {
+            return HomeActivationCostResult.ActivationFailed(compensated = true)
+        }
         if (repository.isActive(guildId, homeName)) return HomeActivationCostResult.Applied(0)
         if (!config().chapterTwoGoldCostsEnabled) {
             return if (repository.activate(guildId, homeName, null)) HomeActivationCostResult.Applied(0)
@@ -51,8 +55,9 @@ class GuildHomeActivationService(
     ): HomeActivationCostResult {
         // All Java/Bedrock entry points share this guard before the guild-gold debit.
         // The authoritative GuildService.setHome check still handles concurrent changes.
-        val allowed = try { maySetHome(guildId, homeName) } catch (_: Exception) { false }
-        if (!allowed) return HomeActivationCostResult.ActivationFailed(compensated = true)
+        if (!allowedToSet(guildId, homeName, actorId, existedBefore)) {
+            return HomeActivationCostResult.ActivationFailed(compensated = true)
+        }
         val alreadyActive = repository.isActive(guildId, homeName)
         if (!config().chapterTwoGoldCostsEnabled) {
             if (!persist()) return HomeActivationCostResult.ActivationFailed(compensated = true)
@@ -72,6 +77,9 @@ class GuildHomeActivationService(
             persist() && repository.activate(guildId, homeName, transactionId)
         }
     }
+
+    private fun allowedToSet(guildId: UUID, homeName: String, actorId: UUID, existedBefore: Boolean): Boolean =
+        try { maySetHome(guildId, homeName, actorId, existedBefore) } catch (_: Exception) { false }
 
     fun removeActivation(guildId: UUID, homeName: String): Boolean = repository.remove(guildId, homeName)
     fun removeAllActivations(guildId: UUID): Boolean = repository.removeAll(guildId)

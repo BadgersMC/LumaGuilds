@@ -91,7 +91,7 @@ class GuildHomeActivationServiceTest {
             val repository = mockk<GuildHomeActivationRepository>()
             val costs = mockk<GuildCostService>()
             var persisted = false
-            val service = service(repository, costs, maySetHome = { _, name -> name != newName })
+            val service = service(repository, costs, maySetHome = { _, name, _, _ -> name != newName })
 
             val result = service.persistLocation(
                 UUID.randomUUID(), guildId, newName, actorId, existedBefore = false,
@@ -104,10 +104,69 @@ class GuildHomeActivationServiceTest {
         }
     }
 
+    @Test
+    fun `revoked MANAGE_HOME actor cannot debit for a new or existing location`() {
+        listOf(false, true).forEach { existedBefore ->
+            val repository = mockk<GuildHomeActivationRepository>()
+            val costs = mockk<GuildCostService>()
+            var persisted = false
+            var observedActor: UUID? = null
+            var observedPriorExistence: Boolean? = null
+            val service = service(repository, costs, maySetHome = { _, _, actor, existed ->
+                observedActor = actor
+                observedPriorExistence = existed
+                false // actor lost MANAGE_HOME after opening a stale form
+            })
+
+            val result = service.persistLocation(
+                UUID.randomUUID(), guildId, "home1", actorId, existedBefore,
+            ) { persisted = true; true }
+
+            assertEquals(HomeActivationCostResult.ActivationFailed(compensated = true), result)
+            assertEquals(actorId, observedActor)
+            assertEquals(existedBefore, observedPriorExistence)
+            assertFalse(persisted)
+            verify(exactly = 0) { costs.activateHome(any(), any(), any(), any(), any(), any()) }
+            verify(exactly = 0) { repository.isActive(any(), any()) }
+        }
+    }
+
+    @Test
+    fun `revoked actor cannot spend legacy credit or pay to activate saved home`() {
+        val repository = mockk<GuildHomeActivationRepository>()
+        val costs = mockk<GuildCostService>()
+        val service = service(repository, costs, maySetHome = { _, _, _, _ -> false })
+
+        val result = service.activateSavedHome(UUID.randomUUID(), guildId, "main", actorId)
+
+        assertEquals(HomeActivationCostResult.ActivationFailed(compensated = true), result)
+        verify(exactly = 0) { repository.activateUsingCredit(any(), any()) }
+        verify(exactly = 0) { repository.isActive(any(), any()) }
+        verify(exactly = 0) { costs.activateHome(any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `permission lookup errors fail closed before the gold debit`() {
+        val repository = mockk<GuildHomeActivationRepository>()
+        val costs = mockk<GuildCostService>()
+        val service = service(repository, costs, maySetHome = { _, _, _, _ ->
+            throw IllegalStateException("permission storage unavailable")
+        })
+        var persisted = false
+
+        val result = service.persistLocation(
+            UUID.randomUUID(), guildId, "home2", actorId, existedBefore = false,
+        ) { persisted = true; true }
+
+        assertEquals(HomeActivationCostResult.ActivationFailed(compensated = true), result)
+        assertFalse(persisted)
+        verify(exactly = 0) { costs.activateHome(any(), any(), any(), any(), any(), any()) }
+    }
+
     private fun service(
         repository: GuildHomeActivationRepository,
         costs: GuildCostService = mockk(relaxed = true),
-        maySetHome: (UUID, String) -> Boolean = { _, _ -> true },
+        maySetHome: (UUID, String, UUID, Boolean) -> Boolean = { _, _, _, _ -> true }
     ) = GuildHomeActivationService(
         repository,
         costs,
