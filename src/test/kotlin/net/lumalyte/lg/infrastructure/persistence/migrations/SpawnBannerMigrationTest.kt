@@ -49,7 +49,7 @@ class SpawnBannerMigrationTest {
         assertTrue(columnExists("spawn_banners", "banner_id"))
         assertTrue(columnExists("spawn_banners", "category"))
         assertTrue(columnExists("spawn_banners", "rank"))
-        assertEquals(GuildHomeAccessGrantSchema.VERSION, databaseVersion())
+        assertEquals(VaultCapacityUnlockSchema.VERSION, databaseVersion())
     }
 
     private fun tableExists(table: String): Boolean =

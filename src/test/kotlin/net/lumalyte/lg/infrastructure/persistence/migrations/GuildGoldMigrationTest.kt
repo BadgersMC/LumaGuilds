@@ -65,7 +65,7 @@ class GuildGoldMigrationTest {
         assertTrue(tableExists("guild_gold_security"))
         assertTrue(tableExists(BankDepositXpSchema.DELIVERIES))
         assertTrue(tableExists(BankDepositXpSchema.SEQUENCES))
-        assertEquals(GuildHomeAccessGrantSchema.VERSION, databaseVersion())
+        assertEquals(VaultCapacityUnlockSchema.VERSION, databaseVersion())
     }
 
     @Test
@@ -83,7 +83,7 @@ class GuildGoldMigrationTest {
         SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
         SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
 
-        assertEquals(GuildHomeAccessGrantSchema.VERSION, databaseVersion())
+        assertEquals(VaultCapacityUnlockSchema.VERSION, databaseVersion())
         connection.createStatement().use { statement ->
             statement.executeQuery("SELECT COUNT(*) FROM guild_gold_operations WHERE transaction_id = 'legacy'").use {
                 assertTrue(it.next())
@@ -106,7 +106,7 @@ class GuildGoldMigrationTest {
             it.execute("PRAGMA user_version = 47")
         }
         repeat(2) { SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate() }
-        assertEquals(GuildHomeAccessGrantSchema.VERSION, databaseVersion())
+        assertEquals(VaultCapacityUnlockSchema.VERSION, databaseVersion())
         assertTrue(tableExists(BankContributionSchema.GUARDS))
         connection.createStatement().use { s ->
             s.executeQuery("SELECT withdrawal_debt, fresh_total FROM guild_bank_contribution_accounts").use {
@@ -135,7 +135,7 @@ class GuildGoldMigrationTest {
         SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
         connection.createStatement().use { it.execute("UPDATE guild_bank_quest_revision SET revision = 7 WHERE id = 1") }
         SQLiteMigrations(plugin, connection, claimsEnabled = false).migrate()
-        assertEquals(GuildHomeAccessGrantSchema.VERSION, databaseVersion())
+        assertEquals(VaultCapacityUnlockSchema.VERSION, databaseVersion())
         assertTrue(tableExists(BankContributionSchema.QUEST_INTENTS))
         assertTrue(tableExists(BankContributionSchema.QUEST_RECOVERY))
         assertTrue(tableExists(BankContributionSchema.QUEST_ATTEMPTS))

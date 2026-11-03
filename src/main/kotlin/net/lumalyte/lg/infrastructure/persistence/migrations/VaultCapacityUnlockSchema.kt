@@ -30,9 +30,11 @@ internal object VaultCapacityUnlockSchema {
         // One-time and idempotent legacy backfill: capture existing unlocked rows
         // even for guilds whose top rows are empty. Prestige and Chapter-1 history
         // independently prove full-row entitlement after the level reset.
+        val hasProgression = tableExists(connection, "guild_progression")
+        val levelExpression = if (hasProgression) "COALESCE(p.current_level, g.level, 1)" else "COALESCE(g.level, 1)"
+        val join = if (hasProgression) " LEFT JOIN guild_progression p ON p.guild_id = g.id" else ""
         val guilds = connection.prepareStatement(
-            "SELECT g.id, COALESCE(p.current_level, g.level, 1) AS level " +
-                "FROM guilds g LEFT JOIN guild_progression p ON p.guild_id = g.id",
+            "SELECT g.id, $levelExpression AS level FROM guilds g$join",
         ).use { query ->
             query.executeQuery().use { rows ->
                 buildList {
@@ -61,27 +63,33 @@ internal object VaultCapacityUnlockSchema {
 
     /** Read historic evidence and monotonically raise the durable high-water mark. */
     fun resolve(connection: Connection, guildId: UUID, currentLevelSlots: Int, mariaDb: Boolean): Int {
-        val (prestige, earnedBaseHomes) = connection.prepareStatement(
-            "SELECT prestige_count, base_home_slots_earned FROM guild_reward_accounts WHERE guild_id = ?",
-        ).use { query ->
-            query.setString(1, guildId.toString())
-            query.executeQuery().use { rows ->
-                if (rows.next()) rows.getInt(1) to rows.getInt(2) else 0 to 1
+        val (prestige, earnedBaseHomes) = if (tableExists(connection, "guild_reward_accounts")) {
+            connection.prepareStatement(
+                "SELECT prestige_count, base_home_slots_earned FROM guild_reward_accounts WHERE guild_id = ?",
+            ).use { query ->
+                query.setString(1, guildId.toString())
+                query.executeQuery().use { rows ->
+                    if (rows.next()) rows.getInt(1) to rows.getInt(2) else 0 to 1
+                }
             }
-        }
-        val occupiedTop = connection.prepareStatement(
-            "SELECT MAX(slot) FROM vault_slots WHERE guild_id = ? AND slot BETWEEN 1 AND 53",
-        ).use { query ->
-            query.setString(1, guildId.toString())
-            query.executeQuery().use { rows -> if (rows.next()) rows.getInt(1) else 0 }
-        }
-        val beforeChapterReset = connection.prepareStatement(
-            "SELECT MAX(before_level) FROM chapter_migration_receipts " +
-                "WHERE guild_id = ? AND migration_kind = 'CHAPTER_1_TO_2' AND dry_run = 0 AND status = 'APPLIED'",
-        ).use { query ->
-            query.setString(1, guildId.toString())
-            query.executeQuery().use { rows -> if (rows.next()) rows.getInt(1) else 0 }
-        }
+        } else 0 to 1
+        val occupiedTop = if (tableExists(connection, "vault_slots")) {
+            connection.prepareStatement(
+                "SELECT MAX(slot) FROM vault_slots WHERE guild_id = ? AND slot BETWEEN 1 AND 53",
+            ).use { query ->
+                query.setString(1, guildId.toString())
+                query.executeQuery().use { rows -> if (rows.next()) rows.getInt(1) else 0 }
+            }
+        } else 0
+        val beforeChapterReset = if (tableExists(connection, "chapter_migration_receipts")) {
+            connection.prepareStatement(
+                "SELECT MAX(before_level) FROM chapter_migration_receipts " +
+                    "WHERE guild_id = ? AND migration_kind = 'CHAPTER_1_TO_2' AND dry_run = 0 AND status = 'APPLIED'",
+            ).use { query ->
+                query.setString(1, guildId.toString())
+                query.executeQuery().use { rows -> if (rows.next()) rows.getInt(1) else 0 }
+            }
+        } else 0
         val evidence = maxOf(
             currentLevelSlots,
             if (prestige > 0) 54 else 9,
@@ -99,6 +107,11 @@ internal object VaultCapacityUnlockSchema {
         )
         return recordAtLeast(connection, guildId, evidence, mariaDb)
     }
+
+    private fun tableExists(connection: Connection, name: String): Boolean =
+        connection.metaData.getTables(connection.catalog, null, name, arrayOf("TABLE")).use { tables ->
+            tables.next()
+        }
 
     /** Atomic, idempotent, monotonic UPSERT; use inside the caller's transaction. */
     fun recordAtLeast(connection: Connection, guildId: UUID, slots: Int, mariaDb: Boolean): Int {
