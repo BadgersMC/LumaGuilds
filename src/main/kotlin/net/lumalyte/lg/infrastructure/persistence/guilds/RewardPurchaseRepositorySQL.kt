@@ -108,8 +108,24 @@ class RewardPurchaseRepositorySQL(
         }
         check(paid is GuildGoldResult.Applied) { "Canonical debit did not complete" }
         val next = resolver.recordPurchase(level, snapshot.ownership, reward.id)
-        val saved = owners.saveInTransaction(connection, request.guildId, snapshot.version, next)
+        val saved = owners.saveInTransaction(connection, request.guildId, snapshot.version, next,
+            allowPaidAcquisition = reward.effect is RewardEffect.HomeCapacity)
         check(saved is RewardOwnershipWrite.Saved) { "Ownership changed during purchase" }
+        if (reward.effect is RewardEffect.HomeCapacity) {
+            // New rank-bound grant; never delete/replace old permanent ownership or receipts.
+            // All writes share this connection and commit with the canonical gold debit.
+            connection.prepareStatement("""INSERT INTO guild_outpost_acquisitions
+                (transaction_id, guild_id, prestige_rank, reward_id, paid_amount, acquired_at, assigned_home_name)
+                VALUES (?, ?, ?, ?, ?, ?, NULL)""").use {
+                it.setString(1, request.transactionId.toString())
+                it.setString(2, request.guildId.toString())
+                it.setInt(3, snapshot.ownership.prestigeCount)
+                it.setString(4, reward.id)
+                it.setLong(5, reward.price)
+                it.setLong(6, System.currentTimeMillis())
+                check(it.executeUpdate() == 1) { "Failed to record paid Outpost acquisition" }
+            }
+        }
         return RewardPurchaseResult.Applied(request.transactionId, reward.id, reward.price,
             paid.oldBalance, paid.newBalance, saved.snapshot.version)
     }

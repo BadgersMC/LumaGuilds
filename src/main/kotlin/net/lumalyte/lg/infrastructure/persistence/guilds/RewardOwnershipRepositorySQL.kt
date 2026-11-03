@@ -8,6 +8,8 @@ import net.lumalyte.lg.domain.rewards.RewardOwnership
 import net.lumalyte.lg.domain.rewards.RewardOwnershipRead
 import net.lumalyte.lg.domain.rewards.RewardOwnershipSnapshot
 import net.lumalyte.lg.domain.rewards.RewardOwnershipWrite
+import net.lumalyte.lg.domain.rewards.earnedBaseHomeSlotsAtLevel
+import net.lumalyte.lg.infrastructure.persistence.migrations.OutpostAcquisitionSchema
 import net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import java.sql.Connection
@@ -38,6 +40,8 @@ class RewardOwnershipRepositorySQL(
                     PRIMARY KEY (guild_id, reward_id)
                 )$engine""")
             }
+            // Also supports isolated repository tests that do not run plugin migrations.
+            OutpostAcquisitionSchema.create(connection, storage.dialect == SqlDialect.MARIADB)
         }
     }
 
@@ -50,13 +54,12 @@ class RewardOwnershipRepositorySQL(
     }
 
     override fun initialize(guildId: UUID, initialHomeCapacity: Int): RewardOwnershipWrite = try {
-        val ownership = RewardOwnership(initialHomeCapacity = initialHomeCapacity)
         storage.connection.connection.use { connection -> transaction(connection) {
             insertAccount(connection, guildId, initialHomeCapacity)
             require(!hasOrphanedRewardState(connection, guildId)) {
                 "Orphaned reward/prestige state needs recovery"
             }
-            RewardOwnershipWrite.Saved(RewardOwnershipSnapshot(0, ownership))
+            RewardOwnershipWrite.Saved(requireNotNull(readSnapshot(connection, guildId)))
         } }
     } catch (error: SQLException) {
         if (error.errorCode == 19 || error.errorCode == 1062 || error.sqlState == "23505") RewardOwnershipWrite.Conflict
@@ -109,7 +112,7 @@ class RewardOwnershipRepositorySQL(
     }
 
     internal fun saveInTransaction(connection: Connection, guildId: UUID, expectedVersion: Long,
-        ownership: RewardOwnership): RewardOwnershipWrite {
+        ownership: RewardOwnership, allowPaidAcquisition: Boolean = false): RewardOwnershipWrite {
         check(!connection.autoCommit)
         require(expectedVersion >= 0)
         val version = Math.addExact(expectedVersion, 1)
@@ -123,10 +126,14 @@ class RewardOwnershipRepositorySQL(
         }
         if (changed != 1) return RewardOwnershipWrite.Conflict
         val old = requireNotNull(readSnapshot(connection, guildId)).ownership
+        if (!allowPaidAcquisition) require(old.activeOutpostsByPrestige == ownership.activeOutpostsByPrestige) {
+            "Paid Outposts require an atomic gold purchase"
+        }
         resolver.validateTransition(old, ownership)
-        connection.prepareStatement("UPDATE guild_reward_accounts SET prestige_count = ? WHERE guild_id = ?").use {
+        connection.prepareStatement("UPDATE guild_reward_accounts SET prestige_count = ?, base_home_slots_earned = ? WHERE guild_id = ?").use {
             it.setInt(1, ownership.prestigeCount)
-            it.setString(2, guildId.toString())
+            it.setInt(2, ownership.baseHomeSlotsEarned)
+            it.setString(3, guildId.toString())
             check(it.executeUpdate() == 1)
         }
         connection.prepareStatement("DELETE FROM guild_reward_ownership WHERE guild_id = ?").use {
@@ -148,7 +155,9 @@ class RewardOwnershipRepositorySQL(
     }
 
     internal fun readSnapshot(connection: Connection, guildId: UUID): RewardOwnershipSnapshot? {
-        val account = connection.prepareStatement("SELECT version, initial_home_capacity, prestige_count FROM guild_reward_accounts WHERE guild_id = ?").use {
+        val account = connection.prepareStatement(
+            "SELECT version, initial_home_capacity, prestige_count, base_home_slots_earned FROM guild_reward_accounts WHERE guild_id = ?"
+        ).use {
             it.setString(1, guildId.toString())
             it.executeQuery().use { rows ->
                 if (!rows.next()) {
@@ -157,7 +166,10 @@ class RewardOwnershipRepositorySQL(
                     }
                     return null
                 }
-                Triple(rows.getLong("version"), rows.getInt("initial_home_capacity"), rows.getInt("prestige_count"))
+                Account(
+                    rows.getLong("version"), rows.getInt("initial_home_capacity"),
+                    rows.getInt("prestige_count"), rows.getInt("base_home_slots_earned")
+                )
             }
         }
         val current = mutableSetOf<String>()
@@ -173,18 +185,62 @@ class RewardOwnershipRepositorySQL(
                 }
             }
         }
-        val ownership = RewardOwnership(current, permanent, account.second, account.third)
+        val activeOutposts = mutableMapOf<Int, String>()
+        connection.prepareStatement(
+            "SELECT prestige_rank, reward_id FROM guild_outpost_acquisitions WHERE guild_id = ? ORDER BY prestige_rank"
+        ).use {
+            it.setString(1, guildId.toString())
+            it.executeQuery().use { rows ->
+                while (rows.next()) {
+                    check(activeOutposts.put(rows.getInt("prestige_rank"), rows.getString("reward_id")) == null) {
+                        "Duplicate Outpost acquisition prestige rank"
+                    }
+                }
+            }
+        }
+        val earnedBase = maxOf(account.baseHomeSlotsEarned,
+            if (account.prestigeCount > 0) 6 else 1,
+            earnedBaseHomeSlotsAtLevel(highestLevelEvidence(connection, guildId)))
+        val ownership = RewardOwnership(current, permanent, account.initialHomeCapacity,
+            account.prestigeCount, earnedBase, activeOutposts)
         resolver.resolve(100, ownership) // Unknown IDs or invalid permanence never turn into empty state.
-        return RewardOwnershipSnapshot(account.first, ownership)
+        return RewardOwnershipSnapshot(account.version, ownership)
+    }
+
+    private data class Account(
+        val version: Long,
+        val initialHomeCapacity: Int,
+        val prestigeCount: Int,
+        val baseHomeSlotsEarned: Int
+    )
+
+    private fun highestLevelEvidence(connection: Connection, guildId: UUID): Int {
+        val current = if (tableExists(connection, "guild_progression")) {
+            connection.prepareStatement("SELECT current_level FROM guild_progression WHERE guild_id = ?").use {
+                it.setString(1, guildId.toString())
+                it.executeQuery().use { rows -> if (rows.next()) rows.getInt(1) else 1 }
+            }
+        } else 1
+        val migration = if (tableExists(connection, "chapter_migration_receipts")) {
+            connection.prepareStatement(
+                "SELECT MAX(before_level) FROM chapter_migration_receipts WHERE guild_id = ? AND status = 'APPLIED'"
+            ).use {
+                it.setString(1, guildId.toString())
+                it.executeQuery().use { rows -> if (rows.next()) rows.getInt(1) else 1 }
+            }
+        } else 1
+        return maxOf(1, current, migration)
     }
 
     private fun insertAccount(connection: Connection, guildId: UUID, initialHomeCapacity: Int) {
         require(initialHomeCapacity >= 1)
+        val baseSlots = earnedBaseHomeSlotsAtLevel(highestLevelEvidence(connection, guildId))
         connection.prepareStatement(
-            "INSERT INTO guild_reward_accounts (guild_id, version, initial_home_capacity, prestige_count) VALUES (?, 0, ?, 0)"
+            "INSERT INTO guild_reward_accounts (guild_id, version, initial_home_capacity, prestige_count, base_home_slots_earned) VALUES (?, 0, ?, 0, ?)"
         ).use {
             it.setString(1, guildId.toString())
             it.setInt(2, initialHomeCapacity)
+            it.setInt(3, baseSlots)
             check(it.executeUpdate() == 1) { "Failed to initialize reward account for guild $guildId" }
         }
     }

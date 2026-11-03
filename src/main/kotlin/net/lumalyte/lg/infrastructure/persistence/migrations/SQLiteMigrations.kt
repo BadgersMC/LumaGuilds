@@ -271,6 +271,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(BankContributionSchema.VERSION)
                 dbVersion = BankContributionSchema.VERSION
             }
+            OutpostAcquisitionSchema.create(connection, mariaDb = false)
+            if (dbVersion < OutpostAcquisitionSchema.VERSION) {
+                updateDatabaseVersion(OutpostAcquisitionSchema.VERSION)
+                dbVersion = OutpostAcquisitionSchema.VERSION
+            }
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
 

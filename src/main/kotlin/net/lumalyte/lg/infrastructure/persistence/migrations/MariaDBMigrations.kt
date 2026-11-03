@@ -203,6 +203,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(BankContributionSchema.VERSION)
                 currentDbVersion = BankContributionSchema.VERSION
             }
+            OutpostAcquisitionSchema.create(connection, mariaDb = true)
+            if (currentDbVersion < OutpostAcquisitionSchema.VERSION) {
+                updateDatabaseVersion(OutpostAcquisitionSchema.VERSION)
+                currentDbVersion = OutpostAcquisitionSchema.VERSION
+            }
             connection.commit()
             val finalVersion = getCurrentDatabaseVersion()
             componentLogger.info(Component.text("✓ Database migrations completed (v$finalVersion)"))
