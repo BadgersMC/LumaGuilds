@@ -40,3 +40,5 @@ The fork-based full Gradle test task passed with 2,433 tests discovered, no
 failures and 106 skipped. This run included the SQLite snapshot tests; the
 later UUID-duplicate input change passed a focused run of 16 tests with no skips.
 Local companion JARs were reused and are not proof of runtime compatibility.
+The snapshot SQL regression is included in the disposable MariaDB CI task as
+well as the default SQLite task; MariaDB results are pending hosted execution.

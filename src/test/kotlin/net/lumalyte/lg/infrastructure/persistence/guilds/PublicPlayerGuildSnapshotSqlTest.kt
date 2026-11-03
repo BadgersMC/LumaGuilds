@@ -1,33 +1,28 @@
 package net.lumalyte.lg.infrastructure.persistence.guilds
 
-import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteStorage
-import org.junit.jupiter.api.AfterEach
+import co.aikar.idb.Database
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.io.TempDir
-import java.nio.file.Path
 import java.util.UUID
 
-class PublicPlayerGuildSnapshotSqlTest {
-    @TempDir lateinit var directory: Path
-    private lateinit var storage: VirtualThreadSQLiteStorage
+class PublicPlayerGuildSnapshotSqlTest : RewardSqlTestFixture() {
+    private lateinit var storage: Storage<Database>
     private val player = UUID.randomUUID()
     private val guild = UUID.randomUUID()
 
     @BeforeEach fun setup() {
-        storage = VirtualThreadSQLiteStorage(directory.toFile())
+        storage = openStorage()
         storage.connection.getConnection().use { connection -> connection.createStatement().use { sql ->
-            sql.execute("CREATE TABLE members(player_id TEXT NOT NULL,guild_id TEXT NOT NULL)")
-            sql.execute("CREATE TABLE guilds(id TEXT PRIMARY KEY,name TEXT NOT NULL,level INTEGER NOT NULL)")
-            sql.execute("CREATE TABLE guild_banners(guild_id TEXT NOT NULL,base_color TEXT,patterns TEXT,is_active INTEGER)")
+            sql.execute("CREATE TABLE members(player_id VARCHAR(36) NOT NULL,guild_id VARCHAR(36) NOT NULL)")
+            sql.execute("CREATE TABLE guilds(id VARCHAR(36) PRIMARY KEY,name VARCHAR(80) NOT NULL,level INTEGER NOT NULL)")
+            sql.execute("CREATE TABLE guild_banners(guild_id VARCHAR(36) NOT NULL,base_color VARCHAR(20),patterns TEXT,is_active INTEGER)")
         } }
         storage.connection.executeUpdate("INSERT INTO guilds VALUES (?,?,?)", guild.toString(), "Public guild", 42)
         storage.connection.executeUpdate("INSERT INTO members VALUES (?,?)", player.toString(), guild.toString())
         storage.connection.executeUpdate("INSERT INTO guild_banners VALUES (?,?,?,?)", guild.toString(), "BLACK", "BORDER:YELLOW", 1)
     }
-    @AfterEach fun close() { storage.connection.close() }
-
     @Test fun `one database snapshot returns actual public membership and known empty player`() {
         val absent=UUID.randomUUID()
         val snapshot=PublicPlayerGuildSnapshotSql(storage).build(listOf(player,absent))
