@@ -2139,18 +2139,10 @@ command:
         payment_requires_review: '<yellow>⚠ Home payment outcome needs administrator review. Transaction: <transaction>'
         payment_requires_review_no_transaction: '<yellow>⚠ Home activation failed and automatic gold compensation did not complete. Contact an administrator.'
         members_can_now_use_guild_home_to: '<gray>Members can now use <gold>/guild home <gray>to teleport here.'
-        this_location_is_within_your_guild_s: '<gray>This location is within your guild''s claim area.'
       sethome:
-        an_error_occurred_while_checking_your_location: '<red>An error occurred while checking your location.'
         no_pending_unsafe_location_to_confirm_or: '<red>No pending unsafe location to confirm, or confirmation expired.'
         or_use_the_guild_menu_for_a: '<gray>Or use the guild menu for a confirmation dialog.'
-        place_a_bell_and_convert_it_to: '<gray>Place a bell and convert it to a guild claim first.'
-        this_claim_belongs_to_a_different_guild: '<gray>This claim belongs to a different guild.'
-        use_the_bell_menu_to_convert_this: '<gray>Use the bell menu to convert this personal claim to a guild claim first.'
         use_to_replace_it: '<gray>Use <gold><confirm_command> <gray>to replace it'
-        you_can_only_set_guild_home_in: '<red>You can only set guild home in a guild-owned claim.'
-        you_can_only_set_guild_home_in_2: '<red>You can only set guild home in your own guild''s claims.'
-        you_must_be_standing_in_a_guild: '<red>You must be standing in a guild-owned claim to set guild home.'
         your_guild_already_has_a_set: '<red>⚠️ Your guild already has a <home_label> set!'
       showguildstrikedetails:
         and_more_showing_newest: '<dark_gray>… <gray>and <white><hidden><gray> more (showing newest <max_shown>)'
