@@ -182,6 +182,8 @@ tasks.register<Test>("mariaDbRewardTest") {
     useJUnitPlatform()
     filter {
         includeTestsMatching("*Reward*RepositorySQLTest")
+        includeTestsMatching("*GuildHomeAccessGrantRepositorySQLTest")
+        includeTestsMatching("*GuildOutpostCombinedAcceptanceTest")
         includeTestsMatching("*ExperienceBoostRepositorySQLTest")
         includeTestsMatching("*PrestigeRepositorySQLTest")
         includeTestsMatching("*ChronicleGoalSQLTest")
