@@ -225,7 +225,7 @@ class GuildHomeAccessGrantRepositorySQL(private val storage: Storage<Database>) 
             if (!verifiedSourcesAllowed(connection, guildId, grants)) return@transaction false
             val now = System.currentTimeMillis()
             connection.prepareStatement(
-                "INSERT INTO $grants (guild_id, home_name, state, source_key, provenance_ref, reviewer_id, assigned_at) " +
+                "INSERT INTO ${GuildHomeAccessGrantSchema.GRANTS} (guild_id, home_name, state, source_key, provenance_ref, reviewer_id, assigned_at) " +
                     "VALUES (?, ?, ?, ?, ?, ?, ?)",
             ).use { statement ->
                 grants.forEach { (name, grant) ->
