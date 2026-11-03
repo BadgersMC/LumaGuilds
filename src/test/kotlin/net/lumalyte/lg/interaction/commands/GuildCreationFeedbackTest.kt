@@ -132,6 +132,7 @@ class GuildCreationFeedbackTest {
         every { player.uniqueId } returns UUID.randomUUID()
         every { guilds.getPlayerGuilds(any()) } returns emptySet()
         every { repository.creationCooldownUntil(any()) } returns null
+        every { repository.isNameTaken(any()) } returns false
         every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = true)
         startKoin { modules(module {
             single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
@@ -152,6 +153,33 @@ class GuildCreationFeedbackTest {
         verify(exactly = 0) { lang.msg("command.migrated.guild.create.the_name_is_already_taken_by_another", *anyVararg()) }
         verify(exactly = 0) { lang.msg("command.migrated.guild.create.guild_created_successfully", *anyVararg()) }
         verify(exactly = 0) { lang.msg("command.migrated.guild.create.a_new_guild_has_been_founded_by", *anyVararg()) }
+        verify(exactly = 0) { guilds.createGuild(any(), any(), any()) }
+        verify(exactly = 3) { costs.createGuild(any(), any(), any()) }
+    }
+
+    @Test fun duplicateGuildNameIsRejectedBeforePayment() {
+        stopKoin()
+        val guilds = mockk<GuildService>()
+        val repository = mockk<GuildRepository>()
+        val costs = mockk<GuildCostService>()
+        val config = mockk<ConfigService>()
+        val lang = mockk<LangService>(relaxed = true)
+        val player = mockk<Player>(relaxed = true)
+        every { player.uniqueId } returns UUID.randomUUID()
+        every { guilds.getPlayerGuilds(any()) } returns emptySet()
+        every { repository.creationCooldownUntil(any()) } returns null
+        every { repository.isNameTaken("Taken Guild") } returns true
+        every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = true)
+        startKoin { modules(module {
+            single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
+        }) }
+
+        GuildCommand().onCreate(player, "Taken Guild", null)
+
+        verify(exactly = 1) {
+            lang.msg("command.migrated.guild.create.the_name_is_already_taken_by_another", *anyVararg())
+        }
+        verify(exactly = 0) { costs.createGuild(any(), any(), any()) }
         verify(exactly = 0) { guilds.createGuild(any(), any(), any()) }
     }
 }
