@@ -107,7 +107,9 @@ class RewardPurchaseRepositorySQLTest : RewardSqlTestFixture() {
         val subject = open()
         assertIs<RewardPurchaseResult.Applied>(subject.service.purchaseReward(request("home-1")))
         assertEquals(setOf("home-1"), subject.snapshot().ownership.permanent)
-        assertEquals(7, RewardEntitlementResolver(catalog).resolve(1, subject.snapshot().ownership).homeCapacity)
+        // Six historical baseline slots remain audit metadata, not free earned capacity.
+        // One base slot plus one permanently purchased Outpost earns two slots.
+        assertEquals(2, RewardEntitlementResolver(catalog).resolve(1, subject.snapshot().ownership).homeCapacity)
         assertEquals(19_500L, subject.gold.getBalance(guildId))
     }
 

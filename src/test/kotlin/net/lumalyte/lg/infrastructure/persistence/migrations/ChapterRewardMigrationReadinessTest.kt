@@ -81,7 +81,15 @@ class ChapterRewardMigrationReadinessTest {
             val read = assertIs<GuildRewardRead.Available>(service.read(guildId))
             assertEquals(1, read.level)
             assertEquals(0L, read.version)
-            assertEquals(2, read.entitlements.homeCapacity)
+            // Two saved Chapter 1 locations do not grant additional earned home slots.
+            assertEquals(1, read.entitlements.homeCapacity)
+            assertEquals(
+                2,
+                storage.connection.getFirstColumn(
+                    "SELECT COUNT(*) FROM guild_homes WHERE guild_id = ?",
+                    guildId.toString(),
+                ),
+            )
             assertEquals(50, read.entitlements.memberCapacity)
             assertTrue(read.entitlements.offers.none {
                 it.status == RewardOfferStatus.PURCHASED || it.status == RewardOfferStatus.PERMANENT
