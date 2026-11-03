@@ -77,8 +77,11 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
     }
 
-    internal fun checkHomeSafety(player: Player, target: Location, confirmCommand: String): Boolean {
-        val result = GuildHomeSafety.checkAndRemember(player, target)
+    internal fun checkHomeSafety(
+        player: Player, target: Location, confirmCommand: String,
+        guildId: UUID? = null, homeName: String? = null,
+    ): Boolean {
+        val result = GuildHomeSafety.checkAndRemember(player, target, guildId, homeName)
         if (result.safe) return true
 
         val reason = when (requireNotNull(result.issue)) {
@@ -451,16 +454,21 @@ class GuildCommand : BaseCommand(), KoinComponent {
         // Handle "/guild home confirm" — ACF puts "confirm" into homeName, not confirm param
         val isConfirm = confirm?.lowercase() == "confirm" || homeName?.lowercase() == "confirm"
         if (isConfirm) {
-            val pendingLocation = GuildHomeSafety.consumePending(player)
-            if (pendingLocation != null) {
-                teleportationService.startTeleport(player, pendingLocation) {
-                    lastHomeTeleport[player.uniqueId] = System.currentTimeMillis()
-                }
-                return
-            } else {
+            val pending = GuildHomeSafety.consumePendingGuildHome(player)
+            if (pending == null ||
+                !mayCompleteHomeTeleport(player.uniqueId, pending.guildId, pending.homeName, pending.location)
+            ) {
                 player.sendMessage(lang.msg("command.migrated.guild.home.no_pending_unsafe_teleport_to_confirm_or"))
                 return
             }
+            teleportationService.startTeleportGuarded(
+                player, pending.location,
+                onSuccess = { lastHomeTeleport[player.uniqueId] = System.currentTimeMillis() },
+                mayProceed = {
+                    mayCompleteHomeTeleport(player.uniqueId, pending.guildId, pending.homeName, pending.location)
+                },
+            )
+            return
         }
 
         val playerId = player.uniqueId
@@ -477,6 +485,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val home = guildService.getHome(guild.id, targetHomeName)
 
         if (home != null) {
+            if (guildService.isHomeLocked(guild.id, targetHomeName)) {
+                player.sendMessage("§cGuild home '$targetHomeName' is locked. Repurchase one Outpost after prestige to restore it.")
+                return
+            }
             if (!guildHomeActivationService.isActive(guild.id, targetHomeName)) {
                 player.sendMessage(lang.msg("command.migrated.guild.home.saved_but_inactive", "target_home_name" to targetHomeName))
                 player.sendMessage(lang.msg("command.migrated.guild.home.activation_hint", "target_home_name" to targetHomeName))
@@ -527,15 +539,17 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
             // Check if target location is safe (if safety check is enabled)
             if (configService.loadConfig().guild.homeTeleportSafetyCheck) {
-                if (!checkHomeSafety(player, targetLocation, "/guild home confirm")) {
+                if (!checkHomeSafety(player, targetLocation, "/guild home confirm", guild.id, targetHomeName)) {
                     return
                 }
             }
 
             // Start teleport countdown via centralized service
-            teleportationService.startTeleport(player, targetLocation) {
-                lastHomeTeleport[playerId] = System.currentTimeMillis()
-            }
+            teleportationService.startTeleportGuarded(
+                player, targetLocation,
+                onSuccess = { lastHomeTeleport[playerId] = System.currentTimeMillis() },
+                mayProceed = { mayCompleteHomeTeleport(playerId, guild.id, targetHomeName, targetLocation) },
+            )
         } else {
             // Check if the guild has any homes at all
             val allHomes = guildService.getHomes(guild.id)
@@ -578,7 +592,11 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 } else {
                     lang.msg("command.migrated.guild.homes.home_row", "name" to name, "world_name" to worldName)
                 }
-                player.sendMessage(row)
+                player.sendMessage(
+                    if (guildService.isHomeLocked(guild.id, name))
+                        row.append(Component.text(" §c[LOCKED — restore with /guild home unlock $name]"))
+                    else row
+                )
             }
             player.sendMessage(lang.msg("command.migrated.guild.homes.use_guild_home_name_to_teleport_to"))
         } else {
@@ -590,6 +608,30 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage(lang.msg("command.migrated.guild.homes.use_guild_sethome_name_to_set_additional"))
         }
         player.sendMessage(lang.msg("command.migrated.guild.homes.blank_line_2"))
+    }
+
+    /** Redeem one previously purchased Outpost credit for its original saved location. */
+    @Subcommand("home unlock")
+    @CommandPermission("lumaguilds.guild.sethome")
+    fun onHomeUnlock(player: Player, homeName: String) {
+        val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull() ?: return
+        if (guildService.restoreLockedOutpost(guild.id, homeName, player.uniqueId)) {
+            player.sendMessage("§aGuild home '$homeName' restored. No additional gold was charged.")
+        } else {
+            player.sendMessage("§cCannot restore '$homeName'. First purchase an Outpost at your current prestige.")
+        }
+    }
+
+    private fun mayCompleteHomeTeleport(playerId: UUID, guildId: UUID, homeName: String, target: Location): Boolean {
+        if (!guildService.canUseHome(playerId, guildId, homeName) ||
+            !guildHomeActivationService.isActive(guildId, homeName)
+        ) return false
+        val saved = guildService.getHome(guildId, homeName) ?: return false
+        val world = target.world ?: return false
+        return saved.worldId == world.uid &&
+            saved.position.x == target.blockX &&
+            saved.position.y == target.blockY &&
+            saved.position.z == target.blockZ
     }
 
     @Subcommand("removehome")

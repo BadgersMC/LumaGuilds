@@ -63,6 +63,9 @@ class GuildWaypointService(
                     // Add waypoint for each home
                     homes.homes.forEach { (homeName, home) ->
                         try {
+                            // A locked Outpost is still saved but must not leak its
+                            // coordinates through Apollo or stale client waypoints.
+                            if (!guildService.canUseHome(player.uniqueId, guildId, homeName)) return@forEach
                             val world = Bukkit.getWorld(home.worldId) ?: return@forEach
                             val waypointName = "guild_home_${guildId}_${homeName}"
 

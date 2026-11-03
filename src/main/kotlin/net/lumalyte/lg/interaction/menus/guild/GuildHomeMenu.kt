@@ -102,7 +102,9 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         slotsItem.lore(lang.gui("menu.common.blank"))
-        if (allHomes.size < availableSlots) {
+        val lockedHomes = allHomes.homeNames.count { guildService.isHomeLocked(guild.id, it) }
+        if (lockedHomes > 0) slotsItem.lore(net.kyori.adventure.text.Component.text("$lockedHomes preserved homes locked until Outpost repurchase"))
+        if (guildService.canCreateNewHome(guild.id)) {
             slotsItem.lore(lang.gui("menu.guild_home.slots.additional"))
         } else {
             slotsItem.lore(lang.gui("menu.guild_home.slots.maximum"))
@@ -131,8 +133,8 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         // Set Additional Home button (if slots available)
-        if (allHomes.size < availableSlots) {
-            val freeSlots = availableSlots - allHomes.size
+        if (guildService.canCreateNewHome(guild.id)) {
+            val freeSlots = (availableSlots - allHomes.size).coerceAtLeast(1)
             val setAdditionalItem =
                 NexoItemProvider.getItemStackOrFallback("lg_home_add") { ItemStack.of(Material.LIME_WOOL) }
                     .name(lang.gui("menu.guild_home.set.additional.name"))
@@ -187,10 +189,14 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             if (mainEntry != null) {
                 val mainHomeName = mainEntry.key
                 val mainHome = mainEntry.value
+                val locked = guildService.isHomeLocked(guild.id, mainHomeName)
                 val active = homeActivationService.isActive(guild.id, mainHomeName)
-                val mainIcon = if (active) teleportIcon() else ItemStack.of(Material.GOLD_INGOT)
+                val mainIcon = if (locked) ItemStack.of(Material.BARRIER)
+                    else if (active) teleportIcon() else ItemStack.of(Material.GOLD_INGOT)
                 val mainName =
-                    if (active) {
+                    if (locked) {
+                        net.kyori.adventure.text.Component.text("Locked Outpost: $mainHomeName")
+                    } else if (active) {
                         lang.gui("menu.guild_home.teleport.main.name")
                     } else {
                         lang.gui("menu.guild_home.activation.name", "home" to mainHomeName)
@@ -210,8 +216,10 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                 if (active) teleportItem.lore(lang.gui("menu.guild_home.teleport.main.countdown"))
 
                 val teleportGuiItem = GuiItem(teleportItem) {
-                    if (!active) activateSavedHome(mainHomeName)
-                    else if (guildService.canUseHome(player.uniqueId, guild.id, mainHomeName)) startTeleportCountdown(mainHome)
+                    if (guildService.isHomeLocked(guild.id, mainHomeName)) restoreLockedOutpost(mainHomeName)
+                    else if (!homeActivationService.isActive(guild.id, mainHomeName)) activateSavedHome(mainHomeName)
+                    else if (guildService.canUseHome(player.uniqueId, guild.id, mainHomeName))
+                        startTeleportCountdown(mainHome, mainHomeName)
                     else player.sendMessage(lang.msg("menu.guild_home.feedback.access_denied", "home" to mainHomeName))
                 }
                 pane.addItem(teleportGuiItem, x, y)
@@ -245,8 +253,13 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         if (!rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_HOME)) return
         val homes = guildService.getHomes(guild.id).homes.entries.toList()
         homes.take(9).forEachIndexed { idx, (homeName, _) ->
+            val locked = guildService.isHomeLocked(guild.id, homeName)
             val active = homeActivationService.isActive(guild.id, homeName)
-            val item = if (active) {
+            val item = if (locked) {
+                ItemStack.of(Material.BARRIER)
+                    .name(net.kyori.adventure.text.Component.text("Locked Outpost: $homeName"))
+                    .lore(net.kyori.adventure.text.Component.text("Purchase an Outpost after prestige to restore"))
+            } else if (active) {
                 NexoItemProvider.getItemStackOrFallback("lg_home_access") { ItemStack.of(Material.IRON_DOOR) }
                     .name(lang.gui("menu.guild_home.access.name", "home" to homeName))
                     .lore(lang.gui("menu.guild_home.access.description"))
@@ -258,7 +271,9 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                     .lore(lang.gui("menu.guild_home.activation.click"))
             }
             pane.addItem(GuiItem(item) {
-                if (active) menuNavigator.openMenu(menuFactory.createHomeAccessMenu(menuNavigator, player, guild, homeName))
+                if (guildService.isHomeLocked(guild.id, homeName)) restoreLockedOutpost(homeName)
+                else if (homeActivationService.isActive(guild.id, homeName))
+                    menuNavigator.openMenu(menuFactory.createHomeAccessMenu(menuNavigator, player, guild, homeName))
                 else activateSavedHome(homeName)
             }, idx, 3)
         }
@@ -422,6 +437,9 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             val marker = if (name == "main") lang.raw("menu.guild_home.slots.main") else ""
             val worldName = Bukkit.getWorld(home.worldId)?.name ?: lang.raw("general.unknown")
             player.sendMessage(lang.msg("menu.guild_home.slots.row", "home" to name, "marker" to marker, "world" to worldName))
+            if (guildService.isHomeLocked(guild.id, name)) {
+                player.sendMessage("§c  [LOCKED — /guild home unlock $name after an Outpost purchase]")
+            }
         }
         player.sendMessage(lang.msg("menu.guild_home.list.command"))
         player.sendMessage(lang.msg("menu.guild_home.list.footer"))
@@ -487,7 +505,18 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
 
+    private fun restoreLockedOutpost(homeName: String) {
+        val success = guildService.restoreLockedOutpost(guild.id, homeName, player.uniqueId)
+        if (success) player.sendMessage("§aGuild home '$homeName' restored using a paid Outpost credit.")
+        else player.sendMessage("§c'$homeName' is locked. Purchase an Outpost at this prestige first.")
+        open()
+    }
+
     private fun activateSavedHome(homeName: String) {
+        if (guildService.isHomeLocked(guild.id, homeName)) {
+            restoreLockedOutpost(homeName)
+            return
+        }
         if (!rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_HOME)) {
             player.sendMessage(lang.msg("menu.guild_home.feedback.activation_no_permission"))
             return
@@ -523,7 +552,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         pane.addItem(guiItem, x, y)
     }
 
-    private fun startTeleportCountdown(home: GuildHome) {
+    private fun startTeleportCountdown(home: GuildHome, homeName: String? = null) {
         val world = Bukkit.getWorld(home.worldId)
         if (world == null) {
             player.sendMessage(lang.msg("menu.guild_home.feedback.world_missing"))
@@ -545,7 +574,18 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             return
         }
 
-        teleportationService.startTeleport(player, targetLocation)
+        if (homeName != null) {
+            teleportationService.startTeleportGuarded(
+                player, targetLocation,
+                mayProceed = {
+                    guildService.canUseHome(player.uniqueId, guild.id, homeName) &&
+                        homeActivationService.isActive(guild.id, homeName) &&
+                        guildService.getHome(guild.id, homeName) == home
+                },
+            )
+        } else {
+            teleportationService.startTeleport(player, targetLocation)
+        }
     }
 
     private fun isLocationSafe(location: org.bukkit.Location): Boolean =

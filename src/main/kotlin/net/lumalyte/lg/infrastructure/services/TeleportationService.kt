@@ -38,6 +38,7 @@ class TeleportationService(
         val targetLocation: Location,
         val startLocation: Location,
         val onSuccess: (() -> Unit)? = null,
+        val mayProceed: (() -> Boolean)? = null,
     ) {
         var countdownTask: BukkitRunnable? = null
         var remainingSeconds: Int = COUNTDOWN_SECONDS
@@ -89,24 +90,36 @@ class TeleportationService(
      *   (e.g. to stamp a per-player cooldown). Skipped on failure.
      */
     fun startTeleport(player: Player, targetLocation: Location, onSuccess: (() -> Unit)? = null) {
+        startTeleportGuarded(player, targetLocation, onSuccess, null)
+    }
+
+    /** A protected home must still be authorized at the final countdown tick. */
+    fun startTeleportGuarded(
+        player: Player,
+        targetLocation: Location,
+        onSuccess: (() -> Unit)? = null,
+        mayProceed: (() -> Boolean)?,
+    ) {
         if (Bukkit.isPrimaryThread()) {
-            startTeleportInternal(player, targetLocation, onSuccess)
+            startTeleportInternal(player, targetLocation, onSuccess, mayProceed)
         } else {
             Bukkit.getScheduler().runTask(
                 plugin,
-                Runnable { startTeleportInternal(player, targetLocation, onSuccess) },
+                Runnable { startTeleportInternal(player, targetLocation, onSuccess, mayProceed) },
             )
         }
     }
 
-    private fun startTeleportInternal(player: Player, targetLocation: Location, onSuccess: (() -> Unit)?) {
+    private fun startTeleportInternal(
+        player: Player, targetLocation: Location, onSuccess: (() -> Unit)?, mayProceed: (() -> Boolean)?,
+    ) {
         val playerId = player.uniqueId
         cancelTeleport(playerId)
         if (CombatUtil.isInCombat(player)) {
             player.sendMessage(lang.msg("notification.teleport.in_combat"))
             return
         }
-        val session = TeleportSession(player, targetLocation, player.location.clone(), onSuccess)
+        val session = TeleportSession(player, targetLocation, player.location.clone(), onSuccess, mayProceed)
         activeTeleports[playerId] = session
         announceCountdownStart(player)
         val task = CountdownTask(playerId)
@@ -160,6 +173,16 @@ class TeleportationService(
                     cancel()
                 }
                 current.remainingSeconds <= 0 -> {
+                    // Guild rank, home lock, or saved coordinates may change during
+                    // this countdown; reject before dismount/teleportAsync.
+                    if (current.mayProceed != null &&
+                        !runCatching { current.mayProceed.invoke() }.getOrDefault(false)
+                    ) {
+                        cancelTeleport(playerId)
+                        current.player.sendMessage(lang.msg("notification.teleport.failed"))
+                        cancel()
+                        return
+                    }
                     performTeleport(
                         TeleportContext(current.player, current.targetLocation, current.onSuccess, current),
                     )

@@ -9,6 +9,8 @@ import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.GuildHomeActivationService
+import net.lumalyte.lg.application.persistence.GuildHomeAccessRepository
+import net.lumalyte.lg.application.persistence.GuildHomeAccessState
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.entities.GuildHomes
@@ -50,6 +52,7 @@ class GuildServiceBukkit(
     private val homeActivationService: GuildHomeActivationService,
     // Null (tests, partial wiring) fails closed: holiday themes stay locked.
     private val themeAccess: net.lumalyte.lg.application.services.GuildCosmeticUnlockService? = null,
+    private val homeAccess: GuildHomeAccessRepository? = null,
 ) : GuildService, KoinComponent {
 
     // Lazy because BannermanListeners depends on GuildService, which would create a Koin
@@ -385,11 +388,19 @@ class GuildServiceBukkit(
                 return false
             }
 
-            // Check if the guild has available home slots
+            // Existing legacy locations remain untouched until an exact-name, audited
+            // reconciliation. A new empty guild can safely initialize a READY ledger.
+            val alreadySaved = guild.homes.homes.containsKey(homeName)
+            if (!alreadySaved && guild.homes.size == 0) homeAccess?.prepareEmptyGuild(guildId)
+            if (alreadySaved && isHomeLocked(guildId, homeName)) return false
             val availableSlots = getAvailableHomeSlots(guildId)
             val currentHomes = guild.homes.size
-            if (!maySetGuildHome(currentHomes, availableSlots, guild.homes.homes.containsKey(homeName))) {
-                logger.warn("Player $actorId attempted to set home for guild $guildId but maximum slots ($availableSlots) reached")
+            val managed = homeAccess?.isManaged(guildId) == true
+            val allowedCapacity = if (alreadySaved) true else if (managed) {
+                currentHomes < 16 && homeAccess?.canGrantNewHome(guildId, availableSlots) == true
+            } else maySetGuildHome(currentHomes, availableSlots, replacingExisting = false)
+            if (!allowedCapacity) {
+                logger.warn("Player $actorId attempted to set home for guild $guildId but no eligible free slot remains")
                 return false
             }
 
@@ -405,11 +416,17 @@ class GuildServiceBukkit(
             val updatedHomes = guild.homes.withHome(homeName, effectiveHome)
             val updatedGuild = guild.copy(homes = updatedHomes)
             val result = guildRepository.update(updatedGuild)
-            if (result) {
-                logger.info("Guild $guildId home '$homeName' set to ${home.position} in world ${home.worldId} by $actorId")
-                Bukkit.getPluginManager().callEvent(GuildHomeSetEvent(guildId, actorId))
+            if (!result) return false
+            if (!alreadySaved && managed && homeAccess?.grantNewHome(guildId, homeName, availableSlots) != true) {
+                // Do not discard the saved coordinates if a second DB write fails.
+                // The location remains inaccessible until an audited repair; the
+                // activation/payment callback receives FALSE and compensates.
+                logger.error("Guild $guildId saved '$homeName' but could not issue its free access grant")
+                return false
             }
-            return result
+            logger.info("Guild $guildId home '$homeName' set to ${home.position} in world ${home.worldId} by $actorId")
+            Bukkit.getPluginManager().callEvent(GuildHomeSetEvent(guildId, actorId))
+            return true
         } catch (e: Exception) {
             // Non-critical operation - catching all exceptions to prevent service failure
             logger.error("Error setting home for guild $guildId", e)
@@ -427,6 +444,27 @@ class GuildServiceBukkit(
 
     override fun getHomes(guildId: UUID): GuildHomes {
         return guildRepository.getById(guildId)?.homes ?: GuildHomes.EMPTY
+    }
+
+    override fun getHomeAccessState(guildId: UUID, homeName: String): GuildHomeAccessState =
+        homeAccess?.state(guildId, homeName) ?: GuildHomeAccessState.UNRECONCILED
+
+    override fun canCreateNewHome(guildId: UUID): Boolean {
+        val saved = guildRepository.getById(guildId)?.homes ?: return false
+        if (saved.size >= 16) return false
+        if (saved.size == 0) homeAccess?.prepareEmptyGuild(guildId)
+        return if (homeAccess?.isManaged(guildId) == true) {
+            homeAccess.canGrantNewHome(guildId, getAvailableHomeSlots(guildId))
+        } else saved.size < getAvailableHomeSlots(guildId)
+    }
+
+    override fun restoreLockedOutpost(guildId: UUID, homeName: String, actorId: UUID): Boolean {
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_HOME)) return false
+        if (guildRepository.getById(guildId)?.homes?.getHome(homeName) == null) return false
+        if (getHomeAccessState(guildId, homeName) != GuildHomeAccessState.LOCKED_PREMATURE) return false
+        val restored = homeAccess?.assignAnyPaidOutpost(guildId, homeName) == true
+        if (restored) Bukkit.getPluginManager().callEvent(GuildHomeSetEvent(guildId, actorId))
+        return restored
     }
 
     override fun getAvailableHomeSlots(guildId: UUID): Int {
@@ -479,6 +517,10 @@ class GuildServiceBukkit(
             val result = guildRepository.update(updatedGuild)
             if (result) {
                 homeActivationService.removeActivation(guildId, homeName)
+                if (homeAccess?.isManaged(guildId) == true && homeAccess.removeGrant(guildId, homeName).not()) {
+                    logger.error("Guild $guildId removed '$homeName' but its access grant needs audit")
+                    return false
+                }
                 logger.info("Guild $guildId home '$homeName' removed by $actorId")
             }
             return result
@@ -509,6 +551,10 @@ class GuildServiceBukkit(
             val result = guildRepository.update(updatedGuild)
             if (result) {
                 homeActivationService.removeAllActivations(guildId)
+                if (homeAccess?.isManaged(guildId) == true && homeAccess.removeAllGrants(guildId).not()) {
+                    logger.error("Guild $guildId cleared homes but access grants need audit")
+                    return false
+                }
                 logger.info("Guild $guildId all homes removed by $actorId")
             }
             return result
@@ -741,6 +787,7 @@ class GuildServiceBukkit(
     override fun canUseHome(playerId: UUID, guildId: UUID, homeName: String): Boolean {
         val guild = guildRepository.getById(guildId) ?: return false
         val home = guild.homes.getHome(homeName) ?: return false
+        if (isHomeLocked(guildId, homeName)) return false
         if (!homeActivationService.isActive(guildId, homeName)) return false
         val member = memberRepository.getByPlayerAndGuild(playerId, guildId) ?: return false
         val ownerRank = rankRepository.getHighestRank(guildId)
@@ -798,6 +845,7 @@ class GuildServiceBukkit(
         }
         val guild = guildRepository.getById(guildId) ?: return false
         val home = guild.homes.getHome(homeName) ?: return false
+        if (isHomeLocked(guildId, homeName)) return false
         // Drop any rank IDs that don't belong to this guild — keeps persisted whitelist clean
         // for downstream iteration/display and rejects malicious or buggy callers.
         val validIds = rankRepository.getByGuild(guildId).map { it.id }.toSet()

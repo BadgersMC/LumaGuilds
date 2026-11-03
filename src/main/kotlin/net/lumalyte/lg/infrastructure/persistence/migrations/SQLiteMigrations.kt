@@ -276,6 +276,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(OutpostAcquisitionSchema.VERSION)
                 dbVersion = OutpostAcquisitionSchema.VERSION
             }
+            GuildHomeAccessGrantSchema.create(connection, mariaDb = false)
+            if (dbVersion < GuildHomeAccessGrantSchema.VERSION) {
+                updateDatabaseVersion(GuildHomeAccessGrantSchema.VERSION)
+                dbVersion = GuildHomeAccessGrantSchema.VERSION
+            }
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
 

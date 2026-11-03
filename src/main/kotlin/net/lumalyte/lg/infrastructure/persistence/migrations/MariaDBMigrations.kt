@@ -208,6 +208,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(OutpostAcquisitionSchema.VERSION)
                 currentDbVersion = OutpostAcquisitionSchema.VERSION
             }
+            GuildHomeAccessGrantSchema.create(connection, mariaDb = true)
+            if (currentDbVersion < GuildHomeAccessGrantSchema.VERSION) {
+                updateDatabaseVersion(GuildHomeAccessGrantSchema.VERSION)
+                currentDbVersion = GuildHomeAccessGrantSchema.VERSION
+            }
             connection.commit()
             val finalVersion = getCurrentDatabaseVersion()
             componentLogger.info(Component.text("✓ Database migrations completed (v$finalVersion)"))

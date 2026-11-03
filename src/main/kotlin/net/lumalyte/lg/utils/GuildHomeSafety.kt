@@ -25,23 +25,44 @@ object GuildHomeSafety {
         Material.WITHER_ROSE
     )
 
-    private data class Pending(val loc: Location, val expiresAt: Long) {
+    private data class Pending(
+        val loc: Location,
+        val expiresAt: Long,
+        val guildId: UUID? = null,
+        val homeName: String? = null,
+    ) {
         fun expired(): Boolean = System.currentTimeMillis() > expiresAt
     }
 
+    data class PendingGuildHome(val location: Location, val guildId: UUID, val homeName: String)
+
     private val PENDING = ConcurrentHashMap<UUID, Pending>()
 
-    fun checkAndRemember(player: Player, target: Location): SafetyResult {
+    fun checkAndRemember(
+        player: Player, target: Location, guildId: UUID? = null, homeName: String? = null,
+    ): SafetyResult {
         val result = evaluateSafety(target)
         if (!result.safe) {
-            PENDING[player.uniqueId] = Pending(target.clone(), System.currentTimeMillis() + CONFIRM_TTL_MS)
+            PENDING[player.uniqueId] = Pending(
+                target.clone(), System.currentTimeMillis() + CONFIRM_TTL_MS, guildId, homeName,
+            )
+        } else {
+            PENDING.remove(player.uniqueId)
         }
         return result
     }
 
+    /** Legacy/ally confirmations cannot consume an unsafe pending *guild home*. */
     fun consumePending(player: Player): Location? {
         val p = PENDING.remove(player.uniqueId)
-        return if (p == null || p.expired()) null else p.loc.clone()
+        return if (p == null || p.expired() || p.guildId != null) null else p.loc.clone()
+    }
+
+    /** A named guild-home confirm is bound to its exact guild/name, not just coordinates. */
+    fun consumePendingGuildHome(player: Player): PendingGuildHome? {
+        val p = PENDING.remove(player.uniqueId)
+        return if (p == null || p.expired() || p.guildId == null || p.homeName == null) null
+        else PendingGuildHome(p.loc.clone(), p.guildId, p.homeName)
     }
 
     fun evaluateSafety(base: Location): SafetyResult {

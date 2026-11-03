@@ -408,6 +408,9 @@ fun guildsModule() = module {
     single<net.lumalyte.lg.application.persistence.GuildHomeActivationRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.GuildHomeActivationRepositorySQL(get())
     }
+    single<net.lumalyte.lg.application.persistence.GuildHomeAccessRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildHomeAccessGrantRepositorySQL(get())
+    }
     single<RankRepository> { RankRepositorySQLite(get()) }
     single<net.lumalyte.lg.application.persistence.RankClaimPermissionProfileRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.RankClaimPermissionProfileRepositorySQL(get())
@@ -440,6 +443,7 @@ fun guildsModule() = module {
     single<GuildService> {
         GuildServiceBukkit(
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
+            homeAccess = get(),
         )
     }
     single<RankService> {
@@ -1137,17 +1141,30 @@ fun economyModule() = module {
                     false
                 } else {
                     val saved = guilds.getHomes(guildId)
+                    val access = get<net.lumalyte.lg.application.persistence.GuildHomeAccessRepository>()
                     val nameAllowed = if (existedBefore) {
-                        saved.homes.containsKey(homeName)
+                        saved.homes.containsKey(homeName) && !guilds.isHomeLocked(guildId, homeName)
                     } else {
-                        saved.homeNames.none { it.equals(homeName, ignoreCase = true) } &&
-                            saved.size < guilds.getAvailableHomeSlots(guildId)
+                        if (saved.size == 0) access.prepareEmptyGuild(guildId)
+                        val noCollision = saved.homeNames.none { it.equals(homeName, ignoreCase = true) }
+                        val freeSlot = if (access.isManaged(guildId)) {
+                            saved.size < 16 && access.canGrantNewHome(guildId, guilds.getAvailableHomeSlots(guildId))
+                        } else saved.size < guilds.getAvailableHomeSlots(guildId)
+                        noCollision && freeSlot
                     }
                     // Homes can be anywhere. Never consult claim storage for home locations.
                     nameAllowed
                 }
             },
             config = { get<ConfigService>().loadConfig() },
+            homeAccessState = { guildId, homeName ->
+                get<net.lumalyte.lg.application.persistence.GuildHomeAccessRepository>().state(guildId, homeName)
+            },
+            paidOutpostForNewHome = { guildId, _ ->
+                val guilds = get<net.lumalyte.lg.application.services.GuildService>()
+                get<net.lumalyte.lg.application.persistence.GuildHomeAccessRepository>()
+                    .willUsePaidOutpostForNewHome(guildId, guilds.getAvailableHomeSlots(guildId))
+            },
         )
     }
     single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }

@@ -225,6 +225,82 @@ class GuildHomeActivationServiceTest {
         verify(exactly = 0) { costs.activateHome(any(), any(), any(), any(), any(), any()) }
     }
 
+    @Test
+    fun `verified Chapter 1 home never incurs activation payment`() {
+        val repository = mockk<GuildHomeActivationRepository>()
+        val costs = mockk<GuildCostService>()
+        val service = GuildHomeActivationService(
+            repository = repository,
+            costs = costs,
+            maySetHome = { _, _, _, _, _ -> true },
+            homeAccessState = { _, _ -> net.lumalyte.lg.application.persistence.GuildHomeAccessState.ACTIVE_BASE },
+            config = { MainConfig(chapterTwoGoldCostsEnabled = true) },
+        )
+        assertTrue(service.isActive(guildId, "legacy-home"))
+        assertEquals(
+            HomeActivationCostResult.Applied(0),
+            service.activateSavedHome(UUID.randomUUID(), guildId, "legacy-home", actorId),
+        )
+        verify(exactly = 0) { costs.activateHome(any(), any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { repository.isActive(any(), any()) }
+    }
+
+    @Test
+    fun `new paid Outpost home consumes no duplicate activation debit`() {
+        val repository = mockk<GuildHomeActivationRepository>()
+        val costs = mockk<GuildCostService>()
+        var saved = false
+        val service = GuildHomeActivationService(
+            repository = repository,
+            costs = costs,
+            maySetHome = { _, _, _, _, _ -> true },
+            homeAccessState = { _, _ ->
+                if (saved) net.lumalyte.lg.application.persistence.GuildHomeAccessState.ACTIVE_OUTPOST
+                else net.lumalyte.lg.application.persistence.GuildHomeAccessState.REVIEW_REQUIRED
+            },
+            paidOutpostForNewHome = { _, _ -> true },
+            config = { MainConfig(chapterTwoGoldCostsEnabled = true) },
+        )
+        assertEquals(
+            HomeActivationCostResult.Applied(0),
+            service.persistLocation(
+                UUID.randomUUID(), guildId, "new-paid-home", actorId,
+                existedBefore = false, proposedHome = home,
+            ) { saved = true; true },
+        )
+        assertTrue(saved)
+        verify(exactly = 0) { costs.activateHome(any(), any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { repository.activate(any(), any(), any()) }
+    }
+
+    @Test
+    fun `premature Outpost locked home rejects activation and relocation before gold debit`() {
+        val repository = mockk<GuildHomeActivationRepository>()
+        val costs = mockk<GuildCostService>()
+        val service = GuildHomeActivationService(
+            repository = repository,
+            costs = costs,
+            maySetHome = { _, _, _, _, _ -> true },
+            homeAccessState = { _, _ -> net.lumalyte.lg.application.persistence.GuildHomeAccessState.LOCKED_PREMATURE },
+            config = { MainConfig(chapterTwoGoldCostsEnabled = false) },
+        )
+        assertFalse(service.isActive(guildId, "premature"))
+        assertEquals(
+            HomeActivationCostResult.ActivationFailed(compensated = true),
+            service.activateSavedHome(UUID.randomUUID(), guildId, "premature", actorId),
+        )
+        var mutated = false
+        assertEquals(
+            HomeActivationCostResult.ActivationFailed(compensated = true),
+            service.persistLocation(
+                UUID.randomUUID(), guildId, "premature", actorId, existedBefore = true, proposedHome = home,
+            ) { mutated = true; true },
+        )
+        assertFalse(mutated)
+        verify(exactly = 0) { costs.activateHome(any(), any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { repository.isActive(any(), any()) }
+    }
+
     private fun service(
         repository: GuildHomeActivationRepository,
         costs: GuildCostService = mockk(relaxed = true),
