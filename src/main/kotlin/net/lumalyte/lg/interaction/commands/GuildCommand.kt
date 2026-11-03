@@ -2367,6 +2367,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             homeName,
             player.uniqueId,
             existedBefore = existing,
+            proposedHome = home,
         ) {
             guildService.setHome(guild.id, homeName, home, player.uniqueId)
         }

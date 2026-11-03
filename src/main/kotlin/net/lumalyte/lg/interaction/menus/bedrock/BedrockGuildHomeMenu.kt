@@ -4,6 +4,8 @@ import net.lumalyte.lg.infrastructure.i18n.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.utils.GuildHomeSafety
 import net.lumalyte.lg.application.services.HomeActivationCostResult
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
@@ -38,6 +40,7 @@ class BedrockGuildHomeMenu(
     private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
     private val plugin: Plugin by inject()
     private val lang: LangService by inject()
+    private val configService: ConfigService by inject()
 
     override fun getForm(): Form {
         val homes = guildService.getHomes(guild.id)
@@ -185,6 +188,11 @@ class BedrockGuildHomeMenu(
             val targetLocation = buildHomeLocation(home)
             if (targetLocation == null) {
                 player.sendMessage(lang.msg("bedrock.home.feedback.teleport_failed"))
+            } else if (configService.loadConfig().guild.homeTeleportSafetyCheck &&
+                !GuildHomeSafety.isSafeForUnconfirmedUse(targetLocation)
+            ) {
+                player.sendMessage(lang.msg("menu.guild_home.feedback.unsafe_teleport"))
+                player.sendMessage(lang.msg("menu.guild_home.feedback.safety_hint"))
             } else {
                 teleportationService.startTeleport(player, targetLocation)
             }
@@ -212,6 +220,14 @@ class BedrockGuildHomeMenu(
         val homes = guildService.getHomes(guild.id)
         val homeName = nextAvailableGuildHomeName(homes.homeNames)
         val currentLocation = player.location
+        if (configService.loadConfig().guild.homeTeleportSafetyCheck &&
+            !GuildHomeSafety.isSafeForUnconfirmedUse(currentLocation)
+        ) {
+            player.sendMessage(lang.msg("menu.guild_home.feedback.unsafe_set"))
+            player.sendMessage(lang.msg("menu.guild_home.feedback.safety_hint"))
+            bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+            return
+        }
 
         val home = GuildHome(
             worldId = currentLocation.world.uid,
@@ -220,6 +236,7 @@ class BedrockGuildHomeMenu(
 
         val result = homeActivationService.persistLocation(
             UUID.randomUUID(), guild.id, homeName, player.uniqueId, existedBefore = false,
+            proposedHome = home,
         ) { guildService.setHome(guild.id, homeName, home, player.uniqueId) }
         when (result) {
             is HomeActivationCostResult.Applied -> {

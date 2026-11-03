@@ -1129,7 +1129,7 @@ fun economyModule() = module {
         net.lumalyte.lg.application.services.GuildHomeActivationService(
             repository = get(),
             costs = get(),
-            maySetHome = { guildId, homeName, actorId, existedBefore ->
+            maySetHome = { guildId, homeName, actorId, existedBefore, proposedHome ->
                 // Resolve lazily to avoid a constructor cycle; never debit when the actor
                 // lost MANAGE_HOME or a "new" name appeared after the UI was opened.
                 val guilds = get<net.lumalyte.lg.application.services.GuildService>()
@@ -1137,12 +1137,20 @@ fun economyModule() = module {
                     false
                 } else {
                     val saved = guilds.getHomes(guildId)
-                    if (existedBefore) {
+                    val nameAllowed = if (existedBefore) {
                         saved.homes.containsKey(homeName)
                     } else {
                         saved.homeNames.none { it.equals(homeName, ignoreCase = true) } &&
                             saved.size < guilds.getAvailableHomeSlots(guildId)
                     }
+                    val savedHome = saved.homes[homeName]
+                    val targetHome = proposedHome ?: savedHome
+                    nameAllowed && targetHome != null &&
+                        net.lumalyte.lg.application.services.GuildHomeClaimPolicy.allowsChange(
+                            guildId, targetHome, savedHome, get<ConfigService>().loadConfig().claimsEnabled,
+                        ) { worldId, position ->
+                            getOrNull<GetClaimAtPosition>()?.execute(worldId, position)
+                        }
                 }
             },
             config = { get<ConfigService>().loadConfig() },

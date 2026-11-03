@@ -63,6 +63,34 @@ object GuildHomeSafety {
         return safe()
     }
 
+    /** Java/Bedrock GUI's no-confirmation safety contract for paid set and teleport. */
+    fun isSafeForUnconfirmedUse(location: Location): Boolean {
+        if (location.world == null) return false
+        return try {
+            val feet = location.block.type
+            val ground = location.clone().subtract(0.0, 1.0, 0.0).block.type
+            val head = location.clone().add(0.0, 1.0, 0.0).block.type
+
+            val dangerous = setOf(
+                Material.LAVA, Material.FIRE, Material.SOUL_FIRE, Material.CACTUS,
+                Material.SWEET_BERRY_BUSH, Material.POINTED_DRIPSTONE, Material.MAGMA_BLOCK,
+            )
+            val hasGround = ground.isSolid || ground in setOf(
+                Material.GRASS_BLOCK, Material.DIRT, Material.COARSE_DIRT, Material.PODZOL,
+                Material.SAND, Material.RED_SAND, Material.GRAVEL, Material.STONE, Material.COBBLESTONE,
+            )
+            val nonSolid = setOf(
+                Material.SHORT_GRASS, Material.TALL_GRASS, Material.FERN, Material.LARGE_FERN,
+            )
+            hasGround &&
+                (!feet.isSolid || feet in nonSolid) &&
+                (!head.isSolid || head in nonSolid) &&
+                ground !in dangerous && feet !in dangerous && head !in dangerous
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     private fun safe(): SafetyResult = SafetyResult(true, null)
     private fun unsafe(issue: Issue): SafetyResult = SafetyResult(false, issue)
 

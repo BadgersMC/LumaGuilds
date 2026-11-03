@@ -447,6 +447,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         val existing = guildService.getHome(guild.id, homeName) != null
         val result = homeActivationService.persistLocation(
             UUID.randomUUID(), guild.id, homeName, player.uniqueId, existedBefore = existing,
+            proposedHome = home,
         ) { guildService.setHome(guild.id, homeName, home, player.uniqueId) }
 
         when (result) {
@@ -547,43 +548,8 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         teleportationService.startTeleport(player, targetLocation)
     }
 
-    private fun isLocationSafe(location: org.bukkit.Location): Boolean {
-        val block = location.block
-        val blockBelow = location.clone().subtract(0.0, 1.0, 0.0).block
-        val blockAbove = location.clone().add(0.0, 1.0, 0.0).block
-
-        // Define dangerous materials that should prevent teleportation
-        val dangerousMaterials = setOf(
-            org.bukkit.Material.LAVA,
-            org.bukkit.Material.FIRE,
-            org.bukkit.Material.SOUL_FIRE,
-            org.bukkit.Material.CACTUS,
-            org.bukkit.Material.SWEET_BERRY_BUSH,
-            org.bukkit.Material.POINTED_DRIPSTONE,
-            org.bukkit.Material.MAGMA_BLOCK
-        )
-
-        // Check if location has safe ground and space to stand
-        val hasSafeGround = blockBelow.type.isSolid || blockBelow.type == org.bukkit.Material.GRASS_BLOCK ||
-                           blockBelow.type == org.bukkit.Material.DIRT || blockBelow.type == org.bukkit.Material.COARSE_DIRT ||
-                           blockBelow.type == org.bukkit.Material.PODZOL || blockBelow.type == org.bukkit.Material.SAND ||
-                           blockBelow.type == org.bukkit.Material.RED_SAND || blockBelow.type == org.bukkit.Material.GRAVEL ||
-                           blockBelow.type == org.bukkit.Material.STONE || blockBelow.type == org.bukkit.Material.COBBLESTONE
-
-        val hasSpaceToStand = !block.type.isSolid || block.type == org.bukkit.Material.SHORT_GRASS ||
-                             block.type == org.bukkit.Material.TALL_GRASS || block.type == org.bukkit.Material.FERN ||
-                             block.type == org.bukkit.Material.LARGE_FERN
-
-        val hasHeadSpace = !blockAbove.type.isSolid || blockAbove.type == org.bukkit.Material.SHORT_GRASS ||
-                          blockAbove.type == org.bukkit.Material.TALL_GRASS || blockAbove.type == org.bukkit.Material.FERN ||
-                          blockAbove.type == org.bukkit.Material.LARGE_FERN
-
-        val noDangerousBlocks = !dangerousMaterials.contains(blockBelow.type) &&
-                               !dangerousMaterials.contains(block.type) &&
-                               !dangerousMaterials.contains(blockAbove.type)
-
-        return hasSafeGround && hasSpaceToStand && hasHeadSpace && noDangerousBlocks
-    }
+    private fun isLocationSafe(location: org.bukkit.Location): Boolean =
+        net.lumalyte.lg.utils.GuildHomeSafety.isSafeForUnconfirmedUse(location)
 
     private fun teleportIcon(): ItemStack {
         return NexoItemProvider.getItemStackOrFallback("lg_home_teleport") { ItemStack.of(Material.ENDER_PEARL) }

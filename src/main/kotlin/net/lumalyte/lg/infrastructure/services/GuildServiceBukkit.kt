@@ -9,6 +9,8 @@ import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.GuildHomeActivationService
+import net.lumalyte.lg.application.services.GuildHomeClaimPolicy
+import net.lumalyte.lg.application.actions.claim.GetClaimAtPosition
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.entities.GuildHomes
@@ -393,7 +395,18 @@ class GuildServiceBukkit(
                 return false
             }
 
+            // Unchanged Chapter 1 homes remain usable; changing coordinates requires
+            // a fresh guild-owned claim check, including direct calls and post-debit races.
             val existing = guild.homes.getHome(homeName)
+            if (!GuildHomeClaimPolicy.allowsChange(
+                guildId, home, existing, configService.loadConfig().claimsEnabled,
+            ) { worldId, position ->
+                getKoin().getOrNull<GetClaimAtPosition>()?.execute(worldId, position)
+            }) {
+                logger.warn("Player $actorId attempted to set a home outside guild-owned claims for guild $guildId")
+                return false
+            }
+
             val effectiveAllowed = if (existing != null) {
                 existing.allowedRankIds
             } else {

@@ -79,8 +79,8 @@ class CommandLocalizationTest {
         guildService = mockk(relaxed = true)
         homeActivationService = mockk {
             every { isActive(any(), any()) } returns true
-            every { persistLocation(any(), any(), any(), any(), any(), any()) } answers {
-                val persist = arg<() -> Boolean>(5)
+            every { persistLocation(any(), any(), any(), any(), any(), any(), any()) } answers {
+                val persist = arg<() -> Boolean>(6)
                 if (persist()) HomeActivationCostResult.Applied(0)
                 else HomeActivationCostResult.ActivationFailed(compensated = true)
             }
