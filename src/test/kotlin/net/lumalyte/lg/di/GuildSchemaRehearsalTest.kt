@@ -42,6 +42,14 @@ class GuildSchemaRehearsalTest {
                 (allAfter.keys - before.keys).forEach { table ->
                     if (table == "guild_homes" && "guilds" in before) {
                         assertLegacyHomesBackfilled(connection)
+                    } else if (table == "guild_bank_quest_revision") {
+                        assertEquals(1L, allAfter.getValue(table).count, "Bank quest revision must have one bootstrap row")
+                        connection.createStatement().use { statement ->
+                            statement.executeQuery("SELECT COUNT(*) FROM guild_bank_quest_revision WHERE id = 1 AND revision = 0").use { result ->
+                                result.next()
+                                assertEquals(1L, result.getLong(1), "Unexpected bank quest revision bootstrap value")
+                            }
+                        }
                     } else {
                         assertEquals(0L, allAfter.getValue(table).count, "Rehearsal populated new table $table")
                     }
