@@ -29,7 +29,7 @@ class ChapterLifecycleMigrationTest {
         connection = DriverManager.getConnection("jdbc:sqlite:${tempDir.resolve("chapter-lifecycle.db")}")
         connection.createStatement().use { statement ->
             statement.execute("PRAGMA user_version = 29")
-            statement.execute("CREATE TABLE guilds (id TEXT PRIMARY KEY, ally_home_allowed_guilds TEXT)")
+            statement.createLegacyGuildsTable()
             statement.execute("CREATE TABLE guild_homes (id TEXT PRIMARY KEY, allowed_ranks TEXT)")
             listOf(
                 "members", "relations", "parties", "party_requests", "player_party_preferences",

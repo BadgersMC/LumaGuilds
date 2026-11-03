@@ -28,7 +28,7 @@ class QuestSchemaMigrationTest {
         connection = DriverManager.getConnection("jdbc:sqlite:${tempDir.resolve("quest-schema.db")}")
         connection.createStatement().use { statement ->
             statement.execute("PRAGMA user_version = 35")
-            statement.execute("CREATE TABLE guilds (id TEXT PRIMARY KEY, ally_home_allowed_guilds TEXT)")
+            statement.createLegacyGuildsTable()
             statement.execute("CREATE TABLE guild_homes (id TEXT PRIMARY KEY, allowed_ranks TEXT)")
         }
         val pluginManager = mockk<PluginManager>(relaxed = true)

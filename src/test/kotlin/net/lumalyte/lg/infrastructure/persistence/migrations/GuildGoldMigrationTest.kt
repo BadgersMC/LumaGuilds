@@ -28,19 +28,7 @@ class GuildGoldMigrationTest {
         connection = DriverManager.getConnection("jdbc:sqlite:${tempDir.resolve("migration.db")}")
         connection.createStatement().use { statement ->
             statement.execute("PRAGMA user_version = 28")
-            // v28 fixtures must include the historical core columns: an id-only
-            // guilds stub is corrupt and is now correctly rejected at startup.
-            statement.execute(
-                """CREATE TABLE guilds (
-                    id TEXT PRIMARY KEY, name TEXT, banner TEXT, emoji TEXT, tag TEXT,
-                    home_world TEXT, home_x INTEGER, home_y INTEGER, home_z INTEGER,
-                    level INTEGER, bank_balance INTEGER, mode TEXT, mode_changed_at TEXT,
-                    created_at TEXT, vault_status TEXT, vault_chest_world TEXT,
-                    vault_chest_x INTEGER, vault_chest_y INTEGER, vault_chest_z INTEGER,
-                    is_open INTEGER, join_fee_enabled INTEGER, join_fee_amount INTEGER,
-                    ally_home_allowed_guilds TEXT
-                )""".trimIndent()
-            )
+            statement.createLegacyGuildsTable()
             statement.execute("CREATE TABLE guild_homes (id TEXT PRIMARY KEY, allowed_ranks TEXT)")
             listOf(
                 "members", "relations", "parties", "party_requests", "player_party_preferences",

@@ -26,7 +26,7 @@ class SpawnBannerMigrationTest {
         connection = DriverManager.getConnection("jdbc:sqlite:${tempDir.resolve("spawn-banners.db")}")
         connection.createStatement().use {
             it.execute("PRAGMA user_version = 37")
-            it.execute("CREATE TABLE guilds (id TEXT PRIMARY KEY, ally_home_allowed_guilds TEXT)")
+            it.createLegacyGuildsTable()
             it.execute("CREATE TABLE guild_homes (id TEXT PRIMARY KEY, allowed_ranks TEXT)")
         }
         val pluginManager = mockk<PluginManager>(relaxed = true)
