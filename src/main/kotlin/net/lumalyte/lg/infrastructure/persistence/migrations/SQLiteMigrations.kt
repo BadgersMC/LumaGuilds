@@ -10,6 +10,7 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
     private val componentLogger = plugin.getComponentLogger()
     /** Applies SQLite migrations and validates/repairs required schema within the migration transaction. */
     fun migrate() {
+        var migrationSucceeded = false
         try {
             // Enable WAL mode BEFORE starting transaction (if needed for migration to v12)
             val currentDbVersion = getCurrentDatabaseVersion()
@@ -287,12 +288,13 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                     componentLogger.info(Component.text("✓ Schema auto-repair successful"))
                     // Verify again after repair
                     if (!verifier.verifyGuildsTableSchema()) {
-                        componentLogger.error(Component.text("✗ Schema still invalid after repair - plugin may not function correctly"))
+                        throw SQLException("SQLite guilds schema remains invalid after auto-repair")
                     }
                 } else {
-                    componentLogger.error(Component.text("✗ Schema auto-repair failed - please report this issue"))
+                    throw SQLException("SQLite guilds schema auto-repair failed")
                 }
             }
+            migrationSucceeded = true
         } catch (e: SQLException) {
             plugin.logger.severe("Database migration failed: ${e.message}")
             e.printStackTrace()
@@ -302,10 +304,13 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             } catch (rb: SQLException) {
                 plugin.logger.severe("Failed to rollback database migration: ${rb.message}")
             }
-            // You might want to disable the plugin here if migration is critical
-            plugin.server.pluginManager.disablePlugin(plugin)
+            // Propagate failure to onEnable before any services/listeners are registered.
+            // A failed migration must never be mistaken for a successful startup.
+            throw SQLException("SQLite schema migration failed; startup aborted", e)
         } finally {
-            connection.autoCommit = true // Reset auto-commit
+            // Changing auto-commit back to true can commit an unrolled-back transaction.
+            // Failed migrations are always closed by the caller; do not commit on cleanup.
+            if (migrationSucceeded) connection.autoCommit = true
         }
     }
 

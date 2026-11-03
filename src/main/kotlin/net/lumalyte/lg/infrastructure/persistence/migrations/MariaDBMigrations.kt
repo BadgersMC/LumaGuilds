@@ -16,6 +16,7 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
 
     /** Advances the MariaDB schema and ensures the invite-block table exists before recording its version. */
     fun migrate() {
+        var migrationSucceeded = false
         try {
             connection.autoCommit = false
             var currentDbVersion = getCurrentDatabaseVersion()
@@ -205,6 +206,7 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
             connection.commit()
             val finalVersion = getCurrentDatabaseVersion()
             componentLogger.info(Component.text("✓ Database migrations completed (v$finalVersion)"))
+            migrationSucceeded = true
         } catch (e: SQLException) {
             plugin.logger.severe("Database migration failed: ${e.message}")
             e.printStackTrace()
@@ -214,9 +216,13 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
             } catch (rb: SQLException) {
                 plugin.logger.severe("Failed to rollback database migration: ${rb.message}")
             }
-            plugin.server.pluginManager.disablePlugin(plugin)
+            // MariaDB DDL can auto-commit: rollback cannot guarantee restoration.
+            // Fail startup immediately instead of advertising an initialized schema.
+            throw SQLException("MariaDB schema migration failed; startup aborted", e)
         } finally {
-            connection.autoCommit = true
+            // Do not accidentally commit when rollback itself failed.
+            // The caller closes the failed connection instead.
+            if (migrationSucceeded) connection.autoCommit = true
         }
     }
 

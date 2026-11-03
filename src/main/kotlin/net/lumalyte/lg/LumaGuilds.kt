@@ -1506,6 +1506,12 @@ class LumaGuilds : JavaPlugin() {
     }
 
     override fun onDisable() {
+        // A migration failure aborts onEnable before pluginScope/Koin exist.
+        // Bukkit may still invoke onDisable; there are no runtime services to tear down.
+        if (!::pluginScope.isInitialized) {
+            logColored("🛑 LumaGuilds disabled before runtime startup")
+            return
+        }
         runCatching { org.koin.core.context.GlobalContext.getOrNull()?.getOrNull<net.lumalyte.lg.infrastructure.services.GuildAchievementRuntime>()?.stop() }
         // This irreversible gate must run before unrelated cleanup can throw or services are unregistered.
         inviteBlockLifecycle?.close()

@@ -7254,6 +7254,7 @@ admin:
         migrated_tables_with_total_rows: '<gray>Migrated <size> tables with <total_rows> total rows'
         migration_completed_successfully: '<green>✅ Migration completed successfully!'
         migration_failed: '<red>❌ Migration failed!'
+        migration_disabled_incomplete_schema: '<red>SQLite-to-MariaDB migration is disabled: this legacy tool omits guild homes, vault items and payment/reward ledgers. Use a validated backup and audited migration instead.'
         migration_failed_with_exception: '<red>❌ Migration failed with exception: <reason>'
         next_steps: '<gold>📝 Next steps:'
         prerequisites: '<gray>Prerequisites:'
@@ -7299,7 +7300,7 @@ admin:
       showhelp:
         bellclaims_disband_guild_confirm_force_disband_a: '<yellow>/bellclaims disband \<guild> confirm <gray>- Force disband a guild (OP only)'
         bellclaims_help_show_this_help: '<yellow>/bellclaims help <gray>- Show this help'
-        bellclaims_migrate_confirm_migrate_sqlite_mariadb_op: '<yellow>/bellclaims migrate confirm <gray>- Migrate SQLite → MariaDB (OP only)'
+        bellclaims_migrate_confirm_migrate_sqlite_mariadb_op: '<gray>/bellclaims migrate confirm - Disabled (incomplete copier)'
         chapter_admin_controls: '<yellow>/lumaguilds chapter ... <gray>- Chapter status, verified backup, postpone, retry, and force-due controls (OP/Admin)'
         bellclaims_override_toggle_admin_override_mode_admin: '<yellow>/bellclaims override <gray>- Toggle admin override mode (Admin only)'
         bellclaims_progressionreload_reload_progression_yml_op_only: '<yellow>/bellclaims progressionreload <gray>- Reload progression.yml (OP only)'
@@ -7308,7 +7309,7 @@ admin:
         bellclaims_reload_reload_plugin_configuration_op_only: '<yellow>/bellclaims reload <gray>- Reload plugin configuration (OP only)'
         disband_is_for_emergency_use_only_removes: '<gray>⚠️ Disband is for emergency use only - removes all members!'
         lumaguilds_admin_commands: '<gold>=== LumaGuilds Admin Commands ==='
-        migrate_transfers_all_data_from_sqlite_to: '<gray>🔄 Migrate transfers all data from SQLite to MariaDB (requires confirmation)'
+        migrate_transfers_all_data_from_sqlite_to: '<red>🔄 SQLite-to-MariaDB migration is disabled until complete data coverage is audited.'
         override_grants_owner_permissions_in_all_guilds: '<gray>🔓 Override grants owner permissions in all guilds temporarily'
         reload_commands_are_for_development_some_changes: '<gray>🔧 Reload commands are for development - some changes require server restart'
     remove_vault:

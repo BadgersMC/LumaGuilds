@@ -360,6 +360,13 @@ class LumaGuildsCommand(
             return
         }
 
+        // This legacy copier is incomplete. Deny both preview and confirm before
+        // reading credentials, scheduling work or touching either database.
+        if (!DatabaseMigrationUtility.MIGRATION_ENABLED) {
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.migration_disabled_incomplete_schema"))
+            return
+        }
+
         // Check if this is a confirmation
         val isConfirmation = args.size > 1 && args[1].equals("confirm", ignoreCase = true)
 
