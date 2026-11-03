@@ -227,6 +227,8 @@ class GuildRankManagementMenu(private val menuNavigator: MenuNavigator, private 
             when (permission) {
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RANKS,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_MEMBERS,
+                net.lumalyte.lg.domain.entities.RankPermission.MANAGE_RECRUITMENT,
+                net.lumalyte.lg.domain.entities.RankPermission.EDIT_RECRUITMENT_SETTINGS,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_BANNER,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_EMOJI,
                 net.lumalyte.lg.domain.entities.RankPermission.MANAGE_DESCRIPTION,

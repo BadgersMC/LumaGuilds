@@ -12,6 +12,6 @@ public interface GuildShopXpApi {
     String prepare(UUID saleId, UUID owningGuildId, UUID buyerId, long occurredAtMillis);
     /** Marks a definitely failed prepared trade as ABORTED; existing terminal outcomes are retained. */
     String abort(UUID saleId);
-    /** Terminal codes: AWARDED:n, OWN_GUILD, DISABLED, COOLDOWN, CAPPED, STALE_RUN, ABORTED. */
+    /** Terminal codes: AWARDED:n, OWN_GUILD, DISABLED, COOLDOWN, CAPPED, STALE_RUN, ABORTED, CHAPTER_FROZEN. */
     String complete(UUID saleId);
 }

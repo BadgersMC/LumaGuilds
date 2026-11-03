@@ -1,6 +1,7 @@
 package net.lumalyte.lg.domain.entities
 
 import net.lumalyte.lg.domain.values.ExperienceSource
+import net.lumalyte.lg.domain.values.ExperiencePolicy
 import java.time.Instant
 import java.util.UUID
 
@@ -13,6 +14,17 @@ data class ExperienceAwardRequest(
     val eligible: Boolean = true,
     val transactionId: UUID = UUID.randomUUID(),
 )
+
+/** Pure decision passed to a caller-owned transaction; preparing it never writes XP. */
+sealed interface PreparedExperienceAward {
+    data class Ready(
+        val request: ExperienceAwardRequest,
+        val policy: ExperiencePolicy,
+        val requestedXp: Int,
+    ) : PreparedExperienceAward
+
+    data class Rejected(val reason: AwardRejection) : PreparedExperienceAward
+}
 
 enum class AwardRejection {
     SOURCE_DISABLED,

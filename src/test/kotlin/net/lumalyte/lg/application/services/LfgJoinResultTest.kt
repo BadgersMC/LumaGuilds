@@ -105,7 +105,10 @@ class LfgJoinResultTest {
             LfgJoinResult.GuildFull("Full"),
             LfgJoinResult.AlreadyInGuild("Already member"),
             LfgJoinResult.VaultUnavailable("No vault"),
-            LfgJoinResult.Error("Error")
+            LfgJoinResult.Error("Error"),
+            LfgJoinResult.PaymentRejected(net.lumalyte.lg.domain.gold.GuildGoldRejection.FROZEN),
+            LfgJoinResult.PaymentRefunded(java.util.UUID.randomUUID()),
+            LfgJoinResult.PaymentUncertain(java.util.UUID.randomUUID()),
         )
 
         // When/Then: All types should be matchable
@@ -117,6 +120,9 @@ class LfgJoinResultTest {
                 is LfgJoinResult.AlreadyInGuild -> "already"
                 is LfgJoinResult.VaultUnavailable -> "vault"
                 is LfgJoinResult.Error -> "error"
+                is LfgJoinResult.PaymentRejected -> "rejected"
+                is LfgJoinResult.PaymentRefunded -> "refunded"
+                is LfgJoinResult.PaymentUncertain -> "uncertain"
             }
             assertNotNull(matched)
         }

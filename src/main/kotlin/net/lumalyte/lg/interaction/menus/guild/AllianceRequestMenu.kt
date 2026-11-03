@@ -236,7 +236,9 @@ class AllianceRequestMenu(
             .lore(lang.gui("menu.alliance_request.navigation.back.description"))
 
         val guiItem = GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildRelationsMenu(menuNavigator, player, guild))
+            menuNavigator.returnTo(GuildRelationsMenu::class.java) {
+                menuFactory.createGuildRelationsMenu(menuNavigator, player, guild)
+            }
         }
         pane.addItem(guiItem, x, y)
     }

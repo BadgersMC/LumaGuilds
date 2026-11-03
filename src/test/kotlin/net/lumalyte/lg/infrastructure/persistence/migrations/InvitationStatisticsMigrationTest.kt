@@ -21,12 +21,13 @@ class InvitationStatisticsMigrationTest {
     private lateinit var connection: Connection
     private lateinit var plugin: JavaPlugin
 
+    /** Opens an isolated SQLite fixture for invitation-statistics schema migrations. */
     @BeforeEach
     fun setUp() {
         connection = DriverManager.getConnection("jdbc:sqlite:${tempDir.resolve("invite-stats.db")}")
         connection.createStatement().use {
             it.execute("PRAGMA user_version = 36")
-            it.execute("CREATE TABLE guilds (id TEXT PRIMARY KEY, ally_home_allowed_guilds TEXT)")
+            it.createLegacyGuildsTable()
             it.execute("CREATE TABLE guild_homes (id TEXT PRIMARY KEY, allowed_ranks TEXT)")
         }
         val pluginManager = mockk<PluginManager>(relaxed = true)
@@ -47,7 +48,7 @@ class InvitationStatisticsMigrationTest {
         assertTrue(columnExists("guild_invitation_history", "inviter_player_id"))
         assertTrue(columnExists("guild_invitation_history", "invited_player_id"))
         assertTrue(columnExists("guild_invitation_history", "sent_at"))
-        assertEquals(44, databaseVersion())
+        assertEquals(VaultCapacityUnlockSchema.VERSION, databaseVersion())
     }
 
     private fun tableExists(table: String): Boolean =

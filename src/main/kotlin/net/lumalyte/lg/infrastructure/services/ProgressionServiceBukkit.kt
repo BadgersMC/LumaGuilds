@@ -131,10 +131,13 @@ class ProgressionServiceBukkit(
             policy,
         )) {
             is ExperienceAwardResult.Awarded -> {
-                result.leveledUpTo?.let { publishAwardedLevel(guildId, it) }
+                publishAwardedExperience(guildId, result.leveledUpTo)
                 true
             }
-            ExperienceAwardResult.Duplicate -> true
+            ExperienceAwardResult.Duplicate -> {
+                publishAwardedExperience(guildId, null)
+                true
+            }
             is ExperienceAwardResult.NoAllowance, is ExperienceAwardResult.Rejected -> false
         }
     }
@@ -548,35 +551,51 @@ class ProgressionServiceBukkit(
     }
 
     override fun onCommittedExperience(guildId: UUID, leveledUpTo: Int?) {
+        publishCommittedExperience(guildId, leveledUpTo, null)
+    }
+
+    override fun onCommittedBankDepositExperience(guildId: UUID, leveledUpTo: Int?, onRefreshed: () -> Unit) {
+        publishCommittedExperience(guildId, leveledUpTo, onRefreshed)
+    }
+
+    private fun publishCommittedExperience(guildId: UUID, leveledUpTo: Int?, onRefreshed: (() -> Unit)?) {
         val refresh = Runnable {
             try {
                 val current = progressionRepository.refreshGuildProgression(guildId)
                 guildRepository.refreshCachedLevel(guildId)
+                // Scheduling this runnable is not delivery. Only the successful reads above
+                // permit the exact bank receipt to acknowledge its durable cache request.
+                if (onRefreshed != null) runCatching { onRefreshed() }
+                    .onFailure { logger.warn("Failed to acknowledge committed bank XP cache refresh for $guildId", it) }
                 if (leveledUpTo != null && current?.currentLevel == leveledUpTo) {
                     publishLevelChanged(guildId, leveledUpTo)
                     processLevelUp(guildId, leveledUpTo)
                 }
             } catch (error: Exception) {
-                logger.warn("Failed to refresh committed shop XP for $guildId", error)
+                logger.warn("Failed to refresh committed XP for $guildId", error)
             }
         }
         if (Bukkit.isPrimaryThread()) refresh.run() else Bukkit.getScheduler().runTask(plugin, refresh)
     }
 
     private fun levelFromAward(guildId: UUID, result: ExperienceAwardResult): Int? = when (result) {
-        is ExperienceAwardResult.Awarded -> result.leveledUpTo?.also { publishAwardedLevel(guildId, it) }
+        is ExperienceAwardResult.Awarded -> {
+            publishAwardedExperience(guildId, result.leveledUpTo)
+            result.leveledUpTo
+        }
         ExperienceAwardResult.Duplicate -> null
         is ExperienceAwardResult.NoAllowance -> null
         is ExperienceAwardResult.Rejected -> null
     }
 
-    private fun publishAwardedLevel(guildId: UUID, newLevel: Int) {
+    private fun publishAwardedExperience(guildId: UUID, newLevel: Int?) {
         try {
             progressionRepository.refreshGuildProgression(guildId)
+            guildRepository.refreshCachedLevel(guildId)
         } catch (error: Exception) {
-            logger.warn("Failed to refresh guild progression after level award for $guildId", error)
+            logger.warn("Failed to refresh guild progression after XP award for $guildId", error)
         }
-        publishLevelChanged(guildId, newLevel)
+        if (newLevel != null) publishLevelChanged(guildId, newLevel)
     }
 
     private fun publishLevelChanged(guildId: UUID, newLevel: Int) {

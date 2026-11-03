@@ -41,14 +41,14 @@ class HomeAccessMenu(
     override fun open() {
         if (!rankService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_HOME)) {
             player.sendMessage(lang.msg("menu.home_access.permission_denied"))
-            menuNavigator.openMenu(menuFactory.createGuildHomeMenu(menuNavigator, player, guild))
+            returnToHomes()
             return
         }
 
         val home = guildService.getHome(guild.id, homeName)
         if (home == null) {
             player.sendMessage(lang.msg("menu.home_access.missing", "home" to homeName))
-            menuNavigator.openMenu(menuFactory.createGuildHomeMenu(menuNavigator, player, guild))
+            returnToHomes()
             return
         }
 
@@ -99,11 +99,21 @@ class HomeAccessMenu(
             }, col, row)
         }
 
-        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }.name(lang.gui("menu.home_access.back"))
-        pane.addItem(GuiItem(backItem) {
-            menuNavigator.openMenu(menuFactory.createGuildHomeMenu(menuNavigator, player, guild))
-        }, 8, 3)
-
+        addBackButton(pane)
         gui.show(player)
+    }
+
+    private fun addBackButton(pane: StaticPane) {
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
+            .name(lang.gui("menu.home_access.back"))
+        pane.addItem(GuiItem(backItem) {
+            returnToHomes()
+        }, 8, 3)
+    }
+
+    private fun returnToHomes() {
+        menuNavigator.returnTo(GuildHomeMenu::class.java) {
+            menuFactory.createGuildHomeMenu(menuNavigator, player, guild)
+        }
     }
 }

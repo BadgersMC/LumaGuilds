@@ -614,7 +614,10 @@ class GuildBankMenu(
      * Get localized title for the GUI
      */
     private fun getLocalizedTitle(): String {
-        return lang.guiTitle("menu.bank.title", "guild" to guild.name)
+        return net.lumalyte.lg.utils.BankMenuTitle.forTheme(
+            guild.guiTheme,
+            lang.guiTitle("menu.bank.title", "guild" to guild.name),
+        )
     }
 
     /**

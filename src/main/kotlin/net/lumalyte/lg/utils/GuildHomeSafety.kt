@@ -25,23 +25,44 @@ object GuildHomeSafety {
         Material.WITHER_ROSE
     )
 
-    private data class Pending(val loc: Location, val expiresAt: Long) {
+    private data class Pending(
+        val loc: Location,
+        val expiresAt: Long,
+        val guildId: UUID? = null,
+        val homeName: String? = null,
+    ) {
         fun expired(): Boolean = System.currentTimeMillis() > expiresAt
     }
 
+    data class PendingGuildHome(val location: Location, val guildId: UUID, val homeName: String)
+
     private val PENDING = ConcurrentHashMap<UUID, Pending>()
 
-    fun checkAndRemember(player: Player, target: Location): SafetyResult {
+    fun checkAndRemember(
+        player: Player, target: Location, guildId: UUID? = null, homeName: String? = null,
+    ): SafetyResult {
         val result = evaluateSafety(target)
         if (!result.safe) {
-            PENDING[player.uniqueId] = Pending(target.clone(), System.currentTimeMillis() + CONFIRM_TTL_MS)
+            PENDING[player.uniqueId] = Pending(
+                target.clone(), System.currentTimeMillis() + CONFIRM_TTL_MS, guildId, homeName,
+            )
+        } else {
+            PENDING.remove(player.uniqueId)
         }
         return result
     }
 
+    /** Legacy/ally confirmations cannot consume an unsafe pending *guild home*. */
     fun consumePending(player: Player): Location? {
         val p = PENDING.remove(player.uniqueId)
-        return if (p == null || p.expired()) null else p.loc.clone()
+        return if (p == null || p.expired() || p.guildId != null) null else p.loc.clone()
+    }
+
+    /** A named guild-home confirm is bound to its exact guild/name, not just coordinates. */
+    fun consumePendingGuildHome(player: Player): PendingGuildHome? {
+        val p = PENDING.remove(player.uniqueId)
+        return if (p == null || p.expired() || p.guildId == null || p.homeName == null) null
+        else PendingGuildHome(p.loc.clone(), p.guildId, p.homeName)
     }
 
     fun evaluateSafety(base: Location): SafetyResult {
@@ -61,6 +82,34 @@ object GuildHomeSafety {
         if (DAMAGING.contains(below.type)) return unsafe(Issue.DAMAGING_BLOCK_BELOW)
 
         return safe()
+    }
+
+    /** Java/Bedrock GUI's no-confirmation safety contract for paid set and teleport. */
+    fun isSafeForUnconfirmedUse(location: Location): Boolean {
+        if (location.world == null) return false
+        return try {
+            val feet = location.block.type
+            val ground = location.clone().subtract(0.0, 1.0, 0.0).block.type
+            val head = location.clone().add(0.0, 1.0, 0.0).block.type
+
+            val dangerous = setOf(
+                Material.LAVA, Material.FIRE, Material.SOUL_FIRE, Material.CACTUS,
+                Material.SWEET_BERRY_BUSH, Material.POINTED_DRIPSTONE, Material.MAGMA_BLOCK,
+            )
+            val hasGround = ground.isSolid || ground in setOf(
+                Material.GRASS_BLOCK, Material.DIRT, Material.COARSE_DIRT, Material.PODZOL,
+                Material.SAND, Material.RED_SAND, Material.GRAVEL, Material.STONE, Material.COBBLESTONE,
+            )
+            val nonSolid = setOf(
+                Material.SHORT_GRASS, Material.TALL_GRASS, Material.FERN, Material.LARGE_FERN,
+            )
+            hasGround &&
+                (!feet.isSolid || feet in nonSolid) &&
+                (!head.isSolid || head in nonSolid) &&
+                ground !in dangerous && feet !in dangerous && head !in dangerous
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private fun safe(): SafetyResult = SafetyResult(true, null)

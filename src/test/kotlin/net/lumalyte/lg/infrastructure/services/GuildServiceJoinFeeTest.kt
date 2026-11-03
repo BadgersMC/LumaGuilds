@@ -77,6 +77,7 @@ class GuildServiceJoinFeeTest {
             historyRepository = historyRepository,
             adminOverrideService = adminOverrideService,
             homeActivationService = mockk(relaxed = true),
+            homeAccess = LegacyHomeAccessTestAdapter,
         )
 
         // Set up test data

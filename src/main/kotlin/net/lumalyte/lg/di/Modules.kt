@@ -408,6 +408,9 @@ fun guildsModule() = module {
     single<net.lumalyte.lg.application.persistence.GuildHomeActivationRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.GuildHomeActivationRepositorySQL(get())
     }
+    single<net.lumalyte.lg.application.persistence.GuildHomeAccessRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildHomeAccessGrantRepositorySQL(get())
+    }
     single<RankRepository> { RankRepositorySQLite(get()) }
     single<net.lumalyte.lg.application.persistence.RankClaimPermissionProfileRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.RankClaimPermissionProfileRepositorySQL(get())
@@ -415,6 +418,18 @@ fun guildsModule() = module {
     single<MemberRepository> { MemberRepositorySQLite(get()) }
     single<RelationRepository> { RelationRepositorySQLite(get()) }
     single<GuildInvitationRepository> { GuildInvitationRepositorySQLite(get()) }
+    single<net.lumalyte.lg.application.persistence.InviteBlockRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.InviteBlockRepositorySQL(get())
+    }
+    single {
+        net.lumalyte.lg.infrastructure.services.InviteBlockServiceImpl(get(), get(), get())
+    }
+    single<net.lumalyte.lg.application.services.InviteBlockService> {
+        get<net.lumalyte.lg.infrastructure.services.InviteBlockServiceImpl>()
+    }
+    single<net.lumalyte.lg.application.services.DurableInviteBlockService> {
+        get<net.lumalyte.lg.infrastructure.services.InviteBlockServiceImpl>()
+    }
     single { net.lumalyte.lg.application.services.InvitationStatisticsService(get()) }
     single<GuildBannerRepository> { GuildBannerRepositorySQLite(get()) }
     single<AuditRepository> { AuditRepositorySQLite(get()) }
@@ -428,6 +443,7 @@ fun guildsModule() = module {
     single<GuildService> {
         GuildServiceBukkit(
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
+            homeAccess = get(),
         )
     }
     single<RankService> {
@@ -456,7 +472,7 @@ fun guildsModule() = module {
         )
     }
     single<RelationService> { RelationServiceBukkit(get(), get(), get()) }
-    single<LfgService> { LfgServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<LfgService> { LfgServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single<GuildBannerService> { GuildBannerServiceBukkit() }
     single<AuditService> { AuditServiceBukkit() }
     single<NexoEmojiService> { NexoEmojiService(get(), guildCosmetics = get()) }
@@ -520,6 +536,29 @@ fun guildClaimsIntegrationModule() = module {
  * Social module - Party system, chat, and LFG
  */
 fun socialModule() = module {
+    single { net.lumalyte.lg.infrastructure.listeners.GuildRecruitmentNotifications(get(), get(), get(), get(), get()) }
+    single { net.lumalyte.lg.infrastructure.listeners.GuildRecruitmentDiscovery(get(), get(), get(), get()) }
+    single { net.lumalyte.lg.infrastructure.listeners.GuildRecruitmentListener(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<net.lumalyte.lg.application.persistence.GuildRecruitmentRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildRecruitmentRepositorySQL(get())
+    }
+    single<net.lumalyte.lg.application.persistence.RecruitmentDirectoryRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.RecruitmentDirectoryRepositorySQL(get(), get())
+    }
+    single<net.lumalyte.lg.application.services.GuildRecruitmentEligibility> {
+        net.lumalyte.lg.infrastructure.services.GuildRecruitmentEligibilityBukkit(get(), get())
+    }
+    single {
+        val config = get<ConfigService>()
+        val eligibility = get<net.lumalyte.lg.application.services.GuildRecruitmentEligibility>()
+        val listings = net.lumalyte.lg.application.services.GuildRecruitmentListings(
+            get(), get(), get(), maximumMembers = { config.loadConfig().guild.maxMembersPerGuild },
+        )
+        val rules = net.lumalyte.lg.application.services.GuildRecruitmentRules(
+            { config.loadConfig().recruitment.policy() }, eligibility::allows,
+        )
+        net.lumalyte.lg.application.services.GuildRecruitmentService(get(), listings, get(), get(), get(), rules)
+    }
     single<net.lumalyte.lg.application.persistence.GuildOnboardingRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.GuildOnboardingRepositorySQL(get())
     }
@@ -547,7 +586,7 @@ fun socialModule() = module {
 
     // Services
     single<PartyService> { PartyServiceBukkit(get(), get(), get(), get(), get()) }
-    single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Listeners
     single<ChatInputListener> { ChatInputListener() }
@@ -623,6 +662,9 @@ fun socialModule() = module {
     }
     single { net.lumalyte.lg.infrastructure.listeners.GlobalChatVisibilityListener(get()) }
     single { net.lumalyte.lg.infrastructure.listeners.ChatDestinationIndicator(get(), get()) }
+    single<net.lumalyte.lg.infrastructure.listeners.InviteBlockChatListener> {
+        net.lumalyte.lg.infrastructure.listeners.InviteBlockChatListener(get())
+    }
     single<net.lumalyte.lg.infrastructure.listeners.GuildMuteChatListener> {
         net.lumalyte.lg.infrastructure.listeners.GuildMuteChatListener(get(), get(), get())
     }
@@ -632,8 +674,20 @@ fun socialModule() = module {
  * Progression module - Combat, kills, wars, and guild progression
  */
 fun progressionModule() = module {
+    single { net.lumalyte.lg.infrastructure.services.GuildAchievementRuntime(get<JavaPlugin>(), get(), get()) }
     single { net.lumalyte.lg.application.services.GuildActionCoordinator() }
     single { net.lumalyte.lg.domain.rewards.RewardCatalog.chapterTwo() }
+    single<net.lumalyte.lg.application.persistence.ChronicleGoalRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.ChronicleGoalRepositorySQL(get())
+    }
+    single {
+        val members = get<MemberService>()
+        val rewards = get<net.lumalyte.lg.application.services.GuildRewardService>()
+        net.lumalyte.lg.application.services.GuildChronicleService(get(), get(),
+            { actor, guild -> members.getMember(actor, guild) != null },
+            { actor, guild -> members.hasPermission(actor, guild,
+                net.lumalyte.lg.domain.entities.RankPermission.MANAGE_GUILD_SETTINGS) }, rewards::read)
+    }
     single {
         net.lumalyte.lg.infrastructure.persistence.guilds.RewardPurchaseRepositorySQL(
             get(), get(), get(), get<net.lumalyte.lg.application.services.GuildActionCoordinator>()
@@ -659,9 +713,12 @@ fun progressionModule() = module {
             get(),
         ) { get<ConfigService>().loadConfig() }
     }
+    single<net.lumalyte.lg.application.services.GuildPrestigeAnnouncement> {
+        net.lumalyte.lg.infrastructure.services.GuildPrestigeAnnouncementBukkit(get(), get())
+    }
     single {
         net.lumalyte.lg.application.services.GuildPrestigeService(
-            get(), get(), get(), get(), get(), get(),
+            get(), get(), get(), get(), get(), get(), get(),
         )
     }
     single { net.lumalyte.lg.infrastructure.persistence.guilds.RewardStateRepositorySQL(get(), get()) }
@@ -692,7 +749,28 @@ fun progressionModule() = module {
         )
     }
     single<net.lumalyte.lg.application.persistence.BankProgressionRepository> {
-        net.lumalyte.lg.infrastructure.persistence.guilds.BankProgressionRepositorySQL(get())
+        net.lumalyte.lg.infrastructure.persistence.guilds.BankProgressionRepositorySQL(get(), get())
+    }
+    single<net.lumalyte.lg.application.persistence.BankDepositXpRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.BankDepositXpRepositorySQL(get(), get())
+    }
+    single {
+        net.lumalyte.lg.application.services.BankDepositXpQuotes(
+            get(), get(), questRevision = { get<net.lumalyte.lg.application.persistence.QuestRepository>().currentBankQuestRevision() },
+        )
+    }
+    single {
+        net.lumalyte.lg.application.services.BankDepositXpDeliveryService(
+            get(),
+            publish = { guildId, level, acknowledged ->
+                // Resolve on publication, avoiding the ProgressionService/BankService constructor cycle.
+                get<ProgressionService>().onCommittedBankDepositExperience(guildId, level, acknowledged)
+            },
+            onFailure = { transactionId, error ->
+                get<LumaGuilds>().logger.log(java.util.logging.Level.WARNING,
+                    "Bank XP delivery or cache publication remains pending for $transactionId", error)
+            },
+        )
     }
     single<LeaderboardRepository> { LeaderboardRepositorySQLite(get()) }
     single<net.lumalyte.lg.application.persistence.GuildListRepository> {
@@ -723,7 +801,20 @@ fun progressionModule() = module {
             config.loadConfig().progression.xpBoost
         }
     }
-    single { net.lumalyte.lg.application.services.ChapterTwoGuildAwardService(get(), get(), get(), get(), get()) }
+    single {
+        net.lumalyte.lg.application.services.ChapterTwoGuildAwardService(
+            get(), get(), get(), get(), get(),
+            onCommittedExperience = { guildId, level ->
+                // Resolve only after an award, avoiding a constructor cycle with ProgressionService.
+                runCatching { get<ProgressionService>().onCommittedExperience(guildId, level) }
+                    .onFailure { error ->
+                        get<LumaGuilds>().logger.log(
+                            java.util.logging.Level.WARNING, "Failed to publish committed guild XP for $guildId", error,
+                        )
+                    }
+            },
+        )
+    }
     single { net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator(get(), get()) }
     single<ProgressionService> { ProgressionServiceBukkit(get(), get(), get(), get(), get(), get<LumaGuilds>(), get(), get(), get(), get()) }
     single<net.lumalyte.lg.application.persistence.WarRepository> {
@@ -876,7 +967,13 @@ single {
             )
         )
     }
-    single { net.lumalyte.lg.infrastructure.services.WeeklyQuestCoordinator(get(), get(), get()) }
+    single { net.lumalyte.lg.infrastructure.services.QuestAvailabilityNotifierBukkit(get(), get(), get(), get()) }
+    single {
+        val notifier = get<net.lumalyte.lg.infrastructure.services.QuestAvailabilityNotifierBukkit>()
+        net.lumalyte.lg.infrastructure.services.WeeklyQuestCoordinator(get(), get(), get()) {
+            notifier.onReset(org.bukkit.Bukkit.getOnlinePlayers())
+        }
+    }
     single<net.lumalyte.lg.application.services.DailyWarCostsService> {
         net.lumalyte.lg.infrastructure.services.DailyWarCostsServiceBukkit(get(), get(), get(), get())
     }
@@ -956,6 +1053,7 @@ fun economyModule() = module {
             },
             rewardPurchaseAuthorization = get<net.lumalyte.lg.application.services.GuildRewardPurchaseAccess>()::allowed,
             rewardPurchasesEnabled = { config.loadConfig().chapterTwoRewardsEnabled },
+            depositXpQuote = { actorId -> get<net.lumalyte.lg.application.services.BankDepositXpQuotes>().capture(actorId) },
             periodStartProvider = {
                 java.time.LocalDate.now(java.time.ZoneOffset.UTC)
                     .atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
@@ -1035,7 +1133,40 @@ fun economyModule() = module {
     }
     single {
         net.lumalyte.lg.application.services.GuildHomeActivationService(
-            get(), get(), { get<ConfigService>().loadConfig() },
+            repository = get(),
+            costs = get(),
+            maySetHome = { guildId, homeName, actorId, existedBefore, _ ->
+                // Resolve lazily to avoid a constructor cycle; never debit when the actor
+                // lost MANAGE_HOME or a "new" name appeared after the UI was opened.
+                val guilds = get<net.lumalyte.lg.application.services.GuildService>()
+                if (!guilds.hasPermission(actorId, guildId, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_HOME)) {
+                    false
+                } else {
+                    val saved = guilds.getHomes(guildId)
+                    val access = get<net.lumalyte.lg.application.persistence.GuildHomeAccessRepository>()
+                    val nameAllowed = if (existedBefore) {
+                        saved.homes.containsKey(homeName) && !guilds.isHomeLocked(guildId, homeName)
+                    } else {
+                        if (saved.size == 0) access.prepareEmptyGuild(guildId)
+                        val noCollision = saved.homeNames.none { it.equals(homeName, ignoreCase = true) }
+                        val freeSlot = if (access.isManaged(guildId)) {
+                            saved.size < 16 && access.canGrantNewHome(guildId, guilds.getAvailableHomeSlots(guildId))
+                        } else saved.size < guilds.getAvailableHomeSlots(guildId)
+                        noCollision && freeSlot
+                    }
+                    // Homes can be anywhere. Never consult claim storage for home locations.
+                    nameAllowed
+                }
+            },
+            config = { get<ConfigService>().loadConfig() },
+            homeAccessState = { guildId, homeName ->
+                get<net.lumalyte.lg.application.persistence.GuildHomeAccessRepository>().state(guildId, homeName)
+            },
+            paidOutpostForNewHome = { guildId, _ ->
+                val guilds = get<net.lumalyte.lg.application.services.GuildService>()
+                get<net.lumalyte.lg.application.persistence.GuildHomeAccessRepository>()
+                    .willUsePaidOutpostForNewHome(guildId, guilds.getAvailableHomeSlots(guildId))
+            },
         )
     }
     single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
@@ -1106,6 +1237,7 @@ fun vaultModule() = module {
             get(),
             get(),
             config.vault,
+            get(),
             get(),
             get(),
             get()
@@ -1228,8 +1360,7 @@ fun integrationModule(plugin: LumaGuilds) = module {
  * Main application module that combines all feature modules
  * This is the entry point for Koin dependency injection
  */
-fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = true) =
-    listOf(
+fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = true) = listOf(
         coreModule(plugin, storage),
         guildsModule(),
         socialModule(),

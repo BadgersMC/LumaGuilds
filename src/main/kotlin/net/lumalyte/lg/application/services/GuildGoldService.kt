@@ -1,6 +1,7 @@
 package net.lumalyte.lg.application.services
 
 import net.lumalyte.lg.application.persistence.GuildGoldRepository
+import net.lumalyte.lg.domain.entities.BankDepositXpQuote
 import net.lumalyte.lg.application.persistence.RewardPurchaseRepository
 import net.lumalyte.lg.domain.rewards.RewardPurchaseRequest
 import net.lumalyte.lg.domain.rewards.RewardPurchaseResult
@@ -15,6 +16,7 @@ import net.lumalyte.lg.domain.gold.GuildGoldResult
 import net.lumalyte.lg.domain.gold.GuildGoldRoute
 import java.util.UUID
 import java.nio.charset.StandardCharsets
+import org.slf4j.LoggerFactory
 
 fun interface GuildGoldPolicyProvider {
     fun policyFor(guildId: UUID): GuildGoldPolicy
@@ -42,8 +44,10 @@ class GuildGoldService(
     private val additionalFrozen: (UUID) -> Boolean = { false },
     private val rewardPurchases: RewardPurchaseRepository? = null,
     private val rewardPurchaseAuthorization: (UUID, UUID) -> Boolean = { _, _ -> false },
-    private val rewardPurchasesEnabled: () -> Boolean = { true }
+    private val rewardPurchasesEnabled: () -> Boolean = { true },
+    private val depositXpQuote: ((UUID) -> BankDepositXpQuote)? = null,
 ) {
+    private val logger = LoggerFactory.getLogger(GuildGoldService::class.java)
     constructor(
         repository: GuildGoldRepository,
         policyProvider: GuildGoldPolicyProvider,
@@ -322,7 +326,7 @@ class GuildGoldService(
         val externalDebit = exactAdd(request.amount, fee)
             ?: return GuildGoldResult.Rejected(GuildGoldRejection.INVALID_AMOUNT)
         val mutation = personalMutation(request, GuildGoldDirection.CREDIT, fee)
-        existingResultOrPrepare(mutation)?.let { return it }
+        existingDepositResultOrPrepare(mutation)?.let { return it }
 
         if (!repository.beginExternal(request.transactionId, "DEPOSIT")) return GuildGoldResult.Failed(request.transactionId, false)
         return when (externalEffect(request.transactionId) { personalEconomy.debit(request.playerId, externalDebit) }) {
@@ -411,7 +415,7 @@ class GuildGoldService(
         val reservedValue = exactAdd(request.amount, fee)
             ?: return GuildGoldResult.Rejected(GuildGoldRejection.INVALID_AMOUNT)
         val mutation = physicalMutation(request, GuildGoldDirection.CREDIT, fee)
-        existingResultOrPrepare(mutation)?.let { return it }
+        existingDepositResultOrPrepare(mutation)?.let { return it }
         if (!repository.beginExternal(request.transactionId, "DEPOSIT")) return GuildGoldResult.Failed(request.transactionId, false)
         val reservation = when (val result = physicalGold.reserve(request.transactionId, request.playerId, reservedValue)) {
             PhysicalReservationResult.Unknown -> return GuildGoldResult.Failed(request.transactionId, false)
@@ -564,13 +568,37 @@ class GuildGoldService(
         return GuildGoldResult.Failed(request.transactionId, result is GuildGoldResult.Applied)
     }
 
+    private fun existingDepositResultOrPrepare(mutation: GuildGoldMutation): GuildGoldResult? {
+        // An existing operation owns its original quote (or is a legacy operation without one).
+        // Its replay must work without asking today's config/activity provider for a new quote.
+        repository.findOperation(mutation.transactionId)?.let { existing ->
+            return if (existing.mutation == mutation) existing.toResult()
+            else GuildGoldResult.Rejected(GuildGoldRejection.DUPLICATE_PENDING)
+        }
+        val quote = depositXpQuote?.let { capture ->
+            try {
+                capture(mutation.actorId)
+            } catch (error: Exception) {
+                // No payment or operation has been prepared yet; do not report an ambiguous charge.
+                logger.warn("Unable to capture bank deposit eligibility; rejecting before payment", error)
+                return GuildGoldResult.Rejected(GuildGoldRejection.EXTERNAL_UNAVAILABLE)
+            }
+        }
+        return preparationResult(if (quote == null) repository.prepare(mutation) else repository.prepareDeposit(mutation, quote))
+    }
+
     private fun existingResultOrPrepare(mutation: GuildGoldMutation): GuildGoldResult? =
-        when (val preparation = repository.prepare(mutation)) {
+        preparationResult(repository.prepare(mutation))
+
+    private fun preparationResult(preparation: net.lumalyte.lg.domain.gold.GuildGoldPreparation): GuildGoldResult? =
+        when (preparation) {
             is net.lumalyte.lg.domain.gold.GuildGoldPreparation.Pending ->
                 GuildGoldResult.Failed(preparation.transactionId, false)
             is net.lumalyte.lg.domain.gold.GuildGoldPreparation.New -> null
             net.lumalyte.lg.domain.gold.GuildGoldPreparation.FingerprintMismatch ->
                 GuildGoldResult.Rejected(GuildGoldRejection.DUPLICATE_PENDING)
+            net.lumalyte.lg.domain.gold.GuildGoldPreparation.QuestTransition ->
+                GuildGoldResult.Rejected(GuildGoldRejection.WEEKLY_QUEST_TRANSITION)
             is net.lumalyte.lg.domain.gold.GuildGoldPreparation.Existing ->
                 preparation.record.toResult()
         }

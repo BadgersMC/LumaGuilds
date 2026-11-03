@@ -106,7 +106,9 @@ class GuildMemberContributionsMenu(
         )
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
-            menuNavigator.openMenu(menuFactory.createGuildBankTransactionHistoryMenu(menuNavigator, player, guild))
+            menuNavigator.returnTo(GuildBankTransactionHistoryMenu::class.java) {
+                menuFactory.createGuildBankTransactionHistoryMenu(menuNavigator, player, guild)
+            }
         }
         mainPane.addItem(backGuiItem, 0, 0)
 

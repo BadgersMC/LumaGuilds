@@ -37,7 +37,6 @@ class GuildOnboardingListener(
         val guild = guilds.getGuild(guildId) ?: return
         if (members.getMember(playerId, guildId) == null || !repository.consume(playerId, guildId)) return
         player.sendMessage(lang.msg("onboarding.prompt", "guild" to guild.name)
-            .append(lang.msg("onboarding.open").clickEvent(ClickEvent.runCommand("/g start $guildId")))
-            .append(lang.msg("onboarding.dismiss").clickEvent(ClickEvent.runCommand("/g start dismiss"))))
+            .append(lang.msg("onboarding.open").clickEvent(ClickEvent.runCommand("/g start $guildId"))))
     }
 }

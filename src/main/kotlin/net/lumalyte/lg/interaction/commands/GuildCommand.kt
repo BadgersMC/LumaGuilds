@@ -12,7 +12,6 @@ import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.DepartureReason
 import net.lumalyte.lg.application.services.ConfigService
-import net.lumalyte.lg.application.actions.claim.GetClaimAtPosition
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.entities.GuildMode
@@ -43,13 +42,14 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
     private val lang: LangService by inject()
     private val guildService: GuildService by inject()
+    private val lfgService: net.lumalyte.lg.application.services.LfgService by inject()
     private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository by inject()
     private val rankService: RankService by inject()
     private val chatRankSettings: net.lumalyte.lg.application.services.GuildChatRankSettingsService by inject()
     private val memberService: MemberService by inject()
+    private val inviteBlocks: net.lumalyte.lg.application.services.InviteBlockService by inject()
     private val vaultService: net.lumalyte.lg.application.services.GuildVaultService by inject()
     private val warService: net.lumalyte.lg.application.services.WarService by inject()
-    private val getClaimAtPosition: GetClaimAtPosition by inject()
     private val configService: ConfigService by inject()
     private val menuFactory: MenuFactory by inject()
     private val progressionService: net.lumalyte.lg.application.services.ProgressionService by inject()
@@ -77,8 +77,11 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
     }
 
-    internal fun checkHomeSafety(player: Player, target: Location, confirmCommand: String): Boolean {
-        val result = GuildHomeSafety.checkAndRemember(player, target)
+    internal fun checkHomeSafety(
+        player: Player, target: Location, confirmCommand: String,
+        guildId: UUID? = null, homeName: String? = null,
+    ): Boolean {
+        val result = GuildHomeSafety.checkAndRemember(player, target, guildId, homeName)
         if (result.safe) return true
 
         val reason = when (requireNotNull(result.issue)) {
@@ -163,9 +166,26 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
+        // Reject known duplicate names before any payment reservation or debit.
+        // GuildServiceBukkit still validates the name during creation for races.
+        val nameTaken = try {
+            guildRepository.isNameTaken(name)
+        } catch (e: Exception) {
+            player.server.logger.log(java.util.logging.Level.WARNING,
+                "Guild name availability check failed for creator $playerId; no payment attempted", e)
+            player.sendMessage(lang.msg("guild_creation_cooldown.unavailable"))
+            return
+        }
+        if (nameTaken) {
+            player.sendMessage(lang.msg("command.migrated.guild.create.the_name_is_already_taken_by_another", "name" to name))
+            player.sendMessage(lang.msg("command.migrated.guild.create.please_choose_a_different_name"))
+            return
+        }
+
         try {
             val until = guildRepository.creationCooldownUntil(playerId)
-            if (until != null && java.time.Instant.now() < until) {
+            if (until != null && java.time.Instant.now() < until &&
+                !player.hasPermission("lumaguilds.guild.creationcooldown.bypass")) {
                 player.sendMessage(lang.msg("guild_creation_cooldown.active", "until" to until.toString()))
                 return
             }
@@ -173,18 +193,17 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage(lang.msg("guild_creation_cooldown.unavailable"))
             return
         }
-        val goldCostsEnabled = configService.loadConfig().chapterTwoGoldCostsEnabled
-        val guild = if (!goldCostsEnabled) {
+        // Route free and paid creation through the same pending-payment safety gate.
+        val guild = when (val result = guildCostService.createGuild(UUID.randomUUID(), playerId) {
             guildService.createGuild(name, playerId, banner)
-        } else {
-            when (val result = guildCostService.createGuild(UUID.randomUUID(), playerId) {
-                guildService.createGuild(name, playerId, banner)
-            }) {
+        }) {
                 is net.lumalyte.lg.application.services.GuildCreationCostResult.Applied -> {
-                    player.sendMessage(lang.msg(
-                        "command.migrated.guild.create.raw_gold_paid",
-                        "cost" to result.cost,
-                    ))
+                    if (result.cost > 0) {
+                        player.sendMessage(lang.msg(
+                            "command.migrated.guild.create.raw_gold_paid",
+                            "cost" to result.cost,
+                        ))
+                    }
                     result.guild
                 }
                 net.lumalyte.lg.application.services.GuildCreationCostResult.InsufficientGold -> {
@@ -220,7 +239,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
                         "transaction" to result.transactionId))
                     return
                 }
-            }
         }
         if (guild != null) {
             player.sendMessage(lang.msg("command.migrated.guild.create.guild_created_successfully", "name" to name))
@@ -357,40 +375,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
             }
         }
 
-        // Check if claims are enabled in config
+        // Guild homes are independent of land claims; outpost entitlement and safety
+        // are validated separately before the home is saved or activated.
         val config = configService.loadConfig()
-        if (config.claimsEnabled) {
-            // Check if player is standing in a claim
-            val claimResult = getClaimAtPosition.execute(location.world.uid, location.toPosition3D())
-            when (claimResult) {
-                is net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult.Success -> {
-                    val claim = claimResult.claim
-
-                    // Check if the claim is guild-owned
-                    if (claim.teamId == null) {
-                        player.sendMessage(lang.msg("command.migrated.guild.sethome.you_can_only_set_guild_home_in"))
-                        player.sendMessage(lang.msg("command.migrated.guild.sethome.use_the_bell_menu_to_convert_this"))
-                        return
-                    }
-
-                    // Check if the claim belongs to the player's guild
-                    if (claim.teamId != guild.id) {
-                        player.sendMessage(lang.msg("command.migrated.guild.sethome.you_can_only_set_guild_home_in_2"))
-                        player.sendMessage(lang.msg("command.migrated.guild.sethome.this_claim_belongs_to_a_different_guild"))
-                        return
-                    }
-                }
-                is net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult.NoClaimFound -> {
-                    player.sendMessage(lang.msg("command.migrated.guild.sethome.you_must_be_standing_in_a_guild"))
-                    player.sendMessage(lang.msg("command.migrated.guild.sethome.place_a_bell_and_convert_it_to"))
-                    return
-                }
-                is net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult.StorageError -> {
-                    player.sendMessage(lang.msg("command.migrated.guild.sethome.an_error_occurred_while_checking_your_location"))
-                    return
-                }
-            }
-        }
 
         // Block only when the *named* home being set already exists. Looking up by guild.id
         // alone returns the default ("main") home, which incorrectly blocked /g sethome <name>
@@ -464,19 +451,34 @@ class GuildCommand : BaseCommand(), KoinComponent {
     @CommandPermission("lumaguilds.guild.home")
     @CommandCompletion("@guildaccessiblehomes")
     fun onHome(player: Player, @Optional homeName: String?, @Optional confirm: String?) {
+        // ACF may dispatch an optional-argument `home` route before its nested
+        // `home unlock` route. Both routes must still authorize restoration.
+        if (homeName.equals("unlock", ignoreCase = true) && !confirm.isNullOrBlank()) {
+            if (!player.hasPermission("lumaguilds.guild.sethome")) {
+                player.sendMessage(lang.msg("command.migrated.guild.home.restore_no_permission"))
+                return
+            }
+            onHomeUnlock(player, confirm)
+            return
+        }
         // Handle "/guild home confirm" — ACF puts "confirm" into homeName, not confirm param
         val isConfirm = confirm?.lowercase() == "confirm" || homeName?.lowercase() == "confirm"
         if (isConfirm) {
-            val pendingLocation = GuildHomeSafety.consumePending(player)
-            if (pendingLocation != null) {
-                teleportationService.startTeleport(player, pendingLocation) {
-                    lastHomeTeleport[player.uniqueId] = System.currentTimeMillis()
-                }
-                return
-            } else {
+            val pending = GuildHomeSafety.consumePendingGuildHome(player)
+            if (pending == null ||
+                !mayCompleteHomeTeleport(player.uniqueId, pending.guildId, pending.homeName, pending.location)
+            ) {
                 player.sendMessage(lang.msg("command.migrated.guild.home.no_pending_unsafe_teleport_to_confirm_or"))
                 return
             }
+            teleportationService.startTeleportGuarded(
+                player, pending.location,
+                onSuccess = { lastHomeTeleport[player.uniqueId] = System.currentTimeMillis() },
+                mayProceed = {
+                    mayCompleteHomeTeleport(player.uniqueId, pending.guildId, pending.homeName, pending.location)
+                },
+            )
+            return
         }
 
         val playerId = player.uniqueId
@@ -493,6 +495,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val home = guildService.getHome(guild.id, targetHomeName)
 
         if (home != null) {
+            if (guildService.isHomeLocked(guild.id, targetHomeName)) {
+                player.sendMessage(lang.msg("command.migrated.guild.home.locked", "home" to targetHomeName))
+                return
+            }
             if (!guildHomeActivationService.isActive(guild.id, targetHomeName)) {
                 player.sendMessage(lang.msg("command.migrated.guild.home.saved_but_inactive", "target_home_name" to targetHomeName))
                 player.sendMessage(lang.msg("command.migrated.guild.home.activation_hint", "target_home_name" to targetHomeName))
@@ -543,15 +549,17 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
             // Check if target location is safe (if safety check is enabled)
             if (configService.loadConfig().guild.homeTeleportSafetyCheck) {
-                if (!checkHomeSafety(player, targetLocation, "/guild home confirm")) {
+                if (!checkHomeSafety(player, targetLocation, "/guild home confirm", guild.id, targetHomeName)) {
                     return
                 }
             }
 
             // Start teleport countdown via centralized service
-            teleportationService.startTeleport(player, targetLocation) {
-                lastHomeTeleport[playerId] = System.currentTimeMillis()
-            }
+            teleportationService.startTeleportGuarded(
+                player, targetLocation,
+                onSuccess = { lastHomeTeleport[playerId] = System.currentTimeMillis() },
+                mayProceed = { mayCompleteHomeTeleport(playerId, guild.id, targetHomeName, targetLocation) },
+            )
         } else {
             // Check if the guild has any homes at all
             val allHomes = guildService.getHomes(guild.id)
@@ -594,7 +602,11 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 } else {
                     lang.msg("command.migrated.guild.homes.home_row", "name" to name, "world_name" to worldName)
                 }
-                player.sendMessage(row)
+                player.sendMessage(
+                    if (guildService.isHomeLocked(guild.id, name))
+                        row.append(lang.msg("command.migrated.guild.homes.locked_row", "home" to name))
+                    else row
+                )
             }
             player.sendMessage(lang.msg("command.migrated.guild.homes.use_guild_home_name_to_teleport_to"))
         } else {
@@ -606,6 +618,30 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage(lang.msg("command.migrated.guild.homes.use_guild_sethome_name_to_set_additional"))
         }
         player.sendMessage(lang.msg("command.migrated.guild.homes.blank_line_2"))
+    }
+
+    /** Redeem one previously purchased Outpost credit for its original saved location. */
+    @Subcommand("home unlock")
+    @CommandPermission("lumaguilds.guild.sethome")
+    fun onHomeUnlock(player: Player, homeName: String) {
+        val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull() ?: return
+        if (guildService.restoreLockedOutpost(guild.id, homeName, player.uniqueId)) {
+            player.sendMessage(lang.msg("command.migrated.guild.home.restore_success", "home" to homeName))
+        } else {
+            player.sendMessage(lang.msg("command.migrated.guild.home.restore_unavailable", "home" to homeName))
+        }
+    }
+
+    private fun mayCompleteHomeTeleport(playerId: UUID, guildId: UUID, homeName: String, target: Location): Boolean {
+        if (!guildService.canUseHome(playerId, guildId, homeName) ||
+            !guildHomeActivationService.isActive(guildId, homeName)
+        ) return false
+        val saved = guildService.getHome(guildId, homeName) ?: return false
+        val world = target.world ?: return false
+        return saved.worldId == world.uid &&
+            saved.position.x == target.blockX &&
+            saved.position.y == target.blockY &&
+            saved.position.z == target.blockZ
     }
 
     @Subcommand("removehome")
@@ -1467,15 +1503,47 @@ class GuildCommand : BaseCommand(), KoinComponent {
         navigator.openMenu(menuFactory.createGuildStallMenu(navigator, player, guild))
     }
 
+    /** Direct member access; deliberately independent of management-menu permissions. */
+    @Subcommand("quests|quest")
+    @CommandPermission("lumaguilds.guild.quests")
+    fun onQuests(player: Player) {
+        val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
+        if (guild == null) {
+            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
+            return
+        }
+        val navigator = MenuNavigator(player)
+        navigator.openMenu(menuFactory.createGuildQuestsMenu(navigator, player, guild))
+    }
+
+    @Subcommand("quests|quest menu")
+    @CommandPermission("lumaguilds.guild.quests")
+    fun onQuestMenu(player: Player) = onQuests(player)
+
+    /** Browsing rankings does not require access to the management control panel. */
+    @Subcommand("leaderboard")
+    @CommandPermission("lumaguilds.guild.leaderboard")
+    fun onLeaderboard(player: Player) {
+        val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
+        val navigator = MenuNavigator(player)
+        navigator.openMenu(menuFactory.createGuildLeaderboardMenu(navigator, player, guild))
+    }
+
+    @Default
+    @CommandPermission("lumaguilds.guild.menu")
+    fun onDefault(player: Player) = openGuildMenu(player, fallbackToInfo = true)
+
     @Subcommand("menu")
     @CommandPermission("lumaguilds.guild.menu")
-    fun onMenu(player: Player) {
+    fun onMenu(player: Player) = openGuildMenu(player, fallbackToInfo = false)
+
+    private fun openGuildMenu(player: Player, fallbackToInfo: Boolean) {
         val playerId = player.uniqueId
 
         // Find player's guild
         val guilds = guildService.getPlayerGuilds(playerId)
         if (guilds.isEmpty()) {
-            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
+            onLfg(player)
             return
         }
 
@@ -1485,18 +1553,24 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val playerRank = rankService.getPlayerRank(playerId, guild.id)
         val highestRank = rankService.getHighestRank(guild.id)
 
-        if (!adminOverrideService.hasOverride(playerId) && playerRank?.id != highestRank?.id) {
+        if (!adminOverrideService.hasOverride(playerId) && (playerRank == null || highestRank == null || playerRank.id != highestRank.id)) {
             // Check if player has management permissions
             val hasManagementPerms = playerRank?.permissions?.any { permission ->
                 permission in setOf(
                     RankPermission.MANAGE_RANKS,
                     RankPermission.MANAGE_MEMBERS,
+                    RankPermission.MANAGE_RECRUITMENT,
+                    RankPermission.EDIT_RECRUITMENT_SETTINGS,
                     RankPermission.MANAGE_BANNER,
                     RankPermission.MANAGE_CLAIMS
                 )
             } ?: false
 
             if (!hasManagementPerms) {
+                if (fallbackToInfo) {
+                    onInfo(player, null)
+                    return
+                }
                 player.sendMessage(lang.msg("command.migrated.guild.menu.you_don_t_have_permission_to_access"))
                 player.sendMessage(lang.msg("command.migrated.guild.menu.only_guild_owners_and_members_with_management"))
                 return
@@ -1527,7 +1601,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val guild = guilds.first()
 
         // Check if player has member management permission
-        if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_MEMBERS)) {
+        if (!net.lumalyte.lg.application.services.GuildRecruitmentPermissions.canInvite(memberService, playerId, guild.id)) {
             player.sendMessage(lang.msg("command.migrated.guild.invite.you_don_t_have_permission_to_invite"))
             return
         }
@@ -1590,9 +1664,19 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         // Check if guild is open - if so, allow direct joining without invitation
-        if (guild.isOpen) {
+        val recruitment: net.lumalyte.lg.application.services.GuildRecruitmentService by inject()
+        if (recruitment.listings.profile(guild).mode == net.lumalyte.lg.domain.recruitment.RecruitmentMode.JOIN_IMMEDIATELY) {
             // Open guild - no invitation required
-            joinGuildDirectly(player, guild, isOpenGuild = true)
+            if (guild.joinFeeEnabled && guild.joinFeeAmount > 0) {
+                val factory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+                val navigator = net.lumalyte.lg.interaction.menus.MenuNavigator(player)
+                val menu = factory.createLfgBrowserMenu(navigator, player)
+                menu.passData(guild)
+                navigator.openMenu(menu)
+                return
+            }
+            val result = lfgService.joinGuild(player.uniqueId, guild)
+            player.sendMessage(net.lumalyte.lg.interaction.menus.guild.recruitmentAdmissionFeedback(lang, result))
             return
         }
 
@@ -1651,7 +1735,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 player.sendMessage(lang.msg("command.migrated.guild.joinguilddirectly.guild_type_open_public"))
             }
             player.sendMessage(lang.msg("command.migrated.guild.joinguilddirectly.rank", "lowest_rank" to lowestRank.name))
-            player.sendMessage(lang.msg("command.migrated.guild.joinguilddirectly.use_guild_menu_to_get_started"))
+            player.sendMessage(lang.msg("onboarding.member_overview_hint"))
             player.sendMessage(lang.msg("command.common.blank_line"))
             player.playSound(player.location, org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.5f)
 
@@ -1680,7 +1764,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         player.playSound(player.location, org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
     }
 
-    @Subcommand("lfg")
+    @Subcommand("lfg|browse|recruitment")
     @CommandPermission("lumaguilds.guild.lfg")
     fun onLfg(player: Player) {
         val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
@@ -1690,6 +1774,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         player.playSound(player.location, org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
     }
 
+    /** Declines an invitation still visible to this player after personal block filtering. */
     @Subcommand("decline")
     @CommandPermission("lumaguilds.guild.decline")
     @CommandCompletion("@pendinginvites")
@@ -1716,6 +1801,60 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         player.sendMessage(lang.msg("command.migrated.guild.decline.you_declined_the_invitation_to_join", "actual_guild_name" to actualGuildName))
         player.playSound(player.location, org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 0.8f)
+    }
+
+    /**
+     * `/g block <player>`: no more guild invites from them or from any guild they are in, and their guild, ally and
+     * party chat messages are hidden from you. Memberships are not changed.
+     */
+    @Subcommand("block")
+    @CommandPermission("lumaguilds.guild.block")
+    @CommandCompletion("@allplayers")
+    fun onBlock(player: Player, targetPlayerName: String) =
+        changeBlock(player, targetPlayerName, blocked = true)
+
+    /** Removes a previously saved personal guild invite block. */
+    @Subcommand("unblock")
+    @CommandPermission("lumaguilds.guild.block")
+    @CommandCompletion("@allplayers")
+    fun onUnblock(player: Player, targetPlayerName: String) =
+        changeBlock(player, targetPlayerName, blocked = false)
+
+    /** Lists personal blocks without changing guild membership. */
+    @Subcommand("blocked")
+    @CommandPermission("lumaguilds.guild.block")
+    fun onBlocked(player: Player) {
+        val names = inviteBlocks.blockedBy(player.uniqueId)
+            .map { Bukkit.getOfflinePlayer(it).name ?: it.toString() }
+            .sortedBy { it.lowercase() }
+        if (names.isEmpty()) {
+            player.sendMessage(lang.msg("command.migrated.guild.block.none"))
+            return
+        }
+        player.sendMessage(lang.msg("command.migrated.guild.block.list", "players" to names.joinToString(", ")))
+    }
+
+    private fun changeBlock(player: Player, targetPlayerName: String, blocked: Boolean) {
+        val target = findPlayerByName(targetPlayerName)?.let { it.uniqueId to it.name }
+            ?: Bukkit.getOfflinePlayerIfCached(targetPlayerName)?.let { it.uniqueId to (it.name ?: targetPlayerName) }
+        if (target == null) {
+            player.sendMessage(lang.msg("command.migrated.guild.block.unknown_player", "player" to targetPlayerName))
+            return
+        }
+        val (targetId, targetName) = target
+        if (targetId == player.uniqueId) {
+            player.sendMessage(lang.msg("command.migrated.guild.block.yourself"))
+            return
+        }
+        if (!inviteBlocks.setBlocked(player.uniqueId, targetId, blocked)) {
+            player.sendMessage(lang.msg("command.migrated.guild.block.failed"))
+            return
+        }
+        if (blocked) {
+            player.sendMessage(lang.msg("command.migrated.guild.block.blocked", "player" to targetName))
+        } else {
+            player.sendMessage(lang.msg("command.migrated.guild.block.unblocked", "player" to targetName))
+        }
     }
 
     @Subcommand("invites")
@@ -2239,7 +2378,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
             position = location.toPosition3D()
         )
 
-        val config = configService.loadConfig()
         val existing = guildService.getHome(guild.id, homeName) != null
         val result = guildHomeActivationService.persistLocation(
             UUID.randomUUID(),
@@ -2247,6 +2385,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             homeName,
             player.uniqueId,
             existedBefore = existing,
+            proposedHome = home,
         ) {
             guildService.setHome(guild.id, homeName, home, player.uniqueId)
         }
@@ -2261,10 +2400,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
                         "cost" to result.cost,
                     ))
                 }
-                if (config.claimsEnabled) {
-                    player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.this_location_is_within_your_guild_s"))
-                }
-                player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.members_can_now_use_guild_home_to"))
+                 player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.members_can_now_use_guild_home_to"))
             }
             is net.lumalyte.lg.application.services.HomeActivationCostResult.Rejected -> {
                 if (result.reason == net.lumalyte.lg.domain.gold.GuildGoldRejection.INSUFFICIENT_FUNDS) {
@@ -2415,7 +2551,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             lang.msg("command.migrated.guild.vaultget.place_this_chest_to_create_your_guild"),
             lang.msg("command.migrated.guild.vaultget.physical_vault_storage"),
             net.kyori.adventure.text.Component.text(""),
-            lang.msg("command.migrated.guild.vaultget.capacity_slots_level", "level" to vaultService.getCapacityForLevel(guild.level), "level_2" to guild.level),
+            lang.msg("command.migrated.guild.vaultget.capacity_slots_level", "level" to vaultService.getPermanentCapacityForGuild(guild), "level_2" to guild.level),
             lang.msg("command.migrated.guild.vaultget.guild", "guild" to guild.name),
             net.kyori.adventure.text.Component.text(""),
             lang.msg("command.migrated.guild.vaultget.only_one_vault_can_exist_per_guild"),
@@ -2438,7 +2574,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         player.sendMessage(lang.msg("command.migrated.guild.vaultget.2_place_the_chest_on_the_ground"))
         player.sendMessage(lang.msg("command.migrated.guild.vaultget.3_access_it_through_guild_menu_bank"))
         player.sendMessage(lang.msg("command.common.blank_line"))
-        player.sendMessage(lang.msg("command.migrated.guild.vaultget.capacity_slots", "level" to vaultService.getCapacityForLevel(guild.level)))
+        player.sendMessage(lang.msg("command.migrated.guild.vaultget.capacity_slots", "level" to vaultService.getPermanentCapacityForGuild(guild)))
         player.sendMessage(lang.msg("command.migrated.guild.vaultget.upgrades_as_your_guild_levels_up"))
 
         // Play success sound

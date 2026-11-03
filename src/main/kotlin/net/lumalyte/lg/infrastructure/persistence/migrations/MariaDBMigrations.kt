@@ -14,7 +14,9 @@ private const val BANNERMAN_MIGRATION_VERSION = 22
 class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: Connection) {
     private val componentLogger = plugin.getComponentLogger()
 
+    /** Advances the MariaDB schema and ensures the invite-block table exists before recording its version. */
     fun migrate() {
+        var migrationSucceeded = false
         try {
             connection.autoCommit = false
             var currentDbVersion = getCurrentDatabaseVersion()
@@ -179,10 +181,47 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(44)
                 currentDbVersion = 44
             }
+            InviteBlockSchema.create(connection, mariaDb = true)
+            if (currentDbVersion < InviteBlockSchema.VERSION) {
+                updateDatabaseVersion(InviteBlockSchema.VERSION)
+                currentDbVersion = InviteBlockSchema.VERSION
+            }
             connection.commit()
 
+            ChronicleGoalSchema.create(connection, mariaDb = true)
+            if (currentDbVersion < ChronicleGoalSchema.VERSION) {
+                updateDatabaseVersion(ChronicleGoalSchema.VERSION)
+                currentDbVersion = ChronicleGoalSchema.VERSION
+            }
+            BankDepositXpSchema.create(connection, mariaDb = true)
+            if (currentDbVersion < BankDepositXpSchema.VERSION) {
+                updateDatabaseVersion(BankDepositXpSchema.VERSION)
+                currentDbVersion = BankDepositXpSchema.VERSION
+            }
+            BankContributionSchema.create(connection, mariaDb = true)
+            if (currentDbVersion < BankContributionSchema.VERSION) {
+                updateDatabaseVersion(BankContributionSchema.VERSION)
+                currentDbVersion = BankContributionSchema.VERSION
+            }
+            OutpostAcquisitionSchema.create(connection, mariaDb = true)
+            if (currentDbVersion < OutpostAcquisitionSchema.VERSION) {
+                updateDatabaseVersion(OutpostAcquisitionSchema.VERSION)
+                currentDbVersion = OutpostAcquisitionSchema.VERSION
+            }
+            GuildHomeAccessGrantSchema.create(connection, mariaDb = true)
+            if (currentDbVersion < GuildHomeAccessGrantSchema.VERSION) {
+                updateDatabaseVersion(GuildHomeAccessGrantSchema.VERSION)
+                currentDbVersion = GuildHomeAccessGrantSchema.VERSION
+            }
+            VaultCapacityUnlockSchema.create(connection, mariaDb = true, backfill = currentDbVersion < VaultCapacityUnlockSchema.VERSION)
+            if (currentDbVersion < VaultCapacityUnlockSchema.VERSION) {
+                updateDatabaseVersion(VaultCapacityUnlockSchema.VERSION)
+                currentDbVersion = VaultCapacityUnlockSchema.VERSION
+            }
+            connection.commit()
             val finalVersion = getCurrentDatabaseVersion()
             componentLogger.info(Component.text("✓ Database migrations completed (v$finalVersion)"))
+            migrationSucceeded = true
         } catch (e: SQLException) {
             plugin.logger.severe("Database migration failed: ${e.message}")
             e.printStackTrace()
@@ -192,9 +231,13 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
             } catch (rb: SQLException) {
                 plugin.logger.severe("Failed to rollback database migration: ${rb.message}")
             }
-            plugin.server.pluginManager.disablePlugin(plugin)
+            // MariaDB DDL can auto-commit: rollback cannot guarantee restoration.
+            // Fail startup immediately instead of advertising an initialized schema.
+            throw SQLException("MariaDB schema migration failed; startup aborted", e)
         } finally {
-            connection.autoCommit = true
+            // Do not accidentally commit when rollback itself failed.
+            // The caller closes the failed connection instead.
+            if (migrationSucceeded) connection.autoCommit = true
         }
     }
 

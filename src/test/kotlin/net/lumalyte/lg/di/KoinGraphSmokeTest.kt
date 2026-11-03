@@ -6,6 +6,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger
 import net.lumalyte.lg.LumaGuilds
+import net.lumalyte.lg.application.services.DurableInviteBlockService
+import net.lumalyte.lg.application.services.InviteBlockService
 import net.lumalyte.lg.infrastructure.persistence.migrations.SQLiteMigrations
 import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
 import org.bukkit.configuration.file.YamlConfiguration
@@ -24,6 +26,7 @@ import org.mockbukkit.mockbukkit.MockBukkit
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.logging.Logger
+import kotlin.test.assertSame
 
 /**
  * Boot smoke test: composes the REAL Koin graph — the same `appModule` the server
@@ -118,6 +121,11 @@ internal class KoinGraphSmokeTest {
                 failures.isEmpty(),
                 "Koin graph has ${failures.size} unresolvable definition(s):\n" +
                     failures.joinToString("\n")
+            )
+            assertSame<Any>(
+                koin.get<InviteBlockService>(),
+                koin.get<DurableInviteBlockService>(),
+                "V1 and V2 must share the same cache and irreversible lifecycle gate",
             )
         } finally {
             // Close the HikariCP connection pool before the temp directory is deleted

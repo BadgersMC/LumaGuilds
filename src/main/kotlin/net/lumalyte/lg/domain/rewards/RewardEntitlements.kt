@@ -7,25 +7,48 @@ class RewardOwnership(
     currentRun: Set<String> = emptySet(),
     permanent: Set<String> = emptySet(),
     val initialHomeCapacity: Int = 1,
-    val prestigeCount: Int = 0
+    val prestigeCount: Int = 0,
+    val baseHomeSlotsEarned: Int = 1,
+    activeOutpostsByPrestige: Map<Int, String> = emptyMap(),
+    /** Runtime projection only: unresolved historical home ownership must not be billed. */
+    val homeOutpostAuditPending: Boolean = false
 ) {
     val currentRun: Set<String> = Collections.unmodifiableSet(currentRun.toSet())
     val permanent: Set<String> = Collections.unmodifiableSet(permanent.toSet())
+    /** Only newly paid durable acquisitions count; legacy permanent reward IDs do not. */
+    val activeOutpostsByPrestige: Map<Int, String> =
+        Collections.unmodifiableMap(activeOutpostsByPrestige.toMap())
 
     init {
         require(initialHomeCapacity > 0)
         require(prestigeCount in 0..6)
+        require(baseHomeSlotsEarned in 1..6)
+        require(activeOutpostsByPrestige.keys.all { it in 1..prestigeCount })
+        require(activeOutpostsByPrestige.values.toSet().size == activeOutpostsByPrestige.size)
     }
 
     fun copy(
         currentRun: Set<String> = this.currentRun,
         permanent: Set<String> = this.permanent,
         initialHomeCapacity: Int = this.initialHomeCapacity,
-        prestigeCount: Int = this.prestigeCount
-    ) = RewardOwnership(currentRun, permanent, initialHomeCapacity, prestigeCount)
+        prestigeCount: Int = this.prestigeCount,
+        baseHomeSlotsEarned: Int = this.baseHomeSlotsEarned,
+        activeOutpostsByPrestige: Map<Int, String> = this.activeOutpostsByPrestige,
+        homeOutpostAuditPending: Boolean = this.homeOutpostAuditPending
+    ) = RewardOwnership(currentRun, permanent, initialHomeCapacity, prestigeCount,
+        baseHomeSlotsEarned, activeOutpostsByPrestige, homeOutpostAuditPending)
 }
 
-enum class RewardOfferStatus { LOCKED, AVAILABLE, PURCHASED, PERMANENT, NO_IMPROVEMENT }
+/** Chapter 1 progression slots are retained after a prestige level reset. */
+fun earnedBaseHomeSlotsAtLevel(level: Int): Int = when {
+    level >= 30 -> 6
+    level >= 20 -> 4
+    level >= 15 -> 3
+    level >= 7 -> 2
+    else -> 1
+}
+
+enum class RewardOfferStatus { LOCKED, AUDIT_PENDING, AVAILABLE, PURCHASED, PERMANENT, NO_IMPROVEMENT }
 data class RewardOffer(val reward: RewardDefinition, val status: RewardOfferStatus)
 
 data class RewardEntitlements(
@@ -67,13 +90,37 @@ class RewardEntitlementResolver(private val catalog: RewardCatalog) {
         val permanentBank = permanent.bankCapacity()
         val currentBank = Math.addExact(tier.automaticBankCapacity, current.filterNot { it.id in ownership.permanent }.bankCapacity())
         val totalBank = Math.addExact(currentBank, permanentBank)
-        val homeCapacity = permanent.fold(Math.addExact(ownership.initialHomeCapacity, ownership.prestigeCount)) { total, reward ->
-            Math.addExact(total, (reward.effect as? RewardEffect.HomeCapacity)?.amount ?: 0)
+        // Old permanent Outpost IDs document historical purchases, not valid per-prestige grants.
+        // Even the sixth prestige must succeed once the 16-home ceiling has been reached.
+        val activeOutposts = ownership.activeOutpostsByPrestige
+        require((ownership.permanent + activeOutposts.values).filter { id ->
+            catalog.find(id)?.effect is RewardEffect.HomeCapacity
+        }.all { id -> (requireReward(id).effect as RewardEffect.HomeCapacity).amount == 1 }) {
+            "Outpost rewards must grant exactly one home"
         }
+        require(activeOutposts.values.all { catalog.find(it)?.effect is RewardEffect.HomeCapacity }) {
+            "Invalid paid Outpost acquisition"
+        }
+        val homeCapacity = minOf(16, Math.addExact(
+            Math.addExact(ownership.baseHomeSlotsEarned, ownership.prestigeCount),
+            activeOutposts.size
+        ))
         val cooldown = active.mapNotNull { (it.effect as? RewardEffect.HomeCooldown)?.multiplier }.minOrNull() ?: 1.0
         val fee = active.mapNotNull { (it.effect as? RewardEffect.WithdrawalFee)?.multiplier }.minOrNull() ?: 1.0
         val offers = catalog.rewards.map { reward ->
             val status = when {
+                reward.effect is RewardEffect.HomeCapacity && reward.id in activeOutposts.values ->
+                    RewardOfferStatus.PERMANENT
+                reward.effect is RewardEffect.HomeCapacity && reward.level > level ->
+                    RewardOfferStatus.LOCKED
+                reward.effect is RewardEffect.HomeCapacity &&
+                    (ownership.prestigeCount == 0 || ownership.prestigeCount in activeOutposts) ->
+                    RewardOfferStatus.LOCKED
+                reward.effect is RewardEffect.HomeCapacity && homeCapacity >= 16 ->
+                    RewardOfferStatus.NO_IMPROVEMENT
+                reward.effect is RewardEffect.HomeCapacity && ownership.homeOutpostAuditPending ->
+                    RewardOfferStatus.AUDIT_PENDING
+                reward.effect is RewardEffect.HomeCapacity -> RewardOfferStatus.AVAILABLE
                 reward.id in ownership.permanent -> RewardOfferStatus.PERMANENT
                 reward.id in ownership.currentRun -> RewardOfferStatus.PURCHASED
                 reward.level > level -> RewardOfferStatus.LOCKED
@@ -99,8 +146,14 @@ class RewardEntitlementResolver(private val catalog: RewardCatalog) {
     fun recordPurchase(level: Int, ownership: RewardOwnership, rewardId: String): RewardOwnership {
         val offer = resolve(level, ownership).offer(rewardId)
         require(offer.status == RewardOfferStatus.AVAILABLE) { "Reward is not available: ${offer.status}" }
-        return if (offer.reward.permanentOnPurchase) ownership.copy(permanent = ownership.permanent + rewardId)
-            else ownership.copy(currentRun = ownership.currentRun + rewardId)
+        return when {
+            offer.reward.effect is RewardEffect.HomeCapacity -> ownership.copy(
+                activeOutpostsByPrestige = ownership.activeOutpostsByPrestige +
+                    (ownership.prestigeCount to rewardId)
+            )
+            offer.reward.permanentOnPurchase -> ownership.copy(permanent = ownership.permanent + rewardId)
+            else -> ownership.copy(currentRun = ownership.currentRun + rewardId)
+        }
     }
 
     /** Persistence invariant only; level, authorization, payment and war guards belong to the use case. */
@@ -108,16 +161,26 @@ class RewardEntitlementResolver(private val catalog: RewardCatalog) {
         resolve(100, old)
         resolve(100, next)
         require(next.initialHomeCapacity == old.initialHomeCapacity) { "Cannot rewrite migrated home capacity" }
+        require(next.baseHomeSlotsEarned >= old.baseHomeSlotsEarned) { "Cannot revoke earned base homes" }
         require(next.permanent.containsAll(old.permanent)) { "Cannot remove permanent rewards" }
+        require(next.activeOutpostsByPrestige.entries.containsAll(old.activeOutpostsByPrestige.entries)) {
+            "Cannot rewrite a paid Outpost acquisition"
+        }
+        val newOutposts = next.activeOutpostsByPrestige - old.activeOutpostsByPrestige.keys
         when (next.prestigeCount - old.prestigeCount) {
             0 -> {
                 require(next.currentRun.containsAll(old.currentRun - next.permanent)) { "Cannot remove run purchases without prestige" }
                 require((next.permanent - old.permanent).all { requireReward(it).permanentOnPurchase }) {
                     "Only home capacity becomes permanent outside prestige"
                 }
+                require(newOutposts.size <= 1 && newOutposts.keys.all { it == old.prestigeCount && it >= 1 }) {
+                    "At most one newly paid Outpost in the current prestige"
+                }
+                require(newOutposts.values.all { requireReward(it).effect is RewardEffect.HomeCapacity })
             }
             1 -> {
                 require(next.currentRun.isEmpty()) { "Prestige must clear all run purchases" }
+                require(newOutposts.isEmpty()) { "Prestige cannot grant a paid Outpost" }
                 val newPermanent = next.permanent - old.permanent
                 require(newPermanent.size == 1) { "Prestige retains exactly one perk" }
                 require(resolve(100, old).prestigeChoices.any { it.id == newPermanent.single() }) { "Invalid retained selection" }

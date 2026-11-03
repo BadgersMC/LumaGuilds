@@ -57,18 +57,19 @@ class GuildCostService @JvmOverloads constructor(
         create: () -> Guild?,
     ): GuildCreationCostResult {
         val cfg = config()
-        if (!cfg.chapterTwoGoldCostsEnabled) {
-            return create()?.let { GuildCreationCostResult.Applied(it, 0) }
-                ?: GuildCreationCostResult.CreationFailed(compensated = true)
-        }
-        val cost = cfg.guild.createGuildCost.toLong()
-        if (cost <= 0) return GuildCreationCostResult.ConfigurationError
+        // An unresolved paid founding must remain blocked even if costs are later disabled.
         try {
             physicalGold.pendingReservation(playerId)?.let { return GuildCreationCostResult.PendingReview(it) }
         } catch (error: Exception) {
             reportCreationFailure(transactionId, error)
             return GuildCreationCostResult.PaymentUnavailable
         }
+        if (!cfg.chapterTwoGoldCostsEnabled) {
+            return create()?.let { GuildCreationCostResult.Applied(it, 0) }
+                ?: GuildCreationCostResult.CreationFailed(compensated = true)
+        }
+        val cost = cfg.guild.createGuildCost.toLong()
+        if (cost <= 0) return GuildCreationCostResult.ConfigurationError
 
         return when (val reserved = physicalGold.reserve(transactionId, playerId, cost)) {
             PhysicalReservationResult.Insufficient -> GuildCreationCostResult.InsufficientGold

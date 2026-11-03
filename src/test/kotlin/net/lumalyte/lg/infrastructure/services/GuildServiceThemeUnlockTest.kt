@@ -40,6 +40,7 @@ internal class GuildServiceThemeUnlockTest {
                 hologramService = mockk(relaxed = true), relationRepository = mockk(relaxed = true),
                 historyRepository = mockk(relaxed = true), adminOverrideService = noAdminOverride(),
                 homeActivationService = mockk(relaxed = true), themeAccess = access,
+                homeAccess = LegacyHomeAccessTestAdapter,
             )
         return instance
     }

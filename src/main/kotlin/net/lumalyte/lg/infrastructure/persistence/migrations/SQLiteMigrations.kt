@@ -8,7 +8,9 @@ import java.sql.SQLException
 
 class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: Connection, private val claimsEnabled: Boolean = true) {
     private val componentLogger = plugin.getComponentLogger()
+    /** Applies SQLite migrations and validates/repairs required schema within the migration transaction. */
     fun migrate() {
+        var migrationSucceeded = false
         try {
             // Enable WAL mode BEFORE starting transaction (if needed for migration to v12)
             val currentDbVersion = getCurrentDatabaseVersion()
@@ -249,6 +251,41 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(44)
                 dbVersion = 44
             }
+            if (dbVersion < InviteBlockSchema.VERSION) {
+                InviteBlockSchema.create(connection, mariaDb = false)
+                updateDatabaseVersion(InviteBlockSchema.VERSION)
+                dbVersion = InviteBlockSchema.VERSION
+            }
+            ChronicleGoalSchema.create(connection, mariaDb = false)
+            if (dbVersion < ChronicleGoalSchema.VERSION) {
+                updateDatabaseVersion(ChronicleGoalSchema.VERSION)
+                dbVersion = ChronicleGoalSchema.VERSION
+            }
+            BankDepositXpSchema.create(connection, mariaDb = false)
+            if (dbVersion < BankDepositXpSchema.VERSION) {
+                updateDatabaseVersion(BankDepositXpSchema.VERSION)
+                dbVersion = BankDepositXpSchema.VERSION
+            }
+            BankContributionSchema.create(connection, mariaDb = false)
+            if (dbVersion < BankContributionSchema.VERSION) {
+                updateDatabaseVersion(BankContributionSchema.VERSION)
+                dbVersion = BankContributionSchema.VERSION
+            }
+            OutpostAcquisitionSchema.create(connection, mariaDb = false)
+            if (dbVersion < OutpostAcquisitionSchema.VERSION) {
+                updateDatabaseVersion(OutpostAcquisitionSchema.VERSION)
+                dbVersion = OutpostAcquisitionSchema.VERSION
+            }
+            GuildHomeAccessGrantSchema.create(connection, mariaDb = false)
+            if (dbVersion < GuildHomeAccessGrantSchema.VERSION) {
+                updateDatabaseVersion(GuildHomeAccessGrantSchema.VERSION)
+                dbVersion = GuildHomeAccessGrantSchema.VERSION
+            }
+            VaultCapacityUnlockSchema.create(connection, mariaDb = false, backfill = dbVersion < VaultCapacityUnlockSchema.VERSION)
+            if (dbVersion < VaultCapacityUnlockSchema.VERSION) {
+                updateDatabaseVersion(VaultCapacityUnlockSchema.VERSION)
+                dbVersion = VaultCapacityUnlockSchema.VERSION
+            }
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
 
@@ -266,12 +303,13 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                     componentLogger.info(Component.text("✓ Schema auto-repair successful"))
                     // Verify again after repair
                     if (!verifier.verifyGuildsTableSchema()) {
-                        componentLogger.error(Component.text("✗ Schema still invalid after repair - plugin may not function correctly"))
+                        throw SQLException("SQLite guilds schema remains invalid after auto-repair")
                     }
                 } else {
-                    componentLogger.error(Component.text("✗ Schema auto-repair failed - please report this issue"))
+                    throw SQLException("SQLite guilds schema auto-repair failed")
                 }
             }
+            migrationSucceeded = true
         } catch (e: SQLException) {
             plugin.logger.severe("Database migration failed: ${e.message}")
             e.printStackTrace()
@@ -281,10 +319,13 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             } catch (rb: SQLException) {
                 plugin.logger.severe("Failed to rollback database migration: ${rb.message}")
             }
-            // You might want to disable the plugin here if migration is critical
-            plugin.server.pluginManager.disablePlugin(plugin)
+            // Propagate failure to onEnable before any services/listeners are registered.
+            // A failed migration must never be mistaken for a successful startup.
+            throw SQLException("SQLite schema migration failed; startup aborted", e)
         } finally {
-            connection.autoCommit = true // Reset auto-commit
+            // Changing auto-commit back to true can commit an unrolled-back transaction.
+            // Failed migrations are always closed by the caller; do not commit on cleanup.
+            if (migrationSucceeded) connection.autoCommit = true
         }
     }
 
@@ -1442,7 +1483,17 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             "war_banners", "war_notifications", "player_notification_preferences", "guild_discord_roles",
             "spawn_banners", "rank_claim_permission_profiles",
             QuestCompletionNotificationSchema.TABLE, GuildChatRankSettingsSchema.TABLE,
-            GuildHomeActivationSchema.ACTIVATIONS_TABLE, GuildHomeActivationSchema.CREDITS_TABLE
+            GuildHomeActivationSchema.ACTIVATIONS_TABLE, GuildHomeActivationSchema.CREDITS_TABLE,
+            InviteBlockSchema.TABLE, BankDepositXpSchema.DELIVERIES, BankDepositXpSchema.SEQUENCES,
+            BankContributionSchema.ACCOUNTS,
+            BankContributionSchema.RECEIPTS,
+            BankContributionSchema.QUESTS,
+            BankContributionSchema.GUARDS,
+            BankContributionSchema.QUEST_INTENTS,
+            BankContributionSchema.QUEST_RECOVERY,
+            BankContributionSchema.QUEST_ATTEMPTS,
+            BankContributionSchema.QUEST_TRANSITION,
+            BankContributionSchema.QUEST_REVISION,
         )
 
         // Add claim tables to required list if claims are enabled
@@ -1531,6 +1582,9 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             }
             if (GuildChatRankSettingsSchema.TABLE in missingTables) {
                 GuildChatRankSettingsSchema.create(connection, mariaDb = false)
+            }
+            if (InviteBlockSchema.TABLE in missingTables) {
+                InviteBlockSchema.create(connection, mariaDb = false)
             }
             if (GuildHomeActivationSchema.ACTIVATIONS_TABLE in missingTables ||
                 GuildHomeActivationSchema.CREDITS_TABLE in missingTables) {

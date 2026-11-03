@@ -5,7 +5,9 @@ import io.mockk.mockk
 import io.mockk.verify
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
+import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.domain.entities.GuildProgression
 import net.lumalyte.lg.config.VaultConfig
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.infrastructure.vault.VaultInventoryManager
@@ -13,8 +15,11 @@ import net.lumalyte.lg.interaction.inventory.VaultInventoryHolder
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.event.inventory.InventoryAction
 import org.bukkit.event.inventory.InventoryClickEvent
+import org.bukkit.event.inventory.InventoryDragEvent
 import org.bukkit.event.inventory.InventoryOpenEvent
 import org.bukkit.event.inventory.InventoryType
+import org.bukkit.Material
+import org.bukkit.inventory.ItemStack
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -136,6 +141,115 @@ internal class VaultSessionPermissionTest {
         assertFalse(event.isCancelled)
     }
 
+    @Test fun unentitledOverflowIsWithdrawalOnly() {
+        val fixture = Fixture(RankPermission.entries.toSet(), unlockedCapacity = 9)
+
+        for (action in listOf(
+            InventoryAction.PICKUP_ALL, InventoryAction.PICKUP_HALF,
+            InventoryAction.DROP_ONE_SLOT, InventoryAction.MOVE_TO_OTHER_INVENTORY,
+        )) {
+            val withdrawal = fixture.click(action, 53)
+            fixture.listener.onInventoryClick(withdrawal)
+            assertFalse(withdrawal.isCancelled, "$action should retrieve an occupied overflow item")
+        }
+
+        for (action in listOf(
+            InventoryAction.PLACE_ALL, InventoryAction.PLACE_ONE,
+            InventoryAction.SWAP_WITH_CURSOR, InventoryAction.HOTBAR_SWAP,
+            InventoryAction.CLONE_STACK,
+        )) {
+            val insertion = fixture.click(action, 53)
+            fixture.listener.onInventoryClick(insertion)
+            assertTrue(insertion.isCancelled, "$action must not deposit into a locked overflow slot")
+        }
+
+        val shiftDeposit = fixture.click(InventoryAction.MOVE_TO_OTHER_INVENTORY, PLAYER_SLOT)
+        fixture.listener.onInventoryClick(shiftDeposit)
+        assertTrue(shiftDeposit.isCancelled, "Shift-deposit must not auto-fill locked overflow slots")
+
+        val unlockedDeposit = fixture.click(InventoryAction.PLACE_ALL, 5)
+        fixture.listener.onInventoryClick(unlockedDeposit)
+        assertFalse(unlockedDeposit.isCancelled, "The unlocked first row must still accept items")
+    }
+
+    @Test fun alreadyOpenVaultKeepsEarnedRowsAfterPrestige() {
+        // Permanent capacity is captured when the holder is created. Resetting
+        // the run level to 1 must not revoke a previously earned sixth row.
+        val fixture = Fixture(
+            RankPermission.entries.toSet(),
+            unlockedCapacity = 54,
+            progressionLevel = 1,
+            cachedProgressionLevel = 100,
+        )
+        val place = fixture.click(InventoryAction.PLACE_ALL, 53)
+        fixture.listener.onInventoryClick(place)
+        assertFalse(place.isCancelled, "Prestige must not lock earned vault storage")
+        val pickup = fixture.click(InventoryAction.PICKUP_ALL, 53)
+        fixture.listener.onInventoryClick(pickup)
+        assertFalse(pickup.isCancelled)
+        verify(exactly = 0) { fixture.progression.readCommittedLevel(fixture.guildId) }
+    }
+
+    @Test fun staleCachedLevelCannotBypassUnentitledOverflow() {
+        // A high cached or committed run level is never an excuse to bypass
+        // the authoritative durable capacity captured by the vault holder.
+        val fixture = Fixture(
+            RankPermission.entries.toSet(), unlockedCapacity = 9,
+            progressionLevel = 100, cachedProgressionLevel = 100,
+        )
+        val attemptedDeposit = fixture.click(InventoryAction.PLACE_ALL, 53)
+        fixture.listener.onInventoryClick(attemptedDeposit)
+        assertTrue(attemptedDeposit.isCancelled, "Rows beyond the durable unlock stay withdrawal-only")
+        verify(exactly = 0) { fixture.progression.readCommittedLevel(fixture.guildId) }
+
+        val ordinaryClick = fixture.click(InventoryAction.PLACE_ALL, 5)
+        fixture.listener.onInventoryClick(ordinaryClick)
+        assertFalse(ordinaryClick.isCancelled)
+    }
+
+    @Test fun unavailableProgressionRefreshDoesNotRevokeEarnedRows() {
+        val fixture = Fixture(
+            RankPermission.entries.toSet(), unlockedCapacity = 54,
+            progressionLevel = 1, cachedProgressionLevel = 100,
+        )
+        every { fixture.progression.readCommittedLevel(fixture.guildId) } throws IllegalStateException("SQLite unavailable")
+        val attemptedDeposit = fixture.click(InventoryAction.PLACE_ALL, 53)
+        fixture.listener.onInventoryClick(attemptedDeposit)
+        assertFalse(attemptedDeposit.isCancelled, "Previously persisted rows stay writable")
+        val withdrawal = fixture.click(InventoryAction.PICKUP_ALL, 53)
+        fixture.listener.onInventoryClick(withdrawal)
+        assertFalse(withdrawal.isCancelled)
+        verify(exactly = 0) { fixture.progression.readCommittedLevel(fixture.guildId) }
+    }
+
+    @Test fun dragIntoOverflowIsCancelledBeforeInventoryMutation() {
+        val fixture = Fixture(RankPermission.entries.toSet(), unlockedCapacity = 9, progressionLevel = 1)
+        val untouched = ItemStack(Material.DIAMOND, 4)
+        fixture.inventory.setItem(53, untouched)
+        val drag = InventoryDragEvent(
+            fixture.player.openInventory,
+            ItemStack(Material.DIAMOND, 2),
+            ItemStack(Material.DIAMOND, 1),
+            false,
+            mapOf(53 to ItemStack(Material.DIAMOND, 2)),
+        )
+        fixture.listener.onInventoryDrag(drag)
+        assertTrue(drag.isCancelled)
+        assertTrue(fixture.inventory.getItem(53)?.isSimilar(untouched) == true)
+    }
+
+    @Test fun vaultWideCollectionAndHotbarReaddAreBlockedWhenOverflowExists() {
+        val fixture = Fixture(RankPermission.entries.toSet(), unlockedCapacity = 9, progressionLevel = 1)
+        for (action in listOf(
+            InventoryAction.COLLECT_TO_CURSOR,
+            InventoryAction.HOTBAR_MOVE_AND_READD,
+        )) {
+            val event = fixture.click(action, 5)
+            fixture.listener.onInventoryClick(event)
+            assertTrue(event.isCancelled, "$action may affect an unseen overflow destination")
+        }
+    }
+
     @Test fun cancelledClickDoesNotSync() {
         val fixture = Fixture(RankPermission.entries.toSet())
         val event = fixture.click(InventoryAction.PICKUP_ALL, 1)
@@ -158,6 +272,9 @@ internal class VaultSessionPermissionTest {
 
 private class Fixture(
     permissions: Set<RankPermission>,
+    private val unlockedCapacity: Int = VAULT_SIZE,
+    private val progressionLevel: Int = 100,
+    private val cachedProgressionLevel: Int = progressionLevel,
 ) {
     val server = MockBukkit.mock()
     val plugin = MockBukkit.createMockPlugin()
@@ -165,6 +282,7 @@ private class Fixture(
     val guildId = UUID.randomUUID()
     val manager = mockk<VaultInventoryManager>(relaxed = true)
     private val members = mockk<MemberService>(relaxed = true)
+    val progression = mockk<ProgressionRepository>(relaxed = true)
     private val holder = mockk<VaultInventoryHolder>()
     val inventory = server.createInventory(holder, VAULT_SIZE, Component.text("Vault"))
     val listener =
@@ -176,13 +294,18 @@ private class Fixture(
             mockk(relaxed = true),
             members,
             mockk(relaxed = true),
+            progression,
         )
 
     init {
         every { holder.guildId } returns guildId
         every { holder.guildName } returns "Guild"
         every { holder.inventory } returns inventory
-        every { holder.getCapacity() } returns VAULT_SIZE
+        every { holder.getCapacity() } returns unlockedCapacity
+        val cachedProgression = mockk<GuildProgression>()
+        every { cachedProgression.currentLevel } returns cachedProgressionLevel
+        every { progression.getGuildProgression(guildId) } returns cachedProgression
+        every { progression.readCommittedLevel(guildId) } returns progressionLevel
         every { members.hasPermission(player.uniqueId, guildId, any()) } answers
             { thirdArg<RankPermission>() in permissions }
         val lang = mockk<LangService>(relaxed = true)

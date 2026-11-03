@@ -45,6 +45,10 @@ class GuildStrikePenaltyConfirmMenu(
     private val lang: LangService by inject()
 
     override fun open() {
+        createGui().show(player)
+    }
+
+    internal fun createGui(): ChestGui {
         val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.guiTitle("menu.guild_strike_penalty_confirm.title", "type" to penaltyTypeGuiName())))
         val pane = StaticPane(0, 0, 9, 3)
         gui.setOnTopClick { event -> event.isCancelled = true }
@@ -74,11 +78,11 @@ class GuildStrikePenaltyConfirmMenu(
             .lore(lang.gui("menu.guild_strike_penalty_confirm.cancel.description"))
             .lore(lang.gui("menu.guild_strike_penalty_confirm.cancel.safe"))
         pane.addItem(GuiItem(cancelItem) {
-            menuNavigator.openMenu(GuildStrikePenaltyMenu(menuNavigator, player, guild, strikesConfig))
+            returnToPenaltyOptions()
         }, 6, 1)
 
         gui.addPane(pane)
-        gui.show(player)
+        return gui
     }
 
     private fun describePenalty(): Component {
@@ -118,8 +122,14 @@ class GuildStrikePenaltyConfirmMenu(
             }
             is PenaltyService.PenaltyResult.Failure -> {
                 player.sendMessage(renderPenaltyFeedback(result))
-                menuNavigator.openMenu(GuildStrikePenaltyMenu(menuNavigator, player, guild, strikesConfig))
+                returnToPenaltyOptions()
             }
+        }
+    }
+
+    private fun returnToPenaltyOptions() {
+        menuNavigator.returnTo(GuildStrikePenaltyMenu::class.java) {
+            GuildStrikePenaltyMenu(menuNavigator, player, guild, strikesConfig)
         }
     }
 

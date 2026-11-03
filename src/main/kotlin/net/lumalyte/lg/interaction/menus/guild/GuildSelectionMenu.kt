@@ -80,9 +80,7 @@ class GuildSelectionMenu(
 
         // Calculate pagination
         val totalPages = (allGuilds.size + itemsPerPage - 1) / itemsPerPage
-        if (currentPage >= totalPages && totalPages > 0) {
-            currentPage = totalPages - 1
-        }
+        currentPage = currentPage.coerceIn(0, maxOf(1, totalPages) - 1)
 
         // Get guilds for current page
         val startIndex = currentPage * itemsPerPage
@@ -177,7 +175,7 @@ class GuildSelectionMenu(
         val prevGuiItem = GuiItem(prevItem) {
             if (currentPage > 0) {
                 currentPage--
-                updateGuildsDisplay()
+                open()
             }
         }
         pane.addItem(prevGuiItem, 0, 5)
@@ -190,7 +188,7 @@ class GuildSelectionMenu(
         val nextGuiItem = GuiItem(nextItem) {
             if (currentPage < totalPages - 1) {
                 currentPage++
-                updateGuildsDisplay()
+                open()
             }
         }
         pane.addItem(nextGuiItem, 8, 5)
@@ -219,14 +217,13 @@ class GuildSelectionMenu(
             .lore(lang.gui("menu.party.guild_selection.back.lore"))
 
         val backGuiItem = GuiItem(backItem) {
-            // Pass back the selected guilds to the party creation menu
-            menuNavigator.openMenu(menuFactory.createPartyCreationMenu(menuNavigator, player, currentGuild).apply {
-                passData(mapOf(
-                    "selectedGuilds" to selectedGuilds.toSet(),
-                    "partyName" to "", // Will be handled by the creation menu
-                    "restrictedRoles" to setOf<UUID>() // Will be handled by the creation menu
-                ))
-            })
+            // Retain the existing name and role selections while updating invited guilds.
+            menuNavigator.returnToWithData(
+                PartyCreationMenu::class.java,
+                mapOf("selectedGuilds" to selectedGuilds.toSet()),
+            ) {
+                menuFactory.createPartyCreationMenu(menuNavigator, player, currentGuild)
+            }
         }
         pane.addItem(backGuiItem, x, y)
     }

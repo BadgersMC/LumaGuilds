@@ -344,6 +344,23 @@ interface GuildService {
     fun canUseHome(playerId: UUID, guildId: UUID, homeName: String): Boolean
 
     /**
+     * Lock state is independent of saved coordinates and separately paid activation.
+     * Pre-reconciliation homes stay accessible until a verified per-guild READY transition.
+     */
+    fun getHomeAccessState(guildId: UUID, homeName: String):
+        net.lumalyte.lg.application.persistence.GuildHomeAccessState =
+        net.lumalyte.lg.application.persistence.GuildHomeAccessState.UNRECONCILED
+
+    fun isHomeLocked(guildId: UUID, homeName: String): Boolean =
+        getHomeAccessState(guildId, homeName).locked
+
+    fun canCreateNewHome(guildId: UUID): Boolean =
+        getHomes(guildId).size < getAvailableHomeSlots(guildId)
+
+    /** Use one already-paid Outpost grant to restore a locked saved location, without charging gold. */
+    fun restoreLockedOutpost(guildId: UUID, homeName: String, actorId: UUID): Boolean = false
+
+    /**
      * Checks whether a player may teleport to another guild's ally-home. Returns true when:
      * - player is in `sourceGuildId`, AND
      * - target guild has an ally-home set, AND

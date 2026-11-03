@@ -7,6 +7,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
+import org.bukkit.event.player.PlayerQuitEvent
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.*
@@ -51,7 +52,13 @@ class ChatInputListener : Listener, KoinComponent {
     }
 
     // Track players who are in input mode with their handlers
-    private val inputModePlayers = mutableMapOf<UUID, ChatInputHandler>()
+    private val inputModePlayers = java.util.concurrent.ConcurrentHashMap<UUID, ChatInputHandler>()
+
+    /** Disconnecting discards private input so the next session cannot submit an old form. */
+    @EventHandler
+    fun onQuit(event: PlayerQuitEvent) {
+        stopInputMode(event.player)
+    }
 
     /**
      * Registers a player as being in input mode with a handler
@@ -65,6 +72,12 @@ class ChatInputListener : Listener, KoinComponent {
      */
     fun stopInputMode(player: Player) {
         inputModePlayers.remove(player.uniqueId)
+    }
+
+    /** Cancels only the expected prompt; an old timeout cannot remove a newer prompt. */
+    fun stopInputMode(player: Player, handler: ChatInputHandler): Boolean {
+        val removed = inputModePlayers.remove(player.uniqueId, handler)
+        return removed
     }
 
     /**
@@ -148,13 +161,13 @@ class ChatInputListener : Listener, KoinComponent {
     }
 
     private fun processChatInput(player: Player, handler: ChatInputHandler?, input: String) {
+        if (handler == null || !inputModePlayers.remove(player.uniqueId, handler)) return
         // Check if player wants to cancel
         if (input.equals("cancel", ignoreCase = true)) {
-            stopInputMode(player)
 
             // Schedule cancel callback on main thread (in case it opens GUIs)
             org.bukkit.Bukkit.getScheduler().runTask(net.lumalyte.lg.common.PluginKeys.getPlugin(), Runnable {
-                handler?.onCancel(player)
+                if (player.isOnline) handler.onCancel(player)
             })
             return
         }
@@ -162,10 +175,9 @@ class ChatInputListener : Listener, KoinComponent {
         // Process the input using the handler
         // IMPORTANT: Schedule on main thread because handlers often reopen GUIs
         org.bukkit.Bukkit.getScheduler().runTask(net.lumalyte.lg.common.PluginKeys.getPlugin(), Runnable {
-            handler?.onChatInput(player, input)
+            if (player.isOnline) handler.onChatInput(player, input)
         })
 
         // Remove from input mode
-        stopInputMode(player)
     }
 }

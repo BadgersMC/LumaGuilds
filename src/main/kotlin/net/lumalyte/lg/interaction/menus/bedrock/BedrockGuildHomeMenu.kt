@@ -4,6 +4,8 @@ import net.lumalyte.lg.infrastructure.i18n.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.utils.GuildHomeSafety
 import net.lumalyte.lg.application.services.HomeActivationCostResult
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
@@ -38,21 +40,28 @@ class BedrockGuildHomeMenu(
     private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
     private val plugin: Plugin by inject()
     private val lang: LangService by inject()
+    private val configService: ConfigService by inject()
 
     override fun getForm(): Form {
         val homes = guildService.getHomes(guild.id)
         val maxHomes = guildService.getAvailableHomeSlots(guild.id)
-        val availableSlots = maxHomes - homes.size
+        val availableSlots = if (guildService.canCreateNewHome(guild.id)) 1 else 0
+        val lockedHomes = homes.homeNames.count { guildService.isHomeLocked(guild.id, it) }
 
         return SimpleForm.builder()
             .title(lang.bedrock("bedrock.home.title", "guild" to guild.name))
-            .content(buildHomeContent(maxHomes, availableSlots))
+            .content(buildHomeContent(maxHomes, availableSlots, homes.size) +
+                "\n" + lang.bedrock("bedrock.home.content.locked_summary",
+                    "active" to homes.size - lockedHomes, "locked" to lockedHomes))
             .apply {
                 // Add existing homes
                 if (homes.hasHomes()) {
                     homes.homeNames.forEach { homeName ->
+                        val locked = guildService.isHomeLocked(guild.id, homeName)
                         val active = homeActivationService.isActive(guild.id, homeName)
-                        button(if (active) {
+                        button(if (locked) {
+                            lang.bedrock("bedrock.home.button.locked", "home" to homeName)
+                        } else if (active) {
                             lang.bedrock("bedrock.home.button.teleport", "home" to homeName)
                         } else if (canManageHomes()) {
                             lang.bedrock("bedrock.home.button.activate", "home" to homeName)
@@ -89,11 +98,11 @@ class BedrockGuildHomeMenu(
             .build()
     }
 
-    private fun buildHomeContent(maxHomes: Int, availableSlots: Int): String {
-        return if (availableSlots > 0) {
-            lang.bedrock("bedrock.home.content.available", "maximum" to maxHomes, "available" to availableSlots)
-        } else {
-            lang.bedrock("bedrock.home.content.full", "maximum" to maxHomes, "available" to availableSlots)
+    private fun buildHomeContent(maxHomes: Int, availableSlots: Int, savedHomes: Int): String {
+        return when {
+            savedHomes > maxHomes -> lang.bedrock("bedrock.home.content.over_cap", "maximum" to maxHomes, "saved" to savedHomes)
+            availableSlots > 0 -> lang.bedrock("bedrock.home.content.available", "maximum" to maxHomes, "available" to availableSlots)
+            else -> lang.bedrock("bedrock.home.content.full", "maximum" to maxHomes, "available" to availableSlots)
         }
     }
 
@@ -113,6 +122,15 @@ class BedrockGuildHomeMenu(
             val homeName = homeNames[buttonIndex]
             val home = homes.getHome(homeName)
             if (home != null) {
+                if (guildService.isHomeLocked(guild.id, homeName)) {
+                    if (canManageHomes() && guildService.restoreLockedOutpost(guild.id, homeName, player.uniqueId)) {
+                        player.sendMessage(lang.msg("bedrock.home.feedback.restored", "home" to homeName))
+                    } else {
+                        player.sendMessage(lang.msg("bedrock.home.feedback.restore_unavailable", "home" to homeName))
+                    }
+                    bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+                    return
+                }
                 if (!homeActivationService.isActive(guild.id, homeName)) {
                     if (canManageHomes()) activateSavedHome(homeName)
                     else player.sendMessage(lang.msg("bedrock.home.feedback.inactive", "home" to homeName))
@@ -122,7 +140,7 @@ class BedrockGuildHomeMenu(
                     player.sendMessage(lang.msg("bedrock.home.feedback.no_permission", "home" to homeName))
                     return
                 }
-                teleportToHome(home)
+                teleportToHome(home, homeName)
             }
             return
         }
@@ -174,19 +192,31 @@ class BedrockGuildHomeMenu(
         bedrockNavigator.goBack()
     }
 
-    private fun teleportToHome(home: GuildHome) {
+    private fun teleportToHome(home: GuildHome, homeName: String) {
         // Main form handler already runs on the server thread via runTask in getForm();
         // no second hop needed here.
-        runTeleportOnMain(home)
+        runTeleportOnMain(home, homeName)
     }
 
-    private fun runTeleportOnMain(home: GuildHome) {
+    private fun runTeleportOnMain(home: GuildHome, homeName: String) {
         try {
             val targetLocation = buildHomeLocation(home)
             if (targetLocation == null) {
                 player.sendMessage(lang.msg("bedrock.home.feedback.teleport_failed"))
+            } else if (configService.loadConfig().guild.homeTeleportSafetyCheck &&
+                !GuildHomeSafety.isSafeForUnconfirmedUse(targetLocation)
+            ) {
+                player.sendMessage(lang.msg("menu.guild_home.feedback.unsafe_teleport"))
+                player.sendMessage(lang.msg("menu.guild_home.feedback.safety_hint"))
             } else {
-                teleportationService.startTeleport(player, targetLocation)
+                teleportationService.startTeleportGuarded(
+                    player, targetLocation,
+                    mayProceed = {
+                        guildService.canUseHome(player.uniqueId, guild.id, homeName) &&
+                            homeActivationService.isActive(guild.id, homeName) &&
+                            guildService.getHome(guild.id, homeName) == home
+                    },
+                )
             }
         } catch (e: Exception) {
             logger.log(Level.WARNING, "Error teleporting to home", e)
@@ -208,10 +238,18 @@ class BedrockGuildHomeMenu(
     }
 
     private fun showSetHomeMenu() {
-        // Get current homes to generate proper name
+        // Generate a genuinely vacant name, even when earlier numbered homes were removed.
         val homes = guildService.getHomes(guild.id)
-        val homeName = "home${homes.size + 1}"
+        val homeName = nextAvailableGuildHomeName(homes.homeNames)
         val currentLocation = player.location
+        if (configService.loadConfig().guild.homeTeleportSafetyCheck &&
+            !GuildHomeSafety.isSafeForUnconfirmedUse(currentLocation)
+        ) {
+            player.sendMessage(lang.msg("menu.guild_home.feedback.unsafe_set"))
+            player.sendMessage(lang.msg("menu.guild_home.feedback.safety_hint"))
+            bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+            return
+        }
 
         val home = GuildHome(
             worldId = currentLocation.world.uid,
@@ -220,6 +258,7 @@ class BedrockGuildHomeMenu(
 
         val result = homeActivationService.persistLocation(
             UUID.randomUUID(), guild.id, homeName, player.uniqueId, existedBefore = false,
+            proposedHome = home,
         ) { guildService.setHome(guild.id, homeName, home, player.uniqueId) }
         when (result) {
             is HomeActivationCostResult.Applied -> {
@@ -285,7 +324,7 @@ class BedrockGuildHomeMenu(
             .validResultHandler { response ->
                 Bukkit.getScheduler().runTask(plugin, Runnable {
                     val homeName = homes.homeNames.toList().getOrNull(response.clickedButtonId())
-                    if (homeName != null && canManageHomes()) {
+                    if (homeName != null && canManageHomes() && !guildService.isHomeLocked(guild.id, homeName)) {
                         bedrockNavigator.openMenu(
                             menuFactory.createHomeAccessMenu(menuNavigator, player, guild, homeName)
                         )
@@ -310,7 +349,11 @@ class BedrockGuildHomeMenu(
         }
         val removeForm = SimpleForm.builder()
             .title(lang.bedrock("bedrock.home.remove.title", "guild" to guild.name))
-            .content(lang.bedrock("bedrock.home.remove.description"))
+            .content(if (homes.size > guildService.getAvailableHomeSlots(guild.id)) {
+                lang.bedrock("bedrock.home.remove.over_cap_warning")
+            } else {
+                lang.bedrock("bedrock.home.remove.description")
+            })
             .apply {
                 homes.homeNames.forEach { homeName ->
                     button(lang.bedrock("bedrock.home.remove.button", "home" to homeName))
@@ -364,4 +407,11 @@ class BedrockGuildHomeMenu(
         /** Half-block offset so the player spawns centered on the home block. */
         private const val BLOCK_CENTER_OFFSET = 0.5
     }
+}
+
+/** First vacant numbered name; never silently rewrite a saved home after gaps in the list. */
+internal fun nextAvailableGuildHomeName(existingNames: Collection<String>): String {
+    var number = 1
+    while (existingNames.any { it.equals("home$number", ignoreCase = true) }) number++
+    return "home$number"
 }

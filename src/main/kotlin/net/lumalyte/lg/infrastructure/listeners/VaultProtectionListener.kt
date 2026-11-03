@@ -196,7 +196,7 @@ class VaultProtectionListener : Listener, KoinComponent {
             ))
             player.sendMessage(lang.msg("notification.vault.blank"))
             player.sendMessage(lang.msg("notification.vault.placement.access"))
-            player.sendMessage(lang.msg("notification.vault.placement.capacity", "slots" to vaultService.getCapacityForLevel(guild.level)))
+            player.sendMessage(lang.msg("notification.vault.placement.capacity", "slots" to vaultService.getPermanentCapacityForGuild(guild)))
 
                 // Play success sound
                 player.playSound(player.location, org.bukkit.Sound.BLOCK_ENDER_CHEST_OPEN, 1.0f, 1.2f)
@@ -248,7 +248,7 @@ class VaultProtectionListener : Listener, KoinComponent {
                     player.sendMessage(lang.msg("notification.vault.open.success_header"))
                     player.sendMessage(lang.msg("notification.vault.open.success", "guild" to guild.name))
                     player.playSound(player.location, org.bukkit.Sound.BLOCK_ENDER_CHEST_OPEN, 1.0f, 1.0f)
-                    logger.debug("Opened custom vault inventory for ${player.name} (guild: ${guild.name}, capacity: ${vaultService.getCapacityForLevel(guild.level)} slots)")
+                    logger.debug("Opened custom vault inventory for ${player.name} (guild: ${guild.name}, capacity: ${vaultService.getPermanentCapacityForGuild(guild)} slots)")
                 }
                 is net.lumalyte.lg.application.services.VaultResult.Failure -> {
                     player.sendMessage(lang.msg("notification.vault.failed_header"))

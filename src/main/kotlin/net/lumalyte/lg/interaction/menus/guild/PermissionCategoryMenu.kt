@@ -53,7 +53,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
         if (!rankService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RANKS)) {
             player.sendMessage(lang.msg("menu.rank_edit.feedback.no_permission"))
             player.sendMessage(lang.msg("menu.rank_edit.feedback.required_permission"))
-            menuNavigator.openMenu(RankEditMenu(menuNavigator, player, guild, rank))
+            returnToRankEditor(rank)
             return
         }
 
@@ -224,14 +224,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             } else {
                 player.sendMessage(lang.msg("menu.permission_category.feedback.save_failed"))
             }
-            menuNavigator.openMenu(
-                net.lumalyte.lg.interaction.menus.guild.RankEditMenu(
-                    menuNavigator,
-                    player,
-                    guild,
-                    updatedRank
-                )
-            )
+            returnToRankEditor(updatedRank)
         }
         pane.addItem(saveGuiItem, 1, 5)
 
@@ -245,14 +238,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
 
         val cancelGuiItem = GuiItem(cancelItem) {
             player.sendMessage(lang.msg("menu.permission_category.feedback.discarded"))
-            menuNavigator.openMenu(
-                net.lumalyte.lg.interaction.menus.guild.RankEditMenu(
-                    menuNavigator,
-                    player,
-                    guild,
-                    rank
-                )
-            )
+            returnToRankEditor(rank)
         }
         pane.addItem(cancelGuiItem, 3, 5)
 
@@ -285,18 +271,17 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             .lore(lang.gui("menu.permission_category.action.back.saved"))
 
         val backGuiItem = GuiItem(backItem) {
-            // Update the rank with modified permissions before going back
+            // Carry the draft to the editor; its Save action persists these changes.
             val updatedRank = rank.copy(permissions = modifiedPermissions)
-            menuNavigator.openMenu(
-                net.lumalyte.lg.interaction.menus.guild.RankEditMenu(
-                    menuNavigator,
-                    player,
-                    guild,
-                    updatedRank
-                )
-            )
+            returnToRankEditor(updatedRank)
         }
         pane.addItem(backGuiItem, 7, 5)
+    }
+
+    private fun returnToRankEditor(updatedRank: Rank) {
+        menuNavigator.returnToWithData(RankEditMenu::class.java, updatedRank) {
+            RankEditMenu(menuNavigator, player, guild, updatedRank)
+        }
     }
 
     private fun getPermissionDescription(permission: RankPermission): Component {
@@ -304,6 +289,8 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
             // Guild Management
             RankPermission.MANAGE_RANKS -> lang.gui("menu.permission_category.description.manage_ranks")
             RankPermission.MANAGE_MEMBERS -> lang.gui("menu.permission_category.description.manage_members")
+            RankPermission.MANAGE_RECRUITMENT -> lang.gui("menu.permission_category.description.manage_recruitment")
+            RankPermission.EDIT_RECRUITMENT_SETTINGS -> lang.gui("menu.permission_category.description.edit_recruitment_settings")
             RankPermission.MANAGE_BANNER -> lang.gui("menu.permission_category.description.manage_banner")
             RankPermission.MANAGE_EMOJI -> lang.gui("menu.permission_category.description.manage_emoji")
             RankPermission.MANAGE_DESCRIPTION -> lang.gui("menu.permission_category.description.manage_description")

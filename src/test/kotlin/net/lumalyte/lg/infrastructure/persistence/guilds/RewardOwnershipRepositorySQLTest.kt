@@ -29,6 +29,28 @@ class RewardOwnershipRepositorySQLTest : RewardSqlTestFixture() {
     }
 
     @Test
+    fun `old reward account schema gains monotonic base column without trusting fifteen saved homes`() {
+        val storage = openStorage()
+        storage.connection.executeUpdate("""CREATE TABLE guild_reward_accounts (
+            guild_id VARCHAR(36) PRIMARY KEY,
+            version BIGINT NOT NULL,
+            initial_home_capacity INTEGER NOT NULL,
+            prestige_count INTEGER NOT NULL
+        )""")
+        storage.connection.executeUpdate("""INSERT INTO guild_reward_accounts
+            (guild_id, version, initial_home_capacity, prestige_count) VALUES (?, 0, 15, 0)""",
+            guildId.toString())
+        val repository = RewardOwnershipRepositorySQL(storage, catalog)
+        val snapshot = assertIs<RewardOwnershipRead.Found>(repository.read(guildId)).snapshot
+        assertEquals(15, snapshot.ownership.initialHomeCapacity)
+        assertEquals(1, snapshot.ownership.baseHomeSlotsEarned)
+        assertEquals(1, RewardEntitlementResolver(catalog).resolve(1, snapshot.ownership).homeCapacity)
+        assertEquals(1, storage.connection.getFirstRow(
+            "SELECT base_home_slots_earned AS slots FROM guild_reward_accounts WHERE guild_id = ?",
+            guildId.toString())!!.getInt("slots"))
+    }
+
+    @Test
     fun `purchased and permanent identities survive database reopen`() {
         val (storage, repository) = open()
         repository.initialize(guildId, 6)
@@ -40,7 +62,46 @@ class RewardOwnershipRepositorySQLTest : RewardSqlTestFixture() {
         assertEquals(1L, snapshot.version)
         assertEquals(next.currentRun, snapshot.ownership.currentRun)
         assertEquals(next.permanent, snapshot.ownership.permanent)
-        assertEquals(8, RewardEntitlementResolver(catalog).resolve(100, snapshot.ownership).homeCapacity)
+        assertEquals(1, RewardEntitlementResolver(catalog).resolve(100, snapshot.ownership).homeCapacity)
+    }
+
+    @Test
+    fun `shared earned home resolver agrees with ownership snapshot at guild level thirty`() {
+        val storage = openStorage()
+        storage.connection.executeUpdate(
+            "CREATE TABLE guild_progression (guild_id VARCHAR(36) PRIMARY KEY, current_level INTEGER NOT NULL)"
+        )
+        storage.connection.executeUpdate("INSERT INTO guild_progression VALUES (?, 30)", guildId.toString())
+        val owners = RewardOwnershipRepositorySQL(storage, catalog)
+        owners.initialize(guildId, 15)
+        // Simulate an old account upgraded with the additive v50 default but not eagerly backfilled.
+        storage.connection.executeUpdate(
+            "UPDATE guild_reward_accounts SET base_home_slots_earned = 1 WHERE guild_id = ?", guildId.toString()
+        )
+        val viaAccess = storage.connection.connection.use { EarnedBaseHomeSlots.resolve(it, guildId) }
+        val viaOwnership = assertIs<RewardOwnershipRead.Found>(owners.read(guildId)).snapshot.ownership.baseHomeSlotsEarned
+        assertEquals(6, viaAccess)
+        assertEquals(viaAccess, viaOwnership)
+    }
+
+    @Test
+    fun `generic reward ownership writes cannot create unpaid outpost grants`() {
+        val (storage, repository) = open()
+        repository.initialize(guildId, 1)
+        storage.connection.executeUpdate(
+            "UPDATE guild_reward_accounts SET prestige_count = 1, base_home_slots_earned = 6 WHERE guild_id = ?",
+            guildId.toString()
+        )
+        storage.connection.executeUpdate(
+            "INSERT INTO guild_reward_ownership (guild_id, reward_id, permanent) VALUES (?, 'bank-1', 1)",
+            guildId.toString()
+        )
+        val before = assertIs<RewardOwnershipRead.Found>(repository.read(guildId)).snapshot
+        assertIs<RewardOwnershipWrite.Failed>(repository.save(guildId, before.version,
+            before.ownership.copy(activeOutpostsByPrestige = mapOf(1 to "home-1"))))
+        val after = assertIs<RewardOwnershipRead.Found>(repository.read(guildId)).snapshot
+        assertEquals(before.version, after.version)
+        assertTrue(after.ownership.activeOutpostsByPrestige.isEmpty())
     }
 
     @Test
@@ -106,7 +167,7 @@ class RewardOwnershipRepositorySQLTest : RewardSqlTestFixture() {
         val saved = assertIs<RewardOwnershipRead.Found>(repository.read(guildId)).snapshot
         assertEquals(2L, saved.version)
         assertEquals(9_000L, RewardEntitlementResolver(catalog).resolve(1, saved.ownership).bankCapacity)
-        assertEquals(8, RewardEntitlementResolver(catalog).resolve(1, saved.ownership).homeCapacity)
+        assertEquals(7, RewardEntitlementResolver(catalog).resolve(1, saved.ownership).homeCapacity)
         assertIs<RewardOwnershipWrite.Failed>(repository.save(guildId, 2, before))
     }
 
@@ -117,6 +178,21 @@ class RewardOwnershipRepositorySQLTest : RewardSqlTestFixture() {
         assertIs<RewardOwnershipRead.Failed>(repository.read(guildId))
         assertIs<RewardOwnershipWrite.Failed>(repository.initialize(guildId, 1))
         assertIs<RewardOwnershipRead.Failed>(repository.read(guildId))
+    }
+
+    @Test
+    fun `orphaned paid outpost acquisition cannot become a free grant on account repair`() {
+        val (storage, repository) = open()
+        storage.connection.executeUpdate(
+            """INSERT INTO guild_outpost_acquisitions
+               (transaction_id, guild_id, prestige_rank, reward_id, paid_amount, acquired_at)
+               VALUES (?, ?, 1, 'home-1', 500, 1)""",
+            UUID.randomUUID().toString(), guildId.toString()
+        )
+        assertIs<RewardOwnershipRead.Failed>(repository.read(guildId))
+        assertIs<RewardOwnershipWrite.Failed>(repository.initialize(guildId, 15))
+        assertEquals(0, storage.connection.getFirstRow(
+            "SELECT COUNT(*) AS n FROM guild_reward_accounts WHERE guild_id = ?", guildId.toString())!!.getInt("n"))
     }
 
     @Test

@@ -321,7 +321,7 @@ class GuildInfoMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
-        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.BARRIER) }
+        val backItem = NexoItemProvider.getItemStackOrFallback("lg_back") { ItemStack.of(Material.ARROW) }
             .name(lang.gui("menu.guild_info.back.name"))
             .lore(lang.gui("menu.guild_info.back.description"))
 

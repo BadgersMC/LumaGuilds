@@ -403,6 +403,11 @@ leaderboards:
 # authoring individual quest definitions.
 quests:
   enabled: true
+  notifications:
+    # Clickable /g quests reminder for members who still have unfinished milestones.
+    on_join: true
+    # One reminder when a new weekly set is generated; no periodic chat spam.
+    on_reset: true
   reset_day: MONDAY
   reset_hour_utc: 0
   quest_count: 6

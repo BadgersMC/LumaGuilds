@@ -1,0 +1,557 @@
+{
+  "schema": 1,
+  "nodes": [
+    {
+      "id": "guilds_root",
+      "parent": null,
+      "title": "Guild Mastery",
+      "description": [
+        "Rise through the ranks of guild life"
+      ],
+      "requirement": "ROOT",
+      "target": null,
+      "goal": 1,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Foundations",
+      "icon": "SHIELD",
+      "frame": "TASK",
+      "x": 1.0,
+      "y": 15.0
+    },
+    {
+      "id": "founding",
+      "parent": "guilds_root",
+      "title": "Founding",
+      "description": [
+        "Officially establish a new guild"
+      ],
+      "requirement": "GUILD_CREATE",
+      "target": null,
+      "goal": 1,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Foundations",
+      "icon": "WRITABLE_BOOK",
+      "frame": "TASK",
+      "x": 2.0,
+      "y": 1.5
+    },
+    {
+      "id": "colors_of_the_vanguard",
+      "parent": "founding",
+      "title": "Colors of the Vanguard",
+      "description": [
+        "Register a custom banner pattern for your guild"
+      ],
+      "requirement": "GUILD_BANNER_SET",
+      "target": null,
+      "goal": 1,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Foundations",
+      "icon": "WHITE_BANNER",
+      "frame": "TASK",
+      "x": 3.0,
+      "y": 0.0
+    },
+    {
+      "id": "putting_down_roots",
+      "parent": "founding",
+      "title": "Putting Down Roots",
+      "description": [
+        "Set your first Guild Home waypoint"
+      ],
+      "requirement": "GUILD_HOME_SET",
+      "target": null,
+      "goal": 1,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Foundations",
+      "icon": "CAMPFIRE",
+      "frame": "TASK",
+      "x": 3.0,
+      "y": 1.5
+    },
+    {
+      "id": "the_vault_master",
+      "parent": "founding",
+      "title": "The Vault Master",
+      "description": [
+        "Place your first Guild Vault in the wild"
+      ],
+      "requirement": "GUILD_VAULT_PLACED",
+      "target": null,
+      "goal": 1,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Foundations",
+      "icon": "CHEST",
+      "frame": "TASK",
+      "x": 3.0,
+      "y": 3.0
+    },
+    {
+      "id": "expanding_the_empire",
+      "parent": "guilds_root",
+      "title": "Expanding the Empire",
+      "description": [
+        "Reach Guild Level 10"
+      ],
+      "requirement": "GUILD_LEVEL_UP",
+      "target": "10",
+      "goal": 1,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Foundations",
+      "icon": "EXPERIENCE_BOTTLE",
+      "frame": "GOAL",
+      "x": 2.0,
+      "y": 4.5
+    },
+    {
+      "id": "vanguard_status",
+      "parent": "expanding_the_empire",
+      "title": "Vanguard Status",
+      "description": [
+        "Reach the maximum Guild Level"
+      ],
+      "requirement": "GUILD_LEVEL_UP",
+      "target": "100",
+      "goal": 1,
+      "personalXp": 0,
+      "messages": [
+        "<gold><bold>Your guild has reached legendary Vanguard Status!"
+      ],
+      "category": "Foundations",
+      "icon": "DRAGON_EGG",
+      "frame": "CHALLENGE",
+      "x": 3.0,
+      "y": 4.5
+    },
+    {
+      "id": "cry_havoc",
+      "parent": "guilds_root",
+      "title": "Cry Havoc",
+      "description": [
+        "Officially declare war on a rival guild"
+      ],
+      "requirement": "GUILD_WAR_DECLARED",
+      "target": null,
+      "goal": 1,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Combat",
+      "icon": "IRON_SWORD",
+      "frame": "TASK",
+      "x": 2.0,
+      "y": 7.5
+    },
+    {
+      "id": "to_the_victor",
+      "parent": "cry_havoc",
+      "title": "To the Victor Go the Spoils",
+      "description": [
+        "Emerge victorious and win your first Guild War"
+      ],
+      "requirement": "GUILD_WAR_WON",
+      "target": null,
+      "goal": 1,
+      "personalXp": 300,
+      "messages": [],
+      "category": "Combat",
+      "icon": "GOLDEN_HELMET",
+      "frame": "GOAL",
+      "x": 3.0,
+      "y": 6.0
+    },
+    {
+      "id": "taking_the_high_ground",
+      "parent": "cry_havoc",
+      "title": "Taking the High Ground",
+      "description": [
+        "Capture the Warzone KOTH for the first time"
+      ],
+      "requirement": "KOTH_CAPTURE",
+      "target": null,
+      "goal": 1,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Combat",
+      "icon": "BELL",
+      "frame": "GOAL",
+      "x": 3.0,
+      "y": 7.5
+    },
+    {
+      "id": "unstoppable_force",
+      "parent": "taking_the_high_ground",
+      "title": "Unstoppable Force",
+      "description": [
+        "Capture and hold the Warzone KOTH for 3 consecutive events"
+      ],
+      "requirement": "KOTH_CONSECUTIVE_CAPTURE",
+      "target": null,
+      "goal": 3,
+      "personalXp": 500,
+      "messages": [
+        "<red><bold>Unstoppable! Your guild dominates the warzone!"
+      ],
+      "category": "Combat",
+      "icon": "NETHERITE_HELMET",
+      "frame": "CHALLENGE",
+      "x": 4.0,
+      "y": 7.5
+    },
+    {
+      "id": "bounty_hunter",
+      "parent": "cry_havoc",
+      "title": "Bounty Hunter",
+      "description": [
+        "Eliminate 50 rival players during an active state of war"
+      ],
+      "requirement": "GUILD_WAR_KILL",
+      "target": null,
+      "goal": 50,
+      "personalXp": 300,
+      "messages": [],
+      "category": "Combat",
+      "icon": "BOW",
+      "frame": "CHALLENGE",
+      "x": 3.0,
+      "y": 9.0
+    },
+    {
+      "id": "time_is_money",
+      "parent": "guilds_root",
+      "title": "Time is Money",
+      "description": [
+        "Accumulate 1,000 total combined play hours among all guild members"
+      ],
+      "requirement": "GUILD_COMBINED_PLAYTIME",
+      "target": null,
+      "goal": 1000,
+      "personalXp": 0,
+      "messages": [
+        "<gold>Your guild has logged over 1,000 hours together!"
+      ],
+      "category": "Cooperation",
+      "icon": "CLOCK",
+      "frame": "CHALLENGE",
+      "x": 2.0,
+      "y": 10.5
+    },
+    {
+      "id": "the_exile",
+      "parent": "guilds_root",
+      "title": "The Exile",
+      "description": [
+        "Kick a player from your guild"
+      ],
+      "requirement": "GUILD_MEMBER_REMOVED",
+      "target": null,
+      "goal": 1,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Reputation",
+      "icon": "BARRIER",
+      "frame": "TASK",
+      "x": 2.0,
+      "y": 12.0
+    },
+    {
+      "id": "open_for_business",
+      "parent": "guilds_root",
+      "title": "Open for Business",
+      "description": [
+        "Create your first shop stall"
+      ],
+      "requirement": "SHOP_CREATED",
+      "target": null,
+      "goal": 1,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Commerce",
+      "icon": "OAK_SIGN",
+      "frame": "TASK",
+      "x": 2.0,
+      "y": 13.5
+    },
+    {
+      "id": "prime_real_estate",
+      "parent": "guilds_root",
+      "title": "Prime Real Estate",
+      "description": [
+        "Own a Market guild stall, including an existing one"
+      ],
+      "requirement": "GUILD_STALL_OWNED",
+      "target": null,
+      "goal": 1,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Commerce",
+      "icon": "FILLED_MAP",
+      "frame": "GOAL",
+      "x": 2.0,
+      "y": 15.0
+    },
+    {
+      "id": "art_of_the_deal",
+      "parent": "open_for_business",
+      "title": "The Art of the Deal",
+      "description": [
+        "Complete your first paid guild SELL shop sale"
+      ],
+      "requirement": "GUILD_SHOP_SALE",
+      "target": null,
+      "goal": 1,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Commerce",
+      "icon": "EMERALD",
+      "frame": "TASK",
+      "x": 3.0,
+      "y": 13.5
+    },
+    {
+      "id": "supply_chain",
+      "parent": "art_of_the_deal",
+      "title": "Supply Chain",
+      "description": [
+        "Complete 100 paid guild SELL shop sales"
+      ],
+      "requirement": "GUILD_SHOP_SALE",
+      "target": null,
+      "goal": 100,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Commerce",
+      "icon": "CHEST_MINECART",
+      "frame": "GOAL",
+      "x": 4.0,
+      "y": 13.5
+    },
+    {
+      "id": "market_dominance",
+      "parent": "supply_chain",
+      "title": "Market Dominance",
+      "description": [
+        "Complete 1,000 paid guild SELL shop sales"
+      ],
+      "requirement": "GUILD_SHOP_SALE",
+      "target": null,
+      "goal": 1000,
+      "personalXp": 500,
+      "messages": [
+        "<gold>Your guild dominates the market!"
+      ],
+      "category": "Commerce",
+      "icon": "GOLD_BLOCK",
+      "frame": "CHALLENGE",
+      "x": 5.0,
+      "y": 13.5
+    },
+    {
+      "id": "industrial_revolution",
+      "parent": "guilds_root",
+      "title": "Industrial Revolution",
+      "description": [
+        "Smelt or cook 10,000 items collectively as a guild"
+      ],
+      "requirement": "GUILD_COLLECTIVE_SMELT",
+      "target": null,
+      "goal": 10000,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Cooperation",
+      "icon": "FURNACE",
+      "frame": "GOAL",
+      "x": 2.0,
+      "y": 16.5
+    },
+    {
+      "id": "clear_cutting",
+      "parent": "guilds_root",
+      "title": "Clear Cutting",
+      "description": [
+        "Break 100,000 blocks collectively"
+      ],
+      "requirement": "GUILD_COLLECTIVE_BLOCK_BREAK",
+      "target": null,
+      "goal": 100000,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Cooperation",
+      "icon": "DIAMOND_PICKAXE",
+      "frame": "CHALLENGE",
+      "x": 2.0,
+      "y": 18.0
+    },
+    {
+      "id": "bountiful_harvest",
+      "parent": "guilds_root",
+      "title": "Bountiful Harvest",
+      "description": [
+        "Harvest 5,000 fully-grown crops"
+      ],
+      "requirement": "GUILD_COLLECTIVE_CROP_HARVEST",
+      "target": null,
+      "goal": 5000,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Cooperation",
+      "icon": "WHEAT",
+      "frame": "GOAL",
+      "x": 2.0,
+      "y": 19.5
+    },
+    {
+      "id": "mob_grinder",
+      "parent": "guilds_root",
+      "title": "Mob Grinder",
+      "description": [
+        "Defeat 10,000 hostile mobs as a team"
+      ],
+      "requirement": "GUILD_COLLECTIVE_MOB_KILL",
+      "target": null,
+      "goal": 10000,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Cooperation",
+      "icon": "ZOMBIE_HEAD",
+      "frame": "GOAL",
+      "x": 2.0,
+      "y": 21.75
+    },
+    {
+      "id": "free_the_end",
+      "parent": "mob_grinder",
+      "title": "Free the End",
+      "description": [
+        "Slay the Ender Dragon with 3+ guild members in The End"
+      ],
+      "requirement": "GUILD_COLLECTIVE_BOSS_KILL",
+      "target": "ENDER_DRAGON",
+      "goal": 1,
+      "personalXp": 1000,
+      "messages": [
+        "<light_purple>The dragon falls! Your guild has liberated The End!"
+      ],
+      "category": "Cooperation",
+      "icon": "DRAGON_HEAD",
+      "frame": "CHALLENGE",
+      "x": 3.0,
+      "y": 21.0
+    },
+    {
+      "id": "withered_away",
+      "parent": "mob_grinder",
+      "title": "Withered Away",
+      "description": [
+        "Summon and defeat the Wither as a guild"
+      ],
+      "requirement": "GUILD_COLLECTIVE_BOSS_KILL",
+      "target": "WITHER",
+      "goal": 1,
+      "personalXp": 500,
+      "messages": [],
+      "category": "Cooperation",
+      "icon": "WITHER_SKELETON_SKULL",
+      "frame": "CHALLENGE",
+      "x": 3.0,
+      "y": 22.5
+    },
+    {
+      "id": "climbing_the_ranks",
+      "parent": "guilds_root",
+      "title": "Climbing the Ranks",
+      "description": [
+        "Reach Top 10 on any guild leaderboard"
+      ],
+      "requirement": "GUILD_LEADERBOARD_RANK",
+      "target": "10",
+      "goal": 1,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Reputation",
+      "icon": "LADDER",
+      "frame": "GOAL",
+      "x": 2.0,
+      "y": 24.0
+    },
+    {
+      "id": "the_one_percent",
+      "parent": "climbing_the_ranks",
+      "title": "The 1%",
+      "description": [
+        "Reach Top 3 on any guild leaderboard"
+      ],
+      "requirement": "GUILD_LEADERBOARD_RANK",
+      "target": "3",
+      "goal": 1,
+      "personalXp": 500,
+      "messages": [
+        "<gold><bold>Your guild stands among the elite!"
+      ],
+      "category": "Reputation",
+      "icon": "NETHER_STAR",
+      "frame": "CHALLENGE",
+      "x": 3.0,
+      "y": 24.0
+    },
+    {
+      "id": "diplomatic_immunity",
+      "parent": "guilds_root",
+      "title": "Diplomatic Immunity",
+      "description": [
+        "Form an alliance with another guild"
+      ],
+      "requirement": "GUILD_ALLIANCE_FORMED",
+      "target": null,
+      "goal": 1,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Reputation",
+      "icon": "GOLDEN_APPLE",
+      "frame": "GOAL",
+      "x": 2.0,
+      "y": 25.5
+    },
+    {
+      "id": "friendly_fire",
+      "parent": "guilds_root",
+      "title": "Friendly Fire",
+      "description": [
+        "Attack a member of your own guild"
+      ],
+      "requirement": "GUILD_FRIENDLY_FIRE",
+      "target": null,
+      "goal": 1,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Reputation",
+      "icon": "SNOWBALL",
+      "frame": "TASK",
+      "x": 2.0,
+      "y": 27.0
+    },
+    {
+      "id": "coup_detat",
+      "parent": "guilds_root",
+      "title": "Coup d'etat",
+      "description": [
+        "Receive ownership of a guild"
+      ],
+      "requirement": "GUILD_OWNERSHIP_TRANSFER",
+      "target": null,
+      "goal": 1,
+      "personalXp": 0,
+      "messages": [],
+      "category": "Reputation",
+      "icon": "GOLDEN_APPLE",
+      "frame": "CHALLENGE",
+      "x": 2.0,
+      "y": 28.5
+    }
+  ]
+}

@@ -66,6 +66,18 @@ class GuildRewardPurchaseMenuTest {
         verify { purchases wasNot Called }
     }
 
+    @Test fun `stale Java fallback confirmation cannot spend or reopen its parent`() {
+        var valid = true
+        val gui = GuildRewardPurchaseMenu(player, quote, "Bank I", { returned++ }, valid = { valid }).createGui()
+        val confirm = gui.panes.flatMap { it.items }.single { it.item.type == Material.LIME_DYE }
+        val cancel = gui.panes.flatMap { it.items }.single { it.item.type == Material.RED_DYE }
+        valid = false
+        confirm.callAction(mockk(relaxed = true))
+        cancel.callAction(mockk(relaxed = true))
+        verify { purchases wasNot Called }
+        assertEquals(0, returned)
+    }
+
     @Test fun `Java failure leaves same quote for retry and completion refreshes catalog`() {
         val applied = RewardPurchaseResult.Applied(quote.transactionId, quote.rewardId, 100, 1000, 900, 1)
         every { purchases.confirm(player.uniqueId, quote) } returnsMany listOf(RewardPurchaseResult.Failed(quote.transactionId), applied)

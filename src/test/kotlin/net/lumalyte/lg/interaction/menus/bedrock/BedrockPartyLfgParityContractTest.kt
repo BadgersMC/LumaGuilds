@@ -12,14 +12,14 @@ class BedrockPartyLfgParityContractTest {
 
     @Test
     fun `LFG browser is platform native and service backed`() {
-        val browserFile = File(bedrock, "BedrockLfgBrowserMenu.kt")
+        val browserFile = File(bedrock, "BedrockGuildRecruitmentMenu.kt")
         assertTrue(browserFile.exists())
         val browser = browserFile.readText()
-        assertTrue(factory.contains("BedrockLfgBrowserMenu"))
+        assertTrue(factory.contains("BedrockGuildRecruitmentMenu"))
         assertTrue(factory.contains("shouldUseBedrockMenus(player)"))
-        assertTrue(browser.contains("LfgService"))
-        assertTrue(browser.contains("getAvailableGuilds()"))
-        assertTrue(browser.contains("createJoinRequirementsMenu"))
+        assertTrue(browser.contains("RecruitmentController"))
+        assertTrue(browser.contains("controller.view()"))
+        assertTrue(browser.contains("controller.acceptInput"))
         assertFalse(browser.contains("interaction.menus.guild.LfgBrowserMenu"))
     }
 
