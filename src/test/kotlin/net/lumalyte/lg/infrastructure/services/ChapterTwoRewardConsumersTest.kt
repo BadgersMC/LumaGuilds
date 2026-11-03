@@ -39,7 +39,8 @@ class ChapterTwoRewardConsumersTest {
         val gold = ConfiguredGuildGoldSettings(config, mockk(), mockk(), rewards).settingsFor(guild)
         assertEquals(48_500L, gold.effectiveCapacity)
         assertEquals(gold.effectiveCapacity, progression.getMaxBankBalance(guild).toLong())
-        assertEquals(2, progression.getMaxHomes(guild))
+        // Legacy permanent home-1 is historical evidence, not an active paid Outpost at P0.
+        assertEquals(1, progression.getMaxHomes(guild))
         assertEquals(50, members.getMemberLimit(guild))
         assertEquals(members.getMemberLimit(guild), progression.getMaxMembers(guild))
         assertEquals(0.9, progression.getWithdrawalFeeMultiplier(guild))

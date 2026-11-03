@@ -85,9 +85,10 @@ class GuildRewardCatalogControlsTest {
         val menu = GuildProgressionMenu(mockk(), player, guild, guilds, members, progression, mockk(), mockk(), mockk())
         GuildProgressionMenu::class.java.getDeclaredMethod("openRewardCatalog").apply { isAccessible = true }.invoke(menu)
         val books = panes.flatMap { it.items }.filter { it.item.type == Material.BOOK }
-        assertEquals(5, books.size)
+        // Includes AUDIT_PENDING, which must stay non-quotable on both client types.
+        assertEquals(statuses.size, books.size)
         assertEquals(1, books.count { it.item.lore()!!.size == 3 })
-        assertEquals(4, books.count { it.item.lore()!!.size == 2 })
+        assertEquals(statuses.size - 1, books.count { it.item.lore()!!.size == 2 })
         for (book in books) {
             book.callAction(mockk(relaxed = true))
         }
