@@ -14,6 +14,17 @@ import java.net.http.HttpResponse
 import java.util.logging.Logger
 
 class GuildQuestHttpTest {
+    @Test fun `quest export fails closed when bearer token is not configured`() {
+        val plugin=mockk<JavaPlugin>();every { plugin.logger } returns Logger.getLogger("quest-no-token-test")
+        val port=ServerSocket(0).use { it.localPort }
+        val server=WebApiServer(plugin,WebApiConfig(true,"127.0.0.1",port,""),mockk(),
+            guildQuestSnapshot={ mapOf("items" to emptyList<Any>()) })
+        server.start()
+        try {
+            val request=HttpRequest.newBuilder(URI("http://127.0.0.1:$port/api/community/guildquests")).GET().build()
+            assertEquals(401,HttpClient.newHttpClient().send(request,HttpResponse.BodyHandlers.ofString()).statusCode())
+        } finally {server.stop()}
+    }
     @Test fun `player guild lookup is protected bounded and read only`() {
         val plugin=mockk<JavaPlugin>();every { plugin.logger } returns Logger.getLogger("player-guild-http-test")
         val port=ServerSocket(0).use { it.localPort }

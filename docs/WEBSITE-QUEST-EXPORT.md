@@ -1,7 +1,8 @@
 # Local website quest export
 
-Base: authoritative main 8740521949d2c1787511e50b265c1459475b3d41. This is
-local work only; no PR, push, plugin upload or activation is authorized.
+Original base: authoritative main 8740521949d2c1787511e50b265c1459475b3d41.
+The candidate is being reconciled against current main c0a144b for review.
+No plugin upload or activation has occurred.
 
 Requirements: expose a read-only, bearer-protected JSON snapshot on the existing
 Web API; use one consistent SQL statement for the active definitions and ranked
@@ -30,3 +31,11 @@ query and real loopback HTTP, verifying Long precision, no claim actor fields,
 no grants, exact routes, authentication, methods and explicit currentWeekId:null.
 The dedicated quest serializer preserves null without changing leaderboard JSON.
 No producer is activated and no live server/client acceptance is claimed.
+
+Current-base review found that the inherited authorization helper treats a blank
+bearer token as public. The quest route now explicitly rejects blank tokens,
+matching the documented protected contract, and a loopback HTTP regression
+checks that behavior. Thirteen focused tests passed locally on c0a144b plus the
+candidate; MariaDB and full-suite acceptance remain separate. Existing local
+companion JARs were used for compilation and their runtime provenance is not
+established.

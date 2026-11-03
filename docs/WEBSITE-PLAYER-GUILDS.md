@@ -26,3 +26,10 @@ red/green claim is made. Website regressions separately verify joins and failure
 handling. Local source and test artifact only; not installed, activated, pushed
 or submitted as a PR. Canonical incorporation and runtime acceptance remain
 separate delivery gates.
+
+Current-base review: the membership and guild repositories use mutable caches,
+while HTTP handlers execute on a worker thread. Their concurrency and a coherent
+membership snapshot have not been established. Treat this endpoint as a draft;
+resolve thread safety and consistency without blocking the server tick before
+enabling or deploying it. The code must not infer absence from an unavailable
+lookup. MariaDB and live companion compatibility are also unverified.

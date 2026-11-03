@@ -561,6 +561,11 @@ WHEN a player opens or interacts with a guild vault THE SYSTEM SHALL recheck cur
 ### REQ-150 — Guild recruitment upgrade
 
 The approved recruitment behavior, player/recruiter flows, discovery integration and delivery gates are specified as REC-001 through REC-012 in [Guild recruitment delivery](plans/guild-recruitment.md). This upgrade retains existing LFG access and fee policy, adds dedicated rank authority and requires explicit applicant confirmation before admission.
+### REQ-WEBSITE-QUEST-001
+WHEN a website consumer requests the current guild quest snapshot THE SYSTEM SHALL require a configured bearer token and return bounded public quest definitions and standings from a consistent read, without granting rewards or exporting private identities.
+
+### REQ-WEBSITE-MEMBERSHIP-002
+WHEN a website consumer requests bounded player guild associations THE SYSTEM SHALL require a configured bearer token and return only verified current public memberships; unavailable or inconsistent reads SHALL NOT be reported as an empty membership.
 
 ### REQ-149 — Dynamic Vault economy provider lifecycle
 **Event-driven.** WHEN Vault is present but no Economy provider is registered, personal-account guild-bank operations SHALL report the provider as unavailable without declaring the bank permanently broken. BEFORE each personal-account economy operation THE SYSTEM SHALL resolve the currently registered Vault Economy provider, SHALL discover a provider registered after LumaGuilds startup, and SHALL discard a cached provider that is unregistered or replaced. Physical guild-gold and ordinary vault storage SHALL retain their existing availability semantics.

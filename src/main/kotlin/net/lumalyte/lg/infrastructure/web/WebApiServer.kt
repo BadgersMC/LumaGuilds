@@ -162,7 +162,7 @@ class WebApiServer(
             if (exchange.requestMethod != "GET") {
                 respondJson(exchange, 405, mapOf("error" to "method_not_allowed")); return
             }
-            if (!isAuthorized(exchange)) {
+            if (config.bearerToken.isBlank() || !isAuthorized(exchange)) {
                 respondJson(exchange, 401, mapOf("error" to "unauthorized")); return
             }
             val data = cachedQuestSnapshot()
