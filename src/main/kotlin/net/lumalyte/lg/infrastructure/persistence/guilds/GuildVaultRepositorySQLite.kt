@@ -5,6 +5,8 @@ import co.aikar.idb.Database
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.GuildVaultRepository
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect
+import net.lumalyte.lg.infrastructure.persistence.migrations.VaultCapacityUnlockSchema
 import org.bukkit.inventory.ItemStack
 import java.sql.SQLException
 import java.util.UUID
@@ -24,6 +26,13 @@ class GuildVaultRepositorySQLite(private val storage: Storage<Database>) : Guild
 
     // Note: Tables are created by SQLiteMigrations.migrateToVersion12()
     // vault_slots, vault_gold, and vault_transaction_log tables are used
+
+    override fun getPermanentCapacity(guildId: UUID, currentLevelCapacity: Int): Int =
+        storage.connection.connection.use { connection ->
+            VaultCapacityUnlockSchema.currentOrAdvance(
+                connection, guildId, currentLevelCapacity, storage.dialect == SqlDialect.MARIADB,
+            )
+        }
 
     override fun saveVaultInventory(guildId: UUID, items: Map<Int, ItemStack>): Boolean {
         // Use INSERT OR REPLACE for each slot - this is safe for concurrent access

@@ -13,7 +13,6 @@ import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.PlatformDetectionService
 import net.lumalyte.lg.infrastructure.vault.VaultInventoryManager
-import net.lumalyte.lg.infrastructure.vault.VaultLevelCapacity
 import net.lumalyte.lg.application.utilities.GoldBalanceButton
 import net.lumalyte.lg.application.utilities.ValuableItemChecker
 import net.lumalyte.lg.config.VaultConfig
@@ -83,10 +82,9 @@ class VaultInventoryListener(
     }
 
     /**
-     * Existing items in rows above the post-prestige level cap remain visible for
-     * retrieval, but players cannot use those rows to gain free storage capacity.
-     * Check current progression, not the guild snapshot: prestige updates SQL
-     * directly and may leave the cached Guild.level stale until reload.
+     * Protect genuinely unentitled overflow slots from uncertain destination
+     * operations. The holder's durable capacity is never reduced by prestige:
+     * an earned row stays writable, even after the guild returns to level 1.
      */
     private fun protectPrestigeOverflow(
         event: InventoryClickEvent,
@@ -118,15 +116,8 @@ class VaultInventoryListener(
             (event.rawSlot !in 9 until topSize || directWithdrawal)
         ) return false
 
-        // Read the authoritative row: getGuildProgression() may serve a stale cache
-        // after a direct SQL prestige commit or another plugin instance's prestige.
-        val currentLevel = runCatching {
-            progressionRepository.readCommittedLevel(holder.guildId)
-        }.getOrNull()
-        val unlocked = minOf(
-            holder.getCapacity(),
-            currentLevel?.let(VaultLevelCapacity::slots) ?: 9, // fail closed on SQLite failure
-        )
+        // Persisted high-water capacity is set when the shared holder is created.
+        val unlocked = holder.getCapacity()
         if (unlocked >= topSize) return false
 
         val clickedLockedSlot = event.rawSlot in unlocked until topSize
@@ -137,7 +128,7 @@ class VaultInventoryListener(
         event.isCancelled = true
         player.sendMessage(
             Component.text(
-                "Vault overflow is withdrawal-only until your guild unlocks these rows again.",
+                "Vault slots beyond your permanent unlock are withdrawal-only.",
                 NamedTextColor.YELLOW,
             )
         )

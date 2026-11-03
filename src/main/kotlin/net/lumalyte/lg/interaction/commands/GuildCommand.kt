@@ -2551,7 +2551,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             lang.msg("command.migrated.guild.vaultget.place_this_chest_to_create_your_guild"),
             lang.msg("command.migrated.guild.vaultget.physical_vault_storage"),
             net.kyori.adventure.text.Component.text(""),
-            lang.msg("command.migrated.guild.vaultget.capacity_slots_level", "level" to vaultService.getCapacityForLevel(guild.level), "level_2" to guild.level),
+            lang.msg("command.migrated.guild.vaultget.capacity_slots_level", "level" to vaultService.getPermanentCapacityForGuild(guild), "level_2" to guild.level),
             lang.msg("command.migrated.guild.vaultget.guild", "guild" to guild.name),
             net.kyori.adventure.text.Component.text(""),
             lang.msg("command.migrated.guild.vaultget.only_one_vault_can_exist_per_guild"),
@@ -2574,7 +2574,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         player.sendMessage(lang.msg("command.migrated.guild.vaultget.2_place_the_chest_on_the_ground"))
         player.sendMessage(lang.msg("command.migrated.guild.vaultget.3_access_it_through_guild_menu_bank"))
         player.sendMessage(lang.msg("command.common.blank_line"))
-        player.sendMessage(lang.msg("command.migrated.guild.vaultget.capacity_slots", "level" to vaultService.getCapacityForLevel(guild.level)))
+        player.sendMessage(lang.msg("command.migrated.guild.vaultget.capacity_slots", "level" to vaultService.getPermanentCapacityForGuild(guild)))
         player.sendMessage(lang.msg("command.migrated.guild.vaultget.upgrades_as_your_guild_levels_up"))
 
         // Play success sound

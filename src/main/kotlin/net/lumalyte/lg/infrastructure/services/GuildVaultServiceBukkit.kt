@@ -281,6 +281,9 @@ class GuildVaultServiceBukkit(
 
     override fun getCapacityForLevel(level: Int): Int = VaultLevelCapacity.slots(level)
 
+    override fun getPermanentCapacityForGuild(guild: Guild): Int =
+        vaultRepository.getPermanentCapacity(guild.id, getCapacityForLevel(guild.level))
+
     override fun isValidVaultLocation(location: Location, guild: Guild): VaultResult<Boolean> {
         val world = location.world ?: return VaultResult.Failure("Invalid world")
 

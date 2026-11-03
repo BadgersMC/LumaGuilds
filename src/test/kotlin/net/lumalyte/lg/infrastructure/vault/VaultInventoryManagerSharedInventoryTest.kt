@@ -58,6 +58,7 @@ class VaultInventoryManagerSharedInventoryTest {
 
         // Setup default repository behavior
         every { vaultRepository.getVaultInventory(any()) } returns emptyMap()
+        every { vaultRepository.getPermanentCapacity(any(), any()) } answers { secondArg<Int>() }
         every { vaultRepository.getGoldBalance(any()) } returns 0L
 
         // Create manager instance

@@ -6,6 +6,7 @@ import io.mockk.unmockkObject
 import net.lumalyte.lg.application.utilities.GoldBalanceButton
 import net.lumalyte.lg.config.VaultConfig
 import net.lumalyte.lg.infrastructure.persistence.guilds.GuildVaultRepositorySQLite
+import net.lumalyte.lg.infrastructure.persistence.migrations.VaultCapacityUnlockSchema
 import net.lumalyte.lg.infrastructure.persistence.storage.SQLiteStorage
 import org.bukkit.Material
 import org.bukkit.inventory.ItemStack
@@ -49,6 +50,23 @@ class VaultPrestigePersistenceSqliteTest {
         initialStorage.connection.executeUpdate(
             "CREATE TABLE vault_gold (guild_id TEXT PRIMARY KEY NOT NULL, balance INTEGER NOT NULL, last_modified INTEGER NOT NULL)"
         )
+        initialStorage.connection.executeUpdate("CREATE TABLE guilds (id TEXT PRIMARY KEY, level INTEGER NOT NULL)")
+        initialStorage.connection.executeUpdate(
+            "CREATE TABLE guild_progression (guild_id TEXT PRIMARY KEY, current_level INTEGER NOT NULL)"
+        )
+        initialStorage.connection.executeUpdate(
+            "CREATE TABLE guild_reward_accounts (guild_id TEXT PRIMARY KEY, prestige_count INTEGER NOT NULL, base_home_slots_earned INTEGER NOT NULL)"
+        )
+        initialStorage.connection.executeUpdate(
+            "CREATE TABLE chapter_migration_receipts (guild_id TEXT, before_level INTEGER, migration_kind TEXT, dry_run INTEGER, status TEXT)"
+        )
+        initialStorage.connection.executeUpdate("INSERT INTO guilds (id,level) VALUES (?,100)", guildId.toString())
+        initialStorage.connection.executeUpdate("INSERT INTO guild_progression (guild_id,current_level) VALUES (?,100)", guildId.toString())
+        initialStorage.connection.executeUpdate(
+            "INSERT INTO guild_reward_accounts (guild_id,prestige_count,base_home_slots_earned) VALUES (?,0,6)",
+            guildId.toString()
+        )
+        initialStorage.connection.connection.use { VaultCapacityUnlockSchema.create(it, mariaDb = false, backfill = true) }
         val initialRepository = GuildVaultRepositorySQLite(initialStorage)
         assertTrue(initialRepository.saveVaultItem(guildId, 5, ItemStack(Material.DIAMOND, 5)))
         assertTrue(initialRepository.saveVaultItem(guildId, 24, ItemStack(Material.EMERALD, 24)))
@@ -63,9 +81,16 @@ class VaultPrestigePersistenceSqliteTest {
         beforePrestige.forceFlush(guildId)
         initialStorage.connection.close(5, TimeUnit.SECONDS)
 
-        // Prestige resets the unlocked capacity to 9. A fresh repository/manager must
-        // recover persisted slot 53 and expose it for withdrawal, without truncation.
+        // Prestige resets CURRENT LEVEL to 1, but not permanent vault capacity.
+        // A fresh repository/manager must keep slot 53 writable, not just visible.
         val prestigedStorage = SQLiteStorage(folder)
+        prestigedStorage.connection.executeUpdate("UPDATE guilds SET level = 1 WHERE id = ?", guildId.toString())
+        prestigedStorage.connection.executeUpdate(
+            "UPDATE guild_progression SET current_level = 1 WHERE guild_id = ?", guildId.toString()
+        )
+        prestigedStorage.connection.executeUpdate(
+            "UPDATE guild_reward_accounts SET prestige_count = 1 WHERE guild_id = ?", guildId.toString()
+        )
         val prestigedRepository = GuildVaultRepositorySQLite(prestigedStorage)
         val restartedManager = VaultInventoryManager(prestigedRepository, null, VaultConfig())
         val prestigedInventory = restartedManager.getOrCreateSharedInventory(guildId, "Everlights", 9)
@@ -89,15 +114,42 @@ class VaultPrestigePersistenceSqliteTest {
         assertEquals(beforeClose[24], rowBytes(prestigedStorage, guildId)[24])
         prestigedStorage.connection.close(5, TimeUnit.SECONDS)
 
-        // A second simulated restart reopens the actual SQLite file with two intact items.
+        // Even with the highest row EMPTY, the permanent unlocked capacity is
+        // still 54 after another process restart and accepts new deposits.
         val finalStorage = SQLiteStorage(folder)
         try {
-            val reopened = VaultInventoryManager(GuildVaultRepositorySQLite(finalStorage), null, VaultConfig())
-                .getOrCreateSharedInventory(guildId, "Everlights", 9)
-            assertEquals(27, reopened.size) // highest occupied slot is 24
+            val finalRepository = GuildVaultRepositorySQLite(finalStorage)
+            val finalManager = VaultInventoryManager(finalRepository, null, VaultConfig())
+            val reopened = finalManager.getOrCreateSharedInventory(guildId, "Everlights", 9)
+            assertEquals(54, reopened.size)
+            assertEquals(54, (reopened.holder as net.lumalyte.lg.interaction.inventory.VaultInventoryHolder).getCapacity())
             assertEquals(Material.DIAMOND, reopened.getItem(5)?.type)
             assertEquals(24, reopened.getItem(24)?.amount)
-            assertTrue(53 >= reopened.size, "After deliberate withdrawal slot 53 need not stay visible")
+            assertNull(reopened.getItem(53))
+            reopened.setItem(53, ItemStack(Material.GOLDEN_APPLE, 2))
+            finalManager.syncInventoryToCache(guildId, reopened)
+            finalManager.forceFlush(guildId)
+            assertEquals(2, finalRepository.getVaultItem(guildId, 53)?.amount)
+
+            // Legacy prestige backfill, without any prior v52 capacity record or
+            // occupied upper row: prestige_count=1 alone proves all six rows.
+            val legacyId = UUID.randomUUID()
+            finalStorage.connection.executeUpdate("INSERT INTO guilds (id,level) VALUES (?,1)", legacyId.toString())
+            finalStorage.connection.executeUpdate(
+                "INSERT INTO guild_progression (guild_id,current_level) VALUES (?,1)", legacyId.toString()
+            )
+            finalStorage.connection.executeUpdate(
+                "INSERT INTO guild_reward_accounts (guild_id,prestige_count,base_home_slots_earned) VALUES (?,1,1)",
+                legacyId.toString()
+            )
+            val legacyInventory = finalManager.getOrCreateSharedInventory(legacyId, "Legacy", 9)
+            assertEquals(54, legacyInventory.size)
+            assertEquals(
+                54,
+                (legacyInventory.holder as net.lumalyte.lg.interaction.inventory.VaultInventoryHolder).getCapacity(),
+            )
+            assertEquals(emptyMap<Int, String>(), rowBytes(finalStorage, legacyId))
+            assertEquals(54, finalRepository.getPermanentCapacity(legacyId, 9))
         } finally {
             finalStorage.connection.close(5, TimeUnit.SECONDS)
         }

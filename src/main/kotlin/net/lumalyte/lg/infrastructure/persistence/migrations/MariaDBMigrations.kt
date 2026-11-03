@@ -213,6 +213,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(GuildHomeAccessGrantSchema.VERSION)
                 currentDbVersion = GuildHomeAccessGrantSchema.VERSION
             }
+            VaultCapacityUnlockSchema.create(connection, mariaDb = true, backfill = currentDbVersion < VaultCapacityUnlockSchema.VERSION)
+            if (currentDbVersion < VaultCapacityUnlockSchema.VERSION) {
+                updateDatabaseVersion(VaultCapacityUnlockSchema.VERSION)
+                currentDbVersion = VaultCapacityUnlockSchema.VERSION
+            }
             connection.commit()
             val finalVersion = getCurrentDatabaseVersion()
             componentLogger.info(Component.text("✓ Database migrations completed (v$finalVersion)"))

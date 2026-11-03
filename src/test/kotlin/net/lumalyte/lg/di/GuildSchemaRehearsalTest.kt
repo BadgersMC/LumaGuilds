@@ -5,7 +5,9 @@ import io.mockk.mockk
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger
 import net.lumalyte.lg.LumaGuilds
 import net.lumalyte.lg.infrastructure.persistence.migrations.SQLiteMigrations
+import net.lumalyte.lg.infrastructure.vault.VaultLevelCapacity
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -40,18 +42,19 @@ class GuildSchemaRehearsalTest {
                     assertEquals(rows, after[table], "Stored rows changed in $table")
                 }
                 (allAfter.keys - before.keys).forEach { table ->
-                    if (table == "guild_homes" && "guilds" in before) {
-                        assertLegacyHomesBackfilled(connection)
-                    } else if (table == "guild_bank_quest_revision") {
-                        assertEquals(1L, allAfter.getValue(table).count, "Bank quest revision must have one bootstrap row")
-                        connection.createStatement().use { statement ->
-                            statement.executeQuery("SELECT COUNT(*) FROM guild_bank_quest_revision WHERE id = 1 AND revision = 0").use { result ->
-                                result.next()
-                                assertEquals(1L, result.getLong(1), "Unexpected bank quest revision bootstrap value")
+                    when {
+                        table == "guild_homes" && "guilds" in before -> assertLegacyHomesBackfilled(connection)
+                        table == "guild_vault_capacity_unlocks" && "guilds" in before -> assertVaultCapacityBackfilled(connection)
+                        table == "guild_bank_quest_revision" -> {
+                            assertEquals(1L, allAfter.getValue(table).count, "Bank quest revision must have one bootstrap row")
+                            connection.createStatement().use { statement ->
+                                statement.executeQuery("SELECT COUNT(*) FROM guild_bank_quest_revision WHERE id = 1 AND revision = 0").use { result ->
+                                    result.next()
+                                    assertEquals(1L, result.getLong(1), "Unexpected bank quest revision bootstrap value")
+                                }
                             }
                         }
-                    } else {
-                        assertEquals(0L, allAfter.getValue(table).count, "Rehearsal populated new table $table")
+                        else -> assertEquals(0L, allAfter.getValue(table).count, "Rehearsal populated new table $table")
                     }
                 }
             }
@@ -73,6 +76,34 @@ class GuildSchemaRehearsalTest {
             connection.createStatement().use { it.execute("ALTER TABLE guilds DROP COLUMN name") }
             org.junit.jupiter.api.Assertions.assertThrows(AssertionError::class.java) {
                 snapshot(connection, before.mapValues { it.value.columns })
+            }
+        }
+    }
+
+    private fun assertVaultCapacityBackfilled(connection: Connection) {
+        var observed = 0L
+        connection.createStatement().use { statement ->
+            statement.executeQuery("""
+                SELECT COALESCE(p.current_level, g.level, 1) AS level,
+                       COALESCE(a.prestige_count, 0) AS prestige,
+                       v.capacity_slots
+                FROM guilds g
+                LEFT JOIN guild_progression p ON p.guild_id = g.id
+                LEFT JOIN guild_reward_accounts a ON a.guild_id = g.id
+                LEFT JOIN guild_vault_capacity_unlocks v ON v.guild_id = g.id
+            """.trimIndent()).use { rows ->
+                while (rows.next()) {
+                    val capacity = rows.getInt("capacity_slots")
+                    assertTrue(!rows.wasNull(), "Every existing guild needs a durable vault capacity row")
+                    assertTrue(capacity in 9..54 && capacity % 9 == 0, "Invalid vault capacity: $capacity")
+                    assertTrue(capacity >= VaultLevelCapacity.slots(rows.getInt("level")))
+                    if (rows.getInt("prestige") > 0) assertEquals(54, capacity, "Prestiged guild lost vault rows")
+                    observed++
+                }
+            }
+            statement.executeQuery("SELECT COUNT(*) FROM guild_vault_capacity_unlocks").use { rows ->
+                rows.next()
+                assertEquals(observed, rows.getLong(1), "Unexpected or missing vault capacity grants")
             }
         }
     }

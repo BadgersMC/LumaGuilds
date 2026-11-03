@@ -11,6 +11,7 @@ import net.lumalyte.lg.domain.rewards.*
 import net.lumalyte.lg.domain.values.ProgressionCurve
 import net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import net.lumalyte.lg.infrastructure.persistence.migrations.VaultCapacityUnlockSchema
 import java.sql.Connection
 import java.sql.Timestamp
 import java.time.Instant
@@ -202,6 +203,11 @@ class PrestigeRepositorySQL(
         }
         check(paid is GuildGoldResult.Applied) { "Canonical prestige debit did not complete" }
 
+        // This guild proved level 100. Preserve the full 54 slots in this same
+        // atomic prestige transaction, even when every upper slot is empty.
+        VaultCapacityUnlockSchema.recordAtLeast(
+            connection, request.guildId, 54, storage.dialect == SqlDialect.MARIADB,
+        )
         val nextLevelXp = ProgressionCurve.from(settings.progression).experienceForNextLevel(1)
         val now = Instant.now().toEpochMilli()
         val progressionUpdated = connection.prepareStatement(
