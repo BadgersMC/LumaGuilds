@@ -72,32 +72,33 @@ class VaultInventoryManager(
      *
      * @param guildId The guild ID.
      * @param guildName The guild name (used for inventory title).
-     * @param capacity The level-unlocked capacity (multiple of 9); occupied overflow rows may remain visible for withdrawal.
+     * @param capacity The guild's current level entitlement (multiple of 9); permanent slots are resolved durably.
      * @return The shared Inventory for this guild.
      */
     fun getOrCreateSharedInventory(guildId: UUID, guildName: String, capacity: Int): Inventory {
         return sharedInventories.computeIfAbsent(guildId) { id ->
             logger.debug("Creating shared inventory for guild $guildName ($id)")
 
-            // Prestige resets the guild level and unlocked row count, but must never
-            // strand already-stored items in rows that are no longer unlocked.
+            // Permanent entitlement survives prestige even when the unlocked
+            // upper rows are empty. Occupied slots remain visible on legacy data.
+            val permanentCapacity = vaultRepository.getPermanentCapacity(id, capacity)
             val vault = getOrLoadVault(id)
             val highestStoredSlot = vault.slots.keys.filter { it in 1..53 }.maxOrNull()
             val visibleCapacity = maxOf(
-                capacity,
-                highestStoredSlot?.let { (it / 9 + 1) * 9 } ?: capacity,
+                permanentCapacity,
+                highestStoredSlot?.let { (it / 9 + 1) * 9 } ?: permanentCapacity,
             )
             if (vault.slots.keys.any { it > 53 }) {
                 logger.error("Vault for guild $id contains slots outside the 54-slot UI; manual recovery required")
             }
 
-            // Holder capacity remains the level-unlocked limit. Extra rows are
-            // visible for withdrawal only and protected by VaultInventoryListener.
+            // Holder uses the durable high-water mark; no earned slot becomes
+            // withdrawal-only when the guild returns to level 1.
             val holder = VaultInventoryHolder(
                 guildId = id,
                 guildName = guildName,
                 vaultInventoryManager = this,
-                capacity = capacity
+                capacity = permanentCapacity
             )
 
             val inventory = Bukkit.createInventory(
