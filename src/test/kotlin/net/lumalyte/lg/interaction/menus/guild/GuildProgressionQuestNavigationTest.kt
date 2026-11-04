@@ -45,11 +45,10 @@ class GuildProgressionQuestNavigationTest {
             GuildProgressionMenu(
                 mockk(), player, guild, mockk(), members, mockk(), mockk(), mockk(), mockk(), admin,
             )
-        val authorized = GuildProgressionMenu::class.java.getDeclaredMethod("canOpenQuests")
-        authorized.isAccessible = true
-        org.junit.jupiter.api.Assertions.assertTrue(authorized.invoke(menu) as Boolean)
+        val check = GuildProgressionMenu::class.java.getDeclaredMethod("canOpenQuests").also { it.isAccessible = true }
+        org.junit.jupiter.api.Assertions.assertTrue(check.invoke(menu) as Boolean)
         scoped = false
-        org.junit.jupiter.api.Assertions.assertFalse(authorized.invoke(menu) as Boolean)
+        org.junit.jupiter.api.Assertions.assertFalse(check.invoke(menu) as Boolean)
     }
 
     @Suppress("SpreadOperator") // MockK requires vararg matching in this test fixture.
