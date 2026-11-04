@@ -1,6 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.QuestService
 import net.lumalyte.lg.domain.entities.Guild
@@ -23,7 +24,8 @@ class BedrockGuildQuestsMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
+    logger: Logger,
+    private val adminOverrideService: AdminOverrideService? = null,
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
     private val memberService: MemberService by inject()
     private val questService: QuestService by inject()
@@ -32,8 +34,12 @@ class BedrockGuildQuestsMenu(
 
     private var page = 0
 
+    private fun canInspectGuild(): Boolean =
+        memberService.getMember(player.uniqueId, guild.id) != null ||
+            adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id
+
     override fun getForm(): Form {
-        if (memberService.getMember(player.uniqueId, guild.id) == null) {
+        if (!canInspectGuild()) {
             return statusForm(lang.bedrock("menu.quests.feedback.not_member"))
         }
         val active = questService.activeQuestSet()
@@ -138,7 +144,7 @@ class BedrockGuildQuestsMenu(
 
     private fun handleQuestSelection(questId: String) {
         Bukkit.getScheduler().runTask(plugin, Runnable {
-            if (!player.isOnline) return@Runnable
+            if (!player.isOnline || !canInspectGuild()) return@Runnable
             val questExists = questService.activeQuestSet()?.quests?.any { it.id == questId } == true
             if (!questExists) {
                 player.sendMessage(lang.msg("menu.quests.feedback.no_quests"))
@@ -159,7 +165,7 @@ class BedrockGuildQuestsMenu(
 
     private fun changePage(delta: Int) {
         Bukkit.getScheduler().runTask(plugin, Runnable {
-            if (!player.isOnline) return@Runnable
+            if (!player.isOnline || !canInspectGuild()) return@Runnable
             page = (page + delta).coerceAtLeast(0)
             open()
         })

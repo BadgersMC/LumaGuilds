@@ -10,6 +10,7 @@ import io.mockk.verify
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.infrastructure.services.AdminOverrideServiceImpl
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.QuestService
 import net.lumalyte.lg.domain.entities.Guild
@@ -39,6 +40,8 @@ internal class GuildQuestDialogFlowTest {
     private val guards = mutableListOf<() -> Boolean>()
     private var member = true
     private val members = mockk<MemberService>()
+    private val adminOverride = AdminOverrideServiceImpl()
+    private lateinit var guild: Guild
     private val quests = mockk<QuestService>(relaxed = true)
     private val guilds = mockk<GuildService>(relaxed = true)
     private val navigator = mockk<MenuNavigator>(relaxed = true)
@@ -56,7 +59,7 @@ internal class GuildQuestDialogFlowTest {
         every { JavaPlugin.getProvidingPlugin(any()) } returns plugin
         player = server.addPlayer()
         permission = player.addAttachment(plugin, "lumaguilds.guild.quests", true)
-        val guild = Guild(UUID.randomUUID(), "Guild", createdAt = Instant.EPOCH)
+        guild = Guild(UUID.randomUUID(), "Guild", createdAt = Instant.EPOCH)
         every { guilds.getGuild(guild.id) } returns guild
         val target =
             mockk<QuestTarget>(relaxed = true) {
@@ -84,7 +87,7 @@ internal class GuildQuestDialogFlowTest {
         every { RecruitmentPresentation.supportsDialog(player) } returns true
         mockkConstructor(GuildMenuDialog::class)
         every { anyConstructed<GuildMenuDialog>().show(player, capture(pages), capture(guards), any()) } returns true
-        menu = GuildQuestsMenu(navigator, player, guild, members, guilds, quests, lang)
+        menu = GuildQuestsMenu(navigator, player, guild, members, guilds, quests, lang, adminOverride)
     }
 
     @AfterEach
@@ -123,6 +126,20 @@ internal class GuildQuestDialogFlowTest {
         every { navigator.isNavigationCurrent(any()) } returns true
         week = week.copy(weekId = "replacement-week")
         assertFalse(guard())
+    }
+
+    @Test
+    fun inspectorRevokedOnBypassOff() {
+        member = false
+        adminOverride.enableOverride(player.uniqueId)
+        adminOverride.setViewedGuild(player.uniqueId, guild.id)
+        permission.setPermission("lumaguilds.guild.quests", false)
+
+        menu.open()
+        assertTrue(guards.last()())
+
+        adminOverride.disableOverride(player.uniqueId)
+        assertFalse(guards.last()())
     }
 
     private fun action(key: String): () -> Unit =
