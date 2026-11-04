@@ -816,8 +816,10 @@ class MenuFactory(
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
+        val adminOverride = org.koin.core.context.GlobalContext.getOrNull()
+            ?.getOrNull<net.lumalyte.lg.application.services.AdminOverrideService>()
         return if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildProgressionInfoMenu(menuNavigator, player, guild, logger)
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildProgressionInfoMenu(menuNavigator, player, guild, logger, adminOverride)
         } else {
             val guildService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.GuildService>()
             val memberService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.MemberService>()
@@ -826,7 +828,7 @@ class MenuFactory(
             net.lumalyte.lg.interaction.menus.guild.GuildProgressionMenu(
                 menuNavigator, player, guild,
                 guildService, memberService, progressionService,
-                this, menuItemBuilder, configService
+                this, menuItemBuilder, configService, adminOverride
             )
         }
     }
