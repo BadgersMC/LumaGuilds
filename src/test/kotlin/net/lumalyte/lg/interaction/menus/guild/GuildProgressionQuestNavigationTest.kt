@@ -41,16 +41,18 @@ class GuildProgressionQuestNavigationTest {
         var scoped = true
         val admin = mockk<AdminOverrideService>()
         every { admin.getViewedGuild(playerId) } answers { if (scoped) guild.id else null }
-        val menu = GuildProgressionMenu(
-            mockk(), player, guild, mockk(), members, mockk(), mockk(), mockk(), mockk(), admin,
-        )
+        val menu =
+            GuildProgressionMenu(
+                mockk(), player, guild, mockk(), members, mockk(), mockk(), mockk(), mockk(), admin,
+            )
         val authorized = GuildProgressionMenu::class.java.getDeclaredMethod("canOpenQuests")
-            .apply { isAccessible = true }
+        authorized.isAccessible = true
         org.junit.jupiter.api.Assertions.assertTrue(authorized.invoke(menu) as Boolean)
         scoped = false
         org.junit.jupiter.api.Assertions.assertFalse(authorized.invoke(menu) as Boolean)
     }
 
+    @Suppress("SpreadOperator") // MockK requires vararg matching in this test fixture.
     private fun verifyClick(member: Boolean, permission: Boolean) {
         val server = MockBukkit.mock()
         val plugin = MockBukkit.createMockPlugin()

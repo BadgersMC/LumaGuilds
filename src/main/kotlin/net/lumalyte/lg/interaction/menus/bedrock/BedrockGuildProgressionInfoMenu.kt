@@ -51,13 +51,15 @@ class BedrockGuildProgressionInfoMenu(
         return !isMember && adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id
     }
 
-    private fun readOnlyProgression(): Form = CustomForm.builder()
-        .title(lang.bedrock("bedrock.progression.title", "guild" to guild.name))
-        .label(createLevelAndExperienceSection())
-        .label(createSourceUsageSection())
-        .label(createBenefitsSection())
-        .label(createActivitySection())
-        .build()
+    private fun readOnlyProgression(): Form {
+        return CustomForm.builder()
+            .title(lang.bedrock("bedrock.progression.title", "guild" to guild.name))
+            .label(createLevelAndExperienceSection())
+            .label(createSourceUsageSection())
+            .label(createBenefitsSection())
+            .label(createActivitySection())
+            .build()
+    }
 
     override fun getForm(): Form {
         if (isScopedInspector()) return readOnlyProgression()
