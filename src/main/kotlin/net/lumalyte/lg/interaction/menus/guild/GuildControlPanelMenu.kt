@@ -83,9 +83,15 @@ class GuildControlPanelMenu(
             if (memberService.getMember(player.uniqueId, guild.id) != null) {
                 menuNavigator.openMenu(GuildAchievementsMenu(menuNavigator, player, guild))
             } else if (adminOverrideService.getViewedGuild(player.uniqueId) == guild.id) {
-                menuNavigator.openMenu(GuildAchievementsMenu(
-                    menuNavigator, player, guild, guildMilestones = true, adminOverrideService = adminOverrideService,
-                ))
+                menuNavigator.openMenu(
+                    GuildAchievementsMenu(
+                        menuNavigator,
+                        player,
+                        guild,
+                        guildMilestones = true,
+                        adminOverrideService = adminOverrideService,
+                    ),
+                )
             }
         }, 4, 0)
         pane.addItem(
