@@ -46,8 +46,9 @@ class BedrockGuildProgressionInfoMenu(
     private val members: MemberService by inject()
     private val serverPlugin: Plugin by inject()
 
-    private fun isScopedInspector() = members.getMember(player.uniqueId, guild.id) == null &&
-        adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id
+    private fun isScopedInspector() =
+        members.getMember(player.uniqueId, guild.id) == null &&
+            adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id
 
     private fun readOnlyProgression(): Form = CustomForm.builder()
         .title(lang.bedrock("bedrock.progression.title", "guild" to guild.name))

@@ -19,6 +19,8 @@ import org.mockbukkit.mockbukkit.MockBukkit
 import java.time.Instant
 import java.util.UUID
 
+private const val TEST_LANG = "localized"
+
 class GuildProgressionQuestNavigationTest {
     @AfterEach fun cleanup() { stopKoin(); unmockkAll(); MockBukkit.unmock() }
 
@@ -26,7 +28,8 @@ class GuildProgressionQuestNavigationTest {
     @Test fun `stale membership prevents progression quest navigation`() = verifyClick(false, true)
     @Test fun `explicit quest permission denial prevents navigation`() = verifyClick(true, false)
 
-    @Test fun `scoped inspector loses quest navigation after bypass is disabled`() {
+    /** A nonmember's open menu loses quest navigation as soon as scoped bypass ends. */
+    @Test fun scopedInspectorRevoked() {
         val server = MockBukkit.mock()
         val plugin = MockBukkit.createMockPlugin()
         mockkStatic(JavaPlugin::class)
@@ -44,11 +47,13 @@ class GuildProgressionQuestNavigationTest {
         val navigator = mockk<MenuNavigator>(relaxed = true)
         every { factory.createGuildQuestsMenu(navigator, player, guild) } returns target
         val lang = mockk<LangService> {
-            every { msg(any(), *anyVararg()) } returns Component.text("localized")
-            every { raw(any()) } returns "localized"
+            every { msg(any(), *anyVararg()) } returns Component.text(TEST_LANG)
+            every { raw(any()) } returns TEST_LANG
         }
         stopKoin(); startKoin { modules(module { single { lang }; single { members }; single { factory } }) }
-        val menu = GuildProgressionMenu(navigator, player, guild, mockk(), members, mockk(), factory, mockk(), mockk(), admin)
+        val menu = GuildProgressionMenu(
+            navigator, player, guild, mockk(), members, mockk(), factory, mockk(), mockk(), admin,
+        )
         val pane = StaticPane(0, 0, 9, 6)
         val method = GuildProgressionMenu::class.java.getDeclaredMethod("addQuestsButton", StaticPane::class.java,
             Int::class.javaPrimitiveType, Int::class.javaPrimitiveType).apply { isAccessible = true }
@@ -75,8 +80,8 @@ class GuildProgressionQuestNavigationTest {
         val navigator = mockk<MenuNavigator>(relaxed = true)
         every { factory.createGuildQuestsMenu(navigator, player, guild) } returns target
         val lang = mockk<LangService> {
-            every { msg(any(), *anyVararg()) } returns Component.text("localized")
-            every { raw(any()) } returns "localized"
+            every { msg(any(), *anyVararg()) } returns Component.text(TEST_LANG)
+            every { raw(any()) } returns TEST_LANG
         }
         stopKoin(); startKoin { modules(module { single { lang }; single { members }; single { factory } }) }
         val menu = GuildProgressionMenu(navigator, player, guild, mockk(), members, mockk(), factory, mockk(), mockk())
