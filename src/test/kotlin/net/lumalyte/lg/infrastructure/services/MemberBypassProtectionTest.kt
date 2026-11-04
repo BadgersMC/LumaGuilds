@@ -23,15 +23,19 @@ internal class MemberBypassProtectionTest {
     private val members = mockk<MemberRepository>(relaxed = true)
     private val ranks = mockk<RankRepository>(relaxed = true)
     private val bypass = mockk<AdminOverrideService>(relaxed = true)
-    private val service = MemberServiceBukkit(
-        members, ranks, mockk<GuildRepository>(relaxed = true),
-        mockk<ProgressionRepository>(relaxed = true),
-        mockk<ProgressionConfigService>(relaxed = true),
-        mockk<MembershipHistoryRepository>(relaxed = true), bypass,
-    )
+    private val service =
+        MemberServiceBukkit(
+            members,
+            ranks,
+            mockk<GuildRepository>(relaxed = true),
+            mockk<ProgressionRepository>(relaxed = true),
+            mockk<ProgressionConfigService>(relaxed = true),
+            mockk<MembershipHistoryRepository>(relaxed = true),
+            bypass,
+        )
 
     @Test
-    fun `staff with active bypass cannot be kicked even by another bypassed admin`() {
+    fun bypassedStaffCannotBeKicked() {
         every { bypass.hasOverride(staffActor) } returns true
         every { bypass.hasOverride(staffTarget) } returns true
         assertFalse(service.removeMember(staffTarget, guild, staffActor))
@@ -39,10 +43,10 @@ internal class MemberBypassProtectionTest {
     }
 
     @Test
-    fun `staff with active bypass cannot be demoted or reassigned by another admin`() {
+    fun bypassedStaffCannotBeDemoted() {
         every { bypass.hasOverride(staffActor) } returns true
         every { bypass.hasOverride(staffTarget) } returns true
-        val memberRank = Rank(UUID.randomUUID(), guild, "Member", 4)
+        val memberRank = Rank(UUID.randomUUID(), guild, "Member", MEMBER_PRIORITY)
         every { members.getByPlayerAndGuild(staffTarget, guild) } returns
             Member(staffTarget, guild, memberRank.id, Instant.EPOCH)
         every { ranks.getById(memberRank.id) } returns memberRank
@@ -51,5 +55,9 @@ internal class MemberBypassProtectionTest {
         assertFalse(service.promoteMember(staffTarget, guild, staffActor))
         assertFalse(service.demoteMember(staffTarget, guild, staffActor))
         verify(exactly = 0) { members.update(any()) }
+    }
+
+    private companion object {
+        const val MEMBER_PRIORITY = 4
     }
 }

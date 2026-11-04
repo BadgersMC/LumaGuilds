@@ -36,10 +36,15 @@ internal class RankAuthorityBoundaryTest {
             mockk<RankClaimPermissionProfileRepository>(relaxed = true),
         )
     private val bypass = mockk<AdminOverrideService>(relaxed = true)
-    private val adminService = RankServiceBukkit(
-        ranks, members, mockk<GuildRepository>(relaxed = true), memberService,
-        mockk<RankClaimPermissionProfileRepository>(relaxed = true), adminOverrideService = bypass,
-    )
+    private val adminService =
+        RankServiceBukkit(
+            ranks,
+            members,
+            mockk<GuildRepository>(relaxed = true),
+            memberService,
+            mockk<RankClaimPermissionProfileRepository>(relaxed = true),
+            adminOverrideService = bypass,
+        )
     private val management = setOf(RankPermission.MANAGE_RANKS, RankPermission.MANAGE_MEMBERS)
 
     private fun rank(priority: Int, permissions: Set<RankPermission> = management): Rank =
@@ -127,7 +132,7 @@ internal class RankAuthorityBoundaryTest {
         verify { ranks.update(match { RankPermission.WITHDRAW_FROM_BANK in it.permissions }) }
     }
 
-    @Test fun nonMemberBypassCanAssignRankWithoutMembership() {
+    @Test fun bypassCanAssignNonMember() {
         every { bypass.hasOverride(actor) } returns true
         member(target, rank(LOWEST_PRIORITY))
         val destination = rank(LOWER_PRIORITY)
@@ -136,7 +141,7 @@ internal class RankAuthorityBoundaryTest {
         verify { members.update(match { it.rankId == destination.id }) }
     }
 
-    @Test fun bypassCannotAssignOrDemoteOwner() {
+    @Test fun bypassProtectsOwner() {
         every { bypass.hasOverride(actor) } returns true
         val owner = rank(0)
         member(target, owner)
@@ -145,7 +150,7 @@ internal class RankAuthorityBoundaryTest {
         verify(exactly = 0) { members.update(any()) }
     }
 
-    @Test fun anotherStaffMemberCannotBeDemotedInBypass() {
+    @Test fun bypassProtectsStaff() {
         every { bypass.hasOverride(actor) } returns true
         every { bypass.hasOverride(target) } returns true
         member(target, rank(LOWEST_PRIORITY))

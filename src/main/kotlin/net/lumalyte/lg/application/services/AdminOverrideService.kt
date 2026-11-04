@@ -7,8 +7,8 @@ import java.util.UUID
  *
  * This service provides administrators with the ability to bypass guild membership
  * and permission restrictions. When override is enabled, administrators can:
- * - Join any guild without invitations or membership checks
- * - Have owner-level permissions in all guild claims
+ * - Inspect another guild without joining it
+ * - Exercise explicitly authorized administration operations with bypass enabled
  *
  * Override state is session-only and automatically cleared on logout.
  */
@@ -31,9 +31,13 @@ interface AdminOverrideService {
      */
     fun hasOverride(playerId: UUID): Boolean
 
-    /** Optional guild being inspected; never changes membership or roster state. */
+    /** Set the transient guild inspection context; never changes membership. */
     fun setViewedGuild(playerId: UUID, guildId: UUID)
+
+    /** Get the guild currently inspected by this administrator, if bypass is active. */
     fun getViewedGuild(playerId: UUID): UUID?
+
+    /** Clear the transient inspection context without changing guild membership. */
     fun clearViewedGuild(playerId: UUID)
 
     /**

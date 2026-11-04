@@ -113,19 +113,20 @@ class LumaGuildsCommandTest {
         stopKoin()
     }
 
+    /** Inspection must never add or remove a guild member. */
     @Test
-    fun adminViewOpensWithoutChangingMembership() {
+    fun adminViewPreservesMembership() {
         val guildId = UUID.randomUUID()
         val guild = mockk<Guild>(relaxed = true)
         every { guild.id } returns guildId
-        every { guild.name } returns "Example"
-        every { guildService.getGuildByName("Example") } returns guild
+        every { guild.name } returns ADMIN_VIEW_GUILD
+        every { guildService.getGuildByName(ADMIN_VIEW_GUILD) } returns guild
         every { adminOverrideService.hasOverride(player.uniqueId) } returns true
         val menu = mockk<Menu>(relaxed = true)
         every { menuFactory.createGuildControlPanelMenu(any(), player, guild) } returns menu
         player.addAttachment(mockPlugin, "lumaguilds.admin.view", true)
 
-        assertTrue(command.onCommand(player, mockCommand, COMMAND_NAME, arrayOf("admin", "view", "Example")))
+        assertTrue(command.onCommand(player, mockCommand, COMMAND_NAME, arrayOf("admin", "view", ADMIN_VIEW_GUILD)))
         verify(exactly = 1) { adminOverrideService.setViewedGuild(player.uniqueId, guildId) }
         verify(exactly = 0) { memberService.addMember(any(), any(), any()) }
         verify(exactly = 0) { memberService.removeMember(any(), any(), any()) }
@@ -450,6 +451,7 @@ class LumaGuildsCommandTest {
 
     private companion object {
         const val COMMAND_NAME = "lumaguilds"
+        const val ADMIN_VIEW_GUILD = "Example"
         const val LEGACY_ADMIN_PERMISSION = "bellclaims.admin"
         const val PERMISSION_MESSAGE_FRAGMENT = "permission"
         const val XP_PERMISSION = "lumaguilds.admin.xp"

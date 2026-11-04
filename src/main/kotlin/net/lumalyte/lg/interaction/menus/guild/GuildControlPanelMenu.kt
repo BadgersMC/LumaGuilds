@@ -48,14 +48,15 @@ class GuildControlPanelMenu(
 
     private val lang: LangService by inject()
     private val nexoEmojiService: NexoEmojiService by inject()
+    private val adminOverrideService: AdminOverrideService by inject()
 
     override fun open() {
         val playerId = player.uniqueId
 
         // Security check: Only guild members can access guild actions
         if (memberService.getMember(playerId, guild.id) == null &&
-            !org.koin.core.context.GlobalContext.get()
-                .get<AdminOverrideService>().hasOverride(playerId)) {
+            !adminOverrideService.hasOverride(playerId)
+        ) {
             player.sendMessage(lang.msg("menu.control_panel.feedback.not_member"))
             menuNavigator.goBack()
             return

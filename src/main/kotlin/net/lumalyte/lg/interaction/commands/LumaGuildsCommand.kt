@@ -366,33 +366,37 @@ class LumaGuildsCommand(
             return
         }
         when (args.getOrNull(1)?.lowercase()) {
-            "view" -> {
-                if (!adminOverrideService.hasOverride(sender.uniqueId)) {
-                    sender.sendMessage("Enable /lumaguilds bypass before inspecting another guild.")
-                    return
-                }
-                val guildName = args.drop(2).joinToString(" ").trim()
-                if (guildName.isEmpty()) {
-                    sender.sendMessage("Usage: /lumaguilds admin view <guild>")
-                    return
-                }
-                val guild = GuildResolver.resolveGuildByName(guildName, guildService)
-                if (guild == null) {
-                    sender.sendMessage("Guild not found: $guildName")
-                    return
-                }
-                adminOverrideService.setViewedGuild(sender.uniqueId, guild.id)
-                sender.sendMessage("Inspecting ${guild.name} in admin bypass. Your guild membership has not changed.")
-                val navigator = MenuNavigator(sender)
-                navigator.openMenu(menuFactory.createGuildControlPanelMenu(navigator, sender, guild))
-            }
-            "exit" -> {
-                adminOverrideService.clearViewedGuild(sender.uniqueId)
-                sender.closeInventory()
-                sender.sendMessage("Admin guild inspection closed. Bypass remains ${if (adminOverrideService.hasOverride(sender.uniqueId)) "enabled" else "disabled"}.")
-            }
+            "view" -> handleAdminView(sender, args)
+            "exit" -> handleAdminExit(sender)
             else -> sender.sendMessage("Usage: /lumaguilds admin <view <guild>|exit>")
         }
+    }
+
+    private fun handleAdminView(sender: Player, args: Array<out String>) {
+        if (!adminOverrideService.hasOverride(sender.uniqueId)) {
+            sender.sendMessage("Enable /lumaguilds bypass before inspecting another guild.")
+            return
+        }
+        val guildName = args.drop(2).joinToString(" ").trim()
+        if (guildName.isEmpty()) {
+            sender.sendMessage("Usage: /lumaguilds admin view <guild>")
+            return
+        }
+        val guild = GuildResolver.resolveGuildByName(guildName, guildService)
+        if (guild == null) {
+            sender.sendMessage("Guild not found: $guildName")
+            return
+        }
+        adminOverrideService.setViewedGuild(sender.uniqueId, guild.id)
+        sender.sendMessage("Inspecting ${guild.name} in admin bypass. Your guild membership has not changed.")
+        val navigator = MenuNavigator(sender)
+        navigator.openMenu(menuFactory.createGuildControlPanelMenu(navigator, sender, guild))
+    }
+
+    private fun handleAdminExit(sender: Player) {
+        adminOverrideService.clearViewedGuild(sender.uniqueId)
+        sender.closeInventory()
+        sender.sendMessage("Admin guild inspection closed. Bypass remains ${if (adminOverrideService.hasOverride(sender.uniqueId)) "enabled" else "disabled"}.")
     }
 
     /**
