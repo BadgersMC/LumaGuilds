@@ -34,9 +34,9 @@ internal class GuildQuestDetailMenu(
     }
 
     private fun canOpenDetail(): Boolean {
-        if (!canInspectGuild()) return false
-        if (player.hasPermission("lumaguilds.guild.quests")) return true
-        return adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id
+        val hasQuestPermission = player.hasPermission("lumaguilds.guild.quests")
+        val isScopedInspector = adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id
+        return canInspectGuild() && (hasQuestPermission || isScopedInspector)
     }
 
     override fun open() {
