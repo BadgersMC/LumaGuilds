@@ -41,7 +41,7 @@ internal class GuildQuestDialogFlowTest {
     private var member = true
     private val members = mockk<MemberService>()
     private val adminOverride = AdminOverrideServiceImpl()
-    private lateinit var guild: Guild
+    private val guild = Guild(UUID.randomUUID(), "Guild", createdAt = Instant.EPOCH)
     private val quests = mockk<QuestService>(relaxed = true)
     private val guilds = mockk<GuildService>(relaxed = true)
     private val navigator = mockk<MenuNavigator>(relaxed = true)
@@ -59,7 +59,6 @@ internal class GuildQuestDialogFlowTest {
         every { JavaPlugin.getProvidingPlugin(any()) } returns plugin
         player = server.addPlayer()
         permission = player.addAttachment(plugin, "lumaguilds.guild.quests", true)
-        guild = Guild(UUID.randomUUID(), "Guild", createdAt = Instant.EPOCH)
         every { guilds.getGuild(guild.id) } returns guild
         val target =
             mockk<QuestTarget>(relaxed = true) {

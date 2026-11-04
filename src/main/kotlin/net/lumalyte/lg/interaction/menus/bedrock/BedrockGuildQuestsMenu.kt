@@ -34,9 +34,10 @@ class BedrockGuildQuestsMenu(
 
     private var page = 0
 
-    private fun canInspectGuild(): Boolean =
-        memberService.getMember(player.uniqueId, guild.id) != null ||
-            adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id
+    private fun canInspectGuild(): Boolean {
+        if (memberService.getMember(player.uniqueId, guild.id) != null) return true
+        return adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id
+    }
 
     override fun getForm(): Form {
         if (!canInspectGuild()) {
@@ -144,30 +145,34 @@ class BedrockGuildQuestsMenu(
 
     private fun handleQuestSelection(questId: String) {
         Bukkit.getScheduler().runTask(plugin, Runnable {
-            if (!player.isOnline || !canInspectGuild()) return@Runnable
-            val questExists = questService.activeQuestSet()?.quests?.any { it.id == questId } == true
-            if (!questExists) {
-                player.sendMessage(lang.msg("menu.quests.feedback.no_quests"))
-                open()
-                return@Runnable
-            }
-            bedrockNavigator.openMenu(
-                BedrockGuildQuestLeaderboardMenu(
-                    menuNavigator = menuNavigator,
-                    player = player,
-                    viewingGuild = guild,
-                    questId = questId,
-                    logger = logger,
+            if (!player.isOnline) return@Runnable
+            if (canInspectGuild()) {
+                val questExists = questService.activeQuestSet()?.quests?.any { it.id == questId } == true
+                if (!questExists) {
+                    player.sendMessage(lang.msg("menu.quests.feedback.no_quests"))
+                    open()
+                    return@Runnable
+                }
+                bedrockNavigator.openMenu(
+                    BedrockGuildQuestLeaderboardMenu(
+                        menuNavigator = menuNavigator,
+                        player = player,
+                        viewingGuild = guild,
+                        questId = questId,
+                        logger = logger,
+                    )
                 )
-            )
+            }
         })
     }
 
     private fun changePage(delta: Int) {
         Bukkit.getScheduler().runTask(plugin, Runnable {
-            if (!player.isOnline || !canInspectGuild()) return@Runnable
-            page = (page + delta).coerceAtLeast(0)
-            open()
+            if (!player.isOnline) return@Runnable
+            if (canInspectGuild()) {
+                page = (page + delta).coerceAtLeast(0)
+                open()
+            }
         })
     }
 

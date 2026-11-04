@@ -28,18 +28,22 @@ internal class GuildQuestDetailMenu(
 ) : Menu {
     private val dialog = GuildMenuDialog()
 
-    private fun canInspectGuild(): Boolean =
-        members.getMember(player.uniqueId, guild.id) != null ||
-            adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id
+    private fun canInspectGuild(): Boolean {
+        if (members.getMember(player.uniqueId, guild.id) != null) return true
+        return adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id
+    }
+
+    private fun canOpenDetail(): Boolean {
+        if (!canInspectGuild()) return false
+        if (player.hasPermission("lumaguilds.guild.quests")) return true
+        return adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id
+    }
 
     override fun open() {
         guild = guilds.getGuild(guild.id) ?: guild
         val week = quests.activeQuestSet()
         val quest = week?.quests?.firstOrNull { it.id == questId }
-        if (quest == null || !canInspectGuild() ||
-            (!player.hasPermission("lumaguilds.guild.quests") &&
-                adminOverrideService?.getViewedGuild(player.uniqueId) != guild.id)
-        ) {
+        if (quest == null || !canOpenDetail()) {
             navigator.goBack()
             return
         }
@@ -105,10 +109,7 @@ internal class GuildQuestDetailMenu(
             )
         dialog.show(player, page, {
             player.isOnline && navigator.isNavigationCurrent(token) &&
-                canInspectGuild() &&
-                (player.hasPermission("lumaguilds.guild.quests") ||
-                    adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id) &&
-                quests.activeQuestSet()?.weekId == week.weekId
+                canOpenDetail() && quests.activeQuestSet()?.weekId == week.weekId
         }) { player.sendMessage(lang.msg("menu.quests.feedback.no_quests")) }
     }
 }
