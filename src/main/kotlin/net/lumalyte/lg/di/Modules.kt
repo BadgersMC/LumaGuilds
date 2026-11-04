@@ -459,6 +459,7 @@ fun guildsModule() = module {
                     .getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
                     ?.invalidateGuildCache(guildId)
             },
+            adminOverrideService = get(),
         )
     }
     single<MemberService> {

@@ -53,7 +53,9 @@ class GuildControlPanelMenu(
         val playerId = player.uniqueId
 
         // Security check: Only guild members can access guild actions
-        if (memberService.getMember(playerId, guild.id) == null) {
+        if (memberService.getMember(playerId, guild.id) == null &&
+            !org.koin.core.context.GlobalContext.get()
+                .get<AdminOverrideService>().hasOverride(playerId)) {
             player.sendMessage(lang.msg("menu.control_panel.feedback.not_member"))
             menuNavigator.goBack()
             return

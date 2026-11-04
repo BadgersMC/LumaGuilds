@@ -1177,11 +1177,13 @@ class LumaGuilds : JavaPlugin() {
             }
         }
 
-        // Register admin override listener (for logout cleanup) - only when claims enabled
-        if (claimsEnabled) {
-            val adminOverrideListener = get().get<net.lumalyte.lg.interaction.listeners.AdminOverrideListener>()
-            server.pluginManager.registerEvents(adminOverrideListener, this)
-        }
+        // Session-only bypass must be cleared on logout even when claims are disabled.
+        server.pluginManager.registerEvents(
+            net.lumalyte.lg.interaction.listeners.AdminOverrideListener(
+                get().get(), get().getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>(),
+            ),
+            this,
+        )
 
         // Guild Strikes — prefer the provider-neutral EnthusiaStaff lifecycle feed.
         server.pluginManager.registerEvents(

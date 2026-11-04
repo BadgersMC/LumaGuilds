@@ -18,6 +18,8 @@ import net.lumalyte.lg.application.services.ProgressionService
 import net.lumalyte.lg.application.results.OwnerRecoveryPreviewResult
 import net.lumalyte.lg.application.results.OwnerRecoveryRejection
 import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.interaction.menus.Menu
+import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.domain.values.ExperienceSource.ADMIN_BONUS
 import org.bukkit.command.Command
 import org.junit.jupiter.api.AfterEach
@@ -44,6 +46,7 @@ class LumaGuildsCommandTest {
     private lateinit var permissionResolver: GuildRolePermissionResolver
     private var guildService: GuildService = mockk(relaxed = true)
     private var progressionService: ProgressionService = mockk(relaxed = true)
+    private var menuFactory: MenuFactory = mockk(relaxed = true)
 
     // Koin receives a fresh member-service mock during each JUnit setup.
     @Suppress("LateinitUsage")
@@ -68,6 +71,7 @@ class LumaGuildsCommandTest {
         permissionResolver = mockk(relaxed = true)
         guildService = mockk(relaxed = true)
         progressionService = mockk(relaxed = true)
+        menuFactory = mockk(relaxed = true)
         memberService = mockk(relaxed = true)
 
         // Set up Koin with mocked services
@@ -89,6 +93,7 @@ class LumaGuildsCommandTest {
                 single { guildService }
                 single { progressionService }
                 single { memberService }
+                single { menuFactory }
             })
         }
 
@@ -106,6 +111,24 @@ class LumaGuildsCommandTest {
     fun tearDown() {
         MockBukkit.unmock()
         stopKoin()
+    }
+
+    @Test
+    fun adminViewOpensWithoutChangingMembership() {
+        val guildId = UUID.randomUUID()
+        val guild = mockk<Guild>(relaxed = true)
+        every { guild.id } returns guildId
+        every { guild.name } returns "Example"
+        every { guildService.getGuildByName("Example") } returns guild
+        every { adminOverrideService.hasOverride(player.uniqueId) } returns true
+        val menu = mockk<Menu>(relaxed = true)
+        every { menuFactory.createGuildControlPanelMenu(any(), player, guild) } returns menu
+        player.addAttachment(mockPlugin, "lumaguilds.admin.view", true)
+
+        assertTrue(command.onCommand(player, mockCommand, COMMAND_NAME, arrayOf("admin", "view", "Example")))
+        verify(exactly = 1) { adminOverrideService.setViewedGuild(player.uniqueId, guildId) }
+        verify(exactly = 0) { memberService.addMember(any(), any(), any()) }
+        verify(exactly = 0) { memberService.removeMember(any(), any(), any()) }
     }
 
     /** The admin route delegates recovery preview to the authoritative member service without a write. */

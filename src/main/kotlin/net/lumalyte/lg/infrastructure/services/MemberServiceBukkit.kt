@@ -130,6 +130,13 @@ class MemberServiceBukkit(
             return false
         }
 
+        // Bypass is a staff session, not a removable guild membership. A staff member
+        // who also belongs to this guild cannot be kicked while their bypass is active.
+        if (actorId != playerId && adminOverrideService.hasOverride(playerId)) {
+            logger.warn("Refused to kick staff member $playerId while admin bypass is active")
+            return false
+        }
+
         // Check if player is actually a member
         if (!memberRepository.isPlayerInGuild(playerId, guildId)) {
             logger.warn("Player $playerId is not a member of guild $guildId")
@@ -197,6 +204,7 @@ class MemberServiceBukkit(
     
     override fun changeMemberRank(playerId: UUID, guildId: UUID, newRankId: UUID, actorId: UUID): Boolean {
         val isOverride = adminOverrideService.hasOverride(actorId)
+        if (actorId != playerId && adminOverrideService.hasOverride(playerId)) return false
 
         // Check if actor has permission to manage members
         if (!isOverride && !hasPermission(actorId, guildId, RankPermission.MANAGE_MEMBERS)) {
@@ -313,11 +321,14 @@ class MemberServiceBukkit(
         val member = memberRepository.getByPlayerAndGuild(playerId, guildId) ?: return false
         val currentRank = rankRepository.getById(member.rankId) ?: return false
 
-        // PRIORITY CHECK: Actor must strictly outrank the target
-        val actorMember = memberRepository.getByPlayerAndGuild(actorId, guildId) ?: return false
-        val actorRank = rankRepository.getById(actorMember.rankId) ?: return false
-        if (actorRank.priority >= currentRank.priority) {
-            logger.warn("Player $actorId (priority ${actorRank.priority}) cannot promote member $playerId (priority ${currentRank.priority})")
+        if (actorId != playerId && adminOverrideService.hasOverride(playerId)) return false
+        val bypass = adminOverrideService.hasOverride(actorId)
+        val actorPriority = if (bypass) -1 else {
+            val actorMember = memberRepository.getByPlayerAndGuild(actorId, guildId) ?: return false
+            rankRepository.getById(actorMember.rankId)?.priority ?: return false
+        }
+        if (actorPriority >= currentRank.priority) {
+            logger.warn("Player $actorId cannot promote member $playerId at priority ${currentRank.priority}")
             return false
         }
 
@@ -340,8 +351,8 @@ class MemberServiceBukkit(
         }
 
         // PRIORITY CHECK: Cannot promote target to rank equal to or higher than actor's own rank
-        if (nextRank.priority <= actorRank.priority) {
-            logger.warn("Player $actorId (priority ${actorRank.priority}) cannot promote member $playerId to priority ${nextRank.priority} — must remain greater than actor's own priority")
+        if (nextRank.priority <= actorPriority) {
+            logger.warn("Player $actorId cannot promote member $playerId to priority ${nextRank.priority} — must remain greater than actor's own priority")
             return false
         }
 
@@ -370,11 +381,15 @@ class MemberServiceBukkit(
             return false
         }
 
-        // PRIORITY CHECK: Actor must strictly outrank the target (also blocks self-demotion)
-        val actorMember = memberRepository.getByPlayerAndGuild(actorId, guildId) ?: return false
-        val actorRank = rankRepository.getById(actorMember.rankId) ?: return false
-        if (actorRank.priority >= currentRank.priority) {
-            logger.warn("Player $actorId (priority ${actorRank.priority}) cannot demote member $playerId (priority ${currentRank.priority})")
+        if (actorId != playerId && adminOverrideService.hasOverride(playerId)) return false
+        // Even a bypassed admin must use the atomic ownership-transfer path.
+        if (currentRank.priority == 0) return false
+        val actorPriority = if (adminOverrideService.hasOverride(actorId)) -1 else {
+            val actorMember = memberRepository.getByPlayerAndGuild(actorId, guildId) ?: return false
+            rankRepository.getById(actorMember.rankId)?.priority ?: return false
+        }
+        if (actorPriority >= currentRank.priority) {
+            logger.warn("Player $actorId cannot demote member $playerId at priority ${currentRank.priority}")
             return false
         }
 

@@ -31,6 +31,11 @@ interface AdminOverrideService {
      */
     fun hasOverride(playerId: UUID): Boolean
 
+    /** Optional guild being inspected; never changes membership or roster state. */
+    fun setViewedGuild(playerId: UUID, guildId: UUID)
+    fun getViewedGuild(playerId: UUID): UUID?
+    fun clearViewedGuild(playerId: UUID)
+
     /**
      * Enable override for a player.
      *

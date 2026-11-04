@@ -122,6 +122,21 @@ class AdminOverrideServiceTest {
     }
 
     @Test
+    fun `guild inspection context is session only and never survives bypass deactivation`() {
+        val inspectedGuild = UUID.randomUUID()
+        assertThrows(IllegalArgumentException::class.java) {
+            service.setViewedGuild(playerId, inspectedGuild)
+        }
+        service.enableOverride(playerId)
+        service.setViewedGuild(playerId, inspectedGuild)
+        assertEquals(inspectedGuild, service.getViewedGuild(playerId))
+        service.disableOverride(playerId)
+        assertNull(service.getViewedGuild(playerId))
+        service.enableOverride(playerId)
+        assertNull(service.getViewedGuild(playerId))
+    }
+
+    @Test
     fun `multiple players should have independent override states`() {
         val player1 = UUID.randomUUID()
         val player2 = UUID.randomUUID()

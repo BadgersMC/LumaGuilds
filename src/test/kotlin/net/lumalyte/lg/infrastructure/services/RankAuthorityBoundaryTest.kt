@@ -7,6 +7,7 @@ import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.application.persistence.RankClaimPermissionProfileRepository
 import net.lumalyte.lg.application.persistence.RankRepository
+import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Member
 import net.lumalyte.lg.domain.entities.Rank
@@ -34,6 +35,11 @@ internal class RankAuthorityBoundaryTest {
             memberService,
             mockk<RankClaimPermissionProfileRepository>(relaxed = true),
         )
+    private val bypass = mockk<AdminOverrideService>(relaxed = true)
+    private val adminService = RankServiceBukkit(
+        ranks, members, mockk<GuildRepository>(relaxed = true), memberService,
+        mockk<RankClaimPermissionProfileRepository>(relaxed = true), adminOverrideService = bypass,
+    )
     private val management = setOf(RankPermission.MANAGE_RANKS, RankPermission.MANAGE_MEMBERS)
 
     private fun rank(priority: Int, permissions: Set<RankPermission> = management): Rank =
@@ -119,6 +125,32 @@ internal class RankAuthorityBoundaryTest {
         every { ranks.update(any()) } returns true
         assertTrue(service.updateRank(lower.copy(icon = "BOOK"), actor))
         verify { ranks.update(match { RankPermission.WITHDRAW_FROM_BANK in it.permissions }) }
+    }
+
+    @Test fun nonMemberBypassCanAssignRankWithoutMembership() {
+        every { bypass.hasOverride(actor) } returns true
+        member(target, rank(LOWEST_PRIORITY))
+        val destination = rank(LOWER_PRIORITY)
+        every { members.update(any()) } returns true
+        assertTrue(adminService.assignRank(target, guild, destination.id, actor))
+        verify { members.update(match { it.rankId == destination.id }) }
+    }
+
+    @Test fun bypassCannotAssignOrDemoteOwner() {
+        every { bypass.hasOverride(actor) } returns true
+        val owner = rank(0)
+        member(target, owner)
+        assertFalse(adminService.assignRank(target, guild, rank(LOWER_PRIORITY).id, actor))
+        assertFalse(adminService.assignRank(target, guild, owner.id, actor))
+        verify(exactly = 0) { members.update(any()) }
+    }
+
+    @Test fun anotherStaffMemberCannotBeDemotedInBypass() {
+        every { bypass.hasOverride(actor) } returns true
+        every { bypass.hasOverride(target) } returns true
+        member(target, rank(LOWEST_PRIORITY))
+        assertFalse(adminService.assignRank(target, guild, rank(LOWER_PRIORITY).id, actor))
+        verify(exactly = 0) { members.update(any()) }
     }
 
     private companion object {
