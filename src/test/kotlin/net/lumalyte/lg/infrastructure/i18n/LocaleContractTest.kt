@@ -396,7 +396,10 @@ class LocaleContractTest {
         // Retain this former key for installations with customized locale files.
         // The new key must be used so an existing override cannot send members to
         // the management-only command.
-        val retainedLegacyKeys = setOf("command.migrated.guild.joinguilddirectly.use_guild_menu_to_get_started")
+        val retainedLegacyKeys = setOf(
+            "command.migrated.guild.join.override_bypassing_invitation_check",
+            "command.migrated.guild.joinguilddirectly.use_guild_menu_to_get_started",
+        )
         assertEquals(retainedLegacyKeys, unused, unused.sorted().joinToString())
     }
 

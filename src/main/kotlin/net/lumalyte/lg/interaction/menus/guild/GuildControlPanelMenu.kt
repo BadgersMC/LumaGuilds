@@ -48,12 +48,15 @@ class GuildControlPanelMenu(
 
     private val lang: LangService by inject()
     private val nexoEmojiService: NexoEmojiService by inject()
+    private val adminOverrideService: AdminOverrideService by inject()
 
     override fun open() {
         val playerId = player.uniqueId
 
         // Security check: Only guild members can access guild actions
-        if (memberService.getMember(playerId, guild.id) == null) {
+        if (memberService.getMember(playerId, guild.id) == null &&
+            !adminOverrideService.hasOverride(playerId)
+        ) {
             player.sendMessage(lang.msg("menu.control_panel.feedback.not_member"))
             menuNavigator.goBack()
             return
@@ -79,6 +82,16 @@ class GuildControlPanelMenu(
             event.isCancelled = true
             if (memberService.getMember(player.uniqueId, guild.id) != null) {
                 menuNavigator.openMenu(GuildAchievementsMenu(menuNavigator, player, guild))
+            } else if (adminOverrideService.getViewedGuild(player.uniqueId) == guild.id) {
+                menuNavigator.openMenu(
+                    GuildAchievementsMenu(
+                        menuNavigator,
+                        player,
+                        guild,
+                        guildMilestones = true,
+                        adminOverrideService = adminOverrideService,
+                    ),
+                )
             }
         }, 4, 0)
         pane.addItem(

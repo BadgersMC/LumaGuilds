@@ -4,6 +4,7 @@ import io.mockk.every
 import io.mockk.mockk
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.achievements.*
 import net.lumalyte.lg.domain.entities.Guild
@@ -39,6 +40,28 @@ internal class GuildAchievementsMenuTest : RecruitmentDialogFixture() {
             presenter.show(p, page, valid, failure)
         }
         return MenuNavigator(player).also { it.openMenu(GuildAchievementsMenu(it, player, guild, observedPresenter)) }
+    }
+
+    /** A scoped nonmember can inspect guild milestones only while bypass remains active. */
+    @Test fun scopedMilestonesRevoked() {
+        val actor = UUID.randomUUID()
+        val guild = Guild(UUID.randomUUID(), "Mastery", createdAt = Instant.EPOCH)
+        every { player.uniqueId } returns actor
+        every { player.isOnline } returns true
+        val nav = mockk<MenuNavigator>()
+        every { nav.isNavigationCurrent(7L) } returns true
+        val members = mockk<MemberService>()
+        every { members.getMember(actor, guild.id) } returns null
+        loadKoinModules(module { single { members } })
+        var scoped = true
+        val admin = mockk<AdminOverrideService>()
+        every { admin.getViewedGuild(actor) } answers { if (scoped) guild.id else null }
+        val menu = GuildAchievementsMenu(nav, player, guild, guildMilestones = true, adminOverrideService = admin)
+        val valid = GuildAchievementsMenu::class.java.getDeclaredMethod("valid", Long::class.javaPrimitiveType)
+        valid.isAccessible = true
+        assertTrue(valid.invoke(menu, 7L) as Boolean)
+        scoped = false
+        assertFalse(valid.invoke(menu, 7L) as Boolean)
     }
 
     @Test fun `available native tree handoff closes dialog and invalidates old callbacks`() {

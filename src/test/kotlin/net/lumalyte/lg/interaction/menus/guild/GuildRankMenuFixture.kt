@@ -10,6 +10,7 @@ import net.badgersmc.nexus.i18n.Locale
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildService
@@ -87,6 +88,7 @@ internal abstract class GuildRankMenuFixture {
             single { config }
             single { mockk<RelationService>(relaxed = true) }
             single { mockk<BankService>(relaxed = true) }
+            single { mockk<AdminOverrideService>(relaxed = true) }
             single { mockk<WarService>(relaxed = true) }
             single { mockk<NexoEmojiService>(relaxed = true) }
             single { mockk<MenuFactory>(relaxed = true) }

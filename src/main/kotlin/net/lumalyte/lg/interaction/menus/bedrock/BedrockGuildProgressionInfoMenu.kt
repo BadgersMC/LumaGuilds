@@ -6,6 +6,7 @@ import net.lumalyte.lg.infrastructure.i18n.rewardStatusText
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.ProgressionService
+import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.GuildRewardPurchaseService
 import net.lumalyte.lg.application.services.GuildPrestigeService
 import net.lumalyte.lg.application.services.MemberService
@@ -33,7 +34,8 @@ class BedrockGuildProgressionInfoMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
+    logger: Logger,
+    private val adminOverrideService: AdminOverrideService? = null,
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val progressionService: ProgressionService by inject()
@@ -44,7 +46,23 @@ class BedrockGuildProgressionInfoMenu(
     private val members: MemberService by inject()
     private val serverPlugin: Plugin by inject()
 
+    private fun isScopedInspector(): Boolean {
+        val isMember = members.getMember(player.uniqueId, guild.id) != null
+        return !isMember && adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id
+    }
+
+    private fun readOnlyProgression(): Form {
+        return CustomForm.builder()
+            .title(lang.bedrock("bedrock.progression.title", "guild" to guild.name))
+            .label(createLevelAndExperienceSection())
+            .label(createSourceUsageSection())
+            .label(createBenefitsSection())
+            .label(createActivitySection())
+            .build()
+    }
+
     override fun getForm(): Form {
+        if (isScopedInspector()) return readOnlyProgression()
         when (val rewards = progressionService.getRewardState(guild.id)) {
             GuildRewardRead.Unavailable -> return CustomForm.builder()
                 .title(lang.bedrock("chapter_two_rewards.title"))

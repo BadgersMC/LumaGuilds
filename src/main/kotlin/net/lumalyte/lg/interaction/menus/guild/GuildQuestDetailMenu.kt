@@ -2,6 +2,7 @@ package net.lumalyte.lg.interaction.menus.guild
 
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
+import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.QuestService
@@ -23,16 +24,26 @@ internal class GuildQuestDetailMenu(
     private val guilds: GuildService,
     private val quests: QuestService,
     private val lang: LangService,
+    private val adminOverrideService: AdminOverrideService? = null,
 ) : Menu {
     private val dialog = GuildMenuDialog()
+
+    private fun canInspectGuild(): Boolean {
+        if (members.getMember(player.uniqueId, guild.id) != null) return true
+        return adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id
+    }
+
+    private fun canOpenDetail(): Boolean {
+        val hasQuestPermission = player.hasPermission("lumaguilds.guild.quests")
+        val isScopedInspector = adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id
+        return canInspectGuild() && (hasQuestPermission || isScopedInspector)
+    }
 
     override fun open() {
         guild = guilds.getGuild(guild.id) ?: guild
         val week = quests.activeQuestSet()
         val quest = week?.quests?.firstOrNull { it.id == questId }
-        if (quest == null || members.getMember(player.uniqueId, guild.id) == null ||
-            !player.hasPermission("lumaguilds.guild.quests")
-        ) {
+        if (quest == null || !canOpenDetail()) {
             navigator.goBack()
             return
         }
@@ -98,8 +109,7 @@ internal class GuildQuestDetailMenu(
             )
         dialog.show(player, page, {
             player.isOnline && navigator.isNavigationCurrent(token) &&
-                members.getMember(player.uniqueId, guild.id) != null &&
-                player.hasPermission("lumaguilds.guild.quests") && quests.activeQuestSet()?.weekId == week.weekId
+                canOpenDetail() && quests.activeQuestSet()?.weekId == week.weekId
         }) { player.sendMessage(lang.msg("menu.quests.feedback.no_quests")) }
     }
 }

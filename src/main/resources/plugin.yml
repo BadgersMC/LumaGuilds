@@ -44,7 +44,8 @@ commands:
   lumaguilds:
     description: LumaGuilds administrative commands
     usage: /lumaguilds <subcommand> [args]
-    permission: lumaguilds.admin
+    # Subcommands enforce their own permissions so a narrowly scoped staff grant
+    # does not require the all-powerful lumaguilds.admin permission.
     aliases: [bellclaims]
   bedrockcachestats:
     description: View Bedrock form cache statistics
@@ -318,10 +319,20 @@ permissions:
     default: op
     children:
       bellclaims.admin: true
+      lumaguilds.admin.bypass: true
+      lumaguilds.admin.view: true
       lumaguilds.admin.xp: true
 
   bellclaims.admin:
     description: Allows access to admin commands including guild override mode
+    default: op
+
+  lumaguilds.admin.bypass:
+    description: Toggle session-only administrative guild bypass
+    default: op
+
+  lumaguilds.admin.view:
+    description: Inspect a guild through an administrative menu without joining it
     default: op
 
   lumaguilds.admin.xp:

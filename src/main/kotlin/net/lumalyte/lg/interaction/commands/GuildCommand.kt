@@ -1656,10 +1656,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // Admin override bypasses invitation requirements
+        // An admin inspection must never create a real guild membership or occupy a slot.
+        // Force-joining members is a separate, audited administrative operation.
         if (adminOverrideService.hasOverride(playerId)) {
-            player.sendMessage(lang.msg("command.migrated.guild.join.override_bypassing_invitation_check"))
-            joinGuildDirectly(player, guild, isOpenGuild = guild.isOpen)
+            player.sendMessage("Admin bypass does not join guilds. Use /lumaguilds admin view <guild> to inspect without joining.")
             return
         }
 

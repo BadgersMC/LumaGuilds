@@ -8,6 +8,7 @@ import net.lumalyte.lg.utils.inventoryframework.StaticPane
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.QuestService
 import net.lumalyte.lg.domain.entities.Guild
@@ -37,16 +38,21 @@ class GuildQuestsMenu(
     private val memberService: MemberService,
     private val guildService: GuildService,
     private val questService: QuestService,
-    private val lang: LangService
+    private val lang: LangService,
+    private val adminOverrideService: AdminOverrideService? = null,
 ) : Menu {
     private var page = 0
     private var nativePage = 0
     private val nativeDialog = GuildMenuDialog()
     private val slots = listOf(20, 22, 24, 29, 31, 33)
 
+    private fun canInspectGuild(): Boolean =
+        memberService.getMember(player.uniqueId, guild.id) != null ||
+            adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id
+
     override fun open() {
         guild = guildService.getGuild(guild.id) ?: guild
-        if (memberService.getMember(player.uniqueId, guild.id) == null) {
+        if (!canInspectGuild()) {
             player.sendMessage(lang.msg("menu.quests.feedback.not_member"))
             menuNavigator.goBack()
             return
@@ -111,7 +117,7 @@ class GuildQuestsMenu(
 
     private fun openLeaderboard(quest: QuestDefinition) {
         menuNavigator.openMenu(
-            GuildQuestDetailMenu(menuNavigator, player, guild, quest.id, memberService, guildService, questService, lang),
+            GuildQuestDetailMenu(menuNavigator, player, guild, quest.id, memberService, guildService, questService, lang, adminOverrideService),
         )
     }
 
@@ -158,8 +164,10 @@ class GuildQuestsMenu(
         val token = menuNavigator.currentNavigationToken()
         return nativeDialog.show(player, view, {
             player.isOnline && menuNavigator.isNavigationCurrent(token) &&
-                memberService.getMember(player.uniqueId, guild.id) != null &&
-                player.hasPermission("lumaguilds.guild.quests") && questService.activeQuestSet()?.weekId == weekId
+                canInspectGuild() &&
+                (player.hasPermission("lumaguilds.guild.quests") ||
+                    adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id) &&
+                questService.activeQuestSet()?.weekId == weekId
         }) { player.sendMessage(lang.msg("menu.quests.feedback.no_quests")) }
     }
 
