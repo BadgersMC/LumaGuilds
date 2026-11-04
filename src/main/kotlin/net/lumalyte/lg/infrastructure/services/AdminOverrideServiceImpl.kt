@@ -36,9 +36,7 @@ class AdminOverrideServiceImpl : AdminOverrideService {
         viewedGuilds[playerId] = guildId
     }
 
-    override fun getViewedGuild(playerId: UUID): UUID? {
-        return if (hasOverride(playerId)) viewedGuilds[playerId] else null
-    }
+    override fun getViewedGuild(playerId: UUID): UUID? = if (hasOverride(playerId)) viewedGuilds[playerId] else null
 
     override fun clearViewedGuild(playerId: UUID) {
         viewedGuilds.remove(playerId)

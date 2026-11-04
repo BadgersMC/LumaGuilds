@@ -355,13 +355,16 @@ class LumaGuildsCommand(
         }
     }
 
+    private fun canInspectGuild(sender: Player): Boolean =
+        sender.hasPermission("lumaguilds.admin.view") || sender.hasPermission("bellclaims.admin")
+
     /** Browse another guild as staff without changing the member's actual guild. */
     private fun handleAdmin(sender: CommandSender, args: Array<out String>) {
         if (sender !is Player) {
             sender.sendMessage("Admin guild inspection requires an in-game player; console repair commands are separate.")
             return
         }
-        if (!sender.hasPermission("lumaguilds.admin.view") && !sender.hasPermission("bellclaims.admin")) {
+        if (!canInspectGuild(sender)) {
             sender.sendMessage("You do not have permission to inspect guilds.")
             return
         }
