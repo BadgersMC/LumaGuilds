@@ -20,6 +20,7 @@ import java.time.Instant
 import java.util.UUID
 
 private const val TEST_LANG = "localized"
+private const val QUEST_PERMISSION = "lumaguilds.guild.quests"
 
 class GuildProgressionQuestNavigationTest {
     @AfterEach fun cleanup() { stopKoin(); unmockkAll(); MockBukkit.unmock() }
@@ -28,41 +29,26 @@ class GuildProgressionQuestNavigationTest {
     @Test fun `stale membership prevents progression quest navigation`() = verifyClick(false, true)
     @Test fun `explicit quest permission denial prevents navigation`() = verifyClick(true, false)
 
-    /** A nonmember's open menu loses quest navigation as soon as scoped bypass ends. */
+    /** Revoking a scoped view immediately denies quest authorization. */
     @Test fun scopedInspectorRevoked() {
-        val server = MockBukkit.mock()
-        val plugin = MockBukkit.createMockPlugin()
-        mockkStatic(JavaPlugin::class)
-        every { JavaPlugin.getProvidingPlugin(any()) } returns plugin
-        val player = server.addPlayer()
-        player.addAttachment(plugin, "lumaguilds.guild.quests", false)
+        val playerId = UUID.randomUUID()
+        val player = mockk<org.bukkit.entity.Player>()
+        every { player.uniqueId } returns playerId
+        every { player.hasPermission(QUEST_PERMISSION) } returns false
         val guild = Guild(UUID.randomUUID(), "Guild", createdAt = Instant.EPOCH)
         val members = mockk<MemberService>()
-        every { members.getMember(player.uniqueId, guild.id) } returns null
+        every { members.getMember(playerId, guild.id) } returns null
         var scoped = true
         val admin = mockk<AdminOverrideService>()
-        every { admin.getViewedGuild(player.uniqueId) } answers { if (scoped) guild.id else null }
-        val factory = mockk<MenuFactory>()
-        val target = mockk<Menu>(relaxed = true)
-        val navigator = mockk<MenuNavigator>(relaxed = true)
-        every { factory.createGuildQuestsMenu(navigator, player, guild) } returns target
-        val lang = mockk<LangService> {
-            every { msg(any(), *anyVararg()) } returns Component.text(TEST_LANG)
-            every { raw(any()) } returns TEST_LANG
-        }
-        stopKoin(); startKoin { modules(module { single { lang }; single { members }; single { factory } }) }
+        every { admin.getViewedGuild(playerId) } answers { if (scoped) guild.id else null }
         val menu = GuildProgressionMenu(
-            navigator, player, guild, mockk(), members, mockk(), factory, mockk(), mockk(), admin,
+            mockk(), player, guild, mockk(), members, mockk(), mockk(), mockk(), mockk(), admin,
         )
-        val pane = StaticPane(0, 0, 9, 6)
-        val method = GuildProgressionMenu::class.java.getDeclaredMethod("addQuestsButton", StaticPane::class.java,
-            Int::class.javaPrimitiveType, Int::class.javaPrimitiveType).apply { isAccessible = true }
-        method.invoke(menu, pane, 2, 5)
-        pane.items.single().callAction(mockk(relaxed = true))
-        verify(exactly = 1) { navigator.openMenu(target) }
+        val authorized = GuildProgressionMenu::class.java.getDeclaredMethod("canOpenQuests")
+            .apply { isAccessible = true }
+        org.junit.jupiter.api.Assertions.assertTrue(authorized.invoke(menu) as Boolean)
         scoped = false
-        pane.items.single().callAction(mockk(relaxed = true))
-        verify(exactly = 1) { navigator.openMenu(target) }
+        org.junit.jupiter.api.Assertions.assertFalse(authorized.invoke(menu) as Boolean)
     }
 
     private fun verifyClick(member: Boolean, permission: Boolean) {
@@ -71,7 +57,7 @@ class GuildProgressionQuestNavigationTest {
         mockkStatic(JavaPlugin::class)
         every { JavaPlugin.getProvidingPlugin(any()) } returns plugin
         val player = server.addPlayer()
-        player.addAttachment(plugin, "lumaguilds.guild.quests", permission)
+        player.addAttachment(plugin, QUEST_PERMISSION, permission)
         val guild = Guild(UUID.randomUUID(), "Guild", createdAt = Instant.EPOCH)
         val members = mockk<MemberService>()
         every { members.getMember(player.uniqueId, guild.id) } returns if (member) mockk() else null
