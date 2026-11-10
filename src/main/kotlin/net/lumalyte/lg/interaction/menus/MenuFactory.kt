@@ -816,8 +816,10 @@ class MenuFactory(
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
+        val adminOverride = org.koin.core.context.GlobalContext.getOrNull()
+            ?.getOrNull<net.lumalyte.lg.application.services.AdminOverrideService>()
         return if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildProgressionInfoMenu(menuNavigator, player, guild, logger)
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildProgressionInfoMenu(menuNavigator, player, guild, logger, adminOverride)
         } else {
             val guildService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.GuildService>()
             val memberService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.MemberService>()
@@ -826,7 +828,7 @@ class MenuFactory(
             net.lumalyte.lg.interaction.menus.guild.GuildProgressionMenu(
                 menuNavigator, player, guild,
                 guildService, memberService, progressionService,
-                this, menuItemBuilder, configService
+                this, menuItemBuilder, configService, adminOverride
             )
         }
     }
@@ -850,9 +852,11 @@ class MenuFactory(
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
+        val adminOverride = org.koin.core.context.GlobalContext.getOrNull()
+            ?.getOrNull<net.lumalyte.lg.application.services.AdminOverrideService>()
         if (shouldUseBedrockMenus(player)) {
             return net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildQuestsMenu(
-                menuNavigator, player, guild, logger
+                menuNavigator, player, guild, logger, adminOverride
             )
         }
         val memberService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.MemberService>()
@@ -860,7 +864,7 @@ class MenuFactory(
         val questService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.QuestService>()
         val lang = org.koin.core.context.GlobalContext.get().get<net.badgersmc.nexus.i18n.LangService>()
         return net.lumalyte.lg.interaction.menus.guild.GuildQuestsMenu(
-            menuNavigator, player, guild, memberService, guildService, questService, lang
+            menuNavigator, player, guild, memberService, guildService, questService, lang, adminOverride
         )
     }
 

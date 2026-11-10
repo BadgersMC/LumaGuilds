@@ -29,6 +29,7 @@ internal class MemberOwnerMutationBoundaryTest {
         val members = mockk<MemberRepository>()
         val ranks = mockk<RankRepository>()
         val override = mockk<AdminOverrideService>()
+        every { override.hasOverride(ownerId) } returns false
         every { override.hasOverride(adminId) } returns true
         every { members.getByPlayerAndGuild(ownerId, guildId) } returns owner
         every { ranks.getById(ownerRank.id) } returns ownerRank

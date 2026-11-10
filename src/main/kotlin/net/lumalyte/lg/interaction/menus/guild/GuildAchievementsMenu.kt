@@ -3,6 +3,7 @@ package net.lumalyte.lg.interaction.menus.guild
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.achievements.AchievementRecord
@@ -24,6 +25,7 @@ internal class GuildAchievementsMenu(
     private val presenter: GuildDialogPresenter = GuildMenuDialog(),
     private var guildMilestones: Boolean = false,
     private val fromStatistics: Boolean = false,
+    private val adminOverrideService: AdminOverrideService? = null,
 ) : Menu, KoinComponent {
     private val runtime: GuildAchievementRuntime by inject()
     private val members: MemberService by inject()
@@ -157,7 +159,9 @@ internal class GuildAchievementsMenu(
         val actions = buildList {
             if (guildPage > 0) add(referenceAction(lang.gui("achievements.previous"), "lg_back") { guildPage--; open() })
             if (guildPage == 0) add(referenceAction(lang.gui("achievements.next"), "lg_next") { guildPage++; open() })
-            add(referenceAction(lang.gui("achievements.personal_scope"), "lg_banner") { guildMilestones = false; open() })
+            if (isMember()) {
+                add(referenceAction(lang.gui("achievements.personal_scope"), "lg_banner") { guildMilestones = false; open() })
+            }
         }
         presenter.show(player, GuildDialogPage(lang.gui("achievements.guild_scope"), cards +
             referenceItem("lg_sources", listOf(lang.gui("achievements.guild_rules"))), actions,
@@ -168,7 +172,13 @@ internal class GuildAchievementsMenu(
     }
 
     private fun backLabel() = if (fromStatistics) lang.gui("achievements.back_statistics") else lang.gui("achievements.back")
-    private fun valid(token: Long) = player.isOnline && navigator.isNavigationCurrent(token) && members.getMember(player.uniqueId, guild.id) != null
+    private fun isMember() = members.getMember(player.uniqueId, guild.id) != null
+
+    private fun valid(token: Long): Boolean {
+        val navigationValid = player.isOnline && navigator.isNavigationCurrent(token)
+        val scopedMilestones = guildMilestones && adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id
+        return navigationValid && (isMember() || scopedMilestones)
+    }
     private fun icon(node: GuildAchievement) = when (node.category) {
         "Combat" -> "lg_combat"
         "Commerce" -> "lg_bank"
