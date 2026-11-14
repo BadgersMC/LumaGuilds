@@ -1,6 +1,6 @@
 # Second guild vault at Prestige VI
 
-Requirements: REQ-242 to REQ-247 in `../requirements.md`.
+Requirements: REQ-242 to REQ-248 in `../requirements.md`.
 
 Decisions (Fain, 2026-11-14):
 
@@ -40,7 +40,11 @@ guilds that finish every climb.
   reused without a schema change to `vault_slots`.
 - Its location and status live in a new table, `guild_second_vaults`
   (guild ID, world, x, y, z, status, placed at), on SQLite and MariaDB.
-- Capacity follows the same rule as the main vault (by guild level).
+- Capacity grows with guild level exactly like the main vault: 1 row at level 1,
+  2 rows from level 2, 3 from 6, 4 from 11, 5 from 16 and the full 6 rows from
+  level 21. The guild is back at level 1 after Prestige VI, so the second vault
+  starts at 1 row and upgrades as the guild climbs (Fain, 2026-11-14). Both
+  vaults read the same capacity rule, so a change to it changes both.
 - No gold balance button: slot 0 is an ordinary slot. Gold items put in it are
   just items.
 

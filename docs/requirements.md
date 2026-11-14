@@ -851,6 +851,9 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 ### REQ-244
 **Ubiquitous.** THE SYSTEM SHALL store the second vault's items separately from the main vault, with no gold balance button, and SHALL NOT read it for any gold balance or payment.
 
+### REQ-248
+**Ubiquitous.** THE SYSTEM SHALL size the second vault by the guild's current level with the same capacity rule as the main vault, so it grows as the guild levels up after Prestige VI.
+
 ### REQ-245
 **State-driven.** WHILE a guild with a placed second vault is below the second-vault tier, THE SYSTEM SHALL let members take items out of it and refuse every way of putting items in.
 
