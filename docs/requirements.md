@@ -837,3 +837,8 @@ CHR-005 in [the Chronicle specification](plans/2026-10-16-guild-chronicle.md).
 
 ### REQ-239
 **Unwanted behaviour.** IF a guild can't declare war because of its declaration cooldown, a farming cooldown on either guild, or either guild's war limit, THEN THE SYSTEM SHALL tell the player which one applies and, for cooldowns, how long is left, instead of a generic failure.
+
+## Guild advancement reward text
+
+### REQ-241
+**Ubiquitous.** THE SYSTEM SHALL list a guild advancement's guild XP reward first in its advancement tooltip, followed by any personal Minecraft XP its members also receive, and SHALL tell the member who completes it first how much guild XP the guild earned.

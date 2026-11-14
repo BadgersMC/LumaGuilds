@@ -39,7 +39,7 @@ internal class GuildAchievementProjection(private val plugin: Plugin, private va
             val ctor = nodeType.getConstructor(String::class.java, String::class.java, String::class.java,
                 List::class.java, Material::class.java, String::class.java, Float::class.javaPrimitiveType, Float::class.javaPrimitiveType)
             val definitions = nodes.map { n -> ctor.newInstance(n.id, n.parent, n.title,
-                n.description + if (n.personalXp > 0) listOf("Reward: ${n.personalXp} personal Minecraft XP") else emptyList(),
+                n.description + rewardLines(n),
                 Material.matchMaterial(n.icon) ?: Material.SHIELD, n.frame, n.x, n.y) }
             type.getMethod("registerTree", Plugin::class.java, String::class.java, ItemStack::class.java, List::class.java)
                 .invoke(instance, plugin, NAMESPACE, net.lumalyte.lg.utils.NexoItemProvider.getItemStackOrFallback("lg_banner") {
@@ -101,4 +101,18 @@ internal class GuildAchievementProjection(private val plugin: Plugin, private va
         const val NAMESPACE = "lumaguilds_mastery"
         private const val SERVICE_NAME = "io.github.badgersmc.advancements.pilot.ProjectionService"
     }
+}
+
+/**
+ * Reward lines for the native advancement tooltip. Guild advancements pay the guild first, so
+ * guild XP leads; personal Minecraft XP, when configured, is listed as the members' extra.
+ */
+internal fun rewardLines(node: net.lumalyte.lg.domain.achievements.GuildAchievement): List<String> {
+    val lines = mutableListOf<String>()
+    if (node.guildXp > 0) lines += "Reward: ${"%,d".format(java.util.Locale.ROOT, node.guildXp)} guild XP"
+    if (node.personalXp > 0) {
+        lines += (if (lines.isEmpty()) "Reward: " else "Members also get ") +
+            "${"%,d".format(java.util.Locale.ROOT, node.personalXp)} personal Minecraft XP"
+    }
+    return lines
 }
