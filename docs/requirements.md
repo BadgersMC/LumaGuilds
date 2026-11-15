@@ -877,3 +877,11 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-241
 **Ubiquitous.** THE SYSTEM SHALL list a guild advancement's guild XP reward first in its advancement tooltip, followed by any personal Minecraft XP its members also receive, and SHALL tell the member who completes it first how much guild XP the guild earned.
+
+## Prestige rank-up animation
+
+### REQ-251
+**Event-driven.** WHEN a guild prestiges, THE SYSTEM SHALL show each online member who can see it the rank-up animation from the Enthusia pack, one frame per tick for 64 frames (old badge shatters, the four-point star flashes, the new tier badge appears, "PRESTIGE N" wipes in), with the guild name as the subtitle once the title has appeared, hold the last frame for 2.5 seconds and fade it out, and SHALL play the members' fanfare 7 ticks after the animation starts with a shatter sound when the old badge breaks (tiers II to VI).
+
+### REQ-252
+**Unwanted behaviour.** IF a member is on Bedrock, the pack's `guild_prestige_rankup_v1` contract glyph does not resolve, or `progression.prestige.fanfare.member_animation` is false, THEN THE SYSTEM SHALL show that member the plain prestige title and fanfare instead.

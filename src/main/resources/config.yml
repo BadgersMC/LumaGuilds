@@ -625,6 +625,9 @@ progression:
       enabled: true
       server_wide: true
       member_title: true
+      # REQ-251: with member_title, members on Java with the Enthusia pack see the
+      # animated rank-up (old badge shatters, new badge and title) instead.
+      member_animation: true
     # REQ-175: XP a guild earns after reaching Level 100 can start its next climb.
     # The carry stops at the start of landing_level, so a guild that sat at 100 for
     # a long time skips at most the first few levels. Off by default.

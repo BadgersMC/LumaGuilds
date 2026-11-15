@@ -445,6 +445,8 @@ data class PrestigeFanfareConfig(
     var enabled: Boolean = true,
     var serverWide: Boolean = true,
     var memberTitle: Boolean = true,
+    /** REQ-251: members on Java with the pack see the animated rank-up instead of the plain title. */
+    var memberAnimation: Boolean = true,
 )
 
 /** Uncoloured fallback; the shipped config.yml carries the coloured badges. */

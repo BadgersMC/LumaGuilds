@@ -478,6 +478,7 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
                     enabled = config.getBoolean("progression.prestige.fanfare.enabled", true),
                     serverWide = config.getBoolean("progression.prestige.fanfare.server_wide", true),
                     memberTitle = config.getBoolean("progression.prestige.fanfare.member_title", true),
+                    memberAnimation = config.getBoolean("progression.prestige.fanfare.member_animation", true),
                 ),
                 badges = config.getStringList("progression.prestige.badges")
                     .takeIf { it.size >= 7 }

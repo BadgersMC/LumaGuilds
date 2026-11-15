@@ -7358,6 +7358,7 @@ notification:
     prestige:
       title: '<gold><bold>PRESTIGE <tier></bold>'
       subtitle: '<yellow><guild> <gray>has prestiged'
+      animation_subtitle: '<#fff3b0><guild>'
     level_up:
       title: '<gold>⭐ <bold>GUILD LEVEL UP!</bold> ⭐'
       subtitle: '<yellow><guild> <gray>reached level <yellow><level>'

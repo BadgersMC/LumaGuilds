@@ -5,6 +5,7 @@ import net.lumalyte.lg.domain.rewards.FanfareAudience
 import net.lumalyte.lg.domain.rewards.FanfareCue
 import net.lumalyte.lg.domain.rewards.PrestigeCompletion
 import net.lumalyte.lg.domain.rewards.PrestigeFanfareScore
+import net.lumalyte.lg.domain.rewards.PrestigeRankUp
 import org.slf4j.LoggerFactory
 import java.util.UUID
 
@@ -16,6 +17,12 @@ interface FanfareStage {
     fun later(ticks: Int, task: () -> Unit)
     fun play(player: UUID, cue: FanfareCue)
     fun title(player: UUID, tier: Int, guildName: String)
+
+    /** REQ-252: whether [player] can see the rank-up animation (Java with the pack's frames). */
+    fun animated(player: UUID): Boolean = false
+
+    /** REQ-251: shows one animation frame; [guildName] is the subtitle, or null before it appears. */
+    fun frame(player: UUID, tier: Int, frame: Int, guildName: String?, last: Boolean) {}
 }
 
 /**
@@ -42,15 +49,35 @@ class PrestigeFanfare(
         val online = stage.online().toSet()
         val guildMembers = members(completion.guildId).toSet()
         val listening = guildMembers intersect online
-        schedule(listening, PrestigeFanfareScore.cues(completion.tier, FanfareAudience.MEMBERS))
-        if (config.memberTitle) {
-            val name = guildName(completion.guildId)
-            if (name != null) stage.later(0) {
-                listening.filter(stage::isOnline).forEach { stage.title(it, completion.tier, name) }
-            }
+        val name = guildName(completion.guildId)
+        val animated = if (config.memberTitle && config.memberAnimation && name != null) {
+            listening.filter(stage::animated).toSet()
+        } else {
+            emptySet()
+        }
+        val plain = listening - animated
+        schedule(plain, PrestigeFanfareScore.cues(completion.tier, FanfareAudience.MEMBERS))
+        if (config.memberTitle && name != null) stage.later(0) {
+            plain.filter(stage::isOnline).forEach { stage.title(it, completion.tier, name) }
+        }
+        if (animated.isNotEmpty() && name != null) {
+            schedule(animated, PrestigeRankUp.memberCues(completion.tier))
+            animate(animated, completion.tier, name)
         }
         if (config.serverWide) {
             schedule(online - guildMembers, PrestigeFanfareScore.cues(completion.tier, FanfareAudience.SERVER))
+        }
+    }
+
+    /** REQ-251: one frame per tick, the guild name joining once the title has wiped in. */
+    private fun animate(players: Set<UUID>, tier: Int, name: String) {
+        val subtitleFrame = PrestigeRankUp.subtitleFrame(tier)
+        for (frame in 0 until PrestigeRankUp.FRAMES) {
+            stage.later(frame) {
+                val subtitle = if (frame >= subtitleFrame) name else null
+                val last = frame == PrestigeRankUp.FRAMES - 1
+                players.filter(stage::isOnline).forEach { stage.frame(it, tier, frame, subtitle, last) }
+            }
         }
     }
 

@@ -816,7 +816,9 @@ fun progressionModule() = module {
                         get<net.lumalyte.lg.application.services.MemberService>().getGuildMembers(guildId).map { it.playerId }
                     },
                     guildName = { guildId -> get<net.lumalyte.lg.application.services.GuildService>().getGuild(guildId)?.name },
-                    stage = net.lumalyte.lg.infrastructure.services.PrestigeFanfareBukkit(get(), get()),
+                    stage = net.lumalyte.lg.infrastructure.services.PrestigeFanfareBukkit(
+                        get(), get(), bedrock = { player -> get<PlatformDetectionService>().isBedrockPlayer(player) },
+                    ),
                 ),
                 prestigeDiscordPost(),
             ),

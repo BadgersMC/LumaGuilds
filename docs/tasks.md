@@ -1463,3 +1463,10 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 ## Guild advancement reward text (REQ-241)
 
 - [x] **ADVANCEMENT-GUILD-XP-TEXT** Tag: TDD. REQ-241. Evidence: GuildAchievementRewardLinesTest.
+
+## Prestige rank-up animation (REQ-251, REQ-252)
+
+- [x] **RANKUP-MOCKUP** Animated mockup of the prestige rank-up in Enthusia style with the prestige badges.
+- [x] **RANKUP-FRAMES** Enthusia pack: 64 frames per tier in the `lumaguilds:prestige_rankup_v1` font, contract glyph `guild_prestige_rankup_v1` (pack docs/prestige-rankup.md).
+- [x] **RANKUP-PLAY** Tag: TDD. REQ-251, REQ-252. Evidence: PrestigeFanfareTest, PrestigeRankUpTest.
+- [ ] **RANKUP-TEST** Watch it in-game on TEST (Java) and check Bedrock still gets the plain title.
