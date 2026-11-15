@@ -65,9 +65,15 @@ internal object VaultCapacityUnlockSchema {
 
     /** Read historic evidence and monotonically raise the durable high-water mark. */
     fun resolve(connection: Connection, guildId: UUID, currentLevelSlots: Int, mariaDb: Boolean): Int {
-        val (prestige, earnedBaseHomes) = if (tableExists(connection, "guild_reward_accounts")) {
+        // Columns differ between this fork and upstream, so read only the ones that exist.
+        val hasRewards = tableExists(connection, "guild_reward_accounts") &&
+            columnExists(connection, "guild_reward_accounts", "prestige_count")
+        val homesColumn = if (hasRewards && columnExists(connection, "guild_reward_accounts", "base_home_slots_earned")) {
+            "base_home_slots_earned"
+        } else "1"
+        val (prestige, earnedBaseHomes) = if (hasRewards) {
             connection.prepareStatement(
-                "SELECT prestige_count, base_home_slots_earned FROM guild_reward_accounts WHERE guild_id = ?",
+                "SELECT prestige_count, $homesColumn FROM guild_reward_accounts WHERE guild_id = ?",
             ).use { query ->
                 query.setString(1, guildId.toString())
                 query.executeQuery().use { rows ->
@@ -83,7 +89,9 @@ internal object VaultCapacityUnlockSchema {
                 query.executeQuery().use { rows -> if (rows.next()) rows.getInt(1) else 0 }
             }
         } else 0
-        val beforeChapterReset = if (tableExists(connection, "chapter_migration_receipts")) {
+        val beforeChapterReset = if (tableExists(connection, "chapter_migration_receipts") &&
+            listOf("before_level", "migration_kind", "dry_run", "status").all { columnExists(connection, "chapter_migration_receipts", it) }
+        ) {
             connection.prepareStatement(
                 "SELECT MAX(before_level) FROM chapter_migration_receipts " +
                     "WHERE guild_id = ? AND migration_kind = 'CHAPTER_1_TO_2' AND dry_run = 0 AND status = 'APPLIED'",
