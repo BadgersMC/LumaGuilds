@@ -11,13 +11,17 @@ class PrestigePerks(private val config: PrestigePerksConfig) {
 
     fun extraGuildStalls(tier: Int?): Int = if (reached(tier, config.extraStallTier)) 1 else 0
 
+    /** REQ-242: whether a guild at [tier] may hold a second vault. */
+    fun secondVault(tier: Int?): Boolean = reached(tier, config.secondVaultTier)
+
     /** Perks that start at exactly [tier], in the order menus list them. */
     fun unlockedAt(tier: Int): List<PrestigePerk> = listOfNotNull(
         PrestigePerk.SECOND_ALLY_HOME.takeIf { tier == config.secondAllyHomeTier },
         PrestigePerk.EXTRA_STALL.takeIf { tier == config.extraStallTier },
+        PrestigePerk.SECOND_VAULT.takeIf { tier == config.secondVaultTier },
     )
 
     private fun reached(tier: Int?, needed: Int): Boolean = tier != null && tier >= needed
 }
 
-enum class PrestigePerk { SECOND_ALLY_HOME, EXTRA_STALL }
+enum class PrestigePerk { SECOND_ALLY_HOME, EXTRA_STALL, SECOND_VAULT }

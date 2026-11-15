@@ -30,6 +30,11 @@ object PluginKeys {
         NamespacedKey(pluginInstance, "guild_vault_id")
     }
 
+    /** REQ-242: marks a Guild Vault II chest item with its guild's ID. */
+    val SECOND_VAULT_ID: NamespacedKey by lazy {
+        NamespacedKey(pluginInstance, "guild_second_vault_id")
+    }
+
     /**
      * Key used to mark items as guild banners in persistent data containers.
      * Used to prevent guild banners from being used as furnace fuel.

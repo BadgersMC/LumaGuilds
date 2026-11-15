@@ -46,6 +46,11 @@ class VaultProtectionListener : Listener, KoinComponent {
     private val configService: ConfigService by inject()
     private val hologramService: net.lumalyte.lg.infrastructure.services.VaultHologramService by inject()
     private val lang: LangService by inject()
+    private val secondVault: net.lumalyte.lg.infrastructure.services.SecondVaultService by inject()
+
+    /** REQ-243: the main vault or a second vault (any guild) stands at [location]. */
+    private fun isAnyVault(location: org.bukkit.Location): Boolean =
+        vaultService.getGuildForVaultChest(location) != null || secondVault.guildAt(location) != null
 
     private val logger = LoggerFactory.getLogger(VaultProtectionListener::class.java)
 
@@ -97,15 +102,12 @@ class VaultProtectionListener : Listener, KoinComponent {
                 }
             )
 
-            if (attachedBlock.type == Material.CHEST) {
-                val guild = vaultService.getGuildForVaultChest(attachedBlock.location)
-                if (guild != null) {
-                    event.isCancelled = true
-                    player.sendMessage(lang.msg("notification.vault.placement.sign_blocked"))
-                    player.sendMessage(lang.msg("notification.vault.placement.sign_exploit"))
-                    logger.warn("Blocked ${player.name} from placing sign on vault chest for guild ${guild.name}")
-                    return
-                }
+            if (attachedBlock.type == Material.CHEST && isAnyVault(attachedBlock.location)) {
+                event.isCancelled = true
+                player.sendMessage(lang.msg("notification.vault.placement.sign_blocked"))
+                player.sendMessage(lang.msg("notification.vault.placement.sign_exploit"))
+                logger.warn("Blocked ${player.name} from placing sign on a vault chest")
+                return
             }
         }
 
@@ -126,7 +128,12 @@ class VaultProtectionListener : Listener, KoinComponent {
             return
         }
 
-        // This is a guild vault chest!
+        // This is a guild vault chest! It can't touch a second vault either (REQ-243).
+        if (isAdjacentToVaultChest(block.location)) {
+            event.isCancelled = true
+            player.sendMessage(lang.msg("notification.vault.placement.adjacent_blocked"))
+            return
+        }
         val guildIdString = meta.persistentDataContainer.get(net.lumalyte.lg.common.PluginKeys.GUILD_VAULT_ID, org.bukkit.persistence.PersistentDataType.STRING)
         if (guildIdString == null) {
             event.isCancelled = true
@@ -434,13 +441,10 @@ class VaultProtectionListener : Listener, KoinComponent {
         val sourceLocation = event.source.location
         if (sourceLocation != null) {
             val sourceBlock = sourceLocation.block
-            if (sourceBlock.type == Material.CHEST) {
-                val guild = vaultService.getGuildForVaultChest(sourceLocation)
-                if (guild != null) {
-                    event.isCancelled = true
-                    logger.debug("Blocked hopper/dropper from pulling items from vault chest (guild: ${guild.name})")
-                    return
-                }
+            if (sourceBlock.type == Material.CHEST && isAnyVault(sourceLocation)) {
+                event.isCancelled = true
+                logger.debug("Blocked hopper/dropper from pulling items from a vault chest")
+                return
             }
         }
 
@@ -448,13 +452,10 @@ class VaultProtectionListener : Listener, KoinComponent {
         val destLocation = event.destination.location
         if (destLocation != null) {
             val destBlock = destLocation.block
-            if (destBlock.type == Material.CHEST) {
-                val guild = vaultService.getGuildForVaultChest(destLocation)
-                if (guild != null) {
-                    event.isCancelled = true
-                    logger.debug("Blocked hopper/dropper from inserting items into vault chest (guild: ${guild.name})")
-                    return
-                }
+            if (destBlock.type == Material.CHEST && isAnyVault(destLocation)) {
+                event.isCancelled = true
+                logger.debug("Blocked hopper/dropper from inserting items into a vault chest")
+                return
             }
         }
     }
@@ -500,8 +501,7 @@ class VaultProtectionListener : Listener, KoinComponent {
         // Check if any blocks being moved are vault chests
         for (block in blocks) {
             if (block.type == Material.CHEST) {
-                val guild = vaultService.getGuildForVaultChest(block.location)
-                if (guild != null) {
+                if (isAnyVault(block.location)) {
                     // Cancel the piston action
                     cancelEvent()
 
@@ -520,7 +520,7 @@ class VaultProtectionListener : Listener, KoinComponent {
                     world.playSound(pistonLocation, org.bukkit.Sound.ENTITY_ITEM_BREAK, 1.0f, 1.0f)
                     world.spawnParticle(org.bukkit.Particle.BLOCK, pistonLocation.clone().add(0.5, 0.5, 0.5), 20, 0.3, 0.3, 0.3, 0.0, pistonBlock.blockData)
 
-                    logger.info("Piston backfire: Destroyed piston attempting to $action vault chest for guild ${guild.name} at $pistonLocation")
+                    logger.info("Piston backfire: Destroyed piston attempting to $action a vault chest at $pistonLocation")
                     return
                 }
             }
@@ -574,11 +574,8 @@ class VaultProtectionListener : Listener, KoinComponent {
             val adjacentBlock = world.getBlockAt(adjacentLocation)
 
             // Check if this adjacent block is a vault chest
-            if (adjacentBlock.type == Material.CHEST) {
-                val guild = vaultService.getGuildForVaultChest(adjacentLocation)
-                if (guild != null) {
-                    return true
-                }
+            if (adjacentBlock.type == Material.CHEST && isAnyVault(adjacentLocation)) {
+                return true
             }
         }
 

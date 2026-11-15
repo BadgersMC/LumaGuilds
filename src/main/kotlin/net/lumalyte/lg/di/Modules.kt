@@ -1309,6 +1309,16 @@ fun vaultModule() = module {
     single<net.lumalyte.lg.infrastructure.services.VaultHologramService> {
         net.lumalyte.lg.infrastructure.services.VaultHologramService(get(), get(), get())
     }
+    // REQ-242 to REQ-248: the Prestige VI second vault.
+    single<net.lumalyte.lg.application.persistence.SecondVaultRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.SecondVaultRepositorySQL(get())
+    }
+    single {
+        net.lumalyte.lg.infrastructure.services.SecondVaultService(
+            get<LumaGuilds>(), get(), get(), get(), get(), get(), get(), get(),
+        )
+    }
+    single { net.lumalyte.lg.infrastructure.listeners.SecondVaultListener() }
 
     // Listeners
     single<net.lumalyte.lg.interaction.listeners.VaultInventoryListener> {

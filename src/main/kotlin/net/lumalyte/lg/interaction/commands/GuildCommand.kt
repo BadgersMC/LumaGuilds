@@ -2539,7 +2539,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
     @Subcommand("getvault")
     @CommandPermission("lumaguilds.guild.getvault")
-    fun onVaultGet(player: Player) {
+    @CommandCompletion("2")
+    fun onVaultGet(player: Player, @Optional which: String?) {
+        if (which == "2") return onSecondVaultGet(player)
         val playerId = player.uniqueId
 
         // Check if physical vault is enabled in config
@@ -2652,7 +2654,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
     @Subcommand("vault")
     @CommandPermission("lumaguilds.guild.vault")
-    fun onVault(player: Player) {
+    @CommandCompletion("2")
+    fun onVault(player: Player, @Optional which: String?) {
+        if (which == "2") return onSecondVault(player)
         val playerId = player.uniqueId
 
         // Check if physical vault is enabled in config
@@ -2714,6 +2718,42 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 player.playSound(player.location, org.bukkit.Sound.ENTITY_VILLAGER_NO, 1.0f, 0.8f)
             }
         }
+    }
+
+    /** REQ-242: `/g getvault 2` gives the Prestige VI second vault chest. */
+    private fun onSecondVaultGet(player: Player) {
+        val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
+            ?: return player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
+        val secondVault = org.koin.core.context.GlobalContext.get()
+            .get<net.lumalyte.lg.infrastructure.services.SecondVaultService>()
+        val mode = configService.loadConfig().vault.bankMode.uppercase()
+        when {
+            mode != "PHYSICAL" && mode != "BOTH" ->
+                player.sendMessage(lang.msg("command.migrated.guild.vaultget.physical_vault_system_is_not_enabled_on"))
+            !memberService.hasPermission(player.uniqueId, guild.id, RankPermission.PLACE_VAULT) ->
+                player.sendMessage(lang.msg("command.migrated.guild.vaultget.you_need_the_place_vault_permission"))
+            !secondVault.unlocked(guild.id) -> player.sendMessage(lang.msg("second_vault.place.locked"))
+            secondVault.spotOf(guild.id) != null -> {
+                val spot = secondVault.spotOf(guild.id)!!
+                player.sendMessage(lang.msg("second_vault.place.already"))
+                player.sendMessage(lang.msg("second_vault.place.where", "x" to spot.x, "y" to spot.y, "z" to spot.z))
+            }
+            player.inventory.firstEmpty() == -1 ->
+                player.sendMessage(lang.msg("command.migrated.guild.vaultget.your_inventory_is_full_make_space_to"))
+            else -> {
+                player.inventory.addItem(secondVault.chestItem(guild))
+                player.sendMessage(lang.msg("second_vault.item.received"))
+                player.playSound(player.location, org.bukkit.Sound.ENTITY_ITEM_PICKUP, 1.0f, 1.2f)
+            }
+        }
+    }
+
+    /** REQ-242: `/g vault 2` opens the second vault from anywhere, like `/g vault`. */
+    private fun onSecondVault(player: Player) {
+        val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
+            ?: return player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
+        org.koin.core.context.GlobalContext.get()
+            .get<net.lumalyte.lg.infrastructure.listeners.SecondVaultListener>().open(player, guild)
     }
 
     @Subcommand("start|gettingstarted")
