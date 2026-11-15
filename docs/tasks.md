@@ -1451,3 +1451,7 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 - [ ] **SECOND-VAULT-CAPACITY** Tag: TDD. REQ-248.
 - [ ] **SECOND-VAULT-WITHDRAW-ONLY** Tag: TDD. REQ-245.
 - [ ] **SECOND-VAULT-LIFECYCLE** Tag: TDD. REQ-246.
+
+## Prestige confirmation lists exactly what is earned (REQ-249)
+
+- [x] **PRESTIGE-CONFIRM-EARNINGS** Tag: TDD. REQ-249. Evidence: GuildPrestigePreviewTest, PrestigeSummaryTest, PrestigeClarityTest.
