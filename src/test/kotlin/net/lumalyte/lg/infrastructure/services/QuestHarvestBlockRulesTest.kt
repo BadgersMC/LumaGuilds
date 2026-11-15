@@ -6,6 +6,7 @@ import net.lumalyte.lg.domain.values.QuestAction
 import org.bukkit.Material
 import org.bukkit.block.data.Ageable
 import org.bukkit.block.data.BlockData
+import org.bukkit.block.data.type.CaveVinesPlant
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -40,6 +41,31 @@ class QuestHarvestBlockRulesTest {
             assertTrue(QuestHarvestBlockRules.isVineSegment(body))
             assertFalse(QuestHarvestBlockRules.isVineSegment(tip))
         }
+    }
+
+    @Test
+    fun `right click glow berry harvest requires the berry state on tips or body`() {
+        val withBerries = mockk<CaveVinesPlant> {
+            every { hasBerries() } returns true
+        }
+        val withoutBerries = mockk<CaveVinesPlant> {
+            every { hasBerries() } returns false
+        }
+        assertTrue(QuestHarvestBlockRules.canHarvestGlowBerries(Material.CAVE_VINES, withBerries))
+        assertTrue(QuestHarvestBlockRules.canHarvestGlowBerries(Material.CAVE_VINES_PLANT, withBerries))
+        assertFalse(QuestHarvestBlockRules.canHarvestGlowBerries(Material.CAVE_VINES, withoutBerries))
+        assertFalse(QuestHarvestBlockRules.canHarvestGlowBerries(Material.CAVE_VINES_PLANT, withoutBerries))
+        assertFalse(QuestHarvestBlockRules.canHarvestGlowBerries(Material.KELP, withBerries))
+        assertFalse(QuestHarvestBlockRules.canHarvestGlowBerries(Material.STONE, withBerries))
+    }
+
+    @Test
+    fun `four growing plant families have the correct cascade direction`() {
+        assertEquals(-1, QuestHarvestBlockRules.cascadeStep(Material.CAVE_VINES_PLANT))
+        assertEquals(-1, QuestHarvestBlockRules.cascadeStep(Material.WEEPING_VINES))
+        assertEquals(1, QuestHarvestBlockRules.cascadeStep(Material.KELP))
+        assertEquals(1, QuestHarvestBlockRules.cascadeStep(Material.TWISTING_VINES_PLANT))
+        assertEquals(null, QuestHarvestBlockRules.cascadeStep(Material.WHEAT))
     }
 
     @Test

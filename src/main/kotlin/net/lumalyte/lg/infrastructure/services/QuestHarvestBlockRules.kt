@@ -4,6 +4,7 @@ import net.lumalyte.lg.domain.values.QuestAction
 import org.bukkit.Material
 import org.bukkit.block.data.Ageable
 import org.bukkit.block.data.BlockData
+import org.bukkit.block.data.type.CaveVinesPlant
 
 internal data class QuestBlockBreak(val action: QuestAction, val targetMaterial: Material)
 
@@ -21,6 +22,26 @@ internal object QuestHarvestBlockRules {
     private val growingTips = segmentToTip.values.toSet()
 
     fun isVineSegment(material: Material): Boolean = material in segmentToTip
+
+    fun isGrowingPlant(material: Material): Boolean =
+        material in segmentToTip || material in growingTips
+
+    fun normalizedTip(material: Material): Material = segmentToTip[material] ?: material
+
+    /** Kelp and twisting vines grow upward; cave and weeping vines grow downward. */
+    fun cascadeStep(material: Material): Int? = when (normalizedTip(material)) {
+        Material.KELP, Material.TWISTING_VINES -> 1
+        Material.CAVE_VINES, Material.WEEPING_VINES -> -1
+        else -> null
+    }
+
+    fun sameFamily(expected: Material, actual: Material): Boolean =
+        isGrowingPlant(actual) && normalizedTip(expected) == normalizedTip(actual)
+
+    fun canHarvestGlowBerries(material: Material, blockData: BlockData): Boolean =
+        normalizedTip(material) == Material.CAVE_VINES &&
+            isGrowingPlant(material) &&
+            blockData is CaveVinesPlant && blockData.hasBerries()
 
     fun classify(material: Material, blockData: BlockData): QuestBlockBreak {
         val growingTip = segmentToTip[material]

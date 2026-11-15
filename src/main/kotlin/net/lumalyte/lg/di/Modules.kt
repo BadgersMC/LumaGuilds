@@ -995,7 +995,7 @@ single {
             provenanceOperations = get(),
         )
     }
-    single { net.lumalyte.lg.infrastructure.listeners.QuestProgressListener(get(), get(), get(), get()) }
+    single { net.lumalyte.lg.infrastructure.listeners.QuestProgressListener(get(), get(), get(), get(), get()) }
 }
 
 /**
