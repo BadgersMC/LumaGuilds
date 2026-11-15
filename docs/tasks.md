@@ -1442,6 +1442,16 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 
 - [x] **WAR-DECLARE-BLOCK-REASON** Tag: TDD. REQ-239. Evidence: WarDeclarationBlockTest.
 
+## Second guild vault at Prestige VI (REQ-242 to REQ-248)
+
+- [x] **SECOND-VAULT-MOCKUP** Mock up the Prestige VI perk line, the Guild Vault II inventory and withdraw-only state, and the chest item and hologram.
+- [x] **SECOND-VAULT-PERK** Tag: TDD. REQ-242, REQ-247. Evidence: SecondVaultRulesTest.
+- [ ] **SECOND-VAULT-PLACE** Tag: TDD. REQ-243. Placement rules in SecondVaultService; verify in-game on TEST.
+- [x] **SECOND-VAULT-STORAGE** Tag: TDD. REQ-244 (SQLite and MariaDB). Evidence: SecondVaultRepositorySQLTest.
+- [x] **SECOND-VAULT-CAPACITY** Tag: TDD. REQ-248. Evidence: SecondVaultRulesTest.
+- [x] **SECOND-VAULT-WITHDRAW-ONLY** Tag: TDD. REQ-245. Evidence: SecondVaultRulesTest.
+- [ ] **SECOND-VAULT-LIFECYCLE** Tag: TDD. REQ-246. Break, explosion, disband and restart in SecondVaultListener/Service; verify in-game on TEST.
+
 ## Prestige confirmation lists exactly what is earned (REQ-249)
 
 - [x] **PRESTIGE-CONFIRM-EARNINGS** Tag: TDD. REQ-249. Evidence: GuildPrestigePreviewTest, PrestigeSummaryTest, PrestigeClarityTest.

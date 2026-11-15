@@ -481,6 +481,8 @@ data class PrestigeConfig(
 data class PrestigePerksConfig(
     val secondAllyHomeTier: Int = 2,
     val extraStallTier: Int = 3,
+    /** REQ-242: the tier that unlocks a second guild vault. */
+    val secondVaultTier: Int = 6,
 )
 
 /** REQ-175: XP earned past level 100 can start the next climb, up to the start of [landingLevel]. */

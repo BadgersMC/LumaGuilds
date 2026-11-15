@@ -92,6 +92,7 @@ internal fun prestigeSummaryLines(
             is PrestigeSummaryLine.Perk -> when (line.perk) {
                 PrestigePerk.SECOND_ALLY_HOME -> lang.gui("menu.guild_progression.prestige.confirmation.summary.perk_second_ally_home")
                 PrestigePerk.EXTRA_STALL -> lang.gui("menu.guild_progression.prestige.confirmation.summary.perk_extra_stall")
+                PrestigePerk.SECOND_VAULT -> lang.gui("menu.guild_progression.prestige.confirmation.summary.perk_second_vault")
             }
             is PrestigeSummaryLine.MemberLimit -> lang.gui("menu.guild_progression.prestige.confirmation.summary.member_limit", "limit" to line.limit)
             is PrestigeSummaryLine.DiscordRole -> lang.gui("menu.guild_progression.prestige.confirmation.summary.discord_role", "level" to line.minimumLevel)
@@ -134,6 +135,7 @@ internal fun bedrockPrestigeSummaryLines(
             is PrestigeSummaryLine.Perk -> when (line.perk) {
                 PrestigePerk.SECOND_ALLY_HOME -> lang.bedrock("menu.guild_progression.prestige.confirmation.summary.perk_second_ally_home")
                 PrestigePerk.EXTRA_STALL -> lang.bedrock("menu.guild_progression.prestige.confirmation.summary.perk_extra_stall")
+                PrestigePerk.SECOND_VAULT -> lang.bedrock("menu.guild_progression.prestige.confirmation.summary.perk_second_vault")
             }
             is PrestigeSummaryLine.MemberLimit -> lang.bedrock("menu.guild_progression.prestige.confirmation.summary.member_limit", "limit" to line.limit)
             is PrestigeSummaryLine.DiscordRole -> lang.bedrock("menu.guild_progression.prestige.confirmation.summary.discord_role", "level" to line.minimumLevel)

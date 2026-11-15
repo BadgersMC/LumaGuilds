@@ -224,6 +224,12 @@ class LumaGuilds : JavaPlugin() {
         // Start hologram service and recreate all holograms
         hologramService.start()
         hologramService.recreateAllHolograms()
+        // REQ-246: second vaults come back after a restart with their chests and holograms.
+        try {
+            get().get<net.lumalyte.lg.infrastructure.services.SecondVaultService>().start()
+        } catch (e: Exception) {
+            logColored("❌ Failed to restore second vaults: ${e.message}")
+        }
 
         // Configure command completions (ACF handles this automatically)
         configureCommandCompletions()
@@ -1063,6 +1069,7 @@ class LumaGuilds : JavaPlugin() {
         // Register vault protection listener
         vaultProtectionListener = net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener()
         server.pluginManager.registerEvents(vaultProtectionListener, this)
+        server.pluginManager.registerEvents(get().get<net.lumalyte.lg.infrastructure.listeners.SecondVaultListener>(), this)
 
         // Register vault inventory listener (for gold button and real-time sync)
         val vaultInventoryListener = get().get<net.lumalyte.lg.interaction.listeners.VaultInventoryListener>()
@@ -1618,6 +1625,10 @@ class LumaGuilds : JavaPlugin() {
             // Broad exception handling acceptable - shutdown should be resilient
             logger.warning("Failed to stop guild team service: ${e.message}")
         }
+
+        // REQ-244: write any open second vaults before shutting down.
+        runCatching { get().getOrNull<net.lumalyte.lg.infrastructure.services.SecondVaultService>()?.stop() }
+            .onFailure { logger.warning("Failed to save second vaults: ${it.message}") }
 
         // Stop vault auto-save service (this will flush all pending writes)
         try {

@@ -215,6 +215,12 @@ class GuildServiceBukkit(
                 }
             }
 
+            // REQ-246: the second vault's items drop at its chest and its records go, like the main vault.
+            runCatching {
+                org.koin.core.context.GlobalContext.getOrNull()
+                    ?.getOrNull<SecondVaultService>()?.disband(guildId)
+            }.onFailure { logger.warn("Failed to clear the second vault of guild $guildId", it) }
+
             logger.info("Guild $guildId disbanded by $actorId")
             val disbandedEvent = GuildDisbandedEvent(guild, memberIds, actorId)
             disbandedEvent.attachRelatedGuilds(relatedGuilds)
