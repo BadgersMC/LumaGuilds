@@ -32,8 +32,18 @@ internal class PrestigeClarityTest : GuildRankMenuFixture() {
         val perks = net.lumalyte.lg.application.services.GuildPrestigePerks(mockk(relaxed = true)) {
             net.lumalyte.lg.domain.rewards.PrestigePerks(net.lumalyte.lg.config.PrestigePerksConfig())
         }
+        every { prestige.preview(any()) } answers { preview(firstArg<PrestigeQuote>().expectedPrestigeCount + 1) }
         loadKoinModules(module { single { prestige }; single { catalog }; single { perks } })
     }
+
+    private var carry: net.lumalyte.lg.domain.rewards.PrestigePreview.Carry? = null
+
+    private fun preview(tier: Int) = net.lumalyte.lg.domain.rewards.PrestigePreview(
+        tier = tier, finalTier = tier == 6, homeSlotsBefore = 2, homeSlotsAfter = 3,
+        perks = net.lumalyte.lg.domain.rewards.PrestigePerks(net.lumalyte.lg.config.PrestigePerksConfig()).unlockedAt(tier),
+        carry = carry, memberLimitKept = if (tier == 1) 100 else null, discordRoleMinimumLevel = if (tier == 1) 50 else null,
+        memberCreditTenureHours = null, firstOnServer = true, fanfare = true, discordPost = false, fee = 20_000,
+    )
 
     @Test
     fun `java confirmation explains the kept reward, the home slot and the badge`() {
@@ -41,10 +51,13 @@ internal class PrestigeClarityTest : GuildRankMenuFixture() {
         val lore = GuildPrestigeConfirmationMenu(player, quote, "Bank Extension 1", {}, {}).createGui()
             .let { gui -> gui.show(player); player.openInventory.topInventory.getItem(4)!!.lore()!! }
             .joinToString("\n") { plain(PlainTextComponentSerializer.plainText().serialize(it)) }
+        assertTrue("keep forever: bank extension 1" in lore, lore)
         assertTrue("bank capacity: +1" in lore, lore)
-        assertTrue("one permanent home slot" in lore, lore)
+        assertTrue("1 permanent home slot (2 → 3)" in lore, lore)
         assertTrue("prestige ii badge" in lore, lore)
-        assertTrue("buy them again" in lore, lore)
+        assertTrue("20,000 gold ore" in lore, lore)
+        assertTrue("purchased reward reset" in lore, lore)
+        assertTrue("first on the server" in lore, lore)
         // REQ-180: Prestige II starts the second allied home.
         assertTrue("second allied home" in lore, lore)
     }
@@ -55,18 +68,14 @@ internal class PrestigeClarityTest : GuildRankMenuFixture() {
         fun javaLore() = GuildPrestigeConfirmationMenu(player, quote, "Bank Extension 1", {}, {}).createGui()
             .let { gui -> gui.show(player); player.openInventory.topInventory.getItem(4)!!.lore()!! }
             .joinToString("\n") { plain(PlainTextComponentSerializer.plainText().serialize(it)) }
-        assertTrue("xp goes back to 0" in javaLore())
-        val config = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.ConfigService>()
-        every { config.loadConfig() } returns net.lumalyte.lg.config.MainConfig().apply {
-            progression = progression.copy(prestige = progression.prestige.copy(
-                carryOver = net.lumalyte.lg.config.PrestigeCarryOverConfig(enabled = true, landingLevel = 5),
-            ))
-        }
+        assertTrue("guild xp back to 0" in javaLore())
+        carry = net.lumalyte.lg.domain.rewards.PrestigePreview.Carry(1240, 3)
         val lore = javaLore()
-        assertTrue("carries over, up to the start of level 5" in lore, lore)
+        assertTrue("1,240 xp carried over: you start at level 3" in lore, lore)
+        assertTrue("guild xp back to 0" !in lore, lore)
         val bedrock = plain((BedrockPrestigeConfirmationMenu(MenuNavigator(player), player, quote, "Bank Extension 1", {}, {},
             Logger.getAnonymousLogger()).getForm() as ModalForm).content())
-        assertTrue("carries over, up to the start of level 5" in bedrock, bedrock)
+        assertTrue("1,240 xp carried over: you start at level 3" in bedrock, bedrock)
     }
 
     @Test
@@ -75,7 +84,7 @@ internal class PrestigeClarityTest : GuildRankMenuFixture() {
         val content = plain((BedrockPrestigeConfirmationMenu(MenuNavigator(player), player, quote, "Bank Extension 1", {}, {},
             Logger.getAnonymousLogger()).getForm() as ModalForm).content())
         assertTrue("bank capacity: +1" in content, content)
-        assertTrue("one permanent home slot" in content, content)
+        assertTrue("1 permanent home slot (2 → 3)" in content, content)
         assertTrue("prestige ii badge" in content, content)
         assertTrue("second allied home" in content, content)
     }
@@ -86,11 +95,16 @@ internal class PrestigeClarityTest : GuildRankMenuFixture() {
         fun javaLore(q: PrestigeQuote) = GuildPrestigeConfirmationMenu(player, q, "Bank Extension 1", {}, {}).createGui()
             .let { gui -> gui.show(player); player.openInventory.topInventory.getItem(4)!!.lore()!! }
             .joinToString("\n") { plain(PlainTextComponentSerializer.plainText().serialize(it)) }
-        assertTrue("new perk" !in javaLore(quote.copy(expectedPrestigeCount = 0)))
-        assertTrue("one more market stall" in javaLore(quote.copy(expectedPrestigeCount = 2)))
+        val first = javaLore(quote.copy(expectedPrestigeCount = 0))
+        assertTrue("new perk" !in first, first)
+        assertTrue("member limit stays at 100" in first, first)
+        assertTrue("discord role below level 50" in first, first)
+        val last = javaLore(quote.copy(expectedPrestigeCount = 5))
+        assertTrue("final prestige" in last, last)
+        assertTrue("one more guild market stall" in javaLore(quote.copy(expectedPrestigeCount = 2)))
         val bedrock = plain((BedrockPrestigeConfirmationMenu(MenuNavigator(player), player, quote.copy(expectedPrestigeCount = 2),
             "Bank Extension 1", {}, {}, Logger.getAnonymousLogger()).getForm() as ModalForm).content())
-        assertTrue("one more market stall" in bedrock, bedrock)
+        assertTrue("one more guild market stall" in bedrock, bedrock)
     }
 
     @Test

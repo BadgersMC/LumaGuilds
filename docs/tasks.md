@@ -1441,3 +1441,7 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 ## War declaration feedback (REQ-239)
 
 - [x] **WAR-DECLARE-BLOCK-REASON** Tag: TDD. REQ-239. Evidence: WarDeclarationBlockTest.
+
+## Prestige confirmation lists exactly what is earned (REQ-249)
+
+- [x] **PRESTIGE-CONFIRM-EARNINGS** Tag: TDD. REQ-249. Evidence: GuildPrestigePreviewTest, PrestigeSummaryTest, PrestigeClarityTest.
