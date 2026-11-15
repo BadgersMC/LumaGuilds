@@ -1445,3 +1445,7 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 ## Prestige confirmation lists exactly what is earned (REQ-249)
 
 - [x] **PRESTIGE-CONFIRM-EARNINGS** Tag: TDD. REQ-249. Evidence: GuildPrestigePreviewTest, PrestigeSummaryTest, PrestigeClarityTest.
+
+## Guild advancement reward text (REQ-241)
+
+- [x] **ADVANCEMENT-GUILD-XP-TEXT** Tag: TDD. REQ-241. Evidence: GuildAchievementRewardLinesTest.

@@ -202,6 +202,12 @@ internal class GuildAchievementRuntime(
         node.messages.forEach {
             player.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(it))
         }
+        if (public && node.guildXp > 0) {
+            player.sendMessage(net.kyori.adventure.text.Component.text(
+                "+${"%,d".format(java.util.Locale.ROOT, node.guildXp)} guild XP",
+                net.kyori.adventure.text.format.NamedTextColor.GOLD,
+            ))
+        }
         if (node.personalXp > 0) {
             player.sendMessage(net.kyori.adventure.text.Component.text("+${node.personalXp} personal Minecraft XP"))
         }
