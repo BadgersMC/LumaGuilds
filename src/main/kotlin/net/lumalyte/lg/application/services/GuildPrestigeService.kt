@@ -19,6 +19,8 @@ class GuildPrestigeService(
     private val announcement: GuildPrestigeAnnouncement = GuildPrestigeAnnouncement { _, _ -> },
     private val history: PrestigeHistory? = null,
     private val notifiers: List<GuildPrestigeNotifier> = emptyList(),
+    /** REQ-248: refreshes the cached guild level after a prestige, so vault sizes and other level rules see level 1. */
+    private val refreshGuildLevel: (UUID) -> Unit = {},
 ) {
     private val resolver = RewardEntitlementResolver(catalog)
     private val logger = LoggerFactory.getLogger(GuildPrestigeService::class.java)
@@ -194,6 +196,8 @@ class GuildPrestigeService(
                 publish(quote, result)
             }
             progression.refreshGuildProgression(quote.guildId)
+            runCatching { refreshGuildLevel(quote.guildId) }
+                .onFailure { logger.warn("Failed to refresh the cached level of guild ${quote.guildId}", it) }
         }
         return result
     }

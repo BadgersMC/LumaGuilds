@@ -52,6 +52,22 @@ class GuildPrestigeAnnouncementTest {
     }
 
     @Test
+    fun `an applied prestige refreshes the cached guild level, even on a receipt retry`() {
+        every { repository.confirmWithCommitStatus(quote, any()) } returnsMany listOf(
+            PrestigeConfirmation(applied, true), PrestigeConfirmation(applied),
+        )
+        val refreshed = mutableListOf<UUID>()
+        val subject = GuildPrestigeService(
+            mockk(), progression, RewardCatalog.chapterTwo(), repository, mockk(),
+            mockk<ConfigService>().also { every { it.loadConfig() } returns MainConfig() },
+            refreshGuildLevel = { refreshed += it },
+        )
+        subject.confirm(actor, quote)
+        subject.confirm(actor, quote)
+        assertEquals(listOf(guild, guild), refreshed)
+    }
+
+    @Test
     fun `failure and rejection never announce`() {
         val rejected = PrestigeResult.Rejected(PrestigeRejection.INSUFFICIENT_FUNDS)
         val failed = PrestigeResult.Failed(quote.transactionId)

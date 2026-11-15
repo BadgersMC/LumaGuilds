@@ -820,6 +820,7 @@ fun progressionModule() = module {
                 ),
                 prestigeDiscordPost(),
             ),
+            refreshGuildLevel = { guildId -> get<GuildRepository>().refreshCachedLevel(guildId) },
         )
     }
     single {
