@@ -838,6 +838,11 @@ CHR-005 in [the Chronicle specification](plans/2026-10-16-guild-chronicle.md).
 ### REQ-239
 **Unwanted behaviour.** IF a guild can't declare war because of its declaration cooldown, a farming cooldown on either guild, or either guild's war limit, THEN THE SYSTEM SHALL tell the player which one applies and, for cooldowns, how long is left, instead of a generic failure.
 
+## Main vault keeps earned rows
+
+### REQ-250
+**Ubiquitous.** THE SYSTEM SHALL never shrink a guild's main vault below the largest size it has earned, including after a prestige, while the second vault (REQ-248) still follows the guild's current level.
+
 ## Second guild vault at Prestige VI
 
 Plan: `plans/2026-11-14-prestige-second-vault.md`.

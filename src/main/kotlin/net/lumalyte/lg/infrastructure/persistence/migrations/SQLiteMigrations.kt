@@ -280,6 +280,11 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(AllyHomeAccessSchema.VERSION)
                 dbVersion = AllyHomeAccessSchema.VERSION
             }
+            VaultCapacityUnlockSchema.create(connection, mariaDb = false, backfill = dbVersion < VaultCapacityUnlockSchema.VERSION)
+            if (dbVersion < VaultCapacityUnlockSchema.VERSION) {
+                updateDatabaseVersion(VaultCapacityUnlockSchema.VERSION)
+                dbVersion = VaultCapacityUnlockSchema.VERSION
+            }
             GuildDescriptionSchema.ensure(connection)
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()

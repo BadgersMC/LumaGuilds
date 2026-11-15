@@ -9,6 +9,7 @@ import net.badgersmc.nexus.i18n.LangService
 
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.PlatformDetectionService
 import net.lumalyte.lg.infrastructure.vault.VaultInventoryManager
@@ -47,7 +48,8 @@ class VaultInventoryListener(
     private val vaultConfig: VaultConfig,
     private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository,
     private val memberService: MemberService,
-    private val platformDetectionService: PlatformDetectionService
+    private val platformDetectionService: PlatformDetectionService,
+    private val progressionRepository: ProgressionRepository,
 ) : Listener, KoinComponent {
 
     private val bankService: BankService by inject()
@@ -60,6 +62,7 @@ class VaultInventoryListener(
         val holder = event.inventory.holder as? VaultInventoryHolder ?: return
         val player = event.whoClicked as? Player ?: return
         if (event.isCancelled || !authorizeClick(event, holder, player)) return
+        if (protectPrestigeOverflow(event, holder, player)) return
         handleVaultClick(event, holder, player)
     }
 
@@ -76,6 +79,60 @@ class VaultInventoryListener(
             player.sendMessage(lang.msg("notification.vault.inventory.action_denied"))
         }
         return allowed
+    }
+
+    /**
+     * Protect genuinely unentitled overflow slots from uncertain destination
+     * operations. The holder's durable capacity is never reduced by prestige:
+     * an earned row stays writable, even after the guild returns to level 1.
+     */
+    private fun protectPrestigeOverflow(
+        event: InventoryClickEvent,
+        holder: VaultInventoryHolder,
+        player: Player,
+    ): Boolean {
+        val topSize = event.inventory.size
+        // The minimum level always owns the first row; no high row exists to protect.
+        if (topSize <= 9) return false
+
+        val directWithdrawal = event.action in setOf(
+            InventoryAction.PICKUP_ALL,
+            InventoryAction.PICKUP_SOME,
+            InventoryAction.PICKUP_HALF,
+            InventoryAction.PICKUP_ONE,
+            InventoryAction.DROP_ALL_SLOT,
+            InventoryAction.DROP_ONE_SLOT,
+            InventoryAction.MOVE_TO_OTHER_INVENTORY,
+        )
+        val shiftDeposit = event.action == InventoryAction.MOVE_TO_OTHER_INVENTORY &&
+            event.rawSlot >= topSize
+        // Double-click and hotbar re-add may touch slots other than the clicked one.
+        val broadCollection = event.action == InventoryAction.COLLECT_TO_CURSOR
+        val uncertainDestination = event.action == InventoryAction.HOTBAR_MOVE_AND_READD
+
+        // Never query SQLite for ordinary first-row clicks or explicit withdrawals;
+        // only actions that could put an item into a post-prestige overflow row.
+        if (!shiftDeposit && !broadCollection && !uncertainDestination &&
+            (event.rawSlot !in 9 until topSize || directWithdrawal)
+        ) return false
+
+        // Persisted high-water capacity is set when the shared holder is created.
+        val unlocked = holder.getCapacity()
+        if (unlocked >= topSize) return false
+
+        val clickedLockedSlot = event.rawSlot in unlocked until topSize
+        if (!shiftDeposit && !broadCollection && !uncertainDestination &&
+            (!clickedLockedSlot || directWithdrawal)
+        ) return false
+
+        event.isCancelled = true
+        player.sendMessage(
+            Component.text(
+                "Vault slots beyond your permanent unlock are withdrawal-only.",
+                NamedTextColor.YELLOW,
+            )
+        )
+        return true
     }
 
     private fun hasCurrentAccess(player: Player, holder: VaultInventoryHolder): Boolean {

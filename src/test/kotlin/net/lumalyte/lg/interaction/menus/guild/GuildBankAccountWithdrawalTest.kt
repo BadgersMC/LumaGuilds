@@ -261,7 +261,8 @@ internal class GuildBankAccountWithdrawalTest {
         player.inventory.addItem(ItemStack(Material.RAW_GOLD, 40))
         val listener = net.lumalyte.lg.interaction.listeners.VaultInventoryListener(
             PluginKeys.getPlugin() as JavaPlugin, manager, mockk(relaxed = true),
-            net.lumalyte.lg.config.VaultConfig(), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
+            net.lumalyte.lg.config.VaultConfig(), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
+            mockk(relaxed = true))
         listener.javaClass.getDeclaredMethod("depositAllGold", org.bukkit.entity.Player::class.java,
             UUID::class.java, String::class.java).apply { isAccessible = true }.invoke(listener, player, guildId, "Test")
         assertEquals(1_040, balance)

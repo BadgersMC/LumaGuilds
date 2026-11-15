@@ -9,6 +9,9 @@ import java.util.UUID
  */
 interface GuildVaultRepository {
 
+    /** Durable, monotonic vault slots; legacy test adapters fall back to level unlocks. */
+    fun getPermanentCapacity(guildId: UUID, currentLevelCapacity: Int): Int = currentLevelCapacity
+
     /**
      * Saves the entire vault inventory for a guild.
      *

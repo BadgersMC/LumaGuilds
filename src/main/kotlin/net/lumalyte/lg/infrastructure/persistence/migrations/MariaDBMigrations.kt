@@ -212,6 +212,11 @@ class MariaDBMigrations(private val plugin: JavaPlugin, private val connection: 
                 updateDatabaseVersion(AllyHomeAccessSchema.VERSION)
                 currentDbVersion = AllyHomeAccessSchema.VERSION
             }
+            VaultCapacityUnlockSchema.create(connection, mariaDb = true, backfill = currentDbVersion < VaultCapacityUnlockSchema.VERSION)
+            if (currentDbVersion < VaultCapacityUnlockSchema.VERSION) {
+                updateDatabaseVersion(VaultCapacityUnlockSchema.VERSION)
+                currentDbVersion = VaultCapacityUnlockSchema.VERSION
+            }
             GuildDescriptionSchema.ensure(connection)
             connection.commit()
             val finalVersion = getCurrentDatabaseVersion()

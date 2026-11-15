@@ -69,6 +69,9 @@ interface GuildVaultService {
      */
     fun getCapacityForLevel(level: Int): Int
 
+    /** Includes all permanently earned vault rows, even after a prestige reset. */
+    fun getPermanentCapacityForGuild(guild: Guild): Int = getCapacityForLevel(guild.level)
+
     /**
      * Checks if a location is valid for vault placement.
      *

@@ -1442,6 +1442,10 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 
 - [x] **WAR-DECLARE-BLOCK-REASON** Tag: TDD. REQ-239. Evidence: WarDeclarationBlockTest.
 
+## Main vault keeps earned rows (REQ-250)
+
+- [x] **VAULT-KEEPS-EARNED-ROWS** Ported from BadgersMC/LumaGuilds (086ae23a, 9bf0b72e, fb7c7b36, bd7b2fe3). Evidence: VaultPrestigePersistenceSqliteTest, VaultLevelCapacityTest, VaultCommittedLevelSqliteTest.
+
 ## Second guild vault at Prestige VI (REQ-242 to REQ-248)
 
 - [x] **SECOND-VAULT-MOCKUP** Mock up the Prestige VI perk line, the Guild Vault II inventory and withdraw-only state, and the chest item and hologram.

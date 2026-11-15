@@ -5,6 +5,8 @@ import net.lumalyte.lg.domain.entities.ExperienceAwardResult
 import net.lumalyte.lg.domain.values.ExperiencePolicy
 import net.lumalyte.lg.domain.values.PeriodWindow
 import net.lumalyte.lg.domain.values.ProgressionCurve
+import net.lumalyte.lg.infrastructure.vault.VaultLevelCapacity
+import net.lumalyte.lg.infrastructure.persistence.migrations.VaultCapacityUnlockSchema
 import java.sql.Connection
 
 /** One caller-owned transaction for cap reservation, progression and an idempotent XP receipt. */
@@ -109,6 +111,11 @@ internal class ExperienceAwardTransaction(
             levelUps, "[]", existing.createdAt, request.occurredAt.toEpochMilli(),
         )
         connection.updateStatement("UPDATE guilds SET level = ? WHERE id = ?", level, request.guildId.toString())
+        if (changed) {
+            VaultCapacityUnlockSchema.recordAtLeast(
+                connection, request.guildId, VaultLevelCapacity.slots(level), mariaDb,
+            )
+        }
         return level.takeIf { changed }
     }
 
