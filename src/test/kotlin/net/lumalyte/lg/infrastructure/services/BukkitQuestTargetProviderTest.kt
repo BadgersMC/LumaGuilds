@@ -76,5 +76,23 @@ class BukkitQuestTargetProviderTest {
             it.id == "minecraft:item/shield" &&
                 QuestAction.ENCHANT_ITEMS in it.allowedActions
         })
+
+        val tips = listOf(Material.CAVE_VINES, Material.KELP, Material.WEEPING_VINES, Material.TWISTING_VINES)
+        for (tip in tips) {
+            assertTrue(targets.any {
+                it.id == "minecraft:block/${tip.key.key}" &&
+                    QuestAction.HARVEST_CROPS in it.allowedActions
+            })
+        }
+
+        val segments = listOf(
+            Material.CAVE_VINES_PLANT,
+            Material.KELP_PLANT,
+            Material.WEEPING_VINES_PLANT,
+            Material.TWISTING_VINES_PLANT,
+        )
+        for (segment in segments) {
+            assertFalse(targets.any { it.id == "minecraft:block/${segment.key.key}" })
+        }
     }
 }
