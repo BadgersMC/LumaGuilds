@@ -1,8 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
-import net.lumalyte.lg.application.services.ConfigService
-import net.lumalyte.lg.interaction.menus.guild.bedrockRewardEffect
-import net.lumalyte.lg.interaction.menus.guild.bedrockPrestigePerkLines
+import net.lumalyte.lg.interaction.menus.guild.bedrockPrestigeSummaryLines
 import net.lumalyte.lg.domain.rewards.RewardCatalog
 import net.lumalyte.lg.domain.values.PrestigeNumeral
 import net.badgersmc.nexus.i18n.LangService
@@ -34,40 +32,16 @@ class BedrockPrestigeConfirmationMenu(
     private val prestige: GuildPrestigeService by inject()
     private val lang: LangService by inject()
     private val catalog: RewardCatalog by inject()
-    private val config: ConfigService by inject()
-    private val perks: net.lumalyte.lg.application.services.GuildPrestigePerks by inject()
     private val plugin: Plugin by inject()
 
     override fun getForm(): Form = ModalForm.builder()
         .title(lang.bedrock("menu.guild_progression.prestige.confirmation.title"))
         .content(
-            (listOf<String?>(
-                lang.bedrock(
-                    "menu.guild_progression.prestige.confirmation.summary.reward",
-                    "reward" to retainedRewardName,
-                ),
-                catalog.find(quote.retainedRewardId)?.let { bedrockRewardEffect(lang, it.effect) },
-                lang.bedrock(
-                    "menu.guild_progression.prestige.confirmation.summary.fee",
-                    "fee" to quote.quotedFee,
-                ),
-                lang.bedrock("menu.guild_progression.prestige.confirmation.summary.reset"),
-                config.loadConfig().progression.prestige.carryOver.let { carry ->
-                    if (carry.enabled) {
-                        lang.bedrock("menu.guild_progression.prestige.confirmation.summary.carry", "level" to carry.landingLevel)
-                    } else {
-                        lang.bedrock("menu.guild_progression.prestige.confirmation.summary.xp_reset")
-                    }
-                },
-                lang.bedrock("menu.guild_progression.prestige.confirmation.summary.permanent"),
-                lang.bedrock("menu.guild_progression.prestige.confirmation.summary.home_slot"),
-            ) + bedrockPrestigePerkLines(lang, perks.forConfig(), quote.expectedPrestigeCount + 1) + listOf(
-                lang.bedrock(
-                    "menu.guild_progression.prestige.confirmation.summary.badge",
-                    "tier" to PrestigeNumeral.of(quote.expectedPrestigeCount + 1),
-                ),
-                lang.bedrock("menu.guild_progression.prestige.confirmation.summary.overflow"),
-            )).filterNotNull().joinToString("\n")
+            // REQ-249: exactly what this prestige earns, costs and keeps.
+            prestige.preview(quote)?.let { preview ->
+                bedrockPrestigeSummaryLines(lang, preview, retainedRewardName, catalog.find(quote.retainedRewardId)?.effect)
+                    .joinToString("\n")
+            } ?: lang.bedrock("menu.guild_progression.prestige.confirmation.summary.unavailable")
         )
         .button1(lang.bedrock("menu.guild_progression.prestige.confirmation.confirm"))
         .button2(lang.bedrock("menu.guild_progression.prestige.confirmation.cancel"))

@@ -838,6 +838,11 @@ CHR-005 in [the Chronicle specification](plans/2026-10-16-guild-chronicle.md).
 ### REQ-239
 **Unwanted behaviour.** IF a guild can't declare war because of its declaration cooldown, a farming cooldown on either guild, or either guild's war limit, THEN THE SYSTEM SHALL tell the player which one applies and, for cooldowns, how long is left, instead of a generic failure.
 
+## Prestige confirmation lists exactly what is earned
+
+### REQ-249
+**Event-driven.** WHEN a player reviews a prestige before confirming it, THE SYSTEM SHALL list, on Java and Bedrock, what the prestige earns (tier badge, the kept reward and its effect, the home slot count before and after, the tier's perks, and, only where they apply, the kept member limit and Discord role on the first prestige, the exact XP carried over and starting level, member advancements, being first on the server, and how it is announced), what it costs (fee, level and XP reset, purchased rewards reset), and what stays, and SHALL say when it is the final prestige.
+
 ## Guild advancement reward text
 
 ### REQ-241

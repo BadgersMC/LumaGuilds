@@ -1,6 +1,5 @@
 package net.lumalyte.lg.interaction.menus.guild
 
-import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.domain.rewards.RewardCatalog
 import net.lumalyte.lg.domain.values.PrestigeNumeral
 import net.lumalyte.lg.utils.inventoryframework.addPane
@@ -38,8 +37,6 @@ class GuildPrestigeConfirmationMenu(
     private val prestige: GuildPrestigeService by inject()
     private val lang: LangService by inject()
     private val catalog: RewardCatalog by inject()
-    private val config: ConfigService by inject()
-    private val perks: net.lumalyte.lg.application.services.GuildPrestigePerks by inject()
 
     internal fun createGui(): ChestGui {
         val gui = ChestGui(3, lang.guiTitle("menu.guild_progression.prestige.confirmation.title"))
@@ -49,28 +46,20 @@ class GuildPrestigeConfirmationMenu(
         val summary = NexoItemProvider.getItemStackOrFallback("lg_prestige") {
             ItemStack.of(Material.NETHER_STAR)
         }.also { stack -> stack.editMeta { meta ->
-            meta.displayName(lang.gui("menu.guild_progression.prestige.confirmation.summary.name"))
-            meta.lore(listOf(
-                lang.gui(
-                    "menu.guild_progression.prestige.confirmation.summary.reward",
-                    "reward" to retainedRewardName,
-                ),
-            ) + listOfNotNull(catalog.find(quote.retainedRewardId)?.let { referenceRewardEffect(lang, it.effect) }) + listOf(
-                lang.gui(
-                    "menu.guild_progression.prestige.confirmation.summary.fee",
-                    "fee" to quote.quotedFee,
-                ),
-                lang.gui("menu.guild_progression.prestige.confirmation.summary.reset"),
-                carryOverLine(),
-                lang.gui("menu.guild_progression.prestige.confirmation.summary.permanent"),
-                lang.gui("menu.guild_progression.prestige.confirmation.summary.home_slot"),
-            ) + prestigePerkLines(lang, perks.forConfig(), quote.expectedPrestigeCount + 1) + listOf(
-                lang.gui(
-                    "menu.guild_progression.prestige.confirmation.summary.badge",
+            // REQ-249: exactly what this prestige earns, costs and keeps.
+            val lines = prestige.preview(quote)?.let { preview ->
+                prestigeSummaryLines(lang, preview, retainedRewardName, catalog.find(quote.retainedRewardId)?.effect)
+            }
+            if (lines == null) {
+                meta.displayName(lang.gui(
+                    "menu.guild_progression.prestige.confirmation.summary.name",
                     "tier" to PrestigeNumeral.of(quote.expectedPrestigeCount + 1),
-                ),
-                lang.gui("menu.guild_progression.prestige.confirmation.summary.overflow"),
-            ))
+                ))
+                meta.lore(listOf(lang.gui("menu.guild_progression.prestige.confirmation.summary.unavailable")))
+            } else {
+                meta.displayName(lines.first())
+                meta.lore(lines.drop(1))
+            }
         } }
         pane.addItem(GuiItem(summary) { it.isCancelled = true }, 4, 0)
 
@@ -113,15 +102,6 @@ class GuildPrestigeConfirmationMenu(
 
     override fun open() {
         if (player.isOnline) createGui().show(player)
-    }
-
-    /** REQ-175: say whether XP earned past level 100 carries into the next climb. */
-    private fun carryOverLine() = config.loadConfig().progression.prestige.carryOver.let { carry ->
-        if (carry.enabled) {
-            lang.gui("menu.guild_progression.prestige.confirmation.summary.carry", "level" to carry.landingLevel)
-        } else {
-            lang.gui("menu.guild_progression.prestige.confirmation.summary.xp_reset")
-        }
     }
 
     private fun feedback(result: PrestigeResult) = when (result) {
