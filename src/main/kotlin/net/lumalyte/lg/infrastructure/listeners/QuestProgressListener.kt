@@ -53,6 +53,7 @@ class QuestProgressListener(
     private var trackedMaterialsExpiresAt: Instant = Instant.EPOCH
     private var trackedTargets: Set<String> = emptySet()
     private val recentVineCredits = RecentVineCredits()
+    private val recentBerryCredits = RecentVineCredits()
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onPlayerKill(event: PlayerDeathEvent) = safely("player kill") {
@@ -157,11 +158,13 @@ class QuestProgressListener(
         if (event.itemsHarvested.none { it.type == Material.GLOW_BERRIES && it.amount > 0 }) return@safely
 
         val playerId = event.player.uniqueId
+        val position = block.position()
         val snapshot = context(event.player, block)
         Bukkit.getScheduler().runTask(plugin, Runnable {
-            // Do not credit a cancelled or otherwise unsuccessful berry harvest.
+            // Do not credit a cancelled, duplicate, or unsuccessful berry harvest.
             if (!QuestHarvestBlockRules.sameFamily(Material.CAVE_VINES, block.type) ||
                 QuestHarvestBlockRules.canHarvestGlowBerries(block.type, block.blockData)) return@Runnable
+            if (!recentBerryCredits.record(position, block.world.fullTime)) return@Runnable
             background {
                 progressSafely("glow berry harvest") {
                     incrementCaptured(
