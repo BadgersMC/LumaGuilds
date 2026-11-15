@@ -31,7 +31,9 @@ internal object VaultCapacityUnlockSchema {
         // even for guilds whose top rows are empty. Prestige and Chapter-1 history
         // independently prove full-row entitlement after the level reset.
         val hasProgression = tableExists(connection, "guild_progression")
-        val levelExpression = if (hasProgression) "COALESCE(p.current_level, g.level, 1)" else "COALESCE(g.level, 1)"
+        // Some older or partial schemas have no guilds.level column; treat those guilds as level 1.
+        val guildLevel = if (columnExists(connection, "guilds", "level")) "g.level" else "1"
+        val levelExpression = if (hasProgression) "COALESCE(p.current_level, $guildLevel, 1)" else "COALESCE($guildLevel, 1)"
         val join = if (hasProgression) " LEFT JOIN guild_progression p ON p.guild_id = g.id" else ""
         val guilds = connection.prepareStatement(
             "SELECT g.id, $levelExpression AS level FROM guilds g$join",
@@ -136,4 +138,11 @@ internal object VaultCapacityUnlockSchema {
             }
         }
     }
+
+    private fun columnExists(connection: Connection, table: String, column: String): Boolean =
+        connection.metaData.getColumns(null, null, table, null).use { columns ->
+            var found = false
+            while (columns.next()) if (columns.getString("COLUMN_NAME").equals(column, ignoreCase = true)) found = true
+            found
+        }
 }

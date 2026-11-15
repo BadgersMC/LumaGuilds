@@ -1441,3 +1441,7 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 ## War declaration feedback (REQ-239)
 
 - [x] **WAR-DECLARE-BLOCK-REASON** Tag: TDD. REQ-239. Evidence: WarDeclarationBlockTest.
+
+## Main vault keeps earned rows (REQ-250)
+
+- [x] **VAULT-KEEPS-EARNED-ROWS** Ported from BadgersMC/LumaGuilds (086ae23a, 9bf0b72e, fb7c7b36, bd7b2fe3). Evidence: VaultPrestigePersistenceSqliteTest, VaultLevelCapacityTest, VaultCommittedLevelSqliteTest.
