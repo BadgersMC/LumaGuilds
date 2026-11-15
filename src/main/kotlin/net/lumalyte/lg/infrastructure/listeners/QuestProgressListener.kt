@@ -11,11 +11,11 @@ import net.lumalyte.lg.application.services.QuestService
 import net.lumalyte.lg.domain.entities.BlockProvenancePolicy
 import net.lumalyte.lg.domain.values.BlockPosition
 import net.lumalyte.lg.domain.values.QuestAction
+import net.lumalyte.lg.infrastructure.services.QuestHarvestBlockRules
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.Material
 import org.bukkit.block.Block
-import org.bukkit.block.data.Ageable
 import org.bukkit.entity.Item
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -69,12 +69,11 @@ class QuestProgressListener(
         if (!eligible(event.player)) return@safely
 
         val customTarget = nexoBlockTarget(event.block)
-        val target = customTarget ?: minecraftBlockTarget(event.block.type)
-        val action = if (customTarget != null) {
-            QuestAction.MINE_BLOCKS
+        val (action, target) = if (customTarget != null) {
+            QuestAction.MINE_BLOCKS to customTarget
         } else {
-            val data = event.block.blockData
-            if (data is Ageable && data.age >= data.maximumAge) QuestAction.HARVEST_CROPS else QuestAction.MINE_BLOCKS
+            val result = QuestHarvestBlockRules.classify(event.block.type, event.block.blockData)
+            result.action to minecraftBlockTarget(result.targetMaterial)
         }
 
         val position = event.block.position()
