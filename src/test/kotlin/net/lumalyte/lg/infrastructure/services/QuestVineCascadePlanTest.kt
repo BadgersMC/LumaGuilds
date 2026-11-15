@@ -31,8 +31,8 @@ class QuestVineCascadePlanTest {
             100 to Material.AIR,
         )
         assertEquals(
-            listOf(102, 101, 100),
-            QuestVineCascadePlan.removedYs(Material.CAVE_VINES_PLANT, candidates) {
+            3,
+            QuestVineCascadePlan.removedPrefixEnd(Material.CAVE_VINES_PLANT, candidates, 0) {
                 after[it] ?: Material.AIR
             },
         )
@@ -57,8 +57,8 @@ class QuestVineCascadePlanTest {
             64 to Material.WATER,
         )
         assertEquals(
-            listOf(62, 63, 64),
-            QuestVineCascadePlan.removedYs(Material.KELP_PLANT, candidates) {
+            3,
+            QuestVineCascadePlan.removedPrefixEnd(Material.KELP_PLANT, candidates, 0) {
                 after[it] ?: Material.WATER
             },
         )
@@ -75,15 +75,16 @@ class QuestVineCascadePlanTest {
             Material.WEEPING_VINES_PLANT, 80, 0, 320,
         ) { before[it] ?: Material.AIR }
         assertEquals(listOf(80, 79, 78), candidates)
-        assertTrue(
-            QuestVineCascadePlan.removedYs(Material.WEEPING_VINES_PLANT, candidates) {
+        assertEquals(
+            0,
+            QuestVineCascadePlan.removedPrefixEnd(Material.WEEPING_VINES_PLANT, candidates, 0) {
                 before[it] ?: Material.AIR
-            }.isEmpty(),
+            },
         )
         val partiallyRemoved = before + (80 to Material.AIR)
         assertEquals(
-            listOf(80),
-            QuestVineCascadePlan.removedYs(Material.WEEPING_VINES_PLANT, candidates) {
+            1,
+            QuestVineCascadePlan.removedPrefixEnd(Material.WEEPING_VINES_PLANT, candidates, 0) {
                 partiallyRemoved[it] ?: Material.AIR
             },
         )
@@ -94,11 +95,38 @@ class QuestVineCascadePlanTest {
         val candidates = listOf(70, 71)
         val state = mapOf(70 to Material.TWISTING_VINES, 71 to Material.AIR)
         assertEquals(
-            listOf(71),
-            QuestVineCascadePlan.removedYs(Material.TWISTING_VINES_PLANT, candidates) {
+            0,
+            QuestVineCascadePlan.removedPrefixEnd(Material.TWISTING_VINES_PLANT, candidates, 0) {
                 state[it] ?: Material.AIR
             },
         )
+    }
+
+    @Test
+    fun `a stalk collapsing across several scheduled ticks is credited incrementally`() {
+        val candidates = listOf(62, 63, 64)
+        val firstTick = mapOf(
+            62 to Material.WATER,
+            63 to Material.KELP_PLANT,
+            64 to Material.KELP,
+        )
+        val secondTick = firstTick + (63 to Material.WATER)
+        val thirdTick = secondTick + (64 to Material.WATER)
+
+        val firstEnd = QuestVineCascadePlan.removedPrefixEnd(Material.KELP_PLANT, candidates, 0) {
+            firstTick[it] ?: Material.WATER
+        }
+        assertEquals(1, firstEnd)
+
+        val secondEnd = QuestVineCascadePlan.removedPrefixEnd(Material.KELP_PLANT, candidates, firstEnd) {
+            secondTick[it] ?: Material.WATER
+        }
+        assertEquals(2, secondEnd)
+
+        val thirdEnd = QuestVineCascadePlan.removedPrefixEnd(Material.KELP_PLANT, candidates, secondEnd) {
+            thirdTick[it] ?: Material.WATER
+        }
+        assertEquals(3, thirdEnd)
     }
 
     @Test

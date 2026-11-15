@@ -128,25 +128,53 @@ class QuestProgressListener(
 
         val playerId = event.player.uniqueId
         val target = minecraftBlockTarget(QuestHarvestBlockRules.normalizedTip(original))
-        Bukkit.getScheduler().runTask(plugin, Runnable {
-            val removed = QuestVineCascadePlan.removedYs(
-                original, candidates.map { it.y },
-            ) { y -> world.getBlockAt(x, y, z).type }.toSet()
-            if (removed.isEmpty()) return@Runnable
+        val candidateYs = candidates.map { it.y }
+        val verifier = object : Runnable {
+            var accountedFor = 0
+            var idleTicks = 0
+            var checks = 0
 
-            val tick = world.fullTime
-            val credited = candidates.filter { it.y in removed && recentVineCredits.record(it.position, tick) }
-            if (credited.isEmpty()) return@Runnable
-            // All Bukkit/world access stays on the tick thread; only immutable context
-            // and identifiers enter the existing serialized provenance/quest queue.
-            background {
-                progressSafely("vine cascade") {
-                    credited.forEach { segment ->
-                        incrementCaptured(playerId, QuestAction.HARVEST_CROPS, target, 1, segment.context)
+            override fun run() {
+                checks++
+                // Some vanilla plant-physics updates can be scheduled on later ticks.
+                // Check the next unaccounted segment, not only a single tick after the break.
+                val end = QuestVineCascadePlan.removedPrefixEnd(
+                    original, candidateYs, accountedFor,
+                ) { y -> world.getBlockAt(x, y, z).type }
+                val disappeared = candidates.subList(accountedFor, end)
+                accountedFor = end
+
+                if (disappeared.isNotEmpty()) {
+                    idleTicks = 0
+                    val tick = world.fullTime
+                    val credited = disappeared.filter { recentVineCredits.record(it.position, tick) }
+                    if (credited.isNotEmpty()) {
+                        // All Bukkit/world access stays on the tick thread; only
+                        // immutable context enters the serialized quest queue.
+                        background {
+                            progressSafely("vine cascade") {
+                                credited.forEach { segment ->
+                                    incrementCaptured(playerId, QuestAction.HARVEST_CROPS, target, 1, segment.context)
+                                }
+                            }
+                        }
                     }
+                } else {
+                    // If the player's original block was never removed, it was likely
+                    // canceled. Do not keep watching and claim an unrelated later break.
+                    if (checks == 1) return
+                    idleTicks++
+                }
+
+                // Bounded: no indefinite polling if some segments survive or a
+                // protection plugin prevents the rest of the stalk collapsing.
+                if (accountedFor < candidates.size && idleTicks < 8 &&
+                    checks < candidates.size + 8) {
+                    Bukkit.getScheduler().runTaskLater(plugin, this, 1L)
                 }
             }
-        })
+        }
+        Bukkit.getScheduler().runTask(plugin, verifier)
     }
 
     /** Right-clicking berries is a harvest, but never a player block break. */

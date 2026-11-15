@@ -29,12 +29,24 @@ internal object QuestVineCascadePlan {
         return ys
     }
 
-    /** Verify actual removals on the following tick, not merely predicted physics. */
-    fun removedYs(
+    /**
+     * Only the contiguous missing prefix is attributable to the disconnected stalk.
+     * Retained intermediate segments block attribution of unrelated distal removals.
+     * The start index permits cheap rechecks when physics settles over several ticks.
+     */
+    fun removedPrefixEnd(
         origin: Material,
         candidates: List<Int>,
+        fromIndex: Int,
         materialAt: (Int) -> Material,
-    ): List<Int> = candidates.filterNot { QuestHarvestBlockRules.sameFamily(origin, materialAt(it)) }
+    ): Int {
+        var end = fromIndex
+        while (end < candidates.size &&
+            !QuestHarvestBlockRules.sameFamily(origin, materialAt(candidates[end]))) {
+            end++
+        }
+        return end
+    }
 }
 
 /** Protects against overlapping player breaks claiming the same fallen segment. Main-thread only. */
