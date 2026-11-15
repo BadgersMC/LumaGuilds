@@ -885,3 +885,6 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-252
 **Unwanted behaviour.** IF a member is on Bedrock, the pack's `guild_prestige_rankup_v1` contract glyph does not resolve, or `progression.prestige.fanfare.member_animation` is false, THEN THE SYSTEM SHALL show that member the plain prestige title and fanfare instead.
+
+### REQ-253
+**Event-driven.** WHEN a player with `lumaguilds.admin.prestige` runs `/lumaguilds prestige preview <tier> [guild]`, THE SYSTEM SHALL play that tier's rank-up animation and members' fanfare (or the plain title where REQ-252 applies) to that player only, with the given or their own guild name as subtitle, and SHALL NOT change any guild, record history, announce, or play anything to other players.

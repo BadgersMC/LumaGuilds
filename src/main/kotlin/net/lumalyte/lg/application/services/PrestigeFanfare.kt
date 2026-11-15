@@ -49,23 +49,35 @@ class PrestigeFanfare(
         val online = stage.online().toSet()
         val guildMembers = members(completion.guildId).toSet()
         val listening = guildMembers intersect online
-        val name = guildName(completion.guildId)
+        playForMembers(listening, completion.tier, guildName(completion.guildId), config)
+        if (config.serverWide) {
+            schedule(online - guildMembers, PrestigeFanfareScore.cues(completion.tier, FanfareAudience.SERVER))
+        }
+    }
+
+    /**
+     * REQ-253: staff preview. Plays exactly what a member of [guildName] would see and hear for
+     * [tier] to [player] alone; nothing is recorded and nobody else hears it.
+     */
+    fun preview(player: UUID, tier: Int, guildName: String) {
+        require(tier in 1..6) { "Prestige tier must be 1 to 6" }
+        playForMembers(setOf(player), tier, guildName, settings().copy(memberTitle = true))
+    }
+
+    private fun playForMembers(listening: Set<UUID>, tier: Int, name: String?, config: PrestigeFanfareConfig) {
         val animated = if (config.memberTitle && config.memberAnimation && name != null) {
             listening.filter(stage::animated).toSet()
         } else {
             emptySet()
         }
         val plain = listening - animated
-        schedule(plain, PrestigeFanfareScore.cues(completion.tier, FanfareAudience.MEMBERS))
+        schedule(plain, PrestigeFanfareScore.cues(tier, FanfareAudience.MEMBERS))
         if (config.memberTitle && name != null) stage.later(0) {
-            plain.filter(stage::isOnline).forEach { stage.title(it, completion.tier, name) }
+            plain.filter(stage::isOnline).forEach { stage.title(it, tier, name) }
         }
         if (animated.isNotEmpty() && name != null) {
-            schedule(animated, PrestigeRankUp.memberCues(completion.tier))
-            animate(animated, completion.tier, name)
-        }
-        if (config.serverWide) {
-            schedule(online - guildMembers, PrestigeFanfareScore.cues(completion.tier, FanfareAudience.SERVER))
+            schedule(animated, PrestigeRankUp.memberCues(tier))
+            animate(animated, tier, name)
         }
     }
 

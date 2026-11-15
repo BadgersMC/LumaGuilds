@@ -138,4 +138,14 @@ class PrestigeFanfareTest {
         assertTrue(off.frames.isEmpty())
         assertEquals(listOf(Triple(memberA, 2, "Everlights")), off.titles)
     }
+
+    @Test
+    fun `a preview plays only to the one player, even with the fanfare switched off`() {
+        val stage = Stage(mutableSetOf(memberA, memberB, outsider), animatedPlayers = setOf(memberA, memberB))
+        fanfare(stage, PrestigeFanfareConfig(enabled = false, memberTitle = false)).preview(memberA, 4, "Everlights")
+        stage.runAll()
+        assertTrue(stage.frames.all { it.first == memberA })
+        assertEquals(64, stage.frames.size)
+        assertTrue(stage.played.all { it.first == memberA })
+    }
 }

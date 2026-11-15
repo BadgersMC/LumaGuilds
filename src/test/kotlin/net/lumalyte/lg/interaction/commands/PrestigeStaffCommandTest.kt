@@ -113,4 +113,28 @@ class PrestigeStaffCommandTest {
         run("info", "Nobody")
         assertEquals(listOf("admin.prestige.guild_not_found"), keys)
     }
+
+    @Test
+    fun `preview plays the rank-up to the player only and changes nothing`() {
+        val me = UUID.randomUUID()
+        val player = mockk<org.bukkit.entity.Player>(relaxed = true).also {
+            every { it.hasPermission(PrestigeStaffCommand.PERMISSION) } returns true
+            every { it.uniqueId } returns me
+            every { it.name } returns "Fain"
+        }
+        val played = mutableListOf<Triple<UUID, Int, String>>()
+        val cmd = PrestigeStaffCommand({ staff }, guilds, lang, { "Someone" }, { it }, { audits += it },
+            preview = { p, t, g -> played += Triple(p, t, g) }, ownGuildName = { "Everlights" })
+        cmd.execute(player, arrayOf("prestige", "preview", "3"))
+        cmd.execute(player, arrayOf("prestige", "preview", "vi", "Vibe"))
+        cmd.execute(player, arrayOf("prestige", "preview", "7"))
+        assertEquals(listOf(Triple(me, 3, "Everlights"), Triple(me, 6, "Vibe")), played)
+        assertEquals(listOf("admin.prestige.preview.playing", "admin.prestige.preview.playing", "admin.prestige.preview.usage"), keys)
+        assertEquals(emptyList(), audits)
+        verify(exactly = 0) { staff.setCount(any(), any(), any()) }
+
+        keys.clear()
+        cmd.execute(sender, arrayOf("prestige", "preview", "2"))
+        assertEquals(listOf("admin.prestige.preview.players_only"), keys)
+    }
 }

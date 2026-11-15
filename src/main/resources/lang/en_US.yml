@@ -6993,8 +6993,12 @@ permission:
     name: View
 admin:
   prestige:
-    help: '<yellow>/lumaguilds prestige info|set|grant|rerun \<guild> <gray>- Inspect or correct a guild''s prestige (Tab shows what to type)'
-    usage: '<gray>Usage: <white>/lumaguilds prestige info|set|grant|rerun \<guild> ...'
+    help: '<yellow>/lumaguilds prestige info|set|grant|rerun \<guild> <gray>- Inspect or correct a guild''s prestige (Tab shows what to type). <yellow>/lumaguilds prestige preview \<tier> <gray>- Watch the rank-up yourself'
+    usage: '<gray>Usage: <white>/lumaguilds prestige info|set|grant|rerun \<guild> ... <gray>or <white>/lumaguilds prestige preview \<tier> [guild]'
+    preview:
+      players_only: '<red>Only a player in game can watch the preview.'
+      usage: '<gray>Usage: <white>/lumaguilds prestige preview \<1-6> [guild] <gray>- plays the rank-up to you only; nothing changes.'
+      playing: '<gray>Previewing the <gold>Prestige <tier></gold> rank-up as <white><guild></white>. Only you can see and hear it; nothing was changed.'
     guild_not_found: '<red>No guild named <white><guild></white>.'
     unavailable: '<red>Prestige data for <white><guild></white> could not be read or changed.'
     info:

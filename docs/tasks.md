@@ -1469,4 +1469,5 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 - [x] **RANKUP-MOCKUP** Animated mockup of the prestige rank-up in Enthusia style with the prestige badges.
 - [x] **RANKUP-FRAMES** Enthusia pack: 64 frames per tier in the `lumaguilds:prestige_rankup_v1` font, contract glyph `guild_prestige_rankup_v1` (pack docs/prestige-rankup.md).
 - [x] **RANKUP-PLAY** Tag: TDD. REQ-251, REQ-252. Evidence: PrestigeFanfareTest, PrestigeRankUpTest.
-- [ ] **RANKUP-TEST** Watch it in-game on TEST (Java) and check Bedrock still gets the plain title.
+- [x] **RANKUP-PREVIEW** Tag: TDD. REQ-253. Evidence: PrestigeFanfareTest, PrestigeStaffCommandTest.
+- [ ] **RANKUP-TEST** Watch it in-game on TEST (Java, `/lumaguilds prestige preview <tier>`) and check Bedrock still gets the plain title.
