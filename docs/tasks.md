@@ -1441,3 +1441,7 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 ## War declaration feedback (REQ-239)
 
 - [x] **WAR-DECLARE-BLOCK-REASON** Tag: TDD. REQ-239. Evidence: WarDeclarationBlockTest.
+
+## Guild advancement reward text (REQ-241)
+
+- [x] **ADVANCEMENT-GUILD-XP-TEXT** Tag: TDD. REQ-241. Evidence: GuildAchievementRewardLinesTest.
