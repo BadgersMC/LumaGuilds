@@ -1445,3 +1445,21 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 ## Main vault keeps earned rows (REQ-250)
 
 - [x] **VAULT-KEEPS-EARNED-ROWS** Ported from BadgersMC/LumaGuilds (086ae23a, 9bf0b72e, fb7c7b36, bd7b2fe3). Evidence: VaultPrestigePersistenceSqliteTest, VaultLevelCapacityTest, VaultCommittedLevelSqliteTest.
+
+## Second guild vault at Prestige VI (REQ-242 to REQ-248)
+
+- [x] **SECOND-VAULT-MOCKUP** Mock up the Prestige VI perk line, the Guild Vault II inventory and withdraw-only state, and the chest item and hologram.
+- [x] **SECOND-VAULT-PERK** Tag: TDD. REQ-242, REQ-247. Evidence: SecondVaultRulesTest.
+- [ ] **SECOND-VAULT-PLACE** Tag: TDD. REQ-243. Placement rules in SecondVaultService; verify in-game on TEST.
+- [x] **SECOND-VAULT-STORAGE** Tag: TDD. REQ-244 (SQLite and MariaDB). Evidence: SecondVaultRepositorySQLTest.
+- [x] **SECOND-VAULT-CAPACITY** Tag: TDD. REQ-248. Evidence: SecondVaultRulesTest.
+- [x] **SECOND-VAULT-WITHDRAW-ONLY** Tag: TDD. REQ-245. Evidence: SecondVaultRulesTest.
+- [ ] **SECOND-VAULT-LIFECYCLE** Tag: TDD. REQ-246. Break, explosion, disband and restart in SecondVaultListener/Service; verify in-game on TEST.
+
+## Prestige confirmation lists exactly what is earned (REQ-249)
+
+- [x] **PRESTIGE-CONFIRM-EARNINGS** Tag: TDD. REQ-249. Evidence: GuildPrestigePreviewTest, PrestigeSummaryTest, PrestigeClarityTest.
+
+## Guild advancement reward text (REQ-241)
+
+- [x] **ADVANCEMENT-GUILD-XP-TEXT** Tag: TDD. REQ-241. Evidence: GuildAchievementRewardLinesTest.

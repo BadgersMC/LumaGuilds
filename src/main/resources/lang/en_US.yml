@@ -5958,18 +5958,33 @@ menu:
       confirmation:
         title: "<white>Confirm Guild Prestige"
         summary:
-          name: "<light_purple>Prestige Summary"
-          reward: "<gray>Retain permanently: <white><reward>"
-          fee: "<gray>Fee: <gold><fee> Gold Ore"
-          reset: "<yellow>Your guild goes back to Level 1. Level perks and every other purchased reward reset, so you buy them again as you climb."
-          xp_reset: "<yellow>Guild XP goes back to 0."
-          carry: "<aqua>XP earned past Level 100 carries over, up to the start of Level <level>."
-          permanent: "<green>Rewards kept from earlier prestiges, purchased home slots, saved homes, members and gold all stay."
-          home_slot: "<green>Your guild also gains one permanent home slot."
-          perk_second_ally_home: "<green>New perk: your guild can set a second allied home (<white>/g setallyhome 2</white>)."
-          perk_extra_stall: "<green>New perk: your guild can own one more market stall."
-          badge: "<light_purple>Your guild earns the Prestige <tier> badge, and eligible members get its advancement."
+          name: "<light_purple>Prestige <tier> Summary"
+          final: "<gold>This is the final prestige."
+          earn_heading: "<gold>You earn"
+          badge: "<green>+ The Prestige <tier> badge"
+          reward: "<green>+ Keep forever: <white><reward>"
+          home_slot: "<green>+ 1 permanent home slot <gray>(<before> → <after>)"
+          perk_second_ally_home: "<green>+ New perk: a second allied home (<white>/g setallyhome 2</white>)"
+          perk_extra_stall: "<green>+ New perk: one more guild market stall"
+          perk_second_vault: "<green>+ New perk: a second guild vault for items (<white>/g getvault 2</white>)"
+          member_limit: "<green>+ Member limit stays at <white><limit></white> as you climb again"
+          discord_role: "<green>+ Your guild keeps its Discord role below level <level>"
+          carry: "<green>+ <xp> XP carried over: you start at <white>level <level>"
+          member_advancement: "<green>+ Members in the guild <hours>h or more get the Prestige <tier> advancement"
+          first: "<gold>+ First on the server: no guild has reached Prestige <tier> yet"
+          announced: "<green>+ Announced to the server"
+          announced_fanfare: "<green>+ Announced to the server, with a fanfare"
+          announced_discord: "<green>+ Announced to the server and on Discord"
+          announced_discord_fanfare: "<green>+ Announced to the server and on Discord, with a fanfare"
+          cost_heading: "<gold>It costs"
+          fee: "<red>- <fee> Gold Ore from the guild bank"
+          reset: "<red>- Back to level 1, guild XP back to 0"
+          reset_carry: "<red>- Back to level 1"
+          rewards_reset: "<red>- Level perks and every other purchased reward reset"
+          keep_heading: "<gold>It keeps"
+          permanent: "<gray>Rewards from earlier prestiges, home slots, saved homes, members and gold."
           overflow: "<gray>Gold above the new bank capacity stays and can be withdrawn, but nothing can be added until capacity catches up."
+          unavailable: "<red>Couldn't load what this prestige gives. Close this and try again."
         confirm: "<green>Confirm Prestige"
         cancel: "<red>Cancel"
       feedback:
@@ -8224,3 +8239,35 @@ party_page:
     leave_failed: "<red>Couldn't leave the party. Try again."
     invited: '<green>Invited <guild>. They join when they accept.'
     invite_failed: "<red>Couldn't invite <guild>. They may already be invited or in a party with you."
+second_vault:
+  title: '<guild> Vault II'
+  title_withdraw_only: '<guild> Vault II (withdraw only)'
+  hologram: '<gold>⚑ <guild> Vault II'
+  hologram_withdraw_only: "<gold>⚑ <guild> Vault II</gold>\n<red>withdraw only"
+  withdraw_only: '<red>Guild Vault II is withdraw only. Your guild needs Prestige VI to put items in.'
+  no_drag: '<yellow>Drag-clicking is disabled in vaults. Move items one at a time.'
+  item:
+    name: '<gold>⚑ Guild Vault II'
+    guild: '<gray><guild>'
+    place: '<gray>Place to set up your second vault.'
+    items_only: '<gray>Items only. Gold stays in the main vault.'
+    capacity: '<gray>Capacity now: <white><slots> slots</white>. It grows as your guild levels up.'
+    received: '<green>You received a Guild Vault II chest. Place it to set up your second vault.'
+  place:
+    placed: '<gold>Second vault placed!'
+    where: '<gray>Location: <white><x>, <y>, <z>'
+    capacity: '<gray>Open it here or with <white>/g vault 2</white>. Capacity: <white><slots> slots</white>. It grows as your guild levels up.'
+    locked: '<red>Your guild needs Prestige VI to have a second vault.'
+    already: '<red>Your guild already has a second vault.'
+    next_to_vault: "<red>A vault can't go next to another vault."
+    not_yours: "<red>This Guild Vault II chest isn't for your guild."
+    failed: "<red>The second vault can't go here. Try another spot inside your guild's land."
+  open:
+    members_only: '<red>Only members of this guild can open this vault.'
+    not_placed: "<red>Your guild hasn't placed a second vault. Use <white>/g getvault 2</white>."
+  break:
+    warning: '<yellow>This is your guild''s second vault.'
+    warning_drop: '<yellow>Breaking it drops every item inside.'
+    warning_keep: '<yellow>Breaking it keeps the items stored for when you place it again.'
+    dropped: '<yellow>Second vault broken. Its items dropped. Pick them up quickly.'
+    kept: '<yellow>Second vault removed. Its items are stored until you place it again with <white>/g getvault 2</white>.'

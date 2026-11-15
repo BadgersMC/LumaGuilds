@@ -65,6 +65,11 @@ class VaultHologramService(
      * Create a hologram for a vault at the given location
      */
     fun createHologram(location: Location, guild: Guild) {
+        createHologram(location, lang.msg("notification.vault.hologram", "guild" to guild.name))
+    }
+
+    /** REQ-243: a vault hologram with its own text, used by the second vault. */
+    fun createHologram(location: Location, text: net.kyori.adventure.text.Component) {
         val key = locationKey(location)
 
         // Remove existing hologram if present
@@ -77,8 +82,7 @@ class VaultHologramService(
 
             val textDisplay = world.spawn(hologramLoc, TextDisplay::class.java) { display ->
                 // Set the text
-                display.text(lang.msg("notification.vault.hologram", "guild" to guild.name)
-                    .decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
+                display.text(text.decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false))
 
                 // Display properties
                 display.billboard = Display.Billboard.CENTER
@@ -95,7 +99,7 @@ class VaultHologramService(
             }
 
             holograms[key] = textDisplay.uniqueId
-            logger.debug("Created hologram for guild ${guild.name} at $key")
+            logger.debug("Created hologram at $key")
 
         } catch (e: Exception) {
             // Service operation - catching all exceptions to prevent service failure

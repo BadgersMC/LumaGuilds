@@ -465,6 +465,7 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
                 perks = net.lumalyte.lg.config.PrestigePerksConfig(
                     secondAllyHomeTier = config.getInt("progression.prestige.perks.second_ally_home_tier", 2),
                     extraStallTier = config.getInt("progression.prestige.perks.extra_stall_tier", 3),
+                    secondVaultTier = config.getInt("progression.prestige.perks.second_vault_tier", 6),
                 ),
                 // REQ-188: Discord webhook post; off unless enabled with a URL.
                 discord = net.lumalyte.lg.application.services.PrestigeDiscordSettings(

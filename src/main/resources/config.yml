@@ -645,6 +645,8 @@ progression:
     perks:
       second_ally_home_tier: 2
       extra_stall_tier: 3
+      # REQ-242: a second guild vault chest for items only (/g getvault 2).
+      second_vault_tier: 6
 
   # Experience values for different activities
   bank_deposit_xp_per_100: 1         # XP per 100 coins deposited

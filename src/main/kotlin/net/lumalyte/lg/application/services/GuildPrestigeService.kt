@@ -19,6 +19,8 @@ class GuildPrestigeService(
     private val announcement: GuildPrestigeAnnouncement = GuildPrestigeAnnouncement { _, _ -> },
     private val history: PrestigeHistory? = null,
     private val notifiers: List<GuildPrestigeNotifier> = emptyList(),
+    /** REQ-248: refreshes the cached guild level after a prestige, so vault sizes and other level rules see level 1. */
+    private val refreshGuildLevel: (UUID) -> Unit = {},
 ) {
     private val resolver = RewardEntitlementResolver(catalog)
     private val logger = LoggerFactory.getLogger(GuildPrestigeService::class.java)
@@ -51,6 +53,58 @@ class GuildPrestigeService(
         } catch (_: Exception) {
             null
         }
+    }
+
+    /**
+     * REQ-249: what confirming [quote] would give the guild, worked out the same way the
+     * prestige itself applies it. Null when the guild's data can't be read.
+     */
+    fun preview(quote: PrestigeQuote): PrestigePreview? = try {
+        previewOrThrow(quote)
+    } catch (e: Exception) {
+        logger.warn("Could not preview prestige for guild {}", quote.guildId, e)
+        null
+    }
+
+    private fun previewOrThrow(quote: PrestigeQuote): PrestigePreview? {
+        val settings = config.loadConfig()
+        val prestige = settings.progression.prestige
+        val run = progression.getGuildProgression(quote.guildId) ?: return null
+        val snapshot = (owners.read(quote.guildId) as? RewardOwnershipRead.Found)?.snapshot ?: return null
+        val tier = snapshot.ownership.prestigeCount + 1
+        val ceiling = settings.bank.maxBankBalance.toLong()
+        val members = settings.guild.maxMembersPerGuild
+        val before = resolver.resolve(run.currentLevel, snapshot.ownership, ceiling, members)
+        val next = snapshot.ownership.copy(
+            currentRun = emptySet(),
+            permanent = snapshot.ownership.permanent + quote.retainedRewardId,
+            prestigeCount = tier,
+        )
+        val curve = net.lumalyte.lg.domain.values.ProgressionCurve.from(settings.progression)
+        val carried = PrestigeCarryOver.experience(run.totalExperience, curve, prestige.carryOver)
+        val after = resolver.resolve(curve.levelFromExperience(carried), next, ceiling, members)
+        val firstPrestige = tier == 1
+        val memberCapacity = settings.guild.memberCapacity
+        val roles = settings.discordGuildRoles
+        return PrestigePreview(
+            tier = tier,
+            finalTier = tier >= prestige.maxCount,
+            homeSlotsBefore = before.homeCapacity,
+            homeSlotsAfter = after.homeCapacity,
+            perks = PrestigePerks(prestige.perks).unlockedAt(tier),
+            carry = if (prestige.carryOver.enabled) {
+                PrestigePreview.Carry(carried, curve.levelFromExperience(carried))
+            } else null,
+            memberLimitKept = if (firstPrestige && memberCapacity.enabled) {
+                net.lumalyte.lg.domain.values.GuildMemberCapacity.limit(1, tier, null, memberCapacity, members)
+            } else null,
+            discordRoleMinimumLevel = if (firstPrestige && roles.enabled && roles.minimumLevel > 1) roles.minimumLevel else null,
+            memberCreditTenureHours = prestige.memberCredits.takeIf { it.enabled }?.minTenureHours,
+            firstOnServer = history != null && history.firstToReach(tier) == null,
+            fanfare = prestige.fanfare.enabled,
+            discordPost = prestige.discord.enabled && prestige.discord.webhookUrl.isNotBlank(),
+            fee = quote.quotedFee,
+        )
     }
 
     fun quote(actorId: UUID, guildId: UUID, retainedRewardId: String): PrestigeQuote? {
@@ -142,6 +196,8 @@ class GuildPrestigeService(
                 publish(quote, result)
             }
             progression.refreshGuildProgression(quote.guildId)
+            runCatching { refreshGuildLevel(quote.guildId) }
+                .onFailure { logger.warn("Failed to refresh the cached level of guild ${quote.guildId}", it) }
         }
         return result
     }

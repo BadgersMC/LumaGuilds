@@ -842,3 +842,38 @@ CHR-005 in [the Chronicle specification](plans/2026-10-16-guild-chronicle.md).
 
 ### REQ-250
 **Ubiquitous.** THE SYSTEM SHALL never shrink a guild's main vault below the largest size it has earned, including after a prestige, while the second vault (REQ-248) still follows the guild's current level.
+
+## Second guild vault at Prestige VI
+
+Plan: `plans/2026-11-14-prestige-second-vault.md`.
+
+### REQ-242
+**State-driven.** WHILE a guild's prestige tier is at least `prestige.perks.second_vault_tier` (default 6), THE SYSTEM SHALL let a member with the place-vault permission get a "Guild Vault II" chest item with `/g getvault 2`, when the guild has no second vault placed.
+
+### REQ-243
+**Event-driven.** WHEN a member places a Guild Vault II chest, THE SYSTEM SHALL apply the main vault's placement rules, also refuse a spot next to the main vault, and record the second vault's location separately from the main vault.
+
+### REQ-244
+**Ubiquitous.** THE SYSTEM SHALL store the second vault's items separately from the main vault, with no gold balance button, and SHALL NOT read it for any gold balance or payment.
+
+### REQ-248
+**Ubiquitous.** THE SYSTEM SHALL size the second vault by the guild's current level with the same capacity rule as the main vault, so it grows as the guild levels up after Prestige VI.
+
+### REQ-245
+**State-driven.** WHILE a guild with a placed second vault is below the second-vault tier, THE SYSTEM SHALL let members take items out of it and refuse every way of putting items in.
+
+### REQ-246
+**Event-driven.** WHEN the second vault is broken, the guild disbands, or the server starts, THE SYSTEM SHALL apply the main vault's break confirmation, item-drop and restore rules to the second vault.
+
+### REQ-247
+**Ubiquitous.** THE SYSTEM SHALL list the second vault among the perks a guild unlocks at its prestige tier on Java and Bedrock.
+
+## Prestige confirmation lists exactly what is earned
+
+### REQ-249
+**Event-driven.** WHEN a player reviews a prestige before confirming it, THE SYSTEM SHALL list, on Java and Bedrock, what the prestige earns (tier badge, the kept reward and its effect, the home slot count before and after, the tier's perks, and, only where they apply, the kept member limit and Discord role on the first prestige, the exact XP carried over and starting level, member advancements, being first on the server, and how it is announced), what it costs (fee, level and XP reset, purchased rewards reset), and what stays, and SHALL say when it is the final prestige.
+
+## Guild advancement reward text
+
+### REQ-241
+**Ubiquitous.** THE SYSTEM SHALL list a guild advancement's guild XP reward first in its advancement tooltip, followed by any personal Minecraft XP its members also receive, and SHALL tell the member who completes it first how much guild XP the guild earned.

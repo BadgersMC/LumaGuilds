@@ -18,5 +18,8 @@ class GuildPrestigePerks(
 
     fun extraGuildStalls(guildId: UUID): Int = perks().extraGuildStalls(tier(guildId))
 
+    /** REQ-242, REQ-245: whether the guild may put items into a second vault. */
+    fun secondVault(guildId: UUID): Boolean = perks().secondVault(tier(guildId))
+
     private fun tier(guildId: UUID): Int? = runCatching { standings.standing(guildId)?.tier }.getOrNull()
 }
