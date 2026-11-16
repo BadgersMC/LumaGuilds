@@ -1502,3 +1502,9 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 - [x] **XP-PLACE-LOOP** Tag: TDD. REQ-265. Evidence: PlaceRefundLedgerTest.
 
 - [x] **ADV-TREE-OVERLAP** Tag: TDD. REQ-256. The Mob Grinder rows sat 0.75 cells apart (and Smelting 0.5 below its neighbour), so frames overlapped in the Enthusia tab. Rows below them move down; GuildAchievementCatalogTest now fails on any frames closer than one cell.
+
+## Guild stall menu (REQ-258)
+
+- [x] **STALL-MOCKUP** Mockup approved by Fain (Prestige and Guild Menus artifact, Guild stalls screen).
+- [x] **STALL-LAYOUT** Tag: TDD. REQ-258. Evidence: GuildStallLayoutTest, GuildStallMenuSafetyTest.
+- [ ] **STALL-TEST** Check on TEST with one and with two stalls.

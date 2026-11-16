@@ -919,3 +919,8 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-256
 **Ubiquitous.** THE SYSTEM SHALL place every guild advancement in the advancement tree at least one grid cell away from every other advancement horizontally or vertically, so no two frames overlap.
+
+## Guild stall menu
+
+### REQ-258
+**Ubiquitous.** THE SYSTEM SHALL show a guild's Market stalls in a 3-row Java menu with the stalls centred in the middle row (one in the centre slot, two either side of it) and Back in the bottom centre, name each stall in gold, non-italic text from its region id ("stall18" reads "Stall 18"), show rent as "every day" and the next rent as time left ("in 2d 4h", or "Rent due now"), show the grace line only during a grace period, and show a stall's members centred under it in a 6-row page titled with the stall's name.
