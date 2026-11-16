@@ -73,7 +73,7 @@ internal object HallStatueBuilder {
         }) } finally { statueId?.let(HallSpawnGuard::done) }
         // REQ-276: a plugin that still refuses the spawn leaves a dead entity; say so instead of a bare plinth.
         check(statue.isValid) { "another plugin stopped the statue spawning at ${top.blockX} ${top.blockY} ${top.blockZ}" }
-        add(world.spawn(top.clone().add(0.0, 2.35, 0.0), TextDisplay::class.java) {
+        add(world.spawn(top.clone().add(0.0, HallCrest.NAMEPLATE_HEIGHT, 0.0), TextDisplay::class.java) {
             it.billboard = Display.Billboard.CENTER
             it.text(Component.text(look.nameplate(guildName), TextColor.color(look.nameColor))
                 .appendNewline().append(Component.text("Prestige ${PrestigeNumeral.of(prestige)}", NamedTextColor.GOLD)))
@@ -83,7 +83,7 @@ internal object HallStatueBuilder {
             it.setItemStack(net.lumalyte.lg.interaction.menus.guild.PrestigeIcon.item(prestige))
             it.itemDisplayTransform = ItemDisplay.ItemDisplayTransform.FIXED
             it.setRotation(top.yaw, 0f)
-            it.transformation = HallCrest.transformation(0)
+            it.transformation = HallCrest.transformation()
         })
         // REQ-270: the guild's own banner, beside the statue with its front to the viewer.
         val bannerSpot = top.clone().add(sideways(top, -1.15)).add(forward(top).multiply(-0.25))

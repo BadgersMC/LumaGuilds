@@ -81,13 +81,11 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
         }
         val top = built.top
         val posed = built.closer
-        val crest = built.crest
         viewer.playSound(top, look.sound, 1f, 1f)
         var tick = 0
         val effects = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
             if (!viewer.isOnline) return@Runnable
             tick += 5
-            net.lumalyte.lg.infrastructure.services.hall.HallCrest.sway(crest, tick.toLong(), 5)
             for (y in 0..12) {
                 val point = top.clone().add(0.0, y * 0.35, 0.0)
                 viewer.spawnParticle(Particle.DUST, point, 2, 0.35, 0.05, 0.35, 0.0, Particle.DustOptions(look.spotlight, 1.2f))
