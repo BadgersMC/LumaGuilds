@@ -878,6 +878,15 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 ### REQ-241
 **Ubiquitous.** THE SYSTEM SHALL list a guild advancement's guild XP reward first in its advancement tooltip, followed by any personal Minecraft XP its members also receive, and SHALL tell the member who completes it first how much guild XP the guild earned.
 
+### REQ-267
+**Ubiquitous.** WHEN a guild service, repository, placeholder or web handler turns an exception into a safe fallback, THE SYSTEM SHALL log it with its call site, at most once a minute per site with a count of repeats.
+
+### REQ-268
+**Unwanted behaviour.** IF the storage is MariaDB, THEN THE SYSTEM SHALL not run the SQLite membership_history DDL, so recording a guild join never fails on a syntax error.
+
+### REQ-273
+**Unwanted behaviour.** IF a MariaDB database has the first `relations` layout (guild_id, target_guild_id, relation_type), THEN THE SYSTEM SHALL move it aside as `relations_legacy_v1`, create the current layout and carry the old rows across as active relations, so alliances, enemies and truces load.
+
 ## Prestige rank-up animation
 
 ### REQ-251
@@ -905,6 +914,9 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 ### REQ-259
 **Ubiquitous.** THE SYSTEM SHALL show on each XP source in the progression menu how much guild XP one action gives (read from the live source settings), what counts towards it in plain words, and the period used, cap and time until it resets.
 
+### REQ-265
+**Unwanted behaviour.** IF a player breaks a block that a player placed, THEN THE SYSTEM SHALL not award block-place guild XP for that player's next placement of the same material within 30 minutes, so placing and breaking the same block can't farm XP.
+
 ### REQ-256
 **Ubiquitous.** THE SYSTEM SHALL place every guild advancement in the advancement tree at least one grid cell away from every other advancement horizontally or vertically, so no two frames overlap.
 
@@ -913,7 +925,13 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 ### REQ-258
 **Ubiquitous.** THE SYSTEM SHALL show a guild's Market stalls in a 3-row Java menu with the stalls centred in the middle row (one in the centre slot, two either side of it) and Back in the bottom centre, name each stall in gold, non-italic text from its region id ("stall18" reads "Stall 18"), show rent as "every day" and the next rent as time left ("in 2d 4h", or "Rent due now"), show the grace line only during a grace period, and show a stall's members centred under it in a 6-row page titled with the stall's name.
 
-## Hall of Prestige themes
+## Guild Advancements cards
+
+### REQ-263
+**Ubiquitous.** THE SYSTEM SHALL show Guild Advancements as cards, four a page in two columns, each with its icon, title, progress, what to do and guild XP reward, with category buttons along the top (Foundations, Cooperation, Combat, Commerce, Reputation, then Combat milestones) and a detail page per advancement with Track or Untrack, keeping saved progress, the tracked goal, rewards and the advancement tree link; Statistics → Achievements SHALL open it on Combat milestones.
+
+### REQ-274
+**Ubiquitous.** THE SYSTEM SHALL label the Statistics menu's achievements button Guild Advancements, show the guild's advancement progress, tracked advancement and combat milestones on it, and open the combined Guild Advancements menu at its first category.
 
 ### REQ-260
 **Event-driven.** WHEN a guild prestiges THE SYSTEM SHALL let the confirming member choose one Hall of Prestige theme the guild doesn't own (Gilded, Ember, Winged, Tidal, Radiant or Crowned) between choosing the reward to keep and confirming, pick it automatically when only one is left, list it in the confirmation summary, and grant it once the prestige applies, so a guild owns at most one theme per prestige; a pick not made then (staff grants, earlier prestiges) SHALL stay open in Hall Display.
@@ -926,23 +944,11 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ## Guild Advancements cards
 
-### REQ-263
-**Ubiquitous.** THE SYSTEM SHALL show Guild Advancements as cards, four a page in two columns, each with its icon, title, progress, what to do and guild XP reward, with category buttons along the top (Foundations, Cooperation, Combat, Commerce, Reputation, then Combat milestones) and a detail page per advancement with Track or Untrack, keeping saved progress, the tracked goal, rewards and the advancement tree link; Statistics → Achievements SHALL open it on Combat milestones.
-
 ### REQ-264
 **Event-driven.** WHEN a guild member chooses Preview in the world on the Hall Display, THE SYSTEM SHALL build a statue three blocks in front of them, seen only by them, wearing the guild's current choices (skin, tier armor with the chosen trim, plinth, nameplate, banner, trophy, spotlight, aura and sound), and SHALL remove it after 30 seconds, when they start another preview, when they leave, or when the plugin stops.
 
 ### REQ-266
 **Ubiquitous.** THE SYSTEM SHALL read the database for the guild progression, Chronicle (including the prestige page) and Hall Display menus off the main server thread, and SHALL show the result only if the player is still online and on the same screen.
-
-### REQ-265
-**Unwanted behaviour.** IF a player breaks a block that a player placed, THEN THE SYSTEM SHALL not award block-place guild XP for that player's next placement of the same material within 30 minutes, so placing and breaking the same block can't farm XP.
-
-### REQ-267
-**Ubiquitous.** WHEN a guild service, repository, placeholder or web handler turns an exception into a safe fallback, THE SYSTEM SHALL log it with its call site, at most once a minute per site with a count of repeats.
-
-### REQ-268
-**Unwanted behaviour.** IF the storage is MariaDB, THEN THE SYSTEM SHALL not run the SQLite membership_history DDL, so recording a guild join never fails on a syntax error.
 
 ### REQ-269
 **Ubiquitous.** THE SYSTEM SHALL show a guild's prestige with the badge of its current tier (lg_prestige_1 to lg_prestige_6) wherever the generic prestige diamond stood for that guild's prestige, show each milestone tier with its own badge, and fall back to the generic icon at tier 0 or when the pack has no badge.
@@ -956,13 +962,5 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 ### REQ-272
 **Optional feature.** WHERE BetterModel has the prestige limb model, THE SYSTEM SHALL play the statue's chosen pose on the preview, using Guard when the model has no animation for that pose, and SHALL show the statue standing otherwise.
 
-### REQ-274
-**Ubiquitous.** THE SYSTEM SHALL label the Statistics menu's achievements button Guild Advancements, show the guild's advancement progress, tracked advancement and combat milestones on it, and open the combined Guild Advancements menu at its first category.
-
 ### REQ-275
 **Ubiquitous.** THE SYSTEM SHALL show, on each Hall of Prestige pedestal staff place with `/lumaguilds hall pedestal set <n>`, the statue of the guild ranked n by prestige (ties to whoever reached the count first), wearing that guild's Hall Display choices; Java players SHALL see the animated pose and Bedrock players the plain standing statue. Statues SHALL not be saved with the world and SHALL be rebuilt on start, every five minutes, after a Hall Display change or prestige, after a pedestal change and when a pedestal's chunk loads.
-
-### REQ-273
-**Unwanted behaviour.** IF a MariaDB database has the first `relations` layout (guild_id, target_guild_id, relation_type), THEN THE SYSTEM SHALL move it aside as `relations_legacy_v1`, create the current layout and carry the old rows across as active relations, so alliances, enemies and truces load.
-
-## Prestige rank-up animation

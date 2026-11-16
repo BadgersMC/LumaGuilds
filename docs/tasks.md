@@ -1464,6 +1464,23 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 
 - [x] **ADVANCEMENT-GUILD-XP-TEXT** Tag: TDD. REQ-241. Evidence: GuildAchievementRewardLinesTest.
 
+## Audit fixes, 2026-11-16 (REQ-267, REQ-268)
+
+- [x] **AUDIT-LOG-SWALLOWED** REQ-267. SwallowedErrors on 44 catch sites (prestige, rewards, Chronicle, gold, banners, Vault payment, placeholders, web leaderboard). Evidence: SwallowedErrorsTest.
+- [x] **AUDIT-MARIA-MEMBERSHIP** Tag: TDD. REQ-268. Found by the MariaDB suite: GuildDisbandAtomicityTest failed on "Failed to create membership_history table". Evidence: on MariaDB GuildDisbandAtomicityTest now gets past membership_history; it then stops on the old MariaDB relations schema (guild_id/target_guild_id) that RelationRepositorySQLite can't read, which is left for the upstream sync decision.
+- [x] **AUDIT-MARIA-RELATIONS** Tag: TDD. REQ-273. Evidence: RelationsSchemaRepairSQLTest on MariaDB 10.11 (2 of 2).
+
+- [ ] **MENU-LEGIBILITY** Compact original bank-history headings while preserving
+  customized title interpolation; retain guild context and lighten quest progress.
+  - References: UI-LEG-001 through003, plans/2026-10-29-menu-legibility.md.
+  - Local verification:79focused pass; full2298pass/106skip/0failure/error.
+    Source-only local follow-up to PR19; publication, hosted checks, real-client
+    visual acceptance and mobile-accessible preview delivery remain outstanding.
+
+## Upstream sync, 2026-11-16
+
+- [x] **SYNC-UPSTREAM-60** Merged BadgersMC/lumaguilds main (60 commits). Homes follow upstream: capacity is the base home plus one per prestige plus paid Outposts active in the current prestige, homes can be set anywhere, and saved homes over the cap stay saved but locked until an Outpost is bought again. This fork's ally homes, Quick Travel countdown, home cooldown and prestige perks sit on top; upstream's last-tick recheck runs through the fork's `startHomeTeleport`. Upstream's schema versions 50 and 51 (Outpost acquisitions, home access grants) are renumbered 53 and 54 because this fork already uses 50 to 52. Evidence: full suite.
+
 ## Prestige rank-up animation (REQ-251, REQ-252)
 
 - [x] **RANKUP-MOCKUP** Animated mockup of the prestige rank-up in Enthusia style with the prestige badges.
@@ -1482,6 +1499,7 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 - [x] **XP-BREWING** Tag: TDD. REQ-255. BrewEvent marks what a stand brewed; taking anything else (water bottles, bought potions) earns nothing. Evidence: ProgressionEventListenerTest.
 - [x] **XP-POOLS** Tag: TDD. REQ-257. Mob kills now count every hostile mob except bosses and neutral mobs; block breaking adds logs, tuff, andesite, diorite, granite, sandstone, nether and end blocks. Servers with their own config.yml need the two lists copied in. Evidence: ChapterTwoTargetPoolsTest.
 - [x] **XP-TOOLTIPS** REQ-259. Mockup approved (XP sources screen). Each source shows XP per action, what counts and "Today: used / cap · resets in 9h 12m".
+- [x] **XP-PLACE-LOOP** Tag: TDD. REQ-265. Evidence: PlaceRefundLedgerTest.
 
 - [x] **ADV-TREE-OVERLAP** Tag: TDD. REQ-256. The Mob Grinder rows sat 0.75 cells apart (and Smelting 0.5 below its neighbour), so frames overlapped in the Enthusia tab. Rows below them move down; GuildAchievementCatalogTest now fails on any frames closer than one cell.
 
@@ -1490,6 +1508,13 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 - [x] **STALL-MOCKUP** Mockup approved by Fain (Prestige and Guild Menus artifact, Guild stalls screen).
 - [x] **STALL-LAYOUT** Tag: TDD. REQ-258. Evidence: GuildStallLayoutTest, GuildStallMenuSafetyTest.
 - [ ] **STALL-TEST** Check on TEST with one and with two stalls.
+
+## Guild Advancements cards (REQ-263)
+
+- [x] **ADV-MOCKUP** Approved: Prestige and Guild Menus artifact, Guild Advancements screen.
+- [x] **ADV-CARDS** Tag: TDD. REQ-263. Replaces the inspector tabs and branch rows with cards; Combat milestones joins as the last category. Evidence: GuildAchievementsMenuTest.
+- [ ] **ADV-TEST** Check on TEST: categories, paging, Track/Untrack, tree link, Statistics → Achievements.
+- [x] **STATS-ADVANCEMENTS** REQ-274. Statistics → Guild Advancements opens the combined menu; Bedrock statistics lead with advancement progress. Evidence: LocaleContractTest, statistics and achievements tests.
 
 ## Hall of Prestige themes (REQ-260 to REQ-262)
 
@@ -1509,32 +1534,4 @@ Decision (Fain, 2026-11-16): one theme per prestige, chosen on the prestige scre
 - [ ] **HALL-TEST** On TEST: prestige with the theme step, Hall Display changes, Bedrock picks.
 - [ ] **HALL-STATUES** Build the Hall statues that wear these choices (after the TEST cost check).
 
-## Guild Advancements cards (REQ-263)
-
-- [x] **ADV-MOCKUP** Approved: Prestige and Guild Menus artifact, Guild Advancements screen.
-- [x] **ADV-CARDS** Tag: TDD. REQ-263. Replaces the inspector tabs and branch rows with cards; Combat milestones joins as the last category. Evidence: GuildAchievementsMenuTest.
-- [ ] **ADV-TEST** Check on TEST: categories, paging, Track/Untrack, tree link, Statistics → Achievements.
-
-- [x] **XP-PLACE-LOOP** Tag: TDD. REQ-265. Evidence: PlaceRefundLedgerTest.
-
-## Audit fixes, 2026-11-16 (REQ-267, REQ-268)
-
-- [x] **AUDIT-LOG-SWALLOWED** REQ-267. SwallowedErrors on 44 catch sites (prestige, rewards, Chronicle, gold, banners, Vault payment, placeholders, web leaderboard). Evidence: SwallowedErrorsTest.
-- [x] **AUDIT-MARIA-MEMBERSHIP** Tag: TDD. REQ-268. Found by the MariaDB suite: GuildDisbandAtomicityTest failed on "Failed to create membership_history table". Evidence: on MariaDB GuildDisbandAtomicityTest now gets past membership_history; it then stops on the old MariaDB relations schema (guild_id/target_guild_id) that RelationRepositorySQLite can't read, which is left for the upstream sync decision.
-
-- [ ] **MENU-LEGIBILITY** Compact original bank-history headings while preserving
-  customized title interpolation; retain guild context and lighten quest progress.
-  - References: UI-LEG-001 through003, plans/2026-10-29-menu-legibility.md.
-  - Local verification:79focused pass; full2298pass/106skip/0failure/error.
-    Source-only local follow-up to PR19; publication, hosted checks, real-client
-    visual acceptance and mobile-accessible preview delivery remain outstanding.
-
-## Upstream sync, 2026-11-16
-
-- [x] **SYNC-UPSTREAM-60** Merged BadgersMC/lumaguilds main (60 commits). Homes follow upstream: capacity is the base home plus one per prestige plus paid Outposts active in the current prestige, homes can be set anywhere, and saved homes over the cap stay saved but locked until an Outpost is bought again. This fork's ally homes, Quick Travel countdown, home cooldown and prestige perks sit on top; upstream's last-tick recheck runs through the fork's `startHomeTeleport`. Upstream's schema versions 50 and 51 (Outpost acquisitions, home access grants) are renumbered 53 and 54 because this fork already uses 50 to 52. Evidence: full suite.
-
-- [x] **STATS-ADVANCEMENTS** REQ-274. Statistics → Guild Advancements opens the combined menu; Bedrock statistics lead with advancement progress. Evidence: LocaleContractTest, statistics and achievements tests.
-
 - [x] **HALL-STATUES** Tag: TDD. REQ-275. Decisions (Fain, 2026-11-16): top guilds by prestige; staff place numbered pedestals; Bedrock sees a plain standing statue. Evidence: HallRankingTest, HallPedestalRepositorySQLTest, HallFacingTest; needs an in-game look on TEST.
-
-- [x] **AUDIT-MARIA-RELATIONS** Tag: TDD. REQ-273. Evidence: RelationsSchemaRepairSQLTest on MariaDB 10.11 (2 of 2).
