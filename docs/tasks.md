@@ -1463,3 +1463,9 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 ## Guild advancement reward text (REQ-241)
 
 - [x] **ADVANCEMENT-GUILD-XP-TEXT** Tag: TDD. REQ-241. Evidence: GuildAchievementRewardLinesTest.
+
+## Guild stall menu (REQ-258)
+
+- [x] **STALL-MOCKUP** Mockup approved by Fain (Prestige and Guild Menus artifact, Guild stalls screen).
+- [x] **STALL-LAYOUT** Tag: TDD. REQ-258. Evidence: GuildStallLayoutTest, GuildStallMenuSafetyTest.
+- [ ] **STALL-TEST** Check on TEST with one and with two stalls.

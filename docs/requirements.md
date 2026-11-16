@@ -877,3 +877,8 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-241
 **Ubiquitous.** THE SYSTEM SHALL list a guild advancement's guild XP reward first in its advancement tooltip, followed by any personal Minecraft XP its members also receive, and SHALL tell the member who completes it first how much guild XP the guild earned.
+
+## Guild stall menu
+
+### REQ-258
+**Ubiquitous.** THE SYSTEM SHALL show a guild's Market stalls in a 3-row Java menu with the stalls centred in the middle row (one in the centre slot, two either side of it) and Back in the bottom centre, name each stall in gold, non-italic text from its region id ("stall18" reads "Stall 18"), show rent as "every day" and the next rent as time left ("in 2d 4h", or "Rent due now"), show the grace line only during a grace period, and show a stall's members centred under it in a 6-row page titled with the stall's name.
