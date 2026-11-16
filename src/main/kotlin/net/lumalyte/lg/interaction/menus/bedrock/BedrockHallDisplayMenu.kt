@@ -63,6 +63,23 @@ class BedrockHallDisplayMenu(
                 }
             }
         }
+        val preview = getKoin().getOrNull<net.lumalyte.lg.infrastructure.services.HallPreviewService>()
+        if (display != null && preview != null) {
+            builder = builder.button(lang.bedrock("hall.display.preview"))
+            actions += {
+                // REQ-264: same viewer-only statue as the Java Hall Display.
+                val tier = getKoin().getOrNull<net.lumalyte.lg.application.services.GuildPrestigeService>()
+                    ?.overview(guild.id)?.prestigeCount ?: 0
+                val skin = display.skin ?: runCatching {
+                    val top = getKoin().get<net.lumalyte.lg.application.services.RankService>().getHighestRank(guild.id)
+                    members.getGuildMembers(guild.id).firstOrNull { it.rankId == top?.id }?.playerId
+                }.getOrNull()
+                preview.show(player, guild.name, tier, display, skin)
+                player.sendMessage(lang.msg("hall.feedback.preview",
+                    "seconds" to net.lumalyte.lg.infrastructure.services.HallPreviewService.SECONDS,
+                    "pose" to (display.wearing(HallSlot.POSE)?.cosmetic(HallSlot.POSE) ?: "-")))
+            }
+        }
         builder = builder.button(lang.bedrock("hall.pick.back"))
         actions += { bedrockNavigator.goBack() }
         return builder
