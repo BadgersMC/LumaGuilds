@@ -1463,3 +1463,14 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 ## Guild advancement reward text (REQ-241)
 
 - [x] **ADVANCEMENT-GUILD-XP-TEXT** Tag: TDD. REQ-241. Evidence: GuildAchievementRewardLinesTest.
+
+## Hall of Prestige themes (REQ-260 to REQ-262)
+
+Decision (Fain, 2026-11-16): one theme per prestige, chosen on the prestige screen (replaces the earlier one-pick-every-10-levels plan in docs/plans/2026-11-05-prestige-run-cosmetics.md); this round builds the picker and Hall Display, the Hall statues come after their TEST cost check.
+
+- [x] **HALL-MOCKUP** Approved: Prestige and Guild Menus artifact (theme pick, Hall display, milestones).
+- [x] **HALL-THEMES** Tag: TDD. REQ-260. Evidence: HallThemeServiceTest, HallDisplayRepositorySQLTest, PrestigeSummaryTest.
+- [x] **HALL-DISPLAY** REQ-261. Java dialog (GuildHallDisplayMenu) and Bedrock form (BedrockHallDisplayMenu).
+- [x] **PRESTIGE-MILESTONES** REQ-262. Milestones cards list every tier's rewards.
+- [ ] **HALL-TEST** On TEST: prestige with the theme step, Hall Display changes, Bedrock picks.
+- [ ] **HALL-STATUES** Build the Hall statues that wear these choices (after the TEST cost check).

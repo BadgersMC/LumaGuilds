@@ -220,6 +220,11 @@ class GuildServiceBukkit(
                 org.koin.core.context.GlobalContext.getOrNull()
                     ?.getOrNull<SecondVaultService>()?.disband(guildId)
             }.onFailure { logger.warn("Failed to clear the second vault of guild $guildId", it) }
+            // REQ-260: a disbanded guild's Hall themes and display go with it.
+            runCatching {
+                org.koin.core.context.GlobalContext.getOrNull()
+                    ?.getOrNull<net.lumalyte.lg.application.services.HallThemeService>()?.disbanded(guildId)
+            }
 
             logger.info("Guild $guildId disbanded by $actorId")
             val disbandedEvent = GuildDisbandedEvent(guild, memberIds, actorId)

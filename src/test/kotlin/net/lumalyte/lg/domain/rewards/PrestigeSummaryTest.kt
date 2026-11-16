@@ -56,4 +56,13 @@ class PrestigeSummaryTest {
         assertFalse(lines.any { it is PrestigeSummaryLine.CarriedXp })
         assertTrue(PrestigeSummaryLine.LevelReset(xpKept = false) in lines)
     }
+
+    /** REQ-260: the chosen Hall theme is listed with the other things earned, right after the home slot. */
+    @Test
+    fun `the chosen hall theme is earned`() {
+        val theme = PrestigeSummaryLine.HallThemeEarned(HallTheme.EMBER, 2)
+        val lines = PrestigeSummary.lines(base, hasRetainedEffect = false, hallTheme = theme)
+        assertEquals(lines.indexOf(PrestigeSummaryLine.HomeSlot(3, 4)) + 1, lines.indexOf(theme))
+        assertFalse(PrestigeSummary.lines(base, hasRetainedEffect = false).any { it is PrestigeSummaryLine.HallThemeEarned })
+    }
 }

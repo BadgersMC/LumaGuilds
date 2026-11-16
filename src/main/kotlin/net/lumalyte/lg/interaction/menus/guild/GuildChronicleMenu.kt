@@ -139,7 +139,12 @@ internal class GuildChronicleMenu(
             it.status == RewardOfferStatus.PERMANENT && !it.reward.permanentOnPurchase
         }
         val cards = prestigeCards(overview, retained)
-        val actions = listOfNotNull(prestigeReview(overview)) +
+        val hall = getKoin().getOrNull<net.lumalyte.lg.application.services.HallThemeService>()?.let {
+            referenceAction(lang.gui("hall.display.title"), "lg_prestige") {
+                navigator.openMenu(GuildHallDisplayMenu(navigator, player, guild, overview.prestigeCount))
+            }
+        }
+        val actions = listOfNotNull(prestigeReview(overview), hall) +
             referenceAction(lang.gui("chronicle.back_tree"), "lg_back") { tree() }
         show(cards, actions, referenceAction(lang.gui("recruitment.dialog.back"), "lg_back", navigator::goBack),
             lang.gui("chronicle.prestige.subtitle"), listOf(
@@ -153,16 +158,40 @@ internal class GuildChronicleMenu(
         val settings = config.loadConfig().progression.prestige
         return when (prestigeTab) {
             0 -> prestigeOverviewCards(overview)
-            1 -> (1..overview.maxPrestigeCount).map { tier ->
-                referenceItem("lg_prestige", listOf(
-                    lang.gui("chronicle.prestige.milestone", "tier" to PrestigeNumeral.of(tier), "fee" to settings.feeFor(tier - 1)),
-                    if (tier <= overview.prestigeCount) lang.gui("chronicle.prestige.milestone_earned")
-                    else lang.gui("chronicle.prestige.milestone_locked"),
-                ))
-            }
+            1 -> (1..overview.maxPrestigeCount).map { tier -> milestoneCard(tier, overview, settings) }
             2 -> prestigeRetainedCards(retained)
             else -> emptyList()
         }
+    }
+
+    /** REQ-262: everything a tier gives, with the perks read from the same settings the prestige uses. */
+    private fun milestoneCard(tier: Int, overview: PrestigeOverview,
+        settings: net.lumalyte.lg.config.PrestigeConfig): GuildDialogItem {
+        val perks = settings.perks
+        val lines = buildList {
+            add(lang.gui("chronicle.prestige.milestone_title", "tier" to PrestigeNumeral.of(tier)))
+            add(when {
+                tier <= overview.prestigeCount -> lang.gui("chronicle.prestige.milestone_earned")
+                tier == overview.prestigeCount + 1 -> lang.gui("chronicle.prestige.milestone_next", "fee" to settings.feeFor(tier - 1))
+                else -> lang.gui("chronicle.prestige.milestone_fee", "fee" to settings.feeFor(tier - 1))
+            })
+            add(lang.gui("chronicle.prestige.milestone_home"))
+            add(lang.gui("chronicle.prestige.milestone_keep"))
+            add(lang.gui("chronicle.prestige.milestone_theme"))
+            if (tier == 1) {
+                val all = config.loadConfig()
+                if (all.guild.memberCapacity.enabled) add(lang.gui("chronicle.prestige.milestone_member_cap"))
+                if (all.discordGuildRoles.enabled) add(lang.gui("chronicle.prestige.milestone_discord"))
+            }
+            if (tier == perks.secondAllyHomeTier) add(lang.gui("chronicle.prestige.milestone_ally_home"))
+            if (tier == perks.extraStallTier) add(lang.gui("chronicle.prestige.milestone_stall"))
+            if (tier == perks.secondVaultTier) add(lang.gui("chronicle.prestige.milestone_vault"))
+            add(lang.gui("chronicle.prestige.milestone_announce"))
+        }
+        val badge = net.lumalyte.lg.utils.NexoItemProvider.getItemStackOrFallback("lg_prestige") {
+            org.bukkit.inventory.ItemStack.of(org.bukkit.Material.NETHER_STAR)
+        }
+        return GuildDialogItem(badge, Component.join(net.kyori.adventure.text.JoinConfiguration.newlines(), lines), lines)
     }
 
     private fun prestigeOverviewCards(overview: PrestigeOverview): List<GuildDialogItem> = buildList {

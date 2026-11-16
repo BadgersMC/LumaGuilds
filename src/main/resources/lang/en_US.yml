@@ -5964,6 +5964,8 @@ menu:
           badge: "<green>+ The Prestige <tier> badge"
           reward: "<green>+ Keep forever: <white><reward>"
           home_slot: "<green>+ 1 permanent home slot <gray>(<before> → <after>)"
+          hall_theme: "<green>+ Hall theme: <theme> <gray>(<owned> of 6 owned)"
+          hall_theme_all: "<green>+ Hall theme: <theme> <gray>(every theme owned)"
           perk_second_ally_home: "<green>+ New perk: a second allied home (<white>/g setallyhome 2</white>)"
           perk_extra_stall: "<green>+ New perk: one more guild market stall"
           perk_second_vault: "<green>+ New perk: a second guild vault for items (<white>/g getvault 2</white>)"
@@ -7920,9 +7922,19 @@ chronicle:
     none: '<gray>No rewards kept from prestige yet. Purchased home slots are kept on their own.</gray>'
     retained: '<gold>Kept forever from an earlier prestige.</gold>'
     review: '<gold>Review eligible retention choices</gold>'
-    milestone: '<gold>Prestige <tier> · Fee: <fee> guild gold · +1 permanent home slot and one reward to keep.</gold>'
-    milestone_earned: '<green>✓ This prestige milestone is earned.</green>'
-    milestone_locked: '<gray>Reach level 100, choose a reward you own to keep and confirm the fee.</gray>'
+    milestone_title: '<gold>Prestige <tier></gold>'
+    milestone_next: '<yellow>Next · Fee <fee> guild gold</yellow>'
+    milestone_fee: '<gray>Fee <fee> guild gold</gray>'
+    milestone_home: '<gray>+ 1 permanent home slot</gray>'
+    milestone_keep: '<gray>+ Keep one reward forever</gray>'
+    milestone_theme: '<gray>+ A Hall theme of your choice</gray>'
+    milestone_member_cap: '<gold>+ Member cap stays at its level-100 size</gold>'
+    milestone_discord: '<gold>+ Prestige Discord role</gold>'
+    milestone_ally_home: '<gold>+ A second allied home</gold>'
+    milestone_stall: '<gold>+ One extra Market stall</gold>'
+    milestone_vault: '<gold>+ A second guild vault (/g getvault 2)</gold>'
+    milestone_announce: '<gray>+ Rank-up announcement for the whole server</gray>'
+    milestone_earned: '<green>✓ Earned</green>'
 
 achievements:
   back_statistics: '<white>Back to Statistics</white>'
@@ -8271,3 +8283,54 @@ second_vault:
     warning_keep: '<yellow>Breaking it keeps the items stored for when you place it again.'
     dropped: '<yellow>Second vault broken. Its items dropped. Pick them up quickly.'
     kept: '<yellow>Second vault removed. Its items are stored until you place it again with <white>/g getvault 2</white>.'
+
+# REQ-260 to REQ-262: Hall of Prestige themes and Hall Display.
+hall:
+  pick:
+    title: "Choose a Hall Theme"
+    name: "<gold><theme> theme"
+    intro: "<gray>Its Hall of Prestige cosmetics:"
+    line: "<white>· <slot>: <value>"
+    owned: "<dark_gray>Your guild already owns this theme"
+    action: "<yellow>Click to choose"
+    back: "<gray>Back"
+    bedrock_content: "Choose the Hall theme this prestige earns. Your guild gets every cosmetic in it."
+    bedrock_cosmetics: "<list>"
+  display:
+    title: "Hall Display"
+    subtitle: "<gray><guild> · Prestige <tier> · <owned> of 6 themes"
+    statue_name: "<gold><name>"
+    statue_tier: "<white>Prestige <tier>"
+    statue_skin: "<gray>Skin: <white><name>"
+    statue_look: "<gray>Pose: <white><pose> <gray>· Aura: <white><aura>"
+    statue_note: "<gray>Shows when your guild takes a pedestal in the Hall of Prestige."
+    view_only: "<dark_gray>Members who can manage the banner can change it."
+    picks_title: "<yellow>Choose a theme (<count> to pick)"
+    picks_body: "<gray>Your guild has prestiged more times than it has themes."
+    pick_action: "<yellow>Choose a theme"
+    pick_subtitle: "<gray>Choose a theme · <count> to pick"
+    none_title: "<gold>No Hall themes yet"
+    none_body: "<gray>Every prestige earns a Hall theme of your choice."
+    slot: "<gold><slot>"
+    slot_value: "<white><value> <gray>(<theme>)"
+    slot_subtitle: "<gray><slot>: choose from the themes your guild owns"
+    option: "<white><value>"
+    option_wearing: "<green>Wearing"
+    option_owned: "<yellow><theme> · click to wear"
+    option_locked: "<dark_gray>Earn this theme at a prestige"
+    use_default: "<gray>Use the default"
+    wear_all: "<gold>Wear a whole theme"
+    wear_all_subtitle: "<gray>Set every slot to one theme"
+    skin: "<gold>Statue skin"
+    skin_value: "<white><name>"
+    skin_owner: "<gray>Guild owner (default)"
+    skin_subtitle: "<gray>Whose skin the statue wears · Page <page>/<pages>"
+    bedrock_slot: "<slot>: <value>"
+    bedrock_wear: "Wear the <theme> theme"
+  feedback:
+    saved: "<green>Hall display saved."
+    not_allowed: "<red>Only members who can manage the guild banner can change the Hall display."
+    no_picks: "<red>Your guild has no theme left to pick, or already owns that theme."
+    not_owned: "<red>Your guild doesn't own that theme yet."
+    not_a_member: "<red>That player isn't in your guild."
+    failed: "<red>The Hall display couldn't be loaded or saved. Try again."

@@ -33,6 +33,9 @@ class GuildPrestigeConfirmationMenu(
     private val retainedRewardName: String,
     private val back: () -> Unit,
     private val success: () -> Unit,
+    /** REQ-260: the Hall theme picked for this prestige and how many the guild will then own. */
+    private val hallTheme: net.lumalyte.lg.domain.rewards.HallTheme? = null,
+    private val themesOwnedAfter: Int = 0,
 ) : Menu, KoinComponent {
     private val prestige: GuildPrestigeService by inject()
     private val lang: LangService by inject()
@@ -48,7 +51,8 @@ class GuildPrestigeConfirmationMenu(
         }.also { stack -> stack.editMeta { meta ->
             // REQ-249: exactly what this prestige earns, costs and keeps.
             val lines = prestige.preview(quote)?.let { preview ->
-                prestigeSummaryLines(lang, preview, retainedRewardName, catalog.find(quote.retainedRewardId)?.effect)
+                prestigeSummaryLines(lang, preview, retainedRewardName, catalog.find(quote.retainedRewardId)?.effect,
+                    hallTheme?.let { net.lumalyte.lg.domain.rewards.PrestigeSummaryLine.HallThemeEarned(it, themesOwnedAfter) })
             }
             if (lines == null) {
                 meta.displayName(lang.gui(
@@ -69,7 +73,7 @@ class GuildPrestigeConfirmationMenu(
         pane.addItem(GuiItem(confirm) { event ->
             event.isCancelled = true
             if (!player.isOnline) return@GuiItem
-            val result = prestige.confirm(player.uniqueId, quote)
+            val result = prestige.confirm(player.uniqueId, quote, hallTheme)
             player.sendMessage(feedback(result))
             if (result is PrestigeResult.Applied && result.carriedExperience > 0) {
                 player.sendMessage(lang.msg(

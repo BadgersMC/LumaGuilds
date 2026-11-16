@@ -821,6 +821,9 @@ fun progressionModule() = module {
                 prestigeDiscordPost(),
             ),
             refreshGuildLevel = { guildId -> get<GuildRepository>().refreshCachedLevel(guildId) },
+            grantHallTheme = { guildId, theme ->
+                get<net.lumalyte.lg.application.services.HallThemeService>().earnFromPrestige(guildId, theme)
+            },
         )
     }
     single {
@@ -1309,6 +1312,20 @@ fun vaultModule() = module {
     }
     single<net.lumalyte.lg.infrastructure.services.VaultHologramService> {
         net.lumalyte.lg.infrastructure.services.VaultHologramService(get(), get(), get())
+    }
+    // REQ-260/261: Hall of Prestige themes and display choices.
+    single<net.lumalyte.lg.application.persistence.HallDisplayRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.HallDisplayRepositorySQL(get())
+    }
+    single {
+        net.lumalyte.lg.application.services.HallThemeService(
+            repository = get(),
+            prestigeCount = { guildId -> get<net.lumalyte.lg.application.services.GuildPrestigeService>().overview(guildId)?.prestigeCount },
+            canManage = { actor, guildId ->
+                get<MemberService>().hasPermission(actor, guildId, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_BANNER)
+            },
+            isMember = { playerId, guildId -> get<MemberService>().getMember(playerId, guildId) != null },
+        )
     }
     // REQ-242 to REQ-248: the Prestige VI second vault.
     single<net.lumalyte.lg.application.persistence.SecondVaultRepository> {

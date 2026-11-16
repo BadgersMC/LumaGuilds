@@ -28,6 +28,9 @@ class BedrockPrestigeConfirmationMenu(
     private val back: () -> Unit,
     private val success: () -> Unit,
     logger: Logger,
+    /** REQ-260: the Hall theme picked for this prestige and how many the guild will then own. */
+    private val hallTheme: net.lumalyte.lg.domain.rewards.HallTheme? = null,
+    private val themesOwnedAfter: Int = 0,
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
     private val prestige: GuildPrestigeService by inject()
     private val lang: LangService by inject()
@@ -39,7 +42,8 @@ class BedrockPrestigeConfirmationMenu(
         .content(
             // REQ-249: exactly what this prestige earns, costs and keeps.
             prestige.preview(quote)?.let { preview ->
-                bedrockPrestigeSummaryLines(lang, preview, retainedRewardName, catalog.find(quote.retainedRewardId)?.effect)
+                bedrockPrestigeSummaryLines(lang, preview, retainedRewardName, catalog.find(quote.retainedRewardId)?.effect,
+                    hallTheme?.let { net.lumalyte.lg.domain.rewards.PrestigeSummaryLine.HallThemeEarned(it, themesOwnedAfter) })
                     .joinToString("\n")
             } ?: lang.bedrock("menu.guild_progression.prestige.confirmation.summary.unavailable")
         )
@@ -62,7 +66,7 @@ class BedrockPrestigeConfirmationMenu(
             return
         }
 
-        val result = prestige.confirm(player.uniqueId, quote)
+        val result = prestige.confirm(player.uniqueId, quote, hallTheme)
         player.sendMessage(feedback(result))
         if (result is PrestigeResult.Applied && result.carriedExperience > 0) {
             player.sendMessage(lang.msg(

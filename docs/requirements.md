@@ -877,3 +877,14 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-241
 **Ubiquitous.** THE SYSTEM SHALL list a guild advancement's guild XP reward first in its advancement tooltip, followed by any personal Minecraft XP its members also receive, and SHALL tell the member who completes it first how much guild XP the guild earned.
+
+## Hall of Prestige themes
+
+### REQ-260
+**Event-driven.** WHEN a guild prestiges THE SYSTEM SHALL let the confirming member choose one Hall of Prestige theme the guild doesn't own (Gilded, Ember, Winged, Tidal, Radiant or Crowned) between choosing the reward to keep and confirming, pick it automatically when only one is left, list it in the confirmation summary, and grant it once the prestige applies, so a guild owns at most one theme per prestige; a pick not made then (staff grants, earlier prestiges) SHALL stay open in Hall Display.
+
+### REQ-261
+**Ubiquitous.** THE SYSTEM SHALL provide Hall Display, where every member can see what the guild's Hall statue wears and members with Manage Banner can choose open theme picks, set each of the ten cosmetic slots to any owned theme or the default, wear a whole owned theme at once, and choose which member's skin the statue wears (Bedrock: picks and whole themes), and SHALL delete a guild's themes and choices when it disbands.
+
+### REQ-262
+**Ubiquitous.** THE SYSTEM SHALL list on each Prestige milestones card everything that tier gives: its fee or that it is earned, a permanent home slot, one reward kept, a Hall theme, the first prestige's member cap and Discord role when those are on, and the second allied home, extra stall and second vault at their configured tiers.

@@ -115,6 +115,7 @@ class BedrockGuildProgressionInfoMenu(
                 if (offer.status == RewardOfferStatus.AVAILABLE) listOf(lang.bedrock("chapter_two_rewards.purchase.select"))
                 else emptyList()).joinToString("\n")) } }
             .button(prestigeButtonLabel())
+            .button(lang.bedrock("hall.display.title"))
             .button(lang.bedrock("quest_discovery.menu_name"))
             .button(lang.bedrock("chapter_two_rewards.back"))
             .validResultHandler { response ->
@@ -144,6 +145,8 @@ class BedrockGuildProgressionInfoMenu(
                             BedrockPrestigeSelectionMenu(menuNavigator, player, guild, logger)
                         )
                     } else if (index == offers.size + 1) {
+                        bedrockNavigator.openMenu(BedrockHallDisplayMenu(menuNavigator, player, guild, logger))
+                    } else if (index == offers.size + 2) {
                         openQuests()
                     } else {
                         bedrockNavigator.goBack()

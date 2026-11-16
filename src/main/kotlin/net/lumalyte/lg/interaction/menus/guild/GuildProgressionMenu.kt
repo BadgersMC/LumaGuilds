@@ -615,7 +615,7 @@ class GuildProgressionMenu(
                     player.sendMessage(lang.msg("menu.guild_progression.prestige.feedback.quote_failed"))
                     open()
                 } else {
-                    GuildPrestigeConfirmationMenu(player, quote, reward.name, ::openPrestigeSelection, ::open).open()
+                    pickHallTheme(quote, reward.name)
                 }
             }, index % 9, index / 9)
         }
@@ -630,6 +630,26 @@ class GuildProgressionMenu(
 
         gui.addPane(pane)
         gui.show(player)
+    }
+
+    /**
+     * REQ-260: choose the Hall theme this prestige earns, then confirm. With one theme left it is
+     * picked for the guild; without the Hall service the step is skipped and the pick stays open.
+     */
+    private fun pickHallTheme(quote: net.lumalyte.lg.domain.rewards.PrestigeQuote, rewardName: String) {
+        val themes = org.koin.core.context.GlobalContext.get()
+            .getOrNull<net.lumalyte.lg.application.services.HallThemeService>()
+        val owned = themes?.display(guild.id)?.owned
+        val confirm = { theme: net.lumalyte.lg.domain.rewards.HallTheme? ->
+            GuildPrestigeConfirmationMenu(player, quote, rewardName, ::openPrestigeSelection, ::open,
+                theme, (owned?.size ?: 0) + 1).open()
+        }
+        val left = owned?.let { has -> net.lumalyte.lg.domain.rewards.HallTheme.entries.filterNot { it in has } }
+        when {
+            left.isNullOrEmpty() -> confirm(null)
+            left.size == 1 -> confirm(left.single())
+            else -> GuildPrestigeThemeMenu(player, owned, ::openPrestigeSelection) { confirm(it) }.open()
+        }
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {

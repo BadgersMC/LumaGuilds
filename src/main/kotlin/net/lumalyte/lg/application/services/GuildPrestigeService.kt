@@ -21,6 +21,8 @@ class GuildPrestigeService(
     private val notifiers: List<GuildPrestigeNotifier> = emptyList(),
     /** REQ-248: refreshes the cached guild level after a prestige, so vault sizes and other level rules see level 1. */
     private val refreshGuildLevel: (UUID) -> Unit = {},
+    /** REQ-260: grants the Hall theme chosen on the prestige screen once the prestige has applied. */
+    private val grantHallTheme: (UUID, HallTheme) -> Unit = { _, _ -> },
 ) {
     private val resolver = RewardEntitlementResolver(catalog)
     private val logger = LoggerFactory.getLogger(GuildPrestigeService::class.java)
@@ -137,7 +139,7 @@ class GuildPrestigeService(
         }
     }
 
-    fun confirm(actorId: UUID, quote: PrestigeQuote): PrestigeResult {
+    fun confirm(actorId: UUID, quote: PrestigeQuote, hallTheme: HallTheme? = null): PrestigeResult {
         if (actorId != quote.actorId) return PrestigeResult.Rejected(PrestigeRejection.UNAUTHORIZED)
         val confirmation = repository.confirmWithCommitStatus(quote) {
             val current = runCatching { config.loadConfig() }.getOrNull()
@@ -148,7 +150,7 @@ class GuildPrestigeService(
                 else -> null
             }
         }
-        return settle(quote, confirmation)
+        return settle(quote, confirmation, hallTheme)
     }
 
     /** REQ-186: the prestige choices a staff grant may keep (those of a level 100 guild). */
@@ -187,9 +189,16 @@ class GuildPrestigeService(
     private fun settle(
         quote: PrestigeQuote,
         confirmation: net.lumalyte.lg.application.persistence.PrestigeConfirmation,
+        hallTheme: HallTheme? = null,
     ): PrestigeResult {
         val result = confirmation.result
         if (result is PrestigeResult.Applied) {
+            // A retry of an already applied prestige still grants the theme; a theme that can't be
+            // granted stays as an open pick in Hall Display.
+            if (hallTheme != null) {
+                runCatching { grantHallTheme(quote.guildId, hallTheme) }
+                    .onFailure { logger.warn("Failed to grant Hall theme $hallTheme to guild ${quote.guildId}", it) }
+            }
             if (confirmation.newlyCommitted) {
                 runCatching { announcement.announce(quote.guildId, result.prestigeCount) }
                     .onFailure { logger.warn("Failed to announce prestige for guild ${quote.guildId}", it) }
