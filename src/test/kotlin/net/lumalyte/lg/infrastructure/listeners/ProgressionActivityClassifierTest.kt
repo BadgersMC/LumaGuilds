@@ -36,6 +36,11 @@ class ProgressionActivityClassifierTest {
     fun `only mature crops and configured common blocks qualify`() {
         assertEquals(ExperienceSource.CROP_BREAK, classifier.sourceForBreak(Material.WHEAT, false, true))
         assertNull(classifier.sourceForBreak(Material.WHEAT, false, false))
+        // REQ-255: farms are planted by players, so grown crops count even when the seed was placed
+        assertEquals(ExperienceSource.CROP_BREAK, classifier.sourceForBreak(Material.WHEAT, true, true))
+        assertEquals(ExperienceSource.CROP_BREAK, classifier.sourceForBreak(Material.NETHER_WART, true, true))
+        assertNull(classifier.sourceForBreak(Material.CARROTS, true, false))
+        assertNull(classifier.sourceForBreak(Material.STONE, true, false))
         assertEquals(ExperienceSource.BLOCK_BREAK, classifier.sourceForBreak(Material.STONE, false, false))
         assertNull(classifier.sourceForBreak(Material.CUT_COPPER, false, false))
     }

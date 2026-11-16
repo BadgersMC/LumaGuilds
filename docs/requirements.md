@@ -877,3 +877,8 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-241
 **Ubiquitous.** THE SYSTEM SHALL list a guild advancement's guild XP reward first in its advancement tooltip, followed by any personal Minecraft XP its members also receive, and SHALL tell the member who completes it first how much guild XP the guild earned.
+
+## Everyday guild XP fixes
+
+### REQ-255
+**Event-driven.** WHEN a member breaks or right-click harvests a fully grown crop (wheat, carrots, potatoes, beetroots, nether wart, cocoa, sweet berries, pitcher plants, torchflowers) in Survival or Adventure THE SYSTEM SHALL award crop XP even though a player planted it, and WHEN a member takes a potion out of a brewing stand THE SYSTEM SHALL award brewing XP only if that stand brewed the potion and its XP has not been claimed, so water bottles and potions put in by hand earn nothing.

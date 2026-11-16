@@ -40,6 +40,7 @@ import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.enchantment.EnchantItemEvent
 import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.entity.PlayerDeathEvent
+import org.bukkit.event.inventory.BrewEvent
 import org.bukkit.event.inventory.FurnaceExtractEvent
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryType
@@ -84,6 +85,7 @@ class ProgressionEventListener(
 
     private val logger = LoggerFactory.getLogger(ProgressionEventListener::class.java)
     private val brewingXpMarker = NamespacedKey(plugin, "progression_brewing_xp_awarded")
+    private val brewedMarker = NamespacedKey(plugin, "progression_brewed_unclaimed")
 
     // Rate limiting: Track XP per player per source to prevent spam
     private val playerXpCooldowns = ConcurrentHashMap<String, Long>()
@@ -509,6 +511,21 @@ class ProgressionEventListener(
         )
     }
 
+    /**
+     * REQ-255: marks what a brewing stand actually brewed. Only these potions earn brewing XP when
+     * taken out, so putting water bottles or bought potions in and taking them back earns nothing.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onBrew(event: BrewEvent) {
+        event.results.forEach { result ->
+            if (result == null || !classifier.isBrewedPotion(result.type)) return@forEach
+            result.editMeta { meta ->
+                meta.persistentDataContainer.remove(brewingXpMarker)
+                meta.persistentDataContainer.set(brewedMarker, PersistentDataType.BYTE, 1)
+            }
+        }
+    }
+
     /** Bukkit does not expose the brewer on BrewEvent, so attribute XP when a player takes a finished potion. */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onBrewedPotionTaken(event: InventoryClickEvent) {
@@ -516,8 +533,12 @@ class ProgressionEventListener(
         if (!eligible(player) || event.clickedInventory?.type != InventoryType.BREWING || event.slot !in 0..2) return
         val item = event.currentItem ?: return
         if (!classifier.isBrewedPotion(item.type)) return
-        if (item.persistentDataContainer.has(brewingXpMarker, PersistentDataType.BYTE)) return
-        item.editMeta { meta -> meta.persistentDataContainer.set(brewingXpMarker, PersistentDataType.BYTE, 1) }
+        val data = item.persistentDataContainer
+        if (!data.has(brewedMarker, PersistentDataType.BYTE) || data.has(brewingXpMarker, PersistentDataType.BYTE)) return
+        item.editMeta { meta ->
+            meta.persistentDataContainer.remove(brewedMarker)
+            meta.persistentDataContainer.set(brewingXpMarker, PersistentDataType.BYTE, 1)
+        }
         requestPlayerActivity(player, units = item.amount, source = ExperienceSource.BREWING)
     }
 
