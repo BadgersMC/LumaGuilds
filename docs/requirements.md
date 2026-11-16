@@ -877,3 +877,6 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-241
 **Ubiquitous.** THE SYSTEM SHALL list a guild advancement's guild XP reward first in its advancement tooltip, followed by any personal Minecraft XP its members also receive, and SHALL tell the member who completes it first how much guild XP the guild earned.
+
+### REQ-256
+**Ubiquitous.** THE SYSTEM SHALL place every guild advancement in the advancement tree at least one grid cell away from every other advancement horizontally or vertically, so no two frames overlap.

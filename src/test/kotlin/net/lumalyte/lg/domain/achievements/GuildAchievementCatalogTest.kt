@@ -67,6 +67,13 @@ internal class GuildAchievementCatalogTest {
         })
         val positions = engine.definitions.map { it.x to it.y }
         assertEquals(positions.size, positions.distinct().size, "Advancement frames must not overlap")
+        // REQ-256: a vanilla frame fills almost a whole grid cell, so frames closer than one cell overlap
+        engine.definitions.forEachIndexed { index, a ->
+            engine.definitions.drop(index + 1).forEach { b ->
+                assertTrue(kotlin.math.abs(a.x - b.x) >= 1f || kotlin.math.abs(a.y - b.y) >= 1f,
+                    "${a.id} (${a.x}, ${a.y}) overlaps ${b.id} (${b.x}, ${b.y}) in the advancement tree")
+            }
+        }
         engine.definitions.filter { it.parent != null }.forEach { child ->
             val parent = engine.definitions.first { it.id == child.parent }
             assertTrue(child.x > parent.x, "${child.id} must sit to the right of ${parent.id}")

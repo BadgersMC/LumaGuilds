@@ -1463,3 +1463,5 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 ## Guild advancement reward text (REQ-241)
 
 - [x] **ADVANCEMENT-GUILD-XP-TEXT** Tag: TDD. REQ-241. Evidence: GuildAchievementRewardLinesTest.
+
+- [x] **ADV-TREE-OVERLAP** Tag: TDD. REQ-256. The Mob Grinder rows sat 0.75 cells apart (and Smelting 0.5 below its neighbour), so frames overlapped in the Enthusia tab. Rows below them move down; GuildAchievementCatalogTest now fails on any frames closer than one cell.
