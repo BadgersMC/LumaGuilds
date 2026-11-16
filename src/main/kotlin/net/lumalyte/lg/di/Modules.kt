@@ -1327,6 +1327,8 @@ fun vaultModule() = module {
             isMember = { playerId, guildId -> get<MemberService>().getMember(playerId, guildId) != null },
         )
     }
+    // REQ-266: menu reads off the main thread.
+    single<net.lumalyte.lg.interaction.menus.MenuLoader> { net.lumalyte.lg.interaction.menus.BukkitMenuLoader(get()) }
     // REQ-264: viewer-only Hall statue preview.
     single { net.lumalyte.lg.infrastructure.services.HallPreviewService(get()) }
     // REQ-242 to REQ-248: the Prestige VI second vault.

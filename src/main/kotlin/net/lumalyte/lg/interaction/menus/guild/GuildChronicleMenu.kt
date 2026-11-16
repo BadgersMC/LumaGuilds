@@ -37,121 +37,139 @@ internal class GuildChronicleMenu(
     private var prestigeTab = 0
 
     override fun open() {
-        val snapshot = read() ?: return
-        if (page == null) page = (snapshot.state.level - 1) / 10
-        when {
-            initialPrestige -> prestige()
-            initialRewardId != null -> detail(initialRewardId)
-            else -> tree()
+        load { snapshot ->
+            if (page == null) page = (snapshot.state.level - 1) / 10
+            when {
+                initialPrestige -> prestige()
+                initialRewardId != null -> detail(initialRewardId)
+                else -> tree()
+            }
         }
     }
 
-    private fun read(): GuildChronicle? = chronicle.read(player.uniqueId, guild.id, page ?: 0, branch)
-        .also { if (it == null) player.sendMessage(lang.msg("chapter_two_rewards.unavailable")) }
+    private val loader: net.lumalyte.lg.interaction.menus.MenuLoader by lazy {
+        getKoin().getOrNull() ?: net.lumalyte.lg.interaction.menus.MenuLoader.Immediate
+    }
+
+    /** REQ-266: the chronicle read runs off the main thread; [show] runs back on it. */
+    private fun load(show: (GuildChronicle) -> Unit) = load({ Unit }) { snapshot, _ -> show(snapshot) }
+
+    private fun <X> load(extra: () -> X, show: (GuildChronicle, X) -> Unit) {
+        val token = navigator.currentNavigationToken()
+        val wantedPage = page ?: 0
+        val wantedBranch = branch
+        loader.load(player, { navigator.isNavigationCurrent(token) },
+            { chronicle.read(player.uniqueId, guild.id, wantedPage, wantedBranch) to extra() }) { (snapshot, more) ->
+            if (snapshot == null) player.sendMessage(lang.msg("chapter_two_rewards.unavailable")) else show(snapshot, more)
+        }
+    }
 
     private fun tree() {
-        val snapshot = read() ?: return
-        val cards = snapshot.levels.flatMap { it.offers }.map { offer ->
-            val lines = listOf(
-                Component.text(offer.reward.name),
-                lang.gui("chapter_two_rewards.level_price", "level" to offer.reward.level, "price" to offer.reward.price),
-                effect(offer.reward.effect),
-                lang.rewardStatus(offer.status),
-            ) + if (snapshot.goal.rewardId == offer.reward.id) listOf(lang.gui("chronicle.tracked")) else emptyList()
-            referenceItem(icon(offer.reward.effect), lines,
-                referenceAction(Component.text(offer.reward.name), icon(offer.reward.effect)) { detail(offer.reward.id) })
-        }.ifEmpty { listOf(referenceItem("lg_reward", listOf(lang.gui("chronicle.empty")))) }
-        val actions = buildList {
-            if (snapshot.page > 0) add(referenceAction(lang.gui("chronicle.earlier"), "lg_page_prev") { page = snapshot.page - 1; tree() })
-            if (snapshot.page < 9) add(referenceAction(lang.gui("chronicle.later"), "lg_page_next") { page = snapshot.page + 1; tree() })
-            snapshot.goal.rewardId?.let { id -> add(referenceAction(lang.gui("chronicle.goal"), "lg_reward") { detail(id) }) }
-            add(referenceAction(lang.gui("chronicle.automatic"), "lg_bank") { automatic() })
-            add(referenceAction(lang.gui("chronicle.prestige.action"), "lg_prestige") { prestige() })
+        load { snapshot ->
+            val cards = snapshot.levels.flatMap { it.offers }.map { offer ->
+                val lines = listOf(
+                    Component.text(offer.reward.name),
+                    lang.gui("chapter_two_rewards.level_price", "level" to offer.reward.level, "price" to offer.reward.price),
+                    effect(offer.reward.effect),
+                    lang.rewardStatus(offer.status),
+                ) + if (snapshot.goal.rewardId == offer.reward.id) listOf(lang.gui("chronicle.tracked")) else emptyList()
+                referenceItem(icon(offer.reward.effect), lines,
+                    referenceAction(Component.text(offer.reward.name), icon(offer.reward.effect)) { detail(offer.reward.id) })
+            }.ifEmpty { listOf(referenceItem("lg_reward", listOf(lang.gui("chronicle.empty")))) }
+            val actions = buildList {
+                if (snapshot.page > 0) add(referenceAction(lang.gui("chronicle.earlier"), "lg_page_prev") { page = snapshot.page - 1; tree() })
+                if (snapshot.page < 9) add(referenceAction(lang.gui("chronicle.later"), "lg_page_next") { page = snapshot.page + 1; tree() })
+                snapshot.goal.rewardId?.let { id -> add(referenceAction(lang.gui("chronicle.goal"), "lg_reward") { detail(id) }) }
+                add(referenceAction(lang.gui("chronicle.automatic"), "lg_bank") { automatic() })
+                add(referenceAction(lang.gui("chronicle.prestige.action"), "lg_prestige") { prestige() })
+            }
+            show(cards, actions, referenceAction(lang.gui("recruitment.dialog.back"), "lg_back", navigator::goBack),
+                lang.gui("chronicle.range", "guild" to guild.name, "level" to snapshot.state.level,
+                    "first" to snapshot.levels.first().level, "last" to snapshot.levels.last().level),
+                ChronicleBranch.entries.map { category -> referenceAction(branchLabel(category), "lg_reward") { branch = category; tree() } })
         }
-        show(cards, actions, referenceAction(lang.gui("recruitment.dialog.back"), "lg_back", navigator::goBack),
-            lang.gui("chronicle.range", "guild" to guild.name, "level" to snapshot.state.level,
-                "first" to snapshot.levels.first().level, "last" to snapshot.levels.last().level),
-            ChronicleBranch.entries.map { category -> referenceAction(branchLabel(category), "lg_reward") { branch = category; tree() } })
     }
 
     private fun detail(id: String) {
-        val snapshot = read() ?: return
-        val offer = snapshot.state.entitlements.offers.find { it.reward.id == id } ?: return
-        val reward = offer.reward
-        val benefits = snapshot.state.entitlements
-        val cards = listOf(
-            referenceItem(icon(reward.effect), listOf(Component.text(reward.name), lang.rewardStatus(offer.status),
-                effect(reward.effect), lang.gui("chapter_two_rewards.level_price", "level" to reward.level, "price" to reward.price))),
-            referenceItem("lg_reward", listOf(
-                if (offer.status == RewardOfferStatus.AVAILABLE || offer.status == RewardOfferStatus.LOCKED)
-                    impact(reward.effect, benefits) else lang.rewardStatus(offer.status),
-                if (snapshot.goal.rewardId == id) lang.gui("chronicle.tracked") else lang.gui("chronicle.shared"))),
-            referenceItem("lg_sources", listOf(
-                lang.gui("chapter_two_rewards.capacity_bank", "capacity" to benefits.bankCapacity),
-                lang.gui("chapter_two_rewards.capacity_home_member", "homes" to benefits.homeCapacity, "members" to net.lumalyte.lg.interaction.menus.memberCapacityShown(guild.id, benefits.memberCapacity)),
-                lang.gui("chapter_two_rewards.multipliers", "cooldown" to benefits.homeCooldownMultiplier, "fee" to benefits.withdrawalFeeMultiplier))),
-            referenceItem("lg_prestige", earningDetails(offer)),
-        )
-        val actions = buildList {
-            if (snapshot.canTrack) add(referenceAction(
-                if (snapshot.goal.rewardId == id) lang.gui("chronicle.untrack") else lang.gui("chronicle.track"), "lg_reward",
-            ) {
-                val result = chronicle.track(player.uniqueId, guild.id, snapshot.goal,
-                    if (snapshot.goal.rewardId == id) null else id)
-                player.sendMessage(when (result) {
-                    ChronicleGoalWrite.SAVED -> lang.msg("chronicle.saved")
-                    ChronicleGoalWrite.CONFLICT -> lang.msg("chronicle.conflict")
-                    ChronicleGoalWrite.DENIED -> lang.msg("chronicle.denied")
-                    ChronicleGoalWrite.INVALID -> lang.msg("chronicle.invalid")
-                    ChronicleGoalWrite.UNAVAILABLE -> lang.msg("chapter_two_rewards.unavailable")
+        load { snapshot ->
+            val offer = snapshot.state.entitlements.offers.find { it.reward.id == id } ?: return@load
+            val reward = offer.reward
+            val benefits = snapshot.state.entitlements
+            val cards = listOf(
+                referenceItem(icon(reward.effect), listOf(Component.text(reward.name), lang.rewardStatus(offer.status),
+                    effect(reward.effect), lang.gui("chapter_two_rewards.level_price", "level" to reward.level, "price" to reward.price))),
+                referenceItem("lg_reward", listOf(
+                    if (offer.status == RewardOfferStatus.AVAILABLE || offer.status == RewardOfferStatus.LOCKED)
+                        impact(reward.effect, benefits) else lang.rewardStatus(offer.status),
+                    if (snapshot.goal.rewardId == id) lang.gui("chronicle.tracked") else lang.gui("chronicle.shared"))),
+                referenceItem("lg_sources", listOf(
+                    lang.gui("chapter_two_rewards.capacity_bank", "capacity" to benefits.bankCapacity),
+                    lang.gui("chapter_two_rewards.capacity_home_member", "homes" to benefits.homeCapacity, "members" to net.lumalyte.lg.interaction.menus.memberCapacityShown(guild.id, benefits.memberCapacity)),
+                    lang.gui("chapter_two_rewards.multipliers", "cooldown" to benefits.homeCooldownMultiplier, "fee" to benefits.withdrawalFeeMultiplier))),
+                referenceItem("lg_prestige", earningDetails(offer)),
+            )
+            val actions = buildList {
+                if (snapshot.canTrack) add(referenceAction(
+                    if (snapshot.goal.rewardId == id) lang.gui("chronicle.untrack") else lang.gui("chronicle.track"), "lg_reward",
+                ) {
+                    val result = chronicle.track(player.uniqueId, guild.id, snapshot.goal,
+                        if (snapshot.goal.rewardId == id) null else id)
+                    player.sendMessage(when (result) {
+                        ChronicleGoalWrite.SAVED -> lang.msg("chronicle.saved")
+                        ChronicleGoalWrite.CONFLICT -> lang.msg("chronicle.conflict")
+                        ChronicleGoalWrite.DENIED -> lang.msg("chronicle.denied")
+                        ChronicleGoalWrite.INVALID -> lang.msg("chronicle.invalid")
+                        ChronicleGoalWrite.UNAVAILABLE -> lang.msg("chapter_two_rewards.unavailable")
+                    })
+                    detail(id)
                 })
-                detail(id)
-            })
-            // The existing quote service checks both purchase permissions afresh.
-            if (offer.status == RewardOfferStatus.AVAILABLE &&
-                members.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_GUILD_SETTINGS) &&
-                members.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.WITHDRAW_FROM_BANK)
-            ) add(referenceAction(lang.gui("chronicle.review"), "lg_bank") {
-                val quote = purchases.quote(player.uniqueId, guild.id, id)
-                if (quote == null) { player.sendMessage(lang.msg("chapter_two_rewards.purchase.no_quote")); detail(id) }
-                else {
-                    val token = navigator.currentNavigationToken()
-                    GuildRewardPurchaseMenu(player, quote, reward.name, { detail(id) },
-                        getKoin().getOrNull<GuildService>()?.getGuild(guild.id)?.guiTheme ?: guild.guiTheme,
-                        { valid(token) }).open()
-                }
-            })
+                // The existing quote service checks both purchase permissions afresh.
+                if (offer.status == RewardOfferStatus.AVAILABLE &&
+                    members.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_GUILD_SETTINGS) &&
+                    members.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.WITHDRAW_FROM_BANK)
+                ) add(referenceAction(lang.gui("chronicle.review"), "lg_bank") {
+                    val quote = purchases.quote(player.uniqueId, guild.id, id)
+                    if (quote == null) { player.sendMessage(lang.msg("chapter_two_rewards.purchase.no_quote")); detail(id) }
+                    else {
+                        val token = navigator.currentNavigationToken()
+                        GuildRewardPurchaseMenu(player, quote, reward.name, { detail(id) },
+                            getKoin().getOrNull<GuildService>()?.getGuild(guild.id)?.guiTheme ?: guild.guiTheme,
+                            { valid(token) }).open()
+                    }
+                })
+            }
+            show(cards, actions, referenceAction(lang.gui("recruitment.dialog.back"), "lg_back") {
+                returnToBrowser?.invoke() ?: tree()
+            },
+                lang.gui("chronicle.detail", "guild" to guild.name, "level" to snapshot.state.level))
         }
-        show(cards, actions, referenceAction(lang.gui("recruitment.dialog.back"), "lg_back") {
-            returnToBrowser?.invoke() ?: tree()
-        },
-            lang.gui("chronicle.detail", "guild" to guild.name, "level" to snapshot.state.level))
     }
 
     /** Information only: purchasing and prestiging remain behind existing quotes and confirmations. */
     private fun prestige() {
-        val snapshot = read() ?: return
-        val overview = prestigeService.overview(guild.id) ?: run {
-            player.sendMessage(lang.msg("chapter_two_rewards.unavailable"))
-            return
-        }
-        val retained = snapshot.state.entitlements.offers.filter {
-            it.status == RewardOfferStatus.PERMANENT && !it.reward.permanentOnPurchase
-        }
-        val cards = prestigeCards(overview, retained)
-        val hall = getKoin().getOrNull<net.lumalyte.lg.application.services.HallThemeService>()?.let {
-            referenceAction(lang.gui("hall.display.title"), "lg_prestige") {
-                navigator.openMenu(GuildHallDisplayMenu(navigator, player, guild, overview.prestigeCount))
+        load({ prestigeService.overview(guild.id) }) { snapshot, loaded ->
+            val overview = loaded ?: run {
+                player.sendMessage(lang.msg("chapter_two_rewards.unavailable"))
+                return@load
             }
+            val retained = snapshot.state.entitlements.offers.filter {
+                it.status == RewardOfferStatus.PERMANENT && !it.reward.permanentOnPurchase
+            }
+            val cards = prestigeCards(overview, retained)
+            val hall = getKoin().getOrNull<net.lumalyte.lg.application.services.HallThemeService>()?.let {
+                referenceAction(lang.gui("hall.display.title"), "lg_prestige") {
+                    navigator.openMenu(GuildHallDisplayMenu(navigator, player, guild, overview.prestigeCount))
+                }
+            }
+            val actions = listOfNotNull(prestigeReview(overview), hall) +
+                referenceAction(lang.gui("chronicle.back_tree"), "lg_back") { tree() }
+            show(cards, actions, referenceAction(lang.gui("recruitment.dialog.back"), "lg_back", navigator::goBack),
+                lang.gui("chronicle.prestige.subtitle"), listOf(
+                    referenceAction(lang.gui("chronicle.prestige.overview"), "lg_prestige") { prestigeTab = 0; prestige() },
+                    referenceAction(lang.gui("chronicle.prestige.milestones"), "lg_prestige") { prestigeTab = 1; prestige() },
+                    referenceAction(lang.gui("chronicle.prestige.legacy"), "lg_prestige") { prestigeTab = 2; prestige() },
+                ))
         }
-        val actions = listOfNotNull(prestigeReview(overview), hall) +
-            referenceAction(lang.gui("chronicle.back_tree"), "lg_back") { tree() }
-        show(cards, actions, referenceAction(lang.gui("recruitment.dialog.back"), "lg_back", navigator::goBack),
-            lang.gui("chronicle.prestige.subtitle"), listOf(
-                referenceAction(lang.gui("chronicle.prestige.overview"), "lg_prestige") { prestigeTab = 0; prestige() },
-                referenceAction(lang.gui("chronicle.prestige.milestones"), "lg_prestige") { prestigeTab = 1; prestige() },
-                referenceAction(lang.gui("chronicle.prestige.legacy"), "lg_prestige") { prestigeTab = 2; prestige() },
-            ))
     }
 
     private fun prestigeCards(overview: PrestigeOverview, retained: List<RewardOffer>): List<GuildDialogItem> {
@@ -249,11 +267,12 @@ internal class GuildChronicleMenu(
     )
 
     private fun automatic() {
-        val snapshot = read() ?: return
-        val cards = snapshot.levels.map { level -> referenceItem("lg_bank", listOf(
-            lang.gui("chronicle.auto_level", "level" to level.level, "capacity" to level.automaticBankCapacity))) }
-        show(cards, emptyList(), referenceAction(lang.gui("chronicle.back_tree"), "lg_back") { tree() },
-            lang.gui("chronicle.auto_explanation"))
+        load { snapshot ->
+            val cards = snapshot.levels.map { level -> referenceItem("lg_bank", listOf(
+                lang.gui("chronicle.auto_level", "level" to level.level, "capacity" to level.automaticBankCapacity))) }
+            show(cards, emptyList(), referenceAction(lang.gui("chronicle.back_tree"), "lg_back") { tree() },
+                lang.gui("chronicle.auto_explanation"))
+        }
     }
 
     private fun valid(token: Long) = player.isOnline && navigator.isNavigationCurrent(token) &&

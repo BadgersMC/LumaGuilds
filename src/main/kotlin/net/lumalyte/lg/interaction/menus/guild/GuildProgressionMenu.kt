@@ -78,34 +78,54 @@ class GuildProgressionMenu(
         38, 39, 40, 41, 42, 43
     )
 
+    private val loader: net.lumalyte.lg.interaction.menus.MenuLoader by lazy {
+        getKoin().getOrNull() ?: net.lumalyte.lg.interaction.menus.MenuLoader.Immediate
+    }
+    private var cachedOverview: net.lumalyte.lg.domain.rewards.PrestigeOverview? = null
+
+    private sealed interface Snapshot {
+        data object NoAccess : Snapshot
+        data object Unavailable : Snapshot
+        data object LoadFailed : Snapshot
+        data class Ready(
+            val guild: Guild,
+            val reward: GuildRewardRead,
+            val progression: GuildProgressionDisplay,
+            val sourceUsage: List<net.lumalyte.lg.application.services.SourceUsageView>,
+            val overview: net.lumalyte.lg.domain.rewards.PrestigeOverview?,
+        ) : Snapshot
+    }
+
+    /** REQ-266: every database read for this screen, run off the main thread. */
+    private fun readSnapshot(): Snapshot {
+        val fresh = guildService.getGuild(guild.id) ?: guild
+        if (memberService.getMember(player.uniqueId, fresh.id) == null) return Snapshot.NoAccess
+        val reward = progressionService.getRewardState(fresh.id)
+        if (reward == GuildRewardRead.Unavailable) return Snapshot.Unavailable
+        rewardState = reward
+        val progression = repoProgression() ?: return Snapshot.LoadFailed
+        val usage = progressionService.getSourceUsage(fresh.id).filter { it.source != ExperienceSource.ADMIN_BONUS }
+        return Snapshot.Ready(fresh, reward, progression, usage, prestigeService.overview(fresh.id))
+    }
+
     override fun open() {
-        val playerId = player.uniqueId
-        guild = guildService.getGuild(guild.id) ?: guild
-
-        if (memberService.getMember(playerId, guild.id) == null) {
-            player.sendMessage(lang.msg("menu.guild_progression.feedback.no_access"))
-            menuNavigator.goBack()
-            return
+        val token = menuNavigator.currentNavigationToken()
+        loader.load(player, { menuNavigator.isNavigationCurrent(token) }, ::readSnapshot) { snapshot ->
+            when (snapshot) {
+                Snapshot.NoAccess -> { player.sendMessage(lang.msg("menu.guild_progression.feedback.no_access")); menuNavigator.goBack() }
+                Snapshot.Unavailable -> { player.sendMessage(lang.msg("chapter_two_rewards.unavailable")); menuNavigator.goBack() }
+                Snapshot.LoadFailed -> { player.sendMessage(lang.msg("menu.guild_progression.feedback.load_failed")); menuNavigator.goBack() }
+                is Snapshot.Ready -> render(snapshot)
+            }
         }
+    }
 
-        rewardState = progressionService.getRewardState(guild.id)
-        if (rewardState == GuildRewardRead.Unavailable) {
-            player.sendMessage(lang.msg("chapter_two_rewards.unavailable"))
-            menuNavigator.goBack()
-            return
-        }
-
-        // Fetch fresh progression data
-        val progression = progressionService.let {
-            repoProgression()
-        } ?: run {
-            player.sendMessage(lang.msg("menu.guild_progression.feedback.load_failed"))
-            menuNavigator.goBack()
-            return
-        }
-
-        val sourceUsage = progressionService.getSourceUsage(guild.id)
-            .filter { it.source != ExperienceSource.ADMIN_BONUS }
+    private fun render(snapshot: Snapshot.Ready) {
+        guild = snapshot.guild
+        rewardState = snapshot.reward
+        cachedOverview = snapshot.overview
+        val progression = snapshot.progression
+        val sourceUsage = snapshot.sourceUsage
         if (!sourceDetails && RecruitmentPresentation.supportsDialog(player) &&
             showProgressionDialog(progression)) return
         val totalPages = ((sourceUsage.size + itemsPerPage - 1) / itemsPerPage).coerceAtLeast(1)
@@ -525,7 +545,7 @@ class GuildProgressionMenu(
     }
 
     private fun addPrestigeInfo(pane: StaticPane, x: Int, y: Int) {
-        val overview = prestigeService.overview(guild.id)
+        val overview = cachedOverview
         val item = NexoItemProvider.getItemStackOrFallback("lg_prestige") {
             ItemStack.of(Material.NETHER_STAR)
         }.also { it.editMeta { meta ->

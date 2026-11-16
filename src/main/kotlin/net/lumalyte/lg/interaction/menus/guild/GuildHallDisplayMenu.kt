@@ -50,42 +50,52 @@ internal class GuildHallDisplayMenu(
 
     private fun canManage() = members.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_BANNER)
 
-    private fun read(): HallDisplay? = themes.display(guild.id)
-        .also { if (it == null) player.sendMessage(lang.msg("hall.feedback.failed")) }
+    private val loader: net.lumalyte.lg.interaction.menus.MenuLoader by lazy {
+        getKoin().getOrNull() ?: net.lumalyte.lg.interaction.menus.MenuLoader.Immediate
+    }
+
+    /** REQ-266: the Hall read runs off the main thread; [show] runs back on it. */
+    private fun load(show: (HallDisplay) -> Unit) {
+        val token = navigator.currentNavigationToken()
+        loader.load(player, { navigator.isNavigationCurrent(token) }, { themes.display(guild.id) }) { display ->
+            if (display == null) player.sendMessage(lang.msg("hall.feedback.failed")) else show(display)
+        }
+    }
 
     private fun main() {
-        val display = read() ?: return
-        val manage = canManage()
-        val cards = buildList {
-            add(statueCard(display, manage))
-            if (display.picksLeft > 0) {
-                add(card(ItemStack.of(org.bukkit.Material.NETHER_STAR), listOf(
-                    lang.gui("hall.display.picks_title", "count" to display.picksLeft),
-                    lang.gui("hall.display.picks_body"),
-                ), if (manage) action(lang.gui("hall.display.pick_action"), "lg_prestige") { pick() } else null))
-            }
-            if (display.owned.isEmpty()) {
-                add(referenceItem("lg_prestige", listOf(lang.gui("hall.display.none_title"), lang.gui("hall.display.none_body"))))
-            } else {
-                HallSlot.entries.forEach { slot ->
-                    val theme = display.wearing(slot) ?: return@forEach
-                    add(card(ItemStack.of(HallThemeText.icon(theme)), listOf(
-                        lang.gui("hall.display.slot", "slot" to slot.label),
-                        lang.gui("hall.display.slot_value", "value" to theme.cosmetic(slot), "theme" to theme.label),
-                    ), if (manage) action(Component.text(slot.label), "lg_nav_settings") { slot(slot) } else null))
+        load { display ->
+            val manage = canManage()
+            val cards = buildList {
+                add(statueCard(display, manage))
+                if (display.picksLeft > 0) {
+                    add(card(ItemStack.of(org.bukkit.Material.NETHER_STAR), listOf(
+                        lang.gui("hall.display.picks_title", "count" to display.picksLeft),
+                        lang.gui("hall.display.picks_body"),
+                    ), if (manage) action(lang.gui("hall.display.pick_action"), "lg_prestige") { pick() } else null))
                 }
-                add(card(ItemStack.of(org.bukkit.Material.ARMOR_STAND), listOf(
-                    lang.gui("hall.display.skin"),
-                    lang.gui("hall.display.skin_value", "name" to skinName(display)),
-                ), if (manage) action(lang.gui("hall.display.skin"), "lg_nav_members") { skinPage = 0; skin() } else null))
+                if (display.owned.isEmpty()) {
+                    add(referenceItem("lg_prestige", listOf(lang.gui("hall.display.none_title"), lang.gui("hall.display.none_body"))))
+                } else {
+                    HallSlot.entries.forEach { slot ->
+                        val theme = display.wearing(slot) ?: return@forEach
+                        add(card(ItemStack.of(HallThemeText.icon(theme)), listOf(
+                            lang.gui("hall.display.slot", "slot" to slot.label),
+                            lang.gui("hall.display.slot_value", "value" to theme.cosmetic(slot), "theme" to theme.label),
+                        ), if (manage) action(Component.text(slot.label), "lg_nav_settings") { slot(slot) } else null))
+                    }
+                    add(card(ItemStack.of(org.bukkit.Material.ARMOR_STAND), listOf(
+                        lang.gui("hall.display.skin"),
+                        lang.gui("hall.display.skin_value", "name" to skinName(display)),
+                    ), if (manage) action(lang.gui("hall.display.skin"), "lg_nav_members") { skinPage = 0; skin() } else null))
+                }
             }
+            val actions = buildList {
+                if (preview != null) add(action(lang.gui("hall.display.preview"), "lg_prestige") { previewInWorld() })
+                if (manage && display.owned.size > 1) add(action(lang.gui("hall.display.wear_all"), "lg_prestige") { wearAll() })
+            }
+            show(cards, actions, lang.gui("hall.display.subtitle", "guild" to guild.name,
+                "tier" to PrestigeNumeral.of(prestigeCount), "owned" to display.owned.size), back = navigator::goBack)
         }
-        val actions = buildList {
-            if (preview != null) add(action(lang.gui("hall.display.preview"), "lg_prestige") { previewInWorld() })
-            if (manage && display.owned.size > 1) add(action(lang.gui("hall.display.wear_all"), "lg_prestige") { wearAll() })
-        }
-        show(cards, actions, lang.gui("hall.display.subtitle", "guild" to guild.name,
-            "tier" to PrestigeNumeral.of(prestigeCount), "owned" to display.owned.size), back = navigator::goBack)
     }
 
     private fun statueCard(display: HallDisplay, manage: Boolean): GuildDialogItem {
@@ -105,53 +115,56 @@ internal class GuildHallDisplayMenu(
     }
 
     private fun slot(slot: HallSlot) {
-        val display = read() ?: return
-        val cards = HallTheme.entries.map { theme ->
-            val owned = theme in display.owned
-            val wearing = display.wearing(slot) == theme
-            card(ItemStack.of(HallThemeText.icon(theme)), listOf(
-                lang.gui("hall.display.option", "value" to theme.cosmetic(slot)),
-                when {
-                    wearing -> lang.gui("hall.display.option_wearing")
-                    owned -> lang.gui("hall.display.option_owned", "theme" to theme.label)
-                    else -> lang.gui("hall.display.option_locked")
-                },
-            ), if (owned && !wearing) action(Component.text(theme.cosmetic(slot)), "lg_confirm") {
-                feedback(themes.wear(player.uniqueId, guild.id, slot, theme))
+        load { display ->
+            val cards = HallTheme.entries.map { theme ->
+                val owned = theme in display.owned
+                val wearing = display.wearing(slot) == theme
+                card(ItemStack.of(HallThemeText.icon(theme)), listOf(
+                    lang.gui("hall.display.option", "value" to theme.cosmetic(slot)),
+                    when {
+                        wearing -> lang.gui("hall.display.option_wearing")
+                        owned -> lang.gui("hall.display.option_owned", "theme" to theme.label)
+                        else -> lang.gui("hall.display.option_locked")
+                    },
+                ), if (owned && !wearing) action(Component.text(theme.cosmetic(slot)), "lg_confirm") {
+                    feedback(themes.wear(player.uniqueId, guild.id, slot, theme))
+                    main()
+                } else null)
+            }
+            val actions = listOf(action(lang.gui("hall.display.use_default"), "lg_cancel") {
+                feedback(themes.wear(player.uniqueId, guild.id, slot, null))
                 main()
-            } else null)
+            })
+            show(cards, actions, lang.gui("hall.display.slot_subtitle", "slot" to slot.label), back = ::main)
         }
-        val actions = listOf(action(lang.gui("hall.display.use_default"), "lg_cancel") {
-            feedback(themes.wear(player.uniqueId, guild.id, slot, null))
-            main()
-        })
-        show(cards, actions, lang.gui("hall.display.slot_subtitle", "slot" to slot.label), back = ::main)
     }
 
     private fun wearAll() {
-        val display = read() ?: return
-        val cards = display.owned.map { theme ->
-            card(ItemStack.of(HallThemeText.icon(theme)), HallThemeText.cosmeticLines(lang, theme).take(1) +
-                lang.gui("hall.pick.name", "theme" to theme.label),
-                action(lang.gui("hall.pick.name", "theme" to theme.label), "lg_confirm") {
-                    feedback(themes.wearAll(player.uniqueId, guild.id, theme))
-                    main()
-                })
+        load { display ->
+            val cards = display.owned.map { theme ->
+                card(ItemStack.of(HallThemeText.icon(theme)), HallThemeText.cosmeticLines(lang, theme).take(1) +
+                    lang.gui("hall.pick.name", "theme" to theme.label),
+                    action(lang.gui("hall.pick.name", "theme" to theme.label), "lg_confirm") {
+                        feedback(themes.wearAll(player.uniqueId, guild.id, theme))
+                        main()
+                    })
+            }
+            show(cards, emptyList(), lang.gui("hall.display.wear_all_subtitle"), back = ::main)
         }
-        show(cards, emptyList(), lang.gui("hall.display.wear_all_subtitle"), back = ::main)
     }
 
     private fun pick() {
-        val display = read() ?: return
-        val cards = display.unowned.map { theme ->
-            card(ItemStack.of(HallThemeText.icon(theme)),
-                listOf(lang.gui("hall.pick.name", "theme" to theme.label)) + HallThemeText.cosmeticLines(lang, theme).drop(1),
-                action(lang.gui("hall.pick.name", "theme" to theme.label), "lg_confirm") {
-                    feedback(themes.earn(player.uniqueId, guild.id, theme))
-                    main()
-                })
+        load { display ->
+            val cards = display.unowned.map { theme ->
+                card(ItemStack.of(HallThemeText.icon(theme)),
+                    listOf(lang.gui("hall.pick.name", "theme" to theme.label)) + HallThemeText.cosmeticLines(lang, theme).drop(1),
+                    action(lang.gui("hall.pick.name", "theme" to theme.label), "lg_confirm") {
+                        feedback(themes.earn(player.uniqueId, guild.id, theme))
+                        main()
+                    })
+            }
+            show(cards, emptyList(), lang.gui("hall.display.pick_subtitle", "count" to display.picksLeft), back = ::main)
         }
-        show(cards, emptyList(), lang.gui("hall.display.pick_subtitle", "count" to display.picksLeft), back = ::main)
     }
 
     private fun skin() {
@@ -178,13 +191,14 @@ internal class GuildHallDisplayMenu(
 
     /** REQ-264: closes the dialog and builds a 30-second statue only this player can see. */
     private fun previewInWorld() {
-        val display = read() ?: return
-        player.closeInventory()
-        val service = preview ?: return
-        service.show(player, guild.name, prestigeCount, display, display.skin ?: owner())
-        val pose = display.wearing(HallSlot.POSE)?.cosmetic(HallSlot.POSE)
-        player.sendMessage(lang.msg("hall.feedback.preview", "seconds" to net.lumalyte.lg.infrastructure.services.HallPreviewService.SECONDS,
-            "pose" to (pose ?: "-")))
+        load { display ->
+            player.closeInventory()
+            val service = preview ?: return@load
+            service.show(player, guild.name, prestigeCount, display, display.skin ?: owner())
+            val pose = display.wearing(HallSlot.POSE)?.cosmetic(HallSlot.POSE)
+            player.sendMessage(lang.msg("hall.feedback.preview", "seconds" to net.lumalyte.lg.infrastructure.services.HallPreviewService.SECONDS,
+                "pose" to (pose ?: "-")))
+        }
     }
 
     private fun skinName(display: HallDisplay): String {

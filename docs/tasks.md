@@ -1473,5 +1473,6 @@ Decision (Fain, 2026-11-16): one theme per prestige, chosen on the prestige scre
 - [x] **HALL-DISPLAY** REQ-261. Java dialog (GuildHallDisplayMenu) and Bedrock form (BedrockHallDisplayMenu).
 - [x] **PRESTIGE-MILESTONES** REQ-262. Milestones cards list every tier's rewards.
 - [x] **HALL-PREVIEW** Tag: TDD. REQ-264. Evidence: HallLookTest. Poses show by name only; the statue model has Guard and Victory animations so far.
+- [x] **MENU-ASYNC-READS** REQ-266. MenuLoader (Bukkit async, immediate in unit tests) for progression, Chronicle and Hall Display. Evidence: full suite, MariaDB reward suite.
 - [ ] **HALL-TEST** On TEST: prestige with the theme step, Hall Display changes, Bedrock picks.
 - [ ] **HALL-STATUES** Build the Hall statues that wear these choices (after the TEST cost check).
