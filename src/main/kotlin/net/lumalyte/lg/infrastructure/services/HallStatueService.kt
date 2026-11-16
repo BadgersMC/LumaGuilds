@@ -85,6 +85,14 @@ class HallStatueService(
     fun start() {
         plugin.server.pluginManager.registerEvents(this, plugin)
         net.lumalyte.lg.infrastructure.services.hall.HallSpawnGuard.register(plugin)
+        // REQ-277: statues built before Nexo loaded hold the vanilla stand-in; give them the real badge.
+        net.lumalyte.lg.utils.NexoItemProvider.whenLoaded {
+            Bukkit.getScheduler().runTask(plugin, Runnable {
+                standing.values.forEach { here ->
+                    if (here.crest.isValid) here.crest.setItemStack(net.lumalyte.lg.interaction.menus.guild.PrestigeIcon.item(here.plan.prestige))
+                }
+            })
+        }
         val scheduler = Bukkit.getScheduler()
         tasks += scheduler.runTaskTimerAsynchronously(plugin, Runnable { refreshNow() }, START_DELAY, REFRESH_TICKS)
         tasks += scheduler.runTaskTimer(plugin, Runnable { tick() }, START_DELAY + 20, EFFECT_TICKS)

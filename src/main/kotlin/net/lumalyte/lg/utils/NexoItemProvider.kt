@@ -90,10 +90,16 @@ object NexoItemProvider : Listener {
 
     // ─── event handler ────────────────────────────────────────────────
 
+    private val onLoaded = java.util.concurrent.CopyOnWriteArrayList<() -> Unit>()
+
+    /** Runs [action] each time Nexo (re)loads its items, for things built before they were ready. */
+    fun whenLoaded(action: () -> Unit) { onLoaded += action }
+
     @EventHandler
     fun onNexoItemsLoaded(event: NexoItemsLoadedEvent) {
         itemsLoaded = true
         loadCount++
         logger.info("Nexo items loaded — NexoItemProvider is ready")
+        onLoaded.forEach { runCatching(it).onFailure { e -> logger.warn("A Nexo-loaded callback failed", e) } }
     }
 }
