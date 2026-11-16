@@ -408,6 +408,9 @@ fun guildsModule() = module {
     single<net.lumalyte.lg.application.persistence.GuildHomeActivationRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.GuildHomeActivationRepositorySQL(get())
     }
+    single<net.lumalyte.lg.application.persistence.GuildHomeAccessRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.GuildHomeAccessGrantRepositorySQL(get())
+    }
     single<RankRepository> { RankRepositorySQLite(get()) }
     single<net.lumalyte.lg.application.persistence.RankClaimPermissionProfileRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.RankClaimPermissionProfileRepositorySQL(get())
@@ -446,6 +449,7 @@ fun guildsModule() = module {
             allyHomeAccess = get(),
             prestigePerks = getOrNull(),
             guildBans = get(),
+            homeAccess = get(),
         )
     }
     single<RankService> {
@@ -461,6 +465,7 @@ fun guildsModule() = module {
                     .getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
                     ?.invalidateGuildCache(guildId)
             },
+            adminOverrideService = get(),
         )
     }
     single<MemberService> {
@@ -1045,6 +1050,8 @@ fun progressionModule() = module {
             progressionRepository = get(),
             leaderboardRepository = get(),
             bankService = get(),
+            rewardOwnershipRepository = get(),
+            seasonalElo = get(),
             config = get<ConfigService>().loadConfig().webApi
         )
     }
@@ -1108,7 +1115,7 @@ single {
             provenanceOperations = get(),
         )
     }
-    single { net.lumalyte.lg.infrastructure.listeners.QuestProgressListener(get(), get(), get(), get()) }
+    single { net.lumalyte.lg.infrastructure.listeners.QuestProgressListener(get(), get(), get(), get(), get()) }
 }
 
 /**
@@ -1248,7 +1255,40 @@ fun economyModule() = module {
     }
     single {
         net.lumalyte.lg.application.services.GuildHomeActivationService(
-            get(), get(), { get<ConfigService>().loadConfig() },
+            repository = get(),
+            costs = get(),
+            maySetHome = { guildId, homeName, actorId, existedBefore, _ ->
+                // Resolve lazily to avoid a constructor cycle; never debit when the actor
+                // lost MANAGE_HOME or a "new" name appeared after the UI was opened.
+                val guilds = get<net.lumalyte.lg.application.services.GuildService>()
+                if (!guilds.hasPermission(actorId, guildId, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_HOME)) {
+                    false
+                } else {
+                    val saved = guilds.getHomes(guildId)
+                    val access = get<net.lumalyte.lg.application.persistence.GuildHomeAccessRepository>()
+                    val nameAllowed = if (existedBefore) {
+                        saved.homes.containsKey(homeName) && !guilds.isHomeLocked(guildId, homeName)
+                    } else {
+                        if (saved.size == 0) access.prepareEmptyGuild(guildId)
+                        val noCollision = saved.homeNames.none { it.equals(homeName, ignoreCase = true) }
+                        val freeSlot = if (access.isManaged(guildId)) {
+                            saved.size < 16 && access.canGrantNewHome(guildId, guilds.getAvailableHomeSlots(guildId))
+                        } else saved.size < guilds.getAvailableHomeSlots(guildId)
+                        noCollision && freeSlot
+                    }
+                    // Homes can be anywhere. Never consult claim storage for home locations.
+                    nameAllowed
+                }
+            },
+            config = { get<ConfigService>().loadConfig() },
+            homeAccessState = { guildId, homeName ->
+                get<net.lumalyte.lg.application.persistence.GuildHomeAccessRepository>().state(guildId, homeName)
+            },
+            paidOutpostForNewHome = { guildId, _ ->
+                val guilds = get<net.lumalyte.lg.application.services.GuildService>()
+                get<net.lumalyte.lg.application.persistence.GuildHomeAccessRepository>()
+                    .willUsePaidOutpostForNewHome(guildId, guilds.getAvailableHomeSlots(guildId))
+            },
         )
     }
     single<BankService> { BankServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }

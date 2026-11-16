@@ -41,6 +41,7 @@ class GuildCreationFlowSQLTest : RewardSqlTestFixture() {
         val server = MockBukkit.mock()
         val player = spyk(server.addPlayer())
         val playerId = player.uniqueId
+        every { player.saveData() } just Runs
         val storage = openStorage()
         migrateProductionSchema(storage)
         val cfg = MainConfig(chapterTwoGoldCostsEnabled = true, guild = GuildConfig(createGuildCost = 10))
@@ -60,7 +61,8 @@ class GuildCreationFlowSQLTest : RewardSqlTestFixture() {
         val rankService = RankServiceBukkit(ranks, members, guilds, memberService, mockk(relaxed = true))
         val guildService = GuildServiceBukkit(guilds, ranks, members, rankService, memberService,
             mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
-            mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
+            mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
+            homeAccess = net.lumalyte.lg.infrastructure.services.LegacyHomeAccessTestAdapter)
         val expiry = java.time.Instant.now().plusSeconds(86400)
         if (bypass) {
             guilds.creationCooldownUntil(playerId) // Initialize history schema.
@@ -74,6 +76,7 @@ class GuildCreationFlowSQLTest : RewardSqlTestFixture() {
         val personal = object : PersonalEconomyPort {
             var remaining = 20L
             var withdrawals = 0
+            var refunds = 0
             override fun isAvailable() = true
             override fun balance(playerId: UUID) = remaining
             override fun debit(playerId: UUID, amount: Long): ExternalTransferResult {
@@ -82,6 +85,7 @@ class GuildCreationFlowSQLTest : RewardSqlTestFixture() {
                 return ExternalTransferResult.Applied
             }
             override fun credit(playerId: UUID, amount: Long): ExternalTransferResult {
+                refunds++
                 remaining += amount
                 return ExternalTransferResult.Applied
             }

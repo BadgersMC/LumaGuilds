@@ -7,6 +7,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickEvent
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
+import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
@@ -39,6 +40,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                   private var guild: Guild, private var rank: Rank): Menu, KoinComponent, ChatInputHandler {
 
     private val rankService: RankService by inject()
+    private val adminOverrideService: AdminOverrideService by inject()
     private val memberService: MemberService by inject()
     private val chatInputListener: ChatInputListener by inject()
     private val configService: ConfigService by inject()
@@ -57,10 +59,13 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
     
     // Check if the player is editing their own rank (any rank, not just owner)
     private fun isEditingOwnRank(): Boolean {
-        return rankService.isPlayerRank(player.uniqueId, guild.id, rank.id)
+        return !adminOverrideService.hasOverride(player.uniqueId) &&
+            rankService.isPlayerRank(player.uniqueId, guild.id, rank.id)
     }
 
     private fun canActorReorder(): Boolean {
+        if (isOwnerRank()) return false
+        if (adminOverrideService.hasOverride(player.uniqueId)) return true
         val actorRank = rankService.getPlayerRank(player.uniqueId, guild.id) ?: return false
         return actorRank.priority < rank.priority
     }
@@ -78,7 +83,7 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
     private fun addPriorityButtons(pane: StaticPane) {
         val upNeighbor = siblingAt(net.lumalyte.lg.application.services.PriorityDirection.UP)
         val downNeighbor = siblingAt(net.lumalyte.lg.application.services.PriorityDirection.DOWN)
-        val canUp = canActorReorder() && upNeighbor != null && !isOwnerRank()
+        val canUp = canActorReorder() && upNeighbor != null && upNeighbor.priority != 0 && !isOwnerRank()
         val canDown = canActorReorder() && downNeighbor != null && !isOwnerRank()
 
         val upItem = ItemStack.of(if (canUp) Material.SPECTRAL_ARROW else Material.BARRIER)

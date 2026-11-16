@@ -56,7 +56,8 @@ class GuildProgressionMenu(
     private val progressionService: ProgressionService,
     private val menuFactory: MenuFactory,
     private val menuItemBuilder: MenuItemBuilder,
-    private val configService: ConfigService
+    private val configService: ConfigService,
+    private val adminOverrideService: AdminOverrideService? = null,
 ) : Menu, KoinComponent {
 
     private val lang: LangService by inject()
@@ -78,11 +79,21 @@ class GuildProgressionMenu(
         38, 39, 40, 41, 42, 43
     )
 
+    private fun isMember() = memberService.getMember(player.uniqueId, guild.id) != null
+
+    private fun isScopedInspector() = adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id
+
+    private fun canInspectGuild() = isMember() || isScopedInspector()
+
+    private fun canOpenQuests(): Boolean {
+        val hasQuestPermission = player.hasPermission("lumaguilds.guild.quests")
+        return canInspectGuild() && (hasQuestPermission || isScopedInspector())
+    }
+
     override fun open() {
-        val playerId = player.uniqueId
         guild = guildService.getGuild(guild.id) ?: guild
 
-        if (memberService.getMember(playerId, guild.id) == null) {
+        if (!canInspectGuild()) {
             player.sendMessage(lang.msg("menu.guild_progression.feedback.no_access"))
             menuNavigator.goBack()
             return
@@ -159,8 +170,7 @@ class GuildProgressionMenu(
         } }
         pane.addItem(GuiItem(item) { event ->
             event.isCancelled = true
-            if (memberService.getMember(player.uniqueId, guild.id) != null &&
-                player.hasPermission("lumaguilds.guild.quests")) {
+            if (canOpenQuests()) {
                 menuNavigator.openMenu(menuFactory.createGuildQuestsMenu(menuNavigator, player, guild))
             } else player.sendMessage(lang.msg("quest_discovery.denied"))
         }, x, y)
@@ -178,8 +188,7 @@ class GuildProgressionMenu(
                 theme = guild.guiTheme,
             ),
             {
-                player.isOnline && menuNavigator.isNavigationCurrent(token) &&
-                    memberService.getMember(player.uniqueId, guild.id) != null
+                player.isOnline && menuNavigator.isNavigationCurrent(token) && canInspectGuild()
             },
         ) { player.sendMessage(lang.msg("menu.guild_progression.feedback.load_failed")) }
     }
@@ -203,7 +212,7 @@ class GuildProgressionMenu(
                 "guild_dialogs.progression.reward_states",
                 "purchased" to owned,
                 "available" to offers.count { it.status == RewardOfferStatus.AVAILABLE },
-                "locked" to offers.count { it.status == RewardOfferStatus.LOCKED },
+                "locked" to offers.count { it.status == RewardOfferStatus.LOCKED || it.status == RewardOfferStatus.AUDIT_PENDING },
             )
         return GuildDialogItem(
             NexoItemProvider.getItemStackOrFallback("lg_reward") { ItemStack.of(Material.DIAMOND) },
@@ -216,10 +225,10 @@ class GuildProgressionMenu(
 
     private fun progressionDialogActions() =
         listOfNotNull(
-            nativeAction(lang.gui("achievements.title")) {
+            if (isMember()) nativeAction(lang.gui("achievements.title")) {
                 menuNavigator.openMenu(GuildAchievementsMenu(menuNavigator, player, guild))
-            },
-            if (rewardState is GuildRewardRead.Available) nativeAction(lang.gui("chronicle.title")) {
+            } else null,
+            if (isMember() && rewardState is GuildRewardRead.Available) nativeAction(lang.gui("chronicle.title")) {
                 menuNavigator.openMenu(GuildChronicleMenu(menuNavigator, player, guild))
             } else null,
             nativeAction(lang.gui("guild_dialogs.progression.quests"), ::openNativeQuests),
@@ -230,18 +239,18 @@ class GuildProgressionMenu(
                 sourceDetails = true
                 open()
             },
-            nativeAction(lang.gui("chapter_two_rewards.title")) {
+            if (isMember()) nativeAction(lang.gui("chapter_two_rewards.title")) {
                 if (rewardState is GuildRewardRead.Available) {
                     openRewardCatalog()
                 } else {
                     showLegacyPerks()
                 }
-            },
-            nativeAction(lang.gui("menu.guild_progression.prestige.name"), ::openNativePrestige),
+            } else null,
+            if (isMember()) nativeAction(lang.gui("menu.guild_progression.prestige.name"), ::openNativePrestige) else null,
         )
 
     private fun openNativeQuests() {
-        if (player.hasPermission("lumaguilds.guild.quests")) {
+        if (canOpenQuests()) {
             menuNavigator.openMenu(menuFactory.createGuildQuestsMenu(menuNavigator, player, guild))
         } else {
             player.sendMessage(lang.msg("guild_dialogs.progression.quests_denied"))
@@ -250,6 +259,7 @@ class GuildProgressionMenu(
     }
 
     private fun openNativePrestige() {
+        if (!isMember()) return
         menuNavigator.openMenu(GuildChronicleMenu(menuNavigator, player, guild,
             initialPrestige = true, reviewPrestige = ::openPrestigeSelection))
     }
@@ -449,7 +459,7 @@ class GuildProgressionMenu(
             } }
             pane.addItem(GuiItem(item) {
                 it.isCancelled = true
-                if (offer.status != RewardOfferStatus.AVAILABLE) return@GuiItem
+                if (!isMember() || offer.status != RewardOfferStatus.AVAILABLE) return@GuiItem
                 val quote = rewardPurchases.quote(player.uniqueId, guild.id, offer.reward.id)
                 if (quote == null) player.sendMessage(lang.msg("chapter_two_rewards.purchase.no_quote"))
                 else GuildRewardPurchaseMenu(player, quote, offer.reward.name, ::openRewardCatalog).open()
@@ -576,6 +586,7 @@ class GuildProgressionMenu(
     }
 
     private fun openPrestigeSelection() {
+        if (!isMember()) return
         val overview = prestigeService.overview(guild.id)
         if (overview == null || !overview.enabled || overview.currentLevel != 100 ||
             overview.prestigeCount >= overview.maxPrestigeCount || overview.choices.isEmpty()
@@ -610,6 +621,7 @@ class GuildProgressionMenu(
             } }
             pane.addItem(GuiItem(item) { event ->
                 event.isCancelled = true
+                if (!isMember()) return@GuiItem
                 val quote = prestigeService.quote(player.uniqueId, guild.id, reward.id)
                 if (quote == null) {
                     player.sendMessage(lang.msg("menu.guild_progression.prestige.feedback.quote_failed"))

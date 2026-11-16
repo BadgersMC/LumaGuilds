@@ -24,6 +24,12 @@ class DatabaseMigrationUtility(
     private var mariadbConnection: Connection? = null
 
     internal companion object {
+        // This legacy copier omits guild homes, vault slots, payment journals, and
+        // Chapter 2 ledgers. Never permit a partial cross-database migration.
+        const val MIGRATION_ENABLED = false
+        const val MIGRATION_DISABLED_REASON =
+            "SQLite-to-MariaDB migration is disabled: this copier omits guild homes, vault items, and payment/reward ledgers. Use a validated engine-native export/restore and audited migration."
+
         val MIGRATION_TABLES = listOf(
             "guilds",
             GuildChatRankSettingsSchema.TABLE,
@@ -62,6 +68,14 @@ class DatabaseMigrationUtility(
      */
     fun migrate(): MigrationReport {
         val report = MigrationReport()
+
+        // Fail before opening either connection or executing any DELETE/copy.
+        // Re-enable only after complete table/column coverage and an atomic rehearsal.
+        if (!MIGRATION_ENABLED) {
+            logger.severe(MIGRATION_DISABLED_REASON)
+            report.addError(MIGRATION_DISABLED_REASON)
+            return report
+        }
 
         try {
             logger.info("=== Starting Database Migration: SQLite → MariaDB ===")

@@ -29,6 +29,18 @@ class AdminOverrideServiceImpl : AdminOverrideService {
      * ConcurrentHashMap ensures thread-safe access from multiple threads.
      */
     private val overrideStates = ConcurrentHashMap<UUID, Boolean>()
+    private val viewedGuilds = ConcurrentHashMap<UUID, UUID>()
+
+    override fun setViewedGuild(playerId: UUID, guildId: UUID) {
+        require(hasOverride(playerId)) { "Admin bypass is not enabled" }
+        viewedGuilds[playerId] = guildId
+    }
+
+    override fun getViewedGuild(playerId: UUID): UUID? = if (hasOverride(playerId)) viewedGuilds[playerId] else null
+
+    override fun clearViewedGuild(playerId: UUID) {
+        viewedGuilds.remove(playerId)
+    }
 
     override fun toggleOverride(playerId: UUID): Boolean {
         val currentState = hasOverride(playerId)
@@ -53,12 +65,14 @@ class AdminOverrideServiceImpl : AdminOverrideService {
     }
 
     override fun disableOverride(playerId: UUID) {
+        clearViewedGuild(playerId)
         overrideStates[playerId] = false
         logger.info("Player {} disabled admin guild override", playerId)
     }
 
     override fun clearOverride(playerId: UUID) {
         val wasEnabled = hasOverride(playerId)
+        clearViewedGuild(playerId)
         overrideStates.remove(playerId)
 
         if (wasEnabled) {

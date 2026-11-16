@@ -396,6 +396,7 @@ class LocaleContractTest {
             "menu.war_declaration.item.duration.lore.quick",
             "menu.war_declaration.item.duration.lore.standard",
             "menu.war_declaration.item.duration.lore.extended",
+            "command.migrated.guild.join.override_bypassing_invitation_check",
         )
         assertEquals(retainedLegacyKeys, unused, unused.sorted().joinToString())
     }

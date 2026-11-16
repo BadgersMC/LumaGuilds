@@ -15,6 +15,7 @@ import net.badgersmc.nexus.i18n.LangService
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import net.lumalyte.lg.utils.inventoryframework.StaticPane
+import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.domain.entities.Guild
@@ -37,6 +38,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
                             private val categoryPermissions: List<RankPermission>): Menu, KoinComponent {
 
     private val rankService: RankService by inject()
+    private val adminOverrideService: AdminOverrideService by inject()
     private val configService: ConfigService by inject()
     private val lang: LangService by inject()
     private var modifiedPermissions = rank.permissions.toMutableSet()
@@ -45,7 +47,8 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
     
     // Check if the player is editing their own rank (any rank, not just owner)
     private fun isEditingOwnRank(): Boolean {
-        return rankService.isPlayerRank(player.uniqueId, guild.id, rank.id)
+        return !adminOverrideService.hasOverride(player.uniqueId) &&
+            rankService.isPlayerRank(player.uniqueId, guild.id, rank.id)
     }
 
     override fun open() {

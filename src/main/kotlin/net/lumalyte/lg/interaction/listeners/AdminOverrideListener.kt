@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory
  */
 class AdminOverrideListener(
     private val adminOverrideService: AdminOverrideService,
-    private val guildRolePermissionResolver: GuildRolePermissionResolver
+    private val guildRolePermissionResolver: GuildRolePermissionResolver? = null
 ) : Listener {
 
     private val logger = LoggerFactory.getLogger(AdminOverrideListener::class.java)
@@ -40,7 +40,7 @@ class AdminOverrideListener(
                 adminOverrideService.clearOverride(playerId)
 
                 // Invalidate the player's permission cache
-                guildRolePermissionResolver.invalidatePlayerCache(playerId)
+                guildRolePermissionResolver?.invalidatePlayerCache(playerId)
 
                 logger.debug("Cleared admin override for player {} on logout", playerId)
             }
@@ -50,7 +50,7 @@ class AdminOverrideListener(
 
             // Still attempt to invalidate cache even if clearOverride failed
             try {
-                guildRolePermissionResolver.invalidatePlayerCache(playerId)
+                guildRolePermissionResolver?.invalidatePlayerCache(playerId)
             } catch (cacheException: Exception) {
                 logger.warn("Error invalidating cache for player {} on logout", playerId, cacheException)
             }

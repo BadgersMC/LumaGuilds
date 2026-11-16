@@ -103,7 +103,9 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         slotsItem.lore(lang.gui("menu.common.blank"))
-        if (allHomes.size < availableSlots) {
+        val lockedHomes = allHomes.homeNames.count { guildService.isHomeLocked(guild.id, it) }
+        if (lockedHomes > 0) slotsItem.lore(lang.gui("menu.guild_home.slots.locked_count", "count" to lockedHomes))
+        if (guildService.canCreateNewHome(guild.id)) {
             slotsItem.lore(lang.gui("menu.guild_home.slots.additional"))
         } else {
             slotsItem.lore(lang.gui("menu.guild_home.slots.maximum"))
@@ -132,8 +134,8 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         // Set Additional Home button (if slots available)
-        if (allHomes.size < availableSlots) {
-            val freeSlots = availableSlots - allHomes.size
+        if (guildService.canCreateNewHome(guild.id)) {
+            val freeSlots = (availableSlots - allHomes.size).coerceAtLeast(1)
             val setAdditionalItem =
                 NexoItemProvider.getItemStackOrFallback("lg_home_add") { ItemStack.of(Material.LIME_WOOL) }
                     .name(lang.gui("menu.guild_home.set.additional.name"))
@@ -183,21 +185,27 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             }
             pane.addItem(cancelGuiItem, x, y)
         } else if (allHomes.hasHomes()) {
-            // Show teleport/activation for the default home. Saved Season 1 locations remain locked until paid.
+            // Verified Chapter 1 originals remain usable; only premature paid Outposts stay locked.
             val mainEntry = allHomes.homes.entries.firstOrNull { it.key == "main" } ?: allHomes.homes.entries.firstOrNull()
             if (mainEntry != null) {
                 val mainHomeName = mainEntry.key
                 val mainHome = mainEntry.value
+                val locked = guildService.isHomeLocked(guild.id, mainHomeName)
                 val active = homeActivationService.isActive(guild.id, mainHomeName)
-                val mainIcon = if (active) teleportIcon() else ItemStack.of(Material.GOLD_INGOT)
+                val mainIcon = if (locked) ItemStack.of(Material.BARRIER)
+                    else if (active) teleportIcon() else ItemStack.of(Material.GOLD_INGOT)
                 val mainName =
-                    if (active) {
+                    if (locked) {
+                        lang.gui("menu.guild_home.locked.name", "home" to mainHomeName)
+                    } else if (active) {
                         lang.gui("menu.guild_home.teleport.main.name")
                     } else {
                         lang.gui("menu.guild_home.activation.name", "home" to mainHomeName)
                     }
                 val mainDescription =
-                    if (active) {
+                    if (locked) {
+                        lang.gui("menu.guild_home.locked.description")
+                    } else if (active) {
                         lang.gui("menu.guild_home.teleport.main.description")
                     } else {
                         lang.gui("menu.guild_home.activation.description")
@@ -211,8 +219,10 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                 if (active) teleportItem.lore(lang.gui("menu.guild_home.teleport.main.countdown"))
 
                 val teleportGuiItem = GuiItem(teleportItem) {
-                    if (!active) activateSavedHome(mainHomeName)
-                    else if (guildService.canUseHome(player.uniqueId, guild.id, mainHomeName)) startTeleportCountdown(mainHome)
+                    if (guildService.isHomeLocked(guild.id, mainHomeName)) restoreLockedOutpost(mainHomeName)
+                    else if (!homeActivationService.isActive(guild.id, mainHomeName)) activateSavedHome(mainHomeName)
+                    else if (guildService.canUseHome(player.uniqueId, guild.id, mainHomeName))
+                        startTeleportCountdown(mainHome, mainHomeName)
                     else player.sendMessage(lang.msg("menu.guild_home.feedback.access_denied", "home" to mainHomeName))
                 }
                 pane.addItem(teleportGuiItem, x, y)
@@ -246,8 +256,13 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         if (!rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_HOME)) return
         val homes = guildService.getHomes(guild.id).homes.entries.toList()
         homes.take(9).forEachIndexed { idx, (homeName, _) ->
+            val locked = guildService.isHomeLocked(guild.id, homeName)
             val active = homeActivationService.isActive(guild.id, homeName)
-            val item = if (active) {
+            val item = if (locked) {
+                ItemStack.of(Material.BARRIER)
+                    .name(lang.gui("menu.guild_home.locked.name", "home" to homeName))
+                    .lore(lang.gui("menu.guild_home.locked.description"))
+            } else if (active) {
                 NexoItemProvider.getItemStackOrFallback("lg_home_access") { ItemStack.of(Material.IRON_DOOR) }
                     .name(lang.gui("menu.guild_home.access.name", "home" to homeName))
                     .lore(lang.gui("menu.guild_home.access.description"))
@@ -259,7 +274,9 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                     .lore(lang.gui("menu.guild_home.activation.click"))
             }
             pane.addItem(GuiItem(item) {
-                if (active) menuNavigator.openMenu(menuFactory.createHomeAccessMenu(menuNavigator, player, guild, homeName))
+                if (guildService.isHomeLocked(guild.id, homeName)) restoreLockedOutpost(homeName)
+                else if (homeActivationService.isActive(guild.id, homeName))
+                    menuNavigator.openMenu(menuFactory.createHomeAccessMenu(menuNavigator, player, guild, homeName))
                 else activateSavedHome(homeName)
             }, idx, 3)
         }
@@ -376,6 +393,9 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             }
         }
         
+        // Deleting an over-cap saved home cannot be undone until enough capacity is earned.
+        val overEarnedCapacity = allHomes.size > guildService.getAvailableHomeSlots(guild.id)
+
         // List homes for removal
         var slot = 0
         allHomes.homes.forEach { entry ->
@@ -389,6 +409,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                         .lore(lang.gui("menu.guild_home.world", "world" to worldName))
                         .lore(lang.gui("menu.common.blank"))
                         .lore(lang.gui("menu.guild_home.remove.click"))
+                if (overEarnedCapacity) removeItem.lore(lang.gui("menu.guild_home.remove.over_cap_warning"))
 
                 val removeGuiItem = GuiItem(removeItem) {
                     val success = guildService.removeHome(guild.id, name, player.uniqueId)
@@ -432,6 +453,9 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             val marker = if (name == "main") lang.raw("menu.guild_home.slots.main") else ""
             val worldName = Bukkit.getWorld(home.worldId)?.name ?: lang.raw("general.unknown")
             player.sendMessage(lang.msg("menu.guild_home.slots.row", "home" to name, "marker" to marker, "world" to worldName))
+            if (guildService.isHomeLocked(guild.id, name)) {
+                player.sendMessage(lang.msg("menu.guild_home.feedback.locked_hint", "home" to name))
+            }
         }
         player.sendMessage(lang.msg("menu.guild_home.list.command"))
         player.sendMessage(lang.msg("menu.guild_home.list.footer"))
@@ -457,6 +481,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         val existing = guildService.getHome(guild.id, homeName) != null
         val result = homeActivationService.persistLocation(
             UUID.randomUUID(), guild.id, homeName, player.uniqueId, existedBefore = existing,
+            proposedHome = home,
         ) { guildService.setHome(guild.id, homeName, home, player.uniqueId) }
 
         when (result) {
@@ -496,7 +521,18 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
     }
 
 
+    private fun restoreLockedOutpost(homeName: String) {
+        val success = guildService.restoreLockedOutpost(guild.id, homeName, player.uniqueId)
+        if (success) player.sendMessage(lang.msg("menu.guild_home.feedback.restored", "home" to homeName))
+        else player.sendMessage(lang.msg("menu.guild_home.feedback.restore_unavailable", "home" to homeName))
+        open()
+    }
+
     private fun activateSavedHome(homeName: String) {
+        if (guildService.isHomeLocked(guild.id, homeName)) {
+            restoreLockedOutpost(homeName)
+            return
+        }
         if (!rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_HOME)) {
             player.sendMessage(lang.msg("menu.guild_home.feedback.activation_no_permission"))
             return
@@ -532,7 +568,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         pane.addItem(guiItem, x, y)
     }
 
-    private fun startTeleportCountdown(home: GuildHome, stillAllowed: (() -> Boolean)? = null) {
+    private fun startTeleportCountdown(home: GuildHome, homeName: String? = null, stillAllowed: (() -> Boolean)? = null) {
         val world = Bukkit.getWorld(home.worldId)
         if (world == null) {
             player.sendMessage(lang.msg("menu.guild_home.feedback.world_missing"))
@@ -554,46 +590,20 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             return
         }
 
-        teleportationService.startHomeTeleport(player, targetLocation, stillAllowed)
+        // Fork: cooldown and Quick Travel countdown (REQ-179). Upstream: a named home is rechecked
+        // (access, activation, same coordinates) at the last tick.
+        val recheck = stillAllowed ?: homeName?.let { name ->
+            {
+                guildService.canUseHome(player.uniqueId, guild.id, name) &&
+                    homeActivationService.isActive(guild.id, name) &&
+                    guildService.getHome(guild.id, name) == home
+            }
+        }
+        teleportationService.startHomeTeleport(player, targetLocation, recheck)
     }
 
-    private fun isLocationSafe(location: org.bukkit.Location): Boolean {
-        val block = location.block
-        val blockBelow = location.clone().subtract(0.0, 1.0, 0.0).block
-        val blockAbove = location.clone().add(0.0, 1.0, 0.0).block
-
-        // Define dangerous materials that should prevent teleportation
-        val dangerousMaterials = setOf(
-            org.bukkit.Material.LAVA,
-            org.bukkit.Material.FIRE,
-            org.bukkit.Material.SOUL_FIRE,
-            org.bukkit.Material.CACTUS,
-            org.bukkit.Material.SWEET_BERRY_BUSH,
-            org.bukkit.Material.POINTED_DRIPSTONE,
-            org.bukkit.Material.MAGMA_BLOCK
-        )
-
-        // Check if location has safe ground and space to stand
-        val hasSafeGround = blockBelow.type.isSolid || blockBelow.type == org.bukkit.Material.GRASS_BLOCK ||
-                           blockBelow.type == org.bukkit.Material.DIRT || blockBelow.type == org.bukkit.Material.COARSE_DIRT ||
-                           blockBelow.type == org.bukkit.Material.PODZOL || blockBelow.type == org.bukkit.Material.SAND ||
-                           blockBelow.type == org.bukkit.Material.RED_SAND || blockBelow.type == org.bukkit.Material.GRAVEL ||
-                           blockBelow.type == org.bukkit.Material.STONE || blockBelow.type == org.bukkit.Material.COBBLESTONE
-
-        val hasSpaceToStand = !block.type.isSolid || block.type == org.bukkit.Material.SHORT_GRASS ||
-                             block.type == org.bukkit.Material.TALL_GRASS || block.type == org.bukkit.Material.FERN ||
-                             block.type == org.bukkit.Material.LARGE_FERN
-
-        val hasHeadSpace = !blockAbove.type.isSolid || blockAbove.type == org.bukkit.Material.SHORT_GRASS ||
-                          blockAbove.type == org.bukkit.Material.TALL_GRASS || blockAbove.type == org.bukkit.Material.FERN ||
-                          blockAbove.type == org.bukkit.Material.LARGE_FERN
-
-        val noDangerousBlocks = !dangerousMaterials.contains(blockBelow.type) &&
-                               !dangerousMaterials.contains(block.type) &&
-                               !dangerousMaterials.contains(blockAbove.type)
-
-        return hasSafeGround && hasSpaceToStand && hasHeadSpace && noDangerousBlocks
-    }
+    private fun isLocationSafe(location: org.bukkit.Location): Boolean =
+        net.lumalyte.lg.utils.GuildHomeSafety.isSafeForUnconfirmedUse(location)
 
     private fun teleportIcon(): ItemStack {
         return NexoItemProvider.getItemStackOrFallback("lg_home_teleport") { ItemStack.of(Material.ENDER_PEARL) }

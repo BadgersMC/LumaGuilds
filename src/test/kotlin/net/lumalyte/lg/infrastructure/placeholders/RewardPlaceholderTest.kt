@@ -14,7 +14,8 @@ class RewardPlaceholderTest {
         assertEquals("47500", RewardPlaceholder.value("guild_reward_bank_capacity", state))
         assertEquals("1", RewardPlaceholder.value("guild_reward_home_capacity", state))
         assertEquals("50", RewardPlaceholder.value("guild_reward_member_capacity", state))
-        assertEquals("AVAILABLE", RewardPlaceholder.value("guild_reward_offer_home-1", state))
+        // Outposts require at least Prestige 1; a P0 level-100 guild cannot quote one.
+        assertEquals("LOCKED", RewardPlaceholder.value("guild_reward_offer_home-1", state))
         assertEquals("false", RewardPlaceholder.value("guild_reward_ally_homes", state))
         assertEquals("", RewardPlaceholder.value("guild_reward_offer_unknown", state))
     }
