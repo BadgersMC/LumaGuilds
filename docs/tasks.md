@@ -1535,3 +1535,4 @@ Decision (Fain, 2026-11-16): one theme per prestige, chosen on the prestige scre
 - [ ] **HALL-STATUES** Build the Hall statues that wear these choices (after the TEST cost check).
 
 - [x] **HALL-STATUES** Tag: TDD. REQ-275. Decisions (Fain, 2026-11-16): top guilds by prestige; staff place numbered pedestals; Bedrock sees a plain standing statue. Evidence: HallRankingTest, HallPedestalRepositorySQLTest, HallFacingTest; needs an in-game look on TEST.
+- [x] **HALL-SPAWN-GUARD** Tag: TDD. REQ-276. TEST showed bare plinths flickering: spawn's WorldGuard region denies mob spawning with block-plugin-spawning on, so every mannequin (and armor stand) was cancelled on spawn and the Hall rebuilt the statue twice a second. Evidence: HallSpawnGuardTest; needs an in-game look on TEST.

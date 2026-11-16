@@ -52,7 +52,10 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
     /** Whether [viewer]'s latest preview is animated (BetterModel had the pose model). */
     fun posed(viewer: UUID): Boolean = lastPosed[viewer] == true
 
-    fun start() = plugin.server.pluginManager.registerEvents(this, plugin)
+    fun start() {
+        plugin.server.pluginManager.registerEvents(this, plugin)
+        net.lumalyte.lg.infrastructure.services.hall.HallSpawnGuard.register(plugin)
+    }
 
     fun stop() = active.keys.toList().forEach(::clear)
 

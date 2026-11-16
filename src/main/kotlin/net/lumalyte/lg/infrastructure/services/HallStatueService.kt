@@ -71,9 +71,12 @@ class HallStatueService(
     @Volatile private var plans: List<Plan> = emptyList()
     private val tasks = mutableListOf<BukkitTask>()
     private val refreshQueued = AtomicBoolean(false)
+    /** When each pedestal was last built, so a statue the world keeps removing isn't rebuilt every tick. */
+    private val builtAt = ConcurrentHashMap<Int, Long>()
 
     fun start() {
         plugin.server.pluginManager.registerEvents(this, plugin)
+        net.lumalyte.lg.infrastructure.services.hall.HallSpawnGuard.register(plugin)
         val scheduler = Bukkit.getScheduler()
         tasks += scheduler.runTaskTimerAsynchronously(plugin, Runnable { refreshNow() }, START_DELAY, REFRESH_TICKS)
         tasks += scheduler.runTaskTimer(plugin, Runnable { tick() }, START_DELAY + 20, EFFECT_TICKS)
@@ -147,6 +150,7 @@ class HallStatueService(
                 HallStatuePose.orNull()?.apply(statue, { id -> Bukkit.getPlayer(id)?.let { !bedrock(it) } ?: true }, plan.skin, look.pose)
             }
             built.sword?.let { sword -> Bukkit.getOnlinePlayers().filter(::bedrock).forEach { it.hideEntity(plugin, sword) } }
+            builtAt[plan.pedestal.slot] = System.currentTimeMillis()
             standing[plan.pedestal.slot] = Standing(plan, built.entities, built.top, built.closer, built.sword, look)
             failed.remove(plan.pedestal.slot)
         } catch (e: Exception) {
@@ -168,8 +172,23 @@ class HallStatueService(
     private fun tick() {
         for (plan in plans) {
             val here = standing[plan.pedestal.slot]
-            if (here == null || here.entities.any { !it.isValid }) {
+            if (here == null) {
                 place(plan)
+                continue
+            }
+            val lost = here.entities.filterNot { it.isValid }
+            if (lost.isNotEmpty()) {
+                // REQ-276: a chunk unload takes the statue with it, so rebuild; but something removing it
+                // again within seconds of a build would make it flicker, so stop and say what went.
+                val age = System.currentTimeMillis() - (builtAt[plan.pedestal.slot] ?: 0L)
+                if (age < REBUILD_GRACE_MS && here.top.isChunkLoaded) {
+                    take(plan.pedestal.slot)
+                    failed[plan.pedestal.slot] = plan
+                    logger.warn("The Hall statue on pedestal ${plan.pedestal.slot} keeps being removed " +
+                        "(${lost.joinToString { it.type.name }}); not rebuilding until it changes or /lumaguilds hall refresh")
+                } else {
+                    place(plan)
+                }
                 continue
             }
             val world = here.top.world
@@ -203,5 +222,6 @@ class HallStatueService(
         const val REFRESH_TICKS = 20L * 60 * 5
         const val EFFECT_TICKS = 10L
         const val EFFECT_RANGE = 24.0
+        const val REBUILD_GRACE_MS = 10_000L
     }
 }

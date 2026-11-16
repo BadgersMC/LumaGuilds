@@ -55,7 +55,10 @@ internal object HallStatueBuilder {
                 Vector3f(PLINTH_WIDTH, PLINTH_HEIGHT, PLINTH_WIDTH), AxisAngle4f())
         })
         val top = base.clone().add(0.0, PLINTH_HEIGHT.toDouble(), 0.0)
-        val statue = add(world.spawn(top, Mannequin::class.java) { statue ->
+        var statueId: UUID? = null
+        val statue = try { add(world.spawn(top, Mannequin::class.java) { statue ->
+            statueId = statue.uniqueId
+            HallSpawnGuard.allow(statue.uniqueId)
             statue.setAI(false)
             statue.setGravity(false)
             statue.isInvulnerable = true
@@ -67,7 +70,9 @@ internal object HallStatueBuilder {
             look.armor().forEach { (slot, item) -> statue.equipment.setItem(slot, item) }
             statue.equipment.setItem(EquipmentSlot.OFF_HAND, ItemStack.of(Material.AIR))
             statue.equipment.setItem(EquipmentSlot.HAND, ItemStack.of(look.trophy))
-        })
+        }) } finally { statueId?.let(HallSpawnGuard::done) }
+        // REQ-276: a plugin that still refuses the spawn leaves a dead entity; say so instead of a bare plinth.
+        check(statue.isValid) { "another plugin stopped the statue spawning at ${top.blockX} ${top.blockY} ${top.blockZ}" }
         add(world.spawn(top.clone().add(0.0, 2.35, 0.0), TextDisplay::class.java) {
             it.billboard = Display.Billboard.CENTER
             it.text(Component.text(look.nameplate(guildName), TextColor.color(look.nameColor))
