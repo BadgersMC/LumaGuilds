@@ -26,6 +26,7 @@ class GuildCreationFeedbackTest {
         val player = mockk<Player>(relaxed = true)
         every { player.uniqueId } returns UUID.randomUUID()
         every { guilds.getPlayerGuilds(any()) } returns emptySet()
+        every { repository.isNameTaken(any()) } returns false
         every { repository.creationCooldownUntil(any()) } returns java.time.Instant.now().plusSeconds(3600)
         every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = false)
         every { guilds.createGuild(any(), any(), any()) } returns null
@@ -56,6 +57,7 @@ class GuildCreationFeedbackTest {
         every { player.uniqueId } returns playerId
         every { guilds.getPlayerGuilds(playerId) } returns emptySet()
         every { repository.creationCooldownUntil(playerId) } returns null
+        every { repository.isNameTaken(any()) } returns false
         every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = false)
         startKoin { modules(module {
             single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
@@ -89,6 +91,7 @@ class GuildCreationFeedbackTest {
         every { guilds.getPlayerGuilds(playerId) } returns emptySet()
         every { guilds.createGuild("Valid Name", playerId, null) } returns guild
         every { repository.creationCooldownUntil(playerId) } returns null
+        every { repository.isNameTaken(any()) } returns false
         every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = false)
         mockkObject(net.lumalyte.lg.utils.ChatUtils)
         every { net.lumalyte.lg.utils.ChatUtils.broadcastMessage(any<String>(), any()) } just Runs
@@ -117,6 +120,7 @@ class GuildCreationFeedbackTest {
         every { player.uniqueId } returns playerId
         every { player.hasPermission("lumaguilds.guild.creationcooldown.bypass") } returns true
         every { guilds.getPlayerGuilds(any()) } returns emptySet()
+        every { repository.isNameTaken(any()) } returns false
         every { repository.creationCooldownUntil(any()) } returns java.time.Instant.now().plusSeconds(3600)
         every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = true)
         startKoin { modules(module {
@@ -166,6 +170,7 @@ class GuildCreationFeedbackTest {
         every { player.uniqueId } returns UUID.randomUUID()
         every { guilds.getPlayerGuilds(any()) } returns emptySet()
         every { repository.creationCooldownUntil(any()) } returns null
+        every { repository.isNameTaken(any()) } returns false
         every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = true)
         startKoin { modules(module {
             single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
@@ -186,6 +191,60 @@ class GuildCreationFeedbackTest {
         verify(exactly = 0) { lang.msg("command.migrated.guild.create.the_name_is_already_taken_by_another", *anyVararg()) }
         verify(exactly = 0) { lang.msg("command.migrated.guild.create.guild_created_successfully", *anyVararg()) }
         verify(exactly = 0) { lang.msg("command.migrated.guild.create.a_new_guild_has_been_founded_by", *anyVararg()) }
+        verify(exactly = 0) { guilds.createGuild(any(), any(), any()) }
+        verify(exactly = 3) { costs.createGuild(any(), any(), any()) }
+    }
+
+    @Test fun duplicateGuildNameIsRejectedBeforePayment() {
+        stopKoin()
+        val guilds = mockk<GuildService>()
+        val repository = mockk<GuildRepository>()
+        val costs = mockk<GuildCostService>()
+        val config = mockk<ConfigService>()
+        val lang = mockk<LangService>(relaxed = true)
+        val player = mockk<Player>(relaxed = true)
+        every { player.uniqueId } returns UUID.randomUUID()
+        every { guilds.getPlayerGuilds(any()) } returns emptySet()
+        every { repository.creationCooldownUntil(any()) } returns null
+        every { repository.isNameTaken(any()) } answers {
+            firstArg<String>().equals("Taken Guild", ignoreCase = true)
+        }
+        every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = true)
+        startKoin { modules(module {
+            single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
+        }) }
+
+        GuildCommand().onCreate(player, "Taken Guild", null)
+        GuildCommand().onCreate(player, "tAkEn GuIlD", null)
+
+        verify(exactly = 2) {
+            lang.msg("command.migrated.guild.create.the_name_is_already_taken_by_another", *anyVararg())
+        }
+        verify(exactly = 0) { costs.createGuild(any(), any(), any()) }
+        verify(exactly = 0) { guilds.createGuild(any(), any(), any()) }
+    }
+
+    @Test fun unavailableNameLookupFailsClosedWithoutPayment() {
+        stopKoin()
+        val guilds = mockk<GuildService>()
+        val repository = mockk<GuildRepository>()
+        val costs = mockk<GuildCostService>()
+        val config = mockk<ConfigService>()
+        val lang = mockk<LangService>(relaxed = true)
+        val player = mockk<Player>(relaxed = true)
+        every { player.uniqueId } returns UUID.randomUUID()
+        every { player.server.logger } returns java.util.logging.Logger.getLogger("GuildCreationFeedbackTest")
+        every { guilds.getPlayerGuilds(any()) } returns emptySet()
+        every { repository.isNameTaken(any()) } throws IllegalStateException("repository offline")
+        every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = true)
+        startKoin { modules(module {
+            single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
+        }) }
+
+        GuildCommand().onCreate(player, "Valid New Guild", null)
+
+        verify(exactly = 1) { lang.msg("guild_creation_cooldown.unavailable") }
+        verify(exactly = 0) { costs.createGuild(any(), any(), any()) }
         verify(exactly = 0) { guilds.createGuild(any(), any(), any()) }
     }
 }

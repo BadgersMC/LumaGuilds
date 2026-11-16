@@ -53,6 +53,7 @@ class MemberLimitBatchTest {
         val members = mockk<MemberRepository>()
         val ranks = mockk<RankRepository>()
         val override = mockk<AdminOverrideService>()
+        every { override.hasOverride(playerId) } returns false
         every { override.hasOverride(actorId) } returns true
         every { members.getByPlayerAndGuild(playerId, guildId) } returns member
         every { ranks.getById(oldRank.id) } returns oldRank

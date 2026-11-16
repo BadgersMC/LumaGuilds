@@ -1469,3 +1469,14 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 - [x] **AUDIT-LOG-SWALLOWED** REQ-267. SwallowedErrors on 44 catch sites (prestige, rewards, Chronicle, gold, banners, Vault payment, placeholders, web leaderboard). Evidence: SwallowedErrorsTest.
 - [x] **AUDIT-MARIA-MEMBERSHIP** Tag: TDD. REQ-268. Found by the MariaDB suite: GuildDisbandAtomicityTest failed on "Failed to create membership_history table". Evidence: on MariaDB GuildDisbandAtomicityTest now gets past membership_history; it then stops on the old MariaDB relations schema (guild_id/target_guild_id) that RelationRepositorySQLite can't read, which is left for the upstream sync decision.
 - [x] **AUDIT-MARIA-RELATIONS** Tag: TDD. REQ-273. Evidence: RelationsSchemaRepairSQLTest on MariaDB 10.11 (2 of 2).
+
+- [ ] **MENU-LEGIBILITY** Compact original bank-history headings while preserving
+  customized title interpolation; retain guild context and lighten quest progress.
+  - References: UI-LEG-001 through003, plans/2026-10-29-menu-legibility.md.
+  - Local verification:79focused pass; full2298pass/106skip/0failure/error.
+    Source-only local follow-up to PR19; publication, hosted checks, real-client
+    visual acceptance and mobile-accessible preview delivery remain outstanding.
+
+## Upstream sync, 2026-11-16
+
+- [x] **SYNC-UPSTREAM-60** Merged BadgersMC/lumaguilds main (60 commits). Homes follow upstream: capacity is the base home plus one per prestige plus paid Outposts active in the current prestige, homes can be set anywhere, and saved homes over the cap stay saved but locked until an Outpost is bought again. This fork's ally homes, Quick Travel countdown, home cooldown and prestige perks sit on top; upstream's last-tick recheck runs through the fork's `startHomeTeleport`. Upstream's schema versions 50 and 51 (Outpost acquisitions, home access grants) are renumbered 53 and 54 because this fork already uses 50 to 52. Evidence: full suite.

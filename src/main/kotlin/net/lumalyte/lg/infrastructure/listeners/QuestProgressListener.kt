@@ -11,11 +11,13 @@ import net.lumalyte.lg.application.services.QuestService
 import net.lumalyte.lg.domain.entities.BlockProvenancePolicy
 import net.lumalyte.lg.domain.values.BlockPosition
 import net.lumalyte.lg.domain.values.QuestAction
+import net.lumalyte.lg.infrastructure.services.QuestHarvestBlockRules
+import net.lumalyte.lg.infrastructure.services.QuestVineCascadePlan
+import net.lumalyte.lg.infrastructure.services.RecentVineCredits
 import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.Material
 import org.bukkit.block.Block
-import org.bukkit.block.data.Ageable
 import org.bukkit.entity.Item
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -33,8 +35,10 @@ import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.inventory.CraftItemEvent
 import org.bukkit.event.inventory.FurnaceExtractEvent
 import org.bukkit.event.player.PlayerFishEvent
+import org.bukkit.event.player.PlayerHarvestBlockEvent
 import org.bukkit.inventory.CraftingRecipe
 import org.bukkit.inventory.ItemStack
+import org.bukkit.plugin.Plugin
 import org.slf4j.LoggerFactory
 import java.time.Instant
 
@@ -43,10 +47,13 @@ class QuestProgressListener(
     private val memberService: MemberService,
     private val provenance: BlockProvenanceRepository,
     private val provenanceOperations: BlockProvenanceOperationQueue,
+    private val plugin: Plugin,
 ) : Listener {
     private val logger = LoggerFactory.getLogger(QuestProgressListener::class.java)
     private var trackedMaterialsExpiresAt: Instant = Instant.EPOCH
     private var trackedTargets: Set<String> = emptySet()
+    private val recentVineCredits = RecentVineCredits()
+    private val recentBerryCredits = RecentVineCredits()
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onPlayerKill(event: PlayerDeathEvent) = safely("player kill") {
@@ -74,12 +81,16 @@ class QuestProgressListener(
         }
 
         val customTarget = nexoBlockTarget(event.block)
-        val target = customTarget ?: minecraftBlockTarget(event.block.type)
-        val action = if (customTarget != null) {
-            QuestAction.MINE_BLOCKS
+        if (customTarget == null && QuestHarvestBlockRules.isGrowingPlant(event.block.type)) {
+            recordGrowingPlantBreak(event)
+            return@safely
+        }
+
+        val (action, target) = if (customTarget != null) {
+            QuestAction.MINE_BLOCKS to customTarget
         } else {
-            val data = event.block.blockData
-            if (data is Ageable && data.age >= data.maximumAge) QuestAction.HARVEST_CROPS else QuestAction.MINE_BLOCKS
+            val result = QuestHarvestBlockRules.classify(event.block.type, event.block.blockData)
+            result.action to minecraftBlockTarget(result.targetMaterial)
         }
 
         val position = event.block.position()
@@ -109,6 +120,109 @@ class QuestProgressListener(
                 }
             }
         }
+    }
+
+    private data class CapturedVineSegment(
+        val y: Int,
+        val position: BlockPosition,
+        val context: QuestProgressContext,
+    )
+
+    /**
+     * Physics-breaks below hanging vines (or above kelp/twisting vines) do not
+     * emit additional player BlockBreakEvents. Snapshot the same stalk now,
+     * then count only blocks actually removed once the vanilla physics settles.
+     */
+    private fun recordGrowingPlantBreak(event: BlockBreakEvent) {
+        val block = event.block
+        val original = block.type
+        val world = block.world
+        val x = block.x
+        val z = block.z
+        val candidates = QuestVineCascadePlan.captureYs(
+            original, block.y, world.minHeight, world.maxHeight,
+        ) { y -> world.getBlockAt(x, y, z).type }.map { y ->
+            val segment = world.getBlockAt(x, y, z)
+            CapturedVineSegment(y, segment.position(), context(event.player, segment))
+        }
+        if (candidates.isEmpty()) return
+
+        val playerId = event.player.uniqueId
+        val target = minecraftBlockTarget(QuestHarvestBlockRules.normalizedTip(original))
+        val candidateYs = candidates.map { it.y }
+        val verifier = object : Runnable {
+            var accountedFor = 0
+            var idleTicks = 0
+            var checks = 0
+
+            override fun run() {
+                checks++
+                // Some vanilla plant-physics updates can be scheduled on later ticks.
+                // Check the next unaccounted segment, not only a single tick after the break.
+                val end = QuestVineCascadePlan.removedPrefixEnd(
+                    original, candidateYs, accountedFor,
+                ) { y -> world.getBlockAt(x, y, z).type }
+                val disappeared = candidates.subList(accountedFor, end)
+                accountedFor = end
+
+                if (disappeared.isNotEmpty()) {
+                    idleTicks = 0
+                    val tick = world.fullTime
+                    val credited = disappeared.filter { recentVineCredits.record(it.position, tick) }
+                    if (credited.isNotEmpty()) {
+                        // All Bukkit/world access stays on the tick thread; only
+                        // immutable context enters the serialized quest queue.
+                        background {
+                            progressSafely("vine cascade") {
+                                credited.forEach { segment ->
+                                    incrementCaptured(playerId, QuestAction.HARVEST_CROPS, target, 1, segment.context)
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // If the player's original block was never removed, it was likely
+                    // canceled. Do not keep watching and claim an unrelated later break.
+                    if (checks == 1) return
+                    idleTicks++
+                }
+
+                // Bounded: no indefinite polling if some segments survive or a
+                // protection plugin prevents the rest of the stalk collapsing.
+                if (accountedFor < candidates.size && idleTicks < 8 &&
+                    checks < candidates.size + 8) {
+                    Bukkit.getScheduler().runTaskLater(plugin, this, 1L)
+                }
+            }
+        }
+        Bukkit.getScheduler().runTask(plugin, verifier)
+    }
+
+    /** Right-clicking berries is a harvest, but never a player block break. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onGlowBerryHarvest(event: PlayerHarvestBlockEvent) = safely("glow berry harvest") {
+        if (!eligible(event.player)) return@safely
+        val block = event.harvestedBlock
+        if (!QuestHarvestBlockRules.canHarvestGlowBerries(block.type, block.blockData)) return@safely
+        if (event.itemsHarvested.none { it.type == Material.GLOW_BERRIES && it.amount > 0 }) return@safely
+
+        val playerId = event.player.uniqueId
+        val position = block.position()
+        val snapshot = context(event.player, block)
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            // Do not credit a cancelled, duplicate, or unsuccessful berry harvest.
+            if (!QuestHarvestBlockRules.sameFamily(Material.CAVE_VINES, block.type) ||
+                QuestHarvestBlockRules.canHarvestGlowBerries(block.type, block.blockData)) return@Runnable
+            if (!recentBerryCredits.record(position, block.world.fullTime)) return@Runnable
+            background {
+                progressSafely("glow berry harvest") {
+                    incrementCaptured(
+                        playerId, QuestAction.HARVEST_CROPS,
+                        minecraftBlockTarget(Material.CAVE_VINES), 1, snapshot,
+                    )
+                }
+            }
+        })
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

@@ -4,6 +4,7 @@ import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import net.lumalyte.lg.application.persistence.LeaderboardRepository
 import net.lumalyte.lg.application.persistence.ProgressionRepository
+import net.lumalyte.lg.application.persistence.RewardOwnershipRepository
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.GuildBannerService
 import net.lumalyte.lg.application.services.GuildService
@@ -11,10 +12,14 @@ import net.lumalyte.lg.application.services.LeaderboardService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.config.WebApiConfig
 import net.lumalyte.lg.domain.entities.LeaderboardPeriod
+import net.lumalyte.lg.domain.entities.GuildMode
+import net.lumalyte.lg.domain.rewards.RewardOwnershipRead
 import net.lumalyte.lg.infrastructure.web.dto.BannerDto
 import net.lumalyte.lg.infrastructure.web.dto.BannerPatternDto
 import net.lumalyte.lg.infrastructure.web.dto.GuildLeaderboardEntryDto
 import net.lumalyte.lg.infrastructure.web.dto.GuildLeaderboardResponse
+import net.lumalyte.lg.infrastructure.web.dto.GuildDirectoryPageDto
+import net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.ZoneOffset
@@ -31,6 +36,8 @@ class GuildLeaderboardHandler(
     private val progressionRepository: ProgressionRepository,
     private val leaderboardRepository: LeaderboardRepository,
     private val bankService: BankService,
+    private val rewardOwnershipRepository: RewardOwnershipRepository,
+    private val seasonalElo: SeasonalEloCoordinator,
     private val config: WebApiConfig
 ) {
     private val miniMessage = MiniMessage.miniMessage()
@@ -74,6 +81,42 @@ class GuildLeaderboardHandler(
             count = entries.size,
             entries = entries
         )
+    }
+
+    private data class DirectoryCapture(val revision: String, val generatedAt: Instant, val entries: List<GuildLeaderboardEntryDto>)
+    private val directoryCaptures = LinkedHashMap<String, DirectoryCapture>()
+
+    /** Freeze a bounded capture for pagination. Source reads are not a database transaction. */
+    @Synchronized
+    fun buildDirectoryPage(offset: Int, limit: Int, revision: String? = null): GuildDirectoryPageDto {
+        require(offset >= 0 && limit in 1..50)
+        val now = Instant.now()
+        directoryCaptures.entries.removeIf { it.value.generatedAt.plusSeconds(30).isBefore(now) }
+        val capture = if (offset == 0 && revision == null) {
+            directoryCaptures.values.lastOrNull()?.takeIf { it.generatedAt.plusSeconds(10).isAfter(now) } ?: run {
+                val guilds = guildService.getAllGuilds().sortedBy { it.id.toString() }
+                check(guilds.size <= 1000) { "Directory exceeds capture limit" }
+                val entries = guilds.mapIndexed { index, guild ->
+                    val entry = requireNotNull(buildEntry(guild.id, index + 1, 0.0)) { "Guild disappeared during directory read" }
+                    val memberIds = memberService.getGuildMembers(guild.id).map { it.playerId.toString() }.sorted()
+                    check(memberIds.size == entry.memberCount) { "Guild membership changed during directory read" }
+                    entry.copy(memberUuids = memberIds.takeIf { it.size <= 200 })
+                }
+                val bytes = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
+                val id = bytes.joinToString("") { "%02x".format(it.toInt() and 0xff) }
+                DirectoryCapture(id, now, entries).also {
+                    while (directoryCaptures.size >= 4) directoryCaptures.remove(directoryCaptures.keys.first())
+                    directoryCaptures[id] = it
+                }
+            }
+        } else {
+            require(revision != null && revision.matches(Regex("[0-9a-f]{64}")))
+            checkNotNull(directoryCaptures[revision]) { "Directory capture expired" }
+        }
+        require(offset <= capture.entries.size)
+        val page = capture.entries.drop(offset).take(limit)
+        val next = (offset + page.size).takeIf { it < capture.entries.size }
+        return GuildDirectoryPageDto(capture.generatedAt.toString(), capture.revision, capture.entries.size, offset, next, page)
     }
 
     /**
@@ -189,7 +232,13 @@ class GuildLeaderboardHandler(
             topMemberUuids = topMembers,
             banner = banner,
             createdAt = guild.createdAt.toString(),
-            score = score
+            score = score,
+            prestige = try {
+                (rewardOwnershipRepository.read(guild.id) as? RewardOwnershipRead.Found)
+                    ?.snapshot?.ownership?.prestigeCount
+            } catch (_: Exception) { null },
+            peaceful = guild.mode == GuildMode.PEACEFUL,
+            seasonalElo = try { seasonalElo.recordedCurrentRating(guild.id) } catch (_: Exception) { null }
         )
     }
 

@@ -46,10 +46,11 @@ class GuildPrestigePreviewTest {
     fun `first prestige lists the home slot change, kept member limit and Discord role`() {
         guildAt(0)
         val preview = service().preview(quote(0))!!
-        val homeTwo = (RewardCatalog.chapterTwo().find("home-2")!!.effect as RewardEffect.HomeCapacity).amount
+        // Upstream home policy: capacity is the base home plus one per prestige plus paid Outposts
+        // active in the current prestige; an old permanent "home-2" id no longer adds a slot.
         assertEquals(1, preview.tier)
-        assertEquals(1 + homeTwo, preview.homeSlotsBefore)
-        assertEquals(2 + homeTwo, preview.homeSlotsAfter)
+        assertEquals(1, preview.homeSlotsBefore)
+        assertEquals(2, preview.homeSlotsAfter)
         assertEquals(settings.guild.memberCapacity.max.coerceAtMost(settings.guild.maxMembersPerGuild), preview.memberLimitKept)
         assertEquals(settings.discordGuildRoles.minimumLevel, preview.discordRoleMinimumLevel)
         assertTrue(preview.firstOnServer)

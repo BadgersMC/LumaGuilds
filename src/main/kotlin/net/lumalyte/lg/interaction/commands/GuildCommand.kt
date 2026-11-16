@@ -12,7 +12,6 @@ import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.DepartureReason
 import net.lumalyte.lg.application.services.ConfigService
-import net.lumalyte.lg.application.actions.claim.GetClaimAtPosition
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.GuildHome
 import net.lumalyte.lg.domain.entities.GuildMode
@@ -53,7 +52,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val inviteBlocks: net.lumalyte.lg.application.services.InviteBlockService by inject()
     private val vaultService: net.lumalyte.lg.application.services.GuildVaultService by inject()
     private val warService: net.lumalyte.lg.application.services.WarService by inject()
-    private val getClaimAtPosition: GetClaimAtPosition by inject()
     private val configService: ConfigService by inject()
     private val menuFactory: MenuFactory by inject()
     private val progressionService: net.lumalyte.lg.application.services.ProgressionService by inject()
@@ -80,8 +78,11 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
     }
 
-    internal fun checkHomeSafety(player: Player, target: Location, confirmCommand: String): Boolean {
-        val result = GuildHomeSafety.checkAndRemember(player, target)
+    internal fun checkHomeSafety(
+        player: Player, target: Location, confirmCommand: String,
+        guildId: UUID? = null, homeName: String? = null,
+    ): Boolean {
+        val result = GuildHomeSafety.checkAndRemember(player, target, guildId, homeName)
         if (result.safe) return true
 
         val reason = when (requireNotNull(result.issue)) {
@@ -164,6 +165,22 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val nameFilterConfig = configService.loadConfig().guild.nameFilter
         GuildNameFilter.checkName(name, nameFilterConfig)?.let { reason ->
             player.sendMessage(lang.msg("command.migrated.guild.create.blank_line", "reason" to reason))
+            return
+        }
+
+        // Reject known duplicate names before any payment reservation or debit.
+        // GuildServiceBukkit still validates the name during creation for races.
+        val nameTaken = try {
+            guildRepository.isNameTaken(name)
+        } catch (e: Exception) {
+            player.server.logger.log(java.util.logging.Level.WARNING,
+                "Guild name availability check failed for creator $playerId; no payment attempted", e)
+            player.sendMessage(lang.msg("guild_creation_cooldown.unavailable"))
+            return
+        }
+        if (nameTaken) {
+            player.sendMessage(lang.msg("command.migrated.guild.create.the_name_is_already_taken_by_another", "name" to name))
+            player.sendMessage(lang.msg("command.migrated.guild.create.please_choose_a_different_name"))
             return
         }
 
@@ -362,40 +379,9 @@ class GuildCommand : BaseCommand(), KoinComponent {
             }
         }
 
-        // Check if claims are enabled in config
+        // Guild homes are independent of land claims; outpost entitlement and safety
+        // are validated separately before the home is saved or activated.
         val config = configService.loadConfig()
-        if (config.claimsEnabled) {
-            // Check if player is standing in a claim
-            val claimResult = getClaimAtPosition.execute(location.world.uid, location.toPosition3D())
-            when (claimResult) {
-                is net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult.Success -> {
-                    val claim = claimResult.claim
-
-                    // Check if the claim is guild-owned
-                    if (claim.teamId == null) {
-                        player.sendMessage(lang.msg("command.migrated.guild.sethome.you_can_only_set_guild_home_in"))
-                        player.sendMessage(lang.msg("command.migrated.guild.sethome.use_the_bell_menu_to_convert_this"))
-                        return
-                    }
-
-                    // Check if the claim belongs to the player's guild
-                    if (claim.teamId != guild.id) {
-                        player.sendMessage(lang.msg("command.migrated.guild.sethome.you_can_only_set_guild_home_in_2"))
-                        player.sendMessage(lang.msg("command.migrated.guild.sethome.this_claim_belongs_to_a_different_guild"))
-                        return
-                    }
-                }
-                is net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult.NoClaimFound -> {
-                    player.sendMessage(lang.msg("command.migrated.guild.sethome.you_must_be_standing_in_a_guild"))
-                    player.sendMessage(lang.msg("command.migrated.guild.sethome.place_a_bell_and_convert_it_to"))
-                    return
-                }
-                is net.lumalyte.lg.application.results.claim.GetClaimAtPositionResult.StorageError -> {
-                    player.sendMessage(lang.msg("command.migrated.guild.sethome.an_error_occurred_while_checking_your_location"))
-                    return
-                }
-            }
-        }
 
         // Block only when the *named* home being set already exists. Looking up by guild.id
         // alone returns the default ("main") home, which incorrectly blocked /g sethome <name>
@@ -469,17 +455,30 @@ class GuildCommand : BaseCommand(), KoinComponent {
     @CommandPermission("lumaguilds.guild.home")
     @CommandCompletion("@guildaccessiblehomes confirm")
     fun onHome(player: Player, @Optional homeName: String?, @Optional confirm: String?) {
+        // ACF may dispatch an optional-argument `home` route before its nested
+        // `home unlock` route. Both routes must still authorize restoration.
+        if (homeName.equals("unlock", ignoreCase = true) && !confirm.isNullOrBlank()) {
+            if (!player.hasPermission("lumaguilds.guild.sethome")) {
+                player.sendMessage(lang.msg("command.migrated.guild.home.restore_no_permission"))
+                return
+            }
+            onHomeUnlock(player, confirm)
+            return
+        }
         // Handle "/guild home confirm" — ACF puts "confirm" into homeName, not confirm param
         val isConfirm = confirm?.lowercase() == "confirm" || homeName?.lowercase() == "confirm"
         if (isConfirm) {
-            val pendingLocation = GuildHomeSafety.consumePending(player)
-            if (pendingLocation != null) {
-                teleportationService.startHomeTeleport(player, pendingLocation)
-                return
-            } else {
+            val pending = GuildHomeSafety.consumePendingGuildHome(player)
+            if (pending == null ||
+                !mayCompleteHomeTeleport(player.uniqueId, pending.guildId, pending.homeName, pending.location)
+            ) {
                 player.sendMessage(lang.msg("command.migrated.guild.home.no_pending_unsafe_teleport_to_confirm_or"))
                 return
             }
+            teleportationService.startHomeTeleport(player, pending.location, stillAllowed = {
+                mayCompleteHomeTeleport(player.uniqueId, pending.guildId, pending.homeName, pending.location)
+            })
+            return
         }
 
         val playerId = player.uniqueId
@@ -496,6 +495,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val home = guildService.getHome(guild.id, targetHomeName)
 
         if (home != null) {
+            if (guildService.isHomeLocked(guild.id, targetHomeName)) {
+                player.sendMessage(lang.msg("command.migrated.guild.home.locked", "home" to targetHomeName))
+                return
+            }
             if (!guildHomeActivationService.isActive(guild.id, targetHomeName)) {
                 player.sendMessage(lang.msg("command.migrated.guild.home.saved_but_inactive", "target_home_name" to targetHomeName))
                 player.sendMessage(lang.msg("command.migrated.guild.home.activation_hint", "target_home_name" to targetHomeName))
@@ -531,13 +534,16 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
             // Check if target location is safe (if safety check is enabled)
             if (configService.loadConfig().guild.homeTeleportSafetyCheck) {
-                if (!checkHomeSafety(player, targetLocation, "/guild home confirm")) {
+                if (!checkHomeSafety(player, targetLocation, "/guild home confirm", guild.id, targetHomeName)) {
                     return
                 }
             }
 
             // Start teleport countdown via centralized service
-            teleportationService.startHomeTeleport(player, targetLocation)
+            // Fork cooldown and Quick Travel countdown (REQ-179) with upstream's last-tick recheck.
+            teleportationService.startHomeTeleport(player, targetLocation, stillAllowed = {
+                mayCompleteHomeTeleport(playerId, guild.id, targetHomeName, targetLocation)
+            })
         } else {
             // Check if the guild has any homes at all
             val allHomes = guildService.getHomes(guild.id)
@@ -580,7 +586,11 @@ class GuildCommand : BaseCommand(), KoinComponent {
                 } else {
                     lang.msg("command.migrated.guild.homes.home_row", "name" to name, "world_name" to worldName)
                 }
-                player.sendMessage(row)
+                player.sendMessage(
+                    if (guildService.isHomeLocked(guild.id, name))
+                        row.append(lang.msg("command.migrated.guild.homes.locked_row", "home" to name))
+                    else row
+                )
             }
             player.sendMessage(lang.msg("command.migrated.guild.homes.use_guild_home_name_to_teleport_to"))
         } else {
@@ -592,6 +602,31 @@ class GuildCommand : BaseCommand(), KoinComponent {
             player.sendMessage(lang.msg("command.migrated.guild.homes.use_guild_sethome_name_to_set_additional"))
         }
         player.sendMessage(lang.msg("command.migrated.guild.homes.blank_line_2"))
+    }
+
+    /** Redeem one previously purchased Outpost credit for its original saved location. */
+    @Subcommand("home unlock")
+    @CommandPermission("lumaguilds.guild.sethome")
+    @CommandCompletion("@guildaccessiblehomes")
+    fun onHomeUnlock(player: Player, homeName: String) {
+        val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull() ?: return
+        if (guildService.restoreLockedOutpost(guild.id, homeName, player.uniqueId)) {
+            player.sendMessage(lang.msg("command.migrated.guild.home.restore_success", "home" to homeName))
+        } else {
+            player.sendMessage(lang.msg("command.migrated.guild.home.restore_unavailable", "home" to homeName))
+        }
+    }
+
+    private fun mayCompleteHomeTeleport(playerId: UUID, guildId: UUID, homeName: String, target: Location): Boolean {
+        if (!guildService.canUseHome(playerId, guildId, homeName) ||
+            !guildHomeActivationService.isActive(guildId, homeName)
+        ) return false
+        val saved = guildService.getHome(guildId, homeName) ?: return false
+        val world = target.world ?: return false
+        return saved.worldId == world.uid &&
+            saved.position.x == target.blockX &&
+            saved.position.y == target.blockY &&
+            saved.position.z == target.blockZ
     }
 
     @Subcommand("removehome")
@@ -1659,10 +1694,10 @@ class GuildCommand : BaseCommand(), KoinComponent {
             return
         }
 
-        // Admin override bypasses invitation requirements
+        // An admin inspection must never create a real guild membership or occupy a slot.
+        // Force-joining members is a separate, audited administrative operation.
         if (adminOverrideService.hasOverride(playerId)) {
-            player.sendMessage(lang.msg("command.migrated.guild.join.override_bypassing_invitation_check"))
-            joinGuildDirectly(player, guild, isOpenGuild = guild.isOpen)
+            player.sendMessage("Admin bypass does not join guilds. Use /lumaguilds admin view <guild> to inspect without joining.")
             return
         }
 
@@ -2443,7 +2478,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
             position = location.toPosition3D()
         )
 
-        val config = configService.loadConfig()
         val existing = guildService.getHome(guild.id, homeName) != null
         val result = guildHomeActivationService.persistLocation(
             UUID.randomUUID(),
@@ -2451,6 +2485,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
             homeName,
             player.uniqueId,
             existedBefore = existing,
+            proposedHome = home,
         ) {
             guildService.setHome(guild.id, homeName, home, player.uniqueId)
         }
@@ -2465,10 +2500,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
                         "cost" to result.cost,
                     ))
                 }
-                if (config.claimsEnabled) {
-                    player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.this_location_is_within_your_guild_s"))
-                }
-                player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.members_can_now_use_guild_home_to"))
+                 player.sendMessage(lang.msg("command.migrated.guild.setguildhomecommand.members_can_now_use_guild_home_to"))
             }
             is net.lumalyte.lg.application.services.HomeActivationCostResult.Rejected -> {
                 if (result.reason == net.lumalyte.lg.domain.gold.GuildGoldRejection.INSUFFICIENT_FUNDS) {

@@ -31,6 +31,7 @@ class QuestProvenanceAsyncTest {
             mockk<MemberService>(relaxed = true),
             mockk<BlockProvenanceRepository>(relaxed = true),
             queue,
+            mockk<org.bukkit.plugin.Plugin>(),
         )
 
         listener.onBankContribution(GuildBankContributionEvent(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()))
@@ -45,7 +46,7 @@ class QuestProvenanceAsyncTest {
         val workers = mutableListOf<Runnable>()
         val queue = BlockProvenanceOperationQueue(Executor { workers.add(it) })
         val repository = mockk<BlockProvenanceRepository>(relaxed = true)
-        val listener = QuestProgressListener(mockk<QuestService>(), mockk<MemberService>(), repository, queue)
+        val listener = QuestProgressListener(mockk<QuestService>(), mockk<MemberService>(), repository, queue, mockk())
         val world = mockk<World>()
         val worldId = UUID.randomUUID()
         every { world.uid } returns worldId

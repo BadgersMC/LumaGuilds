@@ -892,6 +892,7 @@ internal abstract class BankQuestContributionContract : BankDepositDeliveryFixtu
             mockk<MemberService>(relaxed = true),
             mockk<BlockProvenanceRepository>(relaxed = true),
             BlockProvenanceOperationQueue(Executor { it.run() }),
+            mockk<org.bukkit.plugin.Plugin>(),
         )
     }
 

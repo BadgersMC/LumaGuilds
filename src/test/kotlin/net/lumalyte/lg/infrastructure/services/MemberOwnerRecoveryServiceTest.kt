@@ -101,6 +101,7 @@ internal class MemberOwnerRecoveryServiceTest {
         every { members.isPlayerInGuild(playerId, guildId) } returns true
         every { members.getByPlayerAndGuild(playerId, guildId) } returns owner
         every { ranks.getById(ownerRank.id) } returns ownerRank
+        every { override.hasOverride(playerId) } returns false
         every { override.hasOverride(actorId) } returns true
 
         assertFalse(service().removeMember(playerId, guildId, if (self) playerId else actorId))

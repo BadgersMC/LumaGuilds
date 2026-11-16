@@ -35,6 +35,8 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
             .filter { !it.isLegacy }
             .filter { it.isBlock && !it.isAir }
             .filterNot { it.name in TECHNICAL_BLOCKS }
+            // Only growing tips are harvest targets; body blocks share the same quest identity.
+            .filterNot(QuestHarvestBlockRules::isVineSegment)
             .forEach { material ->
                 val ageable = runCatching { material.createBlockData() is Ageable }.getOrDefault(false)
                 val rarity = blockRarity(material, compressionBlocks)

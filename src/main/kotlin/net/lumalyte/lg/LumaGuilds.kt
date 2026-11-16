@@ -1227,11 +1227,13 @@ class LumaGuilds : JavaPlugin() {
             }
         }
 
-        // Register admin override listener (for logout cleanup) - only when claims enabled
-        if (claimsEnabled) {
-            val adminOverrideListener = get().get<net.lumalyte.lg.interaction.listeners.AdminOverrideListener>()
-            server.pluginManager.registerEvents(adminOverrideListener, this)
-        }
+        // Session-only bypass must be cleared on logout even when claims are disabled.
+        server.pluginManager.registerEvents(
+            net.lumalyte.lg.interaction.listeners.AdminOverrideListener(
+                get().get(), get().getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>(),
+            ),
+            this,
+        )
 
         // Guild Strikes — prefer the provider-neutral EnthusiaStaff lifecycle feed.
         server.pluginManager.registerEvents(
@@ -1556,6 +1558,12 @@ class LumaGuilds : JavaPlugin() {
     }
 
     override fun onDisable() {
+        // A migration failure aborts onEnable before pluginScope/Koin exist.
+        // Bukkit may still invoke onDisable; there are no runtime services to tear down.
+        if (!::pluginScope.isInitialized) {
+            logColored("🛑 LumaGuilds disabled before runtime startup")
+            return
+        }
         runCatching { org.koin.core.context.GlobalContext.getOrNull()?.getOrNull<net.lumalyte.lg.infrastructure.services.GuildAchievementRuntime>()?.stop() }
         // This irreversible gate must run before unrelated cleanup can throw or services are unregistered.
         inviteBlockLifecycle?.close()

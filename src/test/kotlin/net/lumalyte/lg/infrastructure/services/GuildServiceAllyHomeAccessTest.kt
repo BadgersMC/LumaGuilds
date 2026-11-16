@@ -93,6 +93,7 @@ class GuildServiceAllyHomeAccessTest {
                     every { it.standing(any()) } returns net.lumalyte.lg.domain.rewards.PrestigeStanding(targetPrestige, null, 0)
                 },
             ) { net.lumalyte.lg.domain.rewards.PrestigePerks(net.lumalyte.lg.config.PrestigePerksConfig()) },
+            homeAccess = LegacyHomeAccessTestAdapter,
         )
     }
 
