@@ -888,3 +888,8 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-253
 **Event-driven.** WHEN a player with `lumaguilds.admin.prestige` runs `/lumaguilds prestige preview <tier> [guild]`, THE SYSTEM SHALL play that tier's rank-up animation and members' fanfare (or the plain title where REQ-252 applies) to that player only, with the given or their own guild name as subtitle, and SHALL NOT change any guild, record history, announce, or play anything to other players.
+
+## Staff sound preview
+
+### REQ-254
+**Event-driven.** WHEN a player with `lumaguilds.admin.sounds` runs `/lumaguilds sounds`, THE SYSTEM SHALL list every guild sound by group with a click-to-play entry and a hover saying when players hear it; `/lumaguilds sounds <id>` SHALL play that sound to the sender only, `all` SHALL play every sound once in order with its name on the action bar, and `stop` SHALL end a running preview. War, prestige and rank-up previews SHALL use the same cue definitions as the live events, and no preview SHALL change a guild or reach another player.

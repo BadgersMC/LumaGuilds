@@ -6992,6 +6992,18 @@ permission:
     lore: Allows you to view lecterns
     name: View
 admin:
+  sounds:
+    help: '<yellow>/lumaguilds sounds [id|all|stop] <gray>- Hear any guild sound yourself; nothing changes'
+    players_only: '<red>Only a player in game can preview sounds.'
+    header: '<gold>Guild sounds <gray>(<count>) · click one to hear it, hover to see when it plays'
+    group: '<yellow><group>'
+    entry: '<dark_gray> ▶ <white><label> <dark_gray>(<id>)'
+    footer: '<gray>Click here to play them all in order, or use <white>/lumaguilds sounds stop<gray>.'
+    unknown: '<red>No guild sound called <white><id></white>. Use <white>/lumaguilds sounds</white> to see them all.'
+    now: '<gold>♪ <label> <gray>· <when>'
+    playing_all: '<gray>Playing all <white><count></white> guild sounds in order (about <seconds>s). Only you can hear them.'
+    finished: '<gray>That was every guild sound.'
+    stopped: '<gray>Sound preview stopped.'
   prestige:
     help: '<yellow>/lumaguilds prestige info|set|grant|rerun \<guild> <gray>- Inspect or correct a guild''s prestige (Tab shows what to type). <yellow>/lumaguilds prestige preview \<tier> <gray>- Watch the rank-up yourself'
     usage: '<gray>Usage: <white>/lumaguilds prestige info|set|grant|rerun \<guild> ... <gray>or <white>/lumaguilds prestige preview \<tier> [guild]'
