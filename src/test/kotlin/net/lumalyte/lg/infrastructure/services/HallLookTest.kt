@@ -50,3 +50,20 @@ class HallPoseNameTest {
         assertEquals("lg_prestige_6", net.lumalyte.lg.interaction.menus.guild.PrestigeIcon.id(9))
     }
 }
+
+class HallSwordPlacementTest {
+    @Test
+    fun `the guard sword stands in front of the statue, point down, about a block tall`() {
+        val (x, z) = net.lumalyte.lg.infrastructure.services.hall.HallSwordPlacement.offset(0f)
+        assertEquals(0.0, x, 1e-9)
+        assertEquals(6.1 / 16, z, 1e-9)
+        val turn = net.lumalyte.lg.infrastructure.services.hall.HallSwordPlacement.TURN.toDouble()
+        // The icon's tip direction (1, 1) turned by TURN points straight down.
+        val tipX = Math.cos(turn) - Math.sin(turn)
+        val tipY = Math.sin(turn) + Math.cos(turn)
+        assertEquals(0.0, tipX, 1e-6)
+        assertEquals(true, tipY < 0)
+        val length = net.lumalyte.lg.infrastructure.services.hall.HallSwordPlacement.SCALE * 19.8 / 16
+        assertEquals(0.96, length, 0.02)
+    }
+}

@@ -17,6 +17,7 @@ import org.bukkit.Sound
 import net.lumalyte.lg.infrastructure.services.hall.HallArmorItems
 import net.lumalyte.lg.utils.deserializeToItemStack
 import net.lumalyte.lg.infrastructure.services.hall.HallStatuePose
+import net.lumalyte.lg.infrastructure.services.hall.HallSwordPlacement
 import org.bukkit.entity.BlockDisplay
 import org.bukkit.entity.Display
 import org.bukkit.entity.Entity
@@ -72,11 +73,14 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
             return entity
         }
 
-        hidden(world.spawn(base.clone().add(-0.6, 0.0, -0.6), BlockDisplay::class.java) {
+        // The plinth's origin is a corner, so it is spawned at the statue's spot with no yaw and shifted
+        // back half its width: otherwise the statue's yaw swung it round that corner, off-centre.
+        hidden(world.spawn(base.clone().also { it.yaw = 0f; it.pitch = 0f }, BlockDisplay::class.java) {
             it.block = look.plinth.createBlockData()
-            it.transformation = scaled(1.2f, 0.5f, 1.2f)
+            it.transformation = Transformation(Vector3f(-PLINTH_WIDTH / 2, 0f, -PLINTH_WIDTH / 2), AxisAngle4f(),
+                Vector3f(PLINTH_WIDTH, PLINTH_HEIGHT, PLINTH_WIDTH), AxisAngle4f())
         })
-        val top = base.clone().add(0.0, 0.5, 0.0)
+        val top = base.clone().add(0.0, PLINTH_HEIGHT.toDouble(), 0.0)
         hidden(world.spawn(top, Mannequin::class.java) { statue ->
             statue.setAI(false)
             statue.setGravity(false)
@@ -113,6 +117,7 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
         // REQ-272: the chosen pose through BetterModel's prestige limb model, when it is installed.
         val statue = entities.filterIsInstance<Mannequin>().firstOrNull()
         val posed = statue?.let { HallStatuePose.orNull()?.apply(it, viewer.uniqueId, skin, look.pose) }
+        if (posed != null && HallStatuePose.animationFor(look.pose) == HallStatuePose.GUARD) hidden(guardSword(top))
         viewer.playSound(top, look.sound, 1f, 1f)
         var tick = 0
         val effects = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
@@ -146,6 +151,23 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
         return spot.toCenterLocation().apply { y = viewer.location.blockY.toDouble() }.also { it.yaw = spot.yaw; it.pitch = 0f }
     }
 
+    /**
+     * The Guard pose's vanilla netherite sword, planted point-down in front of the statue with both
+     * hands on the grip (the pose mockup). A display entity, so it is the real item; the model's own
+     * held-item bones are hidden during Guard.
+     */
+    private fun guardSword(top: Location): ItemDisplay {
+        val forward = top.direction.clone().setY(0).normalize()
+        val spot = top.clone().add(forward.multiply(HallSwordPlacement.FORWARD)).add(0.0, HallSwordPlacement.CENTER_HEIGHT, 0.0)
+        return top.world.spawn(spot, ItemDisplay::class.java) {
+            it.setItemStack(ItemStack.of(Material.NETHERITE_SWORD))
+            it.itemDisplayTransform = ItemDisplay.ItemDisplayTransform.NONE
+            it.setRotation(top.yaw, 0f)
+            it.transformation = Transformation(Vector3f(), AxisAngle4f(HallSwordPlacement.TURN, 0f, 0f, 1f),
+                Vector3f(HallSwordPlacement.SCALE, HallSwordPlacement.SCALE, HallSwordPlacement.SCALE), AxisAngle4f())
+        }
+    }
+
     private fun sideways(at: Location, distance: Double) =
         at.direction.clone().setY(0).normalize().crossProduct(org.bukkit.util.Vector(0, 1, 0)).multiply(distance)
 
@@ -154,6 +176,8 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
 
     companion object {
         const val SECONDS = 30
+        private const val PLINTH_WIDTH = 1.2f
+        private const val PLINTH_HEIGHT = 0.5f
 
         /** REQ-270: the guild's saved banner item, read fresh; null when it has none. */
         fun guildBanner(guild: net.lumalyte.lg.domain.entities.Guild): ItemStack? {
