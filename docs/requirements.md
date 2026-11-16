@@ -877,3 +877,8 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-241
 **Ubiquitous.** THE SYSTEM SHALL list a guild advancement's guild XP reward first in its advancement tooltip, followed by any personal Minecraft XP its members also receive, and SHALL tell the member who completes it first how much guild XP the guild earned.
+
+## Guild Advancements cards
+
+### REQ-263
+**Ubiquitous.** THE SYSTEM SHALL show Guild Advancements as cards, four a page in two columns, each with its icon, title, progress, what to do and guild XP reward, with category buttons along the top (Foundations, Cooperation, Combat, Commerce, Reputation, then Combat milestones) and a detail page per advancement with Track or Untrack, keeping saved progress, the tracked goal, rewards and the advancement tree link; Statistics → Achievements SHALL open it on Combat milestones.

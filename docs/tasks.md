@@ -1463,3 +1463,9 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 ## Guild advancement reward text (REQ-241)
 
 - [x] **ADVANCEMENT-GUILD-XP-TEXT** Tag: TDD. REQ-241. Evidence: GuildAchievementRewardLinesTest.
+
+## Guild Advancements cards (REQ-263)
+
+- [x] **ADV-MOCKUP** Approved: Prestige and Guild Menus artifact, Guild Advancements screen.
+- [x] **ADV-CARDS** Tag: TDD. REQ-263. Replaces the inspector tabs and branch rows with cards; Combat milestones joins as the last category. Evidence: GuildAchievementsMenuTest.
+- [ ] **ADV-TEST** Check on TEST: categories, paging, Track/Untrack, tree link, Statistics → Achievements.

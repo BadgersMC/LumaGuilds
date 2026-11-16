@@ -65,9 +65,9 @@ internal class GuildAchievementsMenuTest : RecruitmentDialogFixture() {
         assertNotSame(original, renderedPage)
     }
 
-    @Test fun `branch links retain complete milestone titles instead of hardcoded ellipsis`() {
+    @Test fun `cards show complete advancement titles`() {
         openPersonalTree(false)
-        val text = PlainTextComponentSerializer.plainText().serialize(renderedPage!!.diagram[1].last().label)
+        val text = PlainTextComponentSerializer.plainText().serialize(renderedPage!!.items.first().text)
         assertTrue(text.contains("A complete milestone title that must remain visible"))
     }
 
@@ -92,17 +92,19 @@ internal class GuildAchievementsMenuTest : RecruitmentDialogFixture() {
         val nav = MenuNavigator(player)
         nav.openMenu(GuildAchievementsMenu(nav, player, guild, presenter, guildMilestones = true))
         val plain = PlainTextComponentSerializer.plainText()
-        assertEquals(5, renderedPage!!.items.size)
+        assertEquals(4, renderedPage!!.items.size)
         assertTrue(plain.serialize(renderedPage!!.items.first().text).contains("First Blood"))
         renderedPage!!.actions.first().action()
         assertTrue(plain.serialize(renderedPage!!.items.first().text).contains("Champion"))
-        renderedPage!!.actions.last().action()
+        renderedPage!!.bodyActions.first().action() // Foundations tab
+
         assertEquals(1, renderedPage!!.items.size)
         assertTrue(plain.serialize(renderedPage!!.items.first().text).contains("Personal"))
         io.mockk.verify(exactly = 0) { runtime.track(any(), any()) }
     }
 
-    @Test fun `inspector sections stay compact and tracking preserves the selected milestone`() {
+    /** REQ-263: four cards a page; a card opens its detail, where Track keeps the goal. */
+    @Test fun `cards page by four and tracking from the detail keeps the goal`() {
         val actor = UUID.randomUUID()
         val guild = Guild(UUID.randomUUID(), "Mastery", createdAt = Instant.EPOCH)
         every { player.uniqueId } returns actor
@@ -115,6 +117,7 @@ internal class GuildAchievementsMenuTest : RecruitmentDialogFixture() {
         val nodes = (1..6).map { i -> GuildAchievement("milestone_$i", null, "Milestone $i",
             listOf("Earn milestone $i"), "EVENT", null, 3, 0, emptyList(), "Foundations", "BOOK", "TASK", i.toFloat(), 0f) }
         every { runtime.engine } returns GuildAchievementEngine(nodes)
+        every { runtime.projectionAvailable() } returns false
         var record = AchievementRecord()
         every { runtime.read(player) } answers { record }
         every { runtime.track(player, any()) } answers { record = record.copy(tracked = secondArg()); true }
@@ -122,17 +125,17 @@ internal class GuildAchievementsMenuTest : RecruitmentDialogFixture() {
         val nav = MenuNavigator(player)
         nav.openMenu(GuildAchievementsMenu(nav, player, guild, presenter))
         val plain = PlainTextComponentSerializer.plainText()
-        assertEquals(1, renderedPage!!.items.size)
-        assertEquals(5, renderedPage!!.diagram.size) // Four actual branch rows plus inspector tabs.
-        renderedPage!!.diagram.first()[1].action()
+        assertEquals(4, renderedPage!!.items.size)
+        assertEquals(6, renderedPage!!.bodyActions.size) // five categories plus Combat milestones
+        renderedPage!!.items.first().onClick!!.action()
         assertEquals(1, renderedPage!!.items.size)
         assertTrue(plain.serialize(renderedPage!!.items.single().text).contains("Earn milestone 1"))
-        renderedPage!!.actions[1].action() // Track first milestone; Next is the first action.
+        renderedPage!!.actions[0].action() // Track
         assertEquals("milestone_1", record.tracked)
-        renderedPage!!.diagram.first()[2].action()
-        assertEquals(1, renderedPage!!.items.size)
-        renderedPage!!.actions.first().action() // Next branch page.
-        assertEquals(3, renderedPage!!.diagram.size)
+        renderedPage!!.actions[1].action() // Back to Foundations
+        assertEquals(4, renderedPage!!.items.size)
+        renderedPage!!.actions.first().action() // Next page
+        assertEquals(2, renderedPage!!.items.size)
         assertEquals("milestone_1", record.tracked)
     }
 
