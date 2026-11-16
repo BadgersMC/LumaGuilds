@@ -1468,3 +1468,4 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 
 - [x] **XP-CROPS** Tag: TDD. REQ-255. Farm crops were planted by a player, so the placed-block check stopped every farm from earning crop XP. Evidence: ProgressionActivityClassifierTest.
 - [x] **XP-BREWING** Tag: TDD. REQ-255. BrewEvent marks what a stand brewed; taking anything else (water bottles, bought potions) earns nothing. Evidence: ProgressionEventListenerTest.
+- [x] **XP-POOLS** Tag: TDD. REQ-257. Mob kills now count every hostile mob except bosses and neutral mobs; block breaking adds logs, tuff, andesite, diorite, granite, sandstone, nether and end blocks. Servers with their own config.yml need the two lists copied in. Evidence: ChapterTwoTargetPoolsTest.
