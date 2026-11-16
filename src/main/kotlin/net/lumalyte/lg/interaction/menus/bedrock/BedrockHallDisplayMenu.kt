@@ -63,6 +63,22 @@ class BedrockHallDisplayMenu(
                 }
             }
         }
+        if (display != null && manage) {
+            // REQ-271: the statue wears a copy of the manager's own armor.
+            builder = builder.button(lang.bedrock("hall.display.armor_copy"))
+            actions += {
+                val inv = player.inventory
+                val worn = mapOf(
+                    net.lumalyte.lg.domain.rewards.HallArmorPart.HEAD to inv.helmet,
+                    net.lumalyte.lg.domain.rewards.HallArmorPart.CHEST to inv.chestplate,
+                    net.lumalyte.lg.domain.rewards.HallArmorPart.LEGS to inv.leggings,
+                    net.lumalyte.lg.domain.rewards.HallArmorPart.FEET to inv.boots,
+                ).mapValues { (part, item) -> net.lumalyte.lg.infrastructure.services.hall.HallArmorItems.copy(part, item) }
+                if (worn.values.all { it == null }) player.sendMessage(lang.msg("hall.feedback.armor_none"))
+                else report(themes.setAllArmor(player.uniqueId, guild.id, worn))
+                open()
+            }
+        }
         val preview = getKoin().getOrNull<net.lumalyte.lg.infrastructure.services.HallPreviewService>()
         if (display != null && preview != null) {
             builder = builder.button(lang.bedrock("hall.display.preview"))
@@ -74,7 +90,8 @@ class BedrockHallDisplayMenu(
                     val top = getKoin().get<net.lumalyte.lg.application.services.RankService>().getHighestRank(guild.id)
                     members.getGuildMembers(guild.id).firstOrNull { it.rankId == top?.id }?.playerId
                 }.getOrNull()
-                preview.show(player, guild.name, tier, display, skin)
+                preview.show(player, guild.name, tier, display, skin,
+                    net.lumalyte.lg.infrastructure.services.HallPreviewService.guildBanner(guild))
                 player.sendMessage(lang.msg("hall.feedback.preview",
                     "seconds" to net.lumalyte.lg.infrastructure.services.HallPreviewService.SECONDS,
                     "pose" to (display.wearing(HallSlot.POSE)?.cosmetic(HallSlot.POSE) ?: "-")))

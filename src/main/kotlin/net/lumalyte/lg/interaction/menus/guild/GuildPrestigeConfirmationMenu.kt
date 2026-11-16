@@ -46,9 +46,7 @@ class GuildPrestigeConfirmationMenu(
         gui.setOnGlobalClick { it.isCancelled = true }
         val pane = StaticPane(0, 0, 9, 3)
 
-        val summary = NexoItemProvider.getItemStackOrFallback("lg_prestige") {
-            ItemStack.of(Material.NETHER_STAR)
-        }.also { stack -> stack.editMeta { meta ->
+        val summary = PrestigeIcon.item(quote.expectedPrestigeCount + 1).also { stack -> stack.editMeta { meta ->
             // REQ-249: exactly what this prestige earns, costs and keeps.
             val lines = prestige.preview(quote)?.let { preview ->
                 prestigeSummaryLines(lang, preview, retainedRewardName, catalog.find(quote.retainedRewardId)?.effect,

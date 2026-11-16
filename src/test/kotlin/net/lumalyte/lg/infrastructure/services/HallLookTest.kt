@@ -33,3 +33,20 @@ class HallLookTest {
         assertEquals("Enthusia", look(emptyList()).nameplate("Enthusia"))
     }
 }
+
+class HallPoseNameTest {
+    @Test
+    fun `REQ-272 pose names map to the model's animation names and Guard is the fallback`() {
+        assertEquals("guard", net.lumalyte.lg.infrastructure.services.hall.HallStatuePose.animationFor("Guard"))
+        assertEquals("victory", net.lumalyte.lg.infrastructure.services.hall.HallStatuePose.animationFor(" Victory "))
+        assertEquals("guard", net.lumalyte.lg.infrastructure.services.hall.HallStatuePose.animationFor(""))
+        assertEquals("Guard", HallLook(HallDisplay(emptyList(), 0, emptyMap(), null), 1).pose)
+    }
+
+    @Test
+    fun `REQ-269 prestige badge ids follow the tier and stop at six`() {
+        assertEquals("lg_prestige", net.lumalyte.lg.interaction.menus.guild.PrestigeIcon.id(0))
+        assertEquals("lg_prestige_3", net.lumalyte.lg.interaction.menus.guild.PrestigeIcon.id(3))
+        assertEquals("lg_prestige_6", net.lumalyte.lg.interaction.menus.guild.PrestigeIcon.id(9))
+    }
+}

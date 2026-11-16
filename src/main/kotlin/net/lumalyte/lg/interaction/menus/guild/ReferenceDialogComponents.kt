@@ -21,7 +21,12 @@ internal fun referenceAction(
     label: Component,
     icon: String,
     action: () -> Unit,
-): GuildDialogAction = GuildDialogAction(guildDialogIconLabel(label, icon), Component.empty(), action)
+): GuildDialogAction {
+    var labeled = guildDialogIconLabel(label, icon)
+    // REQ-269: a pack without the tier badge glyphs keeps the generic prestige icon.
+    if (labeled === label && icon.startsWith(PrestigeIcon.GENERIC + "_")) labeled = guildDialogIconLabel(label, PrestigeIcon.GENERIC)
+    return GuildDialogAction(labeled, Component.empty(), action)
+}
 
 internal fun referenceItem(
     icon: String,
@@ -31,7 +36,9 @@ internal fun referenceItem(
     section: Component? = null,
 ): GuildDialogItem =
     GuildDialogItem(
-        NexoItemProvider.getItemStackOrFallback(icon) { ItemStack.of(Material.PAPER) },
+        NexoItemProvider.getItemStackOrFallback(icon) {
+            if (icon.startsWith(PrestigeIcon.GENERIC + "_")) PrestigeIcon.generic() else ItemStack.of(Material.PAPER)
+        },
         Component.join(JoinConfiguration.newlines(), lines),
         lines,
         action,

@@ -3,6 +3,8 @@ package net.lumalyte.lg.infrastructure.persistence.guilds
 import co.aikar.idb.Database
 import net.lumalyte.lg.application.errors.DatabaseOperationException
 import net.lumalyte.lg.application.persistence.HallDisplayRepository
+import net.lumalyte.lg.domain.rewards.HallArmorPart
+import net.lumalyte.lg.domain.rewards.HallArmorPiece
 import net.lumalyte.lg.domain.rewards.HallSlot
 import net.lumalyte.lg.domain.rewards.HallTheme
 import net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect
@@ -70,6 +72,22 @@ class HallDisplayRepositorySQL(private val storage: Storage<Database>) : HallDis
 
     override fun setSkin(guildId: UUID, playerId: UUID?) = put(guildId, SKIN, playerId?.toString())
 
+    override fun armor(guildId: UUID): Map<HallArmorPart, HallArmorPiece> = jdbc { c ->
+        c.prepareStatement("SELECT slot, value FROM guild_hall_display WHERE guild_id = ? AND slot LIKE 'ARMOR_%'").use { ps ->
+            ps.setString(1, guildId.toString())
+            ps.executeQuery().use { rows ->
+                buildMap {
+                    while (rows.next()) {
+                        val part = HallArmorPart.entries.firstOrNull { ARMOR + it.name == rows.getString(1) } ?: continue
+                        HallArmorPiece.decode(rows.getString(2))?.let { put(part, it) }
+                    }
+                }
+            }
+        }
+    }
+
+    override fun setArmor(guildId: UUID, part: HallArmorPart, piece: HallArmorPiece?) = put(guildId, ARMOR + part.name, piece?.encode())
+
     override fun deleteAll(guildId: UUID) {
         transaction { c ->
             for (table in listOf("guild_hall_themes", "guild_hall_display")) {
@@ -134,5 +152,6 @@ class HallDisplayRepositorySQL(private val storage: Storage<Database>) : HallDis
 
     private companion object {
         const val SKIN = "SKIN"
+        const val ARMOR = "ARMOR_"
     }
 }

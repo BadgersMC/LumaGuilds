@@ -546,9 +546,7 @@ class GuildProgressionMenu(
 
     private fun addPrestigeInfo(pane: StaticPane, x: Int, y: Int) {
         val overview = cachedOverview
-        val item = NexoItemProvider.getItemStackOrFallback("lg_prestige") {
-            ItemStack.of(Material.NETHER_STAR)
-        }.also { it.editMeta { meta ->
+        val item = PrestigeIcon.item(overview?.prestigeCount ?: 0).also { it.editMeta { meta ->
             meta.displayName(lang.gui("menu.guild_progression.prestige.name"))
             val lore = mutableListOf<Component>(
                 lang.gui("menu.guild_progression.prestige.description"),

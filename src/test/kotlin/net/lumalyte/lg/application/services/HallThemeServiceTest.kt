@@ -42,6 +42,11 @@ class HallThemeServiceTest {
         }
         override fun skin(guildId: UUID) = skin
         override fun setSkin(guildId: UUID, playerId: UUID?) { skin = playerId }
+        val armor = mutableMapOf<net.lumalyte.lg.domain.rewards.HallArmorPart, net.lumalyte.lg.domain.rewards.HallArmorPiece>()
+        override fun armor(guildId: UUID) = armor.toMap()
+        override fun setArmor(guildId: UUID, part: net.lumalyte.lg.domain.rewards.HallArmorPart, piece: net.lumalyte.lg.domain.rewards.HallArmorPiece?) {
+            if (piece == null) armor.remove(part) else armor[part] = piece
+        }
         override fun deleteAll(guildId: UUID) { owned.clear(); choices.clear(); skin = null }
     }
 
@@ -105,5 +110,24 @@ class HallThemeServiceTest {
         prestige.confirm(actor, quote, HallTheme.WINGED)
         prestige.confirm(actor, quote)
         assertEquals(listOf(guild to HallTheme.WINGED, guild to HallTheme.WINGED), granted)
+    }
+
+    @Test
+    fun `REQ-271 managers set the statue armor, members cannot, and a reset clears it`() {
+        val piece = net.lumalyte.lg.domain.rewards.HallArmorPiece(net.lumalyte.lg.domain.rewards.HallArmorMaterial.NETHERITE, "silence", "amethyst")
+        val part = net.lumalyte.lg.domain.rewards.HallArmorPart.CHEST
+        org.junit.jupiter.api.Assertions.assertEquals(HallThemeService.Outcome.NOT_ALLOWED, service.setArmor(member, guild, part, piece))
+        org.junit.jupiter.api.Assertions.assertEquals(HallThemeService.Outcome.DONE, service.setAllArmor(owner, guild, mapOf(part to piece)))
+        org.junit.jupiter.api.Assertions.assertEquals(mapOf(part to piece), service.display(guild)!!.armor)
+        org.junit.jupiter.api.Assertions.assertEquals(HallThemeService.Outcome.DONE, service.setAllArmor(owner, guild, emptyMap()))
+        org.junit.jupiter.api.Assertions.assertEquals(emptyMap<Any, Any>(), service.display(guild)!!.armor)
+    }
+
+    @Test
+    fun `REQ-271 an armor piece round-trips through its stored text and rejects bad input`() {
+        val leather = net.lumalyte.lg.domain.rewards.HallArmorPiece(net.lumalyte.lg.domain.rewards.HallArmorMaterial.LEATHER, "tide", "lapis", 0x3D7BFF)
+        org.junit.jupiter.api.Assertions.assertEquals(leather, net.lumalyte.lg.domain.rewards.HallArmorPiece.decode(leather.encode()))
+        org.junit.jupiter.api.Assertions.assertNull(net.lumalyte.lg.domain.rewards.HallArmorPiece.decode("PLASTIC;;;"))
+        org.junit.jupiter.api.Assertions.assertNull(net.lumalyte.lg.domain.rewards.HallArmorPiece.decode("IRON;Bad Key!;gold;"))
     }
 }

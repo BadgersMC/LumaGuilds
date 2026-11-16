@@ -1,6 +1,8 @@
 package net.lumalyte.lg.application.services
 
 import net.lumalyte.lg.application.persistence.HallDisplayRepository
+import net.lumalyte.lg.domain.rewards.HallArmorPart
+import net.lumalyte.lg.domain.rewards.HallArmorPiece
 import net.lumalyte.lg.domain.rewards.HallDisplay
 import net.lumalyte.lg.domain.rewards.HallSlot
 import net.lumalyte.lg.domain.rewards.HallTheme
@@ -27,7 +29,8 @@ class HallThemeService(
     fun display(guildId: UUID): HallDisplay? = try {
         val owned = repository.owned(guildId)
         val prestiges = prestigeCount(guildId) ?: 0
-        HallDisplay(owned, (prestiges - owned.size).coerceAtLeast(0), repository.choices(guildId), repository.skin(guildId))
+        HallDisplay(owned, (prestiges - owned.size).coerceAtLeast(0), repository.choices(guildId), repository.skin(guildId),
+            repository.armor(guildId))
     } catch (e: Exception) {
         logger.warn("Could not read the Hall display of guild $guildId", e)
         null
@@ -70,6 +73,18 @@ class HallThemeService(
     fun setSkin(actor: UUID, guildId: UUID, playerId: UUID?): Outcome = change(actor, guildId) {
         if (playerId != null && !isMember(playerId, guildId)) return@change Outcome.NOT_A_MEMBER
         repository.setSkin(guildId, playerId)
+        Outcome.DONE
+    }
+
+    /** REQ-271: one statue armor piece; null goes back to the tier default. */
+    fun setArmor(actor: UUID, guildId: UUID, part: HallArmorPart, piece: HallArmorPiece?): Outcome = change(actor, guildId) {
+        repository.setArmor(guildId, part, piece)
+        Outcome.DONE
+    }
+
+    /** REQ-271: sets all four pieces at once, as when copying what a manager wears; null parts reset. */
+    fun setAllArmor(actor: UUID, guildId: UUID, pieces: Map<HallArmorPart, HallArmorPiece?>): Outcome = change(actor, guildId) {
+        HallArmorPart.entries.forEach { part -> repository.setArmor(guildId, part, pieces[part]) }
         Outcome.DONE
     }
 

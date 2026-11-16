@@ -265,9 +265,10 @@ class GuildInfoMenu(
     }
 
     private fun prestigeItem(): GuiItem {
-        val item = NexoItemProvider.getItemStackOrFallback("lg_prestige") { ItemStack.of(Material.NETHER_STAR) }
+        val prestige = GuildInfoPrestige.of(prestigeHistory, guild.id)
+        val item = PrestigeIcon.item((prestige as? GuildInfoPrestige.Prestiged)?.current ?: 0)
             .name(lang.gui("menu.guild_info.prestige.name"))
-        when (val prestige = GuildInfoPrestige.of(prestigeHistory, guild.id)) {
+        when (prestige) {
             GuildInfoPrestige.None -> item.lore(lang.gui("menu.guild_info.prestige.none"))
             GuildInfoPrestige.Unavailable -> item.lore(lang.gui("menu.guild_info.prestige.unavailable"))
             is GuildInfoPrestige.Prestiged -> {

@@ -71,10 +71,10 @@ internal class GuildHallDisplayMenu(
                     add(card(ItemStack.of(org.bukkit.Material.NETHER_STAR), listOf(
                         lang.gui("hall.display.picks_title", "count" to display.picksLeft),
                         lang.gui("hall.display.picks_body"),
-                    ), if (manage) action(lang.gui("hall.display.pick_action"), "lg_prestige") { pick() } else null))
+                    ), if (manage) action(lang.gui("hall.display.pick_action"), PrestigeIcon.id(prestigeCount)) { pick() } else null))
                 }
                 if (display.owned.isEmpty()) {
-                    add(referenceItem("lg_prestige", listOf(lang.gui("hall.display.none_title"), lang.gui("hall.display.none_body"))))
+                    add(referenceItem(PrestigeIcon.id(prestigeCount), listOf(lang.gui("hall.display.none_title"), lang.gui("hall.display.none_body"))))
                 } else {
                     HallSlot.entries.forEach { slot ->
                         val theme = display.wearing(slot) ?: return@forEach
@@ -83,6 +83,7 @@ internal class GuildHallDisplayMenu(
                             lang.gui("hall.display.slot_value", "value" to theme.cosmetic(slot), "theme" to theme.label),
                         ), if (manage) action(Component.text(slot.label), "lg_nav_settings") { slot(slot) } else null))
                     }
+                    add(armorCard(display, manage))
                     add(card(ItemStack.of(org.bukkit.Material.ARMOR_STAND), listOf(
                         lang.gui("hall.display.skin"),
                         lang.gui("hall.display.skin_value", "name" to skinName(display)),
@@ -90,11 +91,58 @@ internal class GuildHallDisplayMenu(
                 }
             }
             val actions = buildList {
-                if (preview != null) add(action(lang.gui("hall.display.preview"), "lg_prestige") { previewInWorld() })
-                if (manage && display.owned.size > 1) add(action(lang.gui("hall.display.wear_all"), "lg_prestige") { wearAll() })
+                if (preview != null) add(action(lang.gui("hall.display.preview"), PrestigeIcon.id(prestigeCount)) { previewInWorld() })
+                if (manage && display.owned.size > 1) add(action(lang.gui("hall.display.wear_all"), PrestigeIcon.id(prestigeCount)) { wearAll() })
             }
             show(cards, actions, lang.gui("hall.display.subtitle", "guild" to guild.name,
                 "tier" to PrestigeNumeral.of(prestigeCount), "owned" to display.owned.size), back = navigator::goBack)
+        }
+    }
+
+    private fun armorItem(display: HallDisplay, part: net.lumalyte.lg.domain.rewards.HallArmorPart) =
+        net.lumalyte.lg.infrastructure.services.hall.HallArmorItems.item(part, display.armor[part], prestigeCount)
+
+    private fun armorLine(display: HallDisplay, part: net.lumalyte.lg.domain.rewards.HallArmorPart): Component {
+        val piece = display.armor[part]
+            ?: return lang.gui("hall.display.armor_default", "part" to part.label,
+                "material" to net.lumalyte.lg.domain.rewards.HallArmorMaterial.forTier(prestigeCount).label)
+        return if (piece.trimPattern != null) lang.gui("hall.display.armor_trimmed", "part" to part.label,
+            "material" to piece.material.label, "trim" to pretty(piece.trimPattern), "trim_material" to pretty(piece.trimMaterial.orEmpty()))
+        else lang.gui("hall.display.armor_plain", "part" to part.label, "material" to piece.material.label)
+    }
+
+    private fun pretty(key: String) = key.replace('_', ' ').replaceFirstChar { it.uppercase() }
+
+    /** REQ-271: the statue's armor is the guild's own, copied from what a manager wears. */
+    private fun armorCard(display: HallDisplay, manage: Boolean): GuildDialogItem {
+        val parts = net.lumalyte.lg.domain.rewards.HallArmorPart.entries
+        return card(armorItem(display, net.lumalyte.lg.domain.rewards.HallArmorPart.CHEST),
+            listOf(lang.gui("hall.display.armor")) + parts.map { armorLine(display, it) },
+            if (manage) action(lang.gui("hall.display.armor"), "lg_nav_settings") { armor() } else null)
+    }
+
+    private fun armor() {
+        load { display ->
+            val parts = net.lumalyte.lg.domain.rewards.HallArmorPart.entries
+            val cards = parts.map { part -> card(armorItem(display, part), listOf(armorLine(display, part)), null) }
+            val actions = listOf(
+                action(lang.gui("hall.display.armor_copy"), "lg_confirm") {
+                    val worn = mapOf(
+                        net.lumalyte.lg.domain.rewards.HallArmorPart.HEAD to player.inventory.helmet,
+                        net.lumalyte.lg.domain.rewards.HallArmorPart.CHEST to player.inventory.chestplate,
+                        net.lumalyte.lg.domain.rewards.HallArmorPart.LEGS to player.inventory.leggings,
+                        net.lumalyte.lg.domain.rewards.HallArmorPart.FEET to player.inventory.boots,
+                    ).mapValues { (part, item) -> net.lumalyte.lg.infrastructure.services.hall.HallArmorItems.copy(part, item) }
+                    if (worn.values.all { it == null }) player.sendMessage(lang.msg("hall.feedback.armor_none"))
+                    else feedback(themes.setAllArmor(player.uniqueId, guild.id, worn))
+                    armor()
+                },
+                action(lang.gui("hall.display.armor_reset"), "lg_cancel") {
+                    feedback(themes.setAllArmor(player.uniqueId, guild.id, emptyMap()))
+                    armor()
+                },
+            )
+            show(cards, actions, lang.gui("hall.display.armor_subtitle"), back = ::main)
         }
     }
 
@@ -111,7 +159,7 @@ internal class GuildHallDisplayMenu(
             add(lang.gui("hall.display.statue_note"))
             if (!manage) add(lang.gui("hall.display.view_only"))
         }
-        return referenceItem("lg_prestige", lines)
+        return referenceItem(PrestigeIcon.id(prestigeCount), lines)
     }
 
     private fun slot(slot: HallSlot) {
@@ -194,10 +242,12 @@ internal class GuildHallDisplayMenu(
         load { display ->
             player.closeInventory()
             val service = preview ?: return@load
-            service.show(player, guild.name, prestigeCount, display, display.skin ?: owner())
+            service.show(player, guild.name, prestigeCount, display, display.skin ?: owner(),
+                net.lumalyte.lg.infrastructure.services.HallPreviewService.guildBanner(guild))
             val pose = display.wearing(HallSlot.POSE)?.cosmetic(HallSlot.POSE)
-            player.sendMessage(lang.msg("hall.feedback.preview", "seconds" to net.lumalyte.lg.infrastructure.services.HallPreviewService.SECONDS,
-                "pose" to (pose ?: "-")))
+            val seconds = net.lumalyte.lg.infrastructure.services.HallPreviewService.SECONDS
+            player.sendMessage(if (service.posed(player.uniqueId)) lang.msg("hall.feedback.preview", "seconds" to seconds, "pose" to (pose ?: "Guard"))
+            else lang.msg("hall.feedback.preview_still", "seconds" to seconds, "pose" to (pose ?: "Guard")))
         }
     }
 

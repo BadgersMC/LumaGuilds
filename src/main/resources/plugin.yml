@@ -5,7 +5,7 @@ load: STARTUP
 main: net.lumalyte.lg.LumaGuilds
 # Advancements is discovered through Bukkit service lifecycle events; ordering it
 # before Guilds creates a cycle with KOTH (Guilds -> KOTH -> Advancements).
-softdepend: [Vault, PlaceholderAPI, LiteBans, EnthusiaStaff, EnthusiaPlaytime, Nexo, packetevents, DiscordSRV]
+softdepend: [Vault, PlaceholderAPI, LiteBans, EnthusiaStaff, EnthusiaPlaytime, Nexo, packetevents, DiscordSRV, BetterModel]
 depend: [RoseChat]
 
 commands:

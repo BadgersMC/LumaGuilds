@@ -105,6 +105,9 @@ dependencies {
     // Nexo API (com.nexomc.nexo.api.NexoItems) for custom item textures/icons.
     // compileOnly — Nexo bundles its API at runtime; shading would conflict.
     compileOnly("com.nexomc:nexo:1.21.0")
+    // REQ-272: Hall statue poses through BetterModel player limbs (soft dependency).
+    compileOnly("io.github.toxicity188:bettermodel-api:3.6.0")
+    compileOnly("io.github.toxicity188:bettermodel-bukkit-api:3.6.0")
 
     // LiteBans API (litebans.api.* — Events/Entry/Database) for Guild Strikes.
     // Resolved from JitPack (official API repo: gitlab.com/ruany/LiteBansAPI),

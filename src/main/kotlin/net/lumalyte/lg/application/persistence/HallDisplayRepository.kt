@@ -21,6 +21,11 @@ interface HallDisplayRepository {
 
     fun setSkin(guildId: UUID, playerId: UUID?)
 
+    /** REQ-271: the guild's chosen statue armor; missing parts use the tier default. */
+    fun armor(guildId: UUID): Map<net.lumalyte.lg.domain.rewards.HallArmorPart, net.lumalyte.lg.domain.rewards.HallArmorPiece>
+
+    fun setArmor(guildId: UUID, part: net.lumalyte.lg.domain.rewards.HallArmorPart, piece: net.lumalyte.lg.domain.rewards.HallArmorPiece?)
+
     /** Removes everything for the guild, used when it disbands. */
     fun deleteAll(guildId: UUID)
 }

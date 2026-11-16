@@ -10,13 +10,13 @@ import net.lumalyte.lg.domain.rewards.HallTheme
 import net.lumalyte.lg.domain.values.PrestigeNumeral
 import org.bukkit.Bukkit
 import org.bukkit.Color
-import org.bukkit.DyeColor
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.Particle
 import org.bukkit.Sound
-import org.bukkit.block.banner.Pattern
-import org.bukkit.block.banner.PatternType
+import net.lumalyte.lg.infrastructure.services.hall.HallArmorItems
+import net.lumalyte.lg.utils.deserializeToItemStack
+import net.lumalyte.lg.infrastructure.services.hall.HallStatuePose
 import org.bukkit.entity.BlockDisplay
 import org.bukkit.entity.Display
 import org.bukkit.entity.Entity
@@ -29,11 +29,6 @@ import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.ItemStack
-import org.bukkit.inventory.meta.ArmorMeta
-import org.bukkit.inventory.meta.BannerMeta
-import org.bukkit.inventory.meta.trim.ArmorTrim
-import org.bukkit.inventory.meta.trim.TrimMaterial
-import org.bukkit.inventory.meta.trim.TrimPattern
 import org.bukkit.plugin.Plugin
 import org.bukkit.scheduler.BukkitTask
 import org.bukkit.util.Transformation
@@ -48,9 +43,13 @@ import java.util.concurrent.ConcurrentHashMap
  * quit, on a new preview or when the plugin stops.
  */
 class HallPreviewService(private val plugin: Plugin) : Listener {
-    private data class Preview(val entities: List<Entity>, val tasks: List<BukkitTask>)
+    private data class Preview(val entities: List<Entity>, val tasks: List<BukkitTask>, val closers: List<() -> Unit> = emptyList())
 
     private val active = ConcurrentHashMap<UUID, Preview>()
+    private val lastPosed = ConcurrentHashMap<UUID, Boolean>()
+
+    /** Whether [viewer]'s latest preview is animated (BetterModel had the pose model). */
+    fun posed(viewer: UUID): Boolean = lastPosed[viewer] == true
 
     fun start() = plugin.server.pluginManager.registerEvents(this, plugin)
 
@@ -59,7 +58,7 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
     @EventHandler fun quit(event: PlayerQuitEvent) = clear(event.player.uniqueId)
 
     /** Builds the statue three blocks in front of [viewer], facing them. */
-    fun show(viewer: Player, guildName: String, prestige: Int, display: HallDisplay, skin: UUID?) {
+    fun show(viewer: Player, guildName: String, prestige: Int, display: HallDisplay, skin: UUID?, banner: ItemStack? = null) {
         clear(viewer.uniqueId)
         val look = HallLook(display, prestige)
         val base = front(viewer)
@@ -88,6 +87,7 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
             statue.description = Component.empty()
             skin?.let { id -> statue.profile = ResolvableProfile.resolvableProfile(Bukkit.createProfile(id)) }
             look.armor().forEach { (slot, item) -> statue.equipment.setItem(slot, item) }
+            statue.equipment.setItem(EquipmentSlot.OFF_HAND, ItemStack.of(Material.AIR))
             statue.equipment.setItem(EquipmentSlot.HAND, ItemStack.of(look.trophy))
         })
         hidden(world.spawn(top.clone().add(0.0, 2.35, 0.0), TextDisplay::class.java) {
@@ -95,10 +95,14 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
             it.text(Component.text(look.nameplate(guildName), TextColor.color(look.nameColor))
                 .appendNewline().append(Component.text("Prestige ${PrestigeNumeral.of(prestige)}", NamedTextColor.GOLD)))
         })
-        val behind = top.clone().add(top.direction.multiply(-0.7))
-        hidden(world.spawn(behind.add(0.0, 1.3, 0.0), ItemDisplay::class.java) {
-            it.setItemStack(look.banner())
-            it.transformation = scaled(1.6f, 1.6f, 1.6f)
+        // REQ-270: the guild's own banner, beside the statue with its front to the viewer.
+        val bannerSpot = top.clone().add(sideways(top, -1.15)).add(top.direction.clone().setY(0).normalize().multiply(-0.25))
+        hidden(world.spawn(bannerSpot.add(0.0, 1.1, 0.0), ItemDisplay::class.java) {
+            it.setItemStack(banner?.clone()?.also { b -> b.amount = 1 } ?: ItemStack.of(Material.WHITE_BANNER))
+            it.setRotation(top.yaw, 0f)
+            // With no extra turn the banner item showed its back to the viewer; half a turn shows the front.
+            it.transformation = Transformation(Vector3f(), AxisAngle4f(Math.PI.toFloat(), 0f, 1f, 0f),
+                Vector3f(1.2f, 1.2f, 1.2f), AxisAngle4f())
         })
         hidden(world.spawn(top.clone().add(0.0, 0.0, 0.0).add(sideways(top, 0.9)).add(0.0, 0.6, 0.0), ItemDisplay::class.java) {
             it.setItemStack(ItemStack.of(look.trophy))
@@ -106,6 +110,9 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
             it.transformation = scaled(0.6f, 0.6f, 0.6f)
         })
 
+        // REQ-272: the chosen pose through BetterModel's prestige limb model, when it is installed.
+        val statue = entities.filterIsInstance<Mannequin>().firstOrNull()
+        val posed = statue?.let { HallStatuePose.orNull()?.apply(it, viewer.uniqueId, skin, look.pose) }
         viewer.playSound(top, look.sound, 1f, 1f)
         var tick = 0
         val effects = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
@@ -119,12 +126,14 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
             if (tick % 100 == 0) viewer.playSound(top, look.sound, 0.6f, 1f)
         }, 5L, 5L)
         val end = Bukkit.getScheduler().runTaskLater(plugin, Runnable { clear(viewer.uniqueId) }, SECONDS * 20L)
-        active[viewer.uniqueId] = Preview(entities, listOf(effects, end))
+        active[viewer.uniqueId] = Preview(entities, listOf(effects, end), listOfNotNull(posed))
+        lastPosed[viewer.uniqueId] = posed != null
     }
 
     fun clear(viewer: UUID) {
         val preview = active.remove(viewer) ?: return
         preview.tasks.forEach { runCatching { it.cancel() } }
+        preview.closers.forEach { runCatching { it() } }
         preview.entities.forEach { runCatching { it.remove() } }
     }
 
@@ -145,6 +154,14 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
 
     companion object {
         const val SECONDS = 30
+
+        /** REQ-270: the guild's saved banner item, read fresh; null when it has none. */
+        fun guildBanner(guild: net.lumalyte.lg.domain.entities.Guild): ItemStack? {
+            val fresh = org.koin.core.context.GlobalContext.getOrNull()
+                ?.getOrNull<net.lumalyte.lg.application.services.GuildService>()?.getGuild(guild.id) ?: guild
+            return fresh.banner?.let { runCatching { it.deserializeToItemStack() }.getOrNull() }
+                ?.takeIf { it.type.name.endsWith("_BANNER") }
+        }
     }
 }
 
@@ -198,45 +215,11 @@ internal class HallLook(private val display: HallDisplay, private val prestige: 
 
     fun nameplate(guild: String): String = theme(HallSlot.TITLE)?.cosmetic(HallSlot.TITLE)?.replace("Name", guild) ?: guild
 
-    /** Armor by prestige tier: I–II iron, III–IV diamond, V gold, VI netherite; the chosen trim on every piece. */
-    fun armor(): Map<EquipmentSlot, ItemStack> {
-        val metal = when {
-            prestige >= 6 -> "NETHERITE"
-            prestige == 5 -> "GOLDEN"
-            prestige >= 3 -> "DIAMOND"
-            else -> "IRON"
-        }
-        val trim = trim()
-        return mapOf(
-            EquipmentSlot.HEAD to "HELMET", EquipmentSlot.CHEST to "CHESTPLATE",
-            EquipmentSlot.LEGS to "LEGGINGS", EquipmentSlot.FEET to "BOOTS",
-        ).mapValues { (_, piece) ->
-            ItemStack.of(Material.valueOf("${metal}_$piece")).also { item ->
-                if (trim != null) item.editMeta(ArmorMeta::class.java) { it.trim = trim }
-            }
-        }
+    /** REQ-271: the guild's chosen armor, or the tier default for parts it hasn't picked. */
+    fun armor(): Map<EquipmentSlot, ItemStack> = HallArmorItems.slots.entries.associate { (part, slot) ->
+        slot to HallArmorItems.item(part, display.armor[part], prestige)
     }
 
-    private fun trim(): ArmorTrim? = when (theme(HallSlot.TRIM)) {
-        HallTheme.GILDED -> ArmorTrim(TrimMaterial.GOLD, TrimPattern.WAYFINDER)
-        HallTheme.EMBER -> ArmorTrim(TrimMaterial.REDSTONE, TrimPattern.RIB)
-        HallTheme.WINGED -> ArmorTrim(TrimMaterial.QUARTZ, TrimPattern.FLOW)
-        HallTheme.TIDAL -> ArmorTrim(TrimMaterial.LAPIS, TrimPattern.TIDE)
-        HallTheme.RADIANT -> ArmorTrim(TrimMaterial.RESIN, TrimPattern.RAISER)
-        HallTheme.CROWNED -> ArmorTrim(TrimMaterial.AMETHYST, TrimPattern.SILENCE)
-        null -> null
-    }
-
-    fun banner(): ItemStack {
-        val (base, patterns) = when (theme(HallSlot.BANNER)) {
-            HallTheme.GILDED -> Material.BLACK_BANNER to listOf(Pattern(DyeColor.YELLOW, PatternType.BORDER), Pattern(DyeColor.YELLOW, PatternType.RHOMBUS))
-            HallTheme.EMBER -> Material.RED_BANNER to listOf(Pattern(DyeColor.ORANGE, PatternType.GRADIENT_UP), Pattern(DyeColor.ORANGE, PatternType.TRIANGLES_BOTTOM))
-            HallTheme.WINGED -> Material.LIGHT_GRAY_BANNER to listOf(Pattern(DyeColor.WHITE, PatternType.CURLY_BORDER), Pattern(DyeColor.WHITE, PatternType.FLOWER))
-            HallTheme.TIDAL -> Material.BLUE_BANNER to listOf(Pattern(DyeColor.CYAN, PatternType.FLOW), Pattern(DyeColor.CYAN, PatternType.TRIANGLES_BOTTOM))
-            HallTheme.RADIANT -> Material.WHITE_BANNER to listOf(Pattern(DyeColor.YELLOW, PatternType.CIRCLE), Pattern(DyeColor.YELLOW, PatternType.GRADIENT))
-            HallTheme.CROWNED -> Material.PURPLE_BANNER to listOf(Pattern(DyeColor.YELLOW, PatternType.TRIANGLES_TOP), Pattern(DyeColor.YELLOW, PatternType.STRIPE_TOP))
-            null -> Material.WHITE_BANNER to emptyList()
-        }
-        return ItemStack.of(base).also { item -> item.editMeta(BannerMeta::class.java) { it.patterns = patterns } }
-    }
+    /** The chosen pose's name (Victory, Guard and so on); Guard before any theme is owned. */
+    val pose: String get() = theme(HallSlot.POSE)?.cosmetic(HallSlot.POSE) ?: "Guard"
 }

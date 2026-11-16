@@ -894,3 +894,15 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-266
 **Ubiquitous.** THE SYSTEM SHALL read the database for the guild progression, Chronicle (including the prestige page) and Hall Display menus off the main server thread, and SHALL show the result only if the player is still online and on the same screen.
+
+### REQ-269
+**Ubiquitous.** THE SYSTEM SHALL show a guild's prestige with the badge of its current tier (lg_prestige_1 to lg_prestige_6) wherever the generic prestige diamond stood for that guild's prestige, show each milestone tier with its own badge, and fall back to the generic icon at tier 0 or when the pack has no badge.
+
+### REQ-270
+**Ubiquitous.** THE SYSTEM SHALL show the guild's own banner on its Hall statue, standing beside the statue with its front toward the viewer, and SHALL not offer a banner cosmetic.
+
+### REQ-271
+**Event-driven.** WHEN a member who can manage the guild banner copies the armor they wear, THE SYSTEM SHALL save each vanilla piece's material, trim and leather dye as the statue's armor without taking the items, and SHALL use the tier default for any piece not set.
+
+### REQ-272
+**Optional feature.** WHERE BetterModel has the prestige limb model, THE SYSTEM SHALL play the statue's chosen pose on the preview, using Guard when the model has no animation for that pose, and SHALL show the statue standing otherwise.
