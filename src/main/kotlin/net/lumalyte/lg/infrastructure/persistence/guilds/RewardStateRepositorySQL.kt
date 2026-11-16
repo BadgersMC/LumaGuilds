@@ -38,7 +38,8 @@ class RewardStateRepositorySQL(
                 if (connection.transactionIsolation != isolation) connection.transactionIsolation = isolation
             }
         }
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        net.lumalyte.lg.application.logging.SwallowedErrors.log("RewardStateRepositorySQL:41", e)
         RewardStateRead.Failed
     }
 }

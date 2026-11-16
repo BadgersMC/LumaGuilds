@@ -859,7 +859,8 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
                 totalDeaths += if (isDeclaring) stats.declaringGuildDeaths else stats.defendingGuildDeaths
                 totalClaimsCaptured += stats.claimsCaptured
                 totalClaimsLost += stats.claimsLost
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                net.lumalyte.lg.application.logging.SwallowedErrors.log("GuildWarManagementMenu:862", e)
                 // Skip wars without stats
             }
         }
@@ -893,7 +894,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         // Objective / claims stats
         val objItem = NexoItemProvider.getItemStackOrFallback("lg_claiming") { ItemStack.of(Material.STRUCTURE_BLOCK) }
             .name(lang.gui("menu.guild_war_management.war_stats.objectives", "count" to allWars.sumOf { war ->
-                try { warService.getWarStats(war.id).claimsCaptured } catch (_: Exception) { 0 }
+                try { warService.getWarStats(war.id).claimsCaptured } catch (e: Exception) { net.lumalyte.lg.application.logging.SwallowedErrors.log("GuildWarManagementMenu:896", e); 0 }
             }))
             .lore(lang.gui("menu.guild_war_management.war_stats.claims_captured", "count" to totalClaimsCaptured))
             .lore(lang.gui("menu.guild_war_management.war_stats.claims_lost", "count" to totalClaimsLost))

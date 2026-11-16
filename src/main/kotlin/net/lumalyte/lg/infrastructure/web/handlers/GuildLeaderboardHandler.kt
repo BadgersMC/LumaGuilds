@@ -194,12 +194,12 @@ class GuildLeaderboardHandler(
     }
 
     private fun safeBalance(guildId: UUID): Double =
-        try { bankService.getBalance(guildId).toDouble() } catch (_: Exception) { 0.0 }
+        try { bankService.getBalance(guildId).toDouble() } catch (e: Exception) { net.lumalyte.lg.application.logging.SwallowedErrors.log("GuildLeaderboardHandler:197", e); 0.0 }
 
     private fun currentWeekActivityScore(guildId: UUID): Int =
         try {
             leaderboardService.getWeeklyActivity(guildId, currentWeekStart())?.totalScore ?: 0
-        } catch (_: Exception) { 0 }
+        } catch (e: Exception) { net.lumalyte.lg.application.logging.SwallowedErrors.log("GuildLeaderboardHandler:202", e); 0 }
 
     private fun currentWeekStart(): Instant =
         ZonedDateTime.now(ZoneOffset.UTC)
@@ -210,7 +210,8 @@ class GuildLeaderboardHandler(
     private fun stripFormatting(tag: String): String =
         try {
             plainSerializer.serialize(miniMessage.deserialize(tag))
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            net.lumalyte.lg.application.logging.SwallowedErrors.log("GuildLeaderboardHandler:213", e)
             tag
         }
 

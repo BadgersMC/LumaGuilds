@@ -28,7 +28,10 @@ class MembershipHistoryRepositorySQLite(
     }
 
     private fun createTable() {
-        val sql = """
+        // MariaDB gets this table and its index from MariaDBMigrations; the SQLite DDL below
+        // (two statements, TEXT keys) is a syntax error there and broke every join on MariaDB.
+        if (storage.dialect == net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect.MARIADB) return
+        val table = """
             CREATE TABLE IF NOT EXISTS membership_history (
                 id TEXT PRIMARY KEY,
                 player_id TEXT NOT NULL,
@@ -37,12 +40,12 @@ class MembershipHistoryRepositorySQLite(
                 departed_at TEXT,
                 departure_reason TEXT,
                 recruit_xp_awarded_at TEXT
-            );
-            CREATE INDEX IF NOT EXISTS idx_membership_history_player
-                ON membership_history(player_id);
+            )
         """.trimIndent()
+        val index = "CREATE INDEX IF NOT EXISTS idx_membership_history_player ON membership_history(player_id)"
         try {
-            storage.connection.executeUpdate(sql)
+            storage.connection.executeUpdate(table)
+            storage.connection.executeUpdate(index)
             logger.info("membership_history table ready")
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to create membership_history table", e)

@@ -37,7 +37,8 @@ class BannerPurchaseService(private val purchases: BannerPurchaseRepository, pri
             deliver(purchase.banner)
             if (purchases.transition(purchase.id, "DELIVERING", "COMPLETE")) BannerPurchaseResult.Completed(purchase.amount)
             else BannerPurchaseResult.Pending(purchase.id)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            net.lumalyte.lg.application.logging.SwallowedErrors.log("BannerPurchaseService:40", e)
             // Inventory or SQL may already have changed. Never retry an ambiguous delivery.
             BannerPurchaseResult.Pending(purchase.id)
         }

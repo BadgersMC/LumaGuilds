@@ -55,7 +55,8 @@ class GuildLookupImpl @JvmOverloads constructor(
         }
         return try {
             members.hasPermission(playerId, guildId, perm)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            net.lumalyte.lg.application.logging.SwallowedErrors.log("GuildLookupImpl:58", e)
             false
         }
     }

@@ -20,7 +20,7 @@ class GuildRewardPurchaseService(
             if (offer?.status != RewardOfferStatus.AVAILABLE) null else
                 RewardPurchaseRequest(UUID.randomUUID(), guildId, actorId, rewardId, offer.reward.price, state.version)
         }
-    } catch (_: Exception) { null }
+    } catch (e: Exception) { net.lumalyte.lg.application.logging.SwallowedErrors.log("GuildRewardPurchaseService:23", e); null }
 
     fun confirm(actorId: UUID, quote: RewardPurchaseRequest): RewardPurchaseResult = try {
         when {
@@ -30,7 +30,7 @@ class GuildRewardPurchaseService(
             // by reading ownership here after the original transaction may already have committed.
             else -> gold.purchaseReward(quote)
         }
-    } catch (_: Exception) { RewardPurchaseResult.Failed(quote.transactionId) }
+    } catch (e: Exception) { net.lumalyte.lg.application.logging.SwallowedErrors.log("GuildRewardPurchaseService:33", e); RewardPurchaseResult.Failed(quote.transactionId) }
 }
 
 class GuildRewardPurchaseAccess(private val members: MemberRepository, private val ranks: RankRepository) {

@@ -52,7 +52,7 @@ class GuildChronicleService(
                 GuildChronicle(state, goal, canManage(actor, guild), boundedPage, levels)
             }
         }
-    } catch (_: Exception) { null }
+    } catch (e: Exception) { net.lumalyte.lg.application.logging.SwallowedErrors.log("GuildChronicleService:55", e); null }
 
     fun track(actor: UUID, guild: UUID, expected: ChronicleGoal, rewardId: String?): ChronicleGoalWrite = try {
         when {
@@ -62,5 +62,5 @@ class GuildChronicleService(
             goals.compareAndSet(guild, expected, rewardId) -> ChronicleGoalWrite.SAVED
             else -> ChronicleGoalWrite.CONFLICT
         }
-    } catch (_: Exception) { ChronicleGoalWrite.UNAVAILABLE }
+    } catch (e: Exception) { net.lumalyte.lg.application.logging.SwallowedErrors.log("GuildChronicleService:65", e); ChronicleGoalWrite.UNAVAILABLE }
 }

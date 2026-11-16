@@ -877,3 +877,12 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-241
 **Ubiquitous.** THE SYSTEM SHALL list a guild advancement's guild XP reward first in its advancement tooltip, followed by any personal Minecraft XP its members also receive, and SHALL tell the member who completes it first how much guild XP the guild earned.
+
+### REQ-267
+**Ubiquitous.** WHEN a guild service, repository, placeholder or web handler turns an exception into a safe fallback, THE SYSTEM SHALL log it with its call site, at most once a minute per site with a count of repeats.
+
+### REQ-268
+**Unwanted behaviour.** IF the storage is MariaDB, THEN THE SYSTEM SHALL not run the SQLite membership_history DDL, so recording a guild join never fails on a syntax error.
+
+### REQ-273
+**Unwanted behaviour.** IF a MariaDB database has the first `relations` layout (guild_id, target_guild_id, relation_type), THEN THE SYSTEM SHALL move it aside as `relations_legacy_v1`, create the current layout and carry the old rows across as active relations, so alliances, enemies and truces load.

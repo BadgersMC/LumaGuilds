@@ -50,7 +50,8 @@ class GuildPrestigeService(
                     prestige.feeFor(snapshot.ownership.prestigeCount) else null,
                 choices = choices,
             )
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            net.lumalyte.lg.application.logging.SwallowedErrors.log("GuildPrestigeService:53", e)
             null
         }
     }
@@ -132,7 +133,8 @@ class GuildPrestigeService(
                 expectedOwnershipVersion = snapshot.version,
                 expectedPrestigeCount = snapshot.ownership.prestigeCount,
             )
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            net.lumalyte.lg.application.logging.SwallowedErrors.log("GuildPrestigeService:135", e)
             null
         }
     }
@@ -161,7 +163,8 @@ class GuildPrestigeService(
             resolver.resolve(100, snapshot.ownership, settings.bank.maxBankBalance.toLong(), settings.guild.maxMembersPerGuild)
                 .prestigeChoices
         }
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        net.lumalyte.lg.application.logging.SwallowedErrors.log("GuildPrestigeService:164", e)
         emptyList()
     }
 
