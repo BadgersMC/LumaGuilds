@@ -20,6 +20,7 @@ import org.bukkit.Particle
 import org.bukkit.entity.Entity
 import org.bukkit.entity.ItemDisplay
 import org.bukkit.entity.Player
+import net.lumalyte.lg.api.events.GuildBannerSetEvent
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.block.BlockPlaceEvent
@@ -63,7 +64,10 @@ class HallStatueService(
         val display: HallDisplay,
         val skin: UUID?,
         val banner: String?,
-    )
+    ) {
+        /** What the statue itself is built from; everything but the banner. */
+        fun statue(): Plan = copy(banner = null)
+    }
 
     private class Standing(val plan: Plan, val entities: List<Entity>, val top: Location, val closer: (() -> Unit)?,
                            val sword: ItemDisplay?, val look: HallLook, val crest: ItemDisplay)
@@ -156,6 +160,12 @@ class HallStatueService(
             .onFailure { logger.warn("Could not repaint the banner under Hall pedestal ${pedestal.slot}", it) }
     }
 
+    /** REQ-278: a guild that changes its banner gets the new one under its pedestal without a manual refresh. */
+    @EventHandler(priority = EventPriority.MONITOR)
+    fun guildBannerSet(event: GuildBannerSetEvent) {
+        if (plans.any { it.guildId == event.guildId }) refreshSoon()
+    }
+
     /** REQ-278: a banner staff hang under a pedestal takes the holding guild's banner straight away. */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun bannerPlaced(event: BlockPlaceEvent) {
@@ -168,8 +178,9 @@ class HallStatueService(
 
     private fun place(plan: Plan) {
         val current = standing[plan.pedestal.slot]
-        if (current != null && current.plan == plan && current.entities.all { it.isValid }) return
-        if (failed[plan.pedestal.slot] == plan) return
+        // The banner hangs under the pedestal, not on the statue: a banner change needs no rebuild.
+        if (current != null && current.plan.statue() == plan.statue() && current.entities.all { it.isValid }) return
+        if (failed[plan.pedestal.slot]?.statue() == plan.statue()) return
         take(plan.pedestal.slot)
         val world = Bukkit.getWorld(plan.pedestal.world) ?: return
         val base = Location(world, plan.pedestal.x, plan.pedestal.y, plan.pedestal.z, plan.pedestal.yaw, 0f)

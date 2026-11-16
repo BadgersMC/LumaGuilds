@@ -973,3 +973,6 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-278
 **Event-driven.** WHEN staff hang a wall banner on any side of the column of blocks under a Hall of Prestige pedestal (up to four blocks down), and WHENEVER the guild holding that pedestal changes, THE SYSTEM SHALL repaint that banner as the holding guild's banner, or plain white while nobody holds the pedestal. The Hall statue SHALL not show a floating banner or a floating trophy (this replaces the floating banner of REQ-270).
+
+### REQ-279
+**Event-driven.** WHEN a guild holding a Hall of Prestige pedestal changes its banner, THE SYSTEM SHALL repaint the banner hanging under that pedestal within a few seconds, without staff running a refresh and without rebuilding the statue.
