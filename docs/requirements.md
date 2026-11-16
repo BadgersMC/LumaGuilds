@@ -888,3 +888,6 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-262
 **Ubiquitous.** THE SYSTEM SHALL list on each Prestige milestones card everything that tier gives: its fee or that it is earned, a permanent home slot, one reward kept, a Hall theme, the first prestige's member cap and Discord role when those are on, and the second allied home, extra stall and second vault at their configured tiers.
+
+### REQ-264
+**Event-driven.** WHEN a guild member chooses Preview in the world on the Hall Display, THE SYSTEM SHALL build a statue three blocks in front of them, seen only by them, wearing the guild's current choices (skin, tier armor with the chosen trim, plinth, nameplate, banner, trophy, spotlight, aura and sound), and SHALL remove it after 30 seconds, when they start another preview, when they leave, or when the plugin stops.

@@ -8320,6 +8320,7 @@ hall:
     option_locked: "<dark_gray>Earn this theme at a prestige"
     use_default: "<gray>Use the default"
     wear_all: "<gold>Wear a whole theme"
+    preview: "<aqua>Preview in the world"
     wear_all_subtitle: "<gray>Set every slot to one theme"
     skin: "<gold>Statue skin"
     skin_value: "<white><name>"
@@ -8334,3 +8335,4 @@ hall:
     not_owned: "<red>Your guild doesn't own that theme yet."
     not_a_member: "<red>That player isn't in your guild."
     failed: "<red>The Hall display couldn't be loaded or saved. Try again."
+    preview: "<aqua>Hall preview for <seconds>s, only you can see it. <gray>Pose: <pose> (statue poses animate once the Hall is built)."

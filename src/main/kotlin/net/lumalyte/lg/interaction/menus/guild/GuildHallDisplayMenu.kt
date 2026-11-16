@@ -43,6 +43,7 @@ internal class GuildHallDisplayMenu(
     private val members: MemberService by inject()
     private val ranks: net.lumalyte.lg.application.services.RankService by inject()
     private val lang: LangService by inject()
+    private val preview: net.lumalyte.lg.infrastructure.services.HallPreviewService? by lazy { getKoin().getOrNull() }
     private var skinPage = 0
 
     override fun open() = main()
@@ -80,6 +81,7 @@ internal class GuildHallDisplayMenu(
             }
         }
         val actions = buildList {
+            if (preview != null) add(action(lang.gui("hall.display.preview"), "lg_prestige") { previewInWorld() })
             if (manage && display.owned.size > 1) add(action(lang.gui("hall.display.wear_all"), "lg_prestige") { wearAll() })
         }
         show(cards, actions, lang.gui("hall.display.subtitle", "guild" to guild.name,
@@ -172,6 +174,17 @@ internal class GuildHallDisplayMenu(
             if (skinPage + 1 < pages) add(action(lang.gui("chronicle.later"), "lg_page_next") { skinPage++; skin() })
         }
         show(cards, actions, lang.gui("hall.display.skin_subtitle", "page" to skinPage + 1, "pages" to pages), back = ::main)
+    }
+
+    /** REQ-264: closes the dialog and builds a 30-second statue only this player can see. */
+    private fun previewInWorld() {
+        val display = read() ?: return
+        player.closeInventory()
+        val service = preview ?: return
+        service.show(player, guild.name, prestigeCount, display, display.skin ?: owner())
+        val pose = display.wearing(HallSlot.POSE)?.cosmetic(HallSlot.POSE)
+        player.sendMessage(lang.msg("hall.feedback.preview", "seconds" to net.lumalyte.lg.infrastructure.services.HallPreviewService.SECONDS,
+            "pose" to (pose ?: "-")))
     }
 
     private fun skinName(display: HallDisplay): String {

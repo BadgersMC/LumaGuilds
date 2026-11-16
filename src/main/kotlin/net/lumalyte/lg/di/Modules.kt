@@ -1327,6 +1327,8 @@ fun vaultModule() = module {
             isMember = { playerId, guildId -> get<MemberService>().getMember(playerId, guildId) != null },
         )
     }
+    // REQ-264: viewer-only Hall statue preview.
+    single { net.lumalyte.lg.infrastructure.services.HallPreviewService(get()) }
     // REQ-242 to REQ-248: the Prestige VI second vault.
     single<net.lumalyte.lg.application.persistence.SecondVaultRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.SecondVaultRepositorySQL(get())
