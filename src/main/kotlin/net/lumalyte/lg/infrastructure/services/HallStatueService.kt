@@ -66,6 +66,8 @@ class HallStatueService(
                            val sword: ItemDisplay?, val look: HallLook)
 
     private val standing = ConcurrentHashMap<Int, Standing>()
+    /** Plans that failed to build; not retried until the plan changes, so a bad build can't loop. */
+    private val failed = ConcurrentHashMap<Int, Plan>()
     @Volatile private var plans: List<Plan> = emptyList()
     private val tasks = mutableListOf<BukkitTask>()
     private val refreshQueued = AtomicBoolean(false)
@@ -81,10 +83,12 @@ class HallStatueService(
         tasks.forEach { runCatching { it.cancel() } }
         tasks.clear()
         standing.keys.toList().forEach(::take)
+        failed.clear()
     }
 
     /** Rebuilds soon; several calls close together run one refresh. */
-    fun refreshSoon() {
+    fun refreshSoon(retryFailed: Boolean = false) {
+        if (retryFailed) Bukkit.getScheduler().runTask(plugin, Runnable { failed.clear() })
         if (!plugin.isEnabled || !refreshQueued.compareAndSet(false, true)) return
         Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, Runnable {
             refreshQueued.set(false)
@@ -130,6 +134,7 @@ class HallStatueService(
     private fun place(plan: Plan) {
         val current = standing[plan.pedestal.slot]
         if (current != null && current.plan == plan && current.entities.all { it.isValid }) return
+        if (failed[plan.pedestal.slot] == plan) return
         take(plan.pedestal.slot)
         val world = Bukkit.getWorld(plan.pedestal.world) ?: return
         val base = Location(world, plan.pedestal.x, plan.pedestal.y, plan.pedestal.z, plan.pedestal.yaw, 0f)
@@ -143,8 +148,10 @@ class HallStatueService(
             }
             built.sword?.let { sword -> Bukkit.getOnlinePlayers().filter(::bedrock).forEach { it.hideEntity(plugin, sword) } }
             standing[plan.pedestal.slot] = Standing(plan, built.entities, built.top, built.closer, built.sword, look)
+            failed.remove(plan.pedestal.slot)
         } catch (e: Exception) {
-            logger.warn("Could not build the Hall statue on pedestal ${plan.pedestal.slot}", e)
+            failed[plan.pedestal.slot] = plan
+            logger.warn("Could not build the Hall statue on pedestal ${plan.pedestal.slot}; not retrying until it changes", e)
         }
     }
 

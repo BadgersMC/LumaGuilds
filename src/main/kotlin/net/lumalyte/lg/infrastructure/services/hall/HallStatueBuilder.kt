@@ -46,7 +46,7 @@ internal object HallStatueBuilder {
         val world = base.world
         val entities = mutableListOf<Entity>()
         fun <T : Entity> add(entity: T): T = entity.also { entities += it; register(it) }
-
+        try {
         // The plinth's origin is a corner, so it is spawned at the statue's spot with no yaw and shifted
         // back half its width: otherwise the statue's yaw swung it round that corner, off-centre.
         add(world.spawn(base.clone().also { it.yaw = 0f; it.pitch = 0f }, BlockDisplay::class.java) {
@@ -65,7 +65,6 @@ internal object HallStatueBuilder {
             statue.description = Component.empty()
             skin?.let { id -> statue.profile = ResolvableProfile.resolvableProfile(Bukkit.createProfile(id)) }
             look.armor().forEach { (slot, item) -> statue.equipment.setItem(slot, item) }
-            EquipmentSlot.entries.filter { it.isHand || it.isArmor }.forEach { statue.equipment.setDropChance(it, 0f) }
             statue.equipment.setItem(EquipmentSlot.OFF_HAND, ItemStack.of(Material.AIR))
             statue.equipment.setItem(EquipmentSlot.HAND, ItemStack.of(look.trophy))
         })
@@ -93,6 +92,11 @@ internal object HallStatueBuilder {
         val closer = pose(statue)
         val sword = if (closer != null && HallStatuePose.animationFor(look.pose) == HallStatuePose.GUARD) add(guardSword(top)) else null
         return Built(entities, top, closer, sword)
+        } catch (e: Exception) {
+            // Never leave half a statue behind: a retry would stack another plinth on top of it.
+            entities.forEach { runCatching { it.remove() } }
+            throw e
+        }
     }
 
     /**

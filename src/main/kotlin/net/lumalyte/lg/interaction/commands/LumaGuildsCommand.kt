@@ -57,7 +57,7 @@ class LumaGuildsCommand(
     private val hallStaff by lazy {
         HallStaffCommand(
             pedestals = { getKoin().get() },
-            refresh = { getKoin().getOrNull<net.lumalyte.lg.infrastructure.services.HallStatueService>()?.refreshSoon() },
+            refresh = { getKoin().getOrNull<net.lumalyte.lg.infrastructure.services.HallStatueService>()?.refreshSoon(retryFailed = true) },
             plans = {
                 getKoin().getOrNull<net.lumalyte.lg.infrastructure.services.HallStatueService>()?.currentPlans()
                     ?.map { it.pedestal.slot to "${it.guildName} (${net.lumalyte.lg.domain.values.PrestigeNumeral.of(it.prestige)})" }
