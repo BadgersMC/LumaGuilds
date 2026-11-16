@@ -883,3 +883,6 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-268
 **Unwanted behaviour.** IF the storage is MariaDB, THEN THE SYSTEM SHALL not run the SQLite membership_history DDL, so recording a guild join never fails on a syntax error.
+
+### REQ-273
+**Unwanted behaviour.** IF a MariaDB database has the first `relations` layout (guild_id, target_guild_id, relation_type), THEN THE SYSTEM SHALL move it aside as `relations_legacy_v1`, create the current layout and carry the old rows across as active relations, so alliances, enemies and truces load.

@@ -1468,3 +1468,4 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 
 - [x] **AUDIT-LOG-SWALLOWED** REQ-267. SwallowedErrors on 44 catch sites (prestige, rewards, Chronicle, gold, banners, Vault payment, placeholders, web leaderboard). Evidence: SwallowedErrorsTest.
 - [x] **AUDIT-MARIA-MEMBERSHIP** Tag: TDD. REQ-268. Found by the MariaDB suite: GuildDisbandAtomicityTest failed on "Failed to create membership_history table". Evidence: on MariaDB GuildDisbandAtomicityTest now gets past membership_history; it then stops on the old MariaDB relations schema (guild_id/target_guild_id) that RelationRepositorySQLite can't read, which is left for the upstream sync decision.
+- [x] **AUDIT-MARIA-RELATIONS** Tag: TDD. REQ-273. Evidence: RelationsSchemaRepairSQLTest on MariaDB 10.11 (2 of 2).
