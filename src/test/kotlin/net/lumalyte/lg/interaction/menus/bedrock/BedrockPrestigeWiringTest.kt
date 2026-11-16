@@ -35,7 +35,7 @@ class BedrockPrestigeWiringTest {
             "src/main/kotlin/net/lumalyte/lg/interaction/menus/bedrock/BedrockPrestigeConfirmationMenu.kt"
         ).readText()
         assertTrue(source.contains("private val quote: PrestigeQuote"))
-        assertTrue(source.contains("prestige.confirm(player.uniqueId, quote)"))
+        assertTrue(source.contains("prestige.confirm(player.uniqueId, quote, hallTheme)"))
         assertTrue(source.contains("is PrestigeResult.Failed -> open()"))
         assertTrue(source.contains("Bukkit.getScheduler().runTask"))
     }

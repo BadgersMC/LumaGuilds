@@ -77,6 +77,28 @@ class PrestigeRepositorySQL(
     override fun firstToReach(tier: Int): PrestigeRecord? =
         records("p.prestige_count = ?", tier, limit = 1).firstOrNull()
 
+    // REQ-275: current prestige counts from the reward accounts; the latest applied receipt dates
+    // when each guild reached its count (a guild with no dated receipt sorts last on ties).
+    override fun standings(): List<net.lumalyte.lg.domain.rewards.HallStanding> =
+        storage.connection.connection.use { connection ->
+            val counts = connection.prepareStatement(
+                "SELECT guild_id, prestige_count FROM guild_reward_accounts WHERE prestige_count > 0"
+            ).use { ps -> ps.executeQuery().use { rows -> buildMap { while (rows.next()) put(rows.getString(1), rows.getInt(2)) } } }
+            if (counts.isEmpty()) return@use emptyList()
+            val reached = connection.prepareStatement(
+                """SELECT p.guild_id, MAX(g.created_at)
+                   FROM guild_prestige_transactions p
+                   JOIN guild_gold_operations g ON $journalJoin
+                   WHERE p.outcome = 'APPLIED' AND g.status = 'APPLIED'
+                   GROUP BY p.guild_id"""
+            ).use { ps -> ps.executeQuery().use { rows -> buildMap { while (rows.next()) put(rows.getString(1), rows.getLong(2)) } } }
+            counts.mapNotNull { (id, count) ->
+                val guildId = runCatching { UUID.fromString(id) }.getOrNull() ?: return@mapNotNull null
+                net.lumalyte.lg.domain.rewards.HallStanding(guildId, count,
+                    reached[id]?.let(Instant::ofEpochMilli) ?: Instant.ofEpochMilli(Long.MAX_VALUE / 2))
+            }
+        }
+
     // MariaDB: the journal pins utf8mb4_unicode_ci while receipts use the server default,
     // so convert the receipt side; comparing them directly fails with mixed collations.
     private val journalJoin = if (storage.dialect == SqlDialect.MARIADB)

@@ -65,6 +65,12 @@ internal class LumaGuildsCompletions(
             }
             "prestige" -> prestigeArgument(args, index)
             "sounds" -> if (index == 1) listOf("all", "stop") + net.lumalyte.lg.domain.values.GuildSoundCatalog.ids else emptyList()
+            "hall" -> when (index) {
+                1 -> HallStaffCommand.SUBCOMMANDS
+                2 -> if (args[1].equals("pedestal", true)) HallStaffCommand.PEDESTAL_ACTIONS else emptyList()
+                3 -> if (args[1].equals("pedestal", true)) listOf("<number>") else emptyList()
+                else -> emptyList()
+            }
             else -> emptyList()
         }
     }
@@ -119,6 +125,7 @@ internal class LumaGuildsCompletions(
             "warcutover" to ADMIN_OR_OP,
             "prestige" to PrestigeStaffCommand.PERMISSION,
             "sounds" to GuildSoundsCommand.PERMISSION,
+            "hall" to HallStaffCommand.PERMISSION,
             "help" to null,
         )
 

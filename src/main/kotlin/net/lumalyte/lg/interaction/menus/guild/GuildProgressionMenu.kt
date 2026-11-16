@@ -90,33 +90,55 @@ class GuildProgressionMenu(
         return canInspectGuild() && (hasQuestPermission || isScopedInspector())
     }
 
+    private val loader: net.lumalyte.lg.interaction.menus.MenuLoader by lazy {
+        getKoin().getOrNull() ?: net.lumalyte.lg.interaction.menus.MenuLoader.Immediate
+    }
+    private var cachedOverview: net.lumalyte.lg.domain.rewards.PrestigeOverview? = null
+
+    private sealed interface Snapshot {
+        data object NoAccess : Snapshot
+        data object Unavailable : Snapshot
+        data object LoadFailed : Snapshot
+        data class Ready(
+            val guild: Guild,
+            val reward: GuildRewardRead,
+            val progression: GuildProgressionDisplay,
+            val sourceUsage: List<net.lumalyte.lg.application.services.SourceUsageView>,
+            val overview: net.lumalyte.lg.domain.rewards.PrestigeOverview?,
+        ) : Snapshot
+    }
+
+    /** REQ-266: every database read for this screen, run off the main thread. */
+    private fun readSnapshot(): Snapshot {
+        val fresh = guildService.getGuild(guild.id) ?: guild
+        // Members, or staff inspecting this guild read-only (upstream admin view).
+        if (!canInspectGuild()) return Snapshot.NoAccess
+        val reward = progressionService.getRewardState(fresh.id)
+        if (reward == GuildRewardRead.Unavailable) return Snapshot.Unavailable
+        rewardState = reward
+        val progression = repoProgression() ?: return Snapshot.LoadFailed
+        val usage = progressionService.getSourceUsage(fresh.id).filter { it.source != ExperienceSource.ADMIN_BONUS }
+        return Snapshot.Ready(fresh, reward, progression, usage, prestigeService.overview(fresh.id))
+    }
+
     override fun open() {
-        guild = guildService.getGuild(guild.id) ?: guild
-
-        if (!canInspectGuild()) {
-            player.sendMessage(lang.msg("menu.guild_progression.feedback.no_access"))
-            menuNavigator.goBack()
-            return
+        val token = menuNavigator.currentNavigationToken()
+        loader.load(player, { menuNavigator.isNavigationCurrent(token) }, ::readSnapshot) { snapshot ->
+            when (snapshot) {
+                Snapshot.NoAccess -> { player.sendMessage(lang.msg("menu.guild_progression.feedback.no_access")); menuNavigator.goBack() }
+                Snapshot.Unavailable -> { player.sendMessage(lang.msg("chapter_two_rewards.unavailable")); menuNavigator.goBack() }
+                Snapshot.LoadFailed -> { player.sendMessage(lang.msg("menu.guild_progression.feedback.load_failed")); menuNavigator.goBack() }
+                is Snapshot.Ready -> render(snapshot)
+            }
         }
+    }
 
-        rewardState = progressionService.getRewardState(guild.id)
-        if (rewardState == GuildRewardRead.Unavailable) {
-            player.sendMessage(lang.msg("chapter_two_rewards.unavailable"))
-            menuNavigator.goBack()
-            return
-        }
-
-        // Fetch fresh progression data
-        val progression = progressionService.let {
-            repoProgression()
-        } ?: run {
-            player.sendMessage(lang.msg("menu.guild_progression.feedback.load_failed"))
-            menuNavigator.goBack()
-            return
-        }
-
-        val sourceUsage = progressionService.getSourceUsage(guild.id)
-            .filter { it.source != ExperienceSource.ADMIN_BONUS }
+    private fun render(snapshot: Snapshot.Ready) {
+        guild = snapshot.guild
+        rewardState = snapshot.reward
+        cachedOverview = snapshot.overview
+        val progression = snapshot.progression
+        val sourceUsage = snapshot.sourceUsage
         if (!sourceDetails && RecruitmentPresentation.supportsDialog(player) &&
             showProgressionDialog(progression)) return
         val totalPages = ((sourceUsage.size + itemsPerPage - 1) / itemsPerPage).coerceAtLeast(1)
@@ -600,10 +622,8 @@ class GuildProgressionMenu(
     }
 
     private fun addPrestigeInfo(pane: StaticPane, x: Int, y: Int) {
-        val overview = prestigeService.overview(guild.id)
-        val item = NexoItemProvider.getItemStackOrFallback("lg_prestige") {
-            ItemStack.of(Material.NETHER_STAR)
-        }.also { it.editMeta { meta ->
+        val overview = cachedOverview
+        val item = PrestigeIcon.item(overview?.prestigeCount ?: 0).also { it.editMeta { meta ->
             meta.displayName(lang.gui("menu.guild_progression.prestige.name"))
             val lore = mutableListOf<Component>(
                 lang.gui("menu.guild_progression.prestige.description"),
@@ -692,7 +712,7 @@ class GuildProgressionMenu(
                     player.sendMessage(lang.msg("menu.guild_progression.prestige.feedback.quote_failed"))
                     open()
                 } else {
-                    GuildPrestigeConfirmationMenu(player, quote, reward.name, ::openPrestigeSelection, ::open).open()
+                    pickHallTheme(quote, reward.name)
                 }
             }, index % 9, index / 9)
         }
@@ -707,6 +727,26 @@ class GuildProgressionMenu(
 
         gui.addPane(pane)
         gui.show(player)
+    }
+
+    /**
+     * REQ-260: choose the Hall theme this prestige earns, then confirm. With one theme left it is
+     * picked for the guild; without the Hall service the step is skipped and the pick stays open.
+     */
+    private fun pickHallTheme(quote: net.lumalyte.lg.domain.rewards.PrestigeQuote, rewardName: String) {
+        val themes = org.koin.core.context.GlobalContext.get()
+            .getOrNull<net.lumalyte.lg.application.services.HallThemeService>()
+        val owned = themes?.display(guild.id)?.owned
+        val confirm = { theme: net.lumalyte.lg.domain.rewards.HallTheme? ->
+            GuildPrestigeConfirmationMenu(player, quote, rewardName, ::openPrestigeSelection, ::open,
+                theme, (owned?.size ?: 0) + 1).open()
+        }
+        val left = owned?.let { has -> net.lumalyte.lg.domain.rewards.HallTheme.entries.filterNot { it in has } }
+        when {
+            left.isNullOrEmpty() -> confirm(null)
+            left.size == 1 -> confirm(left.single())
+            else -> GuildPrestigeThemeMenu(player, owned, ::openPrestigeSelection) { confirm(it) }.open()
+        }
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {

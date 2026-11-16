@@ -5987,6 +5987,8 @@ menu:
           badge: "<green>+ The Prestige <tier> badge"
           reward: "<green>+ Keep forever: <white><reward>"
           home_slot: "<green>+ 1 permanent home slot <gray>(<before> → <after>)"
+          hall_theme: "<green>+ Hall theme: <theme> <gray>(<owned> of 6 owned)"
+          hall_theme_all: "<green>+ Hall theme: <theme> <gray>(every theme owned)"
           perk_second_ally_home: "<green>+ New perk: a second allied home (<white>/g setallyhome 2</white>)"
           perk_extra_stall: "<green>+ New perk: one more guild market stall"
           perk_second_vault: "<green>+ New perk: a second guild vault for items (<white>/g getvault 2</white>)"
@@ -7035,6 +7037,17 @@ admin:
     playing_all: '<gray>Playing all <white><count></white> guild sounds in order (about <seconds>s). Only you can hear them.'
     finished: '<gray>That was every guild sound.'
     stopped: '<gray>Sound preview stopped.'
+  hall:
+    help: '<yellow>/lumaguilds hall pedestal set|remove \<n>, hall list, hall refresh <gray>- Place the Hall of Prestige statues'
+    usage: '<gray>Usage: <white>/lumaguilds hall pedestal set|remove \<1-24> <gray>| <white>hall list <gray>| <white>hall refresh'
+    players_only: '<red>Stand where the statue should go and run this in game.'
+    set: '<green>Pedestal <slot> set at <x>, <y>, <z>. <gray>The statue faces the way you were looking.'
+    removed: '<yellow>Pedestal <slot> removed.'
+    missing: '<red>There is no pedestal <slot>.'
+    none: '<gray>No Hall pedestals yet. Stand on a spot and use <white>/lumaguilds hall pedestal set 1'
+    list_header: '<gold>Hall of Prestige pedestals (<count>):'
+    list_line: '<gray>#<slot> <white><world> <x> <y> <z> <gray>· <gold><guild>'
+    refreshing: '<green>Rebuilding the Hall statues.'
   prestige:
     help: '<yellow>/lumaguilds prestige info|set|grant|rerun \<guild> <gray>- Inspect or correct a guild''s prestige (Tab shows what to type). <yellow>/lumaguilds prestige preview \<tier> <gray>- Watch the rank-up yourself'
     usage: '<gray>Usage: <white>/lumaguilds prestige info|set|grant|rerun \<guild> ... <gray>or <white>/lumaguilds prestige preview \<tier> [guild]'
@@ -7978,9 +7991,19 @@ chronicle:
     none: '<gray>No rewards kept from prestige yet. Purchased home slots are kept on their own.</gray>'
     retained: '<gold>Kept forever from an earlier prestige.</gold>'
     review: '<gold>Review eligible retention choices</gold>'
-    milestone: '<gold>Prestige <tier> · Fee: <fee> guild gold · +1 permanent home slot and one reward to keep.</gold>'
-    milestone_earned: '<green>✓ This prestige milestone is earned.</green>'
-    milestone_locked: '<gray>Reach level 100, choose a reward you own to keep and confirm the fee.</gray>'
+    milestone_title: '<gold>Prestige <tier></gold>'
+    milestone_next: '<yellow>Next · Fee <fee> guild gold</yellow>'
+    milestone_fee: '<gray>Fee <fee> guild gold</gray>'
+    milestone_home: '<gray>+ 1 permanent home slot</gray>'
+    milestone_keep: '<gray>+ Keep one reward forever</gray>'
+    milestone_theme: '<gray>+ A Hall theme of your choice</gray>'
+    milestone_member_cap: '<gold>+ Member cap stays at its level-100 size</gold>'
+    milestone_discord: '<gold>+ Prestige Discord role</gold>'
+    milestone_ally_home: '<gold>+ A second allied home</gold>'
+    milestone_stall: '<gold>+ One extra Market stall</gold>'
+    milestone_vault: '<gold>+ A second guild vault (/g getvault 2)</gold>'
+    milestone_announce: '<gray>+ Rank-up announcement for the whole server</gray>'
+    milestone_earned: '<green>✓ Earned</green>'
 
 achievements:
   back_statistics: '<white>Back to Statistics</white>'
@@ -8321,3 +8344,65 @@ second_vault:
     warning_keep: '<yellow>Breaking it keeps the items stored for when you place it again.'
     dropped: '<yellow>Second vault broken. Its items dropped. Pick them up quickly.'
     kept: '<yellow>Second vault removed. Its items are stored until you place it again with <white>/g getvault 2</white>.'
+
+# REQ-260 to REQ-262: Hall of Prestige themes and Hall Display.
+hall:
+  pick:
+    title: "Choose a Hall Theme"
+    name: "<gold><theme> theme"
+    intro: "<gray>Its Hall of Prestige cosmetics:"
+    line: "<white>· <slot>: <value>"
+    owned: "<dark_gray>Your guild already owns this theme"
+    action: "<yellow>Click to choose"
+    back: "<gray>Back"
+    bedrock_content: "Choose the Hall theme this prestige earns. Your guild gets every cosmetic in it."
+    bedrock_cosmetics: "<list>"
+  display:
+    title: "Hall Display"
+    subtitle: "<gray><guild> · Prestige <tier> · <owned> of 6 themes"
+    statue_name: "<gold><name>"
+    statue_tier: "<white>Prestige <tier>"
+    statue_skin: "<gray>Skin: <white><name>"
+    statue_look: "<gray>Pose: <white><pose> <gray>· Aura: <white><aura>"
+    statue_note: "<gray>Shows when your guild takes a pedestal in the Hall of Prestige."
+    view_only: "<dark_gray>Members who can manage the banner can change it."
+    picks_title: "<yellow>Choose a theme (<count> to pick)"
+    picks_body: "<gray>Your guild has prestiged more times than it has themes."
+    pick_action: "<yellow>Choose a theme"
+    pick_subtitle: "<gray>Choose a theme · <count> to pick"
+    none_title: "<gold>No Hall themes yet"
+    none_body: "<gray>Every prestige earns a Hall theme of your choice."
+    slot: "<gold><slot>"
+    slot_value: "<white><value> <gray>(<theme>)"
+    slot_subtitle: "<gray><slot>: choose from the themes your guild owns"
+    option: "<white><value>"
+    option_wearing: "<green>Wearing"
+    option_owned: "<yellow><theme> · click to wear"
+    option_locked: "<dark_gray>Earn this theme at a prestige"
+    use_default: "<gray>Use the default"
+    wear_all: "<gold>Wear a whole theme"
+    preview: "<aqua>Preview in the world"
+    armor: "<gold>Statue armor"
+    armor_subtitle: "<gray>Wear the armor you want on the statue, then copy it. Only the look is copied; you keep your armor."
+    armor_default: "<gray><part>: <white><material> <dark_gray>(default)"
+    armor_plain: "<gray><part>: <white><material>"
+    armor_trimmed: "<gray><part>: <white><material> <gray>· <white><trim> <gray>trim, <white><trim_material>"
+    armor_copy: "<green>Copy what I'm wearing"
+    armor_reset: "<red>Back to default"
+    wear_all_subtitle: "<gray>Set every slot to one theme"
+    skin: "<gold>Statue skin"
+    skin_value: "<white><name>"
+    skin_owner: "<gray>Guild owner (default)"
+    skin_subtitle: "<gray>Whose skin the statue wears · Page <page>/<pages>"
+    bedrock_slot: "<slot>: <value>"
+    bedrock_wear: "Wear the <theme> theme"
+  feedback:
+    saved: "<green>Hall display saved."
+    not_allowed: "<red>Only members who can manage the guild banner can change the Hall display."
+    no_picks: "<red>Your guild has no theme left to pick, or already owns that theme."
+    not_owned: "<red>Your guild doesn't own that theme yet."
+    not_a_member: "<red>That player isn't in your guild."
+    failed: "<red>The Hall display couldn't be loaded or saved. Try again."
+    preview: "<aqua>Hall preview for <seconds>s, only you can see it. <gray>Pose: <pose>."
+    preview_still: "<aqua>Hall preview for <seconds>s, only you can see it. <gray>Pose: <pose> (shown standing; this server can't animate it)."
+    armor_none: "<red>You aren't wearing any armor the statue can copy."

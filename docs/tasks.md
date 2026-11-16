@@ -1515,3 +1515,24 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 - [x] **ADV-CARDS** Tag: TDD. REQ-263. Replaces the inspector tabs and branch rows with cards; Combat milestones joins as the last category. Evidence: GuildAchievementsMenuTest.
 - [ ] **ADV-TEST** Check on TEST: categories, paging, Track/Untrack, tree link, Statistics → Achievements.
 - [x] **STATS-ADVANCEMENTS** REQ-274. Statistics → Guild Advancements opens the combined menu; Bedrock statistics lead with advancement progress. Evidence: LocaleContractTest, statistics and achievements tests.
+
+## Hall of Prestige themes (REQ-260 to REQ-262)
+
+Decision (Fain, 2026-11-16): one theme per prestige, chosen on the prestige screen (replaces the earlier one-pick-every-10-levels plan in docs/plans/2026-11-05-prestige-run-cosmetics.md); this round builds the picker and Hall Display, the Hall statues come after their TEST cost check.
+
+- [x] **HALL-MOCKUP** Approved: Prestige and Guild Menus artifact (theme pick, Hall display, milestones).
+- [x] **HALL-THEMES** Tag: TDD. REQ-260. Evidence: HallThemeServiceTest, HallDisplayRepositorySQLTest, PrestigeSummaryTest.
+- [x] **HALL-DISPLAY** REQ-261. Java dialog (GuildHallDisplayMenu) and Bedrock form (BedrockHallDisplayMenu).
+- [x] **PRESTIGE-MILESTONES** REQ-262. Milestones cards list every tier's rewards.
+- [x] **HALL-PREVIEW** Tag: TDD. REQ-264. Evidence: HallLookTest. Poses show by name only; the statue model has Guard and Victory animations so far.
+- [x] **MENU-ASYNC-READS** REQ-266. MenuLoader (Bukkit async, immediate in unit tests) for progression, Chronicle and Hall Display. Evidence: full suite, MariaDB reward suite.
+- [x] **PRESTIGE-BADGE-ICONS** Tag: TDD. REQ-269. Evidence: HallPoseNameTest.
+- [x] **HALL-GUILD-BANNER** REQ-270. Needs an in-game look.
+- [x] **HALL-GUILD-ARMOR** Tag: TDD. REQ-271. Evidence: HallThemeServiceTest, HallDisplayRepositorySQLTest.
+- [ ] **HALL-POSES** REQ-272. Guard and Victory wired through BetterModel; needs an in-game look, and Rally, Salute, Toast and Coronation still need animating.
+- [x] **HALL-GUARD-SWORD** REQ-272. Guard holds a vanilla netherite sword (a display entity, HallSwordPlacement) planted point-down in front of the statue; the plinth is centred under the statue. Evidence: HallSwordPlacementTest; needs an in-game look.
+- [ ] **HALL-TEST** On TEST: prestige with the theme step, Hall Display changes, Bedrock picks.
+- [ ] **HALL-STATUES** Build the Hall statues that wear these choices (after the TEST cost check).
+
+- [x] **HALL-STATUES** Tag: TDD. REQ-275. Decisions (Fain, 2026-11-16): top guilds by prestige; staff place numbered pedestals; Bedrock sees a plain standing statue. Evidence: HallRankingTest, HallPedestalRepositorySQLTest, HallFacingTest; needs an in-game look on TEST.
+- [x] **HALL-SPAWN-GUARD** Tag: TDD. REQ-276. TEST showed bare plinths flickering: spawn's WorldGuard region denies mob spawning with block-plugin-spawning on, so every mannequin (and armor stand) was cancelled on spawn and the Hall rebuilt the statue twice a second. Evidence: HallSpawnGuardTest; needs an in-game look on TEST.

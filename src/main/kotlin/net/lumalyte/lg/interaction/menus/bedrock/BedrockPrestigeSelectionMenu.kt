@@ -84,15 +84,28 @@ class BedrockPrestigeSelectionMenu(
             open()
             return
         }
-        BedrockPrestigeConfirmationMenu(
-            menuNavigator = menuNavigator,
-            player = player,
-            quote = quote,
-            retainedRewardName = rewardName,
-            back = ::open,
-            success = { bedrockNavigator.goBack() },
-            logger = logger,
-        ).open()
+        val themes = org.koin.core.context.GlobalContext.get()
+            .getOrNull<net.lumalyte.lg.application.services.HallThemeService>()
+        val owned = themes?.display(guild.id)?.owned
+        val confirm = { theme: net.lumalyte.lg.domain.rewards.HallTheme? ->
+            BedrockPrestigeConfirmationMenu(
+                menuNavigator = menuNavigator,
+                player = player,
+                quote = quote,
+                retainedRewardName = rewardName,
+                back = ::open,
+                success = { bedrockNavigator.goBack() },
+                logger = logger,
+                hallTheme = theme,
+                themesOwnedAfter = (owned?.size ?: 0) + 1,
+            ).open()
+        }
+        val left = owned?.let { has -> net.lumalyte.lg.domain.rewards.HallTheme.entries.filterNot { it in has } }
+        when {
+            left.isNullOrEmpty() -> confirm(null)
+            left.size == 1 -> confirm(left.single())
+            else -> BedrockPrestigeThemeMenu(menuNavigator, player, left, ::open, confirm, logger).open()
+        }
     }
 
     private fun statusForm(message: String): Form = SimpleForm.builder()

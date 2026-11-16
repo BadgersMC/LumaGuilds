@@ -21,7 +21,12 @@ internal fun referenceAction(
     label: Component,
     icon: String,
     action: () -> Unit,
-): GuildDialogAction = GuildDialogAction(guildDialogIconLabel(label, icon), Component.empty(), action)
+): GuildDialogAction {
+    var labeled = guildDialogIconLabel(label, icon)
+    // REQ-269: a pack without the tier badge glyphs keeps the generic prestige icon.
+    if (labeled === label && icon.startsWith(PrestigeIcon.GENERIC + "_")) labeled = guildDialogIconLabel(label, PrestigeIcon.GENERIC)
+    return GuildDialogAction(labeled, Component.empty(), action)
+}
 
 internal fun referenceItem(
     icon: String,
@@ -31,7 +36,9 @@ internal fun referenceItem(
     section: Component? = null,
 ): GuildDialogItem =
     GuildDialogItem(
-        NexoItemProvider.getItemStackOrFallback(icon) { ItemStack.of(Material.PAPER) },
+        NexoItemProvider.getItemStackOrFallback(icon) {
+            if (icon.startsWith(PrestigeIcon.GENERIC + "_")) PrestigeIcon.generic() else ItemStack.of(Material.PAPER)
+        },
         Component.join(JoinConfiguration.newlines(), lines),
         lines,
         action,
@@ -78,8 +85,9 @@ internal fun prestigeSummaryLines(
     preview: PrestigePreview,
     reward: String,
     effect: net.lumalyte.lg.domain.rewards.RewardEffect?,
+    hallTheme: PrestigeSummaryLine.HallThemeEarned? = null,
 ): List<net.kyori.adventure.text.Component> =
-    PrestigeSummary.lines(preview, effect != null).map { line ->
+    PrestigeSummary.lines(preview, effect != null, hallTheme).map { line ->
         when (line) {
             is PrestigeSummaryLine.Heading -> lang.gui("menu.guild_progression.prestige.confirmation.summary.name", "tier" to PrestigeNumeral.of(line.tier))
             PrestigeSummaryLine.FinalPrestige -> lang.gui("menu.guild_progression.prestige.confirmation.summary.final")
@@ -89,6 +97,11 @@ internal fun prestigeSummaryLines(
             PrestigeSummaryLine.RetainedReward -> lang.gui("menu.guild_progression.prestige.confirmation.summary.reward", "reward" to reward)
             PrestigeSummaryLine.RetainedEffect -> effect?.let { referenceRewardEffect(lang, it) } ?: net.kyori.adventure.text.Component.empty()
             is PrestigeSummaryLine.HomeSlot -> lang.gui("menu.guild_progression.prestige.confirmation.summary.home_slot", "before" to line.before, "after" to line.after)
+            is PrestigeSummaryLine.HallThemeEarned -> if (line.ownedAfter >= net.lumalyte.lg.domain.rewards.HallTheme.entries.size) {
+                lang.gui("menu.guild_progression.prestige.confirmation.summary.hall_theme_all", "theme" to line.theme.label)
+            } else {
+                lang.gui("menu.guild_progression.prestige.confirmation.summary.hall_theme", "theme" to line.theme.label, "owned" to line.ownedAfter)
+            }
             is PrestigeSummaryLine.Perk -> when (line.perk) {
                 PrestigePerk.SECOND_ALLY_HOME -> lang.gui("menu.guild_progression.prestige.confirmation.summary.perk_second_ally_home")
                 PrestigePerk.EXTRA_STALL -> lang.gui("menu.guild_progression.prestige.confirmation.summary.perk_extra_stall")
@@ -121,8 +134,9 @@ internal fun bedrockPrestigeSummaryLines(
     preview: PrestigePreview,
     reward: String,
     effect: net.lumalyte.lg.domain.rewards.RewardEffect?,
+    hallTheme: PrestigeSummaryLine.HallThemeEarned? = null,
 ): List<String> =
-    PrestigeSummary.lines(preview, effect != null).map { line ->
+    PrestigeSummary.lines(preview, effect != null, hallTheme).map { line ->
         when (line) {
             is PrestigeSummaryLine.Heading -> lang.bedrock("menu.guild_progression.prestige.confirmation.summary.name", "tier" to PrestigeNumeral.of(line.tier))
             PrestigeSummaryLine.FinalPrestige -> lang.bedrock("menu.guild_progression.prestige.confirmation.summary.final")
@@ -132,6 +146,11 @@ internal fun bedrockPrestigeSummaryLines(
             PrestigeSummaryLine.RetainedReward -> lang.bedrock("menu.guild_progression.prestige.confirmation.summary.reward", "reward" to reward)
             PrestigeSummaryLine.RetainedEffect -> effect?.let { bedrockRewardEffect(lang, it) } ?: ""
             is PrestigeSummaryLine.HomeSlot -> lang.bedrock("menu.guild_progression.prestige.confirmation.summary.home_slot", "before" to line.before, "after" to line.after)
+            is PrestigeSummaryLine.HallThemeEarned -> if (line.ownedAfter >= net.lumalyte.lg.domain.rewards.HallTheme.entries.size) {
+                lang.bedrock("menu.guild_progression.prestige.confirmation.summary.hall_theme_all", "theme" to line.theme.label)
+            } else {
+                lang.bedrock("menu.guild_progression.prestige.confirmation.summary.hall_theme", "theme" to line.theme.label, "owned" to line.ownedAfter)
+            }
             is PrestigeSummaryLine.Perk -> when (line.perk) {
                 PrestigePerk.SECOND_ALLY_HOME -> lang.bedrock("menu.guild_progression.prestige.confirmation.summary.perk_second_ally_home")
                 PrestigePerk.EXTRA_STALL -> lang.bedrock("menu.guild_progression.prestige.confirmation.summary.perk_extra_stall")

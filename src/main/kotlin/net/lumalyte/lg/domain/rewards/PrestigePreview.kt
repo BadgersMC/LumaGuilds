@@ -36,6 +36,8 @@ sealed interface PrestigeSummaryLine {
     data object RetainedReward : PrestigeSummaryLine
     data object RetainedEffect : PrestigeSummaryLine
     data class HomeSlot(val before: Int, val after: Int) : PrestigeSummaryLine
+    /** REQ-260: the Hall theme chosen for this prestige and how many the guild will own. */
+    data class HallThemeEarned(val theme: HallTheme, val ownedAfter: Int) : PrestigeSummaryLine
     data class Perk(val perk: PrestigePerk) : PrestigeSummaryLine
     data class MemberLimit(val limit: Int) : PrestigeSummaryLine
     data class DiscordRole(val minimumLevel: Int) : PrestigeSummaryLine
@@ -54,7 +56,11 @@ sealed interface PrestigeSummaryLine {
 
 object PrestigeSummary {
     /** REQ-249: earned, cost and kept, each line only when it is true for this guild and tier. */
-    fun lines(preview: PrestigePreview, hasRetainedEffect: Boolean): List<PrestigeSummaryLine> = buildList {
+    fun lines(
+        preview: PrestigePreview,
+        hasRetainedEffect: Boolean,
+        hallTheme: PrestigeSummaryLine.HallThemeEarned? = null,
+    ): List<PrestigeSummaryLine> = buildList {
         add(PrestigeSummaryLine.Heading(preview.tier))
         if (preview.finalTier) add(PrestigeSummaryLine.FinalPrestige)
         add(PrestigeSummaryLine.Gap)
@@ -63,6 +69,7 @@ object PrestigeSummary {
         add(PrestigeSummaryLine.RetainedReward)
         if (hasRetainedEffect) add(PrestigeSummaryLine.RetainedEffect)
         add(PrestigeSummaryLine.HomeSlot(preview.homeSlotsBefore, preview.homeSlotsAfter))
+        hallTheme?.let(::add)
         preview.perks.forEach { add(PrestigeSummaryLine.Perk(it)) }
         preview.memberLimitKept?.let { add(PrestigeSummaryLine.MemberLimit(it)) }
         preview.discordRoleMinimumLevel?.let { add(PrestigeSummaryLine.DiscordRole(it)) }

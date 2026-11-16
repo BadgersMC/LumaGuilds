@@ -5,7 +5,7 @@ load: STARTUP
 main: net.lumalyte.lg.LumaGuilds
 # Advancements is discovered through Bukkit service lifecycle events; ordering it
 # before Guilds creates a cycle with KOTH (Guilds -> KOTH -> Advancements).
-softdepend: [Vault, PlaceholderAPI, LiteBans, EnthusiaStaff, EnthusiaPlaytime, Nexo, packetevents, DiscordSRV]
+softdepend: [Vault, PlaceholderAPI, LiteBans, EnthusiaStaff, EnthusiaPlaytime, Nexo, packetevents, DiscordSRV, BetterModel]
 depend: [RoseChat]
 
 commands:
@@ -335,6 +335,7 @@ permissions:
       lumaguilds.admin.xp: true
       lumaguilds.admin.prestige: true
       lumaguilds.admin.sounds: true
+      lumaguilds.admin.hall: true
 
   bellclaims.admin:
     description: Allows access to admin commands including guild override mode
@@ -358,6 +359,8 @@ permissions:
 
   lumaguilds.admin.sounds:
     description: Preview every guild sound with /lumaguilds sounds
+  lumaguilds.admin.hall:
+    description: Place Hall of Prestige pedestals with /lumaguilds hall
     default: op
 
   lumaguilds.admin.owner.recover:

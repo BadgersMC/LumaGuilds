@@ -832,6 +832,9 @@ fun progressionModule() = module {
                 prestigeDiscordPost(),
             ),
             refreshGuildLevel = { guildId -> get<GuildRepository>().refreshCachedLevel(guildId) },
+            grantHallTheme = { guildId, theme ->
+                get<net.lumalyte.lg.application.services.HallThemeService>().earnFromPrestige(guildId, theme)
+            },
         )
     }
     single {
@@ -1356,6 +1359,34 @@ fun vaultModule() = module {
     single<net.lumalyte.lg.infrastructure.services.VaultHologramService> {
         net.lumalyte.lg.infrastructure.services.VaultHologramService(get(), get(), get())
     }
+    // REQ-260/261: Hall of Prestige themes and display choices.
+    single<net.lumalyte.lg.application.persistence.HallDisplayRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.HallDisplayRepositorySQL(get())
+    }
+    single {
+        net.lumalyte.lg.application.services.HallThemeService(
+            repository = get(),
+            prestigeCount = { guildId -> get<net.lumalyte.lg.application.services.GuildPrestigeService>().overview(guildId)?.prestigeCount },
+            canManage = { actor, guildId ->
+                get<MemberService>().hasPermission(actor, guildId, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_BANNER)
+            },
+            isMember = { playerId, guildId -> get<MemberService>().getMember(playerId, guildId) != null },
+            changed = { getOrNull<net.lumalyte.lg.infrastructure.services.HallStatueService>()?.refreshSoon() },
+        )
+    }
+    // REQ-275: Hall of Prestige pedestals and statues.
+    single<net.lumalyte.lg.application.persistence.HallPedestalRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.HallPedestalRepositorySQL(get())
+    }
+    single {
+        net.lumalyte.lg.infrastructure.services.HallStatueService(
+            get<LumaGuilds>(), get(), get(), get(), get(), get(), get(), getOrNull(),
+        )
+    }
+    // REQ-266: menu reads off the main thread.
+    single<net.lumalyte.lg.interaction.menus.MenuLoader> { net.lumalyte.lg.interaction.menus.BukkitMenuLoader(get()) }
+    // REQ-264: viewer-only Hall statue preview.
+    single { net.lumalyte.lg.infrastructure.services.HallPreviewService(get()) }
     // REQ-242 to REQ-248: the Prestige VI second vault.
     single<net.lumalyte.lg.application.persistence.SecondVaultRepository> {
         net.lumalyte.lg.infrastructure.persistence.guilds.SecondVaultRepositorySQL(get())

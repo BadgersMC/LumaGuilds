@@ -932,3 +932,38 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-274
 **Ubiquitous.** THE SYSTEM SHALL label the Statistics menu's achievements button Guild Advancements, show the guild's advancement progress, tracked advancement and combat milestones on it, and open the combined Guild Advancements menu at its first category.
+
+### REQ-260
+**Event-driven.** WHEN a guild prestiges THE SYSTEM SHALL let the confirming member choose one Hall of Prestige theme the guild doesn't own (Gilded, Ember, Winged, Tidal, Radiant or Crowned) between choosing the reward to keep and confirming, pick it automatically when only one is left, list it in the confirmation summary, and grant it once the prestige applies, so a guild owns at most one theme per prestige; a pick not made then (staff grants, earlier prestiges) SHALL stay open in Hall Display.
+
+### REQ-261
+**Ubiquitous.** THE SYSTEM SHALL provide Hall Display, where every member can see what the guild's Hall statue wears and members with Manage Banner can choose open theme picks, set each of the ten cosmetic slots to any owned theme or the default, wear a whole owned theme at once, and choose which member's skin the statue wears (Bedrock: picks and whole themes), and SHALL delete a guild's themes and choices when it disbands.
+
+### REQ-262
+**Ubiquitous.** THE SYSTEM SHALL list on each Prestige milestones card everything that tier gives: its fee or that it is earned, a permanent home slot, one reward kept, a Hall theme, the first prestige's member cap and Discord role when those are on, and the second allied home, extra stall and second vault at their configured tiers.
+
+## Guild Advancements cards
+
+### REQ-264
+**Event-driven.** WHEN a guild member chooses Preview in the world on the Hall Display, THE SYSTEM SHALL build a statue three blocks in front of them, seen only by them, wearing the guild's current choices (skin, tier armor with the chosen trim, plinth, nameplate, banner, trophy, spotlight, aura and sound), and SHALL remove it after 30 seconds, when they start another preview, when they leave, or when the plugin stops.
+
+### REQ-266
+**Ubiquitous.** THE SYSTEM SHALL read the database for the guild progression, Chronicle (including the prestige page) and Hall Display menus off the main server thread, and SHALL show the result only if the player is still online and on the same screen.
+
+### REQ-269
+**Ubiquitous.** THE SYSTEM SHALL show a guild's prestige with the badge of its current tier (lg_prestige_1 to lg_prestige_6) wherever the generic prestige diamond stood for that guild's prestige, show each milestone tier with its own badge, and fall back to the generic icon at tier 0 or when the pack has no badge.
+
+### REQ-270
+**Ubiquitous.** THE SYSTEM SHALL show the guild's own banner on its Hall statue, standing beside the statue with its front toward the viewer, and SHALL not offer a banner cosmetic.
+
+### REQ-271
+**Event-driven.** WHEN a member who can manage the guild banner copies the armor they wear, THE SYSTEM SHALL save each vanilla piece's material, trim and leather dye as the statue's armor without taking the items, and SHALL use the tier default for any piece not set.
+
+### REQ-272
+**Optional feature.** WHERE BetterModel has the prestige limb model, THE SYSTEM SHALL play the statue's chosen pose on the preview, using Guard when the model has no animation for that pose, and SHALL show the statue standing otherwise.
+
+### REQ-275
+**Ubiquitous.** THE SYSTEM SHALL show, on each Hall of Prestige pedestal staff place with `/lumaguilds hall pedestal set <n>`, the statue of the guild ranked n by prestige (ties to whoever reached the count first), wearing that guild's Hall Display choices; Java players SHALL see the animated pose and Bedrock players the plain standing statue. Statues SHALL not be saved with the world and SHALL be rebuilt on start, every five minutes, after a Hall Display change or prestige, after a pedestal change and when a pedestal's chunk loads.
+
+### REQ-276
+**Unwanted behaviour.** IF a protection plugin cancels the spawn of a Hall statue LumaGuilds is spawning (for example WorldGuard's `block-plugin-spawning` in a region that denies mob spawning), THEN THE SYSTEM SHALL let that one spawn through; and IF a statue is still refused or is removed again within ten seconds of being built, THEN THE SYSTEM SHALL remove what it built, log a warning naming the pedestal once, and not rebuild it until its plan changes or staff run `/lumaguilds hall refresh`.

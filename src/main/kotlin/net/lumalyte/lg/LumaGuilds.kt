@@ -1081,6 +1081,8 @@ class LumaGuilds : JavaPlugin() {
         server.pluginManager.registerEvents(recruitmentListener, this)
         recruitmentListener.start()
         get().get<net.lumalyte.lg.infrastructure.services.GuildAchievementRuntime>().start()
+        get().get<net.lumalyte.lg.infrastructure.services.HallPreviewService>().start()
+        get().get<net.lumalyte.lg.infrastructure.services.HallStatueService>().start()
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.PlayerSessionListener(), this)
 
         // Register war kill tracking listener
@@ -1565,6 +1567,8 @@ class LumaGuilds : JavaPlugin() {
             return
         }
         runCatching { org.koin.core.context.GlobalContext.getOrNull()?.getOrNull<net.lumalyte.lg.infrastructure.services.GuildAchievementRuntime>()?.stop() }
+        runCatching { org.koin.core.context.GlobalContext.getOrNull()?.getOrNull<net.lumalyte.lg.infrastructure.services.HallPreviewService>()?.stop() }
+        runCatching { org.koin.core.context.GlobalContext.getOrNull()?.getOrNull<net.lumalyte.lg.infrastructure.services.HallStatueService>()?.stop() }
         // This irreversible gate must run before unrelated cleanup can throw or services are unregistered.
         inviteBlockLifecycle?.close()
         inviteBlockLifecycle = null
