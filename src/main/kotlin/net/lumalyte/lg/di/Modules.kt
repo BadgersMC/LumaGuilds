@@ -1325,6 +1325,16 @@ fun vaultModule() = module {
                 get<MemberService>().hasPermission(actor, guildId, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_BANNER)
             },
             isMember = { playerId, guildId -> get<MemberService>().getMember(playerId, guildId) != null },
+            changed = { getOrNull<net.lumalyte.lg.infrastructure.services.HallStatueService>()?.refreshSoon() },
+        )
+    }
+    // REQ-275: Hall of Prestige pedestals and statues.
+    single<net.lumalyte.lg.application.persistence.HallPedestalRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.HallPedestalRepositorySQL(get())
+    }
+    single {
+        net.lumalyte.lg.infrastructure.services.HallStatueService(
+            get<LumaGuilds>(), get(), get(), get(), get(), get(), get(), getOrNull(),
         )
     }
     // REQ-266: menu reads off the main thread.

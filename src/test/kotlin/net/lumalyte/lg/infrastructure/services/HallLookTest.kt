@@ -67,3 +67,15 @@ class HallSwordPlacementTest {
         assertEquals(0.96, length, 0.02)
     }
 }
+
+class HallFacingTest {
+    @Test
+    fun `REQ-275 statues face the nearest of the eight compass directions`() {
+        val facing = net.lumalyte.lg.interaction.commands.HallStaffCommand::facing
+        assertEquals(0f, facing(10f))
+        assertEquals(45f, facing(30f))
+        assertEquals(-90f, facing(-100f))
+        assertEquals(-180f, facing(179f))
+        assertEquals(90f, facing(450f))
+    }
+}

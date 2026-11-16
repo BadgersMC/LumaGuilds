@@ -21,6 +21,8 @@ class HallThemeService(
     private val canManage: (actor: UUID, guildId: UUID) -> Boolean,
     private val isMember: (playerId: UUID, guildId: UUID) -> Boolean,
     private val clock: () -> Instant = Instant::now,
+    /** REQ-275: told when a guild's Hall look changes, so its statue in the Hall can be rebuilt. */
+    private val changed: (UUID) -> Unit = {},
 ) {
     enum class Outcome { DONE, NOT_ALLOWED, NO_PICKS, NOT_OWNED, NOT_A_MEMBER, FAILED }
 
@@ -50,7 +52,7 @@ class HallThemeService(
 
     private fun earnFor(guildId: UUID, theme: HallTheme): Outcome = try {
         val limit = prestigeCount(guildId) ?: return Outcome.FAILED
-        if (repository.earn(guildId, theme, limit, clock())) Outcome.DONE else Outcome.NO_PICKS
+        if (repository.earn(guildId, theme, limit, clock())) Outcome.DONE.also { notify(guildId) } else Outcome.NO_PICKS
     } catch (e: Exception) {
         logger.warn("Could not grant Hall theme $theme to guild $guildId", e)
         Outcome.FAILED
@@ -90,13 +92,18 @@ class HallThemeService(
 
     fun disbanded(guildId: UUID) {
         runCatching { repository.deleteAll(guildId) }.onFailure { logger.warn("Could not clear the Hall display of guild $guildId", it) }
+        notify(guildId)
+    }
+
+    private fun notify(guildId: UUID) {
+        runCatching { changed(guildId) }.onFailure { logger.warn("Hall refresh hook failed for guild $guildId", it) }
     }
 
     private fun change(actor: UUID, guildId: UUID, block: (HallDisplay) -> Outcome): Outcome {
         if (!canManage(actor, guildId)) return Outcome.NOT_ALLOWED
         val display = display(guildId) ?: return Outcome.FAILED
         return try {
-            block(display)
+            block(display).also { if (it == Outcome.DONE) notify(guildId) }
         } catch (e: Exception) {
             logger.warn("Could not change the Hall display of guild $guildId", e)
             Outcome.FAILED

@@ -331,6 +331,7 @@ permissions:
       bellclaims.admin: true
       lumaguilds.admin.xp: true
       lumaguilds.admin.prestige: true
+      lumaguilds.admin.hall: true
 
   bellclaims.admin:
     description: Allows access to admin commands including guild override mode
@@ -342,6 +343,10 @@ permissions:
 
   lumaguilds.admin.prestige:
     description: Inspect, set, grant and re-run guild prestige with /lumaguilds prestige
+    default: op
+
+  lumaguilds.admin.hall:
+    description: Place Hall of Prestige pedestals with /lumaguilds hall
     default: op
 
   lumaguilds.admin.owner.recover:

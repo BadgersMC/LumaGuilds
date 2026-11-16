@@ -19,15 +19,15 @@ internal class HallStatuePose private constructor() {
     private val logger = LoggerFactory.getLogger(HallStatuePose::class.java)
 
     /**
-     * Wraps [statue] in the limb model wearing [skin]'s skin, seen only by [viewer], looping the pose
+     * Wraps [statue] in the limb model wearing [skin]'s skin, seen only by players [canSee] accepts, looping the pose
      * named [pose] or Guard when the model has no such animation. Returns a closer, or null if the
      * model is missing (the plain statue then stays visible).
      */
-    fun apply(statue: LivingEntity, viewer: UUID, skin: UUID?, pose: String): (() -> Unit)? = try {
+    fun apply(statue: LivingEntity, canSee: (UUID) -> Boolean, skin: UUID?, pose: String): (() -> Unit)? = try {
         val renderer = BetterModel.limb(LIMB).orElse(null) ?: return null
         val entity = BukkitAdapter.adapt(statue)
         val tracker: EntityTracker = if (skin != null) renderer.create(entity, ModelProfile.of(skin)) else renderer.create(entity)
-        tracker.spawnCondition { it.uuid() == viewer }
+        tracker.spawnCondition { canSee(it.uuid()) }
         val loop = AnimationModifier(0, 0, AnimationIterator.Type.LOOP)
         val wanted = animationFor(pose)
         if (!tracker.animate(wanted, loop) && wanted != GUARD) tracker.animate(GUARD, loop)

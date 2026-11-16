@@ -64,6 +64,12 @@ internal class LumaGuildsCompletions(
                 else -> emptyList()
             }
             "prestige" -> prestigeArgument(args, index)
+            "hall" -> when (index) {
+                1 -> HallStaffCommand.SUBCOMMANDS
+                2 -> if (args[1].equals("pedestal", true)) HallStaffCommand.PEDESTAL_ACTIONS else emptyList()
+                3 -> if (args[1].equals("pedestal", true)) listOf("<number>") else emptyList()
+                else -> emptyList()
+            }
             else -> emptyList()
         }
     }
@@ -112,6 +118,7 @@ internal class LumaGuildsCompletions(
             "spawnbanner" to ADMIN_OR_OP,
             "warcutover" to ADMIN_OR_OP,
             "prestige" to PrestigeStaffCommand.PERMISSION,
+            "hall" to HallStaffCommand.PERMISSION,
             "help" to null,
         )
 

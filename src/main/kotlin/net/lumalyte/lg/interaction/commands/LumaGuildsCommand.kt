@@ -53,6 +53,19 @@ class LumaGuildsCommand(
     private val progressionService: ProgressionService by inject()
     private val memberService: MemberService by inject()
     private val ownerRecovery by lazy { GuildOwnerRecoveryCommand(memberService, lang) }
+    // REQ-275: Hall of Prestige pedestals.
+    private val hallStaff by lazy {
+        HallStaffCommand(
+            pedestals = { getKoin().get() },
+            refresh = { getKoin().getOrNull<net.lumalyte.lg.infrastructure.services.HallStatueService>()?.refreshSoon() },
+            plans = {
+                getKoin().getOrNull<net.lumalyte.lg.infrastructure.services.HallStatueService>()?.currentPlans()
+                    ?.map { it.pedestal.slot to "${it.guildName} (${net.lumalyte.lg.domain.values.PrestigeNumeral.of(it.prestige)})" }
+                    ?: emptyList()
+            },
+            lang = lang,
+        )
+    }
     private val prestigeStaff by lazy {
         val catalog = getKoin().get<net.lumalyte.lg.domain.rewards.RewardCatalog>()
         PrestigeStaffCommand({ getKoin().get() }, guildService, lang, rewardName = { catalog.find(it)?.name ?: it })
@@ -81,6 +94,7 @@ class LumaGuildsCommand(
             "override" -> handleOverride(sender)
             "owner" -> ownerRecovery.execute(sender, args)
             "prestige" -> prestigeStaff.execute(sender, args)
+            "hall" -> hallStaff.execute(sender, args)
             "spawnbanner" -> handleSpawnBanner(sender, args)
             "warcutover" -> handleWarCutover(sender, args)
             "help" -> showHelp(sender)
@@ -734,6 +748,9 @@ class LumaGuildsCommand(
         sender.sendMessage(lang.msg("spawn_banner.feedback.help"))
         if (sender.hasPermission(PrestigeStaffCommand.PERMISSION)) {
             sender.sendMessage(lang.msg("admin.prestige.help"))
+        }
+        if (sender.hasPermission(HallStaffCommand.PERMISSION)) {
+            sender.sendMessage(lang.msg("admin.hall.help"))
         }
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.warcutover"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_help_show_this_help"))

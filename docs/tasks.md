@@ -1480,4 +1480,4 @@ Decision (Fain, 2026-11-16): one theme per prestige, chosen on the prestige scre
 - [ ] **HALL-POSES** REQ-272. Guard and Victory wired through BetterModel; needs an in-game look, and Rally, Salute, Toast and Coronation still need animating.
 - [x] **HALL-GUARD-SWORD** REQ-272. Guard holds a vanilla netherite sword (a display entity, HallSwordPlacement) planted point-down in front of the statue; the plinth is centred under the statue. Evidence: HallSwordPlacementTest; needs an in-game look.
 - [ ] **HALL-TEST** On TEST: prestige with the theme step, Hall Display changes, Bedrock picks.
-- [ ] **HALL-STATUES** Build the Hall statues that wear these choices (after the TEST cost check).
+- [x] **HALL-STATUES** Tag: TDD. REQ-275. Decisions (Fain, 2026-11-16): top guilds by prestige; staff place numbered pedestals; Bedrock sees a plain standing statue. Evidence: HallRankingTest, HallPedestalRepositorySQLTest, HallFacingTest; needs an in-game look on TEST.

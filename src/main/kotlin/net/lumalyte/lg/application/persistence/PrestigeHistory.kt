@@ -10,4 +10,7 @@ interface PrestigeHistory {
 
     /** The first applied prestige server-wide that reached [tier], or null. */
     fun firstToReach(tier: Int): PrestigeRecord?
+
+    /** REQ-275: every guild with at least one prestige, with when it reached its current count. */
+    fun standings(): List<net.lumalyte.lg.domain.rewards.HallStanding> = emptyList()
 }
