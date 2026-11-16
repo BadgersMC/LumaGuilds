@@ -64,6 +64,7 @@ internal class LumaGuildsCompletions(
                 else -> emptyList()
             }
             "prestige" -> prestigeArgument(args, index)
+            "sounds" -> if (index == 1) listOf("all", "stop") + net.lumalyte.lg.domain.values.GuildSoundCatalog.ids else emptyList()
             else -> emptyList()
         }
     }
@@ -117,6 +118,7 @@ internal class LumaGuildsCompletions(
             "spawnbanner" to ADMIN_OR_OP,
             "warcutover" to ADMIN_OR_OP,
             "prestige" to PrestigeStaffCommand.PERMISSION,
+            "sounds" to GuildSoundsCommand.PERMISSION,
             "help" to null,
         )
 

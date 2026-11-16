@@ -1488,3 +1488,7 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 - [x] **RANKUP-PLAY** Tag: TDD. REQ-251, REQ-252. Evidence: PrestigeFanfareTest, PrestigeRankUpTest.
 - [x] **RANKUP-PREVIEW** Tag: TDD. REQ-253. Evidence: PrestigeFanfareTest, PrestigeStaffCommandTest.
 - [ ] **RANKUP-TEST** Watch it in-game on TEST (Java, `/lumaguilds prestige preview <tier>`) and check Bedrock still gets the plain title.
+
+## Staff sound preview (REQ-254)
+
+- [x] **SOUNDS-PREVIEW** Tag: TDD. REQ-254. `/lumaguilds sounds [id|all|stop]`. Evidence: GuildSoundCatalogTest, GuildSoundsCommandTest.

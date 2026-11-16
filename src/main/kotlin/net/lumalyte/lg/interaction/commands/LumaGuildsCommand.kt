@@ -68,6 +68,19 @@ class LumaGuildsCommand(
         )
     }
 
+    private val sounds by lazy {
+        val plugin = JavaPlugin.getPlugin(LumaGuilds::class.java)
+        val presenter = getKoin().get<net.lumalyte.lg.infrastructure.services.GuildMomentPresenter>()
+        GuildSoundsCommand(
+            lang,
+            play = { player, entry -> presenter.play(player, entry.cues) },
+            later = { ticks, task -> Bukkit.getScheduler().runTaskLater(plugin, Runnable(task), ticks) },
+            stop = { player, entry ->
+                entry.cues.forEach { player.stopSound(net.kyori.adventure.sound.SoundStop.named(net.kyori.adventure.key.Key.key(it.sound))) }
+            },
+        )
+    }
+
     // Resolved lazily and nullable: GuildRolePermissionResolver is only registered when
     // claims are enabled. Touching it via `by inject()` would crash the override command
     // on claims-disabled servers.
@@ -92,6 +105,7 @@ class LumaGuildsCommand(
             "admin" -> handleAdmin(sender, args)
             "owner" -> ownerRecovery.execute(sender, args)
             "prestige" -> prestigeStaff.execute(sender, args)
+            "sounds" -> sounds.execute(sender, args)
             "spawnbanner" -> handleSpawnBanner(sender, args)
             "warcutover" -> handleWarCutover(sender, args)
             "help" -> showHelp(sender)
@@ -802,6 +816,7 @@ class LumaGuildsCommand(
             sender.sendMessage(lang.msg("admin.prestige.help"))
         }
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.warcutover"))
+        sender.sendMessage(lang.msg("admin.sounds.help"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_help_show_this_help"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.reload_commands_are_for_development_some_changes"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.disband_is_for_emergency_use_only_removes"))
