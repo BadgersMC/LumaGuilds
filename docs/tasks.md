@@ -1480,3 +1480,11 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 ## Upstream sync, 2026-11-16
 
 - [x] **SYNC-UPSTREAM-60** Merged BadgersMC/lumaguilds main (60 commits). Homes follow upstream: capacity is the base home plus one per prestige plus paid Outposts active in the current prestige, homes can be set anywhere, and saved homes over the cap stay saved but locked until an Outpost is bought again. This fork's ally homes, Quick Travel countdown, home cooldown and prestige perks sit on top; upstream's last-tick recheck runs through the fork's `startHomeTeleport`. Upstream's schema versions 50 and 51 (Outpost acquisitions, home access grants) are renumbered 53 and 54 because this fork already uses 50 to 52. Evidence: full suite.
+
+## Prestige rank-up animation (REQ-251, REQ-252)
+
+- [x] **RANKUP-MOCKUP** Animated mockup of the prestige rank-up in Enthusia style with the prestige badges.
+- [x] **RANKUP-FRAMES** Enthusia pack: 64 frames per tier in the `lumaguilds:prestige_rankup_v1` font, contract glyph `guild_prestige_rankup_v1` (pack docs/prestige-rankup.md).
+- [x] **RANKUP-PLAY** Tag: TDD. REQ-251, REQ-252. Evidence: PrestigeFanfareTest, PrestigeRankUpTest.
+- [x] **RANKUP-PREVIEW** Tag: TDD. REQ-253. Evidence: PrestigeFanfareTest, PrestigeStaffCommandTest.
+- [ ] **RANKUP-TEST** Watch it in-game on TEST (Java, `/lumaguilds prestige preview <tier>`) and check Bedrock still gets the plain title.

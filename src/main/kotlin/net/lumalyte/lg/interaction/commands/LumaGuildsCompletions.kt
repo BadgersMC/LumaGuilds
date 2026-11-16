@@ -72,6 +72,11 @@ internal class LumaGuildsCompletions(
         val action = args.getOrNull(1)?.lowercase()
         if (index == 1) return PrestigeStaffCommand.SUBCOMMANDS
         if (action !in PrestigeStaffCommand.SUBCOMMANDS) return emptyList()
+        if (action == "preview") return when (index) {
+            2 -> (1..6).map(Int::toString)
+            3 -> guildNames()
+            else -> emptyList()
+        }
         if (index == 2) return guildNames()
         if (action == "info") return emptyList()
         val facts = prestige(args[2])

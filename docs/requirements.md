@@ -886,3 +886,14 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-273
 **Unwanted behaviour.** IF a MariaDB database has the first `relations` layout (guild_id, target_guild_id, relation_type), THEN THE SYSTEM SHALL move it aside as `relations_legacy_v1`, create the current layout and carry the old rows across as active relations, so alliances, enemies and truces load.
+
+## Prestige rank-up animation
+
+### REQ-251
+**Event-driven.** WHEN a guild prestiges, THE SYSTEM SHALL show each online member who can see it the rank-up animation from the Enthusia pack, one frame per tick for 64 frames (old badge shatters, the four-point star flashes, the new tier badge appears, "PRESTIGE N" wipes in), with the guild name as the subtitle once the title has appeared, hold the last frame for 2.5 seconds and fade it out, and SHALL play the members' fanfare 7 ticks after the animation starts with a shatter sound when the old badge breaks (tiers II to VI).
+
+### REQ-252
+**Unwanted behaviour.** IF a member is on Bedrock, the pack's `guild_prestige_rankup_v1` contract glyph does not resolve, or `progression.prestige.fanfare.member_animation` is false, THEN THE SYSTEM SHALL show that member the plain prestige title and fanfare instead.
+
+### REQ-253
+**Event-driven.** WHEN a player with `lumaguilds.admin.prestige` runs `/lumaguilds prestige preview <tier> [guild]`, THE SYSTEM SHALL play that tier's rank-up animation and members' fanfare (or the plain title where REQ-252 applies) to that player only, with the given or their own guild name as subtitle, and SHALL NOT change any guild, record history, announce, or play anything to other players.

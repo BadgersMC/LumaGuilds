@@ -59,7 +59,13 @@ class LumaGuildsCommand(
     private val ownerRecovery by lazy { GuildOwnerRecoveryCommand(memberService, lang) }
     private val prestigeStaff by lazy {
         val catalog = getKoin().get<net.lumalyte.lg.domain.rewards.RewardCatalog>()
-        PrestigeStaffCommand({ getKoin().get() }, guildService, lang, rewardName = { catalog.find(it)?.name ?: it })
+        PrestigeStaffCommand(
+            { getKoin().get() }, guildService, lang, rewardName = { catalog.find(it)?.name ?: it },
+            preview = { player, tier, guild ->
+                getKoin().get<net.lumalyte.lg.application.services.PrestigeFanfare>().preview(player, tier, guild)
+            },
+            ownGuildName = { player -> guildService.getPlayerGuilds(player).firstOrNull()?.name },
+        )
     }
 
     // Resolved lazily and nullable: GuildRolePermissionResolver is only registered when
