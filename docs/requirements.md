@@ -976,3 +976,6 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-279
 **Event-driven.** WHEN a guild holding a Hall of Prestige pedestal changes its banner, THE SYSTEM SHALL repaint the banner hanging under that pedestal within a few seconds, without staff running a refresh and without rebuilding the statue.
+
+### REQ-280
+**Unwanted behaviour.** IF a guild moment's sound would be stopped before it finishes, THEN THE SYSTEM SHALL let it ring out instead, because Minecraft can't fade a playing sound and stopping one by name is a hard cut that also silences the player's own copies of it (crits, level-ups). The war call and defeat SHALL not use the wither-spawn roar, which played as low background noise; a low bass note gives the weight instead.
