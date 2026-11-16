@@ -10,6 +10,7 @@ import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.rewards.HallDisplay
 import net.lumalyte.lg.domain.rewards.HallPedestal
 import net.lumalyte.lg.domain.rewards.HallRanking
+import net.lumalyte.lg.infrastructure.services.hall.HallCrest
 import net.lumalyte.lg.infrastructure.services.hall.HallStatueBuilder
 import net.lumalyte.lg.infrastructure.services.hall.HallStatuePose
 import net.lumalyte.lg.utils.deserializeToItemStack
@@ -63,7 +64,7 @@ class HallStatueService(
     )
 
     private class Standing(val plan: Plan, val entities: List<Entity>, val top: Location, val closer: (() -> Unit)?,
-                           val sword: ItemDisplay?, val look: HallLook)
+                           val sword: ItemDisplay?, val look: HallLook, val crest: ItemDisplay)
 
     private val standing = ConcurrentHashMap<Int, Standing>()
     /** Plans that failed to build; not retried until the plan changes, so a bad build can't loop. */
@@ -151,7 +152,7 @@ class HallStatueService(
             }
             built.sword?.let { sword -> Bukkit.getOnlinePlayers().filter(::bedrock).forEach { it.hideEntity(plugin, sword) } }
             builtAt[plan.pedestal.slot] = System.currentTimeMillis()
-            standing[plan.pedestal.slot] = Standing(plan, built.entities, built.top, built.closer, built.sword, look)
+            standing[plan.pedestal.slot] = Standing(plan, built.entities, built.top, built.closer, built.sword, look, built.crest)
             failed.remove(plan.pedestal.slot)
         } catch (e: Exception) {
             failed[plan.pedestal.slot] = plan
@@ -169,7 +170,10 @@ class HallStatueService(
 
     // Main thread, twice a second: spotlight and aura for nearby players, and rebuild anything the
     // world dropped (a chunk unloading takes the non-saved statue with it).
+    private var ticks = 0L
+
     private fun tick() {
+        ticks += EFFECT_TICKS
         for (plan in plans) {
             val here = standing[plan.pedestal.slot]
             if (here == null) {
@@ -193,6 +197,7 @@ class HallStatueService(
             }
             val world = here.top.world
             if (world.getNearbyPlayers(here.top, EFFECT_RANGE).isEmpty()) continue
+            HallCrest.sway(here.crest, ticks, EFFECT_TICKS.toInt())
             for (y in 0..8) {
                 world.spawnParticle(Particle.DUST, here.top.clone().add(0.0, y * 0.45, 0.0), 1, 0.3, 0.05, 0.3, 0.0,
                     Particle.DustOptions(here.look.spotlight, 1.1f))

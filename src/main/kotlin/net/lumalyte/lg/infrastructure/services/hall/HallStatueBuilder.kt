@@ -31,7 +31,7 @@ internal object HallStatueBuilder {
     const val PLINTH_WIDTH = 1.2f
     const val PLINTH_HEIGHT = 0.5f
 
-    class Built(val entities: List<Entity>, val top: Location, val closer: (() -> Unit)?, val sword: ItemDisplay?)
+    class Built(val entities: List<Entity>, val top: Location, val closer: (() -> Unit)?, val sword: ItemDisplay?, val crest: ItemDisplay)
 
     fun build(
         base: Location,
@@ -78,6 +78,13 @@ internal object HallStatueBuilder {
             it.text(Component.text(look.nameplate(guildName), TextColor.color(look.nameColor))
                 .appendNewline().append(Component.text("Prestige ${PrestigeNumeral.of(prestige)}", NamedTextColor.GOLD)))
         })
+        // REQ-277: the guild's prestige badge above its name.
+        val crest = add(world.spawn(top.clone().add(0.0, HallCrest.HEIGHT, 0.0), ItemDisplay::class.java) {
+            it.setItemStack(net.lumalyte.lg.interaction.menus.guild.PrestigeIcon.item(prestige))
+            it.itemDisplayTransform = ItemDisplay.ItemDisplayTransform.FIXED
+            it.setRotation(top.yaw, 0f)
+            it.transformation = HallCrest.transformation(0)
+        })
         // REQ-270: the guild's own banner, beside the statue with its front to the viewer.
         val bannerSpot = top.clone().add(sideways(top, -1.15)).add(forward(top).multiply(-0.25))
         add(world.spawn(bannerSpot.add(0.0, 1.1, 0.0), ItemDisplay::class.java) {
@@ -96,7 +103,7 @@ internal object HallStatueBuilder {
         // REQ-272: the chosen pose through BetterModel's prestige limb model, when it is installed.
         val closer = pose(statue)
         val sword = if (closer != null && HallStatuePose.animationFor(look.pose) == HallStatuePose.GUARD) add(guardSword(top)) else null
-        return Built(entities, top, closer, sword)
+        return Built(entities, top, closer, sword, crest)
         } catch (e: Exception) {
             // Never leave half a statue behind: a retry would stack another plinth on top of it.
             entities.forEach { runCatching { it.remove() } }
