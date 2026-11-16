@@ -65,7 +65,8 @@ class RewardPurchaseRepositorySQL(
             }
         }
         }
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        net.lumalyte.lg.application.logging.SwallowedErrors.log("RewardPurchaseRepositorySQL:68", e)
         RewardPurchaseResult.Failed(request.transactionId)
     }
 

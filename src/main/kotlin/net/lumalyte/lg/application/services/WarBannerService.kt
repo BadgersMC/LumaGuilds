@@ -128,7 +128,8 @@ class WarBannerService(
 
         val rendered = try {
             render(state)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            net.lumalyte.lg.application.logging.SwallowedErrors.log("WarBannerService:131", e)
             false
         }
         if (!rendered) {
@@ -152,7 +153,8 @@ class WarBannerService(
     private fun savePlacementWithRecovery(state: WarBannerState): PlacementWrite {
         return try {
             if (repository.savePlacement(state)) PlacementWrite.SAVED else PlacementWrite.NOT_SAVED
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            net.lumalyte.lg.application.logging.SwallowedErrors.log("WarBannerService:155", e)
             val observed = runCatching { repository.get(state.guildId) }
             when {
                 observed.isFailure -> PlacementWrite.UNKNOWN

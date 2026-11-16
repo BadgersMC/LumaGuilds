@@ -76,7 +76,8 @@ class GuildGoldService(
                     else -> null
                 }
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            net.lumalyte.lg.application.logging.SwallowedErrors.log("GuildGoldService:79", e)
             RewardPurchaseResult.Failed(request.transactionId)
         }
     }
@@ -244,7 +245,8 @@ class GuildGoldService(
     fun collectJoinFee(request: PersonalGoldRequest, physical: Boolean, admission: PaidGuildAdmission): GuildGoldResult {
         return try {
             collectAdmissionPayment(request, physical, admission)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            net.lumalyte.lg.application.logging.SwallowedErrors.log("GuildGoldService:247", e)
             // A provider or membership action may have persisted before throwing. Never retry/refund blindly.
             GuildGoldResult.Failed(request.transactionId, false)
         }
@@ -333,7 +335,8 @@ class GuildGoldService(
             ExternalTransferResult.Applied -> {
                 val applied = try {
                     repository.apply(mutation, settings.effectiveCapacity, null)
-                } catch (_: Exception) {
+                } catch (e: Exception) {
+                    net.lumalyte.lg.application.logging.SwallowedErrors.log("GuildGoldService:336", e)
                     // The confirmed external receipt remains durable. Reconcile after SQL
                     // recovers; an uncertain commit must never trigger a speculative refund.
                     return GuildGoldResult.Failed(request.transactionId, false)
