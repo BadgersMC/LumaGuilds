@@ -4174,12 +4174,13 @@ menu:
           empty: '<dark_gray>Kills are counted from this update on.'
       back:
         lore: '<gray>Return to the previous menu'
-      achievements:
+      advancements:
         lore:
-          count: '<gray>Milestones unlocked: <white><count>'
-          net_kills: '<gray>Net Kills: <white><milestone>'
-          total_kills: '<gray>Total Kills: <white><milestone>'
-        name: '<yellow>Guild Achievements'
+          earned: '<gray>Advancements: <white><count>/<total> earned'
+          tracking: '<gray>Tracking: <gold><title> <gray>(<current>/<goal>)'
+          count: '<gray>Combat milestones: <white><count>/<total> met'
+          open: '<yellow>Click to open Guild Advancements'
+        name: '<yellow>Guild Advancements'
       recent:
         lore:
           kills: '<gray>Recent kills: <white><count>'
@@ -4228,20 +4229,6 @@ menu:
         lightly_active: Lightly Active
         moderately_active: Moderately Active
         very_active: Very Active
-      kill_milestone:
-        bloodbath: Bloodbath (500+)
-        butcher: Butcher (100+)
-        carnage: Carnage (1k+)
-        massacre: Massacre (10k+)
-        novice: Novice (<100)
-        slaughter: Slaughter (5k+)
-      net_kill_milestone:
-        balanced: Balanced (0+)
-        challenged: Challenged (-50)
-        conqueror: Conqueror (500+)
-        dominator: Dominator (1k+)
-        struggling: Struggling (-100)
-        warrior: Warrior (100+)
   incoming_requests:
     title: "<white>Incoming Relation Requests"
     fallback:
@@ -7997,36 +7984,28 @@ chronicle:
 
 achievements:
   back_statistics: '<white>Back to Statistics</white>'
-  personal_scope: '<gold>Personal achievements</gold>'
-  guild_scope: '<gold>Guild combat milestones</gold>'
-  guild_summary: '<gray><count>/8 current conditions met · Page <page>/2</gray>'
+  guild_summary: '<gray>Combat milestones · <count>/<total> met · Page <page>/<pages></gray>'
   guild_met: '<green>Current condition met</green>'
   guild_not_met: '<gray>Current condition not met</gray>'
   guild_rules: '<gray>Current guild statistics; wars use the latest 100 retained records. These badges can change and grant no extra XP or permanent award.</gray>'
   title: '<gold>Guild Advancements</gold>'
-  inspect_overview: '<white>Overview</white>'
-  inspect_earning: '<white>How to earn</white>'
-  inspect_reward: '<white>Reward</white>'
-  inspect_rules: '<white>Record rules</white>'
-  subtitle: '<gray><category> · Branch page <page>/<pages> · Select a connected milestone</gray>'
+  subtitle: '<gray><category> · <done>/<total> done · Page <page>/<pages></gray>'
+  detail_subtitle: '<gray><category></gray>'
+  card_reward: '<gold>+<amount> guild XP</gold>'
+  card_tracked: '<yellow>Tracking</yellow>'
+  tracking: '<gold>Tracking: <title> <current>/<goal></gold>'
+  milestones_tab: '<white>Combat milestones</white>'
+  back_category: '<white>Back to <category></white>'
   unavailable: '<red>Achievement data is unavailable. Existing progress was not cleared.</red>'
   completed: '<gold>✓ Completed · <current>/<goal></gold>'
   progress: '<gray>◇ In progress · <current>/<goal></gray>'
-  how: '<gold>How to earn and who receives credit</gold>'
-  reward: '<gold>Completion reward</gold>'
   personal_xp: '<green><amount> personal Minecraft XP, once per player.</green>'
-  no_extra: '<gray>Achievement completion; no extra XP configured.</gray>'
   no_guild_xp: '<gray>No guild XP for this one.</gray>'
   guild_xp: '<gold><amount> guild XP, paid once to the guild by whichever member completes it first.</gold>'
-  record_rules: '<gold>Saved personal achievement record</gold>'
-  offline: '<gray>Shared activities credit online guild members. Offline activity is not replayed; current guild level and combined playtime are checked again when online.</gray>'
-  retained: '<gray>Completed achievements and tracked goals remain on your player record across reconnects, guild changes and prestige.</gray>'
-  connections: '<gray>Tree lines organize milestones; they do not add purchase requirements or consume skill points.</gray>'
-  previous: '<white>Earlier milestones</white>'
-  next: '<white>Later milestones</white>'
-  track: '<gold>Track achievement</gold>'
-  untrack: '<white>Untrack achievement</white>'
-  goal: '<gold>Tracked achievement</gold>'
+  previous: '<white>Previous</white>'
+  next: '<white>Next</white>'
+  track: '<gold>Track this goal</gold>'
+  untrack: '<white>Untrack</white>'
   tree_action: '<white>Open advancement tree</white>'
   tree_key_hint: '<gold>Open Minecraft Advancements with your configured key: </gold>'
   tree_find_hint: '<gold>. Select the banner tab (the renderer may call it Enthusia), then look for Guild Mastery milestones and their descriptions. Drag the tree to pan. Your saved progress and tracked goal are unchanged.</gold>'

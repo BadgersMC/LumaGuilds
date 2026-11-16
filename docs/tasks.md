@@ -1508,3 +1508,10 @@ Plan: `plans/2026-11-04-prestige-placeholders.md`.
 - [x] **STALL-MOCKUP** Mockup approved by Fain (Prestige and Guild Menus artifact, Guild stalls screen).
 - [x] **STALL-LAYOUT** Tag: TDD. REQ-258. Evidence: GuildStallLayoutTest, GuildStallMenuSafetyTest.
 - [ ] **STALL-TEST** Check on TEST with one and with two stalls.
+
+## Guild Advancements cards (REQ-263)
+
+- [x] **ADV-MOCKUP** Approved: Prestige and Guild Menus artifact, Guild Advancements screen.
+- [x] **ADV-CARDS** Tag: TDD. REQ-263. Replaces the inspector tabs and branch rows with cards; Combat milestones joins as the last category. Evidence: GuildAchievementsMenuTest.
+- [ ] **ADV-TEST** Check on TEST: categories, paging, Track/Untrack, tree link, Statistics → Achievements.
+- [x] **STATS-ADVANCEMENTS** REQ-274. Statistics → Guild Advancements opens the combined menu; Bedrock statistics lead with advancement progress. Evidence: LocaleContractTest, statistics and achievements tests.
