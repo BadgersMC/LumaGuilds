@@ -15,10 +15,14 @@ class ProgressionActivityClassifier(
 
     fun isEligible(gameMode: GameMode): Boolean = gameMode != GameMode.CREATIVE && gameMode != GameMode.SPECTATOR
 
+    /**
+     * REQ-255: crops are always planted by a player, so a mature crop counts whoever planted it;
+     * it can't be placed already grown. Ores and common blocks still need to be natural.
+     */
     fun sourceForBreak(material: Material, playerPlaced: Boolean, matureCrop: Boolean): ExperienceSource? {
+        if (material.name in CROP_MATERIALS) return ExperienceSource.CROP_BREAK.takeIf { matureCrop }
         if (playerPlaced) return null
         ORE_SOURCES[material.name]?.let { return it }
-        if (material.name in CROP_MATERIALS) return ExperienceSource.CROP_BREAK.takeIf { matureCrop }
         return ExperienceSource.BLOCK_BREAK.takeIf { material.name in materials["common_break"].orEmpty() }
     }
 

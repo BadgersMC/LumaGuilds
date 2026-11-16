@@ -902,3 +902,17 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-254
 **Event-driven.** WHEN a player with `lumaguilds.admin.sounds` runs `/lumaguilds sounds`, THE SYSTEM SHALL list every guild sound by group with a click-to-play entry and a hover saying when players hear it; `/lumaguilds sounds <id>` SHALL play that sound to the sender only, `all` SHALL play every sound once in order with its name on the action bar, and `stop` SHALL end a running preview. War, prestige and rank-up previews SHALL use the same cue definitions as the live events, and no preview SHALL change a guild or reach another player.
+
+## Everyday guild XP fixes
+
+### REQ-255
+**Event-driven.** WHEN a member breaks or right-click harvests a fully grown crop (wheat, carrots, potatoes, beetroots, nether wart, cocoa, sweet berries, pitcher plants, torchflowers) in Survival or Adventure THE SYSTEM SHALL award crop XP even though a player planted it, and WHEN a member takes a potion out of a brewing stand THE SYSTEM SHALL award brewing XP only if that stand brewed the potion and its XP has not been claimed, so water bottles and potions put in by hand earn nothing.
+
+### REQ-257
+**Ubiquitous.** THE SYSTEM SHALL count every hostile mob except the bosses (which have their own sources) and neutral mobs as a guild mob kill, and natural ground, stone, sand, nether and end blocks and tree logs as guild block breaking, in both the built-in defaults and the shipped config.yml.
+
+### REQ-259
+**Ubiquitous.** THE SYSTEM SHALL show on each XP source in the progression menu how much guild XP one action gives (read from the live source settings), what counts towards it in plain words, and the period used, cap and time until it resets.
+
+### REQ-265
+**Unwanted behaviour.** IF a player breaks a block that a player placed, THEN THE SYSTEM SHALL not award block-place guild XP for that player's next placement of the same material within 30 minutes, so placing and breaking the same block can't farm XP.

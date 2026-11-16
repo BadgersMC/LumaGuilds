@@ -605,7 +605,10 @@ object ChapterTwoExperiencePolicies {
 
 object ChapterTwoTargetPools {
     fun defaultMaterials(): Map<String, Set<String>> = mapOf(
-        "common_break" to setOf("GRASS_BLOCK", "DIRT", "STONE", "DEEPSLATE", "NETHERRACK", "SAND", "GRAVEL"),
+        // REQ-257: natural ground, stone and logs players actually dig and chop.
+        "common_break" to setOf(
+            "GRASS_BLOCK", "DIRT", "COARSE_DIRT", "PODZOL", "MYCELIUM", "ROOTED_DIRT", "MUD", "CLAY", "MOSS_BLOCK", "STONE", "DEEPSLATE", "TUFF", "ANDESITE", "DIORITE", "GRANITE", "CALCITE", "SANDSTONE", "RED_SANDSTONE", "SAND", "RED_SAND", "GRAVEL", "SNOW_BLOCK", "NETHERRACK", "SOUL_SAND", "SOUL_SOIL", "BLACKSTONE", "BASALT", "END_STONE", "OAK_LOG", "SPRUCE_LOG", "BIRCH_LOG", "JUNGLE_LOG", "ACACIA_LOG", "DARK_OAK_LOG", "MANGROVE_LOG", "CHERRY_LOG", "PALE_OAK_LOG", "CRIMSON_STEM", "WARPED_STEM",
+        ),
         "common_place" to setOf("DIRT", "STONE", "COBBLESTONE", "OAK_PLANKS", "SPRUCE_PLANKS", "BRICKS"),
         "common_craft" to setOf("STICK", "TORCH", "CHEST", "CRAFTING_TABLE"),
         "utility_craft" to setOf("BUCKET", "COMPASS", "CLOCK", "FISHING_ROD"),
@@ -614,7 +617,10 @@ object ChapterTwoTargetPools {
     )
 
     fun defaultEntities(): Map<String, Set<String>> = mapOf(
-        "normal_mobs" to setOf("ZOMBIE", "SKELETON", "CREEPER", "SPIDER", "ENDERMAN"),
+        // REQ-257: every hostile mob except the bosses, which have their own sources; neutral mobs stay out.
+        "normal_mobs" to setOf(
+            "ZOMBIE", "ZOMBIE_VILLAGER", "HUSK", "DROWNED", "SKELETON", "STRAY", "BOGGED", "WITHER_SKELETON", "CREEPER", "SPIDER", "CAVE_SPIDER", "ENDERMAN", "ENDERMITE", "SILVERFISH", "WITCH", "SLIME", "MAGMA_CUBE", "BLAZE", "GHAST", "PHANTOM", "GUARDIAN", "PILLAGER", "VINDICATOR", "EVOKER", "RAVAGER", "VEX", "HOGLIN", "ZOGLIN", "PIGLIN_BRUTE", "SHULKER", "BREEZE", "CREAKING",
+        ),
     )
 }
 
