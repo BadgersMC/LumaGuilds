@@ -340,6 +340,9 @@ class GuildProgressionMenu(
         val item = ItemStack.of(material).also { it.editMeta { meta ->
             meta.displayName(lang.gui("menu.guild_progression.source.name", "source" to name))
             val lore = mutableListOf<Component>()
+            lore += sourceAwardLines(usage.pool)
+            sourceCounts(usage.pool)?.let { lore += it }
+            if (lore.isNotEmpty()) lore += Component.empty()
             if (cap != null) {
                 val progress = when (state) {
                     "capped" -> lang.gui("menu.guild_progression.source.progress.capped", "bar" to bars, "percent" to percent)
@@ -348,9 +351,18 @@ class GuildProgressionMenu(
                     else -> lang.gui("menu.guild_progression.source.progress.available", "bar" to bars, "percent" to percent)
                 }
                 lore.add(progress)
+                val resets = usage.resetsAt?.let { resetIn(it) }
                 val usageLine = when (usage.period) {
-                    CapPeriod.DAILY -> lang.gui("menu.guild_progression.source.daily_period", "used" to usedXp, "cap" to cap)
-                    CapPeriod.WEEKLY -> lang.gui("menu.guild_progression.source.weekly_period", "used" to usedXp, "cap" to cap)
+                    CapPeriod.DAILY -> if (resets != null) {
+                        lang.gui("menu.guild_progression.source.daily_resets", "used" to usedXp, "cap" to cap, "time" to resets)
+                    } else {
+                        lang.gui("menu.guild_progression.source.daily_period", "used" to usedXp, "cap" to cap)
+                    }
+                    CapPeriod.WEEKLY -> if (resets != null) {
+                        lang.gui("menu.guild_progression.source.weekly_resets", "used" to usedXp, "cap" to cap, "time" to resets)
+                    } else {
+                        lang.gui("menu.guild_progression.source.weekly_period", "used" to usedXp, "cap" to cap)
+                    }
                     CapPeriod.UNLIMITED -> lang.gui("menu.guild_progression.source.unlimited")
                 }
                 lore.add(usageLine)
@@ -360,6 +372,59 @@ class GuildProgressionMenu(
             meta.lore(lore)
         }}
         pane.addItem(GuiItem(item) { it.isCancelled = true }, x, y)
+    }
+
+    /** REQ-259: what one action is worth, read from the live source policies. */
+    private fun sourceAwardLines(pool: String): List<Component> {
+        val policies = configService.loadConfig().progression.sourcePolicies.values
+            .filter { it.pool == pool && it.enabled && it.awardXp > 0 }
+            .sortedBy { it.awardXp }
+        return when {
+            policies.isEmpty() -> emptyList()
+            policies.size == 1 || policies.all { it.awardXp == policies.first().awardXp } ->
+                listOf(lang.gui("menu.guild_progression.source.award_each", "xp" to policies.first().awardXp))
+            else -> listOf(lang.gui(
+                "menu.guild_progression.source.award_range",
+                "min" to policies.first().awardXp,
+                "max" to policies.last().awardXp,
+            ))
+        }
+    }
+
+    /** REQ-259: what counts towards a source, in plain words. */
+    private fun sourceCounts(pool: String): Component? = when (pool) {
+        "MOB_KILL" -> lang.gui("menu.guild_progression.source.counts.mob_kill")
+        "PLAYER_KILL" -> lang.gui("menu.guild_progression.source.counts.player_kill")
+        "CROP_BREAK" -> lang.gui("menu.guild_progression.source.counts.crop_break")
+        "BLOCK_BREAK" -> lang.gui("menu.guild_progression.source.counts.block_break")
+        "BLOCK_PLACE" -> lang.gui("menu.guild_progression.source.counts.block_place")
+        "ORE" -> lang.gui("menu.guild_progression.source.counts.ore")
+        "CRAFTING" -> lang.gui("menu.guild_progression.source.counts.crafting")
+        "SMELTING" -> lang.gui("menu.guild_progression.source.counts.smelting")
+        "FISHING" -> lang.gui("menu.guild_progression.source.counts.fishing")
+        "ENCHANTING" -> lang.gui("menu.guild_progression.source.counts.enchanting")
+        "BREWING" -> lang.gui("menu.guild_progression.source.counts.brewing")
+        "EXPLORATION_MILESTONE" -> lang.gui("menu.guild_progression.source.counts.exploration")
+        "BANK_DEPOSIT" -> lang.gui("menu.guild_progression.source.counts.bank_deposit")
+        "QUALIFIED_RECRUIT" -> lang.gui("menu.guild_progression.source.counts.recruit")
+        "PRE_CAP_WAR_WIN" -> lang.gui("menu.guild_progression.source.counts.war_win")
+        "ENDER_DRAGON_KILL", "WITHER_KILL", "ELDER_GUARDIAN_KILL", "WARDEN_KILL" ->
+            lang.gui("menu.guild_progression.source.counts.boss")
+        "WEEKLY_ACTIVITY" -> lang.gui("menu.guild_progression.source.counts.weekly_activity")
+        "GUILD_ADVANCEMENT" -> lang.gui("menu.guild_progression.source.counts.advancement")
+        else -> null
+    }
+
+    private fun resetIn(at: java.time.Instant): String {
+        val left = java.time.Duration.between(java.time.Instant.now(), at).coerceAtLeast(java.time.Duration.ZERO)
+        val days = left.toDays()
+        val hours = left.toHours() % 24
+        val minutes = left.toMinutes() % 60
+        return when {
+            days > 0 -> "${days}d ${hours}h"
+            hours > 0 -> "${hours}h ${minutes}m"
+            else -> "${minutes.coerceAtLeast(1)}m"
+        }
     }
 
     private fun addRankInfo(pane: StaticPane, x: Int, y: Int) {

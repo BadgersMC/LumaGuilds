@@ -885,3 +885,6 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-257
 **Ubiquitous.** THE SYSTEM SHALL count every hostile mob except the bosses (which have their own sources) and neutral mobs as a guild mob kill, and natural ground, stone, sand, nether and end blocks and tree logs as guild block breaking, in both the built-in defaults and the shipped config.yml.
+
+### REQ-259
+**Ubiquitous.** THE SYSTEM SHALL show on each XP source in the progression menu how much guild XP one action gives (read from the live source settings), what counts towards it in plain words, and the period used, cap and time until it resets.
