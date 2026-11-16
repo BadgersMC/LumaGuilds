@@ -23,7 +23,7 @@ import org.joml.Vector3f
 import java.util.UUID
 
 /**
- * REQ-264, REQ-275: one Hall statue on its plinth (nameplate, banner, trophy, Guard sword), shared by
+ * REQ-264, REQ-275: one Hall statue on its plinth (nameplate, prestige badge, Guard sword), shared by
  * the viewer-only preview and the Hall of Prestige pedestals. [register] receives every entity right
  * after it spawns, so the caller decides who sees it; [pose] wraps the statue in the animated model.
  */
@@ -39,7 +39,6 @@ internal object HallStatueBuilder {
         guildName: String,
         prestige: Int,
         skin: UUID?,
-        banner: ItemStack?,
         register: (Entity) -> Unit,
         pose: (Mannequin) -> (() -> Unit)?,
     ): Built {
@@ -85,21 +84,6 @@ internal object HallStatueBuilder {
             it.setRotation(top.yaw, 0f)
             it.transformation = HallCrest.transformation()
         })
-        // REQ-270: the guild's own banner, beside the statue with its front to the viewer.
-        val bannerSpot = top.clone().add(sideways(top, -1.15)).add(forward(top).multiply(-0.25))
-        add(world.spawn(bannerSpot.add(0.0, 1.1, 0.0), ItemDisplay::class.java) {
-            it.setItemStack(banner?.clone()?.also { b -> b.amount = 1 } ?: ItemStack.of(Material.WHITE_BANNER))
-            it.setRotation(top.yaw, 0f)
-            // With no extra turn the banner item showed its back to the viewer; half a turn shows the front.
-            it.transformation = Transformation(Vector3f(), AxisAngle4f(Math.PI.toFloat(), 0f, 1f, 0f),
-                Vector3f(1.2f, 1.2f, 1.2f), AxisAngle4f())
-        })
-        add(world.spawn(top.clone().add(sideways(top, 0.9)).add(0.0, 0.6, 0.0), ItemDisplay::class.java) {
-            it.setItemStack(ItemStack.of(look.trophy))
-            it.billboard = Display.Billboard.VERTICAL
-            it.transformation = Transformation(Vector3f(), AxisAngle4f(), Vector3f(0.6f, 0.6f, 0.6f), AxisAngle4f())
-        })
-
         // REQ-272: the chosen pose through BetterModel's prestige limb model, when it is installed.
         val closer = pose(statue)
         val sword = if (closer != null && HallStatuePose.animationFor(look.pose) == HallStatuePose.GUARD) add(guardSword(top)) else null
@@ -129,6 +113,4 @@ internal object HallStatueBuilder {
 
     private fun forward(at: Location) = at.direction.clone().setY(0).normalize()
 
-    private fun sideways(at: Location, distance: Double) =
-        forward(at).crossProduct(org.bukkit.util.Vector(0, 1, 0)).multiply(distance)
 }

@@ -62,7 +62,7 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
     @EventHandler fun quit(event: PlayerQuitEvent) = clear(event.player.uniqueId)
 
     /** Builds the statue three blocks in front of [viewer], facing them. */
-    fun show(viewer: Player, guildName: String, prestige: Int, display: HallDisplay, skin: UUID?, banner: ItemStack? = null) {
+    fun show(viewer: Player, guildName: String, prestige: Int, display: HallDisplay, skin: UUID?) {
         clear(viewer.uniqueId)
         val look = HallLook(display, prestige)
         val base = front(viewer)
@@ -76,7 +76,7 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
             return entity
         }
 
-        val built = HallStatueBuilder.build(base, look, guildName, prestige, skin, banner, register = { hidden(it) }) { statue: Mannequin ->
+        val built = HallStatueBuilder.build(base, look, guildName, prestige, skin, register = { hidden(it) }) { statue: Mannequin ->
             HallStatuePose.orNull()?.apply(statue, { it == viewer.uniqueId }, skin, look.pose)
         }
         val top = built.top
@@ -116,14 +116,6 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
 
     companion object {
         const val SECONDS = 30
-
-        /** REQ-270: the guild's saved banner item, read fresh; null when it has none. */
-        fun guildBanner(guild: net.lumalyte.lg.domain.entities.Guild): ItemStack? {
-            val fresh = org.koin.core.context.GlobalContext.getOrNull()
-                ?.getOrNull<net.lumalyte.lg.application.services.GuildService>()?.getGuild(guild.id) ?: guild
-            return fresh.banner?.let { runCatching { it.deserializeToItemStack() }.getOrNull() }
-                ?.takeIf { it.type.name.endsWith("_BANNER") }
-        }
     }
 }
 

@@ -10,6 +10,7 @@ import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.rewards.HallDisplay
 import net.lumalyte.lg.domain.rewards.HallPedestal
 import net.lumalyte.lg.domain.rewards.HallRanking
+import net.lumalyte.lg.infrastructure.services.hall.HallPedestalBanner
 import net.lumalyte.lg.infrastructure.services.hall.HallStatueBuilder
 import net.lumalyte.lg.infrastructure.services.hall.HallStatuePose
 import net.lumalyte.lg.utils.deserializeToItemStack
@@ -20,6 +21,8 @@ import org.bukkit.entity.Entity
 import org.bukkit.entity.ItemDisplay
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
+import org.bukkit.event.EventPriority
+import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.world.ChunkLoadEvent
@@ -69,6 +72,7 @@ class HallStatueService(
     /** Plans that failed to build; not retried until the plan changes, so a bad build can't loop. */
     private val failed = ConcurrentHashMap<Int, Plan>()
     @Volatile private var plans: List<Plan> = emptyList()
+    @Volatile private var allPedestals: List<HallPedestal> = emptyList()
     private val tasks = mutableListOf<BukkitTask>()
     private val refreshQueued = AtomicBoolean(false)
     /** When each pedestal was last built, so a statue the world keeps removing isn't rebuilt every tick. */
@@ -106,8 +110,9 @@ class HallStatueService(
 
     // Off the main thread: every database read for the Hall.
     private fun refreshNow() {
+        val placed: List<HallPedestal>
         val next = try {
-            val placed = pedestals.all()
+            placed = pedestals.all()
             HallRanking.assign(placed, history.standings()).mapNotNull { (pedestal, entry) ->
                 entry ?: return@mapNotNull null
                 val guild = guilds.getGuild(entry.guildId) ?: return@mapNotNull null
@@ -119,7 +124,7 @@ class HallStatueService(
             return
         }
         if (!plugin.isEnabled) return
-        Bukkit.getScheduler().runTask(plugin, Runnable { apply(next) })
+        Bukkit.getScheduler().runTask(plugin, Runnable { apply(next, placed) })
     }
 
     private fun owner(guildId: UUID): UUID? = runCatching {
@@ -127,11 +132,38 @@ class HallStatueService(
         members.getGuildMembers(guildId).firstOrNull { it.rankId == top.id }?.playerId
     }.getOrNull()
 
-    private fun apply(next: List<Plan>) {
+    private fun apply(next: List<Plan>, placed: List<HallPedestal>) {
         plans = next
+        allPedestals = placed
         val wanted = next.associateBy { it.pedestal.slot }
         standing.keys.filter { it !in wanted }.forEach(::take)
         wanted.values.forEach(::place)
+        placed.forEach(::paintBanner)
+    }
+
+    /**
+     * REQ-278: repaints the real banner hanging under [pedestal] as the banner of the guild holding it,
+     * or plain white while it is empty. Skipped while the pedestal's chunk is not loaded.
+     */
+    private fun paintBanner(pedestal: HallPedestal) {
+        val world = Bukkit.getWorld(pedestal.world) ?: return
+        if (!world.isChunkLoaded(Math.floor(pedestal.x).toInt() shr 4, Math.floor(pedestal.z).toInt() shr 4)) return
+        val block = HallPedestalBanner.find(world, pedestal) ?: return
+        val holder = plans.firstOrNull { it.pedestal.slot == pedestal.slot }
+        val banner = holder?.banner?.let { runCatching { it.deserializeToItemStack() }.getOrNull() }
+            ?.takeIf { it.type.name.endsWith("_BANNER") }
+        runCatching { HallPedestalBanner.paint(block, banner) }
+            .onFailure { logger.warn("Could not repaint the banner under Hall pedestal ${pedestal.slot}", it) }
+    }
+
+    /** REQ-278: a banner staff hang under a pedestal takes the holding guild's banner straight away. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun bannerPlaced(event: BlockPlaceEvent) {
+        val block = event.blockPlaced
+        if (!HallPedestalBanner.isWallBanner(block.type.name)) return
+        Bukkit.getScheduler().runTask(plugin, Runnable {
+            allPedestals.filter { HallPedestalBanner.belongsTo(block, it) }.forEach(::paintBanner)
+        })
     }
 
     private fun place(plan: Plan) {
@@ -143,9 +175,8 @@ class HallStatueService(
         val base = Location(world, plan.pedestal.x, plan.pedestal.y, plan.pedestal.z, plan.pedestal.yaw, 0f)
         if (!world.isChunkLoaded(base.blockX shr 4, base.blockZ shr 4)) return
         val look = HallLook(plan.display, plan.prestige)
-        val banner = plan.banner?.let { runCatching { it.deserializeToItemStack() }.getOrNull() }?.takeIf { it.type.name.endsWith("_BANNER") }
         try {
-            val built = HallStatueBuilder.build(base, look, plan.guildName, plan.prestige, plan.skin, banner,
+            val built = HallStatueBuilder.build(base, look, plan.guildName, plan.prestige, plan.skin,
                 register = { it.isPersistent = false }) { statue ->
                 HallStatuePose.orNull()?.apply(statue, { id -> Bukkit.getPlayer(id)?.let { !bedrock(it) } ?: true }, plan.skin, look.pose)
             }
@@ -208,7 +239,15 @@ class HallStatueService(
                 (Math.floor(plan.pedestal.x).toInt() shr 4) == event.chunk.x &&
                 (Math.floor(plan.pedestal.z).toInt() shr 4) == event.chunk.z
         }
-        if (hit.isNotEmpty()) Bukkit.getScheduler().runTask(plugin, Runnable { hit.forEach(::place) })
+        val banners = allPedestals.filter { pedestal ->
+            pedestal.world == event.world.name &&
+                (Math.floor(pedestal.x).toInt() shr 4) == event.chunk.x &&
+                (Math.floor(pedestal.z).toInt() shr 4) == event.chunk.z
+        }
+        if (hit.isNotEmpty() || banners.isNotEmpty()) Bukkit.getScheduler().runTask(plugin, Runnable {
+            hit.forEach(::place)
+            banners.forEach(::paintBanner)
+        })
     }
 
     @EventHandler

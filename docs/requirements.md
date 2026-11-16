@@ -970,3 +970,6 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-277
 **Ubiquitous.** THE SYSTEM SHALL show the badge of the guild's current prestige tier (as in REQ-269) above the nameplate of its Hall statue and its Hall preview, still and facing the front, with its lower edge clear above the nameplate so it never covers the guild's name.
+
+### REQ-278
+**Event-driven.** WHEN staff hang a wall banner on any side of the column of blocks under a Hall of Prestige pedestal (up to four blocks down), and WHENEVER the guild holding that pedestal changes, THE SYSTEM SHALL repaint that banner as the holding guild's banner, or plain white while nobody holds the pedestal. The Hall statue SHALL not show a floating banner or a floating trophy (this replaces the floating banner of REQ-270).
