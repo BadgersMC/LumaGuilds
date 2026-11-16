@@ -92,6 +92,7 @@ class ProgressionEventListener(
     private val playerXpCounters = ConcurrentHashMap<String, CounterEntry>()
 
     private val playerGuildCache = ConcurrentHashMap<UUID, Set<UUID>>()
+    private val placeRefunds = PlaceRefundLedger()
     private val pendingGuildXp = ConcurrentHashMap<GuildXpKey, AtomicInteger>()
     private val sourceXpValues = ConcurrentHashMap<ExperienceSource, Int>()
     @Volatile private var cachedProgressionConfig: ProgressionConfig = configService.loadConfig().progression
@@ -257,6 +258,10 @@ class ProgressionEventListener(
         val matureCrop = data is Ageable && data.age >= data.maximumAge
         val material = block.type
         resolveProvenance(position, removeAfterRead = true) { playerPlaced ->
+            // REQ-265: breaking a player-placed block hands it back; placing it again earns nothing.
+            if (playerPlaced && classifier.sourceForPlace(material) != null) {
+                placeRefunds.recordPickup(event.player.uniqueId, material.name)
+            }
             if (guildIds.isNullOrEmpty()) return@resolveProvenance
             val source = classifier.sourceForBreak(material, playerPlaced, matureCrop) ?: return@resolveProvenance
             requestPlayerActivity(event.player, guildIds, 1, source)
@@ -277,6 +282,7 @@ class ProgressionEventListener(
             // future "natural" block.
             if (!eligible(event.player)) return
             classifier.sourceForPlace(block.type)?.let { source ->
+                if (placeRefunds.consume(event.player.uniqueId, block.type.name)) return
                 requestPlayerActivity(event.player, units = 1, source = source)
             }
         } catch (e: Exception) {
@@ -451,6 +457,7 @@ class ProgressionEventListener(
     @EventHandler(priority = EventPriority.MONITOR)
     fun onPlayerQuit(event: PlayerQuitEvent) {
         val playerId = event.player.uniqueId
+        placeRefunds.prune()
         val prefix = "${playerId}-"
         // Drain any buffered XP into pendingGuildXp under the stored snapshot before removing keys.
         val toRemove = mutableListOf<String>()
