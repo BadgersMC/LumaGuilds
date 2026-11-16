@@ -477,19 +477,33 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
     }
 
 
+    /** REQ-274: the same Guild Advancements as everywhere else, with this guild's progress on the button. */
     private fun addAchievementsButton(pane: StaticPane, x: Int, y: Int) {
-        val killStats = killService.getGuildKillStats(guild.id)
-        val achievementCount = combatMilestones().count { it.achieved }
+        val record = runCatching {
+            getKoin().getOrNull<net.lumalyte.lg.infrastructure.services.GuildAchievementRuntime>()?.let { runtime ->
+                runtime.read(player)?.let { it to runtime.engine.definitions.filter { node -> node.requirement != "ROOT" } }
+            }
+        }.getOrNull()
+        val milestones = runCatching { combatMilestones() }.getOrDefault(emptyList())
 
-        val item = NexoItemProvider.getItemStackOrFallback("lg_stats_achievements") { ItemStack.of(Material.TROPICAL_FISH_BUCKET) }
+        var item = NexoItemProvider.getItemStackOrFallback("lg_stats_achievements") { ItemStack.of(Material.TROPICAL_FISH_BUCKET) }
             .name(lang.gui("menu.statistics.item.achievements.name"))
-            .lore(lang.gui("menu.statistics.item.achievements.lore.count", "count" to achievementCount))
-            .lore(achievementKillsLore(killStats.totalKills))
-            .lore(achievementNetKillsLore(killStats.netKills))
+        if (record != null) {
+            val (progress, nodes) = record
+            val earned = nodes.count { (progress.progress[it.id] ?: 0) >= it.goal }
+            item = item.lore(lang.gui("menu.statistics.item.achievements.lore.earned", "count" to earned, "total" to nodes.size))
+            progress.tracked?.let { id -> nodes.find { it.id == id } }?.let { tracked ->
+                item = item.lore(lang.gui("menu.statistics.item.achievements.lore.tracking", "title" to tracked.title,
+                    "current" to (progress.progress[tracked.id] ?: 0), "goal" to tracked.goal))
+            }
+        }
+        item = item.lore(lang.gui("menu.statistics.item.achievements.lore.count",
+            "count" to milestones.count { it.achieved }, "total" to milestones.size))
+            .lore(lang.gui("menu.statistics.item.achievements.lore.open"))
 
         val guiItem = GuiItem(item) {
             if (net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.supportsDialog(player)) {
-                menuNavigator.openMenu(GuildAchievementsMenu(menuNavigator, player, guild, guildMilestones = true, fromStatistics = true))
+                menuNavigator.openMenu(GuildAchievementsMenu(menuNavigator, player, guild, fromStatistics = true))
             } else {
                 openAchievementsDetail()
             }
@@ -534,16 +548,6 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         }
     }
 
-    private fun achievementKillsLore(kills: Int): Component = lang.gui(
-        "menu.statistics.item.achievements.lore.total_kills",
-        "milestone" to getKillMilestone(kills),
-    )
-
-    private fun achievementNetKillsLore(netKills: Int): Component = lang.gui(
-        "menu.statistics.item.achievements.lore.net_kills",
-        "milestone" to getNetKillMilestone(netKills),
-    )
-
     private fun getActivityLevel(activity: Int): Component {
         return when {
             activity >= 50 -> lang.gui("menu.statistics.rating.activity.extremely_active")
@@ -562,28 +566,6 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
             stats.totalKills, stats.totalDeaths, stats.netKills, stats.killDeathRatio,
             wars.size, wars.count { it.winner == guild.id },
         )
-    }
-
-    private fun getKillMilestone(kills: Int): Component {
-        return when {
-            kills >= 10000 -> lang.gui("menu.statistics.rating.kill_milestone.massacre")
-            kills >= 5000 -> lang.gui("menu.statistics.rating.kill_milestone.slaughter")
-            kills >= 1000 -> lang.gui("menu.statistics.rating.kill_milestone.carnage")
-            kills >= 500 -> lang.gui("menu.statistics.rating.kill_milestone.bloodbath")
-            kills >= 100 -> lang.gui("menu.statistics.rating.kill_milestone.butcher")
-            else -> lang.gui("menu.statistics.rating.kill_milestone.novice")
-        }
-    }
-
-    private fun getNetKillMilestone(netKills: Int): Component {
-        return when {
-            netKills >= 1000 -> lang.gui("menu.statistics.rating.net_kill_milestone.dominator")
-            netKills >= 500 -> lang.gui("menu.statistics.rating.net_kill_milestone.conqueror")
-            netKills >= 100 -> lang.gui("menu.statistics.rating.net_kill_milestone.warrior")
-            netKills >= 0 -> lang.gui("menu.statistics.rating.net_kill_milestone.balanced")
-            netKills >= -50 -> lang.gui("menu.statistics.rating.net_kill_milestone.challenged")
-            else -> lang.gui("menu.statistics.rating.net_kill_milestone.struggling")
-        }
     }
 
     // Additional detail view functions

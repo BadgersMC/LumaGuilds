@@ -276,7 +276,17 @@ class BedrockGuildStatisticsMenu(
             ?: return lang.bedrock("menu.statistics.common.unavailable")
         val wins = wars.count { it.winner == guild.id }
 
-        return listOf(
+        // REQ-274: lead with Guild Advancements progress, as on Java; the combat milestones follow.
+        val advancements = runCatching {
+            getKoin().getOrNull<net.lumalyte.lg.infrastructure.services.GuildAchievementRuntime>()?.let { runtime ->
+                val record = runtime.read(player) ?: return@let null
+                val nodes = runtime.engine.definitions.filter { it.requirement != "ROOT" }
+                lang.bedrock("menu.statistics.item.achievements.lore.earned",
+                    "count" to nodes.count { (record.progress[it.id] ?: 0) >= it.goal }, "total" to nodes.size)
+            }
+        }.getOrNull()
+        return listOfNotNull(
+            advancements,
             achievementLabel("first_blood", kills.totalKills >= 1),
             achievementLabel("centurion", kills.totalKills >= 100),
             achievementLabel("warlord", kills.totalKills >= 1000),

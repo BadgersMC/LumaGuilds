@@ -882,3 +882,6 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-263
 **Ubiquitous.** THE SYSTEM SHALL show Guild Advancements as cards, four a page in two columns, each with its icon, title, progress, what to do and guild XP reward, with category buttons along the top (Foundations, Cooperation, Combat, Commerce, Reputation, then Combat milestones) and a detail page per advancement with Track or Untrack, keeping saved progress, the tracked goal, rewards and the advancement tree link; Statistics → Achievements SHALL open it on Combat milestones.
+
+### REQ-274
+**Ubiquitous.** THE SYSTEM SHALL label the Statistics menu's achievements button Guild Advancements, show the guild's advancement progress, tracked advancement and combat milestones on it, and open the combined Guild Advancements menu at its first category.

@@ -4163,10 +4163,11 @@ menu:
         lore: '<gray>Return to the previous menu'
       achievements:
         lore:
-          count: '<gray>Milestones unlocked: <white><count>'
-          net_kills: '<gray>Net Kills: <white><milestone>'
-          total_kills: '<gray>Total Kills: <white><milestone>'
-        name: '<yellow>Guild Achievements'
+          earned: '<gray>Advancements: <white><count>/<total> earned'
+          tracking: '<gray>Tracking: <gold><title> <gray>(<current>/<goal>)'
+          count: '<gray>Combat milestones: <white><count>/<total> met'
+          open: '<yellow>Click to open Guild Advancements'
+        name: '<yellow>Guild Advancements'
       recent:
         lore:
           kills: '<gray>Recent kills: <white><count>'
@@ -4215,20 +4216,6 @@ menu:
         lightly_active: Lightly Active
         moderately_active: Moderately Active
         very_active: Very Active
-      kill_milestone:
-        bloodbath: Bloodbath (500+)
-        butcher: Butcher (100+)
-        carnage: Carnage (1k+)
-        massacre: Massacre (10k+)
-        novice: Novice (<100)
-        slaughter: Slaughter (5k+)
-      net_kill_milestone:
-        balanced: Balanced (0+)
-        challenged: Challenged (-50)
-        conqueror: Conqueror (500+)
-        dominator: Dominator (1k+)
-        struggling: Struggling (-100)
-        warrior: Warrior (100+)
   incoming_requests:
     title: "<white>Incoming Relation Requests"
     fallback:
