@@ -26,7 +26,7 @@ class LumaGuildsCompletionsTest {
 
     @Test
     fun `prestige walks through subcommand, guild, value and confirm`() {
-        assertEquals(listOf("info", "set", "grant", "rerun"), complete("prestige", ""))
+        assertEquals(listOf("info", "set", "grant", "rerun", "preview"), complete("prestige", ""))
         assertEquals(listOf("Vibe", "WeOnTop"), complete("prestige", "set", ""))
         assertEquals(listOf("0", "1", "2"), complete("prestige", "set", "Vibe", ""))
         assertEquals(listOf("confirm"), complete("prestige", "set", "Vibe", "1", ""))

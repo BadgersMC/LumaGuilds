@@ -188,10 +188,11 @@ internal class GuildStallMenuSafetyTest {
 
     private fun formRow(action: () -> Unit): Any {
         val rowType = GuildStallMenu::class.java.declaredClasses.single { it.simpleName == "Row" }
+        val itemRole = GuildStallMenu::class.java.declaredClasses.single { it.simpleName == "Role" }.enumConstants.first()
         return rowType.declaredConstructors
-            .single { it.parameterCount == 4 }
+            .single { it.parameterCount == 5 }
             .apply { isAccessible = true }
-            .newInstance(Component.text("Member"), emptyList<Component>(), GuildStallIcon.MEMBER, action)
+            .newInstance(Component.text("Member"), emptyList<Component>(), GuildStallIcon.MEMBER, itemRole, action)
     }
 
     /** A current viewer receives a proper no-stall response. */

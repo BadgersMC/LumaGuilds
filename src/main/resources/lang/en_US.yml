@@ -715,8 +715,18 @@ bedrock:
         <gold><bold>━━━ HOME SLOTS ━━━
         <aqua>Maximum Homes<gray>: <white><maximum>
         <yellow>Available Slots<gray>: <red><available>
+      over_cap: |-
+        <gray>Teleport to or manage your saved guild homes.
+
+        <gold><bold>━━━ HOME SLOTS ━━━
+        <aqua>Earned Capacity<gray>: <white><maximum>
+        <aqua>Saved Homes<gray>: <white><saved>
+        <yellow>Available Slots<gray>: <red>0
+        <gray>Existing locations are preserved. Earn more capacity before adding new homes.
+      locked_summary: '<gray><active> accessible homes, <locked> saved and locked'
     button:
       teleport: '<home> (Teleport)'
+      locked: '<red>🔒 <home> — Locked Outpost (repurchase after prestige)'
       activate: '<home> (Activate)'
       inactive: '<home> (Inactive)'
       no_homes: No homes have been set
@@ -731,6 +741,7 @@ bedrock:
     remove:
       title: 'Remove Guild Home - <guild>'
       description: Select a guild home to remove.
+      over_cap_warning: '<red>Warning: Saved homes exceed earned capacity. Deleting one will permanently lose that location until your guild earns enough slots. Select a home to remove.'
       button: '<home> (Remove)'
     feedback:
       no_permission: '<red>❌ You do not have permission to use the home ''<home>''.'
@@ -749,6 +760,8 @@ bedrock:
       activation_review_no_transaction: '<yellow>? Home activation failed and automatic gold compensation did not complete. Contact an administrator.'
       removed: '<green>✅ Guild home ''<home>'' has been removed.'
       remove_failed: '<red>❌ Failed to remove the guild home.'
+      restored: '<green>Guild home ''<home>'' restored with your paid Outpost credit. No extra charge.'
+      restore_unavailable: '<red>''<home>'' is saved but locked. Purchase an Outpost after prestige first.'
   home_access:
     description: '<gray>Toggle which guild ranks may use this home. The owner rank is always allowed.'
   allied_homes:
@@ -1997,6 +2010,10 @@ command:
         activation_failed: '<red>❌ Failed to activate home ''<target_home_name>''.'
         no_guild_homes_have_been_set: '<red>No guild homes have been set.'
         no_pending_unsafe_teleport_to_confirm_or: '<red>No pending unsafe teleport to confirm, or confirmation expired.'
+        restore_no_permission: '<red>You cannot restore guild homes.'
+        locked: '<red>Guild home ''<home>'' is locked. Repurchase one Outpost after prestige to restore it.'
+        restore_success: '<green>Guild home ''<home>'' restored. No additional gold was charged.'
+        restore_unavailable: '<red>Cannot restore ''<home>''. First purchase an Outpost at your current prestige.'
         use_guild_home_name_to_teleport_to: '<gray>Use <gold>/guild home \<name> <gray>to teleport to a specific home.'
         use_guild_sethome_to_set_your_first: '<gray>Use <gold>/guild sethome <gray>to set your first home.'
         you_already_have_a_teleport_in_progress: '<red>You already have a teleport in progress. Please wait for it to complete.'
@@ -2007,6 +2024,7 @@ command:
         guild_homes: '<gold>=== Guild Homes ==='
         home_row: '<gray>• <white><name> <gray>- <white><world_name>'
         home_row_main: '<gray>• <white><name> <yellow>[MAIN] <gray>- <white><world_name>'
+        locked_row: ' <red>[LOCKED — restore with /guild home unlock <home>]'
         no_homes_have_been_set_yet: '<gray>No homes have been set yet.'
         use_guild_home_name_to_teleport_to: '<gray>Use <gold>/guild home \<name> <gray>to teleport to a home.'
         use_guild_sethome_name_to_set_additional: '<gray>Use <gold>/guild sethome \<name> <gray>to set additional homes.'
@@ -2150,18 +2168,10 @@ command:
         payment_requires_review: '<yellow>⚠ Home payment outcome needs administrator review. Transaction: <transaction>'
         payment_requires_review_no_transaction: '<yellow>⚠ Home activation failed and automatic gold compensation did not complete. Contact an administrator.'
         members_can_now_use_guild_home_to: '<gray>Members can now use <gold>/guild home <gray>to teleport here.'
-        this_location_is_within_your_guild_s: '<gray>This location is within your guild''s claim area.'
       sethome:
-        an_error_occurred_while_checking_your_location: '<red>An error occurred while checking your location.'
         no_pending_unsafe_location_to_confirm_or: '<red>No pending unsafe location to confirm, or confirmation expired.'
         or_use_the_guild_menu_for_a: '<gray>Or use the guild menu for a confirmation dialog.'
-        place_a_bell_and_convert_it_to: '<gray>Place a bell and convert it to a guild claim first.'
-        this_claim_belongs_to_a_different_guild: '<gray>This claim belongs to a different guild.'
-        use_the_bell_menu_to_convert_this: '<gray>Use the bell menu to convert this personal claim to a guild claim first.'
         use_to_replace_it: '<gray>Use <gold><confirm_command> <gray>to replace it'
-        you_can_only_set_guild_home_in: '<red>You can only set guild home in a guild-owned claim.'
-        you_can_only_set_guild_home_in_2: '<red>You can only set guild home in your own guild''s claims.'
-        you_must_be_standing_in_a_guild: '<red>You must be standing in a guild-owned claim to set guild home.'
         your_guild_already_has_a_set: '<red>⚠️ Your guild already has a <home_label> set!'
       showguildstrikedetails:
         and_more_showing_newest: '<dark_gray>… <gray>and <white><hidden><gray> more (showing newest <max_shown>)'
@@ -2451,7 +2461,7 @@ menu:
       quest:
         name: '<gold><objective>'
         description: '<gray><objective>'
-        progress: '<gray>Progress: <white><count>/<target> <dark_gray>(<percent>%)'
+        progress: '<gray>Progress: <white><count>/<target> <gray>(<percent>%)'
         reward: '<gray>Reward: <gold><xp> Guild EXP'
         rank: '<gray>Current rank: <aqua><rank>'
         completed: '<green>✔ Complete — reward on its way'
@@ -3094,6 +3104,8 @@ menu:
       withdraw_overlay: 'Withdrawal successful!'
     history:
       title: '<white>Bank Transaction History - <guild>'
+      compact_title: '<white>Bank History'
+      guild_context: '<gray>Guild: <white><guild>'
       no_transactions: No transactions yet
       recent: '<count> recent transactions'
       open_action: '<yellow>Click to view full history'
@@ -3136,6 +3148,7 @@ menu:
         last_7_days: Last 7 Days
         last_30_days: Last 30 Days
       member_filter:
+        title: '<white>Bank Members'
         all_name: All Members
         all_description: '<gray>Clear member filter'
         select_member: Click to filter by <player>
@@ -4161,12 +4174,13 @@ menu:
           empty: '<dark_gray>Kills are counted from this update on.'
       back:
         lore: '<gray>Return to the previous menu'
-      achievements:
+      advancements:
         lore:
-          count: '<gray>Milestones unlocked: <white><count>'
-          net_kills: '<gray>Net Kills: <white><milestone>'
-          total_kills: '<gray>Total Kills: <white><milestone>'
-        name: '<yellow>Guild Achievements'
+          earned: '<gray>Advancements: <white><count>/<total> earned'
+          tracking: '<gray>Tracking: <gold><title> <gray>(<current>/<goal>)'
+          count: '<gray>Combat milestones: <white><count>/<total> met'
+          open: '<yellow>Click to open Guild Advancements'
+        name: '<yellow>Guild Advancements'
       recent:
         lore:
           kills: '<gray>Recent kills: <white><count>'
@@ -4215,20 +4229,6 @@ menu:
         lightly_active: Lightly Active
         moderately_active: Moderately Active
         very_active: Very Active
-      kill_milestone:
-        bloodbath: Bloodbath (500+)
-        butcher: Butcher (100+)
-        carnage: Carnage (1k+)
-        massacre: Massacre (10k+)
-        novice: Novice (<100)
-        slaughter: Slaughter (5k+)
-      net_kill_milestone:
-        balanced: Balanced (0+)
-        challenged: Challenged (-50)
-        conqueror: Conqueror (500+)
-        dominator: Dominator (1k+)
-        struggling: Struggling (-100)
-        warrior: Warrior (100+)
   incoming_requests:
     title: "<white>Incoming Relation Requests"
     fallback:
@@ -5875,6 +5875,29 @@ menu:
         available: "<green><bar> <gray><percent>%"
       daily_period: "<gray>Current daily period: <yellow><used> <gray>/ <yellow><cap> <gray>max"
       weekly_period: "<gray>Current weekly period: <yellow><used> <gray>/ <yellow><cap> <gray>max"
+      daily_resets: "<gray>Today: <yellow><used> <gray>/ <yellow><cap> <gray>· resets in <white><time>"
+      weekly_resets: "<gray>This week: <yellow><used> <gray>/ <yellow><cap> <gray>· resets in <white><time>"
+      award_each: "<gold>+<xp> guild XP each time"
+      award_range: "<gold>+<min> to <max> guild XP each time"
+      counts:
+        mob_kill: "<gray>Any hostile mob (bosses have their own)"
+        player_kill: "<gray>Other players, not your guildmates"
+        crop_break: "<gray>Fully grown crops, broken or right-click harvested"
+        block_break: "<gray>Natural dirt, stone, sand, nether and end blocks and logs"
+        block_place: "<gray>Placing building blocks"
+        ore: "<gray>Natural ores; rarer ores give more"
+        crafting: "<gray>Crafting tools, gear and rare blocks; better items give more"
+        smelting: "<gray>Items taken out of a furnace"
+        fishing: "<gray>Each catch"
+        enchanting: "<gray>Each enchantment at a table"
+        brewing: "<gray>Potions a brewing stand brewed, taken out once"
+        exploration: "<gray>Adventure advancements"
+        bank_deposit: "<gray>Gold put in the guild bank"
+        recruit: "<gray>New members who stay and play"
+        war_win: "<gray>Winning a war"
+        boss: "<gray>The member who lands the killing blow"
+        weekly_activity: "<gray>Members active this week"
+        advancement: "<gray>Completing a guild advancement"
       unlimited: "<green>Unlimited <gray>· no cap"
       names:
         shop_sale: "Guild Shop Sales"
@@ -6251,6 +6274,10 @@ menu:
       none: '<gray>No homes set yet'
       additional: '<yellow>Click to set additional homes'
       maximum: '<red>Maximum slots reached'
+      locked_count: '<red><count> saved homes are locked until an Outpost is repurchased'
+    locked:
+      name: '<red>Locked Outpost: <home>'
+      description: '<gray>Purchase an Outpost after prestige to restore this saved home.'
     set:
       main:
         name: '<green>Set Main Home'
@@ -6267,6 +6294,7 @@ menu:
       description: '<gray>Remove guild home locations'
       home: '<red>Remove ''<home>'''
       click: '<yellow>Click to remove this home'
+      over_cap_warning: '<red>Warning: Home cannot be restored until capacity catches up.'
       back:
         name: '<yellow>⬅ Back'
         description: '<gray>Return to the previous menu'
@@ -6341,6 +6369,9 @@ menu:
       activation_review: '<yellow>? Home payment outcome needs administrator review. Transaction: <transaction>'
       activation_review_no_transaction: '<yellow>? Home activation failed and automatic gold compensation did not complete. Contact an administrator.'
       world_missing: '<red>❌ Could not find the world for guild home.'
+      locked_hint: '<red>  [LOCKED — /guild home unlock <home> after an Outpost purchase]'
+      restored: '<green>Guild home ''<home>'' restored using a paid Outpost credit.'
+      restore_unavailable: '<red>''<home>'' is locked. Purchase an Outpost at this prestige first.'
   tag_editor:
     title: '<white>Tag Editor - <guild>'
     current:
@@ -6994,6 +7025,18 @@ permission:
     lore: Allows you to view lecterns
     name: View
 admin:
+  sounds:
+    help: '<yellow>/lumaguilds sounds [id|all|stop] <gray>- Hear any guild sound yourself; nothing changes'
+    players_only: '<red>Only a player in game can preview sounds.'
+    header: '<gold>Guild sounds <gray>(<count>) · click one to hear it, hover to see when it plays'
+    group: '<yellow><group>'
+    entry: '<dark_gray> ▶ <white><label> <dark_gray>(<id>)'
+    footer: '<gray>Click here to play them all in order, or use <white>/lumaguilds sounds stop<gray>.'
+    unknown: '<red>No guild sound called <white><id></white>. Use <white>/lumaguilds sounds</white> to see them all.'
+    now: '<gold>♪ <label> <gray>· <when>'
+    playing_all: '<gray>Playing all <white><count></white> guild sounds in order (about <seconds>s). Only you can hear them.'
+    finished: '<gray>That was every guild sound.'
+    stopped: '<gray>Sound preview stopped.'
   hall:
     help: '<yellow>/lumaguilds hall pedestal set|remove \<n>, hall list, hall refresh <gray>- Place the Hall of Prestige statues'
     usage: '<gray>Usage: <white>/lumaguilds hall pedestal set|remove \<1-24> <gray>| <white>hall list <gray>| <white>hall refresh'
@@ -7006,8 +7049,12 @@ admin:
     list_line: '<gray>#<slot> <white><world> <x> <y> <z> <gray>· <gold><guild>'
     refreshing: '<green>Rebuilding the Hall statues.'
   prestige:
-    help: '<yellow>/lumaguilds prestige info|set|grant|rerun \<guild> <gray>- Inspect or correct a guild''s prestige (Tab shows what to type)'
-    usage: '<gray>Usage: <white>/lumaguilds prestige info|set|grant|rerun \<guild> ...'
+    help: '<yellow>/lumaguilds prestige info|set|grant|rerun \<guild> <gray>- Inspect or correct a guild''s prestige (Tab shows what to type). <yellow>/lumaguilds prestige preview \<tier> <gray>- Watch the rank-up yourself'
+    usage: '<gray>Usage: <white>/lumaguilds prestige info|set|grant|rerun \<guild> ... <gray>or <white>/lumaguilds prestige preview \<tier> [guild]'
+    preview:
+      players_only: '<red>Only a player in game can watch the preview.'
+      usage: '<gray>Usage: <white>/lumaguilds prestige preview \<1-6> [guild] <gray>- plays the rank-up to you only; nothing changes.'
+      playing: '<gray>Previewing the <gold>Prestige <tier></gold> rank-up as <white><guild></white>. Only you can see and hear it; nothing was changed.'
     guild_not_found: '<red>No guild named <white><guild></white>.'
     unavailable: '<red>Prestige data for <white><guild></white> could not be read or changed.'
     info:
@@ -7155,6 +7202,7 @@ admin:
         migrated_tables_with_total_rows: '<gray>Migrated <size> tables with <total_rows> total rows'
         migration_completed_successfully: '<green>✅ Migration completed successfully!'
         migration_failed: '<red>❌ Migration failed!'
+        migration_disabled_incomplete_schema: '<red>SQLite-to-MariaDB migration is disabled: this legacy tool omits guild homes, vault items and payment/reward ledgers. Use a validated backup and audited migration instead.'
         migration_failed_with_exception: '<red>❌ Migration failed with exception: <reason>'
         next_steps: '<gold>📝 Next steps:'
         prerequisites: '<gray>Prerequisites:'
@@ -7200,7 +7248,7 @@ admin:
       showhelp:
         bellclaims_disband_guild_confirm_force_disband_a: '<yellow>/bellclaims disband \<guild> confirm <gray>- Force disband a guild (OP only)'
         bellclaims_help_show_this_help: '<yellow>/bellclaims help <gray>- Show this help'
-        bellclaims_migrate_confirm_migrate_sqlite_mariadb_op: '<yellow>/bellclaims migrate confirm <gray>- Migrate SQLite → MariaDB (OP only)'
+        bellclaims_migrate_confirm_migrate_sqlite_mariadb_op: '<gray>/bellclaims migrate confirm - Disabled (incomplete copier)'
         chapter_admin_controls: '<yellow>/lumaguilds chapter ... <gray>- Chapter status, verified backup, postpone, retry, and force-due controls (OP/Admin)'
         bellclaims_override_toggle_admin_override_mode_admin: '<yellow>/bellclaims override <gray>- Toggle admin override mode (Admin only)'
         bellclaims_progressionreload_reload_progression_yml_op_only: '<yellow>/bellclaims progressionreload <gray>- Reload progression.yml (OP only)'
@@ -7209,7 +7257,7 @@ admin:
         bellclaims_reload_reload_plugin_configuration_op_only: '<yellow>/bellclaims reload <gray>- Reload plugin configuration (OP only)'
         disband_is_for_emergency_use_only_removes: '<gray>⚠️ Disband is for emergency use only - removes all members!'
         lumaguilds_admin_commands: '<gold>=== LumaGuilds Admin Commands ==='
-        migrate_transfers_all_data_from_sqlite_to: '<gray>🔄 Migrate transfers all data from SQLite to MariaDB (requires confirmation)'
+        migrate_transfers_all_data_from_sqlite_to: '<red>🔄 SQLite-to-MariaDB migration is disabled until complete data coverage is audited.'
         override_grants_owner_permissions_in_all_guilds: '<gray>🔓 Override grants owner permissions in all guilds temporarily'
         reload_commands_are_for_development_some_changes: '<gray>🔧 Reload commands are for development - some changes require server restart'
     remove_vault:
@@ -7371,6 +7419,7 @@ notification:
     prestige:
       title: '<gold><bold>PRESTIGE <tier></bold>'
       subtitle: '<yellow><guild> <gray>has prestiged'
+      animation_subtitle: '<#fff3b0><guild>'
     level_up:
       title: '<gold>⭐ <bold>GUILD LEVEL UP!</bold> ⭐'
       subtitle: '<yellow><guild> <gray>reached level <yellow><level>'
@@ -7495,11 +7544,13 @@ chapter_two_rewards:
     no_quote: '<red>This offer is unavailable or you lack purchase permission. Refresh and check your guild rank.'
     insufficient: '<red>Your guild does not have enough gold for this reward.'
     bank_unavailable: '<red>The guild bank is frozen or has a pending transfer. Resolve it before purchasing.'
+    home_audit_pending: '<yellow>Guild Outpost purchases are paused until staff verifies your saved home ownership. No gold was charged.'
     changed: '<yellow>The offer changed. Review the refreshed catalog before purchasing.'
     ineligible: '<yellow>This reward is locked, already owned, or provides no additional benefit.'
   back: '<yellow>Back'
   status:
     locked: '<dark_gray>Locked'
+    audit_pending: '<yellow>Paused: home ownership audit required'
     available: '<yellow>Available to purchase'
     purchased: '<green>Purchased this run'
     permanent: '<aqua>Permanently owned'
@@ -7549,13 +7600,20 @@ guild_stall:
   not_member: '<red>You are no longer a member of this guild.'
   unavailable: '<yellow>Market stall information is unavailable. Try Refresh later.'
   none: '<gray>Your guild does not currently own a Market stall.'
-  location: '<gray>Location: <white><world> / <location>'
+  location: '<gray>Location: <white><world> · <location>'
   state: '<gray>Status: <white><state>'
-  rent: '<gray>Rent: <gold><amount> gold <gray>per <interval>'
-  due: '<gray>Next rent (UTC): <white><time>'
-  grace: '<gray>Grace ends (UTC): <white><time>'
-  members: '<gray>Guild members with shop access: <white><count>'
-  unknown: '<gray>Not available'
+  rent: '<gray>Rent: <gold><amount> gold <gray><interval>'
+  every_day: '<gray>every day'
+  every_week: '<gray>every week'
+  every: '<gray>every <time>'
+  due: '<gray>Next rent in <white><time>'
+  due_now: '<red>Rent due now'
+  grace: '<yellow>Grace period ends in <white><time>'
+  members: '<gray>Members with shop access: <white><count>'
+  open_hint: '<yellow>Click to see who can use it'
+  stall_title: '<gold><stall>'
+  nobody: '<gray>Nobody has shop access yet'
+  nobody_hint: '<yellow>Use Access to choose who can use it'
   active: '<green>Active'
   grace_state: '<yellow>Grace period'
   held: '<red>Moderation hold'
@@ -7949,36 +8007,28 @@ chronicle:
 
 achievements:
   back_statistics: '<white>Back to Statistics</white>'
-  personal_scope: '<gold>Personal achievements</gold>'
-  guild_scope: '<gold>Guild combat milestones</gold>'
-  guild_summary: '<gray><count>/8 current conditions met · Page <page>/2</gray>'
+  guild_summary: '<gray>Combat milestones · <count>/<total> met · Page <page>/<pages></gray>'
   guild_met: '<green>Current condition met</green>'
   guild_not_met: '<gray>Current condition not met</gray>'
   guild_rules: '<gray>Current guild statistics; wars use the latest 100 retained records. These badges can change and grant no extra XP or permanent award.</gray>'
   title: '<gold>Guild Advancements</gold>'
-  inspect_overview: '<white>Overview</white>'
-  inspect_earning: '<white>How to earn</white>'
-  inspect_reward: '<white>Reward</white>'
-  inspect_rules: '<white>Record rules</white>'
-  subtitle: '<gray><category> · Branch page <page>/<pages> · Select a connected milestone</gray>'
+  subtitle: '<gray><category> · <done>/<total> done · Page <page>/<pages></gray>'
+  detail_subtitle: '<gray><category></gray>'
+  card_reward: '<gold>+<amount> guild XP</gold>'
+  card_tracked: '<yellow>Tracking</yellow>'
+  tracking: '<gold>Tracking: <title> <current>/<goal></gold>'
+  milestones_tab: '<white>Combat milestones</white>'
+  back_category: '<white>Back to <category></white>'
   unavailable: '<red>Achievement data is unavailable. Existing progress was not cleared.</red>'
   completed: '<gold>✓ Completed · <current>/<goal></gold>'
   progress: '<gray>◇ In progress · <current>/<goal></gray>'
-  how: '<gold>How to earn and who receives credit</gold>'
-  reward: '<gold>Completion reward</gold>'
   personal_xp: '<green><amount> personal Minecraft XP, once per player.</green>'
-  no_extra: '<gray>Achievement completion; no extra XP configured.</gray>'
   no_guild_xp: '<gray>No guild XP for this one.</gray>'
   guild_xp: '<gold><amount> guild XP, paid once to the guild by whichever member completes it first.</gold>'
-  record_rules: '<gold>Saved personal achievement record</gold>'
-  offline: '<gray>Shared activities credit online guild members. Offline activity is not replayed; current guild level and combined playtime are checked again when online.</gray>'
-  retained: '<gray>Completed achievements and tracked goals remain on your player record across reconnects, guild changes and prestige.</gray>'
-  connections: '<gray>Tree lines organize milestones; they do not add purchase requirements or consume skill points.</gray>'
-  previous: '<white>Earlier milestones</white>'
-  next: '<white>Later milestones</white>'
-  track: '<gold>Track achievement</gold>'
-  untrack: '<white>Untrack achievement</white>'
-  goal: '<gold>Tracked achievement</gold>'
+  previous: '<white>Previous</white>'
+  next: '<white>Next</white>'
+  track: '<gold>Track this goal</gold>'
+  untrack: '<white>Untrack</white>'
   tree_action: '<white>Open advancement tree</white>'
   tree_key_hint: '<gold>Open Minecraft Advancements with your configured key: </gold>'
   tree_find_hint: '<gold>. Select the banner tab (the renderer may call it Enthusia), then look for Guild Mastery milestones and their descriptions. Drag the tree to pan. Your saved progress and tracked goal are unchanged.</gold>'

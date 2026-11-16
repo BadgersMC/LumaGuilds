@@ -23,8 +23,11 @@ class GuildMomentPresenter(private val plugin: Plugin, private val lang: LangSer
         play(player, moment)
     }
 
-    fun play(player: Player, moment: GuildMoment) {
-        moment.cues.forEach { cue ->
+    fun play(player: Player, moment: GuildMoment) = play(player, moment.cues)
+
+    /** REQ-254: also used by the staff sound preview. */
+    fun play(player: Player, cues: List<net.lumalyte.lg.domain.values.SoundCue>) {
+        cues.forEach { cue ->
             val sound = net.kyori.adventure.sound.Sound.sound(Key.key(cue.sound), net.kyori.adventure.sound.Sound.Source.MASTER, cue.volume, cue.pitch)
             if (cue.delayTicks <= 0) player.playSound(sound)
             else plugin.server.scheduler.runTaskLater(plugin, Runnable { if (player.isOnline) player.playSound(sound) }, cue.delayTicks)

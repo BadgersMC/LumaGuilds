@@ -31,6 +31,7 @@ class WebApiServer(
 
         val httpServer = HttpServer.create(InetSocketAddress(config.host, config.port), 0)
         httpServer.createContext("/api/leaderboards/guilds", ::handleGuildLeaderboard)
+        httpServer.createContext("/api/community/guild-directory", ::handleGuildDirectory)
         httpServer.createContext("/api/health") { exchange ->
             respondJson(exchange, 200, mapOf("status" to "ok"))
         }
@@ -74,6 +75,30 @@ class WebApiServer(
         } catch (t: Throwable) {
             plugin.logger.warning("[WebApi] guild leaderboard failed: ${t.message}")
             respondJson(exchange, 500, mapOf("error" to "internal_error"))
+        }
+    }
+
+    private fun handleGuildDirectory(exchange: HttpExchange) {
+        try {
+            if (exchange.requestURI.path != "/api/community/guild-directory") {
+                respondJson(exchange, 404, mapOf("error" to "not_found")); return
+            }
+            if (exchange.requestMethod != "GET") {
+                respondJson(exchange, 405, mapOf("error" to "method_not_allowed")); return
+            }
+            // The legacy leaderboard may be public when the token is blank; the directory must not be.
+            if (config.bearerToken.isBlank() || !isAuthorized(exchange)) {
+                respondJson(exchange, 401, mapOf("error" to "unauthorized")); return
+            }
+            val params = parseQuery(exchange.requestURI.rawQuery)
+            val offset = params["offset"]?.toIntOrNull() ?: if (params.containsKey("offset")) -1 else 0
+            val limit = params["limit"]?.toIntOrNull() ?: if (params.containsKey("limit")) -1 else 50
+            if (offset < 0 || offset > 1000 || limit !in 1..50) {
+                respondJson(exchange, 400, mapOf("error" to "invalid_page")); return
+            }
+            respondJson(exchange, 200, guildLeaderboardHandler.buildDirectoryPage(offset, limit, params["revision"]))
+        } catch (_: Exception) {
+            respondJson(exchange, 503, mapOf("error" to "directory_unavailable"))
         }
     }
 

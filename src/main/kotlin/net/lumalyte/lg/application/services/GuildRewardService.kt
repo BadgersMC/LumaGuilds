@@ -20,7 +20,8 @@ class GuildRewardService(
                 resolver.resolve(state.level, state.snapshot.ownership, config.bankCeiling, config.memberCapacity))
             RewardStateRead.Missing, RewardStateRead.Failed -> GuildRewardRead.Unavailable
         }
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        net.lumalyte.lg.application.logging.SwallowedErrors.log("GuildRewardService:23", e)
         GuildRewardRead.Unavailable
     }
 

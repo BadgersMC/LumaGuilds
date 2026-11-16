@@ -25,6 +25,8 @@ internal class PrestigeStaffCommand(
     private val playerName: (UUID) -> String? = { org.bukkit.Bukkit.getOfflinePlayer(it).name },
     private val rewardName: (String) -> String = { it },
     private val audit: (String) -> Unit = { Logger.getLogger("LumaGuilds").info(it) },
+    private val preview: (UUID, Int, String) -> Unit = { _, _, _ -> },
+    private val ownGuildName: (UUID) -> String? = { null },
 ) {
     fun execute(sender: CommandSender, args: Array<out String>) {
         if (!sender.hasPermission(PERMISSION)) {
@@ -32,6 +34,7 @@ internal class PrestigeStaffCommand(
             return
         }
         val sub = args.getOrNull(1)?.lowercase()
+        if (sub == "preview") return preview(sender, args)
         val guild = args.getOrNull(2)?.let(::resolve)
         if (sub !in SUBCOMMANDS) return usage(sender)
         if (guild == null) {
@@ -47,6 +50,16 @@ internal class PrestigeStaffCommand(
             "grant" -> grant(sender, guild, params.firstOrNull(), confirmed)
             "rerun" -> rerun(sender, guild, params.firstOrNull(), confirmed)
         }
+    }
+
+    /** REQ-253: `/lumaguilds prestige preview <tier> [guild]` plays the rank-up to the sender only. */
+    private fun preview(sender: CommandSender, args: Array<out String>) {
+        val player = sender as? Player ?: return sender.sendMessage(lang.msg("admin.prestige.preview.players_only"))
+        val tier = args.getOrNull(2)?.let { arg -> arg.toIntOrNull() ?: (ROMAN.indexOf(arg.uppercase()).takeIf { it > 0 }) }
+        if (tier == null || tier !in 1..6) return sender.sendMessage(lang.msg("admin.prestige.preview.usage"))
+        val name = args.getOrNull(3)?.let { resolve(it)?.name ?: it } ?: ownGuildName(player.uniqueId) ?: player.name
+        preview(player.uniqueId, tier, name)
+        sender.sendMessage(lang.msg("admin.prestige.preview.playing", "tier" to numeral(tier), "guild" to name))
     }
 
     private fun resolve(input: String): Guild? =
@@ -168,7 +181,7 @@ internal class PrestigeStaffCommand(
 
     companion object {
         const val PERMISSION = "lumaguilds.admin.prestige"
-        val SUBCOMMANDS = listOf("info", "set", "grant", "rerun")
+        val SUBCOMMANDS = listOf("info", "set", "grant", "rerun", "preview")
         val CONSOLE: UUID = UUID(0L, 0L)
         private const val CONFIRM = "confirm"
         private val ROMAN = listOf("", "I", "II", "III", "IV", "V", "VI")

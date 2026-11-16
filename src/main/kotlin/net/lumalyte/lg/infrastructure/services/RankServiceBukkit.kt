@@ -6,6 +6,7 @@ import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.application.persistence.RankRepository
 import net.lumalyte.lg.application.persistence.RankClaimPermissionProfileRepository
+import net.lumalyte.lg.application.services.AdminOverrideService
 import net.lumalyte.lg.application.services.PriorityDirection
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.domain.entities.Rank
@@ -21,6 +22,7 @@ class RankServiceBukkit(
     private val rankClaimPermissionProfiles: RankClaimPermissionProfileRepository,
     private val invalidateClaimPermissionCacheForPlayer: (UUID) -> Unit = {},
     private val invalidateClaimPermissionCacheForGuild: (UUID) -> Unit = {},
+    private val adminOverrideService: AdminOverrideService? = null,
 ) : RankService {
     
     private val logger = LoggerFactory.getLogger(RankServiceBukkit::class.java)
@@ -37,12 +39,16 @@ class RankServiceBukkit(
         }
     }
     
+    private fun hasBypass(playerId: UUID): Boolean = adminOverrideService?.hasOverride(playerId) == true
+
     private fun canEditRank(actorId: UUID, rank: Rank): Boolean {
+        if (hasBypass(actorId)) return true
         val actor = getPlayerRank(actorId, rank.guildId) ?: return false
         return actor.priority == 0 || actor.priority < rank.priority
     }
 
     private fun canGrant(actorId: UUID, guildId: UUID, permissions: Set<RankPermission>): Boolean {
+        if (hasBypass(actorId)) return true
         val actor = getPlayerRank(actorId, guildId) ?: return false
         return actor.priority == 0 || actor.permissions.containsAll(permissions)
     }
@@ -73,8 +79,11 @@ class RankServiceBukkit(
         // Create rank
         val rankId = UUID.randomUUID()
         val priority = rankRepository.getNextPriority(guildId)
-        val actorRank = getPlayerRank(actorId, guildId) ?: return null
-        if (priority <= actorRank.priority) return null
+        // Admins can create ranks in guilds they do not belong to.
+        if (!hasBypass(actorId)) {
+            val actorRank = getPlayerRank(actorId, guildId) ?: return null
+            if (priority <= actorRank.priority) return null
+        }
         val rank = Rank(
             id = rankId,
             guildId = guildId,
@@ -256,8 +265,11 @@ class RankServiceBukkit(
             return false
         }
         
-        val actorRank = getPlayerRank(actorId, guildId) ?: return false
-        if (playerId == actorId || rank.priority <= actorRank.priority) return false
+        val bypass = hasBypass(actorId)
+        // A guild cannot kick or demote another staff member while their bypass is active.
+        if (playerId != actorId && hasBypass(playerId)) return false
+        val actorRank = if (bypass) null else getPlayerRank(actorId, guildId) ?: return false
+        if (!bypass && (playerId == actorId || rank.priority <= requireNotNull(actorRank).priority)) return false
         // Ownership must move through MemberService.transferOwnership, never ordinary assignment.
         if (rank.priority == 0) return false
 
@@ -265,7 +277,7 @@ class RankServiceBukkit(
         val existingMember = memberRepository.getByPlayerAndGuild(playerId, guildId)
         if (existingMember != null) {
             val currentRank = rankRepository.getById(existingMember.rankId) ?: return false
-            if (currentRank.priority <= actorRank.priority || currentRank.priority == 0) return false
+            if (currentRank.priority == 0 || (!bypass && currentRank.priority <= requireNotNull(actorRank).priority)) return false
             // Update existing member's rank
             val updatedMember = existingMember.copy(rankId = rankId)
             val result = memberRepository.update(updatedMember)
@@ -299,6 +311,7 @@ class RankServiceBukkit(
     override fun getHighestRank(guildId: UUID): Rank? = rankRepository.getHighestRank(guildId)
     
     override fun hasPermission(playerId: UUID, guildId: UUID, permission: RankPermission): Boolean {
+        if (hasBypass(playerId)) return true
         val rank = getPlayerRank(playerId, guildId) ?: return false
         // Owner (priority 0) implicitly has all permissions.
         if (rank.priority == 0) return true
@@ -424,8 +437,11 @@ class RankServiceBukkit(
         if (!hasPermission(actorId, target.guildId, RankPermission.MANAGE_RANKS)) {
             return false
         }
-        val actorRank = getPlayerRank(actorId, target.guildId) ?: return false
-        if (actorRank.priority >= target.priority) return false
+        // Owner is a structural rank; its priority must not be swapped, even by bypass.
+        if (target.priority == 0) return false
+        val actorPriority = if (hasBypass(actorId)) -1 else
+            getPlayerRank(actorId, target.guildId)?.priority ?: return false
+        if (actorPriority >= target.priority) return false
         val siblings = rankRepository.getByGuild(target.guildId).sortedBy { it.priority }
         val idx = siblings.indexOfFirst { it.id == target.id }
         val neighborIdx = when (direction) {
@@ -436,7 +452,7 @@ class RankServiceBukkit(
         val neighbor = siblings[neighborIdx]
         // Block swap when the adjacent rank is at or above the actor's priority — otherwise
         // an actor at priority 1 could shove a rank UP into their own slot.
-        if (neighbor.priority <= actorRank.priority) return false
+        if (neighbor.priority == 0 || neighbor.priority <= actorPriority) return false
         val result = rankRepository.swapPriorities(target.id, neighbor.id)
         if (result) invalidateClaimPermissionCacheForGuild(target.guildId)
         return result

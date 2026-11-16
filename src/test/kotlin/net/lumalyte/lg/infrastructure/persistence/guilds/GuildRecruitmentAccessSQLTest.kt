@@ -47,6 +47,69 @@ internal class GuildRecruitmentAccessSQLTest : RewardSqlTestFixture() {
         assertTrue(requireNotNull(GuildRepositorySQLite(database).getById(guild)).isOpen)
     }
 
+    @Test
+    fun genericUpdateStillChangesLegacyAccessWhenNoProfileExists() {
+        val database = openStorage()
+        migrateProductionSchema(database)
+        val repository = GuildRepositorySQLite(database)
+        val original = openGuild()
+        assertTrue(repository.add(original))
+
+        assertTrue(repository.update(original.copy(isOpen = false, name = "Legacy Settings")))
+        assertFalse(requireNotNull(repository.getById(guild)).isOpen)
+        assertFalse(requireNotNull(GuildRepositorySQLite(database).getById(guild)).isOpen)
+        assertNull(RecruitmentDirectoryRepositorySQL(database, repository).profile(guild))
+    }
+
+    @Test
+    fun profileFlagSurvivesGenericUpdateFromStaleGuildSnapshot() {
+        val database = openStorage()
+        migrateProductionSchema(database)
+        val repository = GuildRepositorySQLite(database)
+        val stale = openGuild()
+        assertTrue(repository.add(stale))
+        val profiles = RecruitmentDirectoryRepositorySQL(database, repository)
+        profiles.save(RecruitmentProfile(guild, RecruitmentMode.CLOSED))
+
+        assertTrue(repository.update(stale.copy(name = "Unrelated Settings")))
+        val persisted = GuildRepositorySQLite(database)
+        assertFalse(requireNotNull(persisted.getById(guild)).isOpen)
+        assertFalse(requireNotNull(repository.getById(guild)).isOpen)
+        assertEquals(RecruitmentMode.CLOSED, profiles.profile(guild)?.mode)
+    }
+
+    @Test
+    fun genericUpdateCannotRevertModeCommittedBetweenAccessReadAndWrite() {
+        val database = openStorage()
+        migrateProductionSchema(database)
+        val repository = GuildRepositorySQLite(database)
+        val stale = openGuild()
+        assertTrue(repository.add(stale))
+        // A separate pool makes the mode commit independent of the paused repository call.
+        val profiles = RecruitmentDirectoryRepositorySQL(openStorage(), mockk(relaxed = true))
+        profiles.save(RecruitmentProfile(guild, RecruitmentMode.IN_GAME))
+        val readFinished = java.util.concurrent.CountDownLatch(1)
+        val allowWrite = java.util.concurrent.CountDownLatch(1)
+        repository.beforeGenericUpdateSql = {
+            readFinished.countDown()
+            check(allowWrite.await(10, java.util.concurrent.TimeUnit.SECONDS)) { "SQL write never resumed" }
+        }
+        val update = java.util.concurrent.CompletableFuture.supplyAsync {
+            repository.update(stale.copy(name = "Concurrent Settings"))
+        }
+        try {
+            assertTrue(readFinished.await(10, java.util.concurrent.TimeUnit.SECONDS))
+            profiles.save(RecruitmentProfile(guild, RecruitmentMode.JOIN_IMMEDIATELY))
+        } finally {
+            allowWrite.countDown()
+        }
+
+        assertTrue(update.get(10, java.util.concurrent.TimeUnit.SECONDS))
+        assertTrue(requireNotNull(GuildRepositorySQLite(database).getById(guild)).isOpen)
+        assertTrue(requireNotNull(repository.getById(guild)).isOpen)
+        assertEquals(RecruitmentMode.JOIN_IMMEDIATELY, profiles.profile(guild)?.mode)
+    }
+
     private fun openGuild(): net.lumalyte.lg.domain.entities.Guild {
         return net.lumalyte.lg.domain.entities.Guild(
             id = guild,

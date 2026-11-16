@@ -56,7 +56,8 @@ class GuildProgressionMenu(
     private val progressionService: ProgressionService,
     private val menuFactory: MenuFactory,
     private val menuItemBuilder: MenuItemBuilder,
-    private val configService: ConfigService
+    private val configService: ConfigService,
+    private val adminOverrideService: AdminOverrideService? = null,
 ) : Menu, KoinComponent {
 
     private val lang: LangService by inject()
@@ -77,6 +78,17 @@ class GuildProgressionMenu(
         29, 30, 31, 32, 33, 34,
         38, 39, 40, 41, 42, 43
     )
+
+    private fun isMember() = memberService.getMember(player.uniqueId, guild.id) != null
+
+    private fun isScopedInspector() = adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id
+
+    private fun canInspectGuild() = isMember() || isScopedInspector()
+
+    private fun canOpenQuests(): Boolean {
+        val hasQuestPermission = player.hasPermission("lumaguilds.guild.quests")
+        return canInspectGuild() && (hasQuestPermission || isScopedInspector())
+    }
 
     private val loader: net.lumalyte.lg.interaction.menus.MenuLoader by lazy {
         getKoin().getOrNull() ?: net.lumalyte.lg.interaction.menus.MenuLoader.Immediate
@@ -99,7 +111,8 @@ class GuildProgressionMenu(
     /** REQ-266: every database read for this screen, run off the main thread. */
     private fun readSnapshot(): Snapshot {
         val fresh = guildService.getGuild(guild.id) ?: guild
-        if (memberService.getMember(player.uniqueId, fresh.id) == null) return Snapshot.NoAccess
+        // Members, or staff inspecting this guild read-only (upstream admin view).
+        if (!canInspectGuild()) return Snapshot.NoAccess
         val reward = progressionService.getRewardState(fresh.id)
         if (reward == GuildRewardRead.Unavailable) return Snapshot.Unavailable
         rewardState = reward
@@ -179,8 +192,7 @@ class GuildProgressionMenu(
         } }
         pane.addItem(GuiItem(item) { event ->
             event.isCancelled = true
-            if (memberService.getMember(player.uniqueId, guild.id) != null &&
-                player.hasPermission("lumaguilds.guild.quests")) {
+            if (canOpenQuests()) {
                 menuNavigator.openMenu(menuFactory.createGuildQuestsMenu(menuNavigator, player, guild))
             } else player.sendMessage(lang.msg("quest_discovery.denied"))
         }, x, y)
@@ -198,8 +210,7 @@ class GuildProgressionMenu(
                 theme = guild.guiTheme,
             ),
             {
-                player.isOnline && menuNavigator.isNavigationCurrent(token) &&
-                    memberService.getMember(player.uniqueId, guild.id) != null
+                player.isOnline && menuNavigator.isNavigationCurrent(token) && canInspectGuild()
             },
         ) { player.sendMessage(lang.msg("menu.guild_progression.feedback.load_failed")) }
     }
@@ -223,7 +234,7 @@ class GuildProgressionMenu(
                 "guild_dialogs.progression.reward_states",
                 "purchased" to owned,
                 "available" to offers.count { it.status == RewardOfferStatus.AVAILABLE },
-                "locked" to offers.count { it.status == RewardOfferStatus.LOCKED },
+                "locked" to offers.count { it.status == RewardOfferStatus.LOCKED || it.status == RewardOfferStatus.AUDIT_PENDING },
             )
         return GuildDialogItem(
             NexoItemProvider.getItemStackOrFallback("lg_reward") { ItemStack.of(Material.DIAMOND) },
@@ -236,10 +247,10 @@ class GuildProgressionMenu(
 
     private fun progressionDialogActions() =
         listOfNotNull(
-            nativeAction(lang.gui("achievements.title")) {
+            if (isMember()) nativeAction(lang.gui("achievements.title")) {
                 menuNavigator.openMenu(GuildAchievementsMenu(menuNavigator, player, guild))
-            },
-            if (rewardState is GuildRewardRead.Available) nativeAction(lang.gui("chronicle.title")) {
+            } else null,
+            if (isMember() && rewardState is GuildRewardRead.Available) nativeAction(lang.gui("chronicle.title")) {
                 menuNavigator.openMenu(GuildChronicleMenu(menuNavigator, player, guild))
             } else null,
             nativeAction(lang.gui("guild_dialogs.progression.quests"), ::openNativeQuests),
@@ -250,18 +261,18 @@ class GuildProgressionMenu(
                 sourceDetails = true
                 open()
             },
-            nativeAction(lang.gui("chapter_two_rewards.title")) {
+            if (isMember()) nativeAction(lang.gui("chapter_two_rewards.title")) {
                 if (rewardState is GuildRewardRead.Available) {
                     openRewardCatalog()
                 } else {
                     showLegacyPerks()
                 }
-            },
-            nativeAction(lang.gui("menu.guild_progression.prestige.name"), ::openNativePrestige),
+            } else null,
+            if (isMember()) nativeAction(lang.gui("menu.guild_progression.prestige.name"), ::openNativePrestige) else null,
         )
 
     private fun openNativeQuests() {
-        if (player.hasPermission("lumaguilds.guild.quests")) {
+        if (canOpenQuests()) {
             menuNavigator.openMenu(menuFactory.createGuildQuestsMenu(menuNavigator, player, guild))
         } else {
             player.sendMessage(lang.msg("guild_dialogs.progression.quests_denied"))
@@ -270,6 +281,7 @@ class GuildProgressionMenu(
     }
 
     private fun openNativePrestige() {
+        if (!isMember()) return
         menuNavigator.openMenu(GuildChronicleMenu(menuNavigator, player, guild,
             initialPrestige = true, reviewPrestige = ::openPrestigeSelection))
     }
@@ -360,6 +372,9 @@ class GuildProgressionMenu(
         val item = ItemStack.of(material).also { it.editMeta { meta ->
             meta.displayName(lang.gui("menu.guild_progression.source.name", "source" to name))
             val lore = mutableListOf<Component>()
+            lore += sourceAwardLines(usage.pool)
+            sourceCounts(usage.pool)?.let { lore += it }
+            if (lore.isNotEmpty()) lore += Component.empty()
             if (cap != null) {
                 val progress = when (state) {
                     "capped" -> lang.gui("menu.guild_progression.source.progress.capped", "bar" to bars, "percent" to percent)
@@ -368,9 +383,18 @@ class GuildProgressionMenu(
                     else -> lang.gui("menu.guild_progression.source.progress.available", "bar" to bars, "percent" to percent)
                 }
                 lore.add(progress)
+                val resets = usage.resetsAt?.let { resetIn(it) }
                 val usageLine = when (usage.period) {
-                    CapPeriod.DAILY -> lang.gui("menu.guild_progression.source.daily_period", "used" to usedXp, "cap" to cap)
-                    CapPeriod.WEEKLY -> lang.gui("menu.guild_progression.source.weekly_period", "used" to usedXp, "cap" to cap)
+                    CapPeriod.DAILY -> if (resets != null) {
+                        lang.gui("menu.guild_progression.source.daily_resets", "used" to usedXp, "cap" to cap, "time" to resets)
+                    } else {
+                        lang.gui("menu.guild_progression.source.daily_period", "used" to usedXp, "cap" to cap)
+                    }
+                    CapPeriod.WEEKLY -> if (resets != null) {
+                        lang.gui("menu.guild_progression.source.weekly_resets", "used" to usedXp, "cap" to cap, "time" to resets)
+                    } else {
+                        lang.gui("menu.guild_progression.source.weekly_period", "used" to usedXp, "cap" to cap)
+                    }
                     CapPeriod.UNLIMITED -> lang.gui("menu.guild_progression.source.unlimited")
                 }
                 lore.add(usageLine)
@@ -380,6 +404,59 @@ class GuildProgressionMenu(
             meta.lore(lore)
         }}
         pane.addItem(GuiItem(item) { it.isCancelled = true }, x, y)
+    }
+
+    /** REQ-259: what one action is worth, read from the live source policies. */
+    private fun sourceAwardLines(pool: String): List<Component> {
+        val policies = configService.loadConfig().progression.sourcePolicies.values
+            .filter { it.pool == pool && it.enabled && it.awardXp > 0 }
+            .sortedBy { it.awardXp }
+        return when {
+            policies.isEmpty() -> emptyList()
+            policies.size == 1 || policies.all { it.awardXp == policies.first().awardXp } ->
+                listOf(lang.gui("menu.guild_progression.source.award_each", "xp" to policies.first().awardXp))
+            else -> listOf(lang.gui(
+                "menu.guild_progression.source.award_range",
+                "min" to policies.first().awardXp,
+                "max" to policies.last().awardXp,
+            ))
+        }
+    }
+
+    /** REQ-259: what counts towards a source, in plain words. */
+    private fun sourceCounts(pool: String): Component? = when (pool) {
+        "MOB_KILL" -> lang.gui("menu.guild_progression.source.counts.mob_kill")
+        "PLAYER_KILL" -> lang.gui("menu.guild_progression.source.counts.player_kill")
+        "CROP_BREAK" -> lang.gui("menu.guild_progression.source.counts.crop_break")
+        "BLOCK_BREAK" -> lang.gui("menu.guild_progression.source.counts.block_break")
+        "BLOCK_PLACE" -> lang.gui("menu.guild_progression.source.counts.block_place")
+        "ORE" -> lang.gui("menu.guild_progression.source.counts.ore")
+        "CRAFTING" -> lang.gui("menu.guild_progression.source.counts.crafting")
+        "SMELTING" -> lang.gui("menu.guild_progression.source.counts.smelting")
+        "FISHING" -> lang.gui("menu.guild_progression.source.counts.fishing")
+        "ENCHANTING" -> lang.gui("menu.guild_progression.source.counts.enchanting")
+        "BREWING" -> lang.gui("menu.guild_progression.source.counts.brewing")
+        "EXPLORATION_MILESTONE" -> lang.gui("menu.guild_progression.source.counts.exploration")
+        "BANK_DEPOSIT" -> lang.gui("menu.guild_progression.source.counts.bank_deposit")
+        "QUALIFIED_RECRUIT" -> lang.gui("menu.guild_progression.source.counts.recruit")
+        "PRE_CAP_WAR_WIN" -> lang.gui("menu.guild_progression.source.counts.war_win")
+        "ENDER_DRAGON_KILL", "WITHER_KILL", "ELDER_GUARDIAN_KILL", "WARDEN_KILL" ->
+            lang.gui("menu.guild_progression.source.counts.boss")
+        "WEEKLY_ACTIVITY" -> lang.gui("menu.guild_progression.source.counts.weekly_activity")
+        "GUILD_ADVANCEMENT" -> lang.gui("menu.guild_progression.source.counts.advancement")
+        else -> null
+    }
+
+    private fun resetIn(at: java.time.Instant): String {
+        val left = java.time.Duration.between(java.time.Instant.now(), at).coerceAtLeast(java.time.Duration.ZERO)
+        val days = left.toDays()
+        val hours = left.toHours() % 24
+        val minutes = left.toMinutes() % 60
+        return when {
+            days > 0 -> "${days}d ${hours}h"
+            hours > 0 -> "${hours}h ${minutes}m"
+            else -> "${minutes.coerceAtLeast(1)}m"
+        }
     }
 
     private fun addRankInfo(pane: StaticPane, x: Int, y: Int) {
@@ -469,7 +546,7 @@ class GuildProgressionMenu(
             } }
             pane.addItem(GuiItem(item) {
                 it.isCancelled = true
-                if (offer.status != RewardOfferStatus.AVAILABLE) return@GuiItem
+                if (!isMember() || offer.status != RewardOfferStatus.AVAILABLE) return@GuiItem
                 val quote = rewardPurchases.quote(player.uniqueId, guild.id, offer.reward.id)
                 if (quote == null) player.sendMessage(lang.msg("chapter_two_rewards.purchase.no_quote"))
                 else GuildRewardPurchaseMenu(player, quote, offer.reward.name, ::openRewardCatalog).open()
@@ -594,6 +671,7 @@ class GuildProgressionMenu(
     }
 
     private fun openPrestigeSelection() {
+        if (!isMember()) return
         val overview = prestigeService.overview(guild.id)
         if (overview == null || !overview.enabled || overview.currentLevel != 100 ||
             overview.prestigeCount >= overview.maxPrestigeCount || overview.choices.isEmpty()
@@ -628,6 +706,7 @@ class GuildProgressionMenu(
             } }
             pane.addItem(GuiItem(item) { event ->
                 event.isCancelled = true
+                if (!isMember()) return@GuiItem
                 val quote = prestigeService.quote(player.uniqueId, guild.id, reward.id)
                 if (quote == null) {
                     player.sendMessage(lang.msg("menu.guild_progression.prestige.feedback.quote_failed"))

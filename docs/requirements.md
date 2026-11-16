@@ -290,7 +290,7 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 **Event-driven.** WHEN a rated guild war resolves THEN THE SYSTEM SHALL add or remove seasonal Elo according to REQ-051 without changing current-run XP or current-run level. Unrated wars and pre-level-100 wars SHALL NOT change seasonal Elo.
 
 ### REQ-054
-**Conditional.** GIVEN raw-gold economy, THE SYSTEM SHALL require raw gold to create a guild and to activate each guild home, with costs scaling higher as more homes are unlocked. Cost model (contract): home #1..N costs `baseCost * scale^(n-1)`. The level 1–100 reward table MAY grant home capacity only where it explicitly says so. Purchased home capacity and activated home locations SHALL be permanent guild assets and SHALL NOT be revoked by prestige, seasonal-rating changes, or chapter rollover. Prestige SHALL grant exactly one additional permanent home-capacity unit per successful transition, subject to the configured lifetime prestige maximum.
+**Conditional.** GIVEN raw-gold economy, THE SYSTEM SHALL require raw gold to create a guild and to activate each guild home, with costs scaling higher as more homes are unlocked. Cost model (contract): home #1..N costs `baseCost * scale^(n-1)`. Only the nine purchased Chapter 2 Guild Outpost rewards SHALL add home capacity during the level 1–100 run. Purchased home capacity and activated home locations SHALL be permanent guild assets and SHALL NOT be revoked by prestige, seasonal-rating changes, or chapter rollover. Prestige SHALL grant exactly one additional permanent home-capacity unit per successful transition, subject to the configured lifetime prestige maximum. Earned Chapter 2 capacity SHALL be `1 base + up to 9 purchased Guild Outposts + up to 6 completed prestiges`, with an absolute maximum of 16. A legacy Chapter 1 saved-home count SHALL NOT inflate this earned entitlement. Existing saved homes above earned capacity SHALL remain readable and usable subject to normal permission and activation checks, including updates to their existing names, but no new named home SHALL be admitted until earned capacity exceeds the count of saved homes. Java and Bedrock home-placement entry points SHALL reject known over-cap additions before any guild-gold debit, while an independent write-time guard rechecks capacity for serialized Bukkit requests. Cross-instance writes still require transactional serialization.
 
 ### REQ-055
 **State-driven.** THE SYSTEM SHALL enforce a 15-day guild-creation cooldown for players who create and then delete a guild within 7 days of creation (contract: `create_then_delete_window_days = 7`, `creation_cooldown_days = 15`, both operator-configurable). Deleting a guild older than the window does not start a cooldown. The cooldown starts at deletion time and blocks that player from creating a new guild until it expires.
@@ -382,7 +382,7 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 **Event-driven.** WHEN the configured server-wide chapter end time arrives (default chapter duration three months) THEN THE SYSTEM SHALL process rollover through persisted idempotent states `SCHEDULED`, `FROZEN`, `BACKED_UP`, `ARCHIVED`, `RESET`, `PRUNED`, and `COMPLETE`, and SHALL expose safe read-only chapter-name and time-remaining placeholders. Rollover SHALL freeze rated changes, verify a restorable pre-reset database backup, archive final standings and chapter metadata, reset eligible guild seasonal Elo to 1000, prune only configured seasonal/transient data, and preserve guild identity, membership, ranks, canonical guild gold, vault contents, activated homes, permanent home capacity, prestige count, permanent prestige perks, current-run XP/level, quest history required for audit, and other non-seasonal state. Operators SHALL have status, postpone, retry, and explicitly confirmed force controls.
 
 ### REQ-091
-**State-driven.** WHEN upgrading the production installation from Chapter 1 to the Chapter 2 progression model THEN THE SYSTEM SHALL archive the complete Chapter 1 standings, reset every guild's current-run level to 1 and current-run XP to 0, initialize seasonal Elo to 1000, and convert the number of canonical saved home locations into that guild's initial permanent home capacity (minimum one). Migration SHALL preserve guild identity, members, ranks, relations, canonical guild gold, vault contents, and every saved home location; SHALL NOT convert historical XP into Elo, prestige, perks, or economic value; and SHALL be dry-run capable, transactional, restart-safe, rollback-capable, and preceded by a verified backup.
+**State-driven.** WHEN upgrading the production installation from Chapter 1 to the Chapter 2 progression model THEN THE SYSTEM SHALL archive the complete Chapter 1 standings, reset every guild's current-run level to 1 and current-run XP to 0, initialize seasonal Elo to 1000, and record the number of canonical saved home locations as immutable historical migration evidence while granting exactly one base earned home-capacity slot. Existing persisted `initial_home_capacity` values may retain the historical location count for audit/backward compatibility but SHALL NOT inflate current earned entitlement. Migration SHALL preserve guild identity, members, ranks, relations, canonical guild gold, vault contents, and every saved home location, including homes above the earned capacity; SHALL NOT convert historical XP into Elo, prestige, perks, or economic value; and SHALL be dry-run capable, transactional, restart-safe, rollback-capable, and preceded by a verified backup.
 
 ### REQ-092
 **Ubiquitous.** THE SYSTEM SHALL treat `vault_gold.balance` as the single canonical guild raw-gold-equivalent balance. Personal-account transfers through a Vault Economy provider, physical `RAW_GOLD`/compressed-block deposits, withdrawals, interest, admin credits, war costs, home activation, perk purchases, and prestige fees SHALL use one atomic guild-gold application service. Every credit route SHALL enforce the same effective capacity, transaction limits, permission, fee, suspicious-transaction, and audit rules before external currency/items are irreversibly removed. Ordinary vault-item slot capacity SHALL remain independent from guild-gold capacity. `bank_mode: BOTH` with physical currency enabled SHALL be valid and SHALL permit both personal-account and physical-item ingress into the same balance. A missing Vault Economy provider SHALL disable only personal-account transfers and SHALL NOT disable physical guild-gold or ordinary vault storage.
@@ -878,6 +878,41 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 ### REQ-241
 **Ubiquitous.** THE SYSTEM SHALL list a guild advancement's guild XP reward first in its advancement tooltip, followed by any personal Minecraft XP its members also receive, and SHALL tell the member who completes it first how much guild XP the guild earned.
 
+## Prestige rank-up animation
+
+### REQ-251
+**Event-driven.** WHEN a guild prestiges, THE SYSTEM SHALL show each online member who can see it the rank-up animation from the Enthusia pack, one frame per tick for 64 frames (old badge shatters, the four-point star flashes, the new tier badge appears, "PRESTIGE N" wipes in), with the guild name as the subtitle once the title has appeared, hold the last frame for 2.5 seconds and fade it out, and SHALL play the members' fanfare 7 ticks after the animation starts with a shatter sound when the old badge breaks (tiers II to VI).
+
+### REQ-252
+**Unwanted behaviour.** IF a member is on Bedrock, the pack's `guild_prestige_rankup_v1` contract glyph does not resolve, or `progression.prestige.fanfare.member_animation` is false, THEN THE SYSTEM SHALL show that member the plain prestige title and fanfare instead.
+
+### REQ-253
+**Event-driven.** WHEN a player with `lumaguilds.admin.prestige` runs `/lumaguilds prestige preview <tier> [guild]`, THE SYSTEM SHALL play that tier's rank-up animation and members' fanfare (or the plain title where REQ-252 applies) to that player only, with the given or their own guild name as subtitle, and SHALL NOT change any guild, record history, announce, or play anything to other players.
+
+## Staff sound preview
+
+### REQ-254
+**Event-driven.** WHEN a player with `lumaguilds.admin.sounds` runs `/lumaguilds sounds`, THE SYSTEM SHALL list every guild sound by group with a click-to-play entry and a hover saying when players hear it; `/lumaguilds sounds <id>` SHALL play that sound to the sender only, `all` SHALL play every sound once in order with its name on the action bar, and `stop` SHALL end a running preview. War, prestige and rank-up previews SHALL use the same cue definitions as the live events, and no preview SHALL change a guild or reach another player.
+
+## Everyday guild XP fixes
+
+### REQ-255
+**Event-driven.** WHEN a member breaks or right-click harvests a fully grown crop (wheat, carrots, potatoes, beetroots, nether wart, cocoa, sweet berries, pitcher plants, torchflowers) in Survival or Adventure THE SYSTEM SHALL award crop XP even though a player planted it, and WHEN a member takes a potion out of a brewing stand THE SYSTEM SHALL award brewing XP only if that stand brewed the potion and its XP has not been claimed, so water bottles and potions put in by hand earn nothing.
+
+### REQ-257
+**Ubiquitous.** THE SYSTEM SHALL count every hostile mob except the bosses (which have their own sources) and neutral mobs as a guild mob kill, and natural ground, stone, sand, nether and end blocks and tree logs as guild block breaking, in both the built-in defaults and the shipped config.yml.
+
+### REQ-259
+**Ubiquitous.** THE SYSTEM SHALL show on each XP source in the progression menu how much guild XP one action gives (read from the live source settings), what counts towards it in plain words, and the period used, cap and time until it resets.
+
+### REQ-256
+**Ubiquitous.** THE SYSTEM SHALL place every guild advancement in the advancement tree at least one grid cell away from every other advancement horizontally or vertically, so no two frames overlap.
+
+## Guild stall menu
+
+### REQ-258
+**Ubiquitous.** THE SYSTEM SHALL show a guild's Market stalls in a 3-row Java menu with the stalls centred in the middle row (one in the centre slot, two either side of it) and Back in the bottom centre, name each stall in gold, non-italic text from its region id ("stall18" reads "Stall 18"), show rent as "every day" and the next rent as time left ("in 2d 4h", or "Rent due now"), show the grace line only during a grace period, and show a stall's members centred under it in a 6-row page titled with the stall's name.
+
 ## Hall of Prestige themes
 
 ### REQ-260
@@ -889,11 +924,25 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 ### REQ-262
 **Ubiquitous.** THE SYSTEM SHALL list on each Prestige milestones card everything that tier gives: its fee or that it is earned, a permanent home slot, one reward kept, a Hall theme, the first prestige's member cap and Discord role when those are on, and the second allied home, extra stall and second vault at their configured tiers.
 
+## Guild Advancements cards
+
+### REQ-263
+**Ubiquitous.** THE SYSTEM SHALL show Guild Advancements as cards, four a page in two columns, each with its icon, title, progress, what to do and guild XP reward, with category buttons along the top (Foundations, Cooperation, Combat, Commerce, Reputation, then Combat milestones) and a detail page per advancement with Track or Untrack, keeping saved progress, the tracked goal, rewards and the advancement tree link; Statistics → Achievements SHALL open it on Combat milestones.
+
 ### REQ-264
 **Event-driven.** WHEN a guild member chooses Preview in the world on the Hall Display, THE SYSTEM SHALL build a statue three blocks in front of them, seen only by them, wearing the guild's current choices (skin, tier armor with the chosen trim, plinth, nameplate, banner, trophy, spotlight, aura and sound), and SHALL remove it after 30 seconds, when they start another preview, when they leave, or when the plugin stops.
 
 ### REQ-266
 **Ubiquitous.** THE SYSTEM SHALL read the database for the guild progression, Chronicle (including the prestige page) and Hall Display menus off the main server thread, and SHALL show the result only if the player is still online and on the same screen.
+
+### REQ-265
+**Unwanted behaviour.** IF a player breaks a block that a player placed, THEN THE SYSTEM SHALL not award block-place guild XP for that player's next placement of the same material within 30 minutes, so placing and breaking the same block can't farm XP.
+
+### REQ-267
+**Ubiquitous.** WHEN a guild service, repository, placeholder or web handler turns an exception into a safe fallback, THE SYSTEM SHALL log it with its call site, at most once a minute per site with a count of repeats.
+
+### REQ-268
+**Unwanted behaviour.** IF the storage is MariaDB, THEN THE SYSTEM SHALL not run the SQLite membership_history DDL, so recording a guild join never fails on a syntax error.
 
 ### REQ-269
 **Ubiquitous.** THE SYSTEM SHALL show a guild's prestige with the badge of its current tier (lg_prestige_1 to lg_prestige_6) wherever the generic prestige diamond stood for that guild's prestige, show each milestone tier with its own badge, and fall back to the generic icon at tier 0 or when the pack has no badge.
@@ -907,5 +956,13 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 ### REQ-272
 **Optional feature.** WHERE BetterModel has the prestige limb model, THE SYSTEM SHALL play the statue's chosen pose on the preview, using Guard when the model has no animation for that pose, and SHALL show the statue standing otherwise.
 
+### REQ-274
+**Ubiquitous.** THE SYSTEM SHALL label the Statistics menu's achievements button Guild Advancements, show the guild's advancement progress, tracked advancement and combat milestones on it, and open the combined Guild Advancements menu at its first category.
+
 ### REQ-275
 **Ubiquitous.** THE SYSTEM SHALL show, on each Hall of Prestige pedestal staff place with `/lumaguilds hall pedestal set <n>`, the statue of the guild ranked n by prestige (ties to whoever reached the count first), wearing that guild's Hall Display choices; Java players SHALL see the animated pose and Bedrock players the plain standing statue. Statues SHALL not be saved with the world and SHALL be rebuilt on start, every five minutes, after a Hall Display change or prestige, after a pedestal change and when a pedestal's chunk loads.
+
+### REQ-273
+**Unwanted behaviour.** IF a MariaDB database has the first `relations` layout (guild_id, target_guild_id, relation_type), THEN THE SYSTEM SHALL move it aside as `relations_legacy_v1`, create the current layout and carry the old rows across as active relations, so alliances, enemies and truces load.
+
+## Prestige rank-up animation

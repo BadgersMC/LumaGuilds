@@ -168,7 +168,8 @@ class PrestigeRepositorySQL(
                 }
             }
         }
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        net.lumalyte.lg.application.logging.SwallowedErrors.log("PrestigeRepositorySQL:149", e)
         PrestigeConfirmation(PrestigeResult.Failed(request.transactionId))
     }
 
@@ -187,7 +188,8 @@ class PrestigeRepositorySQL(
                 }
             }
         }
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        net.lumalyte.lg.application.logging.SwallowedErrors.log("PrestigeRepositorySQL:168", e)
         PrestigeAdjustmentResult.Failed
     }
 

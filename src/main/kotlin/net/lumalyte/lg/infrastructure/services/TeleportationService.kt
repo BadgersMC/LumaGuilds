@@ -125,6 +125,14 @@ class TeleportationService(
         }
     }
 
+    /** Upstream's name for a teleport rechecked at the final tick; same check as [startHomeTeleport]'s. */
+    fun startTeleportGuarded(
+        player: Player,
+        targetLocation: Location,
+        onSuccess: (() -> Unit)? = null,
+        mayProceed: (() -> Boolean)?,
+    ) = onMain { startTeleportInternal(player, targetLocation, onSuccess, COUNTDOWN_SECONDS, mayProceed) }
+
     private inline fun <T> safe(fallback: T, read: () -> T): T = runCatching(read).getOrDefault(fallback)
 
     private fun onMain(action: () -> Unit) {

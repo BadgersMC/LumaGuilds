@@ -139,6 +139,50 @@ class ProgressionEventListenerTest {
         }
     }
 
+    /** REQ-255: only potions the stand brewed earn brewing XP, and only once. */
+    @Test
+    fun `brewing XP needs a potion the stand brewed`() {
+        val fixture = fixture()
+        try {
+            val water = potion(brewed = false, claimed = false)
+            fixture.listener.onBrewedPotionTaken(brewingClick(fixture.player, water))
+            val claimed = potion(brewed = true, claimed = true)
+            fixture.listener.onBrewedPotionTaken(brewingClick(fixture.player, claimed))
+            verify(exactly = 0) { fixture.progressionService.awardPlayerActivity(any(), any(), any(), any(), any()) }
+
+            val fresh = potion(brewed = true, claimed = false)
+            fixture.listener.onBrewedPotionTaken(brewingClick(fixture.player, fresh))
+            verify(exactly = 1) {
+                fixture.progressionService.awardPlayerActivity(guildId, playerId, 1, ExperienceSource.BREWING, eligible = true)
+            }
+            verify(exactly = 1) { fresh.editMeta(any()) }
+        } finally {
+            fixture.listener.shutdown()
+        }
+    }
+
+    private fun potion(brewed: Boolean, claimed: Boolean): org.bukkit.inventory.ItemStack {
+        val data = mockk<org.bukkit.persistence.PersistentDataContainer> {
+            every { has(match { it.key == "progression_brewed_unclaimed" }, any<org.bukkit.persistence.PersistentDataType<*, *>>()) } returns brewed
+            every { has(match { it.key == "progression_brewing_xp_awarded" }, any<org.bukkit.persistence.PersistentDataType<*, *>>()) } returns claimed
+        }
+        return mockk(relaxed = true) {
+            every { type } returns org.bukkit.Material.POTION
+            every { amount } returns 1
+            every { persistentDataContainer } returns data
+        }
+    }
+
+    private fun brewingClick(player: Player, item: org.bukkit.inventory.ItemStack): org.bukkit.event.inventory.InventoryClickEvent {
+        val inventory = mockk<org.bukkit.inventory.Inventory> { every { type } returns org.bukkit.event.inventory.InventoryType.BREWING }
+        return mockk {
+            every { whoClicked } returns player
+            every { clickedInventory } returns inventory
+            every { slot } returns 0
+            every { currentItem } returns item
+        }
+    }
+
     private fun fixture(): Fixture {
         val progressionService = mockk<ProgressionService>(relaxed = true)
         val memberRepository = mockk<MemberRepository> {

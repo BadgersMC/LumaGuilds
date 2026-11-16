@@ -8,6 +8,9 @@ import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.ProgressionService
 import net.lumalyte.lg.application.services.WarService
+import net.lumalyte.lg.interaction.menus.MenuFactory
+import net.lumalyte.lg.interaction.menus.MenuNavigator
+import net.lumalyte.lg.utils.GuildResolver
 import net.lumalyte.lg.domain.entities.SpawnBannerCategory
 import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.infrastructure.services.SpawnBannerServiceBukkit
@@ -52,6 +55,7 @@ class LumaGuildsCommand(
     private val warService: WarService by inject()
     private val progressionService: ProgressionService by inject()
     private val memberService: MemberService by inject()
+    private val menuFactory: MenuFactory by inject()
     private val ownerRecovery by lazy { GuildOwnerRecoveryCommand(memberService, lang) }
     // REQ-275: Hall of Prestige pedestals.
     private val hallStaff by lazy {
@@ -68,7 +72,26 @@ class LumaGuildsCommand(
     }
     private val prestigeStaff by lazy {
         val catalog = getKoin().get<net.lumalyte.lg.domain.rewards.RewardCatalog>()
-        PrestigeStaffCommand({ getKoin().get() }, guildService, lang, rewardName = { catalog.find(it)?.name ?: it })
+        PrestigeStaffCommand(
+            { getKoin().get() }, guildService, lang, rewardName = { catalog.find(it)?.name ?: it },
+            preview = { player, tier, guild ->
+                getKoin().get<net.lumalyte.lg.application.services.PrestigeFanfare>().preview(player, tier, guild)
+            },
+            ownGuildName = { player -> guildService.getPlayerGuilds(player).firstOrNull()?.name },
+        )
+    }
+
+    private val sounds by lazy {
+        val plugin = JavaPlugin.getPlugin(LumaGuilds::class.java)
+        val presenter = getKoin().get<net.lumalyte.lg.infrastructure.services.GuildMomentPresenter>()
+        GuildSoundsCommand(
+            lang,
+            play = { player, entry -> presenter.play(player, entry.cues) },
+            later = { ticks, task -> Bukkit.getScheduler().runTaskLater(plugin, Runnable(task), ticks) },
+            stop = { player, entry ->
+                entry.cues.forEach { player.stopSound(net.kyori.adventure.sound.SoundStop.named(net.kyori.adventure.key.Key.key(it.sound))) }
+            },
+        )
     }
 
     // Resolved lazily and nullable: GuildRolePermissionResolver is only registered when
@@ -91,9 +114,11 @@ class LumaGuildsCommand(
             "disband" -> handleDisband(sender, args)
             "migrate" -> handleMigrate(sender, args)
             "chapter" -> handleChapter(sender, args)
-            "override" -> handleOverride(sender)
+            "override", "bypass" -> handleOverride(sender)
+            "admin" -> handleAdmin(sender, args)
             "owner" -> ownerRecovery.execute(sender, args)
             "prestige" -> prestigeStaff.execute(sender, args)
+            "sounds" -> sounds.execute(sender, args)
             "hall" -> hallStaff.execute(sender, args)
             "spawnbanner" -> handleSpawnBanner(sender, args)
             "warcutover" -> handleWarCutover(sender, args)
@@ -347,7 +372,7 @@ class LumaGuildsCommand(
         }
 
         // Check permissions
-        if (!sender.hasPermission("bellclaims.admin")) {
+        if (!sender.hasPermission("lumaguilds.admin.bypass") && !sender.hasPermission("bellclaims.admin")) {
             sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handleoverride.you_don_t_have_permission_to_use"))
             return
         }
@@ -369,6 +394,53 @@ class LumaGuildsCommand(
         }
     }
 
+    private fun canInspectGuild(sender: Player): Boolean =
+        sender.hasPermission("lumaguilds.admin.view") || sender.hasPermission("bellclaims.admin")
+
+    /** Browse another guild as staff without changing the member's actual guild. */
+    private fun handleAdmin(sender: CommandSender, args: Array<out String>) {
+        if (sender !is Player) {
+            sender.sendMessage("Admin guild inspection requires an in-game player; console repair commands are separate.")
+            return
+        }
+        if (!canInspectGuild(sender)) {
+            sender.sendMessage("You do not have permission to inspect guilds.")
+            return
+        }
+        when (args.getOrNull(1)?.lowercase()) {
+            "view" -> handleAdminView(sender, args)
+            "exit" -> handleAdminExit(sender)
+            else -> sender.sendMessage("Usage: /lumaguilds admin <view <guild>|exit>")
+        }
+    }
+
+    private fun handleAdminView(sender: Player, args: Array<out String>) {
+        if (!adminOverrideService.hasOverride(sender.uniqueId)) {
+            sender.sendMessage("Enable /lumaguilds bypass before inspecting another guild.")
+            return
+        }
+        val guildName = args.drop(2).joinToString(" ").trim()
+        if (guildName.isEmpty()) {
+            sender.sendMessage("Usage: /lumaguilds admin view <guild>")
+            return
+        }
+        val guild = GuildResolver.resolveGuildByName(guildName, guildService)
+        if (guild == null) {
+            sender.sendMessage("Guild not found: $guildName")
+            return
+        }
+        adminOverrideService.setViewedGuild(sender.uniqueId, guild.id)
+        sender.sendMessage("Inspecting ${guild.name} in admin bypass. Your guild membership has not changed.")
+        val navigator = MenuNavigator(sender)
+        navigator.openMenu(menuFactory.createGuildControlPanelMenu(navigator, sender, guild))
+    }
+
+    private fun handleAdminExit(sender: Player) {
+        adminOverrideService.clearViewedGuild(sender.uniqueId)
+        sender.closeInventory()
+        sender.sendMessage("Admin guild inspection closed. Bypass remains ${if (adminOverrideService.hasOverride(sender.uniqueId)) "enabled" else "disabled"}.")
+    }
+
     /**
      * Handle database migration from SQLite to MariaDB
      */
@@ -376,6 +448,13 @@ class LumaGuildsCommand(
         // Check permissions - only console or ops can migrate
         if (sender is Player && !sender.isOp) {
             sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.you_don_t_have_permission_to_migrate"))
+            return
+        }
+
+        // This legacy copier is incomplete. Deny both preview and confirm before
+        // reading credentials, scheduling work or touching either database.
+        if (!DatabaseMigrationUtility.MIGRATION_ENABLED) {
+            sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handlemigrate.migration_disabled_incomplete_schema"))
             return
         }
 
@@ -745,6 +824,7 @@ class LumaGuildsCommand(
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_migrate_confirm_migrate_sqlite_mariadb_op"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.chapter_admin_controls"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_override_toggle_admin_override_mode_admin"))
+        sender.sendMessage("/lumaguilds bypass — toggle staff bypass; /lumaguilds admin view <guild> — inspect without joining")
         sender.sendMessage(lang.msg("spawn_banner.feedback.help"))
         if (sender.hasPermission(PrestigeStaffCommand.PERMISSION)) {
             sender.sendMessage(lang.msg("admin.prestige.help"))
@@ -753,6 +833,7 @@ class LumaGuildsCommand(
             sender.sendMessage(lang.msg("admin.hall.help"))
         }
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.warcutover"))
+        sender.sendMessage(lang.msg("admin.sounds.help"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_help_show_this_help"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.reload_commands_are_for_development_some_changes"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.disband_is_for_emergency_use_only_removes"))

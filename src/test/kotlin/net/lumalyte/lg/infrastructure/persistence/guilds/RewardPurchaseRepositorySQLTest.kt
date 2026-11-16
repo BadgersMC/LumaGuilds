@@ -25,10 +25,20 @@ class RewardPurchaseRepositorySQLTest : RewardSqlTestFixture() {
     private fun open(seed: Boolean = true): Subject {
         val storage = openStorage()
         migrateProductionSchema(storage)
+        // v51 access-policy contract stub; future integration migration may already create it.
+        storage.connection.executeUpdate("""CREATE TABLE IF NOT EXISTS guild_home_access_policies (
+            guild_id VARCHAR(36) PRIMARY KEY, state VARCHAR(32) NOT NULL,
+            provenance_ref VARCHAR(255) NULL, reviewer_id VARCHAR(36) NULL,
+            reviewed_at BIGINT NULL, version BIGINT NOT NULL DEFAULT 0
+        )""".trimIndent())
         val owners = RewardOwnershipRepositorySQL(storage, catalog)
         val gold = GuildGoldRepositorySQL(storage)
         if (seed) {
             GuildRepositorySQLite(storage).add(net.lumalyte.lg.domain.entities.Guild(guildId, "Purchase", createdAt = java.time.Instant.now()))
+            storage.connection.executeUpdate(
+                "INSERT INTO guild_home_access_policies (guild_id, state, provenance_ref, version) VALUES (?, 'READY', 'TEST_NEW_EMPTY', 0)",
+                guildId.toString()
+            )
             owners.initialize(guildId, 6)
             storage.connection.executeUpdate("INSERT INTO guild_progression (guild_id, current_level, created_at, last_updated) VALUES (?, 100, ?, ?)",
                 guildId.toString(), "2026-09-17 00:00:00", "2026-09-17 00:00:00")
@@ -102,13 +112,101 @@ class RewardPurchaseRepositorySQLTest : RewardSqlTestFixture() {
         assertEquals(1L, restarted.snapshot().version)
     }
 
+    private fun Subject.seedPrestigeOneWithHistoricalOutposts() {
+        storage.connection.executeUpdate(
+            "UPDATE guild_reward_accounts SET prestige_count = 1, base_home_slots_earned = 6 WHERE guild_id = ?",
+            guildId.toString()
+        )
+        storage.connection.executeUpdate(
+            "INSERT INTO guild_reward_ownership (guild_id, reward_id, permanent) VALUES (?, 'bank-1', 1)",
+            guildId.toString()
+        )
+        (1..9).forEach { rank ->
+            storage.connection.executeUpdate(
+                "INSERT INTO guild_reward_ownership (guild_id, reward_id, permanent) VALUES (?, ?, 1)",
+                guildId.toString(), "home-$rank"
+            )
+        }
+    }
+
     @Test
-    fun `home purchase is permanent without activating a location`() {
+    fun `unreconciled or missing home policy never charges and can retry after audit`() {
         val subject = open()
-        assertIs<RewardPurchaseResult.Applied>(subject.service.purchaseReward(request("home-1")))
-        assertEquals(setOf("home-1"), subject.snapshot().ownership.permanent)
-        assertEquals(7, RewardEntitlementResolver(catalog).resolve(1, subject.snapshot().ownership).homeCapacity)
+        subject.seedPrestigeOneWithHistoricalOutposts()
+        val command = request("home-1")
+        subject.storage.connection.executeUpdate(
+            "UPDATE guild_home_access_policies SET state = 'REVIEW_REQUIRED' WHERE guild_id = ?",
+            guildId.toString()
+        )
+        assertEquals(RewardOfferStatus.AUDIT_PENDING,
+            RewardEntitlementResolver(catalog).resolve(100, subject.snapshot().ownership).offer("home-1").status)
+        repeat(2) { attempt ->
+            if (attempt == 1) subject.storage.connection.executeUpdate(
+                "DELETE FROM guild_home_access_policies WHERE guild_id = ?", guildId.toString()
+            )
+            assertEquals(RewardPurchaseResult.Rejected(RewardPurchaseRejection.HOME_AUDIT_PENDING),
+                subject.service.purchaseReward(command))
+            assertEquals(20_000L, subject.gold.getBalance(guildId))
+            assertEquals(0L, subject.snapshot().version)
+            assertNull(subject.gold.findOperation(command.transactionId))
+            assertEquals(0, subject.storage.connection.getFirstRow(
+                "SELECT COUNT(*) AS n FROM guild_reward_purchases WHERE transaction_id = ?",
+                command.transactionId.toString())!!.getInt("n"))
+            assertEquals(0, subject.storage.connection.getFirstRow(
+                "SELECT COUNT(*) AS n FROM guild_outpost_acquisitions WHERE guild_id = ?",
+                guildId.toString())!!.getInt("n"))
+        }
+        subject.storage.connection.executeUpdate(
+            "INSERT INTO guild_home_access_policies (guild_id, state, provenance_ref, version) VALUES (?, 'READY', 'REVIEWED', 1)",
+            guildId.toString()
+        )
+        assertIs<RewardPurchaseResult.Applied>(subject.service.purchaseReward(command))
         assertEquals(19_500L, subject.gold.getBalance(guildId))
+    }
+
+    @Test
+    fun `historical permanent outpost may be bought once at prestige one without losing old evidence`() {
+        val subject = open()
+        assertEquals(RewardPurchaseResult.Rejected(RewardPurchaseRejection.LOCKED),
+            subject.service.purchaseReward(request("home-1")))
+        subject.seedPrestigeOneWithHistoricalOutposts()
+        val command = request("home-1")
+        val first = assertIs<RewardPurchaseResult.Applied>(subject.service.purchaseReward(command))
+        assertEquals(first, subject.service.purchaseReward(command))
+        assertEquals(19_500L, subject.gold.getBalance(guildId))
+        assertTrue("home-1" in subject.snapshot().ownership.permanent)
+        assertEquals(mapOf(1 to "home-1"), subject.snapshot().ownership.activeOutpostsByPrestige)
+        assertEquals(8, RewardEntitlementResolver(catalog).resolve(1, subject.snapshot().ownership).homeCapacity)
+        assertEquals(9, subject.storage.connection.getFirstRow(
+            "SELECT COUNT(*) AS n FROM guild_reward_ownership WHERE guild_id = ? AND reward_id LIKE 'home-%'",
+            guildId.toString())!!.getInt("n"))
+        assertEquals(1, subject.storage.connection.getFirstRow(
+            "SELECT COUNT(*) AS n FROM guild_outpost_acquisitions WHERE guild_id = ?", guildId.toString())!!.getInt("n"))
+        assertEquals(RewardPurchaseResult.Rejected(RewardPurchaseRejection.LOCKED),
+            subject.service.purchaseReward(request("home-2", 1)))
+        assertEquals(19_500L, subject.gold.getBalance(guildId))
+    }
+
+    @Test
+    fun `outpost acquisition rollback after debit leaves no charged receipt or grant`() {
+        val subject = open()
+        subject.seedPrestigeOneWithHistoricalOutposts()
+        val command = request("home-1")
+        rejectInserts(subject.storage, "guild_outpost_acquisitions")
+        assertIs<RewardPurchaseResult.Failed>(subject.service.purchaseReward(command))
+        assertEquals(20_000L, subject.gold.getBalance(guildId))
+        assertEquals(0L, subject.snapshot().version)
+        assertTrue(subject.snapshot().ownership.activeOutpostsByPrestige.isEmpty())
+        assertNull(subject.gold.findOperation(command.transactionId))
+        subject.storage.connection.executeUpdate("DROP TRIGGER reject_reward_insert")
+        val applied = assertIs<RewardPurchaseResult.Applied>(subject.service.purchaseReward(command))
+        assertEquals(applied, subject.service.purchaseReward(command))
+        assertEquals(19_500L, subject.gold.getBalance(guildId))
+        listOf(command.copy(actorId = UUID.randomUUID()), command.copy(rewardId = "home-2"),
+            command.copy(quotedPrice = 999), command.copy(expectedVersion = 1)).forEach {
+            assertEquals(RewardPurchaseResult.Rejected(RewardPurchaseRejection.ID_CONFLICT),
+                subject.service.purchaseReward(it))
+        }
     }
 
     @Test

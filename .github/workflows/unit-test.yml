@@ -152,6 +152,12 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: ./gradlew test acceptanceProbeJar --init-script ci/review-test-logging.init.gradle
 
+    - name: MariaDB guild creation and reward SQL tests
+      env:
+        LG_TEST_MARIADB_USER: root
+        LG_TEST_MARIADB_PASSWORD: lg-ci-disposable-only
+      run: ./gradlew mariaDbRewardTest -PmariaDbTestPort=${{ job.services.mariadb.ports['3306'] }} --no-daemon
+
     - name: Retain test diagnostics
       if: always() && github.event_name == 'pull_request'
       uses: actions/upload-artifact@v4
@@ -160,6 +166,8 @@ jobs:
         path: |
           build/test-results/test/*.xml
           build/reports/tests/test/**
+          build/test-results/mariaDbRewardTest/*.xml
+          build/reports/tests/mariaDbRewardTest/**
         retention-days: 7
         if-no-files-found: warn
 
