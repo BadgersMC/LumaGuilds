@@ -487,19 +487,19 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
         val milestones = runCatching { combatMilestones() }.getOrDefault(emptyList())
 
         var item = NexoItemProvider.getItemStackOrFallback("lg_stats_achievements") { ItemStack.of(Material.TROPICAL_FISH_BUCKET) }
-            .name(lang.gui("menu.statistics.item.achievements.name"))
+            .name(lang.gui("menu.statistics.item.advancements.name"))
         if (record != null) {
             val (progress, nodes) = record
             val earned = nodes.count { (progress.progress[it.id] ?: 0) >= it.goal }
-            item = item.lore(lang.gui("menu.statistics.item.achievements.lore.earned", "count" to earned, "total" to nodes.size))
+            item = item.lore(lang.gui("menu.statistics.item.advancements.lore.earned", "count" to earned, "total" to nodes.size))
             progress.tracked?.let { id -> nodes.find { it.id == id } }?.let { tracked ->
-                item = item.lore(lang.gui("menu.statistics.item.achievements.lore.tracking", "title" to tracked.title,
+                item = item.lore(lang.gui("menu.statistics.item.advancements.lore.tracking", "title" to tracked.title,
                     "current" to (progress.progress[tracked.id] ?: 0), "goal" to tracked.goal))
             }
         }
-        item = item.lore(lang.gui("menu.statistics.item.achievements.lore.count",
+        item = item.lore(lang.gui("menu.statistics.item.advancements.lore.count",
             "count" to milestones.count { it.achieved }, "total" to milestones.size))
-            .lore(lang.gui("menu.statistics.item.achievements.lore.open"))
+            .lore(lang.gui("menu.statistics.item.advancements.lore.open"))
 
         val guiItem = GuiItem(item) {
             if (net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.supportsDialog(player)) {

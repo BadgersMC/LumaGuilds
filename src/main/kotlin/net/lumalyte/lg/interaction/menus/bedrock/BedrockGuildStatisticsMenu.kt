@@ -76,7 +76,7 @@ class BedrockGuildStatisticsMenu(
             .label(createRecentActivitySection())
             .label(section(lang.bedrock("menu.statistics.item.rivalry.name")))
             .label(createRivalrySection())
-            .label(section(lang.bedrock("menu.statistics.item.achievements.name")))
+            .label(section(lang.bedrock("menu.statistics.item.advancements.name")))
             .label(createAchievementsSection())
             .label(section(lang.bedrock("menu.statistics.detail.top_killers.name")))
             .label(createTopKillersSection())
@@ -281,7 +281,7 @@ class BedrockGuildStatisticsMenu(
             getKoin().getOrNull<net.lumalyte.lg.infrastructure.services.GuildAchievementRuntime>()?.let { runtime ->
                 val record = runtime.read(player) ?: return@let null
                 val nodes = runtime.engine.definitions.filter { it.requirement != "ROOT" }
-                lang.bedrock("menu.statistics.item.achievements.lore.earned",
+                lang.bedrock("menu.statistics.item.advancements.lore.earned",
                     "count" to nodes.count { (record.progress[it.id] ?: 0) >= it.goal }, "total" to nodes.size)
             }
         }.getOrNull()

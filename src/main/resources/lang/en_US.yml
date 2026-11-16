@@ -4161,7 +4161,7 @@ menu:
           empty: '<dark_gray>Kills are counted from this update on.'
       back:
         lore: '<gray>Return to the previous menu'
-      achievements:
+      advancements:
         lore:
           earned: '<gray>Advancements: <white><count>/<total> earned'
           tracking: '<gray>Tracking: <gold><title> <gray>(<current>/<goal>)'
