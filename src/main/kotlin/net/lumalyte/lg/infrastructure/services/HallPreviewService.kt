@@ -78,7 +78,8 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
         }
 
         val built = HallStatueBuilder.build(base, look, guildName, prestige, skin, register = { hidden(it) }) { statue: Mannequin ->
-            HallStatuePose.orNull()?.apply(statue, { it == viewer.uniqueId }, skin, look.pose)
+            // REQ-294: a Bedrock viewer can't see the model; leave them the plain statue.
+            if (bedrock(viewer)) null else HallStatuePose.orNull()?.apply(statue, { it == viewer.uniqueId }, skin, look.pose)
         }
         val top = built.top
         val posed = built.closer
@@ -98,6 +99,11 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
         active[viewer.uniqueId] = Preview(entities, listOf(effects, end), listOfNotNull(posed))
         lastPosed[viewer.uniqueId] = posed != null
     }
+
+    private fun bedrock(viewer: Player): Boolean = runCatching {
+        org.koin.core.context.GlobalContext.getOrNull()
+            ?.getOrNull<net.lumalyte.lg.application.services.PlatformDetectionService>()?.isBedrockPlayer(viewer) == true
+    }.getOrDefault(false)
 
     fun clear(viewer: UUID) {
         val preview = active.remove(viewer) ?: return

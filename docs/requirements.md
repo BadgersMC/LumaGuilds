@@ -982,3 +982,6 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-292
 **Unwanted behaviour.** IF anything tries to damage, kill, ignite or handle a Hall statue entity (including a creative-mode player, whom invulnerability does not stop), THEN THE SYSTEM SHALL cancel it; and IF a statue is removed anyway (for example with /kill), THEN THE SYSTEM SHALL rebuild it, giving up only after three removals in a row each within seconds of a build.
+
+### REQ-294
+**Unwanted behaviour.** IF a Hall statue is drawn with the animated model, THEN THE SYSTEM SHALL keep its mannequin invisible and bare, so a client never sees a plain armored figure while the model loads, and SHALL show players who can't see the model (Bedrock) a separate plain standing figure.

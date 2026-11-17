@@ -70,7 +70,8 @@ class HallStatueService(
     }
 
     private class Standing(val plan: Plan, val entities: List<Entity>, val top: Location, val closer: (() -> Unit)?,
-                           val sword: ItemDisplay?, val look: HallLook, val crest: ItemDisplay)
+                           val sword: ItemDisplay?, val look: HallLook, val crest: ItemDisplay,
+                           val plain: org.bukkit.entity.Mannequin? = null)
 
     private val standing = ConcurrentHashMap<Int, Standing>()
     /** Plans that failed to build; not retried until the plan changes, so a bad build can't loop. */
@@ -199,12 +200,14 @@ class HallStatueService(
         val look = HallLook(plan.display, plan.prestige)
         try {
             val built = HallStatueBuilder.build(base, look, plan.guildName, plan.prestige, plan.skin,
-                register = { it.isPersistent = false }) { statue ->
+                register = { it.isPersistent = false }, plainFigure = platform != null) { statue ->
                 HallStatuePose.orNull()?.apply(statue, { id -> Bukkit.getPlayer(id)?.let { !bedrock(it) } ?: true }, plan.skin, look.pose)
             }
             built.sword?.let { sword -> Bukkit.getOnlinePlayers().filter(::bedrock).forEach { it.hideEntity(plugin, sword) } }
+            // REQ-294: Bedrock players can't see the model, so they get the plain standing figure instead.
+            built.plain?.let { plain -> Bukkit.getOnlinePlayers().filter(::bedrock).forEach { it.showEntity(plugin, plain) } }
             builtAt[plan.pedestal.slot] = System.currentTimeMillis()
-            standing[plan.pedestal.slot] = Standing(plan, built.entities, built.top, built.closer, built.sword, look, built.crest)
+            standing[plan.pedestal.slot] = Standing(plan, built.entities, built.top, built.closer, built.sword, look, built.crest, built.plain)
             failed.remove(plan.pedestal.slot)
         } catch (e: Exception) {
             failed[plan.pedestal.slot] = plan
@@ -278,7 +281,10 @@ class HallStatueService(
     @EventHandler
     fun join(event: PlayerJoinEvent) {
         if (!bedrock(event.player)) return
-        standing.values.forEach { here -> here.sword?.let { event.player.hideEntity(plugin, it) } }
+        standing.values.forEach { here ->
+            here.sword?.let { event.player.hideEntity(plugin, it) }
+            here.plain?.let { event.player.showEntity(plugin, it) }
+        }
     }
 
     private companion object {
