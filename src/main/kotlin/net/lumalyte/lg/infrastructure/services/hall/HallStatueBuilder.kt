@@ -44,7 +44,7 @@ internal object HallStatueBuilder {
     ): Built {
         val world = base.world
         val entities = mutableListOf<Entity>()
-        fun <T : Entity> add(entity: T): T = entity.also { entities += it; register(it) }
+        fun <T : Entity> add(entity: T): T = entity.also { HallStatueProtection.mark(it); entities += it; register(it) }
         try {
         // The plinth's origin is a corner, so it is spawned at the statue's spot with no yaw and shifted
         // back half its width: otherwise the statue's yaw swung it round that corner, off-centre.
@@ -61,6 +61,8 @@ internal object HallStatueBuilder {
             statue.setAI(false)
             statue.setGravity(false)
             statue.isInvulnerable = true
+            // REQ-292: marked before it joins the world, so not even the first tick can hurt it.
+            HallStatueProtection.mark(statue)
             statue.isSilent = true
             statue.isImmovable = true
             statue.isCollidable = false

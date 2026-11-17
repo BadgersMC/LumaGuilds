@@ -80,10 +80,13 @@ class HallStatueService(
     private val refreshQueued = AtomicBoolean(false)
     /** When each pedestal was last built, so a statue the world keeps removing isn't rebuilt every tick. */
     private val builtAt = ConcurrentHashMap<Int, Long>()
+    /** REQ-292: losses in a row, each within seconds of a build; a one-off (a /kill) is simply rebuilt. */
+    private val quickLosses = ConcurrentHashMap<Int, Int>()
 
     fun start() {
         plugin.server.pluginManager.registerEvents(this, plugin)
         net.lumalyte.lg.infrastructure.services.hall.HallSpawnGuard.register(plugin)
+        net.lumalyte.lg.infrastructure.services.hall.HallStatueProtection.register(plugin)
         // REQ-277: statues built before Nexo loaded hold the vanilla stand-in; give them the real badge.
         net.lumalyte.lg.utils.NexoItemProvider.whenLoaded {
             Bukkit.getScheduler().runTask(plugin, Runnable {
@@ -230,7 +233,10 @@ class HallStatueService(
                 // REQ-276: a chunk unload takes the statue with it, so rebuild; but something removing it
                 // again within seconds of a build would make it flicker, so stop and say what went.
                 val age = System.currentTimeMillis() - (builtAt[plan.pedestal.slot] ?: 0L)
-                if (age < REBUILD_GRACE_MS && here.top.isChunkLoaded) {
+                val quick = if (age < REBUILD_GRACE_MS && here.top.isChunkLoaded) quickLosses.merge(plan.pedestal.slot, 1, Int::plus) ?: 1
+                    else { quickLosses.remove(plan.pedestal.slot); 0 }
+                if (quick >= QUICK_LOSS_LIMIT) {
+                    quickLosses.remove(plan.pedestal.slot)
                     take(plan.pedestal.slot)
                     failed[plan.pedestal.slot] = plan
                     logger.warn("The Hall statue on pedestal ${plan.pedestal.slot} keeps being removed " +
@@ -272,5 +278,6 @@ class HallStatueService(
         const val REFRESH_TICKS = 20L * 60 * 5
         const val EFFECT_TICKS = 10L
         const val REBUILD_GRACE_MS = 10_000L
+        const val QUICK_LOSS_LIMIT = 3
     }
 }

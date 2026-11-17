@@ -1012,3 +1012,6 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-291
 **Ubiquitous.** THE SYSTEM SHALL not offer `/g start`, the Getting Started menu or its first-join prompt.
+
+### REQ-292
+**Unwanted behaviour.** IF anything tries to damage, kill, ignite or handle a Hall statue entity (including a creative-mode player, whom invulnerability does not stop), THEN THE SYSTEM SHALL cancel it; and IF a statue is removed anyway (for example with /kill), THEN THE SYSTEM SHALL rebuild it, giving up only after three removals in a row each within seconds of a build.
