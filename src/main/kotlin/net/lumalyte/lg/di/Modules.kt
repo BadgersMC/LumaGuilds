@@ -474,8 +474,8 @@ fun guildsModule() = module {
     }
     single<RelationService> { RelationServiceBukkit(get(), get(), get()) }
     single<LfgService> { LfgServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
-    single<GuildBannerService> { GuildBannerServiceBukkit() }
-    single<AuditService> { AuditServiceBukkit() }
+    single<GuildBannerService> { GuildBannerServiceBukkit(get(), get()) }
+    single<AuditService> { AuditServiceBukkit(get()) }
     single<NexoEmojiService> { NexoEmojiService(get(), guildCosmetics = get()) }
     single<net.lumalyte.lg.application.services.AdminOverrideService> {
         net.lumalyte.lg.infrastructure.services.AdminOverrideServiceImpl()

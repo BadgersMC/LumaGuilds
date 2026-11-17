@@ -74,6 +74,7 @@ internal class GuildNexusFoundation private constructor(
                     TeleportationService(context.getBean<Plugin>(), context.getBean<LangService>())
                 }
                 if (claimsEnabled) context.registerClaimBindings()
+                context.registerGuildCoreBindings(claimsEnabled)
 
                 // Nexus owns and closes its CoroutineScope and virtual-thread dispatchers.
                 // Do not create a second pluginScope / ExecutorService here.

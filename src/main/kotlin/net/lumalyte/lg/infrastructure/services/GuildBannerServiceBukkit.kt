@@ -8,8 +8,6 @@ import net.lumalyte.lg.domain.entities.GuildBanner
 import net.lumalyte.lg.api.events.GuildBannerChangedEvent
 import org.bukkit.Bukkit
 import org.bukkit.block.banner.PatternType
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.UUID
@@ -20,12 +18,12 @@ import java.util.UUID
  * This service allows guilds to create and manage custom banner designs
  * without requiring approval - it runs on the honor system.
  */
-class GuildBannerServiceBukkit : GuildBannerService, KoinComponent {
-    
+class GuildBannerServiceBukkit(
+    private val bannerRepository: GuildBannerRepository,
+    private val guildRepository: GuildRepository,
+) : GuildBannerService {
+
     private val logger = LoggerFactory.getLogger(javaClass)
-    private val bannerRepository: GuildBannerRepository by inject()
-    private val guildRepository: GuildRepository by inject()
-    private val permissionResolver: GuildRolePermissionResolverBukkit by inject()
 
     override fun setGuildBanner(
         guildId: UUID, 

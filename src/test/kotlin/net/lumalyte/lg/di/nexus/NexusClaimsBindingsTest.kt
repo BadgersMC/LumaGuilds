@@ -41,7 +41,10 @@ class NexusClaimsBindingsTest {
                 assertTrue("configService" in disabledNames)
                 assertFalse("createClaim" in disabledNames)
                 assertFalse("playerStateRepository" in disabledNames)
-                assertEquals(80, (enabledNames - disabledNames).size)
+                val enabledOnly = enabledNames - disabledNames
+                assertEquals(81, enabledOnly.size) // 80 claimsModule + 1 guild-claims integration
+                assertTrue("guildRolePermissionResolver" in enabledOnly)
+                assertEquals(80, (enabledOnly - "guildRolePermissionResolver").size)
                 assertTrue("createClaim" in enabledNames)
                 assertTrue("adminOverrideListener" in enabledNames)
                 assertTrue("playerStateRepository" in enabledNames)
