@@ -1021,3 +1021,9 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-294
 **Unwanted behaviour.** IF a Hall statue is drawn with the animated model, THEN THE SYSTEM SHALL keep its mannequin invisible and bare, so a client never sees a plain armored figure while the model loads, and SHALL show players who can't see the model (Bedrock) a separate plain standing figure.
+
+### REQ-295
+**Event-driven.** WHEN a player runs /guild history for someone, THE SYSTEM SHALL name that player in the header, and SHALL ship the header under a new language key so servers holding the old saved header (with an unfilled name placeholder) pick up the new one.
+
+### REQ-296
+**State-driven.** WHILE a Hall statue is drawn with the animated model, THE SYSTEM SHALL draw the guild's chosen armor (material, trim and leather dye, or the tier default for parts not chosen) on the model, in the Hall and in the preview.

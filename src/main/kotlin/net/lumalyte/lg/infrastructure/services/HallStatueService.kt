@@ -200,7 +200,7 @@ class HallStatueService(
         try {
             val built = HallStatueBuilder.build(base, look, plan.guildName, plan.prestige, plan.skin,
                 register = { it.isPersistent = false }, plainFigure = platform != null) { statue ->
-                HallStatuePose.orNull()?.apply(statue, { id -> Bukkit.getPlayer(id)?.let { !bedrock(it) } ?: true }, plan.skin)
+                HallStatuePose.orNull()?.apply(statue, { id -> Bukkit.getPlayer(id)?.let { !bedrock(it) } ?: true }, plan.skin, look.pieces())
             }
             built.sword?.let { sword -> Bukkit.getOnlinePlayers().filter(::bedrock).forEach { it.hideEntity(plugin, sword) } }
             // REQ-294: Bedrock players can't see the model, so they get the plain standing figure instead.

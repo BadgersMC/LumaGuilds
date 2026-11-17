@@ -1045,7 +1045,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         val formatter = java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy", java.util.Locale.ENGLISH)
             .withZone(java.time.ZoneId.systemDefault())
 
-        player.sendMessage(lang.msg("command.migrated.guild.history.guild_history"))
+        player.sendMessage(lang.msg("command.migrated.guild.history.guild_history_v2", "display_name" to displayName))
         player.sendMessage(
             lang.msg(
                 "command.migrated.guild.history.total_guilds_joined",

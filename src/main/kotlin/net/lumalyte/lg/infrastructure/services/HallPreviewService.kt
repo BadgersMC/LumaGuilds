@@ -4,6 +4,9 @@ import io.papermc.paper.datacomponent.item.ResolvableProfile
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextColor
+import net.lumalyte.lg.domain.rewards.HallArmorMaterial
+import net.lumalyte.lg.domain.rewards.HallArmorPart
+import net.lumalyte.lg.domain.rewards.HallArmorPiece
 import net.lumalyte.lg.domain.rewards.HallDisplay
 import net.lumalyte.lg.domain.rewards.HallSlot
 import net.lumalyte.lg.domain.rewards.HallTheme
@@ -79,7 +82,7 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
 
         val built = HallStatueBuilder.build(base, look, guildName, prestige, skin, register = { hidden(it) }) { statue: Mannequin ->
             // REQ-294: a Bedrock viewer can't see the model; leave them the plain statue.
-            if (bedrock(viewer)) null else HallStatuePose.orNull()?.apply(statue, { it == viewer.uniqueId }, skin)
+            if (bedrock(viewer)) null else HallStatuePose.orNull()?.apply(statue, { it == viewer.uniqueId }, skin, look.pieces())
         }
         val posed = built.closer
         val end = Bukkit.getScheduler().runTaskLater(plugin, Runnable { clear(viewer.uniqueId) }, SECONDS * 20L)
@@ -138,6 +141,11 @@ internal class HallLook(private val display: HallDisplay, private val prestige: 
     /** REQ-271: the guild's chosen armor, or the tier default for parts it hasn't picked. */
     fun armor(): Map<EquipmentSlot, ItemStack> = HallArmorItems.slots.entries.associate { (part, slot) ->
         slot to HallArmorItems.item(part, display.armor[part], prestige)
+    }
+
+    /** REQ-296: the same choices as [armor], as pieces for the BetterModel statue model. */
+    fun pieces(): Map<HallArmorPart, HallArmorPiece> = HallArmorPart.entries.associateWith { part ->
+        display.armor[part] ?: HallArmorPiece(HallArmorMaterial.forTier(prestige))
     }
 
 }

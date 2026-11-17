@@ -1896,7 +1896,7 @@ command:
         current: '<green>● Current'
         guild: '<white><guild>'
         guild_disbanded: '<dark_gray>● Disbanded'
-        guild_history: '<dark_gray><strikethrough>                    </strikethrough> <gold><bold>Guild History</bold> <dark_gray><strikethrough>                    </strikethrough>'
+        guild_history_v2: '<dark_gray><strikethrough>              </strikethrough> <gold><bold>Guild History</bold> <dark_gray>· <white><display_name> <dark_gray><strikethrough>              </strikethrough>'
         has_no_guild_history: '<gray><display_name> has no guild history.'
         joined_date: ' <dark_gray>— <gray>joined <yellow><join_date>'
         joined_prefix: ' <dark_gray><index>. '
