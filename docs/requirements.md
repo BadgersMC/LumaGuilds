@@ -990,10 +990,10 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 **Ubiquitous.** THE SYSTEM SHALL pose every Hall statue in Guard and SHALL offer only the Nameplate, Title flourish and Plinth theme slots in Hall Display; Pose, Spotlight, Hall sound, Aura and Trophy are removed, and saved choices for them are ignored.
 
 ### REQ-284
-**Ubiquitous.** THE SYSTEM SHALL show each prestiged guild's prestige on the guild leaderboard (its tier badge and "Prestige N"), and on the level standings SHALL rank by prestige first, then level.
+**Ubiquitous.** THE SYSTEM SHALL show each prestiged guild's prestige ("Prestige N") on its guild leaderboard row, on the members line so the card layout and order are unchanged.
 
 ### REQ-285
-**Ubiquitous.** THE SYSTEM SHALL show the guild's actual standing ("#N of M guilds") on the Guild Progression page's Guild Rank item, using the leaderboard's level standings.
+**Ubiquitous.** THE SYSTEM SHALL show the guild's actual standing ("#N of M guilds") on the Guild Progression page's Guild Rank item, using the leaderboard's level order.
 
 ### REQ-286
 **Ubiquitous.** THE SYSTEM SHALL show each Guild Advancement with the same item icon it has in the vanilla advancements screen.

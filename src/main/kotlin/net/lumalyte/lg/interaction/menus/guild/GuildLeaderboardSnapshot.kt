@@ -48,14 +48,10 @@ internal class GuildLeaderboardSource(
     }
 
     companion object {
-        /**
-         * REQ-284: on the level standings a prestige outranks any level, since a prestige resets the guild to
-         * level 1; then level, then name. Other tabs sort by their own score.
-         */
-        internal fun order(tab: Int, scores: Map<java.util.UUID, Int>, tiers: Map<java.util.UUID, Int>): Comparator<Guild> {
-            val byPrestige = if (tab == 0) compareByDescending<Guild> { tiers[it.id] ?: 0 } else compareBy<Guild> { 0 }
-            return byPrestige.thenByDescending { scores[it.id] ?: 0 }.thenBy { it.name.lowercase() }.thenBy { it.id.toString() }
-        }
+        /** Each tab sorts by its own score, then name; prestige is shown on the row but doesn't change the order. */
+        @Suppress("UNUSED_PARAMETER")
+        internal fun order(tab: Int, scores: Map<java.util.UUID, Int>, tiers: Map<java.util.UUID, Int>): Comparator<Guild> =
+            compareByDescending<Guild> { scores[it.id] ?: 0 }.thenBy { it.name.lowercase() }.thenBy { it.id.toString() }
 
         private fun prestigeCounts(): Map<java.util.UUID, Int> =
             org.koin.core.context.GlobalContext.getOrNull()

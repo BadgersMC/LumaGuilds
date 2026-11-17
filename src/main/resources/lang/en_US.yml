@@ -5742,7 +5742,7 @@ menu:
     rank:
       name: "<gold>Guild Rank"
       standing: "<gold>#<rank> <gray>of <white><total> <gray>guilds"
-      standing_hint: "<gray>By prestige, then level, as on the leaderboard."
+      standing_hint: "<gray>By level, as on the leaderboard."
     sources:
       name: "<yellow>XP Sources"
       description: "<gray>How to earn guild XP:"
@@ -7669,7 +7669,7 @@ dialog_v2:
   frame_subtitle: "Preview a frame, then apply it to your guild."
   apply_frame: "Apply selected frame"
   leaderboard: "Guild Leaderboard"
-  leaderboard_prestige: "<gold>✦ Prestige <tier>"
+  leaderboard_prestige: "<gray> · <gold>Prestige <tier>"
   guild_rankings: "Guild standings"
   recorded_wins: "Wins from up to 52 retained completed quest sets"
   rank_level: "Level"

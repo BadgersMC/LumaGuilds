@@ -10,12 +10,12 @@ class GuildLeaderboardOrderTest {
     private fun guild(name: String) = Guild(UUID.randomUUID(), name, createdAt = Instant.EPOCH)
 
     @Test
-    fun `REQ-284 a prestige outranks any level on the level standings`() {
+    fun `REQ-284 the level standings stay in level order whatever the prestige`() {
         val fresh = guild("Fresh"); val veteran = guild("Veteran"); val climber = guild("Climber")
         val scores = mapOf(fresh.id to 12, veteran.id to 96, climber.id to 100)
         val tiers = mapOf(fresh.id to 6)
-        val order = listOf(veteran, climber, fresh).sortedWith(GuildLeaderboardSource.order(0, scores, tiers))
-        assertEquals(listOf("Fresh", "Climber", "Veteran"), order.map { it.name })
+        val order = listOf(veteran, fresh, climber).sortedWith(GuildLeaderboardSource.order(0, scores, tiers))
+        assertEquals(listOf("Climber", "Veteran", "Fresh"), order.map { it.name })
     }
 
     @Test
