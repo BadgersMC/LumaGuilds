@@ -10,7 +10,9 @@ import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.infrastructure.i18n.LocaleCompatibilityMigrator
 import net.lumalyte.lg.infrastructure.i18n.LumaGuildsLang
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import net.lumalyte.lg.infrastructure.services.AsyncTaskService
 import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
+import net.lumalyte.lg.infrastructure.services.TeleportationService
 import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.plugin.Plugin
 import java.io.File
@@ -34,7 +36,7 @@ internal class GuildNexusFoundation private constructor(
          * Called only after LumaGuilds config, storage and database migrations have succeeded.
          * Bean definitions are lazy; the existing locale migrator runs on first LangService use.
          */
-        fun prepare(plugin: LumaGuilds, storage: Storage<*>): GuildNexusFoundation {
+        fun prepare(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = true): GuildNexusFoundation {
             val context = NexusContext.create(
                 classLoader = plugin.javaClass.classLoader,
                 contextName = "LumaGuilds"
@@ -58,6 +60,20 @@ internal class GuildNexusFoundation private constructor(
                     LocaleCompatibilityMigrator.migrate(plugin.dataFolder, plugin.logger)
                     LangService(LangHost.of(plugin), Locale("en_US"), LumaGuildsLang::class.java)
                 }
+
+                context.registerCoreServiceBindings(plugin)
+
+                context.registerBean("asyncTaskService", AsyncTaskService::class) {
+                    AsyncTaskService(
+                        scope = context.getBean(),
+                        virtualDispatcher = requireNotNull(context.dispatchers).virtualThread,
+                        plugin = context.getBean<Plugin>()
+                    )
+                }
+                context.registerBean("teleportationService", TeleportationService::class) {
+                    TeleportationService(context.getBean<Plugin>(), context.getBean<LangService>())
+                }
+                if (claimsEnabled) context.registerClaimBindings()
 
                 // Nexus owns and closes its CoroutineScope and virtual-thread dispatchers.
                 // Do not create a second pluginScope / ExecutorService here.

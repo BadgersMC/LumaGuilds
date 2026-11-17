@@ -1252,7 +1252,11 @@ fun vaultModule() = module {
 fun utilitiesModule() = module {
     // Async task service for virtual thread I/O operations
     single<net.lumalyte.lg.infrastructure.services.AsyncTaskService> {
-        net.lumalyte.lg.infrastructure.services.AsyncTaskService()
+        net.lumalyte.lg.infrastructure.services.AsyncTaskService(
+            scope = get<CoroutineScope>(),
+            virtualDispatcher = get<CoroutineDispatcher>(named("VirtualDispatcher")),
+            plugin = get<LumaGuilds>()
+        )
     }
 
     // Other utilities

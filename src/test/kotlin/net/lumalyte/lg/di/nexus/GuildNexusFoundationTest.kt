@@ -7,7 +7,9 @@ import kotlinx.coroutines.isActive
 import net.lumalyte.lg.LumaGuilds
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import net.lumalyte.lg.infrastructure.services.AsyncTaskService
 import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
+import net.lumalyte.lg.application.services.FormValidationService
 import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.plugin.Plugin
@@ -32,6 +34,7 @@ class GuildNexusFoundationTest {
         every { plugin.dataFolder } returns tempDir
         every { plugin.config } returns config
         every { plugin.logger } returns Logger.getLogger("GuildNexusFoundationTest")
+        every { plugin.metadata } returns null
 
         val foundation = GuildNexusFoundation.prepare(plugin, storage)
         val context = foundation.context
@@ -44,6 +47,12 @@ class GuildNexusFoundationTest {
             assertSame(config, context.getBean<FileConfiguration>())
             assertSame(tempDir, context.getBean<File>())
             assertTrue(context.getBean<ConfigService>() is ConfigServiceBukkit)
+            assertSame(context.getBean<AsyncTaskService>(), context.getBean<AsyncTaskService>())
+            assertSame(context.getBean<FormValidationService>(), context.getBean<FormValidationService>())
+            assertTrue("menuFactory" in context.getBeanNames())
+            assertTrue("formCacheService" in context.getBeanNames())
+            assertTrue("bedrockLocalizationService" in context.getBeanNames())
+            assertFalse("playerMetadataService" in context.getBeanNames())
             assertSame(context.scope, scope)
             assertTrue(scope.isActive)
         } finally {
