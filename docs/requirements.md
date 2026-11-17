@@ -982,3 +982,6 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-281
 **Event-driven.** WHEN a guild-home or allied-home teleport lands, THE SYSTEM SHALL play the message studio's "Quiet portal" cue to that player only: entity.enderman.teleport (volume 0.13, pitch 1.3), then block.note_block.harp (volume 0.23, pitch 1.1) five ticks later. Staff SHALL be able to audition it with `/lumaguilds sounds home-teleport`.
+
+### REQ-282
+**Ubiquitous.** THE SYSTEM SHALL show a Hall statue's nameplate still, facing the front of the statue like its prestige badge, rather than turning to follow each viewer.

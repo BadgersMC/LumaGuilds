@@ -73,7 +73,10 @@ internal object HallStatueBuilder {
         // REQ-276: a plugin that still refuses the spawn leaves a dead entity; say so instead of a bare plinth.
         check(statue.isValid) { "another plugin stopped the statue spawning at ${top.blockX} ${top.blockY} ${top.blockZ}" }
         add(world.spawn(top.clone().add(0.0, HallCrest.NAMEPLATE_HEIGHT, 0.0), TextDisplay::class.java) {
-            it.billboard = Display.Billboard.CENTER
+            // REQ-282: still, facing the front like the badge above it; a text display's face points
+            // along its own yaw, so the statue's yaw turns it toward the viewer.
+            it.billboard = Display.Billboard.FIXED
+            it.setRotation(top.yaw, 0f)
             it.text(Component.text(look.nameplate(guildName), TextColor.color(look.nameColor))
                 .appendNewline().append(Component.text("Prestige ${PrestigeNumeral.of(prestige)}", NamedTextColor.GOLD)))
         })
