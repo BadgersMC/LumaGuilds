@@ -335,7 +335,10 @@ class GuildDiscordRoleService(
             if (error == null && deleted == true && repository.delete(link.guildId)) {
                 DiscordGuildRoleSyncSummary()
             } else {
-                logger.warn("Failed to remove $reason Discord role link for guild ${link.guildId}", error?.let(::unwrap))
+                logger.warn(
+                    "Failed to remove $reason Discord role ${link.discordRoleId} for guild ${link.guildId}: " +
+                        (error?.let(::unwrap)?.message ?: "not deleted"),
+                )
                 DiscordGuildRoleSyncSummary(failures = 1)
             }
         }
