@@ -89,31 +89,42 @@ enum class HallArmorMaterial(val label: String, val dyeable: Boolean = false) {
 /**
  * REQ-271: one statue armor piece: material, optional trim (vanilla registry keys such as
  * "wayfinder" and "gold") and, for leather, an RGB dye. Stored as one short text value.
+ * REQ-297: a custom-textured piece (a resource-pack helmet such as the Crown of Sorrow) also keeps its
+ * equipment [asset] ("enthusia:crown_of_sorrow") and its item [model], so the statue wears that look.
  */
 data class HallArmorPiece(
     val material: HallArmorMaterial,
     val trimPattern: String? = null,
     val trimMaterial: String? = null,
     val dye: Int? = null,
+    val asset: String? = null,
+    val model: String? = null,
 ) {
     init {
         require(trimPattern == null || KEY.matches(trimPattern)) { "bad trim pattern" }
         require(trimMaterial == null || KEY.matches(trimMaterial)) { "bad trim material" }
         require((trimPattern == null) == (trimMaterial == null)) { "a trim needs a pattern and a material" }
         require(dye == null || (material.dyeable && dye in 0..0xFFFFFF)) { "only leather takes a dye" }
+        require(asset == null || RESOURCE.matches(asset)) { "bad equipment asset" }
+        require(model == null || RESOURCE.matches(model)) { "bad item model" }
     }
 
+    /** REQ-297: the asset's name without its namespace ("crown_of_sorrow"), or null for vanilla armor. */
+    val assetName: String? get() = asset?.substringAfter(':')
+
     fun encode(): String = listOf(material.name, trimPattern.orEmpty(), trimMaterial.orEmpty(),
-        dye?.let { "%06x".format(it) }.orEmpty()).joinToString(";")
+        dye?.let { "%06x".format(it) }.orEmpty(), asset.orEmpty(), model.orEmpty()).joinToString(";")
 
     companion object {
         private val KEY = Regex("[a-z0-9_]{1,24}")
+        private val RESOURCE = Regex("[a-z0-9_.-]{1,32}:[a-z0-9_./-]{1,64}")
 
         fun decode(value: String?): HallArmorPiece? = runCatching {
             val parts = value!!.split(";")
             val material = HallArmorMaterial.parse(parts[0])!!
             HallArmorPiece(material, parts.getOrNull(1)?.ifEmpty { null }, parts.getOrNull(2)?.ifEmpty { null },
-                parts.getOrNull(3)?.ifEmpty { null }?.toInt(16)?.takeIf { material.dyeable })
+                parts.getOrNull(3)?.ifEmpty { null }?.toInt(16)?.takeIf { material.dyeable },
+                parts.getOrNull(4)?.ifEmpty { null }, parts.getOrNull(5)?.ifEmpty { null })
         }.getOrNull()
     }
 }

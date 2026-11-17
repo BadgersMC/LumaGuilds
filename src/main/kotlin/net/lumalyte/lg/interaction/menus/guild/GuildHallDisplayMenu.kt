@@ -106,9 +106,11 @@ internal class GuildHallDisplayMenu(
         val piece = display.armor[part]
             ?: return lang.gui("hall.display.armor_default", "part" to part.label,
                 "material" to net.lumalyte.lg.domain.rewards.HallArmorMaterial.forTier(prestigeCount).label)
+        // REQ-297: a custom-textured piece is named after its look ("Crown Of Sorrow"), not its base material.
+        val material = piece.assetName?.split('_')?.joinToString(" ") { w -> w.replaceFirstChar { it.uppercase() } } ?: piece.material.label
         return if (piece.trimPattern != null) lang.gui("hall.display.armor_trimmed", "part" to part.label,
-            "material" to piece.material.label, "trim" to pretty(piece.trimPattern), "trim_material" to pretty(piece.trimMaterial.orEmpty()))
-        else lang.gui("hall.display.armor_plain", "part" to part.label, "material" to piece.material.label)
+            "material" to material, "trim" to pretty(piece.trimPattern), "trim_material" to pretty(piece.trimMaterial.orEmpty()))
+        else lang.gui("hall.display.armor_plain", "part" to part.label, "material" to material)
     }
 
     private fun pretty(key: String) = key.replace('_', ' ').replaceFirstChar { it.uppercase() }

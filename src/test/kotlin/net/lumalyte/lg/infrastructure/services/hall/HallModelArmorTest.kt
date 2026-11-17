@@ -35,4 +35,18 @@ class HallModelArmorTest {
         val amethyst = HallModelArmor.layer(HallArmorPiece(HallArmorMaterial.DIAMOND, "eye", "amethyst"))
         assertEquals("amethyst", amethyst.palette)
     }
+
+    @Test
+    fun `a custom-textured piece draws the BetterModel armor named after its asset`() {
+        val crown = HallArmorPiece(HallArmorMaterial.NETHERITE, asset = "enthusia:crown_of_sorrow", model = "enthusia:crown_of_sorrow")
+        assertEquals(HallModelArmorLayer("crown_of_sorrow", HallModelArmor.WHITE, null, null), HallModelArmor.layer(crown))
+    }
+
+    @Test
+    fun `a custom-textured piece survives storage, and old values still read`() {
+        val crown = HallArmorPiece(HallArmorMaterial.NETHERITE, "coast", "gold", asset = "enthusia:crown_of_sorrow", model = "enthusia:crown_of_sorrow")
+        assertEquals(crown, HallArmorPiece.decode(crown.encode()))
+        assertEquals(HallArmorPiece(HallArmorMaterial.IRON), HallArmorPiece.decode("IRON;;;"))
+        assertEquals(null, HallArmorPiece.decode("IRON;;;;Not A Key;"))
+    }
 }

@@ -21,7 +21,12 @@ internal object HallModelArmor {
         else -> material.name.lowercase()
     }
 
+    /**
+     * REQ-297: a custom-textured piece draws BetterModel's armor of the same name, which lives in
+     * plugins/BetterModel/armors/armors/<name>/armor.png (and leggings.png).
+     */
     fun layer(piece: HallArmorPiece): HallModelArmorLayer {
+        piece.assetName?.let { return HallModelArmorLayer(it, WHITE, null, null) }
         val type = type(piece.material)
         val tint = when {
             piece.material.dyeable -> piece.dye ?: LEATHER

@@ -1,6 +1,9 @@
 package net.lumalyte.lg.infrastructure.services.hall
 
+import io.papermc.paper.datacomponent.DataComponentTypes
+import io.papermc.paper.datacomponent.item.Equippable
 import io.papermc.paper.registry.RegistryAccess
+import net.kyori.adventure.key.Key
 import io.papermc.paper.registry.RegistryKey
 import net.lumalyte.lg.domain.rewards.HallArmorMaterial
 import net.lumalyte.lg.domain.rewards.HallArmorPart
@@ -36,7 +39,16 @@ internal object HallArmorItems {
         val item = ItemStack.of(material(part, chosen.material))
         trim(chosen)?.let { trim -> item.editMeta(ArmorMeta::class.java) { it.trim = trim } }
         chosen.dye?.let { rgb -> item.editMeta(LeatherArmorMeta::class.java) { it.setColor(Color.fromRGB(rgb)) } }
+        custom(item, part, chosen)
         return item
+    }
+
+    /** REQ-297: a custom-textured piece keeps its pack look on the statue's item (worn and in menus). */
+    private fun custom(item: ItemStack, part: HallArmorPart, piece: HallArmorPiece) = runCatching {
+        piece.asset?.let { asset ->
+            item.setData(DataComponentTypes.EQUIPPABLE, Equippable.equippable(slots.getValue(part)).assetId(Key.key(asset)).build())
+        }
+        piece.model?.let { item.setData(DataComponentTypes.ITEM_MODEL, Key.key(it)) }
     }
 
     fun trim(piece: HallArmorPiece): ArmorTrim? {
@@ -61,12 +73,20 @@ internal object HallArmorItems {
         RegistryAccess.registryAccess().getRegistry(RegistryKey.TRIM_MATERIAL).get(NamespacedKey.minecraft(key))
     }.getOrNull()
 
-    /** The look of a worn item (material, vanilla trim, leather dye), or null for anything that isn't vanilla armor. */
+    /**
+     * The look of a worn item (material, vanilla trim, leather dye), or null for anything that isn't armor.
+     * REQ-297: a custom-textured piece (its equipment asset outside the minecraft namespace) keeps that asset
+     * and its item model; its base material stands in only where the asset can't be drawn.
+     */
     fun copy(part: HallArmorPart, worn: ItemStack?): HallArmorPiece? {
         if (worn == null || worn.type.isAir) return null
+        val asset = runCatching { worn.getData(DataComponentTypes.EQUIPPABLE)?.assetId() }.getOrNull()
+            ?.takeIf { it.namespace() != NamespacedKey.MINECRAFT }?.asString()
+        val model = asset?.let { runCatching { worn.getData(DataComponentTypes.ITEM_MODEL) }.getOrNull() }
+            ?.takeIf { it.namespace() != NamespacedKey.MINECRAFT }?.asString()
         val suffix = "_" + pieceName.getValue(part)
-        val name = worn.type.name.takeIf { it.endsWith(suffix) }?.removeSuffix(suffix) ?: return null
-        val material = HallArmorMaterial.parse(name) ?: return null
+        val name = worn.type.name.takeIf { it.endsWith(suffix) }?.removeSuffix(suffix)
+        val material = HallArmorMaterial.parse(name) ?: if (asset != null) HallArmorMaterial.IRON else return null
         val meta = worn.itemMeta
         val trim = (meta as? ArmorMeta)?.trim
         val pattern = trim?.let { RegistryAccess.registryAccess().getRegistry(RegistryKey.TRIM_PATTERN).getKey(it.pattern) }
@@ -75,7 +95,8 @@ internal object HallArmorItems {
             ?.takeIf { it.namespace == NamespacedKey.MINECRAFT }?.key
         val dye = (meta as? LeatherArmorMeta)?.color?.asRGB()?.takeIf { material.dyeable }
         return runCatching {
-            if (pattern != null && trimMat != null) HallArmorPiece(material, pattern, trimMat, dye) else HallArmorPiece(material, dye = dye)
+            if (pattern != null && trimMat != null) HallArmorPiece(material, pattern, trimMat, dye, asset, model)
+            else HallArmorPiece(material, dye = dye, asset = asset, model = model)
         }.getOrNull()
     }
 }
