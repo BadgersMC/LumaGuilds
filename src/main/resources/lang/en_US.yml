@@ -7343,13 +7343,11 @@ notification:
       hurry: '<red><bold>ACT FAST</bold> <gray>» <white>Items will despawn if not picked up!'
 
 chapter_two_rewards:
-  title: '<gold>Chapter 2 Rewards'
   capacity_bank: '<gray>Bank capacity: <white><capacity>'
   capacity_home_member: '<gray>Home slots: <white><homes> <gray>· Members: <white><members>'
   multipliers: '<gray>Home cooldown ×<cooldown>; withdrawal fee ×<fee>'
   unavailable: '<red>Guild rewards are temporarily unavailable. Please try again later.'
   explanation: '<gray>Reaching a level unlocks an offer. Benefits require a purchase.'
-  view: '<yellow>View all reward offers'
   name: '<white><reward>'
   level_price: '<gray>Level <level> · <price> guild gold'
   purchase:
@@ -7705,6 +7703,8 @@ guild_dialogs:
 
 chronicle:
   title: '<gold>Guild Chronicle</gold>'
+  open: '<yellow>Open the Guild Chronicle</yellow>'
+  benefits: '<gold>Your guild''s rewards now</gold>'
   range: '<gray><guild> · Guild level <level> · Levels <first>–<last></gray>'
   detail: '<gray><guild> · Guild level <level></gray>'
   tracked: '<gold>Tracked guild goal</gold>'

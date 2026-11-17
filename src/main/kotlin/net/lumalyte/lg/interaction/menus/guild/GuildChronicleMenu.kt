@@ -75,7 +75,20 @@ internal class GuildChronicleMenu(
                 ) + if (snapshot.goal.rewardId == offer.reward.id) listOf(lang.gui("chronicle.tracked")) else emptyList()
                 referenceItem(icon(offer.reward.effect), lines,
                     referenceAction(Component.text(offer.reward.name), icon(offer.reward.effect)) { detail(offer.reward.id) })
-            }.ifEmpty { listOf(referenceItem("lg_reward", listOf(lang.gui("chronicle.empty")))) }
+            }.ifEmpty { listOf(referenceItem("lg_reward", listOf(lang.gui("chronicle.empty")))) }.let { rewards ->
+                // REQ-293: what used to head Chapter 2 Rewards: the guild's current benefits, on the first page.
+                if (snapshot.page != 0) rewards else {
+                    val benefits = snapshot.state.entitlements
+                    listOf(referenceItem("lg_sources", listOf(
+                        lang.gui("chronicle.benefits"),
+                        lang.gui("chapter_two_rewards.capacity_bank", "capacity" to benefits.bankCapacity),
+                        lang.gui("chapter_two_rewards.capacity_home_member", "homes" to benefits.homeCapacity,
+                            "members" to net.lumalyte.lg.interaction.menus.memberCapacityShown(guild.id, benefits.memberCapacity)),
+                        lang.gui("chapter_two_rewards.multipliers", "cooldown" to benefits.homeCooldownMultiplier,
+                            "fee" to benefits.withdrawalFeeMultiplier),
+                    ))) + rewards
+                }
+            }
             val actions = buildList {
                 if (snapshot.page > 0) add(referenceAction(lang.gui("chronicle.earlier"), "lg_page_prev") { page = snapshot.page - 1; tree() })
                 if (snapshot.page < 9) add(referenceAction(lang.gui("chronicle.later"), "lg_page_next") { page = snapshot.page + 1; tree() })
