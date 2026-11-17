@@ -1018,3 +1018,6 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-293
 **Ubiquitous.** THE SYSTEM SHALL offer one rewards menu, the Guild Chronicle, in place of the separate Chapter 2 Rewards menu: its first page leads with the guild's current benefits (bank capacity, home slots, members, cooldown and fee multipliers) above the reward tree. Clients without dialogs SHALL get the same rewards as a chest list titled Guild Chronicle, and a guild whose reward state isn't ready SHALL see its legacy perks there.
+
+### REQ-294
+**Unwanted behaviour.** IF a Hall statue is drawn with the animated model, THEN THE SYSTEM SHALL keep its mannequin invisible and bare, so a client never sees a plain armored figure while the model loads, and SHALL show players who can't see the model (Bedrock) a separate plain standing figure.
