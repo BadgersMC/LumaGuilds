@@ -1,7 +1,7 @@
 package net.lumalyte.lg.domain.values
 
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
+import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Test
 
 class HomeArrivalSoundTest {
