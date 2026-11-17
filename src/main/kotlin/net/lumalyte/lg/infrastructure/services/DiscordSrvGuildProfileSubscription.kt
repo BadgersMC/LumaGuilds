@@ -278,7 +278,6 @@ class DiscordSrvGuildProfileSubscription internal constructor(
     private fun diplomacyEmbed(profile: GuildDiscordProfile): MessageEmbed = EmbedBuilder()
         .setTitle("${profile.name} • Diplomacy")
         .setColor(EMBED_COLOR)
-        .addField("Mode", if (profile.mode == GuildMode.PEACEFUL) "Peaceful" else "Hostile", true)
         .addField("Allies (${profile.allies.size})", summarize(profile.allies, RELATION_FIELD_LIMIT), false)
         .addField("Enemies (${profile.enemies.size})", summarize(profile.enemies, RELATION_FIELD_LIMIT), false)
         .setFooter("LumaGuilds • Diplomacy")
@@ -360,11 +359,8 @@ class DiscordSrvGuildProfileSubscription internal constructor(
     private fun memberCount(profile: GuildDiscordProfile): String =
         profile.memberLimit?.let { "${profile.memberCount} / $it" } ?: profile.memberCount.toString()
 
-    private fun status(profile: GuildDiscordProfile): String {
-        val mode = if (profile.mode == GuildMode.PEACEFUL) "Peaceful" else "Hostile"
-        val recruitment = if (profile.recruiting) "Recruiting" else "Invite only"
-        return "$mode • $recruitment"
-    }
+    // REQ-290: guild modes are removed, so the status is recruitment only.
+    private fun status(profile: GuildDiscordProfile): String = if (profile.recruiting) "Recruiting" else "Invite only"
 
     private fun progression(profile: GuildDiscordProfile): String {
         val filled = (profile.progressFraction * PROGRESS_SEGMENTS).toInt()

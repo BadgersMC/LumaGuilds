@@ -59,7 +59,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
     private val guildChatListener: net.lumalyte.lg.interaction.listeners.GuildChatListener by inject()
     private val adminOverrideService: net.lumalyte.lg.application.services.AdminOverrideService by inject()
     private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
-    private val bannermanListeners: net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners by inject()
     private val strikeService: net.lumalyte.lg.application.services.StrikeService by inject()
     private val bankService: net.lumalyte.lg.application.services.BankService by inject()
     private val guildCostService: net.lumalyte.lg.application.services.GuildCostService by inject()
@@ -496,7 +495,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         if (home != null) {
             if (guildService.isHomeLocked(guild.id, targetHomeName)) {
-                player.sendMessage(lang.msg("command.migrated.guild.home.locked", "home" to targetHomeName))
+                player.sendMessage(lang.msg("command.migrated.guild.home.locked_v2", "home" to targetHomeName))
                 return
             }
             if (!guildHomeActivationService.isActive(guild.id, targetHomeName)) {
@@ -613,7 +612,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
         if (guildService.restoreLockedOutpost(guild.id, homeName, player.uniqueId)) {
             player.sendMessage(lang.msg("command.migrated.guild.home.restore_success", "home" to homeName))
         } else {
-            player.sendMessage(lang.msg("command.migrated.guild.home.restore_unavailable", "home" to homeName))
+            player.sendMessage(lang.msg("command.migrated.guild.home.restore_unavailable_v2", "home" to homeName))
         }
     }
 
@@ -1014,122 +1013,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
     }
 
-    @Subcommand("mode")
-    @CommandPermission("lumaguilds.guild.mode")
-    @CommandCompletion("peaceful|hostile")
-    fun onMode(player: Player, mode: String) {
-        val playerId = player.uniqueId
-
-        // Find player's guild
-        val guilds = guildService.getPlayerGuilds(playerId)
-        if (guilds.isEmpty()) {
-            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
-            return
-        }
-
-        val guild = guilds.first()
-
-        // Check if mode switching is enabled in config
-        val mainConfig = configService.loadConfig()
-        if (!mainConfig.guild.modeSwitchingEnabled) {
-            player.sendMessage(lang.msg("command.migrated.guild.mode.guild_mode_switching_is_disabled_by_server"))
-            player.sendMessage(lang.msg("command.migrated.guild.mode.guilds_cannot_change_between_peaceful_and_hostile"))
-            return
-        }
-
-        val guildMode = try {
-            GuildMode.valueOf(mode.uppercase())
-        } catch (e: IllegalArgumentException) {
-            player.sendMessage(lang.msg("command.migrated.guild.mode.invalid_mode_use_peaceful_or_hostile"))
-            return
-        }
-
-        // Check if already in that mode
-        if (guild.mode == guildMode) {
-            player.sendMessage(lang.msg("command.migrated.guild.mode.guild_is_already_in_mode", "uppercase" to guildMode.name.lowercase().replaceFirstChar { it.uppercase() }))
-            return
-        }
-
-        // Validate cooldown based on which mode we're switching to
-        if (guildMode == GuildMode.PEACEFUL) {
-            // Switching TO peaceful - check cooldown
-            val canSwitch = canSwitchToPeaceful(guild, mainConfig.guild.modeSwitchCooldownDays)
-            val hasActiveWar = warService.getWarsForGuild(guild.id).any { it.isActive }
-
-            if (hasActiveWar) {
-                player.sendMessage(lang.msg("command.migrated.guild.mode.cannot_switch_to_peaceful_mode_during_active"))
-                return
-            }
-
-            if (!canSwitch) {
-                val cooldownMsg = getCooldownMessage(guild, mainConfig.guild.modeSwitchCooldownDays)
-                player.sendMessage(lang.msg("command.migrated.guild.mode.cooldown_prefix").append(cooldownMsg))
-                return
-            }
-        } else if (guildMode == GuildMode.HOSTILE) {
-            // Switching TO hostile - check minimum peaceful days
-            val canSwitch = canSwitchToHostile(guild, mainConfig.guild.hostileModeMinimumDays)
-
-            if (!canSwitch) {
-                val lockMsg = getHostileLockMessage(guild, mainConfig.guild.hostileModeMinimumDays)
-                player.sendMessage(lang.msg("command.migrated.guild.mode.lock_prefix").append(lockMsg))
-                return
-            }
-        }
-
-        val success = guildService.setMode(guild.id, guildMode, playerId)
-
-        if (success) {
-            player.sendMessage(lang.msg("command.migrated.guild.mode.guild_mode_changed_to", "uppercase" to guildMode.name.lowercase().replaceFirstChar { it.uppercase() }))
-        } else {
-            player.sendMessage(lang.msg("command.migrated.guild.mode.failed_to_change_guild_mode_you_may"))
-        }
-    }
-
-    private fun canSwitchToPeaceful(guild: Guild, cooldownDays: Int): Boolean {
-        val modeChanged = guild.modeChangedAt ?: return true
-
-        val cooldownEnd = modeChanged.plus(java.time.Duration.ofDays(cooldownDays.toLong()))
-        return java.time.Instant.now().isAfter(cooldownEnd)
-    }
-
-    private fun canSwitchToHostile(guild: Guild, minimumDays: Int): Boolean {
-        if (guild.mode != GuildMode.PEACEFUL) return true
-
-        val modeChanged = guild.modeChangedAt ?: return true
-
-        val lockEnd = modeChanged.plus(java.time.Duration.ofDays(minimumDays.toLong()))
-        return java.time.Instant.now().isAfter(lockEnd)
-    }
-
-    private fun getCooldownMessage(guild: Guild, cooldownDays: Int): Component {
-        val modeChanged = guild.modeChangedAt ?: return lang.msg("command.migrated.guild.mode.no_previous_changes")
-
-        val cooldownEnd = modeChanged.plus(java.time.Duration.ofDays(cooldownDays.toLong()))
-        val remaining = java.time.Duration.between(java.time.Instant.now(), cooldownEnd)
-
-        if (remaining.isNegative) return lang.msg("command.migrated.guild.mode.cooldown_expired")
-
-        val days = remaining.toDays()
-        val hours = remaining.toHours() % 24
-
-        return lang.msg("command.migrated.guild.mode.switch_to_peaceful", "days" to days, "hours" to hours)
-    }
-
-    private fun getHostileLockMessage(guild: Guild, minimumDays: Int): Component {
-        val modeChanged = guild.modeChangedAt ?: return lang.msg("command.migrated.guild.mode.no_previous_changes")
-
-        val lockEnd = modeChanged.plus(java.time.Duration.ofDays(minimumDays.toLong()))
-        val remaining = java.time.Duration.between(java.time.Instant.now(), lockEnd)
-
-        if (remaining.isNegative) return lang.msg("command.migrated.guild.mode.lock_expired")
-
-        val days = remaining.toDays()
-        val hours = remaining.toHours() % 24
-
-        return lang.msg("command.migrated.guild.mode.switch_to_hostile", "days" to days, "hours" to hours)
-    }
-    
     @Subcommand("history")
     @CommandPermission("lumaguilds.guild.history")
     @CommandCompletion("@players")
@@ -2280,56 +2163,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
     }
 
-    @Subcommand("bannerman")
-    @CommandPermission("lumaguilds.guild.bannerman")
-    fun onBannerman(player: Player) {
-        val playerId = player.uniqueId
-
-        val guilds = guildService.getPlayerGuilds(playerId)
-        if (guilds.isEmpty()) {
-            player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
-            return
-        }
-        val guild = guilds.first()
-
-        if (!memberService.hasPermission(playerId, guild.id, RankPermission.MANAGE_BANNER)) {
-            player.sendMessage(lang.msg("command.migrated.guild.bannerman.you_don_t_have_permission_to_toggle"))
-            player.sendMessage(lang.msg("command.migrated.guild.bannerman.you_need_the_manage_banner_permission"))
-            return
-        }
-
-        val current = guildService.getBannermanEnabled(guild.id)
-        val newState = !current
-        val success = guildService.setBannermanEnabled(guild.id, newState, playerId)
-        if (!success) {
-            player.sendMessage(lang.msg("command.migrated.guild.bannerman.failed_to_toggle_bannerman"))
-            return
-        }
-
-        refreshBannermanDisplay(guild.id, newState, player)
-    }
-
-    private fun refreshBannermanDisplay(guildId: UUID, newState: Boolean, player: Player) {
-        try {
-            if (newState) {
-                bannermanListeners.onBannermanEnabled(guildId)
-            } else {
-                bannermanListeners.onBannermanDisabled(guildId)
-            }
-        } catch (e: Exception) {
-            org.bukkit.Bukkit.getLogger().warning(
-                "Bannerman render callback failed for guild $guildId (newState=$newState): ${e.message}"
-            )
-            player.sendMessage(lang.msg("command.migrated.guild.refreshbannermandisplay.bannerman_state_was_saved_but_live_refresh"))
-            return
-        }
-        if (newState) {
-            player.sendMessage(lang.msg("command.migrated.guild.refreshbannermandisplay.bannerman_enabled_guild_members_will_wear_the"))
-        } else {
-            player.sendMessage(lang.msg("command.migrated.guild.refreshbannermandisplay.bannerman_disabled"))
-        }
-    }
-
     @Subcommand("description|desc")
     @CommandPermission("lumaguilds.guild.description")
     @CommandCompletion("<description>")
@@ -2786,30 +2619,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
             ?: return player.sendMessage(lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild"))
         org.koin.core.context.GlobalContext.get()
             .get<net.lumalyte.lg.infrastructure.listeners.SecondVaultListener>().open(player, guild)
-    }
-
-    @Subcommand("start|gettingstarted")
-    @CommandPermission("lumaguilds.guild.help")
-    @CommandCompletion("@nothing")
-    fun onGettingStarted(player: Player, @Optional guildId: String?) {
-        val selected = if (guildId == null) guildService.getPlayerGuilds(player.uniqueId).firstOrNull()?.id else {
-            try { java.util.UUID.fromString(guildId) } catch (_: IllegalArgumentException) {
-                player.sendMessage(lang.msg("onboarding.unavailable")); return
-            }
-        }
-        val navigator = MenuNavigator(player)
-        navigator.openMenu(menuFactory.createGuildGettingStartedMenu(navigator, player, selected))
-    }
-
-    @Subcommand("start dismiss")
-    @CommandPermission("lumaguilds.guild.help")
-    fun onDismissGettingStarted(player: Player) {
-        val repository = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.persistence.GuildOnboardingRepository>()
-        val dismissed = guildService.getPlayerGuilds(player.uniqueId).map { repository.dismiss(player.uniqueId, it.id) }
-        if (dismissed.any { !it }) {
-            player.sendMessage(lang.msg("onboarding.failed")); return
-        }
-        player.sendMessage(lang.msg("onboarding.dismissed"))
     }
 
     @Subcommand("help")

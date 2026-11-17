@@ -16,7 +16,6 @@ import net.lumalyte.lg.infrastructure.services.hall.HallStatuePose
 import net.lumalyte.lg.utils.deserializeToItemStack
 import org.bukkit.Bukkit
 import org.bukkit.Location
-import org.bukkit.Particle
 import org.bukkit.entity.Entity
 import org.bukkit.entity.ItemDisplay
 import org.bukkit.entity.Player
@@ -197,7 +196,7 @@ class HallStatueService(
         try {
             val built = HallStatueBuilder.build(base, look, plan.guildName, plan.prestige, plan.skin,
                 register = { it.isPersistent = false }) { statue ->
-                HallStatuePose.orNull()?.apply(statue, { id -> Bukkit.getPlayer(id)?.let { !bedrock(it) } ?: true }, plan.skin, look.pose)
+                HallStatuePose.orNull()?.apply(statue, { id -> Bukkit.getPlayer(id)?.let { !bedrock(it) } ?: true }, plan.skin)
             }
             built.sword?.let { sword -> Bukkit.getOnlinePlayers().filter(::bedrock).forEach { it.hideEntity(plugin, sword) } }
             builtAt[plan.pedestal.slot] = System.currentTimeMillis()
@@ -217,7 +216,7 @@ class HallStatueService(
 
     private fun bedrock(player: Player) = runCatching { platform?.isBedrockPlayer(player) == true }.getOrDefault(false)
 
-    // Main thread, twice a second: spotlight and aura for nearby players, and rebuild anything the
+    // Main thread, twice a second: rebuild anything the
     // world dropped (a chunk unloading takes the non-saved statue with it).
     private fun tick() {
         for (plan in plans) {
@@ -241,13 +240,6 @@ class HallStatueService(
                 }
                 continue
             }
-            val world = here.top.world
-            if (world.getNearbyPlayers(here.top, EFFECT_RANGE).isEmpty()) continue
-            for (y in 0..8) {
-                world.spawnParticle(Particle.DUST, here.top.clone().add(0.0, y * 0.45, 0.0), 1, 0.3, 0.05, 0.3, 0.0,
-                    Particle.DustOptions(here.look.spotlight, 1.1f))
-            }
-            world.spawnParticle(here.look.aura, here.top.clone().add(0.0, 1.0, 0.0), 3, 0.45, 0.7, 0.45, 0.01)
         }
     }
 
@@ -279,7 +271,6 @@ class HallStatueService(
         const val START_DELAY = 100L
         const val REFRESH_TICKS = 20L * 60 * 5
         const val EFFECT_TICKS = 10L
-        const val EFFECT_RANGE = 24.0
         const val REBUILD_GRACE_MS = 10_000L
     }
 }

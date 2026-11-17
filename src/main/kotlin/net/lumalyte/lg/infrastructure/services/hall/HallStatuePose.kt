@@ -19,18 +19,17 @@ internal class HallStatuePose private constructor() {
     private val logger = LoggerFactory.getLogger(HallStatuePose::class.java)
 
     /**
-     * Wraps [statue] in the limb model wearing [skin]'s skin, seen only by players [canSee] accepts, looping the pose
-     * named [pose] or Guard when the model has no such animation. Returns a closer, or null if the
-     * model is missing (the plain statue then stays visible).
+     * Wraps [statue] in the limb model wearing [skin]'s skin, seen only by players [canSee] accepts, looping
+     * the Guard pose (REQ-283: the only pose). Returns a closer, or null if the model is missing (the plain
+     * statue then stays visible).
      */
-    fun apply(statue: LivingEntity, canSee: (UUID) -> Boolean, skin: UUID?, pose: String): (() -> Unit)? = try {
+    fun apply(statue: LivingEntity, canSee: (UUID) -> Boolean, skin: UUID?): (() -> Unit)? = try {
         val renderer = BetterModel.limb(LIMB).orElse(null) ?: return null
         val entity = BukkitAdapter.adapt(statue)
         val tracker: EntityTracker = if (skin != null) renderer.create(entity, ModelProfile.of(skin)) else renderer.create(entity)
         tracker.spawnCondition { canSee(it.uuid()) }
         val loop = AnimationModifier(0, 0, AnimationIterator.Type.LOOP)
-        val wanted = animationFor(pose)
-        if (!tracker.animate(wanted, loop) && wanted != GUARD) tracker.animate(GUARD, loop)
+        tracker.animate(GUARD, loop)
         val closer: () -> Unit = { runCatching { tracker.close() } }
         closer
     } catch (e: Throwable) {
@@ -42,8 +41,6 @@ internal class HallStatuePose private constructor() {
         const val LIMB = "prestige"
         const val GUARD = "guard"
 
-        /** Animation names in the prestige model are the pose names in lower case: guard, victory. */
-        fun animationFor(pose: String): String = pose.trim().lowercase().replace(' ', '_').ifEmpty { GUARD }
 
         fun orNull(): HallStatuePose? =
             if (Bukkit.getPluginManager().isPluginEnabled("BetterModel")) HallStatuePose() else null

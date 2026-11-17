@@ -55,9 +55,13 @@ internal class GuildLeaderboardDialogMenu(
                         Component.text(
                             "${row.members} ${lang.raw("dialog_v2.members")}",
                         ),
+                    ) + listOfNotNull(
+                        // REQ-284: prestige shows on every guild's row.
+                        if (row.prestige > 0) lang.gui("dialog_v2.leaderboard_prestige",
+                            "tier" to net.lumalyte.lg.domain.values.PrestigeNumeral.of(row.prestige)) else null,
                     )
                 GuildDialogItem(
-                    GuildBannerItemResolver.resolveForDisplay(guild),
+                    if (row.prestige > 0) PrestigeIcon.item(row.prestige) else GuildBannerItemResolver.resolveForDisplay(guild),
                     Component.join(JoinConfiguration.newlines(), lines),
                     lines,
                     referenceAction(Component.text(guild.name), "lg_nav_info") {

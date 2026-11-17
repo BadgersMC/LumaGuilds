@@ -464,7 +464,15 @@ class GuildProgressionMenu(
             ItemStack.of(Material.GOLD_INGOT)
         }.also { it.editMeta { meta ->
             meta.displayName(lang.gui("menu.guild_progression.rank.name"))
-            meta.lore(listOf(lang.gui("menu.guild_progression.rank.description"), lang.gui("menu.guild_progression.rank.scope")))
+            // REQ-285: the guild's actual place, matching the leaderboard's level standings.
+            val standing = runCatching {
+                val koin = org.koin.core.context.GlobalContext.get()
+                GuildLeaderboardSource(guildService, memberService, koin.get<net.lumalyte.lg.application.services.QuestService>()).levelStanding(guild.id)
+            }.getOrNull()
+            meta.lore(listOfNotNull(
+                standing?.let { (rank, total) -> lang.gui("menu.guild_progression.rank.standing", "rank" to rank, "total" to total) },
+                lang.gui("menu.guild_progression.rank.standing_hint"),
+            ))
         }}
         pane.addItem(GuiItem(item) { it.isCancelled = true }, x, y)
     }

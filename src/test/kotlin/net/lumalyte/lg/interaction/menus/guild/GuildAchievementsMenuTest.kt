@@ -170,4 +170,12 @@ internal class GuildAchievementsMenuTest : RecruitmentDialogFixture() {
         assertTrue("365" in GuildAchievementsMenu.earning(node("GUILD_AGE_DAYS", 365)))
         assertTrue("1,000,000" in GuildAchievementsMenu.earning(node("GUILD_COLLECTIVE_BLOCK_BREAK", 1_000_000)))
     }
+
+    @Test
+    fun `REQ-286 cards use the advancement's own vanilla icon`() {
+        fun node(icon: String) = GuildAchievement("founding", null, "Founding", emptyList(), "GUILD_CREATE", null, 1, 0,
+            emptyList(), "Foundations", icon, "TASK", 0f, 0f)
+        assertEquals(org.bukkit.Material.WRITABLE_BOOK, GuildAchievementsMenu.advancementMaterial(node("WRITABLE_BOOK")))
+        assertEquals(org.bukkit.Material.SHIELD, GuildAchievementsMenu.advancementMaterial(node("NOT_A_THING")))
+    }
 }

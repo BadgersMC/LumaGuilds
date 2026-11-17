@@ -414,7 +414,9 @@ class GuildRepositorySQLite(
         val tag = rs.getString("tag")
         val level = rs.getInt("level")
         val bankBalance = rs.getInt("bank_balance")
-        val mode = GuildMode.valueOf(rs.getString("mode").uppercase())
+        // REQ-290: guild modes are removed; every guild reads as Hostile, so no Peaceful gate (war,
+        // PvP protection) applies, whatever an older build saved.
+        val mode = GuildMode.HOSTILE
         val modeChangedAt = rs.getInstant("mode_changed_at")
         val createdAt = rs.getInstantNotNull("created_at")
 

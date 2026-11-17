@@ -1029,16 +1029,9 @@ class LumaGuilds : JavaPlugin() {
         server.pluginManager.registerEvents(net.lumalyte.lg.interaction.listeners.GuildVaultCraftingPreventionListener(), this)
         server.pluginManager.registerEvents(GuildVaultFuelPreventionListener(), this)
 
-        // Register bannerman listener and tick task
-        val bannermanRenderer = get().get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanRenderService>()
-        val bannermanListeners = get().get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners>()
-        server.pluginManager.registerEvents(bannermanListeners, this)
-        net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanTickTask(
-            this,
-            bannermanRenderer,
-            bannermanListeners::trySpawn, // respawn banners despawned for swim/elytra poses
-        ).start()
-        bannermanRenderer.sweepOrphans()
+        // REQ-289: bannerman (the guild banner on members' backs) is removed. Its listener and tick task are no
+        // longer started; the sweep still clears any banner displays an older build left in the world.
+        get().get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanRenderService>().sweepOrphans()
 
         // Register progression event listener
         val progressionEventListener = get().get<ProgressionEventListener>()
@@ -1076,7 +1069,6 @@ class LumaGuilds : JavaPlugin() {
         server.pluginManager.registerEvents(vaultInventoryListener, this)
 
         // Register player session cleanup listener
-        server.pluginManager.registerEvents(get().get<net.lumalyte.lg.infrastructure.listeners.GuildOnboardingListener>(), this)
         val recruitmentListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildRecruitmentListener>()
         server.pluginManager.registerEvents(recruitmentListener, this)
         recruitmentListener.start()

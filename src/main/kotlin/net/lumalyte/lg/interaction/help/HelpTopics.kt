@@ -16,7 +16,6 @@ object HelpTopics {
         topic("progression", "info", "leaderboard"),
         topic("vault", "vault", "getvault"),
         topic("identity", "tag", "description", "rename", "emoji"),
-        topic("mode", "mode"),
         topic("lfg", "invite", "invites", "decline", "lfg", "kick"),
         topic("bedrock", "wiki"),
     )

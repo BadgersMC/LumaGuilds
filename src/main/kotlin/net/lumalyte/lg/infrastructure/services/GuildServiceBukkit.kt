@@ -77,9 +77,6 @@ class GuildServiceBukkit(
     }
 
 
-    // Lazy because BannermanListeners depends on GuildService, which would create a Koin
-    // resolution cycle if injected eagerly through the constructor.
-    private val bannermanListeners: net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners by inject()
 
     private val logger = LoggerFactory.getLogger(GuildServiceBukkit::class.java)
 
@@ -291,7 +288,6 @@ class GuildServiceBukkit(
             Bukkit.getPluginManager().callEvent(GuildBannerSetEvent(guildId, actorId))
             Bukkit.getPluginManager().callEvent(GuildBannerChangedEvent(guildId, banner != null))
 
-            bannermanListeners.onGuildBannerChanged(guildId)
         }
         return result
     }

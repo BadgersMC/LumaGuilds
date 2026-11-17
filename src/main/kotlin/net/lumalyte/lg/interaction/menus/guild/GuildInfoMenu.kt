@@ -204,7 +204,6 @@ class GuildInfoMenu(
         guild.emoji?.let { item.lore(lang.gui("menu.guild_info.overview.emoji", "emoji" to nexoEmojiService.emojiToFontTag(it))) }
         item.lore(lang.gui("guild_page.card.leader", "leader" to leader))
             .lore(lang.gui("guild_page.card.members", "count" to members.size, "limit" to memberService.getMemberLimit(guild.id), "online" to online))
-            .lore(lang.gui("menu.guild_info.overview.mode", "mode" to modeName()))
             .lore(lang.gui("menu.guild_info.overview.founded", "date" to date(guild.createdAt)))
             .lore(lang.gui("guild_page.card.balance", "balance" to bankService.getBalance(guild.id)))
         cardFacts().lines().forEach { (fact, value) -> item.lore(GuildPageText.fact(lang, fact, value)) }
@@ -321,10 +320,6 @@ class GuildInfoMenu(
     private fun date(at: Instant): String =
         at.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern(lang.raw("menu.guild_info.overview.date_format")))
 
-    private fun modeName(): Component = when (guild.mode.name) {
-        "PEACEFUL" -> lang.gui("menu.guild_info.overview.modes.peaceful")
-        else -> lang.gui("menu.guild_info.overview.modes.hostile")
-    }
 
     override fun passData(data: Any?) {
         guild = data as? Guild ?: return

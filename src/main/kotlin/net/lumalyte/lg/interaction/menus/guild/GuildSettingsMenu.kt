@@ -532,67 +532,7 @@ class GuildSettingsMenu(
         }
         pane.addItem(membersGuiItem, 2, 4)
 
-        // Guild Mode
-        val config = configService.loadConfig()
-        if (config.guild.peacefulModeEnabled) {
-            val modeItem = NexoItemProvider.getItemStackOrFallback(
-                if (guild.mode == GuildMode.PEACEFUL) "lg_mode_peaceful" else "lg_mode_hostile"
-            ) {
-                ItemStack.of(
-                    if (guild.mode == GuildMode.PEACEFUL)
-                        Material.GREEN_WOOL else Material.RED_WOOL
-                )
-            }
-                .name(lang.gui("menu.guild_settings.item.mode.name"))
-                .lore(if (guild.mode == GuildMode.PEACEFUL) lang.gui("menu.guild_settings.item.mode.lore.current.peaceful") else lang.gui("menu.guild_settings.item.mode.lore.current.hostile"))
-                .lore(lang.gui("menu.common.blank"))
-                .lore(lang.gui("menu.guild_settings.item.mode.lore.peaceful"))
-                .lore(lang.gui("menu.guild_settings.item.mode.lore.hostile"))
-
-            // Add cooldown information
-            val modeChangedAt = guild.modeChangedAt
-            if (modeChangedAt != null) {
-                if (guild.mode == GuildMode.PEACEFUL) {
-                    // Show hostile switch cooldown
-                    val hostileCooldownEnd = modeChangedAt.plus(Duration.ofDays(config.guild.hostileModeMinimumDays.toLong()))
-                    if (Instant.now().isBefore(hostileCooldownEnd)) {
-                        val remaining = Duration.between(Instant.now(), hostileCooldownEnd)
-                        val days = remaining.toDays()
-                        val hours = remaining.toHours() % 24
-                        modeItem.lore(lang.gui("menu.common.blank"))
-                                .lore(lang.gui("menu.guild_settings.item.mode.lore.hostile_cooldown", "days" to days, "hours" to hours))
-                    }
-                } else {
-                    // Show peaceful switch cooldown
-                    val peacefulCooldownEnd = modeChangedAt.plus(Duration.ofDays(config.guild.modeSwitchCooldownDays.toLong()))
-                    if (Instant.now().isBefore(peacefulCooldownEnd)) {
-                        val remaining = Duration.between(Instant.now(), peacefulCooldownEnd)
-                        val days = remaining.toDays()
-                        val hours = remaining.toHours() % 24
-                        modeItem.lore(lang.gui("menu.common.blank"))
-                                .lore(lang.gui("menu.guild_settings.item.mode.lore.peaceful_cooldown", "days" to days, "hours" to hours))
-                    }
-                }
-            }
-
-            modeItem.lore(lang.gui("menu.common.blank"))
-                    .lore(lang.gui("menu.guild_settings.item.mode.lore.action"))
-
-            val modeGuiItem = GuiItem(modeItem) {
-                menuNavigator.openMenu(menuFactory.createGuildModeMenu(menuNavigator, player, guild))
-            }
-            pane.addItem(modeGuiItem, 3, 4)
-        } else {
-            // Show disabled mode indicator
-            val modeItem = ItemStack.of(Material.GRAY_WOOL)
-                .name(lang.gui("menu.guild_settings.item.mode.name"))
-                .lore(lang.gui("menu.guild_settings.item.mode.lore.current.hostile"))
-                .lore(lang.gui("menu.common.blank"))
-                .lore(lang.gui("menu.guild_settings.item.mode.lore.disabled"))
-                .lore(lang.gui("menu.guild_settings.item.mode.lore.default_hostile"))
-
-            pane.addItem(GuiItem(modeItem), 3, 4)
-        }
+        // REQ-290: guild modes (Peaceful/Hostile) are removed; every guild can be warred.
 
         // Back button
         val backItem = NexoItemProvider.getItemStackOrFallback(BACK_ICON) { ItemStack.of(Material.BARRIER) }
