@@ -566,6 +566,20 @@ discord:
     minimum_level: 50
     # <guild> is required and is replaced with the live guild name.
     role_name_format: "Guild • <guild>"
+  # REQ-298: a Discord role per prestige tier, given to the members a guild had when it first
+  # reached that tier (kept if they leave). Each member holds only their highest prestige role.
+  # Unlinked members get theirs when they link. Leave a tier blank to skip it.
+  prestige_roles:
+    enabled: false
+    tier_1: ""
+    tier_2: ""
+    tier_3: ""
+    tier_4: ""
+    tier_5: ""
+    tier_6: ""
+    # Optional PNG per tier, relative to the server folder; <tier> becomes 1..6. Set as the role's
+    # icon when the role has none (needs Discord server boost level 2 and Manage Roles).
+    icon_path: ""
 
 seasonal_elo:
   # Keep disabled until Chapter 2 migration and live war validation are complete.
