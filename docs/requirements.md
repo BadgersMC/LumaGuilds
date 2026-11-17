@@ -976,3 +976,6 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-279
 **Event-driven.** WHEN a guild holding a Hall of Prestige pedestal changes its banner, THE SYSTEM SHALL repaint the banner hanging under that pedestal within a few seconds, without staff running a refresh and without rebuilding the statue.
+
+### REQ-282
+**Ubiquitous.** THE SYSTEM SHALL show a Hall statue's nameplate still, facing the front of the statue like its prestige badge, rather than turning to follow each viewer.
