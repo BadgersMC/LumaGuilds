@@ -55,6 +55,7 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
     fun start() {
         plugin.server.pluginManager.registerEvents(this, plugin)
         net.lumalyte.lg.infrastructure.services.hall.HallSpawnGuard.register(plugin)
+        net.lumalyte.lg.infrastructure.services.hall.HallStatueProtection.register(plugin)
     }
 
     fun stop() = active.keys.toList().forEach(::clear)
