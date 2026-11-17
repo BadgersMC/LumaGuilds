@@ -1536,3 +1536,4 @@ Decision (Fain, 2026-11-16): one theme per prestige, chosen on the prestige scre
 
 - [x] **HALL-STATUES** Tag: TDD. REQ-275. Decisions (Fain, 2026-11-16): top guilds by prestige; staff place numbered pedestals; Bedrock sees a plain standing statue. Evidence: HallRankingTest, HallPedestalRepositorySQLTest, HallFacingTest; needs an in-game look on TEST.
 - [x] **HALL-SPAWN-GUARD** Tag: TDD. REQ-276. TEST showed bare plinths flickering: spawn's WorldGuard region denies mob spawning with block-plugin-spawning on, so every mannequin (and armor stand) was cancelled on spawn and the Hall rebuilt the statue twice a second. Evidence: HallSpawnGuardTest; needs an in-game look on TEST.
+- [x] **HOME-QUIET-PORTAL** Tag: TDD. REQ-281. Fain, 2026-11-16: home teleports use the Quiet portal sound from the message studio (#sounds, Soft arrival, new alternative). Played on a successful home teleport, after the cooldown is stamped. Evidence: HomeArrivalSoundTest.

@@ -967,3 +967,6 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-276
 **Unwanted behaviour.** IF a protection plugin cancels the spawn of a Hall statue LumaGuilds is spawning (for example WorldGuard's `block-plugin-spawning` in a region that denies mob spawning), THEN THE SYSTEM SHALL let that one spawn through; and IF a statue is still refused or is removed again within ten seconds of being built, THEN THE SYSTEM SHALL remove what it built, log a warning naming the pedestal once, and not rebuild it until its plan changes or staff run `/lumaguilds hall refresh`.
+
+### REQ-281
+**Event-driven.** WHEN a guild-home or allied-home teleport lands, THE SYSTEM SHALL play the message studio's "Quiet portal" cue to that player only: entity.enderman.teleport (volume 0.13, pitch 1.3), then block.note_block.harp (volume 0.23, pitch 1.1) five ticks later. Staff SHALL be able to audition it with `/lumaguilds sounds home-teleport`.

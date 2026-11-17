@@ -45,6 +45,8 @@ object GuildSoundCatalog {
         add(GuildSoundEntry("level-up-fanfare", "Progression", "Guild level up with announcement perk",
             "Your guild gains a level and has the announcement sound perk", listOf(
                 SoundCue("ui.toast.challenge_complete", 1f, 1f), SoundCue("entity.player.levelup", 1f, 1.2f))))
+        add(GuildSoundEntry("home-teleport", "Guild", "Home teleport (Quiet portal)",
+            "You arrive at a guild or allied home", HomeArrivalSound.cues))
         add(simple("member-login", "Guild", "Member login", "A guildmate comes online", "block.note_block.chime", .35f, 1.35f))
         add(simple("announcement", "Guild", "Guild announcement", "A guild announcement or ping", "block.note_block.bell", .5f, 1f))
         add(simple("vault-open", "Guild", "Vault opens", "You open the guild vault", "block.ender_chest.open", 1f, 1f))
