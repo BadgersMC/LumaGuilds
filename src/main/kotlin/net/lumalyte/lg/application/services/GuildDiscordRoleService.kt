@@ -197,6 +197,17 @@ class GuildDiscordRoleService(
     ): CompletableFuture<DiscordGuildRoleSyncSummary> =
         discordAccountUnlinked(playerId, DiscordAccountReference(discordId))
 
+    /**
+     * REQ-299: deletes every Discord role this server manages (only the ids in its own records) and
+     * forgets them. For a server that shares a Discord with another (e.g. TEST beside prod) and should
+     * stop making guild roles. Runs only while guild roles are disabled.
+     */
+    fun removeAllManaged(): CompletableFuture<DiscordGuildRoleSyncSummary> {
+        val config = config()
+        if (config.enabled || !config.removeOnDisable || !gateway.isAvailable()) return completed(DiscordGuildRoleSyncSummary())
+        return combine(repository.getAll().map { deleteManagedRole(it, "disabled-feature") })
+    }
+
     fun guildRenamed(guildId: UUID): CompletableFuture<DiscordGuildRoleSyncSummary> = reconcileGuild(guildId)
 
     fun guildDisbanded(guildId: UUID): CompletableFuture<DiscordGuildRoleSyncSummary> {

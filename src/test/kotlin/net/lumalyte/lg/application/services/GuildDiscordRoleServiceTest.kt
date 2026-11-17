@@ -109,6 +109,26 @@ class GuildDiscordRoleServiceTest {
         assertEquals(0, fixture.gateway.ensureCalls)
     }
 
+    /** REQ-299: a server with guild roles off deletes only the roles in its own records, and only when asked. */
+    @Test
+    fun disabledServerRemovesItsOwnRolesOnlyWhenAsked() {
+        val kept = fixture(guild(level = ROLE_LEVEL), enabled = false)
+        kept.repository.upsert(GuildDiscordRoleLink(guildId, FakeGateway.ROLE_ID, now))
+        kept.service.removeAllManaged().join()
+        assertTrue(kept.gateway.deleted.isEmpty())
+
+        val removed = fixture(guild(level = ROLE_LEVEL), enabled = false, removeOnDisable = true)
+        removed.repository.upsert(GuildDiscordRoleLink(guildId, FakeGateway.ROLE_ID, now))
+        removed.service.removeAllManaged().join()
+        assertEquals(listOf(FakeGateway.ROLE_ID), removed.gateway.deleted)
+        assertNull(removed.repository.get(guildId))
+
+        val live = fixture(guild(level = ROLE_LEVEL), enabled = true, removeOnDisable = true)
+        live.repository.upsert(GuildDiscordRoleLink(guildId, FakeGateway.ROLE_ID, now))
+        live.service.removeAllManaged().join()
+        assertTrue(live.gateway.deleted.isEmpty())
+    }
+
     /** Prestige resets the run level, but the durable unlock and membership remain. */
     @Test
     fun prestigeLevelResetKeepsRoleAndGrantsNewMembers() {
@@ -562,6 +582,7 @@ class GuildDiscordRoleServiceTest {
         members: Set<Member> = emptySet(),
         repository: FakeRepository = FakeRepository(),
         enabled: Boolean = true,
+        removeOnDisable: Boolean = false,
         minimumLevel: Int = 1,
         currentLevel: Int? = guild?.level,
         levelProvider: () -> Int? = { currentLevel },
@@ -576,6 +597,7 @@ class GuildDiscordRoleServiceTest {
                 enabled = enabled,
                 minimumLevel = minimumLevel,
                 roleNameFormat = "Guild • <guild>",
+                removeOnDisable = removeOnDisable,
             ),
         )
 

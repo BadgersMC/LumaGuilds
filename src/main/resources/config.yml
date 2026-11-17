@@ -566,6 +566,9 @@ discord:
     minimum_level: 50
     # <guild> is required and is replaced with the live guild name.
     role_name_format: "Guild • <guild>"
+    # With enabled: false, delete the roles THIS server created (from its own records) once Discord is
+    # ready. Use it on a test server that shares the live Discord, so its copies of guild roles go away.
+    remove_on_disable: false
 
 seasonal_elo:
   # Keep disabled until Chapter 2 migration and live war validation are complete.

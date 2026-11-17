@@ -967,3 +967,6 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-276
 **Unwanted behaviour.** IF a protection plugin cancels the spawn of a Hall statue LumaGuilds is spawning (for example WorldGuard's `block-plugin-spawning` in a region that denies mob spawning), THEN THE SYSTEM SHALL let that one spawn through; and IF a statue is still refused or is removed again within ten seconds of being built, THEN THE SYSTEM SHALL remove what it built, log a warning naming the pedestal once, and not rebuild it until its plan changes or staff run `/lumaguilds hall refresh`.
+
+### REQ-299
+**Optional.** WHERE Discord guild roles are disabled and `discord.guild_roles.remove_on_disable` is set, THE SYSTEM SHALL, once Discord is ready, delete every Discord role recorded in this server's own guild-role records and forget those records, and SHALL never delete roles it has no record of.

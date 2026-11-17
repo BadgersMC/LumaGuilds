@@ -1184,6 +1184,23 @@ class LumaGuilds : JavaPlugin() {
             }, 20L * 60L, 20L * 60L * 5L)
         }
 
+        // REQ-299: a server with guild roles off can delete the roles it created, once Discord is ready.
+        if (!discordRoleConfig.enabled && discordRoleConfig.removeOnDisable) {
+            val gateway = get().get<net.lumalyte.lg.application.services.DiscordGuildRoleGateway>()
+            val service = get().get<net.lumalyte.lg.application.services.GuildDiscordRoleService>()
+            var tries = 0
+            lateinit var task: org.bukkit.scheduler.BukkitTask
+            task = server.scheduler.runTaskTimer(this, Runnable {
+                if (++tries > 40) { task.cancel(); logger.warning("Discord never became ready; managed guild roles were not removed"); return@Runnable }
+                if (!gateway.isAvailable()) return@Runnable
+                task.cancel()
+                service.removeAllManaged().whenComplete { result, error ->
+                    if (error != null) logger.warning("Removing managed Discord guild roles failed: ${error.message}")
+                    else logColored("✓ Removed this server's Discord guild roles (${result.failures} failure(s))")
+                }
+            }, 20L * 15L, 20L * 15L)
+        }
+
         // Public Discord guild profiles are independent of Discord role syncing:
         // every LumaGuilds guild is browseable, even when guild_roles is disabled.
         get().get<net.lumalyte.lg.application.services.DiscordGuildProfileSubscription>().subscribe()
