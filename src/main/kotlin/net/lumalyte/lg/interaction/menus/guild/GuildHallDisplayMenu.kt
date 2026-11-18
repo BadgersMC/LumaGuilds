@@ -242,8 +242,7 @@ internal class GuildHallDisplayMenu(
         load { display ->
             player.closeInventory()
             val service = preview ?: return@load
-            service.show(player, guild.name, prestigeCount, display, display.skin ?: owner(),
-                net.lumalyte.lg.infrastructure.services.HallPreviewService.guildBanner(guild))
+            service.show(player, guild.name, prestigeCount, display, display.skin ?: owner())
             val pose = display.wearing(HallSlot.POSE)?.cosmetic(HallSlot.POSE)
             val seconds = net.lumalyte.lg.infrastructure.services.HallPreviewService.SECONDS
             player.sendMessage(if (service.posed(player.uniqueId)) lang.msg("hall.feedback.preview", "seconds" to seconds, "pose" to (pose ?: "Guard"))

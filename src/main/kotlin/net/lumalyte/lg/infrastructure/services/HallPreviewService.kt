@@ -55,6 +55,7 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
     fun start() {
         plugin.server.pluginManager.registerEvents(this, plugin)
         net.lumalyte.lg.infrastructure.services.hall.HallSpawnGuard.register(plugin)
+        net.lumalyte.lg.infrastructure.services.hall.HallStatueProtection.register(plugin)
     }
 
     fun stop() = active.keys.toList().forEach(::clear)
@@ -62,7 +63,7 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
     @EventHandler fun quit(event: PlayerQuitEvent) = clear(event.player.uniqueId)
 
     /** Builds the statue three blocks in front of [viewer], facing them. */
-    fun show(viewer: Player, guildName: String, prestige: Int, display: HallDisplay, skin: UUID?, banner: ItemStack? = null) {
+    fun show(viewer: Player, guildName: String, prestige: Int, display: HallDisplay, skin: UUID?) {
         clear(viewer.uniqueId)
         val look = HallLook(display, prestige)
         val base = front(viewer)
@@ -76,8 +77,9 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
             return entity
         }
 
-        val built = HallStatueBuilder.build(base, look, guildName, prestige, skin, banner, register = { hidden(it) }) { statue: Mannequin ->
-            HallStatuePose.orNull()?.apply(statue, { it == viewer.uniqueId }, skin, look.pose)
+        val built = HallStatueBuilder.build(base, look, guildName, prestige, skin, register = { hidden(it) }) { statue: Mannequin ->
+            // REQ-294: a Bedrock viewer can't see the model; leave them the plain statue.
+            if (bedrock(viewer)) null else HallStatuePose.orNull()?.apply(statue, { it == viewer.uniqueId }, skin, look.pose)
         }
         val top = built.top
         val posed = built.closer
@@ -98,6 +100,11 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
         lastPosed[viewer.uniqueId] = posed != null
     }
 
+    private fun bedrock(viewer: Player): Boolean = runCatching {
+        org.koin.core.context.GlobalContext.getOrNull()
+            ?.getOrNull<net.lumalyte.lg.application.services.PlatformDetectionService>()?.isBedrockPlayer(viewer) == true
+    }.getOrDefault(false)
+
     fun clear(viewer: UUID) {
         val preview = active.remove(viewer) ?: return
         preview.tasks.forEach { runCatching { it.cancel() } }
@@ -116,14 +123,6 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
 
     companion object {
         const val SECONDS = 30
-
-        /** REQ-270: the guild's saved banner item, read fresh; null when it has none. */
-        fun guildBanner(guild: net.lumalyte.lg.domain.entities.Guild): ItemStack? {
-            val fresh = org.koin.core.context.GlobalContext.getOrNull()
-                ?.getOrNull<net.lumalyte.lg.application.services.GuildService>()?.getGuild(guild.id) ?: guild
-            return fresh.banner?.let { runCatching { it.deserializeToItemStack() }.getOrNull() }
-                ?.takeIf { it.type.name.endsWith("_BANNER") }
-        }
     }
 }
 

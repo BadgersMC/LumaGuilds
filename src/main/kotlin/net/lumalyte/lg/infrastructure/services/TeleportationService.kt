@@ -120,6 +120,7 @@ class TeleportationService(
                 .takeIf { it in 1..COUNTDOWN_SECONDS } ?: COUNTDOWN_SECONDS
             startTeleportInternal(player, targetLocation, {
                 homeCooldowns.markTeleported(playerId)
+                playArrival(player)
                 onSuccess?.invoke()
             }, seconds, stillAllowed)
         }
@@ -132,6 +133,16 @@ class TeleportationService(
         onSuccess: (() -> Unit)? = null,
         mayProceed: (() -> Boolean)?,
     ) = onMain { startTeleportInternal(player, targetLocation, onSuccess, COUNTDOWN_SECONDS, mayProceed) }
+
+    /** REQ-281: the Quiet portal arrival, heard only by the player who arrived. */
+    private fun playArrival(player: Player) {
+        net.lumalyte.lg.domain.values.HomeArrivalSound.cues.forEach { cue ->
+            val sound = net.kyori.adventure.sound.Sound.sound(net.kyori.adventure.key.Key.key(cue.sound),
+                net.kyori.adventure.sound.Sound.Source.MASTER, cue.volume, cue.pitch)
+            if (cue.delayTicks <= 0) player.playSound(sound)
+            else Bukkit.getScheduler().runTaskLater(plugin, Runnable { if (player.isOnline) player.playSound(sound) }, cue.delayTicks)
+        }
+    }
 
     private inline fun <T> safe(fallback: T, read: () -> T): T = runCatching(read).getOrDefault(fallback)
 
