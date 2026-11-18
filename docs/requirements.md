@@ -968,6 +968,8 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 ### REQ-276
 **Unwanted behaviour.** IF a protection plugin cancels the spawn of a Hall statue LumaGuilds is spawning (for example WorldGuard's `block-plugin-spawning` in a region that denies mob spawning), THEN THE SYSTEM SHALL let that one spawn through; and IF a statue is still refused or is removed again within ten seconds of being built, THEN THE SYSTEM SHALL remove what it built, log a warning naming the pedestal once, and not rebuild it until its plan changes or staff run `/lumaguilds hall refresh`.
 
+### REQ-280
+**Unwanted behaviour.** IF a guild moment's sound would be stopped before it finishes, THEN THE SYSTEM SHALL let it ring out instead, because Minecraft can't fade a playing sound and stopping one by name is a hard cut that also silences the player's own copies of it (crits, level-ups). The war call and defeat SHALL not use the wither-spawn roar, which played as low background noise; a low bass note gives the weight instead.
 ### REQ-277
 **Ubiquitous.** THE SYSTEM SHALL show the badge of the guild's current prestige tier (as in REQ-269) above the nameplate of its Hall statue and its Hall preview, still and facing the front, with its lower edge clear above the nameplate so it never covers the guild's name.
 

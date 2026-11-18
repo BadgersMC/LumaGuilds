@@ -37,7 +37,7 @@ class GuildSoundCatalogTest {
     @Test
     fun `length leaves room for delayed cues`() {
         val victory = assertNotNull(GuildSoundCatalog.find("war-victory"))
-        assertTrue(victory.lengthTicks >= 78)
+        assertTrue(victory.lengthTicks >= 21 + 30)
         assertEquals(30, assertNotNull(GuildSoundCatalog.find("menu-click")).lengthTicks)
     }
 }
