@@ -7,7 +7,6 @@ import net.lumalyte.lg.application.services.StallReadResult
 import net.lumalyte.lg.domain.achievements.*
 import org.bukkit.Bukkit
 import org.bukkit.NamespacedKey
-import org.bukkit.Statistic
 import org.bukkit.entity.Player
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
@@ -30,7 +29,10 @@ internal class GuildAchievementRuntime(
      */
     private val guildXp: (guildId: UUID, amount: Int, payoutId: UUID) -> net.lumalyte.lg.domain.values.SystemAward =
         { _, _, _ -> net.lumalyte.lg.domain.values.SystemAward.PAID_NOW },
+    /** REQ-300: where each member's last known playtime is kept between restarts. */
+    playtimeStore: net.lumalyte.lg.domain.values.MemberPlaytimeStore = net.lumalyte.lg.domain.values.MemberPlaytimeStore.InMemory(),
 ) {
+    internal val playtime = GuildPlaytime(plugin, members, playtimeStore)
     /** True while a member is being caught up on join, so reward-free completions stay private (REQ-229). */
     private var joining = false
     /** Guild-wide payouts confirmed this run, so the ledger is not asked again every minute. */
@@ -46,6 +48,7 @@ internal class GuildAchievementRuntime(
 
     fun start() {
         projection.register()
+        playtime.start()
         plugin.server.pluginManager.registerEvents(GuildAchievementListener(this), plugin)
         runCatching { GuildAchievementCompanions(plugin, this).start() }
             .onFailure { plugin.logger.severe("Achievement companion state unavailable; core tracking remains active: ${it.javaClass.simpleName}") }
@@ -72,6 +75,7 @@ internal class GuildAchievementRuntime(
     fun stop() {
         Bukkit.getOnlinePlayers().filter { it.uniqueId in dirty }.forEach { flush(it) }
         projection.close()
+        playtime.stop()
     }
 
     fun guild(playerId: UUID): UUID? = members.getGuildsByPlayer(playerId).sortedBy { it.toString() }.firstOrNull()
@@ -86,6 +90,7 @@ internal class GuildAchievementRuntime(
     }
 
     fun initialize(player: Player) {
+        playtime.record(player)
         val guild = guild(player.uniqueId) ?: return
         joining = true
         try {
@@ -227,17 +232,19 @@ internal class GuildAchievementRuntime(
     fun refreshProjection() { if (!projection.available) projection.register() }
 
     fun leave(player: Player) {
+        runCatching { playtime.record(player) }
         if (player.uniqueId in dirty) flush(player)
         records.remove(player.uniqueId)
         failed.remove(player.uniqueId)
     }
 
     /** Guild-wide figures read from the guild itself rather than counted while a member is online. */
-    private data class GuildTotals(val level: Int?, val hours: Int, val members: Int, val ageDays: Int?)
+    /** [hours] is null while some member's stored playtime is still being read (REQ-300). */
+    private data class GuildTotals(val level: Int?, val hours: Int?, val members: Int, val ageDays: Int?)
 
     private fun totals(guild: UUID): GuildTotals {
         val roster = members.getByGuild(guild)
-        val hours = playHours(roster.map { Bukkit.getOfflinePlayer(it.playerId).getStatistic(Statistic.PLAY_ONE_MINUTE).toLong() })
+        val hours = playtime.memberTicks(guild)?.let(::playHours)
         val age = createdAt(guild)?.let { java.time.Duration.between(it, clock()).toDays().coerceIn(0L, Int.MAX_VALUE.toLong()).toInt() }
         return GuildTotals(progression.getGuildProgression(guild)?.currentLevel, hours, roster.size, age)
     }
@@ -260,7 +267,7 @@ internal class GuildAchievementRuntime(
         engine.definitions.filter { node ->
             when (node.requirement) {
                 "GUILD_LEVEL_UP" -> (totals.level ?: 0) >= (node.target?.toIntOrNull() ?: Int.MAX_VALUE)
-                "GUILD_COMBINED_PLAYTIME" -> totals.hours >= node.goal
+                "GUILD_COMBINED_PLAYTIME" -> (totals.hours ?: -1) >= node.goal
                 "GUILD_MEMBER_COUNT" -> totals.members >= node.goal
                 "GUILD_AGE_DAYS" -> (totals.ageDays ?: -1) >= node.goal
                 else -> false
@@ -270,7 +277,7 @@ internal class GuildAchievementRuntime(
 
     private fun signalTotals(player: Player, totals: GuildTotals) {
         totals.level?.let { signal(player, "GUILD_LEVEL_UP", it.toString()) }
-        signal(player, "GUILD_COMBINED_PLAYTIME", amount = totals.hours, absolute = true)
+        totals.hours?.let { signal(player, "GUILD_COMBINED_PLAYTIME", amount = it, absolute = true) }
         signal(player, "GUILD_MEMBER_COUNT", amount = totals.members, absolute = true)
         totals.ageDays?.let { signal(player, "GUILD_AGE_DAYS", amount = it, absolute = true) }
     }
