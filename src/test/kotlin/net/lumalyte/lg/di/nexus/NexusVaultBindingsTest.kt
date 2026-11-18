@@ -72,6 +72,7 @@ class NexusVaultBindingsTest {
     private fun registerVaultDependencies(context: NexusContext, config: ConfigService) {
         val plugin = mockk<LumaGuilds>()
         every { plugin.name } returns "LumaGuilds"
+        every { plugin.namespace() } returns "lumaguilds"
         every { plugin.dataFolder } returns tempDir
         context.registerBean("plugin", LumaGuilds::class, plugin)
         context.registerBean("storage", Storage::class, stubStorage())
