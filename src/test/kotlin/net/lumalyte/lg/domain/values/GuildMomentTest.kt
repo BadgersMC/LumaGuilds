@@ -18,15 +18,20 @@ internal class GuildMomentTest {
     }
 
     @Test fun `cues follow the mockup recipe`() {
-        // war-redesign.js: impact .13 @.7, bell .51 @.85, bell .42 @.8 after 200 ms
-        assertEquals(listOf("entity.wither.spawn", "block.bell.use", "block.bell.use"), GuildMoment.DECLARED.cues.map { it.sound })
+        // war-redesign.js bells .51 @.85 and .42 @.8 after 200 ms; REQ-280 swaps the wither roar for a bass note
+        assertEquals(listOf("block.bell.use", "block.note_block.bass", "block.bell.use"), GuildMoment.DECLARED.cues.map { it.sound })
         // victory: triumph, reward (harp D then A), amethyst chime @1.15 after 1050 ms
         assertEquals("ui.toast.challenge_complete", GuildMoment.VICTORY.cues.first().sound)
         assertTrue(GuildMoment.VICTORY.cues.any { it.sound == "block.amethyst_block.chime" && it.delayTicks == 21L })
-        assertEquals(listOf("entity.wither.spawn", "block.bell.use"), GuildMoment.DEFEAT.cues.map { it.sound })
+        assertEquals(listOf("block.bell.use", "block.note_block.bass", "block.bell.use"), GuildMoment.DEFEAT.cues.map { it.sound })
         assertEquals(listOf("block.note_block.harp", "block.note_block.harp", "block.amethyst_block.chime"), GuildMoment.PEACE.cues.map { it.sound })
-        // the low impact is cut short as the mockup fades it out
-        assertTrue(GuildMoment.DECLARED.cues.first().stopAfterTicks in 26L..28L)
+    }
+
+    @Test fun `REQ-280 no moment cuts a sound short or uses the wither roar`() {
+        GuildMoment.entries.forEach { moment ->
+            assertTrue(moment.cues.all { it.stopAfterTicks == null }, "${moment.name} stops a sound early, which is a hard cut in game")
+            assertTrue(moment.cues.none { it.sound == "entity.wither.spawn" }, "${moment.name} uses the wither roar")
+        }
     }
 
     @Test fun `a declaration rings two bells then lands a low impact`() {

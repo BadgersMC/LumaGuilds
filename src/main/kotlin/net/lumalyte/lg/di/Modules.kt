@@ -730,7 +730,8 @@ fun progressionModule() = module {
     single { net.lumalyte.lg.infrastructure.services.GuildAchievementRuntime(get<JavaPlugin>(), get(), get(),
         createdAt = { id -> get<net.lumalyte.lg.application.persistence.GuildRepository>().getById(id)?.createdAt },
         guildXp = { guild, amount, payout -> get<net.lumalyte.lg.application.services.ProgressionService>()
-            .awardSystemExperienceOnce(guild, amount, net.lumalyte.lg.domain.values.ExperienceSource.GUILD_ADVANCEMENT, payout) }) }
+            .awardSystemExperienceOnce(guild, amount, net.lumalyte.lg.domain.values.ExperienceSource.GUILD_ADVANCEMENT, payout) },
+        playtimeStore = net.lumalyte.lg.infrastructure.persistence.guilds.MemberPlaytimeStoreSQL(get())) }
     single { net.lumalyte.lg.application.services.GuildActionCoordinator() }
     single { net.lumalyte.lg.domain.rewards.RewardCatalog.chapterTwo() }
     single<net.lumalyte.lg.application.persistence.ChronicleGoalRepository> {

@@ -970,3 +970,26 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-298
 **Event-driven.** WHEN a guild first reaches a prestige tier, THE SYSTEM SHALL record that tier's Discord role for every member in the guild at that moment, permanently, and SHALL give each linked member only the role for their highest earned tier (taking away their lower prestige roles); members who link later SHALL receive theirs on linking. Prestiges earned before this feature SHALL be backfilled from prestige and membership history. WHERE an icon path is configured, THE SYSTEM SHALL set each prestige role's icon from the in-game badge when the role has none.
+### REQ-300
+**Ubiquitous.** THE SYSTEM SHALL work out a guild's combined playtime from each member's stored play ticks, reading online members live and storing a member's value when they join and when they leave, and SHALL NOT read an offline player's statistics while totalling a guild. A member with no stored value (for example every member on the first start after upgrading, or an offline player added to a guild) SHALL be read on the server thread by a backfill limited to about 2 ms and 4 players every 2 ticks, reading members a guild is waiting on first; until all of a guild's members are known, THE SYSTEM SHALL leave that guild's combined-playtime progress and payouts as they were.
+### REQ-281
+**Event-driven.** WHEN a guild-home or allied-home teleport lands, THE SYSTEM SHALL play the message studio's "Quiet portal" cue to that player only: entity.enderman.teleport (volume 0.13, pitch 1.3), then block.note_block.harp (volume 0.23, pitch 1.1) five ticks later. Staff SHALL be able to audition it with `/lumaguilds sounds home-teleport`.
+### REQ-280
+**Unwanted behaviour.** IF a guild moment's sound would be stopped before it finishes, THEN THE SYSTEM SHALL let it ring out instead, because Minecraft can't fade a playing sound and stopping one by name is a hard cut that also silences the player's own copies of it (crits, level-ups). The war call and defeat SHALL not use the wither-spawn roar, which played as low background noise; a low bass note gives the weight instead.
+### REQ-277
+**Ubiquitous.** THE SYSTEM SHALL show the badge of the guild's current prestige tier (as in REQ-269) above the nameplate of its Hall statue and its Hall preview, still and facing the front, with its lower edge clear above the nameplate so it never covers the guild's name.
+
+### REQ-278
+**Event-driven.** WHEN staff hang a wall banner on any side of the column of blocks under a Hall of Prestige pedestal (up to four blocks down), and WHENEVER the guild holding that pedestal changes, THE SYSTEM SHALL repaint that banner as the holding guild's banner, or plain white while nobody holds the pedestal. The Hall statue SHALL not show a floating banner or a floating trophy (this replaces the floating banner of REQ-270).
+
+### REQ-279
+**Event-driven.** WHEN a guild holding a Hall of Prestige pedestal changes its banner, THE SYSTEM SHALL repaint the banner hanging under that pedestal within a few seconds, without staff running a refresh and without rebuilding the statue.
+
+### REQ-282
+**Ubiquitous.** THE SYSTEM SHALL show a Hall statue's nameplate still, facing the front of the statue like its prestige badge, rather than turning to follow each viewer.
+
+### REQ-292
+**Unwanted behaviour.** IF anything tries to damage, kill, ignite or handle a Hall statue entity (including a creative-mode player, whom invulnerability does not stop), THEN THE SYSTEM SHALL cancel it; and IF a statue is removed anyway (for example with /kill), THEN THE SYSTEM SHALL rebuild it, giving up only after three removals in a row each within seconds of a build.
+
+### REQ-294
+**Unwanted behaviour.** IF a Hall statue is drawn with the animated model, THEN THE SYSTEM SHALL keep its mannequin invisible and bare, so a client never sees a plain armored figure while the model loads, and SHALL show players who can't see the model (Bedrock) a separate plain standing figure.
