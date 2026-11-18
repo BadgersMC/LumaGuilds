@@ -970,3 +970,22 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-281
 **Event-driven.** WHEN a guild-home or allied-home teleport lands, THE SYSTEM SHALL play the message studio's "Quiet portal" cue to that player only: entity.enderman.teleport (volume 0.13, pitch 1.3), then block.note_block.harp (volume 0.23, pitch 1.1) five ticks later. Staff SHALL be able to audition it with `/lumaguilds sounds home-teleport`.
+### REQ-280
+**Unwanted behaviour.** IF a guild moment's sound would be stopped before it finishes, THEN THE SYSTEM SHALL let it ring out instead, because Minecraft can't fade a playing sound and stopping one by name is a hard cut that also silences the player's own copies of it (crits, level-ups). The war call and defeat SHALL not use the wither-spawn roar, which played as low background noise; a low bass note gives the weight instead.
+### REQ-277
+**Ubiquitous.** THE SYSTEM SHALL show the badge of the guild's current prestige tier (as in REQ-269) above the nameplate of its Hall statue and its Hall preview, still and facing the front, with its lower edge clear above the nameplate so it never covers the guild's name.
+
+### REQ-278
+**Event-driven.** WHEN staff hang a wall banner on any side of the column of blocks under a Hall of Prestige pedestal (up to four blocks down), and WHENEVER the guild holding that pedestal changes, THE SYSTEM SHALL repaint that banner as the holding guild's banner, or plain white while nobody holds the pedestal. The Hall statue SHALL not show a floating banner or a floating trophy (this replaces the floating banner of REQ-270).
+
+### REQ-279
+**Event-driven.** WHEN a guild holding a Hall of Prestige pedestal changes its banner, THE SYSTEM SHALL repaint the banner hanging under that pedestal within a few seconds, without staff running a refresh and without rebuilding the statue.
+
+### REQ-282
+**Ubiquitous.** THE SYSTEM SHALL show a Hall statue's nameplate still, facing the front of the statue like its prestige badge, rather than turning to follow each viewer.
+
+### REQ-292
+**Unwanted behaviour.** IF anything tries to damage, kill, ignite or handle a Hall statue entity (including a creative-mode player, whom invulnerability does not stop), THEN THE SYSTEM SHALL cancel it; and IF a statue is removed anyway (for example with /kill), THEN THE SYSTEM SHALL rebuild it, giving up only after three removals in a row each within seconds of a build.
+
+### REQ-294
+**Unwanted behaviour.** IF a Hall statue is drawn with the animated model, THEN THE SYSTEM SHALL keep its mannequin invisible and bare, so a client never sees a plain armored figure while the model loads, and SHALL show players who can't see the model (Bedrock) a separate plain standing figure.
