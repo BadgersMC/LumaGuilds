@@ -32,10 +32,15 @@ internal class GuildPlaytime(
     fun start() {
         Bukkit.getOnlinePlayers().forEach { record(it) }
         ledger.enqueue(members.getAll().map { it.playerId }.distinct())
-        if (ledger.pending > 0) plugin.logger.info("Reading stored playtime for ${ledger.pending} guild member(s) in the background")
+        val queued = ledger.pending
+        if (queued > 0) plugin.logger.info("Reading stored playtime for $queued guild member(s) in the background")
+        val started = System.nanoTime()
+        var reads = 0
         backfill = plugin.server.scheduler.runTaskTimer(plugin, Runnable {
             if (ledger.pending == 0) return@Runnable
-            ledger.drain({ id -> live(id) ?: readOffline(id) }, budgetNanos, maxReadsPerRun)
+            reads += ledger.drain({ id -> live(id) ?: readOffline(id) }, budgetNanos, maxReadsPerRun)
+            if (ledger.pending == 0) plugin.logger.info(
+                "Stored playtime ready: read $reads member(s) in ${(System.nanoTime() - started) / 1_000_000_000L}s")
         }, 40L, 2L)
     }
 
