@@ -18,9 +18,9 @@ import java.util.concurrent.Executor
 import java.util.concurrent.RejectedExecutionException
 
 /**
- * Lazy listener binding. Progression, leaderboard and provenance services have
- * not yet all been mapped into Nexus, so the listener must not be constructed
- * until the complete graph is ready and Bukkit listener registration begins.
+ * Lazy shared provenance FIFO and progression listener bindings. The queue borrows
+ * Nexus's virtual-thread executor and rejects submissions after Nexus scope cancellation.
+ * Listener construction and Bukkit registration remain deferred until the final cutover.
  */
 internal fun NexusContext.registerProgressionListenerBindings() {
     // Borrow Nexus's own virtual-thread executor. Never create or shut down an

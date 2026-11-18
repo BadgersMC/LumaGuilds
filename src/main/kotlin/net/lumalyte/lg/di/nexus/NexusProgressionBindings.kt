@@ -99,23 +99,14 @@ import kotlin.reflect.KClass
  *    per call so reloads are observed exactly as before.
  *
  * Intentionally NOT registered here (later tranches):
- *  - BlockProvenanceOperationQueue: needs a java.util.concurrent.Executor. Nexus exposes its
- *    virtual-thread CoroutineDispatcher, not the old named Koin ExecutorService, and a
- *    stand-alone executor must not be allocated. Needs a Nexus-owned Executor bridge first.
- *    NexusProgressionListenerBindings' ProgressionEventListener cannot resolve until then.
- *  - Economy-owned dependencies resolved lazily here but not yet in Nexus:
- *    GuildGoldRepositorySQL (RewardPurchaseRepositorySQL, PrestigeRepositorySQL) and
- *    GuildGoldService (GuildRewardPurchaseService).
- *  - War: WarRepository, WarNotificationRepository, WarNotificationService, WarPaymentService,
- *    WarService, DailyWarCostsService.
- *  - Notifications: QuestCompletionNotificationRepository, PlayerNotificationPreferenceRepository,
- *    ToastSender, QuestCompletionNotifier (Bukkit main-thread bridge),
- *    GuildDisbandAnnouncementService, GuildLoginNotificationService.
- *  - Quests: QuestRewardSink, QuestService, QuestTargetCatalog, QuestAvailabilityNotifierBukkit,
- *    WeeklyQuestCoordinator, QuestProgressListener.
- *  - Leaderboards/web/directory: LeaderboardService, GuildLeaderboardProjectionService,
- *    GuildListService (named VirtualThreadExecutor), GuildDiscordProfileService,
- *    SpawnBannerServiceBukkit, SpawnBannerListener, GuildLeaderboardHandler, WebApiServer.
+ *  - BlockProvenanceOperationQueue: owned by NexusProgressionListenerBindings, using the
+ *    Nexus virtual-thread executor rather than allocating a second thread pool.
+ *  - Economy-owned GuildGoldRepositorySQL and GuildGoldService: provided by NexusEconomyBindings.
+ *  - War/notifications: mapped in NexusWarBindings and NexusQuestBindings.
+ *  - Quest services/listeners and simple LeaderboardService: mapped in NexusQuestBindings.
+ *  - Deferred web/directory: GuildLeaderboardProjectionService, GuildListService (legacy
+ *    VirtualThreadExecutor parameter), GuildDiscordProfileService, SpawnBannerServiceBukkit,
+ *    SpawnBannerListener, GuildLeaderboardHandler and WebApiServer.
  */
 internal fun NexusContext.registerProgressionBindings() {
     // --- Rewards, chronicle and prestige ---

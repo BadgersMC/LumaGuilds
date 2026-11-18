@@ -58,8 +58,9 @@ import kotlin.reflect.KClass
  * BlockProvenanceRepository, ProgressionConfigService, ProgressionService (progression);
  * MemberService (guild core); LangService / plugin (foundation).
  *
- * QuestProgressListener is registered lazily but cannot resolve until the coordinator-owned
- * BlockProvenanceOperationQueue (Executor bridge) exists in Nexus — same as ProgressionEventListener.
+ * QuestProgressListener obtains the shared Nexus-owned BlockProvenanceOperationQueue,
+ * registered lazily by NexusProgressionListenerBindings. Bukkit listener activation
+ * remains deferred until the complete framework cutover.
  *
  * Intentionally NOT registered here: war beans (WarRepository, WarNotificationRepository,
  * WarNotificationService, WarPaymentService, WarService, DailyWarCostsService) and
