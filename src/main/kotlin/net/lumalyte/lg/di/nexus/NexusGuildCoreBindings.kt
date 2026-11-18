@@ -207,7 +207,9 @@ internal fun NexusContext.registerGuildCoreBindings(claimsEnabled: Boolean) {
     if (claimsEnabled) {
         guildSingleton<GuildRolePermissionResolver> {
             GuildRolePermissionResolverBukkit(
-                getBean(), getBean(), getBean(), getBean(), getBean(), getBean()
+                getBean(), getBean(), getBean(), getBean(), getBean(), getBean(),
+                taskScope = requireNotNull(scope) { "Nexus coroutine scope unavailable" },
+                cleanupDispatcher = requireNotNull(dispatchers).virtualThread,
             )
         }
     }

@@ -542,7 +542,11 @@ fun guildsModule() = module {
  */
 fun guildClaimsIntegrationModule() = module {
     single<GuildRolePermissionResolver> {
-        GuildRolePermissionResolverBukkit(get(), get(), get(), get(), get(), get())
+        GuildRolePermissionResolverBukkit(
+            get(), get(), get(), get(), get(), get(),
+            taskScope = get<CoroutineScope>(),
+            cleanupDispatcher = get<CoroutineDispatcher>(named("VirtualDispatcher")),
+        )
     }
 }
 
