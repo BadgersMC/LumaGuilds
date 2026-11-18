@@ -90,8 +90,7 @@ class BedrockHallDisplayMenu(
                     val top = getKoin().get<net.lumalyte.lg.application.services.RankService>().getHighestRank(guild.id)
                     members.getGuildMembers(guild.id).firstOrNull { it.rankId == top?.id }?.playerId
                 }.getOrNull()
-                preview.show(player, guild.name, tier, display, skin,
-                    net.lumalyte.lg.infrastructure.services.HallPreviewService.guildBanner(guild))
+                preview.show(player, guild.name, tier, display, skin)
                 player.sendMessage(lang.msg("hall.feedback.preview",
                     "seconds" to net.lumalyte.lg.infrastructure.services.HallPreviewService.SECONDS,
                     "pose" to (display.wearing(HallSlot.POSE)?.cosmetic(HallSlot.POSE) ?: "-")))

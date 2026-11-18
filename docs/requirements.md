@@ -967,3 +967,21 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-276
 **Unwanted behaviour.** IF a protection plugin cancels the spawn of a Hall statue LumaGuilds is spawning (for example WorldGuard's `block-plugin-spawning` in a region that denies mob spawning), THEN THE SYSTEM SHALL let that one spawn through; and IF a statue is still refused or is removed again within ten seconds of being built, THEN THE SYSTEM SHALL remove what it built, log a warning naming the pedestal once, and not rebuild it until its plan changes or staff run `/lumaguilds hall refresh`.
+
+### REQ-277
+**Ubiquitous.** THE SYSTEM SHALL show the badge of the guild's current prestige tier (as in REQ-269) above the nameplate of its Hall statue and its Hall preview, still and facing the front, with its lower edge clear above the nameplate so it never covers the guild's name.
+
+### REQ-278
+**Event-driven.** WHEN staff hang a wall banner on any side of the column of blocks under a Hall of Prestige pedestal (up to four blocks down), and WHENEVER the guild holding that pedestal changes, THE SYSTEM SHALL repaint that banner as the holding guild's banner, or plain white while nobody holds the pedestal. The Hall statue SHALL not show a floating banner or a floating trophy (this replaces the floating banner of REQ-270).
+
+### REQ-279
+**Event-driven.** WHEN a guild holding a Hall of Prestige pedestal changes its banner, THE SYSTEM SHALL repaint the banner hanging under that pedestal within a few seconds, without staff running a refresh and without rebuilding the statue.
+
+### REQ-282
+**Ubiquitous.** THE SYSTEM SHALL show a Hall statue's nameplate still, facing the front of the statue like its prestige badge, rather than turning to follow each viewer.
+
+### REQ-292
+**Unwanted behaviour.** IF anything tries to damage, kill, ignite or handle a Hall statue entity (including a creative-mode player, whom invulnerability does not stop), THEN THE SYSTEM SHALL cancel it; and IF a statue is removed anyway (for example with /kill), THEN THE SYSTEM SHALL rebuild it, giving up only after three removals in a row each within seconds of a build.
+
+### REQ-294
+**Unwanted behaviour.** IF a Hall statue is drawn with the animated model, THEN THE SYSTEM SHALL keep its mannequin invisible and bare, so a client never sees a plain armored figure while the model loads, and SHALL show players who can't see the model (Bedrock) a separate plain standing figure.
