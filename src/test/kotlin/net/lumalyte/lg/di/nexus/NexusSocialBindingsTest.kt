@@ -1,15 +1,21 @@
 package net.lumalyte.lg.di.nexus
 
+import io.mockk.confirmVerified
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import net.badgersmc.nexus.core.NexusContext
+import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.DiscordGuildRoleGateway
 import net.lumalyte.lg.application.services.EmojiPermissionGateway
 import net.lumalyte.lg.application.services.GuildRecruitmentEligibility
+import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.application.services.PenaltyService
+import net.lumalyte.lg.interaction.listeners.ChatInputListener
+import net.lumalyte.lg.interaction.listeners.GuildChatListener
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import net.lumalyte.lg.infrastructure.services.GuildRecruitmentEligibilityBukkit
 import net.lumalyte.lg.infrastructure.services.LuckPermsEmojiPermissionGateway
@@ -38,7 +44,7 @@ class NexusSocialBindingsTest {
         "guildEmojiGrantListener", "guildDiscordRoleRepository", "discordGuildRoleGateway",
         "guildDiscordRoleService", "guildDiscordRoleListener", "roseChatCleanupListener",
         "globalChatVisibilityListener", "chatDestinationIndicator", "inviteBlockChatListener",
-        "guildMuteChatListener",
+        "guildMuteChatListener", "chatInputListener", "guildChatListener",
     )
 
     private inline fun withContext(block: (NexusContext) -> Unit) {
@@ -51,16 +57,32 @@ class NexusSocialBindingsTest {
     }
 
     @Test
-    fun `social bindings map 37 of 41 legacy registrations under their contract names`() = withContext { context ->
+    fun `social bindings map 39 of 41 legacy registrations under their contract names`() = withContext { context ->
         context.registerSocialBindings()
         val names = context.getBeanNames().toSet()
         assertEquals(expectedNames, names)
-        assertEquals(37, names.size)
-        // Koin field-injected listeners remain deferred; Discord subscriptions are in a separate Nexus group.
-        assertFalse("chatInputListener" in names)
-        assertFalse("guildChatListener" in names)
+        assertEquals(39, names.size)
+        // Discord subscriptions are registered by the separate Nexus Discord group.
         assertFalse("discordAccountLinkSubscription" in names)
         assertFalse("discordGuildProfileSubscription" in names)
+    }
+
+    @Test
+    fun `chat listeners resolve lazily as constructor-injected singletons`() = withContext { context ->
+        // Strict mocks: constructing either listener must not call any dependency.
+        val config = mockk<ConfigService>()
+        context.registerBean("configService", ConfigService::class, config)
+        context.registerBean("guildService", GuildService::class, mockk<GuildService>())
+        context.registerBean("memberService", MemberService::class, mockk<MemberService>())
+        context.registerBean("penaltyService", PenaltyService::class, mockk<PenaltyService>())
+        context.registerBean("langService", LangService::class, mockk<LangService>())
+        context.registerSocialBindings()
+
+        val input = context.getBean<ChatInputListener>()
+        assertSame(input, context.getBean<ChatInputListener>())
+        val guildChat = context.getBean<GuildChatListener>()
+        assertSame(guildChat, context.getBean<GuildChatListener>())
+        confirmVerified(config)
     }
 
     @Test

@@ -33,6 +33,7 @@ import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.InviteBlockService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.PartyService
+import net.lumalyte.lg.application.services.PenaltyService
 import net.lumalyte.lg.application.services.QuestService
 import net.lumalyte.lg.infrastructure.listeners.ChatDestinationIndicator
 import net.lumalyte.lg.infrastructure.listeners.GlobalChatVisibilityListener
@@ -67,20 +68,20 @@ import net.lumalyte.lg.infrastructure.services.GuildRecruitmentEligibilityBukkit
 import net.lumalyte.lg.infrastructure.services.LuckPermsEmojiPermissionGateway
 import net.lumalyte.lg.infrastructure.services.PartyServiceBukkit
 import net.lumalyte.lg.infrastructure.services.UnavailableDiscordGuildRoleGateway
+import net.lumalyte.lg.interaction.listeners.ChatInputListener
+import net.lumalyte.lg.interaction.listeners.GuildChatListener
 import org.bukkit.Bukkit
 import org.bukkit.plugin.Plugin
 import kotlin.reflect.KClass
 
 /**
- * Lazy Nexus replacements for the legacy socialModule Koin graph (37 of 41).
+ * Lazy Nexus replacements for the legacy socialModule Koin graph (39 of 41).
  *
  * Every factory is a SINGLETON and runs only on first lookup, so no listener,
  * repository (DB init) or optional-plugin probe executes at registration time.
  *
- * Intentionally NOT mapped yet:
- *  - ChatInputListener / GuildChatListener: KoinComponent field injection; a Nexus
- *    instance would still resolve from Koin and split singleton state with menus.
- *  - DiscordAccountLinkSubscription / DiscordGuildProfileSubscription: now registered
+ * Not mapped here:
+ *  - DiscordAccountLinkSubscription / DiscordGuildProfileSubscription: registered
  *    separately by NexusDiscordBindings, borrowing the Nexus-owned virtual executor.
  */
 internal fun NexusContext.registerSocialBindings() {
@@ -194,6 +195,17 @@ internal fun NexusContext.registerSocialBindings() {
     socialSingleton<ChatDestinationIndicator> { ChatDestinationIndicator(getBean(), getBean<LangService>()) }
     socialSingleton<InviteBlockChatListener> { InviteBlockChatListener(getBean<InviteBlockService>()) }
     socialSingleton<GuildMuteChatListener> { GuildMuteChatListener(getBean(), getBean(), getBean<LangService>()) }
+
+    // Interaction chat listeners: one singleton each so prompt and previous-channel state stay shared.
+    socialSingleton<ChatInputListener> { ChatInputListener(getBean<ConfigService>()) }
+    socialSingleton<GuildChatListener> {
+        GuildChatListener(
+            getBean<GuildService>(),
+            getBean<MemberService>(),
+            getBean<PenaltyService>(),
+            getBean<LangService>(),
+        )
+    }
 }
 
 @Suppress("UNCHECKED_CAST")

@@ -607,9 +607,9 @@ fun socialModule() = module {
     single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Listeners
-    single<ChatInputListener> { ChatInputListener() }
+    single<ChatInputListener> { ChatInputListener(get()) }
     single<net.lumalyte.lg.interaction.listeners.GuildChatListener> {
-        net.lumalyte.lg.interaction.listeners.GuildChatListener()
+        net.lumalyte.lg.interaction.listeners.GuildChatListener(get(), get(), get(), get())
     }
     single<net.lumalyte.lg.infrastructure.listeners.GuildChannelCreationListener> {
         net.lumalyte.lg.infrastructure.listeners.GuildChannelCreationListener(get(), get())
