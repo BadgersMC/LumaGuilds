@@ -62,7 +62,7 @@ class GuildNexusFoundationTest {
             assertTrue("bankService" in context.getBeanNames())
             assertTrue("guildVaultService" in context.getBeanNames())
             assertTrue("vaultInventoryManager" in context.getBeanNames())
-            assertFalse("blockProvenanceOperationQueue" in context.getBeanNames())
+            assertTrue("blockProvenanceOperationQueue" in context.getBeanNames())
             assertFalse("playerMetadataService" in context.getBeanNames())
             assertSame(context.scope, scope)
             assertTrue(scope.isActive)

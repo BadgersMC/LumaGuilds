@@ -1,5 +1,7 @@
 package net.lumalyte.lg.di.nexus
 
+import kotlinx.coroutines.asExecutor
+import kotlinx.coroutines.isActive
 import net.badgersmc.nexus.core.NexusContext
 import net.lumalyte.lg.application.persistence.BlockProvenanceRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
@@ -12,6 +14,8 @@ import net.lumalyte.lg.infrastructure.listeners.BlockProvenanceOperationQueue
 import net.lumalyte.lg.infrastructure.listeners.ProgressionEventListener
 import net.lumalyte.lg.infrastructure.services.AsyncTaskService
 import org.bukkit.plugin.Plugin
+import java.util.concurrent.Executor
+import java.util.concurrent.RejectedExecutionException
 
 /**
  * Lazy listener binding. Progression, leaderboard and provenance services have
@@ -19,6 +23,19 @@ import org.bukkit.plugin.Plugin
  * until the complete graph is ready and Bukkit listener registration begins.
  */
 internal fun NexusContext.registerProgressionListenerBindings() {
+    // Borrow Nexus's own virtual-thread executor. Never create or shut down an
+    // independent pool: NexusContext remains its sole lifecycle owner.
+    registerBean("blockProvenanceOperationQueue", BlockProvenanceOperationQueue::class) {
+        val ownerScope = requireNotNull(scope) { "Nexus scope unavailable" }
+        val executor = requireNotNull(dispatchers).virtualThread.asExecutor()
+        BlockProvenanceOperationQueue(Executor { task ->
+            if (!ownerScope.isActive) {
+                throw RejectedExecutionException("Nexus scope is closed")
+            }
+            executor.execute(task)
+        })
+    }
+
     registerBean("progressionEventListener", ProgressionEventListener::class) {
         ProgressionEventListener(
             progressionService = getBean<ProgressionService>(),
