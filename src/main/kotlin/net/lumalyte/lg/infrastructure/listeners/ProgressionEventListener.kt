@@ -4,8 +4,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -79,6 +77,7 @@ class ProgressionEventListener(
     private val blockProvenanceRepository: BlockProvenanceRepository,
     private val plugin: Plugin,
     private val virtualDispatcher: CoroutineDispatcher,
+    private val taskScope: CoroutineScope,
     private val provenanceOperations: BlockProvenanceOperationQueue,
 ) : Listener {
 
@@ -98,7 +97,8 @@ class ProgressionEventListener(
         cachedProgressionConfig.entityPools
     )
 
-    private val flushScope = CoroutineScope(SupervisorJob() + virtualDispatcher)
+    // Launched as a child of the plugin's managed scope. Shutdown cancels only
+    // the flush job, then drains XP before the owner closes the dispatcher/DB.
     @Volatile private var flushJob: Job? = null
 
     init {
@@ -128,7 +128,6 @@ class ProgressionEventListener(
         // Force-drain everything still buffered, ignoring cooldowns, before final guild flush.
         flushEligiblePlayerCounters(force = true)
         flushPendingGuildXp()
-        flushScope.cancel()
     }
 
     private fun rebuildExperienceSourceCache(config: ProgressionConfig) {
@@ -149,7 +148,7 @@ class ProgressionEventListener(
 
     private fun startFlushTask() {
         flushJob?.cancel()
-        flushJob = flushScope.launch {
+        flushJob = taskScope.launch(virtualDispatcher) {
             while (isActive) {
                 delay(FLUSH_INTERVAL_MS)
                 try {

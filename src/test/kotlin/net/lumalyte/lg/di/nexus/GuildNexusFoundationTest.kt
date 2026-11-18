@@ -52,6 +52,8 @@ class GuildNexusFoundationTest {
             assertTrue("menuFactory" in context.getBeanNames())
             assertTrue("formCacheService" in context.getBeanNames())
             assertTrue("bedrockLocalizationService" in context.getBeanNames())
+            // Registration is lazy until the rest of the progression graph is migrated.
+            assertTrue("progressionEventListener" in context.getBeanNames())
             assertFalse("playerMetadataService" in context.getBeanNames())
             assertSame(context.scope, scope)
             assertTrue(scope.isActive)

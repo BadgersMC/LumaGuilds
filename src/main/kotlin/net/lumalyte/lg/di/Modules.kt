@@ -1005,6 +1005,7 @@ single {
             blockProvenanceRepository = get(),
             plugin = get(),
             virtualDispatcher = get(named("VirtualDispatcher")),
+            taskScope = get<CoroutineScope>(),
             provenanceOperations = get(),
         )
     }
