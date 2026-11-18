@@ -663,7 +663,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
 
         val menuNavigator = MenuNavigator(player)
         menuNavigator.openMenu(net.lumalyte.lg.interaction.menus.common.ConfirmationMenu(
-            menuNavigator, player, lang.plain("command.migrated.guild.removehome.remove_home", "home_name" to homeName)
+            menuNavigator, player, lang.plain("command.migrated.guild.removehome.remove_home", "home_name" to homeName), lang
         ) {
             val success = guildService.removeHome(guild.id, homeName, playerId)
             if (success) {

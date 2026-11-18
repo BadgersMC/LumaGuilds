@@ -96,7 +96,7 @@ class MenuFactory(
             BedrockConfirmationMenu(menuNavigator, player, title, callback = callback, logger = logger)
         } else {
             // Fall back to Java confirmation menu
-            ConfirmationMenu(menuNavigator, player, title, callback)
+            ConfirmationMenu(menuNavigator, player, title, lang, callback)
         }
     }
 
@@ -124,7 +124,7 @@ class MenuFactory(
             )
         } else {
             // Fall back to Java confirmation menu (basic version)
-            ConfirmationMenu(menuNavigator, player, title, callback)
+            ConfirmationMenu(menuNavigator, player, title, lang, callback)
         }
     }
 
