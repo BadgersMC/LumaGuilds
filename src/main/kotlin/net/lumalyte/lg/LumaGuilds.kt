@@ -1176,6 +1176,39 @@ class LumaGuilds : JavaPlugin() {
             }, 20L * 60L, 20L * 60L * 5L)
         }
 
+        // REQ-299: a server with guild roles off can delete the roles it created, once Discord is ready.
+        if (!discordRoleConfig.enabled && discordRoleConfig.removeOnDisable) {
+            val gateway = get().get<net.lumalyte.lg.application.services.DiscordGuildRoleGateway>()
+            val service = get().get<net.lumalyte.lg.application.services.GuildDiscordRoleService>()
+            var tries = 0
+            lateinit var task: org.bukkit.scheduler.BukkitTask
+            task = server.scheduler.runTaskTimer(this, Runnable {
+                if (++tries > 40) { task.cancel(); logger.warning("Discord never became ready; managed guild roles were not removed"); return@Runnable }
+                if (!gateway.isAvailable()) return@Runnable
+                task.cancel()
+                service.removeAllManaged().whenComplete { result, error ->
+                    if (error != null) logger.warning("Removing managed Discord guild roles failed: ${error.message}")
+                    else logColored("✓ Removed this server's Discord guild roles (${result.failures} failure(s))")
+                }
+            }, 20L * 15L, 20L * 15L)
+        }
+        // REQ-298: Discord roles for guild prestige. Awards are recorded whenever enabled; Discord is
+        // caught up at startup (or when DiscordSRV becomes ready), on account links, and every 30 minutes.
+        server.pluginManager.registerEvents(
+            get().get<net.lumalyte.lg.infrastructure.listeners.PrestigeDiscordRoleListener>(), this)
+        if (get().get<net.lumalyte.lg.application.services.ConfigService>().loadConfig().discordPrestigeRoles.enabled) {
+            get().get<net.lumalyte.lg.application.services.DiscordAccountLinkSubscription>().subscribe()
+            val prestigeRoles = get().get<net.lumalyte.lg.application.services.PrestigeDiscordRoleService>()
+            val catchUp = Runnable {
+                prestigeRoles.reconcileAll().whenComplete { changed, error ->
+                    if (error != null) logger.warning("Prestige Discord role sync failed: ${error.message}")
+                    else if (changed > 0) logColored("✓ Prestige Discord roles: $changed role change(s)")
+                }
+            }
+            server.scheduler.runTaskLater(this, catchUp, 20L * 30L)
+            server.scheduler.runTaskTimer(this, catchUp, 20L * 60L * 30L, 20L * 60L * 30L)
+        }
+
         // Public Discord guild profiles are independent of Discord role syncing:
         // every LumaGuilds guild is browseable, even when guild_roles is disabled.
         get().get<net.lumalyte.lg.application.services.DiscordGuildProfileSubscription>().subscribe()

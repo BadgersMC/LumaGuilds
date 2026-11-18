@@ -669,9 +669,22 @@ fun socialModule() = module {
     single<net.lumalyte.lg.infrastructure.listeners.GuildDiscordRoleListener> {
         net.lumalyte.lg.infrastructure.listeners.GuildDiscordRoleListener(get())
     }
+    // REQ-298: Discord roles for guild prestige tiers.
+    single<net.lumalyte.lg.application.persistence.PrestigeRoleAwardRepository> {
+        net.lumalyte.lg.infrastructure.persistence.guilds.PrestigeRoleAwardRepositorySQL(get())
+    }
+    single {
+        net.lumalyte.lg.application.services.PrestigeDiscordRoleService(
+            get(), get(), get(), getOrNull<net.lumalyte.lg.application.persistence.PrestigeAdministration>(),
+            get(), get(), get(), get(),
+            get<java.util.concurrent.ExecutorService>(named("VirtualThreadExecutor")),
+        ) { _, path -> net.lumalyte.lg.infrastructure.services.PrestigeRoleIcons.load(org.bukkit.Bukkit.getWorldContainer(), path) }
+    }
+    single { net.lumalyte.lg.infrastructure.listeners.PrestigeDiscordRoleListener(get()) }
     single<net.lumalyte.lg.application.services.DiscordAccountLinkSubscription> {
         if (org.bukkit.Bukkit.getPluginManager().getPlugin("DiscordSRV") != null) {
             net.lumalyte.lg.infrastructure.services.DiscordSrvAccountLinkSubscription(
+                get(),
                 get(),
                 get<java.util.concurrent.ExecutorService>(named("VirtualThreadExecutor")),
             )
