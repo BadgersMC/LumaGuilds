@@ -1,6 +1,7 @@
 package net.lumalyte.lg.di.nexus
 
 import io.mockk.confirmVerified
+import kotlinx.coroutines.cancel
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -9,6 +10,7 @@ import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.LumaGuilds
 import net.lumalyte.lg.application.persistence.ClaimRepository
 import net.lumalyte.lg.application.persistence.GuildGoldRepository
+import net.lumalyte.lg.application.persistence.GuildListRepository
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.KillRepository
 import net.lumalyte.lg.application.persistence.LeaderboardRepository
@@ -20,6 +22,7 @@ import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildBannerService
 import net.lumalyte.lg.application.services.GuildDiscordProfileService
+import net.lumalyte.lg.application.services.GuildListService
 import net.lumalyte.lg.application.services.GuildPrestigeService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.LeaderboardService
@@ -31,20 +34,28 @@ import net.lumalyte.lg.config.WebApiConfig
 import net.lumalyte.lg.infrastructure.listeners.SpawnBannerListener
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import net.lumalyte.lg.infrastructure.services.GuildLeaderboardProjectionService
+import net.lumalyte.lg.infrastructure.services.ProgressionConfigService
 import net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator
 import net.lumalyte.lg.infrastructure.services.SpawnBannerServiceBukkit
 import net.lumalyte.lg.infrastructure.web.WebApiServer
 import net.lumalyte.lg.infrastructure.web.handlers.GuildLeaderboardHandler
 import org.junit.jupiter.api.Test
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executor
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertSame
+import kotlin.test.assertTrue
+import kotlin.test.assertFailsWith
 
 class NexusWebBindingsTest {
 
     private val expectedNames = setOf(
         "guildLeaderboardProjectionService",
+        "guildListService",
         "guildDiscordProfileService",
         "spawnBannerServiceBukkit",
         "spawnBannerListener",
@@ -70,18 +81,18 @@ class NexusWebBindingsTest {
         context.registerWebBindings()
         val added = context.getBeanNames().toSet() - before
 
-        assertEquals(6, expectedNames.size)
+        assertEquals(7, expectedNames.size)
         assertEquals(expectedNames, added)
     }
 
     @Test
-    fun `leaves executor-owned and other-tranche bindings alone`() = withContext { context ->
+    fun `leaves other-tranche bindings alone`() = withContext { context ->
         context.registerWebBindings()
         val names = context.getBeanNames()
 
         listOf(
-            // Blocked: legacy named VirtualThreadExecutor ExecutorService.
-            "guildListService", "virtualThreadExecutor",
+            // Nexus provides an Executor directly rather than a legacy named pool.
+            "virtualThreadExecutor",
             // Owned by NexusQuestBindings / NexusProgressionBindings / NexusGuildCoreBindings / claims.
             "leaderboardService", "leaderboardRepository", "spawnBannerRepository", "guildListRepository",
             "killRepository", "seasonalEloCoordinator", "rewardOwnershipRepositorySQL",
@@ -174,6 +185,31 @@ class NexusWebBindingsTest {
 
         // One snapshot per singleton (handler + server), exactly as the Koin graph; never per request.
         verify(exactly = 2) { config.loadConfig() }
+    }
+
+    @Test
+    fun `guild directory borrows the Nexus virtual-thread executor and rejects work after shutdown`() {
+        val context = NexusContext.create(classLoader = javaClass.classLoader)
+        try {
+            context.registerBean("guildListRepository", GuildListRepository::class, mockk<GuildListRepository>())
+            context.registerBean("guildRepository", GuildRepository::class, mockk<GuildRepository>())
+            context.registerBean("configService", ConfigService::class, mockk<ConfigService>())
+            context.registerBean(
+                "progressionConfigService", ProgressionConfigService::class, mockk<ProgressionConfigService>(),
+            )
+            context.registerWebBindings()
+
+            val directory = context.getBean<GuildListService>()
+            assertSame(directory, context.getBean<GuildListService>())
+            val executor = privateField(directory, "asyncExecutor") as Executor
+            assertTrue(CompletableFuture.supplyAsync({ Thread.currentThread().isVirtual }, executor)
+                .get(5, TimeUnit.SECONDS))
+
+            requireNotNull(context.scope).cancel()
+            assertFailsWith<RejectedExecutionException> { executor.execute {} }
+        } finally {
+            context.close()
+        }
     }
 
     @Test

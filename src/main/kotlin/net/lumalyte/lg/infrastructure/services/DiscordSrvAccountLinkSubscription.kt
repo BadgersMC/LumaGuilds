@@ -11,12 +11,12 @@ import net.lumalyte.lg.application.services.DiscordGuildRoleSyncSummary
 import net.lumalyte.lg.application.services.GuildDiscordRoleService
 import org.slf4j.LoggerFactory
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicBoolean
 
 class DiscordSrvAccountLinkSubscription(
     private val service: GuildDiscordRoleService,
-    private val executor: ExecutorService,
+    private val executor: Executor,
 ) : DiscordAccountLinkSubscription {
     private val logger = LoggerFactory.getLogger(DiscordSrvAccountLinkSubscription::class.java)
     private val subscribed = AtomicBoolean(false)

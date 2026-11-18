@@ -6,6 +6,7 @@ import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.LumaGuilds
 import net.lumalyte.lg.application.persistence.ClaimRepository
 import net.lumalyte.lg.application.persistence.GuildGoldRepository
+import net.lumalyte.lg.application.persistence.GuildListRepository
 import net.lumalyte.lg.application.persistence.GuildRepository
 import net.lumalyte.lg.application.persistence.KillRepository
 import net.lumalyte.lg.application.persistence.LeaderboardRepository
@@ -17,6 +18,7 @@ import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildBannerService
 import net.lumalyte.lg.application.services.GuildDiscordProfileService
+import net.lumalyte.lg.application.services.GuildListService
 import net.lumalyte.lg.application.services.GuildPrestigeService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.LeaderboardService
@@ -25,6 +27,7 @@ import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.application.services.RelationService
 import net.lumalyte.lg.infrastructure.listeners.SpawnBannerListener
 import net.lumalyte.lg.infrastructure.services.GuildLeaderboardProjectionService
+import net.lumalyte.lg.infrastructure.services.ProgressionConfigService
 import net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator
 import net.lumalyte.lg.infrastructure.services.SpawnBannerServiceBukkit
 import net.lumalyte.lg.infrastructure.web.WebApiServer
@@ -60,10 +63,9 @@ import kotlin.reflect.KClass
  * GuildGoldRepositorySQL interface index, BankService (economy); LeaderboardService (quest);
  * ClaimRepository (claims, optional); plugin, ConfigService, LangService (foundation).
  *
- * Intentionally NOT registered (blocker): GuildListService. Koin injects the legacy named
- * `VirtualThreadExecutor` ExecutorService. Nexus exposes only a CoroutineDispatcher through
- * its public API, and this tranche must neither create/own a new executor nor silently adapt
- * the dispatcher. It stays deferred until an executor-ownership decision is made.
+ * GuildListService accepts Executor, even though Koin previously supplied an ExecutorService.
+ * It borrows Nexus's virtual-thread pool through nexusVirtualExecutor(), which rejects work
+ * after scope cancellation and creates no independently owned executor.
  */
 internal fun NexusContext.registerWebBindings() {
     webSingleton<GuildLeaderboardProjectionService> {
@@ -77,7 +79,15 @@ internal fun NexusContext.registerWebBindings() {
             getBean<LeaderboardRepository>(),
         )
     }
-    // GuildListService deliberately omitted; see file KDoc.
+    webSingleton<GuildListService> {
+        GuildListService(
+            repository = getBean<GuildListRepository>(),
+            guildRepository = getBean<GuildRepository>(),
+            configService = getBean<ConfigService>(),
+            progressionConfigService = getBean<ProgressionConfigService>(),
+            asyncExecutor = nexusVirtualExecutor(),
+        )
+    }
     webSingleton<GuildDiscordProfileService> {
         GuildDiscordProfileService(
             guildService = getBean<GuildService>(),
