@@ -97,6 +97,12 @@ class LumaGuilds : JavaPlugin() {
         // Start Koin with modular architecture
         startKoin { modules(appModule(this@LumaGuilds, storage, claimsEnabled)) }
 
+        // Bedrock form state cleanup runs as a child of pluginScope; onDisable stops it via shutdown().
+        net.lumalyte.lg.interaction.menus.bedrock.FormStateManager.start(
+            pluginScope,
+            get().get<kotlinx.coroutines.CoroutineDispatcher>(org.koin.core.qualifier.named("VirtualDispatcher")),
+        )
+
         // Repair the production invariant that every live guild has reward/prestige state.
         // This is idempotent and only inserts accounts that are completely missing.
         try {

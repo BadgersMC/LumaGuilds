@@ -1,36 +1,81 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
+import java.util.logging.Level
+import java.util.logging.Logger
 
 /**
  * Manages form state persistence and timeout handling for multi-step workflows
  * Provides thread-safe state storage with automatic cleanup
+ *
+ * Periodic cleanup is a child job of a plugin-owned [CoroutineScope], started explicitly via
+ * [start] and stopped via [shutdown]. No executor or thread is created by this object. Until
+ * [start] is called, expired entries are still dropped lazily on [restoreState].
+ *
+ * Threading: storage is a [ConcurrentHashMap]; the cleanup sweep touches only that map and never
+ * calls Bukkit APIs, so it is safe on any (non-main) dispatcher.
  */
 object FormStateManager {
 
     // State storage with expiration tracking
     private val stateStorage = ConcurrentHashMap<String, StateEntry>()
 
-    // Executor for cleanup tasks
-    private val cleanupExecutor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor { r ->
-        Thread(r, "FormState-Cleanup").apply { isDaemon = true }
-    }
-
     // Default state expiration time (30 minutes)
-    private const val DEFAULT_EXPIRATION_MINUTES = 30L
+    internal const val DEFAULT_EXPIRATION_MINUTES = 30L
 
-    init {
-        // Schedule periodic cleanup every 10 minutes
-        cleanupExecutor.scheduleAtFixedRate(
-            this::cleanupExpiredStates,
-            10,
-            10,
-            TimeUnit.MINUTES
-        )
+    // Initial delay and recurring cadence of the cleanup sweep (10 minutes)
+    internal val CLEANUP_INTERVAL_MILLIS: Long = TimeUnit.MINUTES.toMillis(10)
+
+    private const val SHUTDOWN_JOIN_TIMEOUT_MILLIS = 5_000L
+
+    private val logger = Logger.getLogger(FormStateManager::class.java.name)
+
+    private val lifecycleLock = Any()
+
+    @Volatile
+    private var cleanupJob: Job? = null
+
+    /**
+     * Starts the periodic cleanup as a child of [ownerScope] on [cleanupDispatcher].
+     * Idempotent: returns false (and does nothing) while a cleanup child is already active.
+     * The owner scope is never cancelled by this object.
+     */
+    fun start(ownerScope: CoroutineScope, cleanupDispatcher: CoroutineDispatcher): Boolean =
+        start(ownerScope, cleanupDispatcher, CLEANUP_INTERVAL_MILLIS)
+
+    /** Test seam: same as [start] with a configurable cadence. */
+    internal fun start(
+        ownerScope: CoroutineScope,
+        cleanupDispatcher: CoroutineDispatcher,
+        cleanupIntervalMillis: Long,
+    ): Boolean = synchronized(lifecycleLock) {
+        if (cleanupJob?.isActive == true) return@synchronized false
+        cleanupJob = ownerScope.launch(cleanupDispatcher) {
+            while (isActive) {
+                delay(cleanupIntervalMillis)
+                try {
+                    cleanupExpiredStates()
+                } catch (e: Exception) {
+                    // Keep the sweep alive; a single failed pass must not stop future cleanup.
+                    logger.log(Level.WARNING, "Bedrock form state cleanup pass failed", e)
+                }
+            }
+        }
+        true
     }
+
+    /** Whether the cleanup child job is currently running (for lifecycle checks). */
+    internal fun isCleanupActive(): Boolean = cleanupJob?.isActive == true
 
     /**
      * Data class to store state with expiration timestamp
@@ -107,7 +152,7 @@ object FormStateManager {
     /**
      * Cleanup expired states
      */
-    private fun cleanupExpiredStates() {
+    internal fun cleanupExpiredStates() {
         val now = System.currentTimeMillis()
         val expiredKeys = stateStorage.entries.filter { (_, entry) ->
             now > entry.expiresAt
@@ -173,16 +218,21 @@ object FormStateManager {
     }
 
     /**
-     * Shutdown method for proper cleanup
+     * Cancels and joins only the cleanup child job (never the owner scope) and clears all state.
+     * Safe to call repeatedly or without a prior [start]; [start] may be called again afterwards.
+     *
+     * Blocks the caller (normally the Bukkit main thread in onDisable) for at most 5 seconds.
+     * In practice the join is near-instant: the child only suspends in delay() and the sweep is
+     * a short in-memory map scan.
      */
     fun shutdown() {
-        cleanupExecutor.shutdown()
-        try {
-            if (!cleanupExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
-                cleanupExecutor.shutdownNow()
-            }
-        } catch (e: InterruptedException) {
-            cleanupExecutor.shutdownNow()
+        val job = synchronized(lifecycleLock) {
+            cleanupJob.also { cleanupJob = null }
+        }
+        if (job != null) {
+            runBlocking {
+                withTimeoutOrNull(SHUTDOWN_JOIN_TIMEOUT_MILLIS) { job.cancelAndJoin() }
+            } ?: logger.warning("Bedrock form state cleanup did not stop within ${SHUTDOWN_JOIN_TIMEOUT_MILLIS}ms")
         }
         stateStorage.clear()
     }
