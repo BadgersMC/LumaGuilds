@@ -4,7 +4,8 @@ import net.lumalyte.lg.domain.entities.WarNotificationKind
 
 /**
  * One sound in a moment: a vanilla sound key, played [delayTicks] after the moment starts and,
- * when [stopAfterTicks] is set, cut that many ticks after it starts (the mockup fades it out there).
+ * when [stopAfterTicks] is set, cut that many ticks after it starts. Minecraft can't fade, so a stop is a
+ * hard cut that also silences the player's own copies of that sound: guild moments never set it (REQ-280).
  */
 data class SoundCue(val sound: String, val volume: Float, val pitch: Float, val delayTicks: Long = 0, val stopAfterTicks: Long? = null)
 
@@ -17,44 +18,45 @@ data class SoundCue(val sound: String, val volume: Float, val pitch: Float, val 
  * so the loudest cue plays near full volume in game.
  */
 enum class GuildMoment(val cues: List<SoundCue>) {
-    /** impact .13 @.7 (fade by 1.35 s), bell .51 @.85, bell .42 @.8 after 200 ms. */
+    /** Two bells (.51 @.85, .42 @.8 after 200 ms) over a low bass note; every cue rings out. */
     DECLARED(WAR_CALL),
 
     /** The mockup reuses the declaration cue when the war starts. */
     BEGINS(WAR_CALL),
 
-    /** triumph .65 (fade by 3.9 s), reward .46, chime .24 @1.15 after 1050 ms. */
+    /** triumph .65, reward .46, chime .24 @1.15 after 1050 ms; every cue rings out. */
     VICTORY(listOf(
-        SoundCue("ui.toast.challenge_complete", 0.98f, 1.0f, 0, 78),
+        SoundCue("ui.toast.challenge_complete", 0.98f, 1.0f, 0),
         SoundCue("block.note_block.harp", 0.69f, HARP_D, 0),
         SoundCue("block.note_block.harp", 0.62f, HARP_A, 4),
-        SoundCue("block.amethyst_block.chime", 0.36f, 1.15f, 21, 26),
+        SoundCue("block.amethyst_block.chime", 0.36f, 1.15f, 21),
     )),
 
-    /** impact .16 @.6 (fade by 1.6 s), bell .35 @.7 (fade by 1.7 s). */
+    /** A low bell over a bass note, then a lower bell 400 ms later, tolling out. */
     DEFEAT(listOf(
-        SoundCue("entity.wither.spawn", 0.24f, 0.6f, 0, 32),
-        SoundCue("block.bell.use", 0.53f, 0.7f, 0, 34),
+        SoundCue("block.bell.use", 0.53f, 0.7f, 0),
+        SoundCue("block.note_block.bass", 0.6f, 0.5f, 0),
+        SoundCue("block.bell.use", 0.42f, 0.6f, 8),
     )),
 
-    /** reward .38 @.85, chime .18 @.95 after 650 ms (fade by 1.25 s). */
+    /** reward .38 @.85, chime .18 @.95 after 650 ms. */
     PEACE(listOf(
         SoundCue("block.note_block.harp", 0.57f, HARP_D * 0.85f, 0),
         SoundCue("block.note_block.harp", 0.51f, HARP_A * 0.85f, 4),
-        SoundCue("block.amethyst_block.chime", 0.27f, 0.95f, 13, 25),
+        SoundCue("block.amethyst_block.chime", 0.27f, 0.95f, 13),
     )),
 
     /** Not in the mockup: the peace cue raised a little, so it reads as good news. */
     ALLIANCE(listOf(
         SoundCue("block.note_block.harp", 0.6f, HARP_D * 1.12f, 0),
         SoundCue("block.note_block.harp", 0.55f, HARP_A * 1.12f, 4),
-        SoundCue("block.amethyst_block.chime", 0.3f, 1.3f, 8, 25),
+        SoundCue("block.amethyst_block.chime", 0.3f, 1.3f, 8),
     )),
 
     /** "slower crit + faster level up": crit .48 @.75, level-up .48 @1.9 after 130 ms. */
     KILL(listOf(
-        SoundCue("entity.player.attack.crit", 0.72f, 0.75f, 0, 11),
-        SoundCue("entity.player.levelup", 0.72f, 1.9f, 3, 16),
+        SoundCue("entity.player.attack.crit", 0.72f, 0.75f, 0),
+        SoundCue("entity.player.levelup", 0.72f, 1.9f, 3),
     ));
 
     companion object {
@@ -75,8 +77,14 @@ enum class GuildMoment(val cues: List<SoundCue>) {
 private const val HARP_D = 0.7937f
 private const val HARP_A = 1.1892f
 
+/**
+ * REQ-280: no cue is cut short. Minecraft can't fade a playing sound, so the mockup's fades were hard
+ * cuts in game (and stopping a sound by name also cut the player's own crits and level-ups). The
+ * wither-spawn impact was a long low roar that read as background noise under the bells; a low
+ * bass note gives the weight instead.
+ */
 private val WAR_CALL = listOf(
-    SoundCue("entity.wither.spawn", 0.2f, 0.7f, 0, 27),
-    SoundCue("block.bell.use", 0.77f, 0.85f, 0, 36),
-    SoundCue("block.bell.use", 0.63f, 0.8f, 4, 32),
+    SoundCue("block.bell.use", 0.77f, 0.85f, 0),
+    SoundCue("block.note_block.bass", 0.6f, 0.5f, 0),
+    SoundCue("block.bell.use", 0.63f, 0.8f, 4),
 )
