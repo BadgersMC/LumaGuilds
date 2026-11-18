@@ -113,11 +113,6 @@ class GuildRelationBrowserMenu(
         } else {
             lang.gui("menu.guild_info.relation_browser.enemies.guild_name", "guild" to otherGuild.name)
         }
-        val mode = if (otherGuild.mode == GuildMode.PEACEFUL) {
-            lang.gui("menu.guild_info.relation_browser.mode.peaceful")
-        } else {
-            lang.gui("menu.guild_info.relation_browser.mode.hostile")
-        }
 
         return banner
             .name(displayName)
@@ -128,7 +123,6 @@ class GuildRelationBrowserMenu(
                 )
             )
             .lore(lang.gui("menu.guild_info.relation_browser.level", "level" to otherGuild.level))
-            .lore(lang.gui("menu.guild_info.relation_browser.mode.line", "mode" to mode))
             .lore(lang.gui("menu.common.blank"))
             .lore(lang.gui("menu.guild_info.relation_browser.open"))
     }

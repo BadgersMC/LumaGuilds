@@ -987,11 +987,56 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 ### REQ-279
 **Event-driven.** WHEN a guild holding a Hall of Prestige pedestal changes its banner, THE SYSTEM SHALL repaint the banner hanging under that pedestal within a few seconds, without staff running a refresh and without rebuilding the statue.
 
+### REQ-280
+**Unwanted behaviour.** IF a guild moment's sound would be stopped before it finishes, THEN THE SYSTEM SHALL let it ring out instead, because Minecraft can't fade a playing sound and stopping one by name is a hard cut that also silences the player's own copies of it (crits, level-ups). The war call and defeat SHALL not use the wither-spawn roar, which played as low background noise; a low bass note gives the weight instead.
+
+### REQ-281
+**Event-driven.** WHEN a guild-home or allied-home teleport lands, THE SYSTEM SHALL play the message studio's "Quiet portal" cue to that player only: entity.enderman.teleport (volume 0.13, pitch 1.3), then block.note_block.harp (volume 0.23, pitch 1.1) five ticks later. Staff SHALL be able to audition it with `/lumaguilds sounds home-teleport`.
+
 ### REQ-282
 **Ubiquitous.** THE SYSTEM SHALL show a Hall statue's nameplate still, facing the front of the statue like its prestige badge, rather than turning to follow each viewer.
+
+### REQ-283
+**Ubiquitous.** THE SYSTEM SHALL pose every Hall statue in Guard and SHALL offer only the Nameplate, Title flourish and Plinth theme slots in Hall Display; Pose, Spotlight, Hall sound, Aura and Trophy are removed, and saved choices for them are ignored.
+
+### REQ-284
+**Ubiquitous.** THE SYSTEM SHALL show each prestiged guild's prestige ("Prestige N") on its guild leaderboard row, on the members line so the card layout and order are unchanged.
+
+### REQ-285
+**Ubiquitous.** THE SYSTEM SHALL show the guild's actual standing ("#N of M guilds") on the Guild Progression page's Guild Rank item, using the leaderboard's level order.
+
+### REQ-286
+**Ubiquitous.** THE SYSTEM SHALL show each Guild Advancement with the same item icon it has in the vanilla advancements screen.
+
+### REQ-287
+**Ubiquitous.** THE SYSTEM SHALL draw the Chronicle's Earning Guide, Prestige Milestones and Retained Legacy Perks tabs as clearly clickable buttons without prestige icons, and SHALL show each retained legacy perk with the icon of its kind (bank, homes, travel) rather than the prestige badge.
+
+### REQ-288
+**Ubiquitous.** THE SYSTEM SHALL call the home-slot rewards "Guild Homes" and the allied-home reward "Ally Homes", and SHALL show the guild's prestige badge on the Chronicle's Prestige Rewards button.
+
+### REQ-289
+**Ubiquitous.** THE SYSTEM SHALL not offer `/g bannerman` nor render guild banners on members' backs, and SHALL clear any such banner displays left in the world.
+
+### REQ-290
+**Ubiquitous.** THE SYSTEM SHALL not offer Peaceful and Hostile guild modes (no `/g mode`, mode menus, settings controls, help topic or mode lines in guild info), and SHALL treat every guild as able to war.
+
+### REQ-291
+**Ubiquitous.** THE SYSTEM SHALL not offer `/g start`, the Getting Started menu or its first-join prompt.
 
 ### REQ-292
 **Unwanted behaviour.** IF anything tries to damage, kill, ignite or handle a Hall statue entity (including a creative-mode player, whom invulnerability does not stop), THEN THE SYSTEM SHALL cancel it; and IF a statue is removed anyway (for example with /kill), THEN THE SYSTEM SHALL rebuild it, giving up only after three removals in a row each within seconds of a build.
 
+### REQ-293
+**Ubiquitous.** THE SYSTEM SHALL offer one rewards menu, the Guild Chronicle, in place of the separate Chapter 2 Rewards menu: its first page leads with the guild's current benefits (bank capacity, home slots, members, cooldown and fee multipliers) above the reward tree. Clients without dialogs SHALL get the same rewards as a chest list titled Guild Chronicle, and a guild whose reward state isn't ready SHALL see its legacy perks there.
+
 ### REQ-294
 **Unwanted behaviour.** IF a Hall statue is drawn with the animated model, THEN THE SYSTEM SHALL keep its mannequin invisible and bare, so a client never sees a plain armored figure while the model loads, and SHALL show players who can't see the model (Bedrock) a separate plain standing figure.
+
+### REQ-295
+**Event-driven.** WHEN a player runs /guild history for someone, THE SYSTEM SHALL name that player in the header, and SHALL ship the header under a new language key so servers holding the old saved header (with an unfilled name placeholder) pick up the new one.
+
+### REQ-296
+**State-driven.** WHILE a Hall statue is drawn with the animated model, THE SYSTEM SHALL draw the guild's chosen armor (material, trim and leather dye, or the tier default for parts not chosen) on the model, in the Hall and in the preview.
+
+### REQ-297
+**Event-driven.** WHEN a guild manager copies worn armor into the Hall Display and a piece has a custom resource-pack look (an equipment asset outside the minecraft namespace, such as the Crown of Sorrow), THE SYSTEM SHALL keep that look, and the statue SHALL wear it: on the model (through BetterModel's custom armor of the same name), on the plain figure, and in the menu.

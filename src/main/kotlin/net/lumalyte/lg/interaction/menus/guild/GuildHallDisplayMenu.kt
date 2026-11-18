@@ -106,9 +106,11 @@ internal class GuildHallDisplayMenu(
         val piece = display.armor[part]
             ?: return lang.gui("hall.display.armor_default", "part" to part.label,
                 "material" to net.lumalyte.lg.domain.rewards.HallArmorMaterial.forTier(prestigeCount).label)
+        // REQ-297: a custom-textured piece is named after its look ("Crown Of Sorrow"), not its base material.
+        val material = piece.assetName?.split('_')?.joinToString(" ") { w -> w.replaceFirstChar { it.uppercase() } } ?: piece.material.label
         return if (piece.trimPattern != null) lang.gui("hall.display.armor_trimmed", "part" to part.label,
-            "material" to piece.material.label, "trim" to pretty(piece.trimPattern), "trim_material" to pretty(piece.trimMaterial.orEmpty()))
-        else lang.gui("hall.display.armor_plain", "part" to part.label, "material" to piece.material.label)
+            "material" to material, "trim" to pretty(piece.trimPattern), "trim_material" to pretty(piece.trimMaterial.orEmpty()))
+        else lang.gui("hall.display.armor_plain", "part" to part.label, "material" to material)
     }
 
     private fun pretty(key: String) = key.replace('_', ' ').replaceFirstChar { it.uppercase() }
@@ -152,10 +154,6 @@ internal class GuildHallDisplayMenu(
             add(lang.gui("hall.display.statue_name", "name" to nameplate))
             add(lang.gui("hall.display.statue_tier", "tier" to PrestigeNumeral.of(prestigeCount)))
             add(lang.gui("hall.display.statue_skin", "name" to skinName(display)))
-            display.wearing(HallSlot.POSE)?.let { pose ->
-                add(lang.gui("hall.display.statue_look", "pose" to pose.cosmetic(HallSlot.POSE),
-                    "aura" to (display.wearing(HallSlot.AURA) ?: pose).cosmetic(HallSlot.AURA)))
-            }
             add(lang.gui("hall.display.statue_note"))
             if (!manage) add(lang.gui("hall.display.view_only"))
         }
@@ -243,10 +241,9 @@ internal class GuildHallDisplayMenu(
             player.closeInventory()
             val service = preview ?: return@load
             service.show(player, guild.name, prestigeCount, display, display.skin ?: owner())
-            val pose = display.wearing(HallSlot.POSE)?.cosmetic(HallSlot.POSE)
             val seconds = net.lumalyte.lg.infrastructure.services.HallPreviewService.SECONDS
-            player.sendMessage(if (service.posed(player.uniqueId)) lang.msg("hall.feedback.preview", "seconds" to seconds, "pose" to (pose ?: "Guard"))
-            else lang.msg("hall.feedback.preview_still", "seconds" to seconds, "pose" to (pose ?: "Guard")))
+            player.sendMessage(if (service.posed(player.uniqueId)) lang.msg("hall.feedback.preview", "seconds" to seconds, "pose" to "Guard")
+            else lang.msg("hall.feedback.preview_still", "seconds" to seconds, "pose" to "Guard"))
         }
     }
 

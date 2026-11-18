@@ -83,7 +83,8 @@ internal object HallStatueBuilder {
             statue.equipment.clear()
             if (plainFigure) add(figure(top, look, skin).also { it.isVisibleByDefault = false }) else null
         } else null
-        val sword = if (closer != null && HallStatuePose.animationFor(look.pose) == HallStatuePose.GUARD) add(guardSword(top)) else null
+        // REQ-283: every statue stands in Guard, so the sword goes in whenever the pose model is running.
+        val sword = if (closer != null) add(guardSword(top)) else null
         return Built(entities, top, closer, sword, crest, plain)
         } catch (e: Exception) {
             // Never leave half a statue behind: a retry would stack another plinth on top of it.
@@ -110,7 +111,7 @@ internal object HallStatueBuilder {
             skin?.let { id -> statue.profile = ResolvableProfile.resolvableProfile(Bukkit.createProfile(id)) }
             look.armor().forEach { (slot, item) -> statue.equipment.setItem(slot, item) }
             statue.equipment.setItem(EquipmentSlot.OFF_HAND, ItemStack.of(Material.AIR))
-            statue.equipment.setItem(EquipmentSlot.HAND, ItemStack.of(look.trophy))
+            statue.equipment.setItem(EquipmentSlot.HAND, ItemStack.of(Material.AIR))
         } } finally { statueId?.let(HallSpawnGuard::done) }
         // REQ-276: a plugin that still refuses the spawn leaves a dead entity; say so instead of a bare plinth.
         check(statue.isValid) { "another plugin stopped the statue spawning at ${top.blockX} ${top.blockY} ${top.blockZ}" }

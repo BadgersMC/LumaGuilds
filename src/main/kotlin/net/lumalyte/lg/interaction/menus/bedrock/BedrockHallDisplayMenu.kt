@@ -93,7 +93,7 @@ class BedrockHallDisplayMenu(
                 preview.show(player, guild.name, tier, display, skin)
                 player.sendMessage(lang.msg("hall.feedback.preview",
                     "seconds" to net.lumalyte.lg.infrastructure.services.HallPreviewService.SECONDS,
-                    "pose" to (display.wearing(HallSlot.POSE)?.cosmetic(HallSlot.POSE) ?: "-")))
+                    "pose" to "Guard"))
             }
         }
         builder = builder.button(lang.bedrock("hall.pick.back"))

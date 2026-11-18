@@ -86,14 +86,6 @@ class BedrockGuildSettingsMenu(
                 lang.bedrock("bedrock.settings.description.placeholder"),
                 guild.description ?: ""
             )
-            .dropdown(
-                lang.bedrock("bedrock.settings.mode.label"),
-                listOf(
-                    lang.bedrock("bedrock.settings.mode.peaceful"),
-                    lang.bedrock("bedrock.settings.mode.hostile")
-                ),
-                if (guild.mode == GuildMode.PEACEFUL) 0 else 1
-            )
 
         if (canManageSettings) {
             builder
@@ -143,25 +135,8 @@ class BedrockGuildSettingsMenu(
         return false
     }
 
-    private fun createInfoSection(): String {
-        val mode = when (guild.mode) {
-            GuildMode.PEACEFUL -> lang.bedrock("bedrock.settings.mode.peaceful")
-            GuildMode.HOSTILE -> lang.bedrock("bedrock.settings.mode.hostile")
-        }
-        return if (guild.mode == GuildMode.PEACEFUL) {
-            lang.bedrock(
-                "bedrock.settings.info.peaceful",
-                "created" to guild.createdAt.toString(),
-                "mode" to mode
-            )
-        } else {
-            lang.bedrock(
-                "bedrock.settings.info.hostile",
-                "created" to guild.createdAt.toString(),
-                "mode" to mode
-            )
-        }
-    }
+    private fun createInfoSection(): String =
+        lang.bedrock("bedrock.settings.info.basic", "created" to guild.createdAt.toString())
 
     private fun createSeasonTwoReadOnlySection(): String {
         val access = if (guild.isOpen) {
@@ -200,7 +175,6 @@ class BedrockGuildSettingsMenu(
 
             val newName = response.next() as? String ?: guild.name
             val newDescription = (response.next() as? String ?: guild.description ?: "").trim()
-            val modeIndex = response.next() as? Int ?: if (guild.mode == GuildMode.PEACEFUL) 0 else 1
 
             val submittedOpen = if (renderedManagementControls) {
                 response.next() as? Boolean ?: guild.isOpen
@@ -257,12 +231,8 @@ class BedrockGuildSettingsMenu(
                 validationErrors.add(lang.bedrock("bedrock.settings.error.no_description_permission"))
             }
 
-            val newMode = if (modeIndex == 0) GuildMode.PEACEFUL else GuildMode.HOSTILE
-            if (newMode != guild.mode && hasModePermission) {
-                validateModeChange(newMode)?.let(validationErrors::add)
-            } else if (newMode != guild.mode) {
-                validationErrors.add(lang.bedrock("bedrock.settings.error.no_mode_permission"))
-            }
+            // REQ-290: guild modes are removed, so the form no longer offers one.
+            val newMode = guild.mode
 
             val managementChanged =
                 submittedOpen != guild.isOpen ||

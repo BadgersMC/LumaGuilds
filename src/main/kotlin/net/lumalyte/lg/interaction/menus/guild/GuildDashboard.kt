@@ -80,11 +80,6 @@ class GuildDashboard(
         }
         gui.addPane(pane)
 
-        addNavButton(pane, 0, 2, "lg_book", Material.BOOK,
-            lang.gui("onboarding.title"), lang.gui("onboarding.dashboard")) {
-            menuNavigator.openMenu(menuFactory.createGuildGettingStartedMenu(menuNavigator, player, guild.id))
-        }
-
         // Guild info display at top center
         addGuildInfoDisplay(pane, 4, 0)
 

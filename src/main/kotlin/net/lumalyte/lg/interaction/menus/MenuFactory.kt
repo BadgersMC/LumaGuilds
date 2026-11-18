@@ -492,21 +492,6 @@ class MenuFactory(
     }
 
     /**
-     * Creates a guild mode menu appropriate for the player's platform
-     */
-    fun createGuildModeMenu(
-        menuNavigator: MenuNavigator,
-        player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
-        return if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildModeMenu(menuNavigator, player, guild, logger)
-        } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildModeMenu(menuNavigator, player, guild)
-        }
-    }
-
-    /**
      * Creates a guild home menu appropriate for the player's platform
      */
     fun createGuildHomeMenu(
@@ -690,13 +675,6 @@ class MenuFactory(
         }
     }
 
-    /** Permission-aware guild onboarding for both menu clients. */
-    fun createGuildGettingStartedMenu(navigator: MenuNavigator, player: Player, guildId: java.util.UUID?): Menu =
-        if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildGettingStartedMenu(navigator, player, guildId, logger)
-        } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedMenu(navigator, player, guildId)
-        }
 
     fun createPlayerChatSettingsMenu(navigator: MenuNavigator, player: Player): Menu =
         if (shouldUseBedrockMenus(player)) net.lumalyte.lg.interaction.menus.bedrock.BedrockPlayerChatSettingsMenu(navigator, player, logger)

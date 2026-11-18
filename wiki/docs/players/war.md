@@ -14,7 +14,7 @@ Wars are persisted guild-vs-guild conflicts with explicit declaration, acceptanc
 
 ## Declaring war
 
-Use your guild's war controls to select an eligible guild and configure the declaration. Peaceful/hostile mode, guild permissions, cooldowns, and other server rules are checked before the declaration can proceed.
+Use your guild's war controls to select an eligible guild and configure the declaration. Guild permissions, cooldowns, and other server rules are checked before the declaration can proceed.
 
 The receiving guild gets the declaration through its war UI and can respond through the acceptance flow. A war becomes active only when its lifecycle reaches the active state; a sent declaration is not treated as an already-resolved fight.
 
@@ -47,14 +47,13 @@ Guild disbands are also announced to affected allies and enemies.
 
 Resolution state is stored durably. On startup, LumaGuilds reconciles active or expired wars and pending victory/defeat notification state so a crash between gameplay resolution and notification delivery does not duplicate or lose the outcome.
 
-## Guild mode and diplomacy
+## Diplomacy
 
-Peaceful guilds cannot participate in war in the same way as hostile guilds. Relation state, ally/enemy rules, and mode restrictions are validated by the server before a declaration is accepted.
+Relation state and ally/enemy rules are validated by the server before a declaration is accepted.
 
-See [Mode](mode.md) and [Alliances & Diplomacy](alliances.md) for those rules.
+See [Alliances & Diplomacy](alliances.md) for those rules.
 
 ## Related
 
 - [Alliances & Diplomacy](alliances.md)
-- [Mode](mode.md)
 - [Progression, Quests & Prestige](progression.md)

@@ -113,10 +113,10 @@ class RewardCatalog(levels: List<RewardLevel>) {
                     if (level % 10 == 0) {
                         val price = 500L * (level / 10)
                         add(if (level == 50) {
-                            RewardDefinition("ally-homes", "Allied Waypoints", level, RewardKind.MAJOR, price, RewardEffect.AllyHomes)
+                            RewardDefinition("ally-homes", "Ally Homes", level, RewardKind.MAJOR, price, RewardEffect.AllyHomes)
                         } else {
                             home++
-                            RewardDefinition("home-$home", "Guild Outpost $home", level, RewardKind.MAJOR, price,
+                            RewardDefinition("home-$home", "Guild Homes $home", level, RewardKind.MAJOR, price,
                                 RewardEffect.HomeCapacity(1))
                         })
                     }

@@ -22,8 +22,19 @@ class GuildHistoryStyleTest {
     fun `history uses rule lines and no box drawing`() {
         val block = historyBlock()
         listOf('╔', '╗', '╚', '╝', '═').forEach { assertFalse(it in block, "found $it") }
-        assertTrue("guild_history: '<dark_gray><strikethrough>" in block)
+        assertTrue("guild_history_v2: '<dark_gray><strikethrough>" in block)
         assertTrue("footer: '<dark_gray><strikethrough>" in block)
+    }
+
+    /** REQ-295: the header names the player; the key was renamed so servers drop the saved "<display_name>" header. */
+    @Test
+    fun `history header names the player and the command fills it`() {
+        val block = historyBlock()
+        val header = block.lines().first { it.trimStart().startsWith("guild_history_v2:") }
+        assertTrue("<display_name>" in header)
+        assertFalse(block.lines().any { it.trimStart().startsWith("guild_history:") }, "old key still present")
+        val command = Files.readString(root.resolve("src/main/kotlin/net/lumalyte/lg/interaction/commands/GuildCommand.kt"))
+        assertTrue("history.guild_history_v2\", \"display_name\" to displayName" in command)
     }
 
     @Test

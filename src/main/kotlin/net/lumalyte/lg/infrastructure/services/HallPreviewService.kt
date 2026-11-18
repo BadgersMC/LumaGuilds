@@ -4,6 +4,9 @@ import io.papermc.paper.datacomponent.item.ResolvableProfile
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextColor
+import net.lumalyte.lg.domain.rewards.HallArmorMaterial
+import net.lumalyte.lg.domain.rewards.HallArmorPart
+import net.lumalyte.lg.domain.rewards.HallArmorPiece
 import net.lumalyte.lg.domain.rewards.HallDisplay
 import net.lumalyte.lg.domain.rewards.HallSlot
 import net.lumalyte.lg.domain.rewards.HallTheme
@@ -79,24 +82,11 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
 
         val built = HallStatueBuilder.build(base, look, guildName, prestige, skin, register = { hidden(it) }) { statue: Mannequin ->
             // REQ-294: a Bedrock viewer can't see the model; leave them the plain statue.
-            if (bedrock(viewer)) null else HallStatuePose.orNull()?.apply(statue, { it == viewer.uniqueId }, skin, look.pose)
+            if (bedrock(viewer)) null else HallStatuePose.orNull()?.apply(statue, { it == viewer.uniqueId }, skin, look.pieces())
         }
-        val top = built.top
         val posed = built.closer
-        viewer.playSound(top, look.sound, 1f, 1f)
-        var tick = 0
-        val effects = Bukkit.getScheduler().runTaskTimer(plugin, Runnable {
-            if (!viewer.isOnline) return@Runnable
-            tick += 5
-            for (y in 0..12) {
-                val point = top.clone().add(0.0, y * 0.35, 0.0)
-                viewer.spawnParticle(Particle.DUST, point, 2, 0.35, 0.05, 0.35, 0.0, Particle.DustOptions(look.spotlight, 1.2f))
-            }
-            viewer.spawnParticle(look.aura, top.clone().add(0.0, 1.0, 0.0), 6, 0.45, 0.7, 0.45, 0.01)
-            if (tick % 100 == 0) viewer.playSound(top, look.sound, 0.6f, 1f)
-        }, 5L, 5L)
         val end = Bukkit.getScheduler().runTaskLater(plugin, Runnable { clear(viewer.uniqueId) }, SECONDS * 20L)
-        active[viewer.uniqueId] = Preview(entities, listOf(effects, end), listOfNotNull(posed))
+        active[viewer.uniqueId] = Preview(entities, listOf(end), listOfNotNull(posed))
         lastPosed[viewer.uniqueId] = posed != null
     }
 
@@ -126,7 +116,7 @@ class HallPreviewService(private val plugin: Plugin) : Listener {
     }
 }
 
-/** REQ-264: what each Hall theme cosmetic looks like with vanilla blocks, items, particles and sounds. */
+/** REQ-264: what each Hall theme cosmetic looks like with vanilla blocks and items. */
 internal class HallLook(private val display: HallDisplay, private val prestige: Int) {
     private fun theme(slot: HallSlot): HallTheme? = display.wearing(slot)
 
@@ -140,37 +130,9 @@ internal class HallLook(private val display: HallDisplay, private val prestige: 
         null -> Material.POLISHED_DEEPSLATE
     }
 
-    val trophy: Material get() = when (theme(HallSlot.TROPHY)) {
-        HallTheme.GILDED -> Material.TOTEM_OF_UNDYING
-        HallTheme.EMBER -> Material.FIRE_CHARGE
-        HallTheme.WINGED -> Material.ELYTRA
-        HallTheme.TIDAL -> Material.HEART_OF_THE_SEA
-        HallTheme.RADIANT -> Material.BEACON
-        HallTheme.CROWNED -> Material.NETHER_STAR
-        null -> Material.AIR
-    }
 
-    val aura: Particle get() = when (theme(HallSlot.AURA)) {
-        HallTheme.GILDED -> Particle.WAX_ON
-        HallTheme.EMBER -> Particle.SMALL_FLAME
-        HallTheme.WINGED -> Particle.WHITE_ASH
-        HallTheme.TIDAL -> Particle.BUBBLE_POP
-        HallTheme.RADIANT -> Particle.GLOW
-        HallTheme.CROWNED -> Particle.ENCHANT
-        null -> Particle.END_ROD
-    }
 
-    val sound: Sound get() = when (theme(HallSlot.SOUND)) {
-        HallTheme.GILDED -> Sound.BLOCK_BELL_USE
-        HallTheme.EMBER -> Sound.ITEM_FIRECHARGE_USE
-        HallTheme.WINGED -> Sound.ENTITY_PHANTOM_FLAP
-        HallTheme.TIDAL -> Sound.BLOCK_CONDUIT_AMBIENT_SHORT
-        HallTheme.RADIANT -> Sound.BLOCK_AMETHYST_BLOCK_CHIME
-        HallTheme.CROWNED -> Sound.BLOCK_ENCHANTMENT_TABLE_USE
-        null -> Sound.BLOCK_NOTE_BLOCK_CHIME
-    }
 
-    val spotlight: Color get() = Color.fromRGB((theme(HallSlot.SPOTLIGHT) ?: return Color.WHITE).color)
 
     val nameColor: Int get() = theme(HallSlot.NAMEPLATE)?.color ?: 0xFFFFFF
 
@@ -181,6 +143,9 @@ internal class HallLook(private val display: HallDisplay, private val prestige: 
         slot to HallArmorItems.item(part, display.armor[part], prestige)
     }
 
-    /** The chosen pose's name (Victory, Guard and so on); Guard before any theme is owned. */
-    val pose: String get() = theme(HallSlot.POSE)?.cosmetic(HallSlot.POSE) ?: "Guard"
+    /** REQ-296: the same choices as [armor], as pieces for the BetterModel statue model. */
+    fun pieces(): Map<HallArmorPart, HallArmorPiece> = HallArmorPart.entries.associateWith { part ->
+        display.armor[part] ?: HallArmorPiece(HallArmorMaterial.forTier(prestige))
+    }
+
 }

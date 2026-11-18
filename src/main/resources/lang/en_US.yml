@@ -389,7 +389,6 @@ bedrock:
       tag: Guild Tag
       statistics: Statistics
       information: Guild Information
-      mode: Guild Mode
       rank_list: Rank List
       invite: Invite Player
       kick: Kick Member
@@ -582,18 +581,9 @@ bedrock:
       no_emoji: No emoji set
       no_relations: None
     overview:
-      peaceful: |-
+      basic: |-
         <aqua>Guild Name<gray>: <white><guild>
         <light_purple>Level<gray>: <white><level>
-        <yellow>Mode<gray>: <green>Peaceful
-        <gold>Emoji<gray>: <white><emoji>
-        <dark_aqua>Description<gray>: <gray><description>
-        <dark_purple>Tag<gray>: <white><tag>
-        <yellow>Founded<gray>: <white><founded>
-      hostile: |-
-        <aqua>Guild Name<gray>: <white><guild>
-        <light_purple>Level<gray>: <white><level>
-        <yellow>Mode<gray>: <red>Hostile
         <gold>Emoji<gray>: <white><emoji>
         <dark_aqua>Description<gray>: <gray><description>
         <dark_purple>Tag<gray>: <white><tag>
@@ -726,7 +716,7 @@ bedrock:
       locked_summary: '<gray><active> accessible homes, <locked> saved and locked'
     button:
       teleport: '<home> (Teleport)'
-      locked: '<red>🔒 <home> — Locked Outpost (repurchase after prestige)'
+      locked_v2: '<red>🔒 <home> — Locked (buy a Guild Homes reward after prestige)'
       activate: '<home> (Activate)'
       inactive: '<home> (Inactive)'
       no_homes: No homes have been set
@@ -760,8 +750,8 @@ bedrock:
       activation_review_no_transaction: '<yellow>? Home activation failed and automatic gold compensation did not complete. Contact an administrator.'
       removed: '<green>✅ Guild home ''<home>'' has been removed.'
       remove_failed: '<red>❌ Failed to remove the guild home.'
-      restored: '<green>Guild home ''<home>'' restored with your paid Outpost credit. No extra charge.'
-      restore_unavailable: '<red>''<home>'' is saved but locked. Purchase an Outpost after prestige first.'
+      restored_v2: '<green>Guild home ''<home>'' restored with your paid Guild Homes credit. No extra charge.'
+      restore_unavailable_v2: '<red>''<home>'' is saved but locked. Buy a Guild Homes reward after prestige first.'
   home_access:
     description: '<gray>Toggle which guild ranks may use this home. The owner rank is always allowed.'
   allied_homes:
@@ -1344,65 +1334,6 @@ bedrock:
       announcement_sound_effects: Announcement Sound Effects
       war_declaration_sound_effects: War Declaration Sound Effects
       ally_home_access: Ally Home Teleportation
-  mode:
-    title: 'Guild Mode - <guild>'
-    content:
-      peaceful: |-
-        <gray>Choose how your guild interacts with other guilds.
-
-        <gold><bold>━━━ CURRENT MODE ━━━
-        <yellow>Current Mode<gray>: <green>Peaceful
-        <gray>Last Changed: <white><last_changed>
-
-        <green><bold>PEACEFUL BENEFITS
-        <gray>• PvP protection in guild territory
-        • Safer trading and cooperation
-        • Protection from hostile conflict
-
-        <red><bold>HOSTILE BENEFITS
-        <gray>• Engage in guild PvP
-        • Participate in guild wars
-        • Compete with rival guilds
-
-        <yellow>Switch Cooldown<gray>: <white><cooldown_days> days
-      hostile: |-
-        <gray>Choose how your guild interacts with other guilds.
-
-        <gold><bold>━━━ CURRENT MODE ━━━
-        <yellow>Current Mode<gray>: <red>Hostile
-        <gray>Last Changed: <white><last_changed>
-
-        <green><bold>PEACEFUL BENEFITS
-        <gray>• PvP protection in guild territory
-        • Safer trading and cooperation
-        • Protection from hostile conflict
-
-        <red><bold>HOSTILE BENEFITS
-        <gray>• Engage in guild PvP
-        • Participate in guild wars
-        • Compete with rival guilds
-
-        <yellow>Switch Cooldown<gray>: <white><cooldown_days> days
-    button:
-      peaceful: '<green>Switch to Peaceful'
-      peaceful_locked: '<gray>Switch to Peaceful <red>(Cannot switch yet)'
-      hostile: '<red>Switch to Hostile'
-      hostile_locked: '<gray>Switch to Hostile <red>(Cannot switch yet)'
-    feedback:
-      active_war: '<red>You cannot switch to Peaceful while your guild is in an active war.'
-      switched_peaceful: '<green>Guild mode switched to Peaceful.'
-      switched_hostile: '<green>Guild mode switched to Hostile.'
-      switch_failed: '<red>Failed to change the guild mode.'
-    time:
-      never: Never
-      no_previous_changes: No previous changes
-      cooldown_expired: Cooldown expired
-      lock_expired: Lock expired
-      until_peaceful: '<days>d <hours>h until you can switch to Peaceful'
-      until_hostile: '<days>d <hours>h until you can switch to Hostile'
-      days_ago: '<days>d <hours>h ago'
-      hours_ago: '<hours>h ago'
-      recently: Recently
   rank_management:
     title: 'Guild Rank Management - <guild>'
     mode:
@@ -1458,28 +1389,14 @@ bedrock:
       label: Guild Description
       placeholder: Enter a guild description
     mode:
-      label: Guild Mode
       peaceful: Peaceful
       hostile: Hostile
     info:
-      peaceful: |-
+      basic: |-
         <gray>Configure your guild's basic settings.
 
         <gold><bold>━━━ GUILD INFO ━━━
         <yellow>Created<gray>: <white><created>
-        <light_purple>Level<gray>: <white>1 <gray>| <dark_aqua>Experience<gray>: <white>0/800
-        <yellow>Mode<gray>: <green><mode>
-
-        <gray>Configure your guild's basic information below.
-      hostile: |-
-        <gray>Configure your guild's basic settings.
-
-        <gold><bold>━━━ GUILD INFO ━━━
-        <yellow>Created<gray>: <white><created>
-        <light_purple>Level<gray>: <white>1 <gray>| <dark_aqua>Experience<gray>: <white>0/800
-        <yellow>Mode<gray>: <red><mode>
-
-        <gray>Configure your guild's basic information below.
     validation:
       section: |-
         <gold><bold>━━━ VALIDATION ━━━
@@ -1501,7 +1418,6 @@ bedrock:
     error:
       no_settings_permission: You do not have permission to rename this guild.
       no_description_permission: You do not have permission to edit the guild description.
-      no_mode_permission: You do not have permission to change the guild mode.
       processing: '<red>[ERROR] Could not process the guild settings form.'
       mode_disabled: Guild mode changes are disabled.
       mode_cooldown: 'Guild mode can be changed again in <days> days and <hours> hours.'
@@ -1838,10 +1754,6 @@ command:
           menu: '<click:run_command:''/g help identity''><hover:show_text:''<gold>Open Tags, Banners & Identity help''><dark_gray>  [<yellow>Tags, Banners & Identity<dark_gray>] <gray>Set your guild tag, description, and banner.</hover></click>'
           page: |-
             <gold><bold>─── Help · Tags, Banners & Identity ───<newline><gray>Set your guild tag, description, and banner.<newline><yellow>Commands:<newline><click:suggest_command:'/g tag '><hover:show_text:'<gold>Set or edit your guild tag.<newline><gray>Click to prefill in chat'><white>  /g tag [text]</hover></click><newline><click:suggest_command:'/g desc '><hover:show_text:'<gold>Set your guild description.<newline><gray>Click to prefill in chat'><white>  /g desc \<text></hover></click><newline><click:suggest_command:'/g rename '><hover:show_text:'<gold>Rename your guild.<newline><gray>Click to prefill in chat'><white>  /g rename \<name></hover></click><newline><click:suggest_command:'/g emoji'><hover:show_text:'<gold>Pick a guild emoji.<newline><gray>Click to prefill in chat'><white>  /g emoji</hover></click><newline><newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/identity/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/identity/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
-        mode:
-          menu: '<click:run_command:''/g help mode''><hover:show_text:''<gold>Open Mode help''><dark_gray>  [<yellow>Mode (Peaceful / Hostile)<dark_gray>] <gray>Switch your guild between peaceful and hostile mode.</hover></click>'
-          page: |-
-            <gold><bold>─── Help · Mode (Peaceful / Hostile) ───<newline><gray>Switch your guild between peaceful and hostile mode.<newline><yellow>Commands:<newline><click:suggest_command:'/g mode'><hover:show_text:'<gold>Open the mode selection menu.<newline><gray>Click to prefill in chat'><white>  /g mode</hover></click><newline><newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/mode/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/mode/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
         lfg:
           menu: '<click:run_command:''/g help lfg''><hover:show_text:''<gold>Open LFG & Invites help''><dark_gray>  [<yellow>LFG & Invites<dark_gray>] <gray>Manage invites, decline requests, and use LFG to find a guild.</hover></click>'
           page: |-
@@ -1891,10 +1803,6 @@ command:
         blank_line_2: '<gray><index>. <yellow><label> <dark_gray>— <gold>$<balance>'
         lumaguilds_top_guilds_by_balance: '<dark_gray>[<gold>LumaGuilds<dark_gray>] <white>Top Guilds by Balance'
         no_guild_balance_data_available: '<red>No guild balance data available.'
-      bannerman:
-        failed_to_toggle_bannerman: '<red>❌ Failed to toggle bannerman.'
-        you_don_t_have_permission_to_toggle: '<red>You don''t have permission to toggle the bannerman.'
-        you_need_the_manage_banner_permission: '<gray>You need the MANAGE_BANNER permission.'
       create:
         a_new_guild_has_been_founded_by: '<gold>⌂ <yellow>A new guild has been founded: <gold><name> <yellow>by <gold><player><yellow>!'
         basic_punctuation: '<gray> • Basic punctuation: '' & -'
@@ -1988,7 +1896,7 @@ command:
         current: '<green>● Current'
         guild: '<white><guild>'
         guild_disbanded: '<dark_gray>● Disbanded'
-        guild_history: '<dark_gray><strikethrough>                    </strikethrough> <gold><bold>Guild History</bold> <dark_gray><strikethrough>                    </strikethrough>'
+        guild_history_v2: '<dark_gray><strikethrough>              </strikethrough> <gold><bold>Guild History</bold> <dark_gray>· <white><display_name> <dark_gray><strikethrough>              </strikethrough>'
         has_no_guild_history: '<gray><display_name> has no guild history.'
         joined_date: ' <dark_gray>— <gray>joined <yellow><join_date>'
         joined_prefix: ' <dark_gray><index>. '
@@ -2011,9 +1919,9 @@ command:
         no_guild_homes_have_been_set: '<red>No guild homes have been set.'
         no_pending_unsafe_teleport_to_confirm_or: '<red>No pending unsafe teleport to confirm, or confirmation expired.'
         restore_no_permission: '<red>You cannot restore guild homes.'
-        locked: '<red>Guild home ''<home>'' is locked. Repurchase one Outpost after prestige to restore it.'
+        locked_v2: '<red>Guild home ''<home>'' is locked. Buy a Guild Homes reward after prestige to restore it.'
         restore_success: '<green>Guild home ''<home>'' restored. No additional gold was charged.'
-        restore_unavailable: '<red>Cannot restore ''<home>''. First purchase an Outpost at your current prestige.'
+        restore_unavailable_v2: '<red>Cannot restore ''<home>''. First buy a Guild Homes reward at your current prestige.'
         use_guild_home_name_to_teleport_to: '<gray>Use <gold>/guild home \<name> <gray>to teleport to a specific home.'
         use_guild_sethome_to_set_your_first: '<gray>Use <gold>/guild sethome <gray>to set your first home.'
         you_already_have_a_teleport_in_progress: '<red>You already have a teleport in progress. Please wait for it to complete.'
@@ -2096,21 +2004,6 @@ command:
       modchat:
         mod_chat_disabled_your_messages_go_to: '<gray>Mod chat <red>disabled<gray>. Your messages go to main chat.'
         mod_chat_enabled_run_g_modchat_again: '<blue>✅ <dark_blue>Mod chat <blue>enabled<blue>! Run /g modchat again to disable.'
-      mode:
-        cooldown_expired: 'Cooldown expired'
-        cooldown_prefix: '<red>❌ '
-        lock_expired: 'Lock expired'
-        lock_prefix: '<red>❌ '
-        no_previous_changes: 'No previous changes'
-        switch_to_hostile: '<days>d <hours>h until you can switch to Hostile'
-        switch_to_peaceful: '<days>d <hours>h until you can switch to Peaceful'
-        cannot_switch_to_peaceful_mode_during_active: '<red>❌ Cannot switch to peaceful mode during active war!'
-        failed_to_change_guild_mode_you_may: '<red>❌ Failed to change guild mode. You may not have permission.'
-        guild_is_already_in_mode: '<red>❌ Guild is already in <uppercase> mode!'
-        guild_mode_changed_to: '<green>✅ Guild mode changed to <uppercase>!'
-        guild_mode_switching_is_disabled_by_server: '<red>❌ Guild mode switching is disabled by server configuration.'
-        guilds_cannot_change_between_peaceful_and_hostile: '<gray>Guilds cannot change between Peaceful and Hostile modes.'
-        invalid_mode_use_peaceful_or_hostile: '<red>Invalid mode. Use ''peaceful'' or ''hostile''.'
       neutral:
         failed_to_send_peace_request: '<red>✗ Failed to send peace request.'
         has_requested_to_end_hostilities_with_your: '<white><guild> <gray>has requested to end hostilities with your guild! Use <gold>/guild menu <gray>→ Relations to respond.'
@@ -2124,10 +2017,6 @@ command:
         members: '<gray>  Members: <white><member_count>'
         permissions: '<gray>  Permissions: <white><permissions>'
         priority: '<yellow><rank> <gray>(Priority: <priority>)'
-      refreshbannermandisplay:
-        bannerman_disabled: '<gray>Bannerman disabled.'
-        bannerman_enabled_guild_members_will_wear_the: '<green>✅ Bannerman enabled — guild members will wear the banner on their backs.'
-        bannerman_state_was_saved_but_live_refresh: '<yellow>Bannerman state was saved, but live refresh failed. Try relogging.'
       removeallyhome:
         ally_home_removed: '<green>✅ Ally home removed.'
         failed_to_remove_ally_home_it_may: '<red>❌ Failed to remove ally home. It may not be set or you lack permission.'
@@ -3728,19 +3617,6 @@ menu:
           description: '<gray>Invite, kick and promote members'
           details: '<yellow>Click to manage members'
         name: '<yellow>Members'
-      mode:
-        lore:
-          action: '<yellow>Click to change mode'
-          current:
-            hostile: '<gray>Current: <white>HOSTILE'
-            peaceful: '<gray>Current: <white>PEACEFUL'
-          default_hostile: '<gray>All guilds are hostile by default'
-          disabled: '<red>Mode switching disabled'
-          hostile: '<gray>Hostile: PvP and wars enabled'
-          hostile_cooldown: '<red>◷ Cannot switch to Hostile: <days>d <hours>h remaining'
-          peaceful: '<gray>Peaceful: no PvP, safe trading'
-          peaceful_cooldown: '<red>◷ Cannot switch to Peaceful: <days>d <hours>h remaining'
-        name: '<yellow>Guild Mode'
       name:
         lore:
           chat: '<gray>the guild name from chat'
@@ -4319,8 +4195,8 @@ menu:
       description: "<gray>Set your allied homes and choose who may use them"
     locked:
       name: "<gray>Allied Homes <red>(locked)"
-      description: "<gray>Unlocks with the <white>Allied Waypoints</white> reward (guild level 50)."
-      feedback: "<red>Allied homes unlock with the Allied Waypoints reward at guild level 50."
+      description_v2: '<gray>Unlocks with the <white>Ally Homes</white> reward (guild level 50).'
+      feedback_v2: '<red>Ally homes unlock with the Ally Homes reward at guild level 50.'
     slot:
       name: "<gold>Allied Home <slot>"
       unset: "<gray>Not set yet."
@@ -4665,9 +4541,6 @@ menu:
     title: "<white>⚔ Select War Target (<page>/<pages>)"
     guild:
       name: "<gold><guild>"
-      mode:
-        hostile: "<gray>Mode: <red>HOSTILE"
-        peaceful: "<gray>Mode: <green>PEACEFUL"
       members: "<gray>Members: <white><count>"
       level: "<gray>Level: <yellow><level>"
       peaceful:
@@ -5128,14 +5001,10 @@ menu:
       prestige: '<light_purple>Prestige <tier> <dark_gray>· <gray>Level <white><level>'
       level_only: '<gray>Level <white><level>'
       active_wars: '<gray>Active wars'
-      mode: "<gray>Mode: <white><mode>"
       emoji: "<gray>Emoji: <white><emoji>"
       tag: "<gray>Tag: <white><tag>"
       founded: "<gray>Founded: <white><date>"
       date_format: "yyyy-MM-dd"
-      modes:
-        peaceful: "Peaceful"
-        hostile: "Hostile"
     description:
       name: "<gold>Description"
       value: "<reset><description>"
@@ -5152,10 +5021,6 @@ menu:
         guild_name: "<red>⚔ <guild>"
       members: "<gray>Members: <white><count>"
       level: "<gray>Level: <white><level>"
-      mode:
-        line: "<gray>Mode: <mode>"
-        peaceful: "<green>Peaceful"
-        hostile: "<red>Hostile"
       open: "<yellow>Click to view guild info"
       previous:
         name: '<white>⬅ Previous Page'
@@ -5424,57 +5289,12 @@ menu:
       discarded: "<gray>Changes discarded."
 
   guild_mode:
-    title: "<white>Change Guild Mode"
-    mode:
-      peaceful: "PEACEFUL"
-      hostile: "HOSTILE"
-    current:
-      name: '<yellow>Current Mode'
-      mode: "<gray>Mode: <white><mode>"
-      changed: "<gray>Changed: <white><time>"
-    disabled:
-      message: '<red>Mode switching is turned off on this server'
-      description: "<gray>Guilds cannot change between Peaceful and Hostile modes"
-    peaceful:
-      name: '<green>☮ Switch to Peaceful'
-      benefits: '<gray>In Peaceful mode:'
-      no_pvp: "<gray>• No PvP in guild claims"
-      safe_trading: "<gray>• Safe trading environment"
-      no_wars: "<gray>• Prevents war declarations"
-      cooldown: '<red>Cooldown: <days> days'
-      active_war: '<red>Not available during a war'
-      click: '<yellow>Click to switch to Peaceful'
-    hostile:
-      name: '<red>⚔ Switch to Hostile'
-      benefits: '<gray>In Hostile mode:'
-      pvp: "<gray>• PvP enabled in claims"
-      wars: "<gray>• Can declare wars"
-      competitive: "<gray>• Competitive gameplay"
-      lock: '<red>Locked for <days> days after switching'
-      click: '<yellow>Click to switch to Hostile'
-    switch:
-      unavailable: '<red>You cannot switch yet'
-      reason: "<red><reason>"
-    feedback:
-      peaceful_success: "<green>✅ Guild mode switched to PEACEFUL!"
-      hostile_success: "<green>✅ Guild mode switched to HOSTILE!"
-      failed: "<red>❌ Failed to change guild mode. Check permissions."
-      active_war: "<red>❌ Cannot switch to peaceful mode during active war!"
-      blocked: "<red>❌ <reason>"
     cooldown:
       no_changes: "No previous changes"
       expired: "Cooldown expired"
       lock_expired: "Lock expired"
       peaceful: "<days>d <hours>h until you can switch to Peaceful"
       hostile: "<days>d <hours>h until you can switch to Hostile"
-    time:
-      never: "Never"
-      recently: "Recently"
-      days_ago: "<days>d <hours>h ago"
-      hours_ago: "<hours>h ago"
-    back:
-      name: '<yellow>⬅ Back'
-      description: '<gray>Return to the previous menu'
 
   guild_war_management:
     title: '<white>Warfare • <guild>'
@@ -5921,8 +5741,8 @@ menu:
         guild_advancement: "Guild Advancements"
     rank:
       name: "<gold>Guild Rank"
-      description: "<gray>Your guild's standing"
-      scope: "<gray>among all guilds"
+      standing: "<gold>#<rank> <gray>of <white><total> <gray>guilds"
+      standing_hint: "<gray>By level, as on the leaderboard."
     sources:
       name: "<yellow>XP Sources"
       description: "<gray>How to earn guild XP:"
@@ -6274,10 +6094,10 @@ menu:
       none: '<gray>No homes set yet'
       additional: '<yellow>Click to set additional homes'
       maximum: '<red>Maximum slots reached'
-      locked_count: '<red><count> saved homes are locked until an Outpost is repurchased'
+      locked_count_v2: '<red><count> saved homes are locked until a Guild Homes reward is bought again'
     locked:
-      name: '<red>Locked Outpost: <home>'
-      description: '<gray>Purchase an Outpost after prestige to restore this saved home.'
+      name_v2: '<red>Locked home: <home>'
+      description_v2: '<gray>Buy a Guild Homes reward after prestige to restore this saved home.'
     set:
       main:
         name: '<green>Set Main Home'
@@ -6369,9 +6189,9 @@ menu:
       activation_review: '<yellow>? Home payment outcome needs administrator review. Transaction: <transaction>'
       activation_review_no_transaction: '<yellow>? Home activation failed and automatic gold compensation did not complete. Contact an administrator.'
       world_missing: '<red>❌ Could not find the world for guild home.'
-      locked_hint: '<red>  [LOCKED — /guild home unlock <home> after an Outpost purchase]'
-      restored: '<green>Guild home ''<home>'' restored using a paid Outpost credit.'
-      restore_unavailable: '<red>''<home>'' is locked. Purchase an Outpost at this prestige first.'
+      locked_hint_v2: '<red>  [LOCKED — /guild home unlock <home> after a Guild Homes purchase]'
+      restored_v2: '<green>Guild home ''<home>'' restored using a paid Guild Homes credit.'
+      restore_unavailable_v2: '<red>''<home>'' is locked. Buy a Guild Homes reward at this prestige first.'
   tag_editor:
     title: '<white>Tag Editor - <guild>'
     current:
@@ -7523,13 +7343,11 @@ notification:
       hurry: '<red><bold>ACT FAST</bold> <gray>» <white>Items will despawn if not picked up!'
 
 chapter_two_rewards:
-  title: '<gold>Chapter 2 Rewards'
   capacity_bank: '<gray>Bank capacity: <white><capacity>'
   capacity_home_member: '<gray>Home slots: <white><homes> <gray>· Members: <white><members>'
   multipliers: '<gray>Home cooldown ×<cooldown>; withdrawal fee ×<fee>'
   unavailable: '<red>Guild rewards are temporarily unavailable. Please try again later.'
   explanation: '<gray>Reaching a level unlocks an offer. Benefits require a purchase.'
-  view: '<yellow>View all reward offers'
   name: '<white><reward>'
   level_price: '<gray>Level <level> · <price> guild gold'
   purchase:
@@ -7544,7 +7362,7 @@ chapter_two_rewards:
     no_quote: '<red>This offer is unavailable or you lack purchase permission. Refresh and check your guild rank.'
     insufficient: '<red>Your guild does not have enough gold for this reward.'
     bank_unavailable: '<red>The guild bank is frozen or has a pending transfer. Resolve it before purchasing.'
-    home_audit_pending: '<yellow>Guild Outpost purchases are paused until staff verifies your saved home ownership. No gold was charged.'
+    home_audit_pending_v2: '<yellow>Guild Homes purchases are paused until staff verifies your saved home ownership. No gold was charged.'
     changed: '<yellow>The offer changed. Review the refreshed catalog before purchasing.'
     ineligible: '<yellow>This reward is locked, already owned, or provides no additional benefit.'
   back: '<yellow>Back'
@@ -7679,50 +7497,7 @@ community:
 
 
 onboarding:
-  title: "Getting Started"
-  dashboard: "Your guild's first steps, requirements and shortcuts."
-  overview: "Members: <members>/<capacity>. Completed labels describe current guild milestones; other entries are guidance."
-  failed: "<red>Could not save dismissal. Please try again later."
-  unavailable: "<red>This guild is unavailable or you are no longer a member."
-  permission: "<yellow>Your guild rank does not permit this action. Ask a guild leader."
-  join_first: "<yellow>Create or join a guild to unlock these steps."
-  invite_requirement: "<yellow>Inviting requires member-management permission and a free member slot."
-  home_unlock: "<yellow>Unlock a home slot through progression first. Click to review rewards and requirements."
-  home_costs: "<yellow>Home-slot unlock and home activation are separate purchases. Review current prices in their menus; moving an active home is free."
-  help: "All help topics"
-  refresh: "Refresh progress"
-  dismiss: "Dismiss prompt"
   member_overview_hint: "<gray>Use <yellow>/guild<gray> to view your guild."
-  dismissed: "<gray>Getting Started remains available with /g start. The first-time prompt will not repeat."
-  open: " <green>[Open guide]"
-  prompt: "<gold>Welcome to <guild>! Explore your guild's first steps."
-  states:
-    completed: "Completed"
-    available: "Available"
-    locked: "Locked"
-  topics:
-    membership: "Create or join a guild"
-    invites: "Invite your first member"
-    ranks: "Understand guild ranks"
-    chat: "Use guild chat"
-    home: "Establish a guild home"
-    quests: "Explore guild quests"
-    progression: "Reach the next guild level"
-    bank: "Understand the guild bank"
-    stalls: "Explore guild stalls"
-  details:
-    membership: "Use /g create followed by a name, or browse guilds to join. Creation and joining may have configured costs."
-    invites: "Leaders can invite players from the member menu. Member capacity comes from current unlocked rewards."
-    ranks: "Leaders customize ranks and grant permissions. Members should ask a leader about their access."
-    chat: "Use /gc for guild chat and /gac for allied chat. Personal chat settings are available here."
-    home: "Unlock a home slot, then set and activate a home. Existing active homes can move for free."
-    quests: "Open current guild quests to see objectives, progress and rewards. Participation keeps existing rules."
-    progression: "Earn guild XP through supported activities and quests. Review rewards, requirements and prices here."
-    bank: "Deposit and withdraw guild gold from the bank, as your rank allows."
-    bank_interest: "The bank earns <rate>% interest every <hours> hours."
-    vault: "Your guild also has a physical vault for items, opened with /g vault, with its own rank permissions."
-    parties: "Parties are temporary chat groups, just for your guild or shared with other guilds. Talk in yours with /pc."
-    stalls: "Guild Stalls shows authoritative ownership and member access, or explains unavailable Market data."
 
 recruitment:
   category: "Activity"
@@ -7892,6 +7667,7 @@ dialog_v2:
   frame_subtitle: "Preview a frame, then apply it to your guild."
   apply_frame: "Apply selected frame"
   leaderboard: "Guild Leaderboard"
+  leaderboard_prestige: "<gray> · <gold>Prestige <tier>"
   guild_rankings: "Guild standings"
   recorded_wins: "Wins from up to 52 retained completed quest sets"
   rank_level: "Level"
@@ -7927,6 +7703,8 @@ guild_dialogs:
 
 chronicle:
   title: '<gold>Guild Chronicle</gold>'
+  open: '<yellow>Open the Guild Chronicle</yellow>'
+  benefits: '<gold>Your guild''s rewards now</gold>'
   range: '<gray><guild> · Guild level <level> · Levels <first>–<last></gray>'
   detail: '<gray><guild> · Guild level <level></gray>'
   tracked: '<gold>Tracked guild goal</gold>'
@@ -7948,7 +7726,7 @@ chronicle:
   all: '<white>All</white>'
   treasury: '<gold>Treasury</gold>'
   travel: '<aqua>Travel</aqua>'
-  outposts: '<green>Outposts</green>'
+  outposts_v2: '<green>Guild Homes</green>'
   bank_effect: '<gray>Bank capacity: +<amount>, up to the server maximum.</gray>'
   home_effect: '<gray>Home slots: +<amount>.</gray>'
   cooldown_effect: '<gray>Home teleports: <seconds>s countdown, cooldown <percent>% of normal. Your best Quick Travel applies.</gray>'
@@ -7981,7 +7759,7 @@ chronicle:
     maximum: '<gray>Lifetime prestige maximum reached.</gray>'
     earn_title: '<gold>How to prestige</gold>'
     earn_level: '<gray>1. Reach guild level 100.</gray>'
-    earn_purchase: '<gray>2. Own at least one Bank Extension, Quick Travel, Treasury Discount or Allied Waypoints reward.</gray>'
+    earn_purchase_v2: '<gray>2. Own at least one Bank Extension, Quick Travel, Treasury Discount or Ally Homes reward.</gray>'
     earn_confirm: '<gray>3. Choose the one to keep forever, check the fee and confirm. Every prestige also adds one permanent home slot.</gray>'
     preserved_title: '<gold>What stays and what resets</gold>'
     preserved_homes: '<green>Purchased home slots, saved homes and paid home activations stay.</green>'
@@ -8363,7 +8141,6 @@ hall:
     statue_name: "<gold><name>"
     statue_tier: "<white>Prestige <tier>"
     statue_skin: "<gray>Skin: <white><name>"
-    statue_look: "<gray>Pose: <white><pose> <gray>· Aura: <white><aura>"
     statue_note: "<gray>Shows when your guild takes a pedestal in the Hall of Prestige."
     view_only: "<dark_gray>Members who can manage the banner can change it."
     picks_title: "<yellow>Choose a theme (<count> to pick)"

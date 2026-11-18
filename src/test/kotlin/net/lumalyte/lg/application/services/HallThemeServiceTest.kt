@@ -70,13 +70,13 @@ class HallThemeServiceTest {
     fun `slots wear the first theme until changed, and only owned themes`() {
         service.earnFromPrestige(guild, HallTheme.EMBER)
         service.earnFromPrestige(guild, HallTheme.TIDAL)
-        assertEquals(HallTheme.EMBER, service.display(guild)!!.wearing(HallSlot.POSE))
-        assertEquals(HallThemeService.Outcome.DONE, service.wear(owner, guild, HallSlot.POSE, HallTheme.TIDAL))
-        assertEquals(HallThemeService.Outcome.NOT_OWNED, service.wear(owner, guild, HallSlot.POSE, HallTheme.CROWNED))
-        assertEquals(HallTheme.TIDAL, service.display(guild)!!.wearing(HallSlot.POSE))
+        assertEquals(HallTheme.EMBER, service.display(guild)!!.wearing(HallSlot.TITLE))
+        assertEquals(HallThemeService.Outcome.DONE, service.wear(owner, guild, HallSlot.TITLE, HallTheme.TIDAL))
+        assertEquals(HallThemeService.Outcome.NOT_OWNED, service.wear(owner, guild, HallSlot.TITLE, HallTheme.CROWNED))
+        assertEquals(HallTheme.TIDAL, service.display(guild)!!.wearing(HallSlot.TITLE))
         assertEquals(HallThemeService.Outcome.DONE, service.wearAll(owner, guild, HallTheme.TIDAL))
         assertEquals(HallTheme.TIDAL, service.display(guild)!!.wearing(HallSlot.PLINTH))
-        assertEquals(HallThemeService.Outcome.NOT_ALLOWED, service.wear(member, guild, HallSlot.POSE, HallTheme.EMBER))
+        assertEquals(HallThemeService.Outcome.NOT_ALLOWED, service.wear(member, guild, HallSlot.TITLE, HallTheme.EMBER))
     }
 
     @Test

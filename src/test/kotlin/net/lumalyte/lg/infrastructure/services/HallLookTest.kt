@@ -4,7 +4,6 @@ import net.lumalyte.lg.domain.rewards.HallDisplay
 import net.lumalyte.lg.domain.rewards.HallSlot
 import net.lumalyte.lg.domain.rewards.HallTheme
 import org.bukkit.Material
-import org.bukkit.Particle
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -13,18 +12,21 @@ class HallLookTest {
         HallLook(HallDisplay(owned, 0, choices, null), tier)
 
     @Test
-    fun `every theme maps to a distinct plinth, trophy and aura`() {
+    fun `every theme maps to a distinct plinth`() {
         val looks = HallTheme.entries.map { look(listOf(it)) }
         assertEquals(6, looks.map { it.plinth }.toSet().size)
-        assertEquals(6, looks.map { it.trophy }.toSet().size)
-        assertEquals(6, looks.map { it.aura }.toSet().size)
+    }
+
+    @Test
+    fun `REQ-283 the Hall Display keeps only nameplate, title and plinth`() {
+        assertEquals(listOf(HallSlot.NAMEPLATE, HallSlot.TITLE, HallSlot.PLINTH), HallSlot.entries)
     }
 
     @Test
     fun `slot choices are mixed across owned themes`() {
         val l = look(listOf(HallTheme.GILDED, HallTheme.TIDAL), mapOf(HallSlot.PLINTH to HallTheme.TIDAL))
         assertEquals(Material.PRISMARINE_BRICKS, l.plinth)
-        assertEquals(Particle.WAX_ON, l.aura)
+        assertEquals("✦ Enthusia ✦", l.nameplate("Enthusia"))
     }
 
     @Test
@@ -36,11 +38,8 @@ class HallLookTest {
 
 class HallPoseNameTest {
     @Test
-    fun `REQ-272 pose names map to the model's animation names and Guard is the fallback`() {
-        assertEquals("guard", net.lumalyte.lg.infrastructure.services.hall.HallStatuePose.animationFor("Guard"))
-        assertEquals("victory", net.lumalyte.lg.infrastructure.services.hall.HallStatuePose.animationFor(" Victory "))
-        assertEquals("guard", net.lumalyte.lg.infrastructure.services.hall.HallStatuePose.animationFor(""))
-        assertEquals("Guard", HallLook(HallDisplay(emptyList(), 0, emptyMap(), null), 1).pose)
+    fun `REQ-283 Guard is the statue's only pose`() {
+        assertEquals("guard", net.lumalyte.lg.infrastructure.services.hall.HallStatuePose.GUARD)
     }
 
     @Test

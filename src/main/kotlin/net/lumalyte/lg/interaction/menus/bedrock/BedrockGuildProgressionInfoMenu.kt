@@ -66,7 +66,7 @@ class BedrockGuildProgressionInfoMenu(
         if (isScopedInspector()) return readOnlyProgression()
         when (val rewards = progressionService.getRewardState(guild.id)) {
             GuildRewardRead.Unavailable -> return CustomForm.builder()
-                .title(lang.bedrock("chapter_two_rewards.title"))
+                .title(lang.bedrock("chronicle.title"))
                 .label(lang.bedrock("chapter_two_rewards.unavailable")).build()
             is GuildRewardRead.Available -> return rewardCatalog(rewards)
             GuildRewardRead.Disabled -> Unit
@@ -115,11 +115,11 @@ class BedrockGuildProgressionInfoMenu(
 
     private fun rewardCatalog(rewards: GuildRewardRead.Available): Form {
         if (members.getMember(player.uniqueId, guild.id) == null) return CustomForm.builder()
-            .title(lang.bedrock("chapter_two_rewards.title"))
+            .title(lang.bedrock("chronicle.title"))
             .label(lang.bedrock("chapter_two_rewards.purchase.unauthorized")).build()
         val offers = rewards.entitlements.offers.toList()
         return SimpleForm.builder()
-            .title(lang.bedrock("chapter_two_rewards.title"))
+            .title(lang.bedrock("chronicle.title"))
             .content(listOf(createLevelAndExperienceSection(), createSourceUsageSection(),
                 lang.bedrock("chapter_two_rewards.explanation"),
                 lang.bedrock("chapter_two_rewards.capacity_bank", "capacity" to rewards.entitlements.bankCapacity),

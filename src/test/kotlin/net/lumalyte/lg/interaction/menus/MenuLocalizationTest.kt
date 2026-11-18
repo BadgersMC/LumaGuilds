@@ -264,7 +264,6 @@ class MenuLocalizationTest {
     @Test
     fun `guild relation mode and strike menus use component GUI localization`() {
         val menuPaths = listOf(
-            "guild/GuildModeMenu.kt",
             "guild/GuildRelationsMenu.kt",
             "guild/GuildStrikePenaltyMenu.kt",
             "guild/GuildStrikePenaltyConfirmMenu.kt",

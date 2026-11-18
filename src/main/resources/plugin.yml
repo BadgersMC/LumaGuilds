@@ -83,7 +83,6 @@ permissions:
       lumaguilds.guild.allyhome: true
       lumaguilds.guild.ranks: true
       lumaguilds.guild.emoji: true
-      lumaguilds.guild.mode: true
       lumaguilds.guild.disband: true
       lumaguilds.guild.menu: true
       lumaguilds.guild.quests: true
@@ -98,7 +97,6 @@ permissions:
       lumaguilds.guild.info: true
       lumaguilds.guild.history: true
       lumaguilds.guild.chat: true
-      lumaguilds.guild.bannerman: true
       lumaguilds.guild.bal: true
       lumaguilds.guild.baltop: true
       lumaguilds.guild.join: true
@@ -120,9 +118,6 @@ permissions:
   lumaguilds.guild.chat:
     description: Toggle guild chat mode (messages go to guild only)
     default: true
-  lumaguilds.guild.bannerman:
-    description: Toggle guild bannerman rendering (banner on members' backs)
-    default: true
   lumaguilds.guild.create:
     description: Create new guilds
     default: true
@@ -143,9 +138,6 @@ permissions:
     default: true
   lumaguilds.guild.emoji:
     description: Change guild emoji
-    default: true
-  lumaguilds.guild.mode:
-    description: Change guild mode (peaceful/hostile)
     default: true
   lumaguilds.guild.disband:
     description: Disband your guild

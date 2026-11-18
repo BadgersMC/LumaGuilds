@@ -250,9 +250,8 @@ class GuildProgressionMenu(
             if (isMember()) nativeAction(lang.gui("achievements.title")) {
                 menuNavigator.openMenu(GuildAchievementsMenu(menuNavigator, player, guild))
             } else null,
-            if (isMember() && rewardState is GuildRewardRead.Available) nativeAction(lang.gui("chronicle.title")) {
-                menuNavigator.openMenu(GuildChronicleMenu(menuNavigator, player, guild))
-            } else null,
+            // REQ-293: the Guild Chronicle is the one rewards menu (it absorbed Chapter 2 Rewards).
+            if (isMember()) nativeAction(lang.gui("chronicle.title"), ::openRewards) else null,
             nativeAction(lang.gui("guild_dialogs.progression.quests"), ::openNativeQuests),
             nativeAction(lang.gui("dialog_v2.leaderboard")) {
                 menuNavigator.openMenu(menuFactory.createGuildLeaderboardMenu(menuNavigator, player, guild))
@@ -261,13 +260,6 @@ class GuildProgressionMenu(
                 sourceDetails = true
                 open()
             },
-            if (isMember()) nativeAction(lang.gui("chapter_two_rewards.title")) {
-                if (rewardState is GuildRewardRead.Available) {
-                    openRewardCatalog()
-                } else {
-                    showLegacyPerks()
-                }
-            } else null,
             if (isMember()) nativeAction(lang.gui("menu.guild_progression.prestige.name"), ::openNativePrestige) else null,
         )
 
@@ -464,7 +456,15 @@ class GuildProgressionMenu(
             ItemStack.of(Material.GOLD_INGOT)
         }.also { it.editMeta { meta ->
             meta.displayName(lang.gui("menu.guild_progression.rank.name"))
-            meta.lore(listOf(lang.gui("menu.guild_progression.rank.description"), lang.gui("menu.guild_progression.rank.scope")))
+            // REQ-285: the guild's actual place, matching the leaderboard's level standings.
+            val standing = runCatching {
+                val koin = org.koin.core.context.GlobalContext.get()
+                GuildLeaderboardSource(guildService, memberService, koin.get<net.lumalyte.lg.application.services.QuestService>()).levelStanding(guild.id)
+            }.getOrNull()
+            meta.lore(listOfNotNull(
+                standing?.let { (rank, total) -> lang.gui("menu.guild_progression.rank.standing", "rank" to rank, "total" to total) },
+                lang.gui("menu.guild_progression.rank.standing_hint"),
+            ))
         }}
         pane.addItem(GuiItem(item) { it.isCancelled = true }, x, y)
     }
@@ -497,10 +497,10 @@ class GuildProgressionMenu(
             val item = NexoItemProvider.getItemStackOrFallback("lg_reward") {
                 ItemStack.of(Material.DIAMOND)
             }.also { it.editMeta { meta ->
-                meta.displayName(lang.gui("chapter_two_rewards.title"))
-                meta.lore(listOf(lang.gui("chapter_two_rewards.explanation"), lang.gui("chapter_two_rewards.view")))
+                meta.displayName(lang.gui("chronicle.title"))
+                meta.lore(listOf(lang.gui("chapter_two_rewards.explanation"), lang.gui("chronicle.open")))
             } }
-            pane.addItem(GuiItem(item) { event -> event.isCancelled = true; openRewardCatalog() }, x, y)
+            pane.addItem(GuiItem(item) { event -> event.isCancelled = true; openRewards() }, x, y)
             return
         }
         val perks = progressionService.getUnlockedPerks(guild.id)
@@ -522,6 +522,19 @@ class GuildProgressionMenu(
         pane.addItem(GuiItem(item) { it.isCancelled = true }, x, y)
     }
 
+    /**
+     * REQ-293: the single rewards menu. Dialog clients get the Guild Chronicle; clients without dialogs get
+     * the chest list of the same rewards; a guild whose reward state isn't ready sees its legacy perks.
+     */
+    private fun openRewards() {
+        if (!isMember()) return
+        when {
+            rewardState !is GuildRewardRead.Available -> showLegacyPerks()
+            RecruitmentPresentation.supportsDialog(player) -> menuNavigator.openMenu(GuildChronicleMenu(menuNavigator, player, guild))
+            else -> openRewardCatalog()
+        }
+    }
+
     private fun openRewardCatalog() {
         guild = guildService.getGuild(guild.id) ?: guild
         if (memberService.getMember(player.uniqueId, guild.id) == null) return
@@ -530,8 +543,7 @@ class GuildProgressionMenu(
             player.sendMessage(lang.msg("chapter_two_rewards.unavailable"))
             return
         }
-        if (RecruitmentPresentation.supportsDialog(player) && showRewardDialog(state)) return
-        val gui = ChestGui(6, lang.guiTitle("chapter_two_rewards.title"))
+        val gui = ChestGui(6, lang.guiTitle("chronicle.title"))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnGlobalClick { it.isCancelled = true }
         state.entitlements.offers.forEachIndexed { index, offer ->
@@ -554,7 +566,7 @@ class GuildProgressionMenu(
         }
         val benefits = state.entitlements
         val summary = ItemStack.of(Material.GOLD_INGOT).also { it.editMeta { meta ->
-            meta.displayName(lang.gui("chapter_two_rewards.title"))
+            meta.displayName(lang.gui("chronicle.benefits"))
             meta.lore(listOf(
                 lang.gui("chapter_two_rewards.capacity_bank", "capacity" to benefits.bankCapacity),
                 lang.gui("chapter_two_rewards.capacity_home_member", "homes" to benefits.homeCapacity, "members" to net.lumalyte.lg.interaction.menus.memberCapacityShown(guild.id, benefits.memberCapacity)),
@@ -565,39 +577,6 @@ class GuildProgressionMenu(
         pane.addItem(GuiItem(back) { it.isCancelled = true; open() }, 8, 5)
         gui.addPane(pane)
         gui.show(player)
-    }
-
-    private fun showRewardDialog(state: GuildRewardRead.Available): Boolean {
-        val offers = state.entitlements.offers.sortedBy { it.reward.level }
-        val pages = maxOf(1, (offers.size + 3) / 4)
-        rewardPage = rewardPage.coerceIn(0, pages - 1)
-        val token = menuNavigator.currentNavigationToken()
-        val visible = offers.drop(rewardPage * 4).take(4)
-        val cards = visible.mapIndexed { index, offer ->
-            val title = Component.text(offer.reward.name)
-            val icon = when (offer.status) {
-                RewardOfferStatus.AVAILABLE -> "lg_reward"
-                RewardOfferStatus.PURCHASED, RewardOfferStatus.PERMANENT -> "lg_confirm"
-                else -> "lg_cancel"
-            }
-            referenceItem(icon, listOf(title, referenceRewardEffect(lang, offer.reward.effect)), referenceAction(title, icon) {
-                GuildChronicleMenu(menuNavigator, player, guild, initialRewardId = offer.reward.id,
-                    returnToBrowser = ::openRewardCatalog).open()
-            }, right = listOf(lang.rewardStatus(offer.status),
-                lang.gui("chapter_two_rewards.level_price", "level" to offer.reward.level, "price" to offer.reward.price)),
-                section = if (index == 0 || visible[index - 1].reward.level != offer.reward.level)
-                    Component.text("${lang.raw("dialog_v2.rank_level")} ${offer.reward.level}") else null)
-        }
-        val controls = buildList {
-            if (rewardPage > 0) add(referenceAction(lang.gui("recruitment.previous"), "lg_page_prev") { rewardPage--; openRewardCatalog() })
-            if (rewardPage + 1 < pages) add(referenceAction(lang.gui("recruitment.next"), "lg_page_next") { rewardPage++; openRewardCatalog() })
-        }
-        return nativeDialog.show(player, GuildDialogPage(lang.gui("dialog_v2.perks"), cards, controls,
-            referenceAction(lang.gui("recruitment.dialog.back"), "lg_back", ::open), theme = guild.guiTheme,
-            columns = 2, framedHeading = true,
-            subtitle = Component.text("${guild.name} · ${lang.raw("dialog_v2.rank_level")} ${state.level} · ${rewardPage + 1}/$pages")), {
-            player.isOnline && menuNavigator.isNavigationCurrent(token) && memberService.getMember(player.uniqueId, guild.id) != null
-        }) { player.sendMessage(lang.msg("chapter_two_rewards.unavailable")) }
     }
 
     private fun showLegacyPerks() {

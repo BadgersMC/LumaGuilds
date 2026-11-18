@@ -65,7 +65,7 @@ internal class GuildChronicleMenu(
     }
 
     private fun tree() {
-        load { snapshot ->
+        load({ runCatching { prestigeService.overview(guild.id)?.prestigeCount }.getOrNull() ?: 0 }) { snapshot, tier ->
             val cards = snapshot.levels.flatMap { it.offers }.map { offer ->
                 val lines = listOf(
                     Component.text(offer.reward.name),
@@ -75,13 +75,27 @@ internal class GuildChronicleMenu(
                 ) + if (snapshot.goal.rewardId == offer.reward.id) listOf(lang.gui("chronicle.tracked")) else emptyList()
                 referenceItem(icon(offer.reward.effect), lines,
                     referenceAction(Component.text(offer.reward.name), icon(offer.reward.effect)) { detail(offer.reward.id) })
-            }.ifEmpty { listOf(referenceItem("lg_reward", listOf(lang.gui("chronicle.empty")))) }
+            }.ifEmpty { listOf(referenceItem("lg_reward", listOf(lang.gui("chronicle.empty")))) }.let { rewards ->
+                // REQ-293: what used to head Chapter 2 Rewards: the guild's current benefits, on the first page.
+                if (snapshot.page != 0) rewards else {
+                    val benefits = snapshot.state.entitlements
+                    listOf(referenceItem("lg_sources", listOf(
+                        lang.gui("chronicle.benefits"),
+                        lang.gui("chapter_two_rewards.capacity_bank", "capacity" to benefits.bankCapacity),
+                        lang.gui("chapter_two_rewards.capacity_home_member", "homes" to benefits.homeCapacity,
+                            "members" to net.lumalyte.lg.interaction.menus.memberCapacityShown(guild.id, benefits.memberCapacity)),
+                        lang.gui("chapter_two_rewards.multipliers", "cooldown" to benefits.homeCooldownMultiplier,
+                            "fee" to benefits.withdrawalFeeMultiplier),
+                    ))) + rewards
+                }
+            }
             val actions = buildList {
                 if (snapshot.page > 0) add(referenceAction(lang.gui("chronicle.earlier"), "lg_page_prev") { page = snapshot.page - 1; tree() })
                 if (snapshot.page < 9) add(referenceAction(lang.gui("chronicle.later"), "lg_page_next") { page = snapshot.page + 1; tree() })
                 snapshot.goal.rewardId?.let { id -> add(referenceAction(lang.gui("chronicle.goal"), "lg_reward") { detail(id) }) }
                 add(referenceAction(lang.gui("chronicle.automatic"), "lg_bank") { automatic() })
-                add(referenceAction(lang.gui("chronicle.prestige.action"), "lg_prestige") { prestige() })
+                // REQ-288: the guild's own prestige badge (the first one before any prestige), not the diamond.
+                add(referenceAction(lang.gui("chronicle.prestige.action"), PrestigeIcon.id(tier.coerceAtLeast(1))) { prestige() })
             }
             show(cards, actions, referenceAction(lang.gui("recruitment.dialog.back"), "lg_back", navigator::goBack),
                 lang.gui("chronicle.range", "guild" to guild.name, "level" to snapshot.state.level,
@@ -165,11 +179,23 @@ internal class GuildChronicleMenu(
                 referenceAction(lang.gui("chronicle.back_tree"), "lg_back") { tree() }
             show(cards, actions, referenceAction(lang.gui("recruitment.dialog.back"), "lg_back", navigator::goBack),
                 lang.gui("chronicle.prestige.subtitle"), listOf(
-                    referenceAction(lang.gui("chronicle.prestige.overview"), PrestigeIcon.id(overview.prestigeCount)) { prestigeTab = 0; prestige() },
-                    referenceAction(lang.gui("chronicle.prestige.milestones"), PrestigeIcon.id(overview.prestigeCount)) { prestigeTab = 1; prestige() },
-                    referenceAction(lang.gui("chronicle.prestige.legacy"), PrestigeIcon.id(overview.prestigeCount)) { prestigeTab = 2; prestige() },
+                    prestigeTabButton(0, lang.raw("chronicle.prestige.overview")),
+                    prestigeTabButton(1, lang.raw("chronicle.prestige.milestones")),
+                    prestigeTabButton(2, lang.raw("chronicle.prestige.legacy")),
                 ))
         }
+    }
+
+    /**
+     * REQ-287: the three prestige pages as button-like tabs with no icon: the open page in bold gold
+     * with markers, the others in bracketed yellow, so players can see they are clickable.
+     */
+    private fun prestigeTabButton(tab: Int, raw: String): GuildDialogAction {
+        val name = raw.replace(Regex("<[^>]+>"), "").trim()
+        val label = if (tab == prestigeTab) Component.text("▶ $name ◀", net.kyori.adventure.text.format.NamedTextColor.GOLD,
+            net.kyori.adventure.text.format.TextDecoration.BOLD)
+        else Component.text("[ $name ]", net.kyori.adventure.text.format.NamedTextColor.YELLOW)
+        return GuildDialogAction(label, Component.empty()) { prestigeTab = tab; prestige() }
     }
 
     private fun prestigeCards(overview: PrestigeOverview, retained: List<RewardOffer>): List<GuildDialogItem> {
@@ -222,7 +248,7 @@ internal class GuildChronicleMenu(
         add(referenceItem("lg_sources", listOf(
             lang.gui("chronicle.prestige.earn_title"),
             lang.gui("chronicle.prestige.earn_level"),
-            lang.gui("chronicle.prestige.earn_purchase"),
+            lang.gui("chronicle.prestige.earn_purchase_v2"),
             lang.gui("chronicle.prestige.earn_confirm"),
         )))
         add(referenceItem("lg_home_add", listOf(
@@ -235,12 +261,13 @@ internal class GuildChronicleMenu(
     }
 
     private fun prestigeRetainedCards(retained: List<RewardOffer>, tier: Int): List<GuildDialogItem> {
-        if (retained.isEmpty()) return listOf(referenceItem(PrestigeIcon.id(tier), listOf(lang.gui("chronicle.prestige.none"))))
+        // REQ-287: each retained perk shows its own kind (bank, homes, travel), not the prestige badge again.
+        if (retained.isEmpty()) return listOf(referenceItem("lg_reward", listOf(lang.gui("chronicle.prestige.none"))))
         return retained.map { offer ->
-            referenceItem(PrestigeIcon.id(tier), listOf(
+            referenceItem(icon(offer.reward.effect), listOf(
                 lang.gui("chronicle.prestige.seal"), Component.text(offer.reward.name), effect(offer.reward.effect),
                 lang.gui("chronicle.prestige.retained"),
-            ), referenceAction(Component.text(offer.reward.name), "lg_prestige") { detail(offer.reward.id) })
+            ), referenceAction(Component.text(offer.reward.name), icon(offer.reward.effect)) { detail(offer.reward.id) })
         }
     }
 
@@ -291,7 +318,7 @@ internal class GuildChronicleMenu(
         ChronicleBranch.ALL -> lang.gui("chronicle.all")
         ChronicleBranch.TREASURY -> lang.gui("chronicle.treasury")
         ChronicleBranch.TRAVEL -> lang.gui("chronicle.travel")
-        ChronicleBranch.OUTPOSTS -> lang.gui("chronicle.outposts")
+        ChronicleBranch.OUTPOSTS -> lang.gui("chronicle.outposts_v2")
     }
 
     private fun effect(value: RewardEffect): Component = when (value) {

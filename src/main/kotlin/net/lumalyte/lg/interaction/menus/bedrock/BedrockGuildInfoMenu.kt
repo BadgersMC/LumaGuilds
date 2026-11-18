@@ -9,7 +9,6 @@ import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.RelationService
 import net.lumalyte.lg.domain.entities.Guild
-import net.lumalyte.lg.domain.entities.GuildMode
 import net.lumalyte.lg.domain.entities.RelationType
 import net.lumalyte.lg.interaction.menus.GuildInfoRelationResolver
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -152,26 +151,16 @@ class BedrockGuildInfoMenu(
         val tag = guildService.getTag(guild.id) ?: lang.bedrock("bedrock.info.value.no_tag")
         val emoji = guildService.getEmoji(guild.id) ?: lang.bedrock("bedrock.info.value.no_emoji")
 
-        return when (guild.mode) {
-            GuildMode.PEACEFUL -> lang.bedrock(
-                "bedrock.info.overview.peaceful",
-                "guild" to guild.name,
-                "level" to guild.level,
-                "emoji" to emoji,
-                "description" to description,
-                "tag" to tag,
-                "founded" to foundedDate
-            )
-            GuildMode.HOSTILE -> lang.bedrock(
-                "bedrock.info.overview.hostile",
-                "guild" to guild.name,
-                "level" to guild.level,
-                "emoji" to emoji,
-                "description" to description,
-                "tag" to tag,
-                "founded" to foundedDate
-            )
-        }
+        // REQ-290: no guild mode line; modes are removed.
+        return lang.bedrock(
+            "bedrock.info.overview.basic",
+            "guild" to guild.name,
+            "level" to guild.level,
+            "emoji" to emoji,
+            "description" to description,
+            "tag" to tag,
+            "founded" to foundedDate
+        )
     }
 
     /** REQ-195: the same Yes/No lines as the Java guild card. */

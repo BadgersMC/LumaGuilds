@@ -16,7 +16,7 @@ class GuildDashboardLayoutContractTest {
             "lg_nav_info" to (2 to 0), "lg_nav_progression" to (3 to 0), "lg_nav_quests" to (5 to 0), "lg_nav_statistics" to (6 to 0),
             "lg_nav_ranks" to (2 to 1), "lg_nav_economy" to (3 to 1), "lg_nav_settings" to (4 to 1), "lg_nav_stalls" to (5 to 1),
             "lg_members" to (6 to 1),
-            "lg_book" to (0 to 2), "lg_nav_diplomacy" to (3 to 2), "lg_nav_warfare" to (5 to 2), "lg_nav_actions" to (8 to 2),
+            "lg_nav_diplomacy" to (3 to 2), "lg_nav_warfare" to (5 to 2), "lg_nav_actions" to (8 to 2),
         )
         expected.forEach { (id, at) ->
             assertTrue(source.contains("addNavButton(pane, ${at.first}, ${at.second}, \"$id\""), "$id should sit at $at")

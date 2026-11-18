@@ -104,7 +104,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
         slotsItem.lore(lang.gui("menu.common.blank"))
         val lockedHomes = allHomes.homeNames.count { guildService.isHomeLocked(guild.id, it) }
-        if (lockedHomes > 0) slotsItem.lore(lang.gui("menu.guild_home.slots.locked_count", "count" to lockedHomes))
+        if (lockedHomes > 0) slotsItem.lore(lang.gui("menu.guild_home.slots.locked_count_v2", "count" to lockedHomes))
         if (guildService.canCreateNewHome(guild.id)) {
             slotsItem.lore(lang.gui("menu.guild_home.slots.additional"))
         } else {
@@ -196,7 +196,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                     else if (active) teleportIcon() else ItemStack.of(Material.GOLD_INGOT)
                 val mainName =
                     if (locked) {
-                        lang.gui("menu.guild_home.locked.name", "home" to mainHomeName)
+                        lang.gui("menu.guild_home.locked.name_v2", "home" to mainHomeName)
                     } else if (active) {
                         lang.gui("menu.guild_home.teleport.main.name")
                     } else {
@@ -204,7 +204,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                     }
                 val mainDescription =
                     if (locked) {
-                        lang.gui("menu.guild_home.locked.description")
+                        lang.gui("menu.guild_home.locked.description_v2")
                     } else if (active) {
                         lang.gui("menu.guild_home.teleport.main.description")
                     } else {
@@ -260,8 +260,8 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             val active = homeActivationService.isActive(guild.id, homeName)
             val item = if (locked) {
                 ItemStack.of(Material.BARRIER)
-                    .name(lang.gui("menu.guild_home.locked.name", "home" to homeName))
-                    .lore(lang.gui("menu.guild_home.locked.description"))
+                    .name(lang.gui("menu.guild_home.locked.name_v2", "home" to homeName))
+                    .lore(lang.gui("menu.guild_home.locked.description_v2"))
             } else if (active) {
                 NexoItemProvider.getItemStackOrFallback("lg_home_access") { ItemStack.of(Material.IRON_DOOR) }
                     .name(lang.gui("menu.guild_home.access.name", "home" to homeName))
@@ -287,8 +287,8 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         if (!unlocked) {
             val locked = ItemStack.of(Material.IRON_DOOR)
                 .name(lang.gui("menu.allied_homes.locked.name"))
-                .lore(lang.gui("menu.allied_homes.locked.description"))
-            pane.addItem(GuiItem(locked) { player.sendMessage(lang.msg("menu.allied_homes.locked.feedback")) },
+                .lore(lang.gui("menu.allied_homes.locked.description_v2"))
+            pane.addItem(GuiItem(locked) { player.sendMessage(lang.msg("menu.allied_homes.locked.feedback_v2")) },
                 ALLY_ACCESS_SLOT, BOTTOM_ROW)
             return
         }
@@ -454,7 +454,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             val worldName = Bukkit.getWorld(home.worldId)?.name ?: lang.raw("general.unknown")
             player.sendMessage(lang.msg("menu.guild_home.slots.row", "home" to name, "marker" to marker, "world" to worldName))
             if (guildService.isHomeLocked(guild.id, name)) {
-                player.sendMessage(lang.msg("menu.guild_home.feedback.locked_hint", "home" to name))
+                player.sendMessage(lang.msg("menu.guild_home.feedback.locked_hint_v2", "home" to name))
             }
         }
         player.sendMessage(lang.msg("menu.guild_home.list.command"))
@@ -523,8 +523,8 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun restoreLockedOutpost(homeName: String) {
         val success = guildService.restoreLockedOutpost(guild.id, homeName, player.uniqueId)
-        if (success) player.sendMessage(lang.msg("menu.guild_home.feedback.restored", "home" to homeName))
-        else player.sendMessage(lang.msg("menu.guild_home.feedback.restore_unavailable", "home" to homeName))
+        if (success) player.sendMessage(lang.msg("menu.guild_home.feedback.restored_v2", "home" to homeName))
+        else player.sendMessage(lang.msg("menu.guild_home.feedback.restore_unavailable_v2", "home" to homeName))
         open()
     }
 

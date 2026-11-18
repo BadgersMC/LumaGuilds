@@ -187,7 +187,8 @@ internal class GuildChatReconnectMenuTest {
         val definition: FormDefinition<CustomForm, *, *> = FormDefinitions.instance().definitionFor(form)
         definition.handleFormResponse(
             form,
-            """[null,"Reconnect","",0,${guild.isOpen},${guild.trackingEnabled},true,$enabled,0,null]""",
+            // REQ-290: no guild mode dropdown between the description and the toggles.
+            """[null,"Reconnect","",${guild.isOpen},${guild.trackingEnabled},true,$enabled,0,null]""",
         )
     }
     private companion object {

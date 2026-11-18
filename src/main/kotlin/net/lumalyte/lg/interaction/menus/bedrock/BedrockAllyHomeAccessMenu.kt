@@ -44,7 +44,7 @@ class BedrockAllyHomeAccessMenu(
         }
         // Allied homes need the Allied Waypoints reward; say so instead of an empty page.
         if (!progressionService.hasPerkUnlocked(guild.id, net.lumalyte.lg.domain.values.PerkType.ALLY_HOME_ACCESS)) {
-            return statusForm(lang.bedrock("menu.allied_homes.locked.feedback"))
+            return statusForm(lang.bedrock("menu.allied_homes.locked.feedback_v2"))
         }
         val current = guildService.getGuild(guild.id)
             ?: return statusForm(lang.bedrock("bedrock.ally_home_access.missing_guild"))

@@ -46,7 +46,8 @@ internal class GuildChronicleMenuTest : RecruitmentDialogFixture() {
         val nav = MenuNavigator(player)
         nav.openMenu(GuildChronicleMenu(nav, player, guild, presenter))
         assertEquals(4, renderedPage!!.bodyActions.size)
-        renderedPage!!.items.first().onClick!!.action()
+        // REQ-293: the first card is the benefits summary; the first reward follows it.
+        renderedPage!!.items[1].onClick!!.action()
         renderedPage!!.actions.first().action() // Track; no purchase permission granted.
         assertEquals("bank-1", repository.saved.rewardId)
         nav.openMenu(GuildChronicleMenu(nav, player, guild, presenter))

@@ -89,7 +89,7 @@ internal class GuildAchievementsMenu(
         return referenceItem(icon(node), lines, referenceAction(Component.text(node.title), icon(node)) {
             selected = node.id
             open()
-        })
+        }).copy(item = advancementIcon(node))
     }
 
     private fun status(progress: Int, goal: Int): Component =
@@ -122,7 +122,7 @@ internal class GuildAchievementsMenu(
                 open()
             },
         )
-        show(token, listOf(referenceItem(icon(node), lines)), actions, lang.gui("achievements.detail_subtitle", "category" to node.category), columns = 1)
+        show(token, listOf(referenceItem(icon(node), lines).copy(item = advancementIcon(node))), actions, lang.gui("achievements.detail_subtitle", "category" to node.category), columns = 1)
     }
 
     private fun treeAction(): GuildDialogAction = referenceAction(lang.gui("achievements.tree_action"), "lg_sources") {
@@ -192,6 +192,10 @@ internal class GuildAchievementsMenu(
         val scopedMilestones = guildMilestones && adminOverrideService?.getViewedGuild(player.uniqueId) == guild.id
         return navigationValid && (isMember() || scopedMilestones)
     }
+    /** REQ-286: the same item the advancement shows in the vanilla advancements screen (its JSON icon). */
+    private fun advancementIcon(node: GuildAchievement): org.bukkit.inventory.ItemStack =
+        org.bukkit.inventory.ItemStack.of(advancementMaterial(node))
+
     private fun icon(node: GuildAchievement) = when (node.category) {
         "Combat" -> "lg_combat"
         "Commerce" -> "lg_bank"
@@ -208,6 +212,10 @@ internal class GuildAchievementsMenu(
     }
     companion object {
         private const val PAGE = 4
+
+        /** REQ-286: matches GuildAchievementProjection, which falls back to a shield for an unknown icon. */
+        fun advancementMaterial(node: GuildAchievement): org.bukkit.Material =
+            org.bukkit.Material.matchMaterial(node.icon) ?: org.bukkit.Material.SHIELD
         val CATEGORIES = listOf("Foundations", "Cooperation", "Combat", "Commerce", "Reputation")
 
         fun earning(node: GuildAchievement): String = when (node.requirement) {
