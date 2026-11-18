@@ -56,7 +56,7 @@ class NexusSocialBindingsTest {
         val names = context.getBeanNames().toSet()
         assertEquals(expectedNames, names)
         assertEquals(37, names.size)
-        // Blocked: Koin field injection (KoinComponent) and the Koin-owned VirtualThreadExecutor.
+        // Koin field-injected listeners remain deferred; Discord subscriptions are in a separate Nexus group.
         assertFalse("chatInputListener" in names)
         assertFalse("guildChatListener" in names)
         assertFalse("discordAccountLinkSubscription" in names)

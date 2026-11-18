@@ -80,9 +80,8 @@ import kotlin.reflect.KClass
  * Intentionally NOT mapped yet:
  *  - ChatInputListener / GuildChatListener: KoinComponent field injection; a Nexus
  *    instance would still resolve from Koin and split singleton state with menus.
- *  - DiscordAccountLinkSubscription / DiscordGuildProfileSubscription: the DiscordSRV
- *    implementations require the Koin-owned "VirtualThreadExecutor" ExecutorService,
- *    which Nexus does not expose; an unmanaged executor must not be created here.
+ *  - DiscordAccountLinkSubscription / DiscordGuildProfileSubscription: now registered
+ *    separately by NexusDiscordBindings, borrowing the Nexus-owned virtual executor.
  */
 internal fun NexusContext.registerSocialBindings() {
     // Recruitment

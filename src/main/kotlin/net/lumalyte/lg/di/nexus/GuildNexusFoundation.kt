@@ -81,6 +81,9 @@ internal class GuildNexusFoundation private constructor(
                 context.registerVaultBindings()
                 context.registerWarBindings()
                 context.registerQuestBindings()
+                context.registerWebBindings()
+                context.registerDiscordBindings()
+                context.registerIntegrationBindings(plugin)
                 context.registerProgressionListenerBindings()
 
                 // Nexus owns and closes its CoroutineScope and virtual-thread dispatchers.
