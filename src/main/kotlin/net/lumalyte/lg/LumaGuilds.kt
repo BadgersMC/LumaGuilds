@@ -184,6 +184,9 @@ class LumaGuilds : JavaPlugin() {
         net.lumalyte.lg.infrastructure.services.GuildInvitationManager.initialize(
             get().get<net.lumalyte.lg.application.persistence.GuildInvitationRepository>(),
             get().get<net.lumalyte.lg.application.services.InviteBlockService>(),
+            notificationProvider = {
+                get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService>()
+            },
         )
 
         // Initialize Gold Balance Button

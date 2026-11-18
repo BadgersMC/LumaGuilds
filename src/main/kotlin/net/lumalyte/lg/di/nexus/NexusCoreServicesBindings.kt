@@ -30,7 +30,11 @@ internal fun NexusContext.registerCoreServiceBindings(plugin: LumaGuilds) {
     plugin.metadata?.let { chat ->
         registerBean("vaultChat", Chat::class, chat)
         registerBean("playerMetadataService", PlayerMetadataService::class) {
-            PlayerMetadataServiceVault(getBean<Chat>(), getBean<MainConfig>())
+            PlayerMetadataServiceVault(
+                getBean<Chat>(),
+                getBean<MainConfig>(),
+                requireNotNull(dispatchers).virtualThread
+            )
         }
     }
 

@@ -8,15 +8,13 @@ import net.lumalyte.lg.domain.rewards.*
 import net.lumalyte.lg.infrastructure.services.*
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
-import org.koin.core.context.*
-import org.koin.dsl.module
 import org.mockbukkit.mockbukkit.MockBukkit
 import java.util.UUID
 import kotlin.test.*
 
 /** Real payment journal, creation SQL, default ranks, member admission and reward read. */
 class GuildCreationFlowSQLTest : RewardSqlTestFixture() {
-    @AfterEach fun clearRuntime() { stopKoin(); unmockkAll(); MockBukkit.unmock() }
+    @AfterEach fun clearRuntime() { unmockkAll(); MockBukkit.unmock() }
 
     @Test fun paidCreationEstablishesOwnerAndCommitsExactlyOnePayment() {
         try { runCreation() } catch (error: org.mockbukkit.mockbukkit.exception.UnimplementedOperationException) {
@@ -37,7 +35,6 @@ class GuildCreationFlowSQLTest : RewardSqlTestFixture() {
     }
 
     private fun runCreation(bypass: Boolean = false, grant: Boolean = bypass) {
-        stopKoin()
         val server = MockBukkit.mock()
         val player = spyk(server.addPlayer())
         val playerId = player.uniqueId
@@ -47,7 +44,6 @@ class GuildCreationFlowSQLTest : RewardSqlTestFixture() {
         val cfg = MainConfig(chapterTwoGoldCostsEnabled = true, guild = GuildConfig(createGuildCost = 10))
         val config = mockk<ConfigService>()
         every { config.loadConfig() } returns cfg
-        startKoin { modules(module { single { config } }) }
         val guilds = GuildRepositorySQLite(storage) { 4321 }
         val ranks = RankRepositorySQLite(storage)
         val members = MemberRepositorySQLite(storage)
@@ -62,7 +58,9 @@ class GuildCreationFlowSQLTest : RewardSqlTestFixture() {
         val guildService = GuildServiceBukkit(guilds, ranks, members, rankService, memberService,
             mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
             mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
-            homeAccess = net.lumalyte.lg.infrastructure.services.LegacyHomeAccessTestAdapter)
+            homeAccess = net.lumalyte.lg.infrastructure.services.LegacyHomeAccessTestAdapter,
+            configServiceProvider = { config },
+            rewardServiceProvider = { rewards })
         val expiry = java.time.Instant.now().plusSeconds(86400)
         if (bypass) {
             guilds.creationCooldownUntil(playerId) // Initialize history schema.

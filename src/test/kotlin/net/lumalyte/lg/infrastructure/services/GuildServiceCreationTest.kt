@@ -7,8 +7,6 @@ import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.domain.entities.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Test
-import org.koin.core.context.*
-import org.koin.dsl.module
 import org.mockbukkit.mockbukkit.MockBukkit
 import java.time.Instant
 import java.util.UUID
@@ -25,23 +23,22 @@ class GuildServiceCreationTest {
     private val rankId = UUID.randomUUID()
 
     @BeforeEach fun setup() {
-        stopKoin()
         MockBukkit.mock()
         every { config.loadConfig() } returns MainConfig()
-        startKoin { modules(module { single { config } }) }
         every { guilds.addCreated(any(), owner) } returns true
         every { guilds.remove(any()) } returns true
         every { rankService.createDefaultRanks(any(), owner) } returns true
         every { ranks.getHighestRank(any()) } answers { Rank(rankId, firstArg(), "Owner", 0, emptySet()) }
         every { members.getByPlayerAndGuild(owner, any()) } returns null
     }
-    @AfterEach fun cleanup() { stopKoin(); unmockkAll(); MockBukkit.unmock() }
+    @AfterEach fun cleanup() { unmockkAll(); MockBukkit.unmock() }
 
     private fun service() = GuildServiceBukkit(
         guilds, ranks, members, rankService, memberService,
         mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
         mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
         homeAccess = LegacyHomeAccessTestAdapter,
+        configServiceProvider = { config },
     )
 
     @Test fun onlyTheOnlineOwnerPermissionSelectsBypassAdmission() {

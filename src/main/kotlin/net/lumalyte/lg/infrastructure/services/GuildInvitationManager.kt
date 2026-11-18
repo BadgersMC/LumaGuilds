@@ -3,6 +3,7 @@ package net.lumalyte.lg.infrastructure.services
 import net.lumalyte.lg.application.persistence.GuildInvitationRepository
 import net.lumalyte.lg.application.services.InviteBlockService
 import net.lumalyte.lg.domain.entities.GuildInvitation
+import net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService
 import java.time.Instant
 import java.util.UUID
 
@@ -15,14 +16,21 @@ object GuildInvitationManager {
     private lateinit var repository: GuildInvitationRepository
 
     private var inviteBlocks: InviteBlockService? = null
+    // Resolved per notification, never cached across plugin reloads.
+    private var notifications: () -> GuildNotificationService? = { null }
 
     /**
-     * Initialize the manager with a repository instance.
-     * This must be called during plugin startup.
+     * Initialize the manager with the repository and an optional integration provider.
+     * The provider is evaluated only after an invitation has been persisted.
      */
-    fun initialize(repo: GuildInvitationRepository, blocks: InviteBlockService? = null) {
+    fun initialize(
+        repo: GuildInvitationRepository,
+        blocks: InviteBlockService? = null,
+        notificationProvider: () -> GuildNotificationService? = { null }
+    ) {
         repository = repo
         inviteBlocks = blocks
+        notifications = notificationProvider
     }
 
     /**
@@ -50,8 +58,7 @@ object GuildInvitationManager {
         if (!repository.add(invitation)) return false
 
         try {
-            val notificationService = org.koin.core.context.GlobalContext.get()
-                .getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService>()
+            val notificationService = notifications()
             notificationService?.notifyGuildInvite(invitedPlayerId, guildName, inviterName)
         } catch (_: Exception) {
             // Apollo is optional; durable invitation persistence already succeeded.

@@ -252,7 +252,13 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
     // Core services
     single<ConfigService> { ConfigServiceBukkit { get<LumaGuilds>().config } }
     single { get<ConfigService>().loadConfig() }
-    single<PlayerMetadataService> { PlayerMetadataServiceVault(get(), get()) }
+    single<PlayerMetadataService> {
+        PlayerMetadataServiceVault(
+            get(),
+            get(),
+            get<CoroutineDispatcher>(named("VirtualDispatcher"))
+        )
+    }
 
     // Utilities
     single<LangService> {
@@ -444,19 +450,24 @@ fun guildsModule() = module {
         GuildServiceBukkit(
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
             homeAccess = get(),
+            configServiceProvider = { get<ConfigService>() },
+            rewardServiceProvider = { get<net.lumalyte.lg.application.services.GuildRewardService>() },
+            progressionServiceProvider = { get<ProgressionService>() },
+            onBannermanBannerChanged = { guildId ->
+                get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners>()
+                    .onGuildBannerChanged(guildId)
+            },
         )
     }
     single<RankService> {
         RankServiceBukkit(
             get(), get(), get(), get(), get(),
             invalidateClaimPermissionCacheForPlayer = { playerId ->
-                org.koin.core.context.GlobalContext.get()
-                    .getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
+                getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
                     ?.invalidatePlayerCache(playerId)
             },
             invalidateClaimPermissionCacheForGuild = { guildId ->
-                org.koin.core.context.GlobalContext.get()
-                    .getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
+                getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
                     ?.invalidateGuildCache(guildId)
             },
             adminOverrideService = get(),
@@ -466,10 +477,12 @@ fun guildsModule() = module {
         MemberServiceBukkit(
             get(), get(), get(), get(), get(), get(), get(), get(),
             invalidateClaimPermissionCache = { playerId ->
-                org.koin.core.context.GlobalContext.get()
-                    .getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
+                getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
                     ?.invalidatePlayerCache(playerId)
             },
+            guildTeamProvider = { getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildTeamService>() },
+            guildWaypointProvider = { getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildWaypointService>() },
+            guildNotificationProvider = { getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService>() },
         )
     }
     single<RelationService> { RelationServiceBukkit(get(), get(), get()) }

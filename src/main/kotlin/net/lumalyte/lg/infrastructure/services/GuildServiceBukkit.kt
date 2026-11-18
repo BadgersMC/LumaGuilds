@@ -27,8 +27,6 @@ import net.lumalyte.lg.utils.serializeToString
 import net.lumalyte.lg.utils.GuildDescriptionContent
 import net.lumalyte.lg.utils.GuildNameFilter
 import org.bukkit.Bukkit
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.UUID
@@ -54,16 +52,21 @@ class GuildServiceBukkit(
     private val themeAccess: net.lumalyte.lg.application.services.GuildCosmeticUnlockService? = null,
     // Mandatory at runtime: missing v51 wiring must never silently bypass a locked home.
     private val homeAccess: GuildHomeAccessRepository,
-) : GuildService, KoinComponent {
-
-    // Lazy because BannermanListeners depends on GuildService, which would create a Koin
-    // resolution cycle if injected eagerly through the constructor.
-    private val bannermanListeners: net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners by inject()
+    // Providers are evaluated only when needed: Bannerman and progression
+    // ultimately depend on GuildService, so eager injection would form a cycle.
+    private val configServiceProvider: () -> ConfigService = { error("ConfigService provider not registered") },
+    private val rewardServiceProvider: () -> net.lumalyte.lg.application.services.GuildRewardService =
+        { error("GuildRewardService provider not registered") },
+    private val progressionServiceProvider: () -> net.lumalyte.lg.application.services.ProgressionService =
+        { error("ProgressionService provider not registered") },
+    private val onBannermanBannerChanged: (UUID) -> Unit =
+        { error("Bannerman banner callback not registered") },
+) : GuildService {
 
     private val logger = LoggerFactory.getLogger(GuildServiceBukkit::class.java)
+    private val configService get() = configServiceProvider()
+    private val rewardService get() = rewardServiceProvider()
 
-    private val configService: ConfigService by inject()
-    private val rewardService: net.lumalyte.lg.application.services.GuildRewardService by inject()
 
     private fun isGuildNameValid(name: String): Boolean {
         if (name.isBlank() || name.length > 32) return false
@@ -257,7 +260,7 @@ class GuildServiceBukkit(
             Bukkit.getPluginManager().callEvent(GuildBannerSetEvent(guildId, actorId))
             Bukkit.getPluginManager().callEvent(GuildBannerChangedEvent(guildId, banner != null))
 
-            bannermanListeners.onGuildBannerChanged(guildId)
+            onBannermanBannerChanged(guildId)
         }
         return result
     }
@@ -571,8 +574,7 @@ class GuildServiceBukkit(
             val guild = guildRepository.getById(guildId) ?: return emptyMap()
 
             // Check if requesting guild has the perk
-            val progressionService = org.koin.core.context.GlobalContext.get()
-                .get<net.lumalyte.lg.application.services.ProgressionService>()
+            val progressionService = progressionServiceProvider()
             if (!progressionService.hasPerkUnlocked(guildId, net.lumalyte.lg.domain.values.PerkType.ALLY_HOME_ACCESS)) {
                 return emptyMap()
             }

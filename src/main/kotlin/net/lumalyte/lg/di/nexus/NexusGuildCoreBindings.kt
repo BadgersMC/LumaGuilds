@@ -119,7 +119,10 @@ internal fun NexusContext.registerGuildCoreBindings(claimsEnabled: Boolean) {
             historyRepository = getBean(),
             adminOverrideService = getBean(),
             guildRewards = getBean(),
-            invalidateClaimPermissionCache = { playerId -> invalidatePlayerClaims(claimsEnabled, playerId) }
+            invalidateClaimPermissionCache = { playerId -> invalidatePlayerClaims(claimsEnabled, playerId) },
+            guildTeamProvider = { optionalGuildBean<net.lumalyte.lg.infrastructure.services.apollo.GuildTeamService>("guildTeamService") },
+            guildWaypointProvider = { optionalGuildBean<net.lumalyte.lg.infrastructure.services.apollo.GuildWaypointService>("guildWaypointService") },
+            guildNotificationProvider = { optionalGuildBean<net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService>("guildNotificationService") }
         )
     }
     guildSingleton<RankService> {
@@ -149,7 +152,13 @@ internal fun NexusContext.registerGuildCoreBindings(claimsEnabled: Boolean) {
             adminOverrideService = getBean(),
             homeActivationService = getBean(),
             themeAccess = getBean(),
-            homeAccess = getBean()
+            homeAccess = getBean(),
+            configServiceProvider = { getBean<ConfigService>() },
+            rewardServiceProvider = { getBean<net.lumalyte.lg.application.services.GuildRewardService>() },
+            progressionServiceProvider = { getBean<net.lumalyte.lg.application.services.ProgressionService>() },
+            onBannermanBannerChanged = { guildId ->
+                getBean<BannermanListeners>().onGuildBannerChanged(guildId)
+            }
         )
     }
     guildSingleton<RelationService> { RelationServiceBukkit(getBean(), getBean(), getBean()) }
@@ -203,6 +212,10 @@ internal fun NexusContext.registerGuildCoreBindings(claimsEnabled: Boolean) {
         }
     }
 }
+
+/** Optional plugins register their beans only after their own availability checks. */
+private inline fun <reified T : Any> NexusContext.optionalGuildBean(name: String): T? =
+    if (containsBean(name)) getBean(name) as T else null
 
 private fun NexusContext.invalidatePlayerClaims(claimsEnabled: Boolean, playerId: UUID) {
     if (claimsEnabled) getBean<GuildRolePermissionResolver>().invalidatePlayerCache(playerId)

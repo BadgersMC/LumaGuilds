@@ -12,6 +12,7 @@ import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /** Regression coverage for personal invite blocking and compatibility boundaries. */
 internal class GuildInvitationManagerInviteBlockTest {
@@ -50,6 +51,23 @@ internal class GuildInvitationManagerInviteBlockTest {
         every { repository.getInvitationCount(invited) } returns 1
         assertFalse(GuildInvitationManager.hasInvite(invited, guild))
         assertEquals(0, GuildInvitationManager.getInviteCount(invited))
+    }
+
+    @Test
+    fun successfulInviteResolvesOptionalNotificationsOnlyAfterPersistence() {
+        every { blocks.refusesGuildInvite(invited, guild, inviter) } returns false
+        every { repository.add(any()) } returns true
+        var providerCalls = 0
+        // Apollo's optional runtime is absent from unit tests. This still
+        // verifies that the provider is invoked after persistence succeeds.
+        GuildInvitationManager.initialize(repository, blocks) {
+            providerCalls++
+            null
+        }
+        assertEquals(0, providerCalls)
+        assertTrue(GuildInvitationManager.addInvite(guild, GUILD_NAME, invited, inviter, INVITER_NAME))
+        assertEquals(1, providerCalls)
+        verify(exactly = 1) { repository.add(any()) }
     }
 
     private companion object {
