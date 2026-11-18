@@ -76,6 +76,7 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             enabled = config.getBoolean("discord.guild_roles.enabled", true),
             minimumLevel = config.getInt("discord.guild_roles.minimum_level", 50),
             roleNameFormat = string("discord.guild_roles.role_name_format", "Guild • <guild>"),
+            removeOnDisable = config.getBoolean("discord.guild_roles.remove_on_disable", false),
         )
     }
 

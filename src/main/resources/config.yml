@@ -566,6 +566,9 @@ discord:
     minimum_level: 50
     # <guild> is required and is replaced with the live guild name.
     role_name_format: "Guild • <guild>"
+    # With enabled: false, delete the roles THIS server created (from its own records) once Discord is
+    # ready. Use it on a test server that shares the live Discord, so its copies of guild roles go away.
+    remove_on_disable: false
   # REQ-298: a Discord role per prestige tier, given to the members a guild had when it first
   # reached that tier (kept if they leave). Each member holds only their highest prestige role.
   # Unlinked members get theirs when they link. Leave a tier blank to skip it.

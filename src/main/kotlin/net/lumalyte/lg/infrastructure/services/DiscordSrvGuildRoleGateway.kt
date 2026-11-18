@@ -92,7 +92,12 @@ class DiscordSrvGuildRoleGateway : DiscordGuildRoleGateway {
     override fun deleteRole(roleId: String): CompletableFuture<Boolean> {
         val guild = mainGuild() ?: return CompletableFuture.completedFuture(false)
         val role = guild.getRoleById(roleId) ?: return CompletableFuture.completedFuture(true)
-        return role.delete().submit().thenApply { true }
+        // REQ-299: a missing permission throws here rather than failing the future; report it as a failure.
+        return try {
+            role.delete().submit().thenApply { true }
+        } catch (error: RuntimeException) {
+            failedFuture(error)
+        }
     }
 
     private fun mutateRole(

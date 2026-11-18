@@ -68,6 +68,8 @@ data class DiscordGuildRolesConfig(
     var enabled: Boolean = true,
     var minimumLevel: Int = 50,
     var roleNameFormat: String = "Guild • <guild>",
+    /** REQ-299: with [enabled] off, delete the roles this server created (its own records) once. */
+    var removeOnDisable: Boolean = false,
 ) {
     init {
         require(minimumLevel in 1..100) { "discord.guild_roles.minimum_level must be between 1 and 100" }
