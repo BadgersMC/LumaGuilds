@@ -74,7 +74,6 @@ Quick index. Scan for your task; click through to the page that answers it.
 ## Other
 
 - [Open the guild vault](vault.md#opening-the-vault)
-- [Switch between Peaceful and Hostile mode](mode.md#switching-to-peaceful)
 - [Mark a shop as guild-owned](shop.md#buying-a-stall-for-your-guild)
 
 - [What's different on Bedrock?](bedrock.md)
