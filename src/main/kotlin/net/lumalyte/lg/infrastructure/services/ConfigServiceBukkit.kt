@@ -50,6 +50,7 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             seasonalElo = loadSeasonalEloConfig(),
             warBanner = loadWarBannerConfig(),
             discordGuildRoles = loadDiscordGuildRolesConfig(),
+            discordPrestigeRoles = loadDiscordPrestigeRolesConfig(),
             guildList = loadGuildListConfig(),
             recruitment = net.lumalyte.lg.config.RecruitmentConfig(
                 maximumApplications = config.getInt("recruitment.maximum_applications", 3),
@@ -77,6 +78,14 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
             roleNameFormat = string("discord.guild_roles.role_name_format", "Guild • <guild>"),
         )
     }
+
+    private fun loadDiscordPrestigeRolesConfig() = net.lumalyte.lg.config.DiscordPrestigeRolesConfig(
+        enabled = config.getBoolean("discord.prestige_roles.enabled", false),
+        roles = (1..6).mapNotNull { tier ->
+            config.getString("discord.prestige_roles.tier_$tier")?.trim()?.takeIf { it.matches(Regex("\\d{5,25}")) }?.let { tier to it }
+        }.toMap(),
+        iconPath = string("discord.prestige_roles.icon_path", ""),
+    )
 
     private fun loadGuildListConfig(): GuildListConfig = GuildListConfig(
             pageSize = config.getInt("guild_list.page_size", 18).coerceIn(1, 36),

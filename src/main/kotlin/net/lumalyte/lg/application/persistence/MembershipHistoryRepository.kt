@@ -26,6 +26,9 @@ interface MembershipHistoryRepository {
      */
     fun getByPlayer(playerId: UUID): List<MembershipHistory>
 
+    /** REQ-298: every stint in [guildId], oldest first. */
+    fun getByGuild(guildId: UUID): List<MembershipHistory> = emptyList()
+
     fun getQualifiedUnawarded(joinedAtOrBefore: Instant): List<MembershipHistory>
 
     fun markRecruitXpAwarded(stintId: UUID, awardedAt: Instant): Boolean

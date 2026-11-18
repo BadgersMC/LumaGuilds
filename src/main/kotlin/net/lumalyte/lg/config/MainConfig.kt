@@ -42,6 +42,7 @@ data class MainConfig(
     var seasonalElo: SeasonalEloConfig = SeasonalEloConfig(),
     var warBanner: WarBannerConfig = WarBannerConfig(),
     var discordGuildRoles: DiscordGuildRolesConfig = DiscordGuildRolesConfig(),
+    var discordPrestigeRoles: DiscordPrestigeRolesConfig = DiscordPrestigeRolesConfig(),
     var guildList: GuildListConfig = GuildListConfig(),
     var recruitment: RecruitmentConfig = RecruitmentConfig(),
     // Runtime feature gates. Legacy staging defaults are upgraded by ConfigCompatibilityMigrator.
@@ -75,6 +76,19 @@ data class DiscordGuildRolesConfig(
             "discord.guild_roles.role_name_format must contain <guild>"
         }
     }
+}
+
+/**
+ * REQ-298: one Discord role per prestige tier (1..6), given to the members a guild had when it first
+ * reached that tier. [iconPath] is a PNG per tier ("<tier>" is replaced), relative to the server folder,
+ * set as the role icon when the role has none.
+ */
+data class DiscordPrestigeRolesConfig(
+    var enabled: Boolean = false,
+    var roles: Map<Int, String> = emptyMap(),
+    var iconPath: String = "",
+) {
+    fun role(tier: Int): String? = roles[tier]?.takeIf { it.isNotBlank() }
 }
 
 data class SeasonalEloConfig(
