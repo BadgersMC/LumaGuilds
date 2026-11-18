@@ -84,6 +84,13 @@ class FormStateManagerLifecycleTest {
     }
 
     @Test
+    fun `start does not report success if its parent scope is already cancelled`() {
+        ownerScope.cancel()
+        assertFalse(FormStateManager.start(ownerScope, Dispatchers.Default))
+        assertFalse(FormStateManager.isCleanupActive())
+    }
+
+    @Test
     fun `start relaunches if the previous owner scope was cancelled externally`() {
         FormStateManager.start(ownerScope, Dispatchers.Default)
         ownerScope.cancel()

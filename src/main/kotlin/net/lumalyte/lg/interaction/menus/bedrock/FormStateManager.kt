@@ -71,7 +71,7 @@ object FormStateManager {
                 }
             }
         }
-        true
+        cleanupJob?.isActive == true
     }
 
     /** Whether the cleanup child job is currently running (for lifecycle checks). */
@@ -107,7 +107,8 @@ object FormStateManager {
 
         // Check if expired
         if (System.currentTimeMillis() > entry.expiresAt) {
-            stateStorage.remove(key)
+            // A newer state may have replaced the expired one since we read it.
+            stateStorage.remove(key, entry)
             return null
         }
 
@@ -154,11 +155,12 @@ object FormStateManager {
      */
     internal fun cleanupExpiredStates() {
         val now = System.currentTimeMillis()
-        val expiredKeys = stateStorage.entries.filter { (_, entry) ->
-            now > entry.expiresAt
-        }.map { it.key }
-
-        expiredKeys.forEach { stateStorage.remove(it) }
+        stateStorage.forEach { (key, entry) ->
+            if (now > entry.expiresAt) {
+                // Compare-and-remove prevents sweeping a freshly refreshed form.
+                stateStorage.remove(key, entry)
+            }
+        }
     }
 
     /**
