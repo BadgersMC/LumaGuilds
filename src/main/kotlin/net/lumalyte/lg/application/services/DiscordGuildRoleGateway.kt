@@ -28,6 +28,13 @@ interface DiscordGuildRoleGateway {
         allowCreate: Boolean = true,
     ): CompletableFuture<DiscordRoleEnsureResult?>
     fun grantRole(playerId: UUID, roleId: String): CompletableFuture<DiscordMemberRoleResult>
+
+    /**
+     * REQ-298: sets [png] as the role's icon when the role exists and has none. Completes true when set,
+     * false when skipped (no role, already has an icon, or not supported here).
+     */
+    fun setRoleIconIfMissing(roleId: String, png: ByteArray): CompletableFuture<Boolean> =
+        CompletableFuture.completedFuture(false)
     fun revokeRole(playerId: UUID, roleId: String): CompletableFuture<DiscordMemberRoleResult>
 
     /**

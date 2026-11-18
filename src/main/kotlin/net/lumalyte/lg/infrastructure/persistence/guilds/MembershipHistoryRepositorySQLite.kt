@@ -110,6 +110,23 @@ class MembershipHistoryRepositorySQLite(
         }
     }
 
+    override fun getByGuild(guildId: UUID): List<MembershipHistory> {
+        ensureInitialized()
+        return try {
+            storage.connection.getResults(
+                """
+                SELECT id, player_id, guild_id, joined_at, departed_at, departure_reason, recruit_xp_awarded_at
+                FROM membership_history
+                WHERE guild_id = ?
+                ORDER BY joined_at ASC
+                """.trimIndent(),
+                guildId.toString(),
+            ).map { it.toMembershipHistory() }
+        } catch (e: SQLException) {
+            throw DatabaseOperationException("Failed to fetch membership history for guild $guildId", e)
+        }
+    }
+
     override fun getQualifiedUnawarded(joinedAtOrBefore: Instant): List<MembershipHistory> {
         ensureInitialized()
         return try {

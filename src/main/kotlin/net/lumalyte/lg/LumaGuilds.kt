@@ -1200,6 +1200,22 @@ class LumaGuilds : JavaPlugin() {
                 }
             }, 20L * 15L, 20L * 15L)
         }
+        // REQ-298: Discord roles for guild prestige. Awards are recorded whenever enabled; Discord is
+        // caught up at startup (or when DiscordSRV becomes ready), on account links, and every 30 minutes.
+        server.pluginManager.registerEvents(
+            get().get<net.lumalyte.lg.infrastructure.listeners.PrestigeDiscordRoleListener>(), this)
+        if (get().get<net.lumalyte.lg.application.services.ConfigService>().loadConfig().discordPrestigeRoles.enabled) {
+            get().get<net.lumalyte.lg.application.services.DiscordAccountLinkSubscription>().subscribe()
+            val prestigeRoles = get().get<net.lumalyte.lg.application.services.PrestigeDiscordRoleService>()
+            val catchUp = Runnable {
+                prestigeRoles.reconcileAll().whenComplete { changed, error ->
+                    if (error != null) logger.warning("Prestige Discord role sync failed: ${error.message}")
+                    else if (changed > 0) logColored("✓ Prestige Discord roles: $changed role change(s)")
+                }
+            }
+            server.scheduler.runTaskLater(this, catchUp, 20L * 30L)
+            server.scheduler.runTaskTimer(this, catchUp, 20L * 60L * 30L, 20L * 60L * 30L)
+        }
 
         // Public Discord guild profiles are independent of Discord role syncing:
         // every LumaGuilds guild is browseable, even when guild_roles is disabled.

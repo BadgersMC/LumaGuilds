@@ -80,6 +80,15 @@ class DiscordSrvGuildRoleGateway : DiscordGuildRoleGateway {
         }
     }
 
+    override fun setRoleIconIfMissing(roleId: String, png: ByteArray): CompletableFuture<Boolean> {
+        val guild = mainGuild() ?: return CompletableFuture.completedFuture(false)
+        val role = guild.getRoleById(roleId) ?: return CompletableFuture.completedFuture(false)
+        val icon = role.icon
+        if (icon != null && (icon.iconId != null || icon.emoji != null)) return CompletableFuture.completedFuture(false)
+        return role.manager.setIcon(github.scarsz.discordsrv.dependencies.jda.api.entities.Icon.from(png))
+            .submit().thenApply { true }
+    }
+
     override fun deleteRole(roleId: String): CompletableFuture<Boolean> {
         val guild = mainGuild() ?: return CompletableFuture.completedFuture(false)
         val role = guild.getRoleById(roleId) ?: return CompletableFuture.completedFuture(true)
