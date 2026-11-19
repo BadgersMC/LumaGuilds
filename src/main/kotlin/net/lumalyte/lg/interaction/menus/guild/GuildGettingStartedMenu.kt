@@ -20,13 +20,15 @@ import net.lumalyte.lg.utils.inventoryframework.addPane
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.UUID
 
-internal class GuildGettingStartedMenu(navigator: MenuNavigator, private val player: Player, guildId: UUID?) : Menu, KoinComponent {
+internal class GuildGettingStartedMenu(
+    navigator: MenuNavigator,
+    private val player: Player,
+    guildId: UUID?,
+    private val lang: LangService,
+) : Menu {
     private val navigation = GuildGettingStartedNavigation(navigator, player, guildId)
-    private val lang: LangService by inject()
     override fun open() {
         val current = navigation.snapshot() ?: run { player.sendMessage(lang.msg("onboarding.unavailable")); return }
         val title = lang.guiTitle("onboarding.title")

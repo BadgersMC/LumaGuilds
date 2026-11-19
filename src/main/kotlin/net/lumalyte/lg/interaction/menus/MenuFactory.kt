@@ -693,7 +693,7 @@ class MenuFactory(
         if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildGettingStartedMenu(navigator, player, guildId, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedMenu(navigator, player, guildId)
+            net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedMenu(navigator, player, guildId, lang)
         }
 
     fun createPlayerChatSettingsMenu(navigator: MenuNavigator, player: Player): Menu =
@@ -1024,7 +1024,7 @@ class MenuFactory(
         claim: Any? // Will be Claim when claims are available
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimPlayerMenu(menuNavigator, player, claim as net.lumalyte.lg.domain.entities.Claim, logger)
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimPlayerMenu(menuNavigator, player, claim as net.lumalyte.lg.domain.entities.Claim, logger, lang)
         } else {
             net.lumalyte.lg.interaction.menus.management.ClaimPlayerMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim)
         }
@@ -1096,7 +1096,7 @@ class MenuFactory(
      */
     fun createClaimCreationMenu(player: Player, menuNavigator: MenuNavigator, location: org.bukkit.Location): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimCreationMenu(menuNavigator, player, logger)
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimCreationMenu(menuNavigator, player, logger, lang)
         } else {
             net.lumalyte.lg.interaction.menus.management.ClaimCreationMenu(player, menuNavigator, location)
         }
@@ -1111,7 +1111,7 @@ class MenuFactory(
         player: Player
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimTransferNamingMenu(menuNavigator, player, (claim as net.lumalyte.lg.domain.entities.Claim).id, logger)
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimTransferNamingMenu(menuNavigator, player, (claim as net.lumalyte.lg.domain.entities.Claim).id, logger, lang)
         } else {
             net.lumalyte.lg.interaction.menus.management.ClaimTransferNamingMenu(menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim, player)
         }

@@ -9,8 +9,6 @@ import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.logging.Logger
 
 /**
@@ -21,10 +19,9 @@ class BedrockClaimPlayerMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val claim: Claim,
-    logger: Logger
+    logger: Logger,
+    private val lang: LangService,
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
-
-    private val lang: LangService by inject()
 
     override fun getForm(): Form {
         val config = getBedrockConfig()

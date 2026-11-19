@@ -39,7 +39,7 @@ class GuildGettingStartedMenuTest {
             Component.text("First steps explain permissions and unlock requirements without changing configured purchase prices.")
         }
         startKoin { modules(module { single { service }; single { lang } }) }
-        GuildGettingStartedMenu(MenuNavigator(player), player, guild.id).open()
+        GuildGettingStartedMenu(MenuNavigator(player), player, guild.id, lang).open()
         val inventory = player.openInventory.topInventory
         assertEquals(27, inventory.size)
         for (slot in 9..17) {
