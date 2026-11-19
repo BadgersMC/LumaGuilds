@@ -2,6 +2,7 @@ package net.lumalyte.lg.interaction.menus
 
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.PlatformDetectionService
+import net.lumalyte.lg.interaction.menus.bedrock.BedrockMenuDependencies
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockConfirmationMenu
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildBankMenu
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildControlPanelMenu
@@ -40,7 +41,9 @@ class MenuFactory(
     private val configService: net.lumalyte.lg.application.services.ConfigService,
     private val logger: Logger,
     private val lang: LangService,
+    private val bedrockDependencyProvider: ((MenuFactory) -> BedrockMenuDependencies)? = null,
 ) {
+    private val bedrockDependencies by lazy { bedrockDependencyProvider?.invoke(this) }
 
     /**
      * Determines if Bedrock menus should be used for a player based on configuration and platform detection
@@ -1024,7 +1027,7 @@ class MenuFactory(
         claim: Any? // Will be Claim when claims are available
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimPlayerMenu(menuNavigator, player, claim as net.lumalyte.lg.domain.entities.Claim, logger, lang)
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimPlayerMenu(menuNavigator, player, claim as net.lumalyte.lg.domain.entities.Claim, logger, lang, bedrockDependencies)
         } else {
             net.lumalyte.lg.interaction.menus.management.ClaimPlayerMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim)
         }
@@ -1096,7 +1099,7 @@ class MenuFactory(
      */
     fun createClaimCreationMenu(player: Player, menuNavigator: MenuNavigator, location: org.bukkit.Location): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimCreationMenu(menuNavigator, player, logger, lang)
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimCreationMenu(menuNavigator, player, logger, lang, bedrockDependencies)
         } else {
             net.lumalyte.lg.interaction.menus.management.ClaimCreationMenu(player, menuNavigator, location)
         }
@@ -1111,7 +1114,7 @@ class MenuFactory(
         player: Player
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimTransferNamingMenu(menuNavigator, player, (claim as net.lumalyte.lg.domain.entities.Claim).id, logger, lang)
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimTransferNamingMenu(menuNavigator, player, (claim as net.lumalyte.lg.domain.entities.Claim).id, logger, lang, bedrockDependencies)
         } else {
             net.lumalyte.lg.interaction.menus.management.ClaimTransferNamingMenu(menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim, player)
         }

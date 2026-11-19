@@ -16,6 +16,8 @@ import net.lumalyte.lg.infrastructure.services.FormCacheServiceGuava
 import net.lumalyte.lg.infrastructure.services.FormValidationServiceImpl
 import net.lumalyte.lg.infrastructure.services.PlayerMetadataServiceVault
 import net.lumalyte.lg.interaction.menus.MenuFactory
+import net.lumalyte.lg.interaction.menus.bedrock.BedrockMenuDependencies
+import org.bukkit.plugin.Plugin
 import net.lumalyte.lg.utils.MenuItemBuilder
 import net.milkbowl.vault.chat.Chat
 import java.util.logging.Logger
@@ -63,7 +65,18 @@ internal fun NexusContext.registerCoreServiceBindings(plugin: LumaGuilds) {
             getBean<PlatformDetectionService>(),
             getBean<ConfigService>(),
             getBean<Logger>(),
-            getBean<LangService>()
+            getBean<LangService>(),
+            bedrockDependencyProvider = { factory ->
+                BedrockMenuDependencies(
+                    menuFactory = factory,
+                    localization = getBean<BedrockLocalizationService>(),
+                    plugin = getBean<Plugin>(),
+                    lang = getBean<LangService>(),
+                    cache = getBean<FormCacheService>(),
+                    validation = getBean<FormValidationService>(),
+                    config = getBean<ConfigService>(),
+                )
+            },
         )
     }
 }

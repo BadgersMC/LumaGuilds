@@ -18,7 +18,8 @@ class BedrockClaimTransferNamingMenu(
     private val claimId: java.util.UUID,
     logger: Logger,
     private val lang: LangService,
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    dependencies: BedrockMenuDependencies? = null,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
