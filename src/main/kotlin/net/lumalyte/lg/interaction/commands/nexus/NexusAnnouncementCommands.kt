@@ -76,12 +76,11 @@ class NexusQuickAnnounceCommand(
             memberService.hasPermission(player.uniqueId, it.id, RankPermission.SEND_ANNOUNCEMENTS)
         }
         player.sendMessage(
-            lang.msg(
-                if (hasAny)
-                    "command.migrated.quick_announce.resolveguildforannounce.you_have_announcement_permission_in_multiple_guilds"
-                else
-                    "command.migrated.quick_announce.resolveguildforannounce.you_don_t_have_permission_to_send",
-            ),
+            if (hasAny) {
+                lang.msg("command.migrated.quick_announce.resolveguildforannounce.you_have_announcement_permission_in_multiple_guilds")
+            } else {
+                lang.msg("command.migrated.quick_announce.resolveguildforannounce.you_don_t_have_permission_to_send")
+            },
         )
         return null
     }
