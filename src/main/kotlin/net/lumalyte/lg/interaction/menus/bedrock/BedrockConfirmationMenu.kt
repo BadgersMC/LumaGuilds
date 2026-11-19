@@ -21,10 +21,12 @@ class BedrockConfirmationMenu(
     message: String?,
     private val callback: () -> Unit,
     private val cancelCallback: (() -> Unit)?,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    private val dependencies: BedrockMenuDependencies? = null,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
 
-    private val lang: LangService by inject()
+    private val legacyLang: LangService by inject()
+    private val lang get() = dependencies?.lang ?: legacyLang
     private val message: String = message ?: lang.bedrock("bedrock.confirmation.default_message")
 
     // Overloaded constructor for backward compatibility
@@ -33,8 +35,9 @@ class BedrockConfirmationMenu(
         player: Player,
         title: String,
         callback: () -> Unit,
-        logger: Logger
-    ) : this(menuNavigator, player, title, null, callback, null, logger)
+        logger: Logger,
+        dependencies: BedrockMenuDependencies? = null,
+    ) : this(menuNavigator, player, title, null, callback, null, logger, dependencies)
 
     override fun getForm(): Form {
         return try {

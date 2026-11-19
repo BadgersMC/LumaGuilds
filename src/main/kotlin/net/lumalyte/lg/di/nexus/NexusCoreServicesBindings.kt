@@ -5,6 +5,8 @@ import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.LumaGuilds
 import net.lumalyte.lg.application.services.BedrockLocalizationService
 import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.application.services.ChatService
+import net.lumalyte.lg.application.services.GuildListService
 import net.lumalyte.lg.application.services.FormCacheService
 import net.lumalyte.lg.application.services.FormValidationService
 import net.lumalyte.lg.application.services.PlatformDetectionService
@@ -77,6 +79,9 @@ internal fun NexusContext.registerCoreServiceBindings(plugin: LumaGuilds) {
                     config = getBean<ConfigService>(),
                 )
             },
-        )
+            chatServiceProvider = { getBean<ChatService>() },
+        ).apply {
+            bindGuildListService { getBean<GuildListService>() }
+        }
     }
 }

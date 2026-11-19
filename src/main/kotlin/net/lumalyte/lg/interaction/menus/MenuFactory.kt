@@ -2,6 +2,8 @@ package net.lumalyte.lg.interaction.menus
 
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.PlatformDetectionService
+import net.lumalyte.lg.application.services.ChatService
+import net.lumalyte.lg.application.services.GuildListService
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockMenuDependencies
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockConfirmationMenu
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildBankMenu
@@ -42,8 +44,16 @@ class MenuFactory(
     private val logger: Logger,
     private val lang: LangService,
     private val bedrockDependencyProvider: ((MenuFactory) -> BedrockMenuDependencies)? = null,
+    private val chatServiceProvider: (() -> ChatService)? = null,
 ) {
     private val bedrockDependencies by lazy { bedrockDependencyProvider?.invoke(this) }
+    private var guildListServiceProvider: (() -> GuildListService)? = null
+
+    /** Only the Nexus graph configures this internal directory-service provider. */
+    internal fun bindGuildListService(provider: () -> GuildListService) {
+        check(guildListServiceProvider == null) { "Guild directory provider already bound" }
+        guildListServiceProvider = provider
+    }
 
     /**
      * Determines if Bedrock menus should be used for a player based on configuration and platform detection
@@ -96,7 +106,7 @@ class MenuFactory(
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // Use Bedrock confirmation menu to provide enhanced Bedrock experience
-            BedrockConfirmationMenu(menuNavigator, player, title, callback = callback, logger = logger)
+            BedrockConfirmationMenu(menuNavigator, player, title, callback = callback, logger = logger, dependencies = bedrockDependencies)
         } else {
             // Fall back to Java confirmation menu
             ConfirmationMenu(menuNavigator, player, title, lang, callback)
@@ -123,7 +133,8 @@ class MenuFactory(
                 message = message,
                 callback = callback,
                 cancelCallback = cancelCallback,
-                logger = logger
+                logger = logger,
+                dependencies = bedrockDependencies,
             )
         } else {
             // Fall back to Java confirmation menu (basic version)
@@ -275,7 +286,8 @@ class MenuFactory(
                 menuNavigator,
                 player,
                 logger,
-            )
+                dependencies = bedrockDependencies,
+            ).withGuildListServiceProvider(guildListServiceProvider)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildListMenu(menuNavigator, player)
         }
@@ -700,7 +712,9 @@ class MenuFactory(
         }
 
     fun createPlayerChatSettingsMenu(navigator: MenuNavigator, player: Player): Menu =
-        if (shouldUseBedrockMenus(player)) net.lumalyte.lg.interaction.menus.bedrock.BedrockPlayerChatSettingsMenu(navigator, player, logger)
+        if (shouldUseBedrockMenus(player)) net.lumalyte.lg.interaction.menus.bedrock.BedrockPlayerChatSettingsMenu(
+            navigator, player, logger, dependencies = bedrockDependencies, chatServiceProvider = chatServiceProvider,
+        )
         else net.lumalyte.lg.interaction.menus.guild.PlayerChatSettingsMenu(navigator, player)
 
     fun createGuildStallMenu(menuNavigator: MenuNavigator, player: Player, guild: net.lumalyte.lg.domain.entities.Guild): Menu =

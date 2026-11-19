@@ -18,10 +18,20 @@ class BedrockGuildListMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     logger: Logger,
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    private val dependencies: BedrockMenuDependencies? = null,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
 
-    private val guildListService: GuildListService by inject()
-    private val lang: LangService by inject()
+    private var guildListServiceProvider: (() -> GuildListService)? = null
+
+    /** Bound by the owning MenuFactory before this screen is opened. */
+    internal fun withGuildListServiceProvider(provider: (() -> GuildListService)?): BedrockGuildListMenu = apply {
+        guildListServiceProvider = provider
+    }
+
+    private val legacyGuildListService: GuildListService by inject()
+    private val guildListService by lazy { guildListServiceProvider?.invoke() ?: legacyGuildListService }
+    private val legacyLang: LangService by inject()
+    private val lang get() = dependencies?.lang ?: legacyLang
 
     private var currentPage = 0
     private var sortKey = GuildListSortKey.ALL_TIME_ACTIVE
