@@ -158,7 +158,7 @@ abstract class BaseBedrockMenu(
     /**
      * Bedrock-specific navigation helper
      */
-    protected val bedrockNavigator by lazy { BedrockMenuNavigator(menuNavigator, player, menuFactory) }
+    protected val bedrockNavigator by lazy { BedrockMenuNavigator(menuNavigator, player, menuFactory, lang) }
 
     /**
      * Helper method to handle navigation back to previous menu
