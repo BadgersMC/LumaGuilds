@@ -42,6 +42,7 @@ class ProgressionSourceCoverageTest {
             ExperienceSource.QUALIFIED_RECRUIT,
             ExperienceSource.PRE_CAP_WAR_WIN,
             ExperienceSource.WEEKLY_ACTIVITY,
+            ExperienceSource.GUILD_ADVANCEMENT, // GuildAchievementRuntime (REQ-227)
             ExperienceSource.ADMIN_BONUS,
         )
         val enabled = ChapterTwoExperiencePolicies.defaults().values

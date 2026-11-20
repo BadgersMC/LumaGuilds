@@ -475,7 +475,8 @@ class GuildGoldRepositorySQL(
                 } catch (_: ArithmeticException) {
                     return@transaction GuildGoldResult.Rejected(GuildGoldRejection.INVALID_AMOUNT)
                 }
-                if (restored > capacity) {
+                // REQ-157: a refund may restore an over-capacity balance to its pre-debit value.
+                if (restored > maxOf(capacity, original.oldBalance ?: capacity)) {
                     return@transaction GuildGoldResult.Rejected(GuildGoldRejection.CAPACITY_EXCEEDED)
                 }
                 upsertBalance(connection, compensation.guildId, restored)

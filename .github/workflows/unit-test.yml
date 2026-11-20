@@ -190,3 +190,17 @@ jobs:
           build/test-results/test/*.xml
         retention-days: 7
         if-no-files-found: error
+    - name: MariaDB guild creation and reward SQL tests
+      env:
+        LG_TEST_MARIADB_USER: root
+        LG_TEST_MARIADB_PASSWORD: lg-ci-disposable-only
+      run: ./gradlew mariaDbRewardTest -PmariaDbTestPort=${{ job.services.mariadb.ports['3306'] }} --no-daemon
+
+    - name: Retain MariaDB test diagnostics
+      if: always() && github.event_name == 'pull_request'
+      uses: actions/upload-artifact@v4
+      with:
+        name: guilds-pr${{ github.event.pull_request.number }}-mariadb-test-diagnostics
+        path: build/test-results/mariaDbRewardTest/*.xml
+        retention-days: 7
+        if-no-files-found: warn

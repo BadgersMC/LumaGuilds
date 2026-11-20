@@ -97,8 +97,8 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
             val warItem = NexoItemProvider.getItemStackOrFallback("lg_nav_warfare") { ItemStack.of(Material.DIAMOND_SWORD) }
                 .name(lang.gui("menu.guild_war_management.current.active.name", "enemy" to (enemyGuild?.name ?: lang.raw("menu.guild_war_management.fallback.unknown"))))
-                .lore(lang.gui("menu.guild_war_management.current.active.duration", "days" to war.duration.toDays()))
-                .lore(lang.gui("menu.guild_war_management.current.active.remaining", "days" to (war.remainingDuration?.toDays() ?: 0)))
+                .lore(if (war.objectiveBased) lang.gui("war_duration.objective") else lang.gui("menu.guild_war_management.current.active.duration", "days" to war.duration.toDays()))
+                .lore(if (war.objectiveBased) lang.gui("war_duration.objective") else lang.gui("menu.guild_war_management.current.active.remaining", "days" to (war.remainingDuration?.toDays() ?: 0)))
                 .lore(lang.gui("menu.guild_war_management.current.active.status"))
 
             val guiItem = GuiItem(warItem) {
@@ -255,9 +255,9 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         val infoItem = ItemStack.of(Material.DIAMOND_SWORD)
             .name(lang.gui("menu.guild_war_management.war_details.info.enemy", "enemy" to enemyName))
 
-        infoItem.lore(lang.gui("menu.guild_war_management.war_details.info.duration", "days" to war.duration.toDays()))
+        infoItem.lore(if (war.objectiveBased) lang.gui("war_duration.objective") else lang.gui("menu.guild_war_management.war_details.info.duration", "days" to war.duration.toDays()))
         if (war.isActive) {
-            infoItem.lore(lang.gui("menu.guild_war_management.war_details.info.remaining", "days" to (war.remainingDuration?.toDays() ?: 0)))
+            infoItem.lore(if (war.objectiveBased) lang.gui("war_duration.objective") else lang.gui("menu.guild_war_management.war_details.info.remaining", "days" to (war.remainingDuration?.toDays() ?: 0)))
         }
         infoItem.lore(lang.gui(
                     when (war.status) {
@@ -305,7 +305,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         val yourKdr = if (isDeclaring) stats.declaringKillRatio else stats.defendingKillRatio
         val enemyKdr = if (isDeclaring) stats.defendingKillRatio else stats.declaringKillRatio
 
-        val killTarget = warService.getWarKillWinTarget()
+        val killTarget = warService.killTargetFor(war)
         val yourStatsItem = ItemStack.of(Material.DIAMOND_CHESTPLATE)
             .name(lang.gui(
                 "menu.guild_war_management.war_details.stats.your_kills",
@@ -416,11 +416,11 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
 
                 val item = ItemStack.of(Material.DIAMOND_SWORD)
                     .name(lang.gui("menu.guild_war_management.war_list.item.name", "enemy" to enemyName))
-                    .lore(lang.gui("menu.guild_war_management.war_list.item.lore.duration", "days" to war.duration.toDays()))
+                    .lore(if (war.objectiveBased) lang.gui("war_duration.objective") else lang.gui("menu.guild_war_management.war_list.item.lore.duration", "days" to war.duration.toDays()))
                     .lore(lang.gui(
                         "menu.guild_war_management.war_list.item.lore.kills",
                         "kills" to kills,
-                        "target" to warService.getWarKillWinTarget(),
+                        "target" to warService.killTargetFor(war),
                     ))
                     .lore(lang.gui("menu.guild_war_management.war_list.item.lore.deaths", "deaths" to deaths))
                     .lore(lang.gui("menu.guild_war_management.war_list.item.lore.click"))
@@ -518,7 +518,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
                 val item = if (decl.isValid) {
                     ItemStack.of(Material.PAPER)
                         .name(lang.gui("menu.guild_war_management.incoming_declarations.item.name", "enemy" to enemyName))
-                        .lore(lang.gui("menu.guild_war_management.incoming_declarations.item.lore.duration", "days" to decl.proposedDuration.toDays()))
+                        .lore(if (decl.objectiveBased) lang.gui("war_duration.objective") else lang.gui("menu.guild_war_management.incoming_declarations.item.lore.duration", "days" to decl.proposedDuration.toDays()))
                         .lore(lang.gui("menu.guild_war_management.incoming_declarations.item.lore.expires", "hours" to decl.remainingTime.toHours()))
                         .lore(lang.gui("menu.guild_war_management.incoming_declarations.item.lore.accept"))
                         .lore(lang.gui("menu.guild_war_management.incoming_declarations.item.lore.reject"))
@@ -633,7 +633,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
                 val item = if (decl.isValid) {
                     ItemStack.of(Material.WRITABLE_BOOK)
                         .name(lang.gui("menu.guild_war_management.outgoing_declarations.item.name", "enemy" to enemyName))
-                        .lore(lang.gui("menu.guild_war_management.outgoing_declarations.item.lore.duration", "days" to decl.proposedDuration.toDays()))
+                        .lore(if (decl.objectiveBased) lang.gui("war_duration.objective") else lang.gui("menu.guild_war_management.outgoing_declarations.item.lore.duration", "days" to decl.proposedDuration.toDays()))
                         .lore(lang.gui("menu.guild_war_management.outgoing_declarations.item.lore.expires", "hours" to decl.remainingTime.toHours()))
                         .lore(lang.gui("menu.guild_war_management.outgoing_declarations.item.lore.cancel"))
                 } else {
@@ -796,7 +796,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
                         war.isEnded -> "menu.guild_war_management.war_history.item.draw"
                         else -> "menu.guild_war_management.war_history.item.ended"
                     }, "enemy" to enemyName))
-                    .lore(lang.gui("menu.guild_war_management.war_history.item.duration", "days" to war.duration.toDays()))
+                    .lore(if (war.objectiveBased) lang.gui("war_duration.objective") else lang.gui("menu.guild_war_management.war_history.item.duration", "days" to war.duration.toDays()))
                     .lore(lang.gui("menu.guild_war_management.war_history.item.date", "date" to endedDate))
                 newPage.addItem(GuiItem(item) { openWarDetailsMenu(war) }, x, y)
             }
@@ -859,7 +859,8 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
                 totalDeaths += if (isDeclaring) stats.declaringGuildDeaths else stats.defendingGuildDeaths
                 totalClaimsCaptured += stats.claimsCaptured
                 totalClaimsLost += stats.claimsLost
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                net.lumalyte.lg.application.logging.SwallowedErrors.log("GuildWarManagementMenu:862", e)
                 // Skip wars without stats
             }
         }
@@ -893,7 +894,7 @@ class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private v
         // Objective / claims stats
         val objItem = NexoItemProvider.getItemStackOrFallback("lg_claiming") { ItemStack.of(Material.STRUCTURE_BLOCK) }
             .name(lang.gui("menu.guild_war_management.war_stats.objectives", "count" to allWars.sumOf { war ->
-                try { warService.getWarStats(war.id).claimsCaptured } catch (_: Exception) { 0 }
+                try { warService.getWarStats(war.id).claimsCaptured } catch (e: Exception) { net.lumalyte.lg.application.logging.SwallowedErrors.log("GuildWarManagementMenu:896", e); 0 }
             }))
             .lore(lang.gui("menu.guild_war_management.war_stats.claims_captured", "count" to totalClaimsCaptured))
             .lore(lang.gui("menu.guild_war_management.war_stats.claims_lost", "count" to totalClaimsLost))

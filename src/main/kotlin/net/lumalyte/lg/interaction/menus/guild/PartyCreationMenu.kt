@@ -57,7 +57,6 @@ class PartyCreationMenu(
     private var restrictedRoles: MutableSet<UUID> = mutableSetOf()
     private var inputMode: String = "" // "name"
     private var roleSelectionMode: Boolean = false // Whether we're in role selection mode
-    private var isPrivateParty: Boolean = false // Whether this is a private guild-only party
 
     override fun open() {
         // Check if parties are enabled
@@ -80,15 +79,8 @@ class PartyCreationMenu(
         // Row 0: Party info
         addPartyInfoSection(pane)
 
-        // Row 1: Party Type Selection
-        addPartyTypeSection(pane)
-
-        // Row 2: Available guilds to invite (only if not private)
-        if (!isPrivateParty) {
-            addGuildSelectionSection(pane)
-        } else {
-            addPrivatePartyInfo(pane)
-        }
+        // Row 2: Available guilds to invite (REQ-207: parties are always between guilds)
+        addGuildSelectionSection(pane)
 
         // Row 3: Role restrictions
         addRoleRestrictionSection(pane)
@@ -100,58 +92,6 @@ class PartyCreationMenu(
         addActionButtons(pane)
 
         gui.show(player)
-    }
-
-    private fun addPartyTypeSection(pane: StaticPane) {
-        // Private party toggle
-        val config = configService.loadConfig()
-        val typeName = if (isPrivateParty) lang.gui("menu.party.creation.type.private_name") else lang.gui("menu.party.creation.type.public_name")
-        val typeStatus = if (isPrivateParty) lang.gui("menu.party.creation.type.private_status") else lang.gui("menu.party.creation.type.public_status")
-        val typeAction = if (isPrivateParty) lang.gui("menu.party.creation.type.make_public") else lang.gui("menu.party.creation.type.make_private")
-        val privateItem = ItemStack.of(if (isPrivateParty) Material.RED_CONCRETE else Material.GREEN_CONCRETE)
-            .name(typeName)
-            .lore(lang.gui("menu.party.creation.type.current", "type" to typeStatus))
-            .lore(lang.gui("menu.common.blank"))
-            .lore(lang.gui("menu.party.creation.type.private_header"))
-            .lore(lang.gui("menu.party.creation.type.private_members"))
-            .lore(lang.gui("menu.party.creation.type.private_invites"))
-            .lore(lang.gui("menu.party.creation.type.private_management"))
-            .lore(lang.gui("menu.common.blank"))
-            .lore(lang.gui("menu.party.creation.type.public_header"))
-            .lore(lang.gui("menu.party.creation.type.public_invites"))
-            .lore(lang.gui("menu.party.creation.type.public_coordination"))
-            .lore(lang.gui("menu.common.blank"))
-            .lore(typeAction)
-
-        val privateGuiItem = GuiItem(privateItem) {
-            if (config.party.allowPrivateParties) {
-                isPrivateParty = !isPrivateParty
-                if (isPrivateParty) {
-                    // Clear any selected guilds when making private
-                    selectedGuilds.clear()
-                    selectedGuilds.add(guild.id)
-                }
-                val changedType = if (isPrivateParty) lang.raw("menu.party.creation.type.private") else lang.raw("menu.party.creation.type.public")
-                player.sendMessage(lang.msg("menu.party.creation.feedback.type_changed", "type" to changedType))
-                open() // Refresh menu
-            } else {
-                player.sendMessage(lang.msg("menu.party.creation.feedback.private_disabled"))
-            }
-        }
-        pane.addItem(privateGuiItem, 1, 1)
-    }
-
-    private fun addPrivatePartyInfo(pane: StaticPane) {
-        val infoItem = ItemStack.of(Material.SHIELD)
-            .name(lang.gui("menu.party.creation.private_info.name"))
-            .lore(lang.gui("menu.party.creation.private_info.first"))
-            .lore(lang.gui("menu.party.creation.private_info.second"))
-            .lore(lang.gui("menu.common.blank"))
-            .lore(lang.gui("menu.party.creation.private_info.no_invites"))
-            .lore(lang.gui("menu.party.creation.private_info.management"))
-            .lore(lang.gui("menu.party.creation.private_info.members"))
-
-        pane.addItem(GuiItem(infoItem), 1, 2)
     }
 
     private fun addPartyInfoSection(pane: StaticPane) {
@@ -333,8 +273,8 @@ class PartyCreationMenu(
     }
 
     private fun addActionButtons(pane: StaticPane) {
-        // Create party - allow single guild for private parties, or 2+ guilds for public
-        val canCreate = if (isPrivateParty) selectedGuilds.size >= 1 else selectedGuilds.size >= 2
+        // Create party - needs at least one other guild to invite
+        val canCreate = selectedGuilds.size >= 2
         val createName = if (canCreate) lang.gui("menu.party.creation.action.create") else lang.gui("menu.party.creation.action.cannot_create")
         val createItem = ItemStack.of(if (canCreate) Material.EMERALD_BLOCK else Material.GRAY_CONCRETE)
             .name(createName)
@@ -346,14 +286,14 @@ class PartyCreationMenu(
                 .lore(lang.gui("menu.party.creation.action.confirm"))
         } else {
             createItem.lore(lang.gui("menu.common.blank"))
-            createItem.lore(if (isPrivateParty) lang.gui("menu.party.creation.action.need_one") else lang.gui("menu.party.creation.action.need_two"))
+            createItem.lore(lang.gui("menu.party.creation.action.need_two"))
         }
 
         val createGuiItem = GuiItem(createItem) {
             if (canCreate) {
                 createParty()
             } else {
-                player.sendMessage(if (isPrivateParty) lang.msg("menu.party.creation.feedback.need_one") else lang.msg("menu.party.creation.feedback.need_two"))
+                player.sendMessage(lang.msg("menu.party.creation.feedback.need_two"))
             }
         }
         pane.addItem(createGuiItem, 1, 5)
@@ -396,15 +336,9 @@ class PartyCreationMenu(
             }
 
             // Validate party creation requirements
-            if (!isPrivateParty && selectedGuilds.size < 2) {
+            if (selectedGuilds.size < 2) {
                 player.sendMessage(lang.msg("menu.party.creation.feedback.invite_one"))
                 return
-            }
-
-            if (isPrivateParty && selectedGuilds.size != 1) {
-                // Reset to just current guild for private parties
-                selectedGuilds.clear()
-                selectedGuilds.add(guild.id)
             }
 
             // Create the party
@@ -415,7 +349,8 @@ class PartyCreationMenu(
             val party = Party(
                 id = partyId,
                 name = partyName.ifBlank { null },
-                guildIds = selectedGuilds,
+                guildIds = setOf(guild.id),
+                shared = true,
                 leaderId = player.uniqueId,
                 status = PartyStatus.ACTIVE,
                 createdAt = java.time.Instant.now(),
@@ -429,18 +364,13 @@ class PartyCreationMenu(
             if (createdParty != null) {
                 player.sendMessage(lang.msg("menu.party.creation.feedback.created"))
                 player.sendMessage(lang.msg("menu.party.creation.feedback.created_name", "party" to (party.name ?: lang.raw("menu.party.creation.unnamed"))))
-                player.sendMessage(lang.msg("menu.party.creation.feedback.created_guilds", "count" to selectedGuilds.size))
+                player.sendMessage(lang.msg("menu.party.creation.feedback.created_guilds", "count" to createdParty.guildIds.size))
                 if (restrictedRoles.isNotEmpty()) {
                     player.sendMessage(lang.msg("menu.party.creation.feedback.created_roles", "count" to restrictedRoles.size))
                 }
                 player.sendMessage(lang.msg("menu.party.creation.feedback.expires"))
 
-                // Send invites to selected guilds (only for public parties)
-                if (!isPrivateParty) {
-                    sendGuildInvites(createdParty as Party)
-                } else {
-                    player.sendMessage(lang.msg("menu.party.creation.feedback.private_created"))
-                }
+                sendGuildInvites(createdParty as Party)
 
                 // Return to party management
                 menuNavigator.returnTo(GuildPartyManagementMenu::class.java) {

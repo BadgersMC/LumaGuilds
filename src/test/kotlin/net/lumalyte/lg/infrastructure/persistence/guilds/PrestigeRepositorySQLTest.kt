@@ -276,6 +276,36 @@ class PrestigeRepositorySQLTest : RewardSqlTestFixture() {
     }
 
     @Test
+    fun `carry-over starts the next climb with XP earned past level 100`() {
+        val curve = net.lumalyte.lg.domain.values.ProgressionCurve.from(settings.progression)
+        val landing = curve.totalExperienceForLevel(3)
+        val original = settings.progression
+        settings.progression = original.copy(prestige = original.prestige.copy(
+            carryOver = net.lumalyte.lg.config.PrestigeCarryOverConfig(enabled = true, landingLevel = 3),
+        ))
+        val subject = open()
+        subject.storage.connection.executeUpdate(
+            "UPDATE guild_progression SET total_experience = ? WHERE guild_id = ?",
+            curve.totalExperienceForLevel(100) + landing + 500, guildId.toString(),
+        )
+        val result = assertIs<PrestigeResult.Applied>(subject.repository.confirm(quote()) { null })
+
+        assertEquals(landing, result.carriedExperience)
+        assertEquals(3, result.postLevel)
+        val progression = subject.storage.connection.getFirstRow(
+            "SELECT * FROM guild_progression WHERE guild_id = ?", guildId.toString()
+        )!!
+        assertEquals(landing, progression.getInt("total_experience"))
+        assertEquals(3, progression.getInt("current_level"))
+        assertEquals(curve.experienceForNextLevel(3), progression.getInt("experience_for_next_level"))
+        assertEquals(
+            3,
+            subject.storage.connection.getFirstRow("SELECT level FROM guilds WHERE id = ?", guildId.toString())!!.getInt("level"),
+        )
+        settings.progression = original
+    }
+
+    @Test
     fun `identical confirmation replays receipt without double charge or second prestige`() {
         val subject = open()
         val request = quote()
@@ -321,7 +351,7 @@ class PrestigeRepositorySQLTest : RewardSqlTestFixture() {
     }
 
     @Test
-    fun `post prestige bank capacity guard rejects before debit`() {
+    fun `prestige above post prestige capacity keeps overflow withdraw only`() {
         val subject = open()
         val ownership = subject.snapshot().ownership
         val next = ownership.copy(
@@ -343,12 +373,39 @@ class PrestigeRepositorySQLTest : RewardSqlTestFixture() {
             )
         }
 
+        // REQ-157: the prestige applies and the whole post-fee balance is kept.
+        val result = assertIs<PrestigeResult.Applied>(subject.repository.confirm(quote()) { null })
+        val kept = targetBalance - 10_000L
+        assertEquals(kept, result.newBalance)
+        assertEquals(postCapacity, result.postBankCapacity)
+        assertEquals(kept, subject.gold.getBalance(guildId))
+        assertEquals(1, subject.snapshot().ownership.prestigeCount)
+
+        // Credits are refused while the balance is above capacity.
         assertEquals(
-            PrestigeResult.Rejected(PrestigeRejection.POST_PRESTIGE_CAPACITY),
-            subject.repository.confirm(quote()) { null },
+            GuildGoldResult.Rejected(GuildGoldRejection.CAPACITY_EXCEEDED),
+            subject.gold.apply(
+                GuildGoldMutation(UUID.randomUUID(), guildId, actorId, GuildGoldRoute.PERSONAL_ACCOUNT,
+                    GuildGoldDirection.CREDIT, 1, 0, "overflow deposit"),
+                postCapacity,
+                null,
+            ),
         )
-        assertEquals(targetBalance, subject.gold.getBalance(guildId))
-        assertEquals(0, subject.snapshot().ownership.prestigeCount)
+        assertEquals(kept, subject.gold.getBalance(guildId))
+
+        // Debits are allowed.
+        val withdrawal = GuildGoldMutation(UUID.randomUUID(), guildId, actorId, GuildGoldRoute.PERSONAL_ACCOUNT,
+            GuildGoldDirection.DEBIT, 500, 0, "overflow withdrawal")
+        assertIs<GuildGoldResult.Applied>(subject.gold.apply(withdrawal, postCapacity, 0L))
+        assertEquals(kept - 500, subject.gold.getBalance(guildId))
+
+        // A refund of that withdrawal restores the pre-withdrawal balance, still above capacity.
+        val refund = GuildGoldMutation(UUID.randomUUID(), guildId, actorId, GuildGoldRoute.PERSONAL_ACCOUNT,
+            GuildGoldDirection.CREDIT, 500, 0, "overflow refund")
+        assertIs<GuildGoldResult.Applied>(
+            subject.gold.compensateDebit(withdrawal.transactionId, refund, postCapacity, 0L, "refund")
+        )
+        assertEquals(kept, subject.gold.getBalance(guildId))
     }
 
     @Test
@@ -385,5 +442,205 @@ class PrestigeRepositorySQLTest : RewardSqlTestFixture() {
             subject.repository.confirm(quote()) { null },
         )
         assertEquals(19_000L, subject.gold.getBalance(guildId))
+    }
+
+    // REQ-152: receipts joined to the canonical gold journal, no writes.
+    private fun Subject.insertAppliedReceipt(
+        guild: UUID,
+        tier: Int,
+        createdAt: Long,
+        transactionId: UUID = UUID.randomUUID(),
+        actor: UUID = actorId,
+        retained: String = "bank-1",
+    ): UUID {
+        storage.connection.executeUpdate(
+            """INSERT INTO guild_gold_operations
+               (transaction_id, guild_id, actor_id, route, direction, amount, fee, status, description, created_at)
+               VALUES (?, ?, ?, 'SYSTEM', 'DEBIT', 10000, 0, 'APPLIED', 'legacy prestige', ?)""",
+            transactionId.toString(), guild.toString(), actor.toString(), createdAt,
+        )
+        storage.connection.executeUpdate(
+            """INSERT INTO guild_prestige_transactions
+               (transaction_id, guild_id, actor_id, retained_reward_id, quoted_fee,
+                expected_version, expected_prestige_count, outcome, rejection,
+                old_balance, new_balance, ownership_version, prestige_count,
+                post_bank_capacity, home_capacity)
+               VALUES (?, ?, ?, ?, 10000, 1, ?, 'APPLIED', NULL, 20000, 10000, 2, ?, 10000, 2)""",
+            transactionId.toString(), guild.toString(), actor.toString(), retained, tier - 1, tier,
+        )
+        return transactionId
+    }
+
+    @Test
+    fun `history lists an applied prestige with its journal commit time and omits rejections`() {
+        val subject = open()
+        val before = Instant.now().toEpochMilli()
+        val request = quote()
+        assertIs<PrestigeResult.Applied>(subject.repository.confirm(request) { null })
+        val after = Instant.now().toEpochMilli()
+        assertIs<PrestigeResult.Rejected>(subject.repository.confirm(quote()) { null })
+
+        val history = subject.repository.history(guildId)
+        assertEquals(1, history.size)
+        val record = history.single()
+        assertEquals(request.transactionId, record.transactionId)
+        assertEquals(guildId, record.guildId)
+        assertEquals(actorId, record.actorId)
+        assertEquals(1, record.tier)
+        assertEquals("bank-1", record.retainedRewardId)
+        val journal = subject.storage.connection.getFirstColumn<Number>(
+            "SELECT created_at FROM guild_gold_operations WHERE transaction_id = ?",
+            request.transactionId.toString(),
+        ).toLong()
+        assertEquals(journal, record.appliedAt.toEpochMilli())
+        assertTrue(record.appliedAt.toEpochMilli() in before..after)
+        assertEquals(emptyList(), subject.repository.history(enemyGuildId))
+    }
+
+    @Test
+    fun `REQ-301 applied lists every applied prestige with the fee it paid`() {
+        val subject = open()
+        val request = quote()
+        assertIs<PrestigeResult.Applied>(subject.repository.confirm(request) { null })
+        assertIs<PrestigeResult.Rejected>(subject.repository.confirm(quote()) { null })
+
+        val applied = subject.repository.applied().single()
+        assertEquals(subject.repository.history(guildId).single(), applied.record)
+        assertEquals(request.quotedFee, applied.feePaid)
+    }
+
+    @Test
+    fun `history includes receipts made before this change in tier order`() {
+        val subject = open()
+        val first = subject.insertAppliedReceipt(enemyGuildId, 1, 1_000L)
+        val second = subject.insertAppliedReceipt(enemyGuildId, 2, 5_000L, retained = "travel-50")
+        val history = subject.repository.history(enemyGuildId)
+        assertEquals(listOf(first, second), history.map { it.transactionId })
+        assertEquals(listOf(1, 2), history.map { it.tier })
+        assertEquals(Instant.ofEpochMilli(5_000L), history.last().appliedAt)
+        assertEquals("travel-50", history.last().retainedRewardId)
+    }
+
+    @Test
+    fun `first to reach a tier is ordered by commit time then transaction id`() {
+        val subject = open()
+        val lowId = UUID.fromString("00000000-0000-0000-0000-000000000001")
+        val highId = UUID.fromString("ffffffff-ffff-ffff-ffff-ffffffffffff")
+        subject.insertAppliedReceipt(guildId, 1, 9_000L)
+        subject.insertAppliedReceipt(enemyGuildId, 1, 2_000L, transactionId = highId)
+        subject.insertAppliedReceipt(UUID.randomUUID(), 1, 2_000L, transactionId = lowId)
+        subject.insertAppliedReceipt(guildId, 2, 3_000L)
+
+        assertEquals(lowId, subject.repository.firstToReach(1)?.transactionId)
+        assertEquals(guildId, subject.repository.firstToReach(2)?.guildId)
+        assertNull(subject.repository.firstToReach(3))
+    }
+
+    @Test
+    fun `reading history does not write receipts or the journal`() {
+        val subject = open()
+        assertIs<PrestigeResult.Applied>(subject.repository.confirm(quote()) { null })
+        fun count(table: String) = subject.storage.connection.getFirstColumn<Number>("SELECT COUNT(*) FROM $table").toLong()
+        val receipts = count("guild_prestige_transactions")
+        val journal = count("guild_gold_operations")
+        subject.repository.history(guildId)
+        subject.repository.firstToReach(1)
+        assertEquals(receipts, count("guild_prestige_transactions"))
+        assertEquals(journal, count("guild_gold_operations"))
+    }
+
+    // REQ-186: a staff grant is a real prestige with no fee and no level 100 requirement.
+    private fun grant(reward: String = "bank-1", id: UUID = UUID.randomUUID()) = PrestigeQuote(
+        transactionId = id, guildId = guildId, actorId = actorId, retainedRewardId = reward,
+        quotedFee = 0, expectedOwnershipVersion = 1, expectedPrestigeCount = 0,
+    )
+
+    @Test
+    fun `a staff grant prestiges below level 100 without charging and shows in history`() {
+        val subject = open()
+        subject.storage.connection.executeUpdate(
+            "UPDATE guild_progression SET current_level = 40 WHERE guild_id = ?", guildId.toString(),
+        )
+        val granted = subject.repository.grantWithCommitStatus(grant())
+        val applied = assertIs<PrestigeResult.Applied>(granted.result)
+        assertTrue(granted.newlyCommitted)
+        assertEquals(1, applied.prestigeCount)
+        assertEquals(0L, applied.fee)
+        assertEquals(19_000L, subject.gold.getBalance(guildId))
+        assertTrue("bank-1" in subject.snapshot().ownership.permanent)
+        assertEquals(listOf(1), subject.repository.history(guildId).map { it.tier })
+    }
+
+    @Test
+    fun `a staff grant still refuses an unknown reward and the maximum`() {
+        val subject = open()
+        assertEquals(
+            PrestigeRejection.INVALID_SELECTION,
+            assertIs<PrestigeResult.Rejected>(subject.repository.grantWithCommitStatus(grant("nope")).result).reason,
+        )
+        assertIs<PrestigeResult.Applied>(subject.repository.grantWithCommitStatus(grant()).result)
+        settings.progression = settings.progression.copy(prestige = settings.progression.prestige.copy(maxCount = 1))
+        val snap = subject.snapshot()
+        val maxed = grant().copy(expectedOwnershipVersion = snap.version, expectedPrestigeCount = 1)
+        assertEquals(
+            PrestigeRejection.MAX_PRESTIGE,
+            assertIs<PrestigeResult.Rejected>(subject.repository.grantWithCommitStatus(maxed).result).reason,
+        )
+    }
+
+    @Test
+    fun `a grant cannot be passed off as a paid prestige`() {
+        val subject = open()
+        val paid = quote()
+        assertIs<PrestigeResult.Applied>(subject.repository.confirm(paid) { null })
+        assertEquals(
+            PrestigeRejection.ID_CONFLICT,
+            assertIs<PrestigeResult.Rejected>(subject.repository.grantWithCommitStatus(paid.copy(quotedFee = 0)).result).reason,
+        )
+    }
+
+    // REQ-185: lowering drops the newest kept rewards with their tiers and is recorded.
+    @Test
+    fun `lowering the count drops the newest kept reward and keeps everything else`() {
+        val subject = open()
+        assertIs<PrestigeResult.Applied>(subject.repository.grantWithCommitStatus(grant()).result)
+        val staff = UUID.randomUUID()
+        assertEquals(listOf("bank-1"), subject.repository.rewardsDroppedBy(guildId, 0))
+        val result = subject.repository.setPrestigeCount(guildId, 0, staff, Instant.ofEpochMilli(5_000))
+        assertEquals(PrestigeAdjustmentResult.Applied(oldCount = 1, newCount = 0, removedRewards = listOf("bank-1")), result)
+        assertEquals(0, subject.snapshot().ownership.prestigeCount)
+        assertTrue("bank-1" !in subject.snapshot().ownership.permanent)
+        assertEquals(19_000L, subject.gold.getBalance(guildId))
+        assertEquals(1, subject.repository.history(guildId).size, "history stays as it was")
+        closeStorage(subject.storage)
+        val reopened = open(seed = false)
+        assertEquals(
+            listOf(PrestigeAdjustment(guildId, staff, 1, 0, Instant.ofEpochMilli(5_000))),
+            reopened.repository.adjustments(guildId),
+        )
+    }
+
+    @Test
+    fun `the count must stay between 0 and the maximum`() {
+        val subject = open()
+        assertEquals(PrestigeAdjustmentResult.OutOfRange, subject.repository.setPrestigeCount(guildId, 4, actorId, Instant.now()))
+        assertEquals(PrestigeAdjustmentResult.OutOfRange, subject.repository.setPrestigeCount(guildId, -1, actorId, Instant.now()))
+        assertEquals(PrestigeAdjustmentResult.Unchanged, subject.repository.setPrestigeCount(guildId, 0, actorId, Instant.now()))
+        assertEquals(PrestigeAdjustmentResult.RaiseNeedsGrant, subject.repository.setPrestigeCount(guildId, 2, actorId, Instant.now()))
+        assertEquals(PrestigeAdjustmentResult.NotFound, subject.repository.setPrestigeCount(UUID.randomUUID(), 1, actorId, Instant.now()))
+    }
+
+    // Audit 2026-11-10: REQ-186 waives only the fee and the level; other guards stay.
+    @Test
+    fun `a staff grant is still refused while the guild's gold is frozen`() {
+        val subject = open()
+        subject.storage.connection.executeUpdate(
+            "INSERT INTO guild_gold_security (guild_id, frozen, reason, updated_by, updated_at) VALUES (?, ?, ?, ?, ?)",
+            guildId.toString(), true, "audit test", actorId.toString(), 1L,
+        )
+        assertEquals(
+            PrestigeRejection.FROZEN,
+            assertIs<PrestigeResult.Rejected>(subject.repository.grantWithCommitStatus(grant()).result).reason,
+        )
     }
 }

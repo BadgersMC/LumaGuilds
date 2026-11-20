@@ -124,7 +124,7 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
             .lore(lang.gui("menu.guild_confirmation.kick.item.cancel.lore.line_2"))
 
         val cancelGuiItem = GuiItem(cancelItem) {
-            menuNavigator.openMenu(menuFactory.createGuildKickMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
         pane.addItem(cancelGuiItem, x, y)
     }
@@ -145,11 +145,11 @@ class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, privat
                 targetPlayer.sendMessage(lang.msg("menu.guild_confirmation.kick.feedback.target", "guild" to guild.name, "player" to player.name))
             }
 
-            // Return to member management menu
-            menuNavigator.openMenu(menuFactory.createGuildMemberManagementMenu(menuNavigator, player, guild))
+            // REQ-193: back to the guild page (kept page and sort), or a fresh one when opened by /g kick.
+            menuNavigator.returnTo(GuildInfoMenu::class.java) { GuildInfoMenu(menuNavigator, player, guild) }
         } else {
             player.sendMessage(lang.msg("menu.guild_confirmation.kick.feedback.failure", "player" to targetName))
-            menuNavigator.openMenu(menuFactory.createGuildKickMenu(menuNavigator, player, guild))
+            menuNavigator.goBack()
         }
     }
 

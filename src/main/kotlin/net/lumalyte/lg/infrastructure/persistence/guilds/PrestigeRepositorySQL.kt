@@ -3,6 +3,7 @@ package net.lumalyte.lg.infrastructure.persistence.guilds
 import co.aikar.idb.Database
 import net.lumalyte.lg.application.persistence.PrestigeRepository
 import net.lumalyte.lg.application.persistence.PrestigeConfirmation
+import net.lumalyte.lg.application.persistence.PrestigeHistory
 import net.lumalyte.lg.application.services.GuildActionCoordinator
 import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.domain.entities.WarStatus
@@ -23,12 +24,12 @@ import java.util.UUID
  */
 class PrestigeRepositorySQL(
     private val storage: Storage<Database>,
-    catalog: RewardCatalog,
+    private val catalog: RewardCatalog,
     private val owners: RewardOwnershipRepositorySQL,
     private val gold: GuildGoldRepositorySQL,
     private val guildActions: GuildActionCoordinator,
     private val config: () -> MainConfig,
-) : PrestigeRepository {
+) : PrestigeRepository, PrestigeHistory, net.lumalyte.lg.application.persistence.PrestigeAdministration {
     private val resolver = RewardEntitlementResolver(catalog)
     private val lockSuffix = if (storage.dialect == SqlDialect.MARIADB) " FOR UPDATE" else ""
 
@@ -53,6 +54,15 @@ class PrestigeRepositorySQL(
                     post_bank_capacity BIGINT NULL,
                     home_capacity INTEGER NULL
                 )$engine""")
+                // REQ-185: staff corrections, apart from the prestige receipts above.
+                it.execute("""CREATE TABLE IF NOT EXISTS guild_prestige_adjustments (
+                    id VARCHAR(36) PRIMARY KEY,
+                    guild_id VARCHAR(36) NOT NULL,
+                    actor_id VARCHAR(36) NOT NULL,
+                    old_count INTEGER NOT NULL,
+                    new_count INTEGER NOT NULL,
+                    adjusted_at BIGINT NOT NULL
+                )$engine""")
             }
         }
     }
@@ -60,9 +70,113 @@ class PrestigeRepositorySQL(
     override fun confirm(request: PrestigeQuote, guard: () -> PrestigeRejection?): PrestigeResult =
         confirmWithCommitStatus(request, guard).result
 
+    // REQ-152: receipts joined to their own canonical gold debit for the commit time.
+    override fun history(guildId: UUID): List<PrestigeRecord> =
+        records("p.guild_id = ?", guildId.toString())
+
+    override fun firstToReach(tier: Int): PrestigeRecord? =
+        records("p.prestige_count = ?", tier, limit = 1).firstOrNull()
+
+    // REQ-275: current prestige counts from the reward accounts; the latest applied receipt dates
+    // when each guild reached its count (a guild with no dated receipt sorts last on ties).
+    override fun standings(): List<net.lumalyte.lg.domain.rewards.HallStanding> =
+        storage.connection.connection.use { connection ->
+            val counts = connection.prepareStatement(
+                "SELECT guild_id, prestige_count FROM guild_reward_accounts WHERE prestige_count > 0"
+            ).use { ps -> ps.executeQuery().use { rows -> buildMap { while (rows.next()) put(rows.getString(1), rows.getInt(2)) } } }
+            if (counts.isEmpty()) return@use emptyList()
+            val reached = connection.prepareStatement(
+                """SELECT p.guild_id, MAX(g.created_at)
+                   FROM guild_prestige_transactions p
+                   JOIN guild_gold_operations g ON $journalJoin
+                   WHERE p.outcome = 'APPLIED' AND g.status = 'APPLIED'
+                   GROUP BY p.guild_id"""
+            ).use { ps -> ps.executeQuery().use { rows -> buildMap { while (rows.next()) put(rows.getString(1), rows.getLong(2)) } } }
+            counts.mapNotNull { (id, count) ->
+                val guildId = runCatching { UUID.fromString(id) }.getOrNull() ?: return@mapNotNull null
+                net.lumalyte.lg.domain.rewards.HallStanding(guildId, count,
+                    reached[id]?.let(Instant::ofEpochMilli) ?: Instant.ofEpochMilli(Long.MAX_VALUE / 2))
+            }
+        }
+
+    // MariaDB: the journal pins utf8mb4_unicode_ci while receipts use the server default,
+    // so convert the receipt side; comparing them directly fails with mixed collations.
+    private val journalJoin = if (storage.dialect == SqlDialect.MARIADB)
+        "g.transaction_id = CONVERT(p.transaction_id USING utf8mb4) COLLATE utf8mb4_unicode_ci"
+    else "g.transaction_id = p.transaction_id"
+
+    override fun applied(): List<net.lumalyte.lg.domain.rewards.AppliedPrestige> =
+        storage.connection.connection.use { connection ->
+            connection.prepareStatement(
+                """SELECT p.transaction_id, p.guild_id, p.actor_id, p.prestige_count,
+                          p.retained_reward_id, p.quoted_fee, g.created_at
+                   FROM guild_prestige_transactions p
+                   JOIN guild_gold_operations g ON $journalJoin
+                   WHERE p.outcome = 'APPLIED' AND g.status = 'APPLIED'
+                   ORDER BY g.created_at, p.transaction_id"""
+            ).use { statement ->
+                statement.executeQuery().use { rows ->
+                    buildList {
+                        while (rows.next()) add(
+                            net.lumalyte.lg.domain.rewards.AppliedPrestige(
+                                PrestigeRecord(
+                                    transactionId = UUID.fromString(rows.getString("transaction_id")),
+                                    guildId = UUID.fromString(rows.getString("guild_id")),
+                                    actorId = UUID.fromString(rows.getString("actor_id")),
+                                    tier = rows.getInt("prestige_count"),
+                                    retainedRewardId = rows.getString("retained_reward_id"),
+                                    appliedAt = Instant.ofEpochMilli(rows.getLong("created_at")),
+                                ),
+                                feePaid = rows.getLong("quoted_fee"),
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+    private fun records(filter: String, value: Any, limit: Int? = null): List<PrestigeRecord> =
+        storage.connection.connection.use { connection ->
+            connection.prepareStatement(
+                """SELECT p.transaction_id, p.guild_id, p.actor_id, p.prestige_count,
+                          p.retained_reward_id, g.created_at
+                   FROM guild_prestige_transactions p
+                   JOIN guild_gold_operations g ON $journalJoin
+                   WHERE p.outcome = 'APPLIED' AND g.status = 'APPLIED' AND $filter
+                   ORDER BY g.created_at, p.transaction_id${limit?.let { " LIMIT $it" } ?: ""}"""
+            ).use { statement ->
+                statement.setObject(1, value)
+                statement.executeQuery().use { rows ->
+                    buildList {
+                        while (rows.next()) add(
+                            PrestigeRecord(
+                                transactionId = UUID.fromString(rows.getString("transaction_id")),
+                                guildId = UUID.fromString(rows.getString("guild_id")),
+                                actorId = UUID.fromString(rows.getString("actor_id")),
+                                tier = rows.getInt("prestige_count"),
+                                retainedRewardId = rows.getString("retained_reward_id"),
+                                appliedAt = Instant.ofEpochMilli(rows.getLong("created_at")),
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
     override fun confirmWithCommitStatus(
         request: PrestigeQuote,
         guard: () -> PrestigeRejection?,
+    ): PrestigeConfirmation = commit(request, guard, staff = false)
+
+    // REQ-186: same transaction, receipt and replay as a paid prestige, minus fee and level.
+    override fun grantWithCommitStatus(request: PrestigeQuote): PrestigeConfirmation =
+        if (request.quotedFee != 0L) PrestigeConfirmation(PrestigeResult.Rejected(PrestigeRejection.FEE_CHANGED))
+        else commit(request, { null }, staff = true)
+
+    private fun commit(
+        request: PrestigeQuote,
+        guard: () -> PrestigeRejection?,
+        staff: Boolean,
     ): PrestigeConfirmation = try {
         guildActions.withGuilds(request.guildId) {
             gold.withGuildLock(request.guildId) {
@@ -75,7 +189,7 @@ class PrestigeRepositorySQL(
                             it.executeUpdate()
                         }
                         replay(connection, request)?.let { PrestigeConfirmation(it) }
-                            ?: execute(connection, request, guard).let { result ->
+                            ?: execute(connection, request, guard, staff).let { result ->
                                 saveReceipt(connection, request, result)
                                 // This envelope escapes only after transaction() commits.
                                 PrestigeConfirmation(result, result is PrestigeResult.Applied)
@@ -84,14 +198,94 @@ class PrestigeRepositorySQL(
                 }
             }
         }
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        net.lumalyte.lg.application.logging.SwallowedErrors.log("PrestigeRepositorySQL:149", e)
         PrestigeConfirmation(PrestigeResult.Failed(request.transactionId))
     }
+
+    override fun setPrestigeCount(
+        guildId: UUID,
+        count: Int,
+        actorId: UUID,
+        at: Instant,
+    ): PrestigeAdjustmentResult = try {
+        if (count < 0 || count > config().progression.prestige.maxCount) {
+            PrestigeAdjustmentResult.OutOfRange
+        } else {
+            guildActions.withGuilds(guildId) {
+                storage.connection.connection.use { connection ->
+                    transaction(connection) { adjust(connection, guildId, count, actorId, at) }
+                }
+            }
+        }
+    } catch (e: Exception) {
+        net.lumalyte.lg.application.logging.SwallowedErrors.log("PrestigeRepositorySQL:168", e)
+        PrestigeAdjustmentResult.Failed
+    }
+
+    private fun adjust(connection: Connection, guildId: UUID, count: Int, actorId: UUID, at: Instant): PrestigeAdjustmentResult {
+        val snapshot = owners.readSnapshot(connection, guildId) ?: return PrestigeAdjustmentResult.NotFound
+        val old = snapshot.ownership.prestigeCount
+        if (old == count) return PrestigeAdjustmentResult.Unchanged
+        if (count > old) return PrestigeAdjustmentResult.RaiseNeedsGrant
+        val dropped = dropped(snapshot.ownership, history(guildId).map { it.retainedRewardId }, old - count)
+        check(owners.lowerPrestigeInTransaction(connection, guildId, snapshot.version, count, dropped.toSet())) {
+            "Ownership changed during prestige adjustment"
+        }
+        connection.prepareStatement(
+            """INSERT INTO guild_prestige_adjustments (id, guild_id, actor_id, old_count, new_count, adjusted_at)
+               VALUES (?, ?, ?, ?, ?, ?)"""
+        ).use {
+            it.setString(1, UUID.randomUUID().toString())
+            it.setString(2, guildId.toString())
+            it.setString(3, actorId.toString())
+            it.setInt(4, old)
+            it.setInt(5, count)
+            it.setLong(6, at.toEpochMilli())
+            check(it.executeUpdate() == 1)
+        }
+        return PrestigeAdjustmentResult.Applied(old, count, dropped)
+    }
+
+    override fun rewardsDroppedBy(guildId: UUID, count: Int): List<String> {
+        val snapshot = (owners.read(guildId) as? RewardOwnershipRead.Found)?.snapshot ?: return emptyList()
+        val old = snapshot.ownership.prestigeCount
+        if (count !in 0 until old) return emptyList()
+        return dropped(snapshot.ownership, history(guildId).map { it.retainedRewardId }, old - count)
+    }
+
+    /** The newest kept selections first (by prestige history), then any others by id. */
+    private fun dropped(ownership: RewardOwnership, keptInOrder: List<String>, n: Int): List<String> {
+        val selections = ownership.permanent.filter { catalog.find(it)?.permanentOnPurchase == false }.toSet()
+        val newestFirst = keptInOrder.asReversed().filter { it in selections }.distinct()
+        return (newestFirst + (selections - newestFirst.toSet()).sorted()).take(n)
+    }
+
+    override fun adjustments(guildId: UUID): List<PrestigeAdjustment> =
+        storage.connection.connection.use { connection ->
+            connection.prepareStatement(
+                """SELECT guild_id, actor_id, old_count, new_count, adjusted_at FROM guild_prestige_adjustments
+                   WHERE guild_id = ? ORDER BY adjusted_at, id"""
+            ).use { statement ->
+                statement.setString(1, guildId.toString())
+                statement.executeQuery().use { rows ->
+                    buildList {
+                        while (rows.next()) add(
+                            PrestigeAdjustment(
+                                UUID.fromString(rows.getString(1)), UUID.fromString(rows.getString(2)),
+                                rows.getInt(3), rows.getInt(4), Instant.ofEpochMilli(rows.getLong(5)),
+                            )
+                        )
+                    }
+                }
+            }
+        }
 
     private fun execute(
         connection: Connection,
         request: PrestigeQuote,
         guard: () -> PrestigeRejection?,
+        staff: Boolean = false,
     ): PrestigeResult {
         fun reject(reason: PrestigeRejection) = PrestigeResult.Rejected(reason)
 
@@ -124,19 +318,20 @@ class PrestigeRepositorySQL(
             return reject(PrestigeRejection.MAX_PRESTIGE)
         }
 
-        val expectedFee = prestige.feeFor(snapshot.ownership.prestigeCount)
+        val expectedFee = if (staff) 0L else prestige.feeFor(snapshot.ownership.prestigeCount)
         if (request.quotedFee != expectedFee) return reject(PrestigeRejection.FEE_CHANGED)
 
-        val level = connection.prepareStatement(
-            "SELECT current_level FROM guild_progression WHERE guild_id = ?$lockSuffix"
+        val (level, totalExperience) = connection.prepareStatement(
+            "SELECT current_level, total_experience FROM guild_progression WHERE guild_id = ?$lockSuffix"
         ).use {
             it.setString(1, request.guildId.toString())
-            it.executeQuery().use { rows -> if (rows.next()) rows.getInt(1) else null }
+            it.executeQuery().use { rows -> if (rows.next()) rows.getInt(1) to rows.getInt(2) else null }
         } ?: return reject(PrestigeRejection.UNINITIALIZED)
-        if (level != 100) return reject(PrestigeRejection.NOT_LEVEL_100)
+        if (level != 100 && !staff) return reject(PrestigeRejection.NOT_LEVEL_100)
 
+        // A staff grant offers the choices the guild would have at level 100.
         val currentEntitlements = resolver.resolve(
-            level,
+            if (staff) 100 else level,
             snapshot.ownership,
             settings.bank.maxBankBalance.toLong(),
             settings.guild.maxMembersPerGuild,
@@ -182,16 +377,18 @@ class PrestigeRepositorySQL(
             permanent = snapshot.ownership.permanent + request.retainedRewardId,
             prestigeCount = snapshot.ownership.prestigeCount + 1,
         )
+        // REQ-175: optional XP carried into the next climb sets the level it starts at.
+        val curve = ProgressionCurve.from(settings.progression)
+        val carried = PrestigeCarryOver.experience(totalExperience, curve, settings.progression.prestige.carryOver)
+        val postLevel = curve.levelFromExperience(carried)
         val postEntitlements = resolver.resolve(
-            1,
+            postLevel,
             nextOwnership,
             settings.bank.maxBankBalance.toLong(),
             settings.guild.maxMembersPerGuild,
         )
-        val postBalance = balance - expectedFee
-        if (postBalance > postEntitlements.bankCapacity) {
-            return reject(PrestigeRejection.POST_PRESTIGE_CAPACITY)
-        }
+        // REQ-157: a balance above the post-prestige capacity is kept; the gold
+        // repository then refuses credits until capacity catches up.
 
         val mutation = mutation(request)
         val paid = gold.applyInTransaction(connection, mutation, Long.MAX_VALUE, null)
@@ -208,29 +405,32 @@ class PrestigeRepositorySQL(
         VaultCapacityUnlockSchema.recordAtLeast(
             connection, request.guildId, 54, storage.dialect == SqlDialect.MARIADB,
         )
-        val nextLevelXp = ProgressionCurve.from(settings.progression).experienceForNextLevel(1)
         val now = Instant.now().toEpochMilli()
         val progressionUpdated = connection.prepareStatement(
             """UPDATE guild_progression
-               SET total_experience = 0,
-                   current_level = 1,
-                   experience_this_level = 0,
+               SET total_experience = ?,
+                   current_level = ?,
+                   experience_this_level = ?,
                    experience_for_next_level = ?,
                    last_level_up = NULL,
                    unlocked_perks = '[]',
                    last_updated = ?
-               WHERE guild_id = ? AND current_level = 100"""
+               WHERE guild_id = ?${if (staff) "" else " AND current_level = 100"}"""
         ).use {
-            it.setInt(1, nextLevelXp)
-            if (storage.dialect == SqlDialect.MARIADB) it.setTimestamp(2, Timestamp(now))
-            else it.setLong(2, now)
-            it.setString(3, request.guildId.toString())
+            it.setInt(1, carried)
+            it.setInt(2, postLevel)
+            it.setInt(3, curve.experienceInCurrentLevel(carried))
+            it.setInt(4, curve.experienceForNextLevel(postLevel))
+            if (storage.dialect == SqlDialect.MARIADB) it.setTimestamp(5, Timestamp(now))
+            else it.setLong(5, now)
+            it.setString(6, request.guildId.toString())
             it.executeUpdate() == 1
         }
         check(progressionUpdated) { "Progression changed during prestige" }
 
-        connection.prepareStatement("UPDATE guilds SET level = 1 WHERE id = ?").use {
-            it.setString(1, request.guildId.toString())
+        connection.prepareStatement("UPDATE guilds SET level = ? WHERE id = ?").use {
+            it.setInt(1, postLevel)
+            it.setString(2, request.guildId.toString())
             check(it.executeUpdate() == 1) { "Guild disappeared during prestige" }
         }
 
@@ -252,6 +452,8 @@ class PrestigeRepositorySQL(
             prestigeCount = nextOwnership.prestigeCount,
             postBankCapacity = postEntitlements.bankCapacity,
             homeCapacity = postEntitlements.homeCapacity,
+            carriedExperience = carried,
+            postLevel = postLevel,
         )
     }
 

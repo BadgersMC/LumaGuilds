@@ -40,21 +40,21 @@ internal class AllyHomeMenuAuthorizationTest {
         val fixture = Fixture()
         fixture.allowed = false
         fixture.click()
-        verify(exactly = 0) { fixture.teleports.startTeleport(any(), any(), any()) }
+        verify(exactly = 0) { fixture.teleports.startHomeTeleport(any(), any(), any(), any()) }
     }
 
     @Test fun removedHomeDenied() {
         val fixture = Fixture()
         fixture.currentTarget = fixture.currentTarget?.copy(allyHome = null)
         fixture.click()
-        verify(exactly = 0) { fixture.teleports.startTeleport(any(), any(), any()) }
+        verify(exactly = 0) { fixture.teleports.startHomeTeleport(any(), any(), any(), any()) }
     }
 
     @Test fun disbandedGuildDenied() {
         val fixture = Fixture()
         fixture.currentTarget = null
         fixture.click()
-        verify(exactly = 0) { fixture.teleports.startTeleport(any(), any(), any()) }
+        verify(exactly = 0) { fixture.teleports.startHomeTeleport(any(), any(), any(), any()) }
     }
 
     @Test fun relocatedHomeUsesCurrent() {
@@ -65,9 +65,10 @@ internal class AllyHomeMenuAuthorizationTest {
             )
         fixture.click()
         verify(exactly = 1) {
-            fixture.teleports.startTeleport(
+            fixture.teleports.startHomeTeleport(
                 fixture.player,
                 match { it.x == NEW_X + CENTER && it.y == HOME_Y.toDouble() && it.z == NEW_Z + CENTER },
+                any(),
                 any(),
             )
         }
@@ -77,21 +78,21 @@ internal class AllyHomeMenuAuthorizationTest {
         val fixture = Fixture()
         fixture.currentTarget = fixture.currentTarget?.copy(name = "Renamed")
         fixture.click()
-        verify(exactly = 1) { fixture.teleports.startTeleport(fixture.player, any<Location>(), any()) }
+        verify(exactly = 1) { fixture.teleports.startHomeTeleport(fixture.player, any<Location>(), any(), any()) }
     }
 
     @Test fun grantedAccessUsesCurrentState() {
         val fixture = Fixture(initialAllowed = false)
         fixture.allowed = true
         fixture.click()
-        verify(exactly = 1) { fixture.teleports.startTeleport(fixture.player, any<Location>(), any()) }
+        verify(exactly = 1) { fixture.teleports.startHomeTeleport(fixture.player, any<Location>(), any(), any()) }
     }
 
     @Test fun unlistedHomeDenied() {
         val fixture = Fixture()
         fixture.eligible = false
         fixture.click()
-        verify(exactly = 0) { fixture.teleports.startTeleport(any(), any(), any()) }
+        verify(exactly = 0) { fixture.teleports.startHomeTeleport(any(), any(), any(), any()) }
     }
 
     private class Fixture(initialAllowed: Boolean = true) {
@@ -124,7 +125,13 @@ internal class AllyHomeMenuAuthorizationTest {
             every { guilds.getAllyHomes(source.id) } answers { eligibleHomes() }
             every { guilds.getGuildByName("Ally") } returns currentTarget
             every { guilds.getGuild(targetId) } answers { currentTarget }
-            every { guilds.canUseAllyHome(player.uniqueId, source.id, targetId) } answers { allowed }
+            every { guilds.canUseAllyHome(player.uniqueId, source.id, targetId, 1) } answers { allowed }
+            every { guilds.getAllyHomeEntries(source.id) } answers {
+                eligibleHomes().map { (name, home) ->
+                    net.lumalyte.lg.application.services.AllyHomeEntry(currentTarget?.id ?: targetId, name, 1, home)
+                }
+            }
+            every { guilds.getAllyHome(targetId, 1) } answers { currentTarget?.allyHome }
             every { config.loadConfig() } returns MainConfig().also { it.guild.homeTeleportSafetyCheck = false }
             startKoin {
                 modules(

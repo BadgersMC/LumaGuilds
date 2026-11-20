@@ -74,6 +74,11 @@ class QuestProgressListener(
     fun onBlockBreak(event: BlockBreakEvent) = safely("block break") {
         if (!eligible(event.player)) return@safely
 
+        GrownPlantHarvest.of(event.block)?.let { harvest ->
+            countGrownPlant(event, harvest)
+            return@safely
+        }
+
         val customTarget = nexoBlockTarget(event.block)
         if (customTarget == null && QuestHarvestBlockRules.isGrowingPlant(event.block.type)) {
             recordGrowingPlantBreak(event)
@@ -96,6 +101,22 @@ class QuestProgressListener(
             val placed = shouldTrackProvenance(target) && provenance.wasPlayerPlaced(position)
             progressSafely("block break") {
                 incrementCaptured(playerId, action, target, 1, snapshot.copy(playerPlacedBlock = placed))
+            }
+        }
+    }
+
+    /** REQ-177: a growth-timer plant counts with the column above it, minus player-placed blocks. */
+    private fun countGrownPlant(event: BlockBreakEvent, harvest: GrownPlantHarvest) {
+        val positions = harvest.blocks.map { it.position() }
+        val playerId = event.player.uniqueId
+        val snapshot = context(event.player, event.block)
+        background {
+            val tracked = shouldTrackProvenance(harvest.target)
+            val grown = positions.count { !(tracked && provenance.wasPlayerPlaced(it)) }
+            if (grown > 0) {
+                progressSafely("plant harvest") {
+                    incrementCaptured(playerId, QuestAction.HARVEST_CROPS, harvest.target, grown.toLong(), snapshot)
+                }
             }
         }
     }

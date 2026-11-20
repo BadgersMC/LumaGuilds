@@ -153,6 +153,44 @@ class RewardOwnershipRepositorySQL(
             ownership.copy(currentRun = ownership.currentRun - ownership.permanent)))
     }
 
+    /**
+     * REQ-185: a staff lowering of the prestige count. Each prestige keeps exactly
+     * one reward, so the kept rewards of the removed tiers ([dropped]) go too. It
+     * bypasses the normal transition rules on purpose; the caller records it.
+     */
+    internal fun lowerPrestigeInTransaction(
+        connection: Connection,
+        guildId: UUID,
+        expectedVersion: Long,
+        count: Int,
+        dropped: Set<String>,
+    ): Boolean {
+        check(!connection.autoCommit)
+        val bumped = connection.prepareStatement(
+            "UPDATE guild_reward_accounts SET version = ?, prestige_count = ? WHERE guild_id = ? AND version = ?"
+        ).use {
+            it.setLong(1, Math.addExact(expectedVersion, 1))
+            it.setInt(2, count)
+            it.setString(3, guildId.toString())
+            it.setLong(4, expectedVersion)
+            it.executeUpdate() == 1
+        }
+        if (!bumped) return false
+        connection.prepareStatement("DELETE FROM guild_reward_ownership WHERE guild_id = ? AND reward_id = ? AND permanent = ?")
+            .use { statement ->
+                dropped.forEach { id ->
+                    statement.setString(1, guildId.toString())
+                    statement.setString(2, id)
+                    statement.setBoolean(3, true)
+                    statement.addBatch()
+                }
+                statement.executeBatch()
+            }
+        // Validates the result: the count must again match the kept selections.
+        resolver.resolve(100, requireNotNull(readSnapshot(connection, guildId)).ownership)
+        return true
+    }
+
     internal fun readSnapshot(connection: Connection, guildId: UUID): RewardOwnershipSnapshot? {
         val account = connection.prepareStatement(
             "SELECT version, initial_home_capacity, prestige_count, base_home_slots_earned FROM guild_reward_accounts WHERE guild_id = ?"

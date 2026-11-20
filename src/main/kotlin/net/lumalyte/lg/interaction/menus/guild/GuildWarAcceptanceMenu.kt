@@ -111,7 +111,7 @@ class GuildWarAcceptanceMenu(
         // War details
         val detailsItem = ItemStack.of(Material.WRITTEN_BOOK)
             .name(lang.gui("menu.war_acceptance.details.name"))
-            .lore(lang.gui("menu.war_acceptance.details.duration", "days" to warDeclaration.proposedDuration.toDays()))
+            .lore(if (warDeclaration.objectiveBased) lang.gui("war_duration.objective") else lang.gui("menu.war_acceptance.details.duration", "days" to warDeclaration.proposedDuration.toDays()))
             .also { item ->
                 item.lore(
                     if (warDeclaration.isRated) {
@@ -245,7 +245,7 @@ class GuildWarAcceptanceMenu(
                     }
                 }
 
-                player.sendMessage(lang.msg("menu.war_acceptance.feedback.duration", "days" to war.duration.toDays()))
+                player.sendMessage(if (war.objectiveBased) lang.msg("war_duration.objective") else lang.msg("menu.war_acceptance.feedback.duration", "days" to war.duration.toDays()))
                 if (war.objectives.isNotEmpty()) {
                     player.sendMessage(lang.msg("menu.war_acceptance.feedback.objectives", "count" to war.objectives.size))
                 }

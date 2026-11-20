@@ -392,7 +392,7 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 **Durable war clarification (2026-09-14; REQ-039/092).** Declarations, war identity/status, statistics, wager amounts and settlement intent SHALL survive restart. Financial intent SHALL be recorded before a charge or refund. A completed leg SHALL not be repeated after a crash or failed state-marker write; an uncertain leg SHALL prevent speculative compensation and require reconciliation. Acceptance SHALL not publish an active paid war until funding is confirmed. A chosen settlement outcome SHALL be immutable once settlement begins. Corrupt or unavailable persistence SHALL fail closed rather than expose an empty war registry. Stale writers SHALL not overwrite a newer persisted state.
 
 ### REQ-093
-**Conditional.** WHILE prestige is enabled, GIVEN a guild is current-run level 100, is below the configured lifetime maximum (default 6), has selected a purchased prestige-eligible non-permanent perk, has no active/accepted/unresolved war or outgoing declaration, and can pay the configured tier fee (defaults 10,000/20,000/30,000/30,000/30,000/30,000 raw-gold units) while leaving a balance no greater than its calculated post-prestige capacity, WHEN an authorized leader explicitly confirms prestige THEN THE SYSTEM SHALL atomically deduct the fee, increment prestige count, grant one permanent home-capacity unit, mark the selected perk permanent, reset current-run level to 1 and XP to 0, and deactivate every other non-permanent purchased progression perk. Prestige SHALL preserve seasonal Elo and pair history, source-cap consumption, weekly quest progress/reward flags, guild identity, membership, ranks, relations, canonical guild gold remainder, vault contents, activated homes, permanent home capacity, and prior permanent perks. Failure or retry SHALL grant neither duplicate rewards nor duplicate charges. For the production Chapter 2 cutover, the shipped default SHALL be `prestige.enabled: true`; operators MAY explicitly set it to `false` to disable Prestige.
+**Conditional.** WHILE prestige is enabled, GIVEN a guild is current-run level 100, is below the configured lifetime maximum (default 6), has selected a purchased prestige-eligible non-permanent perk, has no active/accepted/unresolved war or outgoing declaration, and can pay the configured tier fee (defaults 10,000/20,000/30,000/30,000/30,000/30,000 raw-gold units), WHEN an authorized leader explicitly confirms prestige THEN THE SYSTEM SHALL atomically deduct the fee, increment prestige count, grant one permanent home-capacity unit, mark the selected perk permanent, reset current-run level to 1 and XP to 0, and deactivate every other non-permanent purchased progression perk. Prestige SHALL preserve seasonal Elo and pair history, source-cap consumption, weekly quest progress/reward flags, guild identity, membership, ranks, relations, canonical guild gold remainder, vault contents, activated homes, permanent home capacity, and prior permanent perks. Failure or retry SHALL grant neither duplicate rewards nor duplicate charges. For the production Chapter 2 cutover, the shipped default SHALL be `prestige.enabled: true`; operators MAY explicitly set it to `false` to disable Prestige.
 
 ## Season 2 presentation contract
 
@@ -401,7 +401,6 @@ WHEN a guild withdrawal is offered THEN THE SYSTEM SHALL preview the calculated 
 
 ### REQ-095
 **Ubiquitous.** THE staging Season 2 resource pack SHALL resolve all LumaGuilds item IDs, including the nine missing navigation/source IDs and 37 emoji-choice IDs, to existing resources. Icons SHALL use readable silhouettes, consistent gold/slate pixel-art navigation, correctly directed pagination arrows and shape-distinct status indicators. Existing IDs, approved guild backgrounds and recognizable emoji identities SHALL be preserved. Pack generation SHALL retain SELFHOST. Java and Bedrock client validation SHALL be reported independently from static validation.
-
 
 ### REQ-096
 **Event-driven.** WHEN an authorized guild member opens Settings → GUI Theme THEN THE SYSTEM SHALL render a one-row six-choice theme selector using `guild_bg_<theme>_1_row`, place theme choices in slots 0–5 and Back in slot 8, use a distinct supplied symbol for every `GuiTheme`, identify the active theme with localized text plus a secondary visual cue, use the localized heading `GUI Theme`, keep the player inventory visible, and reject unauthorized selections without reporting success.
@@ -486,7 +485,6 @@ THE SYSTEM SHALL compile, test and start without the retired AxKoth API dependen
 ### REQ-121
 **Event-driven.** WHEN an integrating plugin (EnthusiaHolidays) unlocks a guild cosmetic through the public `GuildCosmeticUnlocks` service THEN THE SYSTEM SHALL durably record that the guild owns the cosmetic `(type, key)` with its display name and source, idempotently, and SHALL report success for an already-owned cosmetic. Holiday menu styles marked `requiresUnlock` (`HALLOWEEN`, `CHRISTMAS`) SHALL be offered in the theme selector (Java and Bedrock) only as **locked** until the guild owns them, and `setGuiTheme` SHALL reject a locked theme regardless of caller. WHEN a cosmetic is revoked THE SYSTEM SHALL remove ownership idempotently and reset a guild currently using that theme to the default style without overwriting other guild fields. WHILE a guild uses a style with `seasonalIcons`, THE SYSTEM SHALL send its members the `<icon>_<style>` Nexo variant of each LumaGuilds menu icon that has one, and the normal icon otherwise. The API SHALL use JDK-only signatures, SHALL accept unknown nonblank keys (so a newer integration cannot wedge its sync), and SHALL return false for a nonexistent guild, an invalid blank/over-length identity, or a persistence failure.
 
-
 ### REQ-122
 **Event-driven.** WHEN a current guild member uses `/guild bank` or `/g bank` with the existing guild-menu command permission THEN THE SYSTEM SHALL open that member's platform-appropriate Guild Bank without requiring unrelated management permissions. Non-members SHALL receive the existing localized membership denial. Bank operation authorization and currency semantics SHALL remain unchanged.
 
@@ -563,6 +561,11 @@ WHEN a player opens or interacts with a guild vault THE SYSTEM SHALL recheck cur
 ### REQ-150 — Guild recruitment upgrade
 
 The approved recruitment behavior, player/recruiter flows, discovery integration and delivery gates are specified as REC-001 through REC-012 in [Guild recruitment delivery](plans/guild-recruitment.md). This upgrade retains existing LFG access and fee policy, adds dedicated rank authority and requires explicit applicant confirmation before admission.
+### REQ-WEBSITE-QUEST-001
+WHEN a website consumer requests the current guild quest snapshot THE SYSTEM SHALL require a configured bearer token and return bounded public quest definitions and standings from a consistent read, without granting rewards or exporting private identities.
+
+### REQ-WEBSITE-MEMBERSHIP-002
+WHEN a website consumer requests bounded player guild associations THE SYSTEM SHALL require a configured bearer token and return only verified current public memberships; unavailable or inconsistent reads SHALL NOT be reported as an empty membership.
 
 ### REQ-149 — Dynamic Vault economy provider lifecycle
 **Event-driven.** WHEN Vault is present but no Economy provider is registered, personal-account guild-bank operations SHALL report the provider as unavailable without declaring the bank permanently broken. BEFORE each personal-account economy operation THE SYSTEM SHALL resolve the currently registered Vault Economy provider, SHALL discover a provider registered after LumaGuilds startup, and SHALL discard a cached provider that is unregistered or replaced. Physical guild-gold and ordinary vault storage SHALL retain their existing availability semantics.
@@ -589,7 +592,462 @@ The approved recruitment behavior, player/recruiter flows, discovery integration
 ### REQ-STALL-ICONS-1
 **Ubiquitous.** THE SYSTEM SHALL give stall entries, member entries, navigation, status and authorized manager controls distinct semantic icons using the existing themed provider with vanilla fallbacks, while preserving all membership, navigation-token and manager authorization checks. Custom private artwork SHALL remain outside the public plugin repository.
 
+## Prestige history, event and member credits
+
+Design, decisions and evidence: [the prestige advancements plan](plans/2026-11-03-prestige-advancements.md).
+
+### REQ-152
+**Ubiquitous.** THE SYSTEM SHALL provide a read-only prestige history that lists, for a guild, every applied prestige with its resulting tier, retained perk, confirming actor and commit time, oldest first, where commit time is the `created_at` of the prestige's own canonical gold-journal debit (same transaction ID); and SHALL identify, server-wide, the first applied prestige that reached a given tier, ordered by commit time and then transaction ID. Reading history SHALL NOT write, migrate or alter prestige receipts, and SHALL include prestiges committed before this requirement existed.
+
+### REQ-153
+**Event-driven.** WHEN a prestige transaction is newly committed THE SYSTEM SHALL fire exactly one synchronous public `GuildPrestigeEvent` carrying the guild ID, actor ID, resulting tier, retained perk ID, commit time and whether the guild is the first server-wide to reach that tier. Receipt replays, rejections and failures SHALL NOT fire it, and a failing event listener SHALL NOT undo, repeat or alter the committed prestige, its result or its public announcement.
+
+### REQ-154
+**State-driven.** WHILE prestige member credits are enabled (default disabled) THE SYSTEM SHALL, whenever a guild member is online after their guild newly commits a prestige and whenever a member joins the server, dispatch the configured member commands as the console once for each applied prestige of the member's current guild whose commit time is at least the configured minimum tenure (default 24 hours) after that member's guild membership began, and additionally dispatch the configured first-reach commands for prestiges that were first server-wide to reach their tier. Placeholders SHALL be the member's UUID, current name and the resulting tier. THE SYSTEM SHALL durably record each delivered member/prestige pair after dispatch and SHALL NOT dispatch a recorded pair again, including after restart; a crash between dispatch and recording MAY repeat that pair once, so configured commands SHALL be safe to repeat. Offline members, members who joined too recently, and members who left the guild SHALL receive nothing.
+
+### REQ-155
+**Ubiquitous.** THE SYSTEM SHALL expose PlaceholderAPI values for the requesting player's guild: `guild_prestige` (tier 0 to 6, from reward ownership), `guild_prestige_roman` (I to VI, empty at 0), `guild_prestige_badge` (the operator-configured badge for the tier, empty at 0), `guild_prestige_max` (configured lifetime maximum), `guild_prestige_first_tier` (highest tier this guild was first server-wide to reach, 0 if none) and `guild_prestige_last_date` (UTC `yyyy-MM-dd` of its latest applied prestige, empty if none). Values SHALL be served from a per-guild snapshot cached for at most 30 seconds and refreshed immediately after that guild newly commits a prestige; a guild without a reward account SHALL read as tier 0, and an unreadable snapshot SHALL return empty strings rather than a fabricated tier.
+
+### REQ-156
+**Ubiquitous.** THE SYSTEM SHALL add a `prestige` category to the Top-N leaderboard placeholders and the player-guild rank placeholders, ordering guilds by prestige tier, then current-run level and XP, with `value` equal to the tier; Top-N rows SHALL also expose `prestige`, `prestige_roman` and `prestige_badge` fields for every category, using the same 30-second leaderboard cache as the existing categories.
+
+### REQ-157
+**State-driven.** WHILE a guild's canonical gold balance exceeds its current bank capacity (for example after a prestige resets level-based capacity), THE SYSTEM SHALL keep the full balance, SHALL reject every credit that would leave the balance above capacity (deposits, transfers in and interest), SHALL allow debits that the balance can fund, and SHALL allow a refund of a debit to restore the balance up to the larger of current capacity and the balance before that debit. A prestige SHALL NOT be rejected because its post-fee balance exceeds the post-prestige capacity, and the prestige confirmation SHALL tell the leader that gold above the new capacity stays withdrawable but cannot be added to until capacity catches up. Receipts recorded with the earlier `POST_PRESTIGE_CAPACITY` rejection SHALL still replay with their original message.
+
+### REQ-162
+**Event-driven.** WHEN the owner of a guild whose prestige count is at least 1 starts a disband, through the Java or Bedrock confirmation or `/g disband`, THE SYSTEM SHALL show before anything is deleted a warning naming the guild's prestige tier, stating that the tier and its permanent rewards are lost for good, that members keep the advancements and tags they earned, and that the guild's server-firsts stay in the history under its name; `/g disband` SHALL then open the platform confirmation instead of disbanding at once. WHERE the prestige tier cannot be read THE SYSTEM SHALL show the same warning without the tier. Guilds that have never prestiged SHALL keep the existing disband flow.
+
+### REQ-163
+**Event-driven.** WHEN a guild whose prestige count is at least 1 is disbanded THE SYSTEM SHALL, in the same transaction as the deletion, record the guild's id, its name and prestige count at that moment and the disband time, SHALL keep its prestige receipts and gold journal, and SHALL keep every server-first it holds, so that `PrestigeHistory` can still name it as disbanded. A disband that fails SHALL record nothing. Re-founding a guild with the same name SHALL create a new guild with no prestige history.
+
+### REQ-164
+**Event-driven.** WHEN a prestige is newly committed and the prestige fanfare is enabled THE SYSTEM SHALL play, from vanilla sounds only and scheduled in server ticks after the public announcement, the member fanfare to that guild's online members (three rising note-block bells, F A C, leading into the vanilla challenge-complete chime with a high F bell on it, all pitched 0.9 so the bells sit in the chime's key; the same for every tier), SHALL show those members a title naming the prestige tier and the guild, and, WHILE the server-wide option is on, SHALL play the same fanfare at no more than 0.3 volume to every other online player. A player who logs out during the fanfare SHALL simply stop receiving its remaining cues, a replayed prestige receipt SHALL NOT play it again, and no failure in the fanfare SHALL affect the prestige.
+
+### REQ-165
+**Ubiquitous.** THE SYSTEM SHALL show every prestige tier and prestige count it puts in front of players (the server-wide prestige announcement, the prestige-applied message, the Java and Bedrock progression and prestige menus, and the Chronicle prestige page) as a Roman numeral from I to VI, with a count of zero shown as 0; counts of things other than prestige tiers, such as home slots, SHALL stay as ordinary numbers.
+
+### REQ-172
+**Event-driven.** WHEN a player opens a guild's info view with `/g info` on Java or Bedrock THE SYSTEM SHALL show that guild's prestige history: its current prestige in Roman numerals and, oldest first, each applied prestige with its tier in Roman numerals, the date it was applied and, where that prestige was the first on the server to reach its tier, a server-first mark. A guild that never prestiged SHALL show that it has not prestiged yet, and IF the prestige history cannot be read THEN THE SYSTEM SHALL still open the info view and say the history is unavailable.
+
+### REQ-173
+**Event-driven.** WHEN a player views a guild's prestige on Java or Bedrock (the progression prestige entry, the Chronicle prestige guide, the reward choices or the confirmation) THE SYSTEM SHALL say in plain language what the next prestige costs, what resets (level, XP, level perks and every purchased reward not kept), what stays (rewards kept from earlier prestiges, purchased home slots, saved homes, members and gold, with gold above the new bank capacity withdraw-only), and what the guild gains (the one chosen reward made permanent, one extra permanent home slot, the next badge and member advancements); each reward choice and the confirmation SHALL state what the kept reward does.
+
+### REQ-174
+**Event-driven.** WHEN a player reads Getting Started on Java or Bedrock THE SYSTEM SHALL explain, inside the existing chat and bank steps, that parties are temporary chat groups for the guild or shared with other guilds and used with `/pc` (only while parties are enabled), that the guild bank earns the configured interest rate every configured period (only while the rate is above zero), and that the guild has a separate physical vault opened with `/g vault` (only while the physical vault is enabled), without adding new menu entries.
+
+### REQ-175
+**Optional.** WHERE prestige XP carry-over is enabled (default off) THE SYSTEM SHALL, when a prestige commits, start the guild's next climb with the XP it earned after reaching level 100, capped at the XP needed to reach the configured landing level (default 5), SHALL set the guild's level, level progress and post-prestige bank capacity from that carried XP in the same transaction, SHALL tell the confirming player how much XP carried over and the level the guild starts at, and SHALL state the carry-over and its cap on the Java and Bedrock confirmation; WHILE carry-over is disabled THE SYSTEM SHALL keep resetting XP to 0.
+
+### REQ-176
+**Ubiquitous.** THE SYSTEM SHALL generate weekly quests only from targets a guild can reasonably work on: kill quests only for hostile mobs, bosses and common farm animals (never villagers, traders, golems, pets, mounts, armor stands, mannequins or mobs that never spawn naturally), with phantoms, breezes, creakings, evokers and piglin brutes counted as rare; harvest quests only for farm crops (wheat, carrots, potatoes, beetroots, nether wart, cocoa, sweet berries, torchflowers, pitcher plants, sugar cane, cactus, kelp and bamboo); place quests only for full building blocks (planks, logs, wood, stone, bricks, concrete, wool, terracotta, glass and similar) rather than stairs, slabs, walls, panes, waxed or weathered copper and other decorative variants; mining quests only for blocks that generate in the world (stone types, ores, logs, sand, gravel, nether and end blocks and similar), never wall-mounted, potted or placed-only blocks; smelting quests only for common smelted goods (ingots, nuggets, glass, stone, bricks, cooked food and similar); and crafting quests never for waxed or weathered copper, with amounts that a guild can make in a week (64 to 800 stackable items, 8 to 64 tools or armor).
+
+### REQ-177
+**Event-driven.** WHEN a member breaks sugar cane, cactus, kelp or bamboo THE SYSTEM SHALL count it toward a matching harvest quest regardless of the plant's growth stage, counting the broken block and the blocks of the same plant above it that break with it, except blocks a player placed; and WHEN a quest is shown THE SYSTEM SHALL say that mining quests count only blocks not placed by players and that age-based crops count only when fully grown.
+
+### REQ-178
+**State-driven.** WHILE the weekend XP boost is enabled (default on) and the current time falls on one of its days in its time zone (default Saturday and Sunday, America/New_York) THE SYSTEM SHALL multiply XP from every guild activity by its multiplier (default 2), rounding down, for every guild, except weekly-quest and admin-granted XP; WHILE a dated XP boost is also active THE SYSTEM SHALL apply only the larger of the two, never both. The default prestige fees SHALL be 8,000, 16,000, 24,000, 24,000, 24,000 and 24,000 gold for prestiges I to VI.
+
+### REQ-179
+**State-driven.** WHILE a guild owns Quick Travel (best tier applies) THE SYSTEM SHALL shorten its members' guild-home and allied-home teleport countdown from 5 seconds to 5 x the Quick Travel multiplier rounded down (at least 1 second) and the cooldown between those teleports to the configured cooldown x the same multiplier, and SHALL apply that one cooldown to command and menu teleports on Java and Bedrock alike; IF the guild's Quick Travel cannot be read THEN THE SYSTEM SHALL use the standard countdown and cooldown.
+
+### REQ-180
+**State-driven.** WHILE a guild's current prestige tier is at least the second-ally-home tier (default II) THE SYSTEM SHALL let it keep a second allied home under the same access rules as the first, with set, move, remove and teleport on Java and Bedrock.
+
+### REQ-181
+**Ubiquitous.** THE SYSTEM SHALL tell EnthusiaMarket how many extra guild-owned stalls a guild may own (1 at or above the extra-stall tier, default III, otherwise 0), and EnthusiaMarket SHALL refuse a guild stall purchase that would take the guild above its configured guild stall limit (default 1) plus that bonus, without removing any stall a guild already owns.
+
+### REQ-182
+**Event-driven.** WHEN a player with Manage home in a host guild opens its allied-home access page on Java or Bedrock THE SYSTEM SHALL let them choose which allied guilds may use the host's allied homes, which ranks of each allowed guild may use them, and which individual players are blocked; WHEN anyone tries to use the host's allied homes THE SYSTEM SHALL allow only a member of an allowed, currently allied guild whose rank is allowed by the host and has Use ally homes in their own guild, and who is not blocked, checking again when the countdown ends.
+
+### REQ-183
+**Ubiquitous.** THE SYSTEM SHALL let a player with Manage home choose, for each allied guild separately on Java and Bedrock, which of their own guild's ranks may use that ally's allied homes; WHERE no choice is stored for an ally THE SYSTEM SHALL use each rank's Use ally homes permission, and the guild owner SHALL always keep access on their own side.
+
+### REQ-190
+**Ubiquitous.** WHERE member capacity is enabled THE SYSTEM SHALL limit each guild to the smaller of the server maximum and `base + per_step x floor(level / step_levels)` capped at the configured maximum (defaults 10, 5, 5, 100), using level 100 for a guild that has prestiged and never less than the guild's protected floor; WHEN this requirement is first deployed THE SYSTEM SHALL record each existing guild's member count once as its protected floor; THE SYSTEM SHALL never remove a member because of the cap and SHALL only refuse new members while the guild is at or above it.
+### REQ-184
+**Event-driven.** WHEN a sender with `lumaguilds.admin.prestige` runs `/lumaguilds prestige info <guild>` THE SYSTEM SHALL show that guild's prestige count, level, kept rewards, each applied prestige with its tier, date, kept reward and actor, and any staff adjustments.
+
+### REQ-185
+**Event-driven.** WHEN a sender with `lumaguilds.admin.prestige` runs `/lumaguilds prestige set <guild> <count> confirm` with a count below the guild's current prestige count THE SYSTEM SHALL lower the count to it, remove the kept rewards of the removed tiers (newest first), leave level, experience, gold and prestige history unchanged, and record the old count, new count, actor and time as an adjustment; WHEN `confirm` is missing THE SYSTEM SHALL only show what would change; IF the count is higher than the current one THEN THE SYSTEM SHALL change nothing and point to the grant command.
+
+### REQ-186
+**Event-driven.** WHEN a sender with `lumaguilds.admin.prestige` runs `/lumaguilds prestige grant <guild> <reward> confirm` THE SYSTEM SHALL apply a prestige to that guild with no fee and no level requirement, keeping the named reward if it is one of the guild's prestige choices, and SHALL run every prestige announcement and listener exactly as for a guild's own prestige; IF the reward is missing or not a choice THEN THE SYSTEM SHALL list the valid choices and change nothing.
+
+### REQ-187
+**Event-driven.** WHEN a sender with `lumaguilds.admin.prestige` runs `/lumaguilds prestige rerun <guild> [tier] confirm` THE SYSTEM SHALL forget which members were credited for that guild's applied prestiges (all, or only the given tier) and SHALL credit its online members again, leaving offline members to be credited on their next join.
+
+### REQ-188
+**Event-driven.** WHEN a prestige is newly committed AND the Discord webhook is enabled with a URL THE SYSTEM SHALL post one embed naming the guild, the tier in Roman numerals, the actor, the kept reward and whether it is the first guild to reach that tier, off the main thread; IF the request fails or takes longer than 10 seconds THEN THE SYSTEM SHALL log it and the prestige SHALL stay applied.
+
+### REQ-189
+**Ubiquitous.** THE SYSTEM SHALL tab-complete every argument of every `/g` and `/lumaguilds` subcommand the sender may use: known values (guilds, players, members, homes, ranks, rewards, tiers, slots, `confirm`) where the argument has them, and otherwise one `<hint>` naming what to type, which disappears once the sender starts typing.
+
+### REQ-191
+**Event-driven.** WHEN a player opens a guild's info page THE SYSTEM SHALL show one 6-row page with the description, level, guild card, prestige and relations items centred in the top row, the guild's members as heads in the next four rows (36 per page, sorted by rank from highest to lowest by default), and previous page, page, sort, back and next page items in the bottom row; WHEN the player clicks sort THE SYSTEM SHALL cycle the order through rank, online first and name.
+
+### REQ-192
+**Ubiquitous.** THE SYSTEM SHALL show every viewer each member's rank, online status or last seen time, and join date; THE SYSTEM SHALL show a member's bank contribution only to members of that guild; THE SYSTEM SHALL show the invite and banned players items only to viewers with the Manage Members permission in that guild.
+
+### REQ-193
+**Event-driven.** WHEN a player clicks a member's head THE SYSTEM SHALL open that member's page; WHERE the viewer has Manage Members in that guild THE SYSTEM SHALL show Promote, Demote, Kick and Ban on it, each usable only when the viewer outranks the member and, for Promote, only when the new rank stays below the viewer's, and SHALL otherwise show the button greyed with the reason; THE SYSTEM SHALL ask for confirmation before a kick or a ban.
+
+### REQ-194
+**Event-driven.** WHEN a player with Manage Members bans a player from their guild THE SYSTEM SHALL remove the target from the guild if they are a member, save the ban and delete that guild's pending invites to the target; IF the target is the owner or the actor does not outrank a member target THEN THE SYSTEM SHALL change nothing; WHILE a ban is saved THE SYSTEM SHALL refuse to add the player to that guild by any route and SHALL refuse new invites and applications to it; IF the ban list cannot be read THEN THE SYSTEM SHALL refuse the join; WHEN a player with Manage Members unbans the player THE SYSTEM SHALL delete the ban.
+
+### REQ-195
+**Ubiquitous.** THE SYSTEM SHALL show on the guild card Yes or No for whether the guild has a home set, a banner, a placed vault and, when a guild shop lookup is registered, a guild shop, without showing how many homes there are or where they are.
+
+### REQ-196
+**Event-driven.** WHEN a player clicks relations on a guild's info page THE SYSTEM SHALL open a page listing allies, enemies and active truces on separate rows, up to 8 guilds each with an item opening the full list when there are more, where clicking a guild opens its info page.
+
+### REQ-197
+**Unwanted behaviour.** IF a player who is not the target removes a member and the actor's rank does not outrank the target's rank THEN THE SYSTEM SHALL refuse the removal.
+
+### REQ-198
+**Ubiquitous.** THE SYSTEM SHALL show the Java guild menu as 3 rows with Information, Progression, the guild banner, Quests and Statistics centred on the top row; Ranks, Economy, Settings, Guild Stalls and Recruitment centred on the middle row; and Getting Started, Diplomacy, Warfare and Guild Actions on the bottom row with Guild Actions alone in the right corner; THE SYSTEM SHALL NOT show a separate Members button.
+
+### REQ-199
+**Event-driven.** WHEN a player kills another player THE SYSTEM SHALL save the killer, victim, each player's guild, the weapon and the time to the kill log, unless the killer is the victim, neither player is in a guild, both are in the same guild, or the same killer killed the same victim within the last 10 minutes.
+
+### REQ-200
+**Ubiquitous.** THE SYSTEM SHALL compute a guild's kills, deaths and kill/death ratio from the kill log, where the ratio is kills divided by deaths, or kills when there are no deaths, for all time and for any time range.
+
+### REQ-201
+**Ubiquitous.** THE SYSTEM SHALL show the Java guild statistics menu as 3 rows with Combat, Wars, Recent Activity, Rivalries and Achievements centred on the top row, Top Killers, Top Contributors and Top Inviters centred on the middle row, and Back in the bottom row, and SHALL NOT show Member Statistics, Performance, K/D Analysis, Period Statistics, Guild Comparison or Refresh.
+
+### REQ-202
+**Event-driven.** WHEN a player opens Recent Activity, Rivalries or Top Killers THE SYSTEM SHALL list, from the kill log, the guild's last 15 kills and deaths, the guilds it has the most kills against or deaths from, or its 10 members with the most kills.
+
+### REQ-219
+**Event-driven.** WHEN %lumaguilds_guild_prestige_badge_minimessage% is requested THE SYSTEM SHALL return the same badge as %lumaguilds_guild_prestige_badge% with its colour codes written as MiniMessage, so proxy tab lists such as Velocitab show the badge instead of the raw code.
+
+### REQ-216
+**Ubiquitous.** THE SYSTEM SHALL offer in the guild emoji picker only the emojis on the configured approved list, to every guild without an emoji permission, and SHALL never offer an emoji that is not on that list, such as donor heads.
+
+### REQ-217
+**State-driven.** WHILE an emoji is configured as a guild-only emoji for a named guild THE SYSTEM SHALL offer it only to that guild, first in its picker, even IF the emoji is also on the approved list.
+
+### REQ-218
+**Unwanted.** IF a guild already uses an emoji that is no longer offered to it THEN THE SYSTEM SHALL keep showing that emoji and accept it being saved again, until the guild picks a different one.
+
+### REQ-203
+**Event-driven.** WHEN two guilds become allies, end an alliance, become enemies, start or end a truce, make peace, or end a war THE SYSTEM SHALL save one history entry for each guild with the other guild, the change as seen by that guild, the player who made it when there is one, the time and, for a truce, its length in days; IF the entry cannot be saved THEN THE SYSTEM SHALL still complete the change.
+
+### REQ-204
+**Event-driven.** WHEN a player opens a guild's diplomacy history THE SYSTEM SHALL list that guild's history entries newest first, 45 per page on Java and 20 per page on Bedrock, each with its date and the player who made it when there is one.
+
+### REQ-205
+**Ubiquitous.** THE SYSTEM SHALL show the Java Parties menu as 3 rows with every active party the guild is in centred on the top row, Create New Party, Incoming Requests, Outgoing Requests and How Parties Work on the middle row, and Back on the bottom row, and SHALL NOT show Send Party Request, Party Access Settings or a placeholder message for any button.
+
+### REQ-206
+**Event-driven.** WHEN a player clicks a party THE SYSTEM SHALL open that party's page showing its leader, dates, rank limits and guilds; WHERE the player has Manage Parties THE SYSTEM SHALL offer inviting a guild that is not in the party and, after a second click, leaving the party; WHERE the player has Manage Relations THE SYSTEM SHALL offer moderating the party channel.
+
+### REQ-207
+**Ubiquitous.** THE SYSTEM SHALL keep parties for talking between two or more guilds: WHEN a guild is created THE SYSTEM SHALL NOT create Guild_Chat, Officer_Chat or Leader_Chat parties for it, and IF anyone tries to create a party that only one guild can ever join THEN THE SYSTEM SHALL refuse it.
+
+### REQ-208
+**Event-driven.** WHEN the plugin starts THE SYSTEM SHALL end every active single-guild party by marking it dissolved, without deleting it, and SHALL move every player whose party chat pointed at one of those parties back to normal chat.
+
+### REQ-209
+**Event-driven.** WHEN a player turns on guild, ally or mod chat while party chat is on THE SYSTEM SHALL turn party chat off and tell them; WHEN a player switches to party chat while in guild, ally or mod chat THE SYSTEM SHALL move them out of that channel and tell them.
+
+### REQ-210
+**Event-driven.** WHEN a player runs /party THE SYSTEM SHALL open their guild's party menu; WHEN they run /party invite without a guild THE SYSTEM SHALL open the guild-invite page for their guild's party, or the party creation menu IF their guild has no party.
+
+### REQ-211
+**Event-driven.** WHEN a player with Manage Parties runs /party invite with a guild name THE SYSTEM SHALL invite that guild to their guild's party, first creating a party IF their guild has none, and SHALL tell the invited guild's online members how to accept.
+
+### REQ-212
+**Event-driven.** WHEN a player with Manage Parties runs /party accept, /party deny or /party cancel with a guild name THE SYSTEM SHALL accept or deny that guild's request to their guild, or cancel their guild's request to that guild; WHEN no guild is named THE SYSTEM SHALL list the matching requests with clickable actions.
+
+### REQ-213
+**Event-driven.** WHEN a player runs /party info THE SYSTEM SHALL show their guild's party name, leader, guilds, online count and end time; WHEN they run /party list THE SYSTEM SHALL list every active party between guilds with its guilds.
+
+### REQ-214
+**Event-driven.** WHEN a player with Manage Parties runs /party leave, or the party leader or a player with Manage Parties in the leader's guild runs /party disband, THE SYSTEM SHALL ask them to run the same command again within 30 seconds and only then leave or end the party.
+
+### REQ-215
+**Event-driven.** WHEN a player runs /party chat with no message THE SYSTEM SHALL switch party chat on for their guild's party, or off IF it is already on; WHEN they add a message THE SYSTEM SHALL send only that message to the party; WHEN a player with Manage Parties runs /party rename THE SYSTEM SHALL rename the party IF the name is 1 to 32 characters with no spaces.
+
+### REQ-220
+**Unwanted.** IF a party request has expired THEN THE SYSTEM SHALL leave it out of every request list, menu and /party command, so players are never offered an invite that can no longer be accepted, and SHALL say how long invites last when a guild has no request to act on.
+
+### REQ-221
+**Event-driven.** WHEN a player runs /pc with no arguments THE SYSTEM SHALL turn party chat on for their guild's party, or off IF it is already on, without the player naming the party; WHEN they run /pc on, /pc switch, /pc off or /pc mute THE SYSTEM SHALL turn party chat on, off, or hide party messages; WHEN they run /pc with any other text THE SYSTEM SHALL send that text once to their guild's party; and THE SYSTEM SHALL tab-complete these words and the party's name.
+
+### REQ-222
+**State-driven.** WHILE a player has party chat on THE SYSTEM SHALL cancel their chat message before other chat plugins handle it, so it never also appears in normal chat, and SHALL always show the sender their own party message; WHEN a player turns party chat on THE SYSTEM SHALL show party messages again IF they had hidden them.
+
+### REQ-223
+**Ubiquitous.** THE SYSTEM SHALL format a party chat message like guild chat, starting with [Party] and the sender's guild name in brackets, then the sender's name (no rank), and SHALL build it without PlaceholderAPI or guild emojis, so no raw placeholder text ever appears.
+
+### REQ-224
+**Ubiquitous.** THE SYSTEM SHALL offer long-term guild advancements that extend the existing chains: guild levels 25, 50 and 75 before Vanguard Status; 5 and 25 war wins; 250 and 1,000 war kills; 10 and 50 KOTH captures; 10,000, 50,000 and 100,000 combined play hours; 10,000 guild shop sales; 5 alliances; 10 Withers and 5 Ender Dragons; and larger collective smelting, block-breaking, harvesting and mob-kill totals, with no two advancements drawn at the same position in the advancement tree.
+
+### REQ-225
+**State-driven.** WHILE a player is online in a guild THE SYSTEM SHALL check, when they join and every minute, the guild's current member count and the number of whole days since the guild was created, and SHALL award member-count advancements at 10, 25 and 50 members and guild-age advancements at 30, 180 and 365 days.
+
+### REQ-226
+**Ubiquitous.** THE SYSTEM SHALL count combined play hours without a ceiling, so play-hour advancements above 1,000 hours can be earned, and the advancement inspector SHALL state each advancement's own goal.
+
+### REQ-227
+**Event-driven.** WHEN a member of a guild completes a guild advancement that carries a guild XP reward THE SYSTEM SHALL award that guild XP to the member's guild once, using a payout ID fixed per guild and advancement, so later members completing the same advancement, restarts and retries never pay that guild again; the award SHALL use its own XP source that no weekend or dated XP boost multiplies.
+
+### REQ-228
+**State-driven.** WHILE a guild meets the goal of a level, combined play hours, member count or guild age advancement THE SYSTEM SHALL pay that advancement's guild XP once, even if every online member had already completed it before guild XP rewards existed; jokes and penalties (Friendly Fire, The Exile, Coup d'etat) and the root SHALL pay no guild XP, and the advancement inspector SHALL show each advancement's guild XP reward.
+
+### REQ-229
+**Event-driven.** WHEN a member completes a guild advancement THE SYSTEM SHALL announce it to the server (chat, toast and Discord) only when that completion is the guild's first, which for advancements with a guild XP reward is the completion that pays it; WHEN the guild had already earned it, or a reward-free advancement completes while the member is joining, THE SYSTEM SHALL tell only that member, privately, in chat.
+
+### REQ-230
+**Ubiquitous.** THE SYSTEM SHALL end a war when either guild reaches that war's own kill target: the kill objective the declaring guild chose, or `combat.war_kill_win_target` when the war has no kill objective; guilds SHALL be able to choose kill targets of 5, 10, 25 and 50 (and the configured default) up to `combat.war_kill_target_max`.
+
+### REQ-231
+**Ubiquitous.** THE SYSTEM SHALL show each war's own kill target wherever a war's target is displayed, including "Until a guild gets N kills" in the declare menu, the war list and details, and guild info.
+
+### REQ-236
+**Ubiquitous.** THE SYSTEM SHALL show a clickable "Browse Recruiting Guilds" card directly under the guild's recruitment status on the Manage Recruitment dialog, and SHALL show listing setup, settings and the player's applications as ordinary buttons there instead of behind "More listing options".
+
+### REQ-237
+**Ubiquitous.** THE SYSTEM SHALL show a guild's prestige badge and tier with its level directly under its name on the guild info card, and SHALL list the guild's active wars last, under an "Active wars" heading.
+
+### REQ-233
+**Event-driven.** WHEN a war is declared, begins, ends in victory or defeat, or ends by accepted peace, THE SYSTEM SHALL show each online member of the guilds involved a centred title and subtitle naming the guilds, a one-line "⚔ <MOMENT> »" chat line, and a sound distinct to that moment (two bells and a low impact for a declaration), as in the approved war notification mockup; members who were offline SHALL get the same moment when they next join.
+
+### REQ-234
+**Event-driven.** WHEN two guilds become allies THE SYSTEM SHALL show online members of both guilds an "ALLIANCE FORMED" title, subtitle, chat line and sound in the same style.
+
+### REQ-235
+**Event-driven.** WHEN a player gets a war kill THE SYSTEM SHALL play the killer a war-kill sound (a slowed critical hit followed by a quick level-up chime) with the existing war-kill chat line.
+
+### REQ-232
+**Ubiquitous.** THE SYSTEM SHALL fit every chest menu title inside the menu's title bar, shortening a title that would run past it with "..." while keeping its colors, so long guild names never draw outside the menu.
+
 ## Guild Chronicle
 
 The catalog-backed Chronicle and durable guild goal follow CHR-001 through
 CHR-005 in [the Chronicle specification](plans/2026-10-16-guild-chronicle.md).
+
+## Guild history layout
+
+### REQ-238
+**Event-driven.** WHEN a player runs `/guild history <player>`, THE SYSTEM SHALL show the player's name, the number of guilds joined, and one numbered line per guild with its name, join date and status, framed by rule lines instead of box-drawing characters.
+
+## Steady dialog buttons
+
+### REQ-240
+**Ubiquitous.** THE SYSTEM SHALL keep every pack-art dialog button label no wider than the button's width minus 4 pixels, so the client never scrolls the label and its artwork side to side.
+
+## War declaration feedback
+
+### REQ-239
+**Unwanted behaviour.** IF a guild can't declare war because of its declaration cooldown, a farming cooldown on either guild, or either guild's war limit, THEN THE SYSTEM SHALL tell the player which one applies and, for cooldowns, how long is left, instead of a generic failure.
+
+## Main vault keeps earned rows
+
+### REQ-250
+**Ubiquitous.** THE SYSTEM SHALL never shrink a guild's main vault below the largest size it has earned, including after a prestige, while the second vault (REQ-248) still follows the guild's current level.
+
+## Second guild vault at Prestige VI
+
+Plan: `plans/2026-11-14-prestige-second-vault.md`.
+
+### REQ-242
+**State-driven.** WHILE a guild's prestige tier is at least `prestige.perks.second_vault_tier` (default 6), THE SYSTEM SHALL let a member with the place-vault permission get a "Guild Vault II" chest item with `/g getvault 2`, when the guild has no second vault placed.
+
+### REQ-243
+**Event-driven.** WHEN a member places a Guild Vault II chest, THE SYSTEM SHALL apply the main vault's placement rules, also refuse a spot next to the main vault, and record the second vault's location separately from the main vault.
+
+### REQ-244
+**Ubiquitous.** THE SYSTEM SHALL store the second vault's items separately from the main vault, with no gold balance button, and SHALL NOT read it for any gold balance or payment.
+
+### REQ-248
+**Ubiquitous.** THE SYSTEM SHALL size the second vault by the guild's current level with the same capacity rule as the main vault, so it grows as the guild levels up after Prestige VI.
+
+### REQ-245
+**State-driven.** WHILE a guild with a placed second vault is below the second-vault tier, THE SYSTEM SHALL let members take items out of it and refuse every way of putting items in.
+
+### REQ-246
+**Event-driven.** WHEN the second vault is broken, the guild disbands, or the server starts, THE SYSTEM SHALL apply the main vault's break confirmation, item-drop and restore rules to the second vault.
+
+### REQ-247
+**Ubiquitous.** THE SYSTEM SHALL list the second vault among the perks a guild unlocks at its prestige tier on Java and Bedrock.
+
+## Prestige confirmation lists exactly what is earned
+
+### REQ-249
+**Event-driven.** WHEN a player reviews a prestige before confirming it, THE SYSTEM SHALL list, on Java and Bedrock, what the prestige earns (tier badge, the kept reward and its effect, the home slot count before and after, the tier's perks, and, only where they apply, the kept member limit and Discord role on the first prestige, the exact XP carried over and starting level, member advancements, being first on the server, and how it is announced), what it costs (fee, level and XP reset, purchased rewards reset), and what stays, and SHALL say when it is the final prestige.
+
+## Guild advancement reward text
+
+### REQ-241
+**Ubiquitous.** THE SYSTEM SHALL list a guild advancement's guild XP reward first in its advancement tooltip, followed by any personal Minecraft XP its members also receive, and SHALL tell the member who completes it first how much guild XP the guild earned.
+
+### REQ-267
+**Ubiquitous.** WHEN a guild service, repository, placeholder or web handler turns an exception into a safe fallback, THE SYSTEM SHALL log it with its call site, at most once a minute per site with a count of repeats.
+
+### REQ-268
+**Unwanted behaviour.** IF the storage is MariaDB, THEN THE SYSTEM SHALL not run the SQLite membership_history DDL, so recording a guild join never fails on a syntax error.
+
+### REQ-273
+**Unwanted behaviour.** IF a MariaDB database has the first `relations` layout (guild_id, target_guild_id, relation_type), THEN THE SYSTEM SHALL move it aside as `relations_legacy_v1`, create the current layout and carry the old rows across as active relations, so alliances, enemies and truces load.
+
+## Prestige rank-up animation
+
+### REQ-251
+**Event-driven.** WHEN a guild prestiges, THE SYSTEM SHALL show each online member who can see it the rank-up animation from the Enthusia pack, one frame per tick for 64 frames (old badge shatters, the four-point star flashes, the new tier badge appears, "PRESTIGE N" wipes in), with the guild name as the subtitle once the title has appeared, hold the last frame for 2.5 seconds and fade it out, and SHALL play the members' fanfare 7 ticks after the animation starts with a shatter sound when the old badge breaks (tiers II to VI).
+
+### REQ-252
+**Unwanted behaviour.** IF a member is on Bedrock, the pack's `guild_prestige_rankup_v1` contract glyph does not resolve, or `progression.prestige.fanfare.member_animation` is false, THEN THE SYSTEM SHALL show that member the plain prestige title and fanfare instead.
+
+### REQ-253
+**Event-driven.** WHEN a player with `lumaguilds.admin.prestige` runs `/lumaguilds prestige preview <tier> [guild]`, THE SYSTEM SHALL play that tier's rank-up animation and members' fanfare (or the plain title where REQ-252 applies) to that player only, with the given or their own guild name as subtitle, and SHALL NOT change any guild, record history, announce, or play anything to other players.
+
+## Staff sound preview
+
+### REQ-254
+**Event-driven.** WHEN a player with `lumaguilds.admin.sounds` runs `/lumaguilds sounds`, THE SYSTEM SHALL list every guild sound by group with a click-to-play entry and a hover saying when players hear it; `/lumaguilds sounds <id>` SHALL play that sound to the sender only, `all` SHALL play every sound once in order with its name on the action bar, and `stop` SHALL end a running preview. War, prestige and rank-up previews SHALL use the same cue definitions as the live events, and no preview SHALL change a guild or reach another player.
+
+## Everyday guild XP fixes
+
+### REQ-255
+**Event-driven.** WHEN a member breaks or right-click harvests a fully grown crop (wheat, carrots, potatoes, beetroots, nether wart, cocoa, sweet berries, pitcher plants, torchflowers) in Survival or Adventure THE SYSTEM SHALL award crop XP even though a player planted it, and WHEN a member takes a potion out of a brewing stand THE SYSTEM SHALL award brewing XP only if that stand brewed the potion and its XP has not been claimed, so water bottles and potions put in by hand earn nothing.
+
+### REQ-257
+**Ubiquitous.** THE SYSTEM SHALL count every hostile mob except the bosses (which have their own sources) and neutral mobs as a guild mob kill, and natural ground, stone, sand, nether and end blocks and tree logs as guild block breaking, in both the built-in defaults and the shipped config.yml.
+
+### REQ-259
+**Ubiquitous.** THE SYSTEM SHALL show on each XP source in the progression menu how much guild XP one action gives (read from the live source settings), what counts towards it in plain words, and the period used, cap and time until it resets.
+
+### REQ-265
+**Unwanted behaviour.** IF a player breaks a block that a player placed, THEN THE SYSTEM SHALL not award block-place guild XP for that player's next placement of the same material within 30 minutes, so placing and breaking the same block can't farm XP.
+
+### REQ-256
+**Ubiquitous.** THE SYSTEM SHALL place every guild advancement in the advancement tree at least one grid cell away from every other advancement horizontally or vertically, so no two frames overlap.
+
+## Guild stall menu
+
+### REQ-258
+**Ubiquitous.** THE SYSTEM SHALL show a guild's Market stalls in a 3-row Java menu with the stalls centred in the middle row (one in the centre slot, two either side of it) and Back in the bottom centre, name each stall in gold, non-italic text from its region id ("stall18" reads "Stall 18"), show rent as "every day" and the next rent as time left ("in 2d 4h", or "Rent due now"), show the grace line only during a grace period, and show a stall's members centred under it in a 6-row page titled with the stall's name.
+
+## Guild Advancements cards
+
+### REQ-263
+**Ubiquitous.** THE SYSTEM SHALL show Guild Advancements as cards, four a page in two columns, each with its icon, title, progress, what to do and guild XP reward, with category buttons along the top (Foundations, Cooperation, Combat, Commerce, Reputation, then Combat milestones) and a detail page per advancement with Track or Untrack, keeping saved progress, the tracked goal, rewards and the advancement tree link; Statistics → Achievements SHALL open it on Combat milestones.
+
+### REQ-274
+**Ubiquitous.** THE SYSTEM SHALL label the Statistics menu's achievements button Guild Advancements, show the guild's advancement progress, tracked advancement and combat milestones on it, and open the combined Guild Advancements menu at its first category.
+
+### REQ-260
+**Event-driven.** WHEN a guild prestiges THE SYSTEM SHALL let the confirming member choose one Hall of Prestige theme the guild doesn't own (Gilded, Ember, Winged, Tidal, Radiant or Crowned) between choosing the reward to keep and confirming, pick it automatically when only one is left, list it in the confirmation summary, and grant it once the prestige applies, so a guild owns at most one theme per prestige; a pick not made then (staff grants, earlier prestiges) SHALL stay open in Hall Display.
+
+### REQ-261
+**Ubiquitous.** THE SYSTEM SHALL provide Hall Display, where every member can see what the guild's Hall statue wears and members with Manage Banner can choose open theme picks, set each of the ten cosmetic slots to any owned theme or the default, wear a whole owned theme at once, and choose which member's skin the statue wears (Bedrock: picks and whole themes), and SHALL delete a guild's themes and choices when it disbands.
+
+### REQ-262
+**Ubiquitous.** THE SYSTEM SHALL list on each Prestige milestones card everything that tier gives: its fee or that it is earned, a permanent home slot, one reward kept, a Hall theme, the first prestige's member cap and Discord role when those are on, and the second allied home, extra stall and second vault at their configured tiers.
+
+## Guild Advancements cards
+
+### REQ-264
+**Event-driven.** WHEN a guild member chooses Preview in the world on the Hall Display, THE SYSTEM SHALL build a statue three blocks in front of them, seen only by them, wearing the guild's current choices (skin, tier armor with the chosen trim, plinth, nameplate, banner, trophy, spotlight, aura and sound), and SHALL remove it after 30 seconds, when they start another preview, when they leave, or when the plugin stops.
+
+### REQ-266
+**Ubiquitous.** THE SYSTEM SHALL read the database for the guild progression, Chronicle (including the prestige page) and Hall Display menus off the main server thread, and SHALL show the result only if the player is still online and on the same screen.
+
+### REQ-269
+**Ubiquitous.** THE SYSTEM SHALL show a guild's prestige with the badge of its current tier (lg_prestige_1 to lg_prestige_6) wherever the generic prestige diamond stood for that guild's prestige, show each milestone tier with its own badge, and fall back to the generic icon at tier 0 or when the pack has no badge.
+
+### REQ-270
+**Ubiquitous.** THE SYSTEM SHALL show the guild's own banner on its Hall statue, standing beside the statue with its front toward the viewer, and SHALL not offer a banner cosmetic.
+
+### REQ-271
+**Event-driven.** WHEN a member who can manage the guild banner copies the armor they wear, THE SYSTEM SHALL save each vanilla piece's material, trim and leather dye as the statue's armor without taking the items, and SHALL use the tier default for any piece not set.
+
+### REQ-272
+**Optional feature.** WHERE BetterModel has the prestige limb model, THE SYSTEM SHALL play the statue's chosen pose on the preview, using Guard when the model has no animation for that pose, and SHALL show the statue standing otherwise.
+
+### REQ-275
+**Ubiquitous.** THE SYSTEM SHALL show, on each Hall of Prestige pedestal staff place with `/lumaguilds hall pedestal set <n>`, the statue of the guild ranked n by prestige (ties to whoever reached the count first), wearing that guild's Hall Display choices; Java players SHALL see the animated pose and Bedrock players the plain standing statue. Statues SHALL not be saved with the world and SHALL be rebuilt on start, every five minutes, after a Hall Display change or prestige, after a pedestal change and when a pedestal's chunk loads.
+
+### REQ-276
+**Unwanted behaviour.** IF a protection plugin cancels the spawn of a Hall statue LumaGuilds is spawning (for example WorldGuard's `block-plugin-spawning` in a region that denies mob spawning), THEN THE SYSTEM SHALL let that one spawn through; and IF a statue is still refused or is removed again within ten seconds of being built, THEN THE SYSTEM SHALL remove what it built, log a warning naming the pedestal once, and not rebuild it until its plan changes or staff run `/lumaguilds hall refresh`.
+
+### REQ-299
+**Optional.** WHERE Discord guild roles are disabled and `discord.guild_roles.remove_on_disable` is set, THE SYSTEM SHALL, once Discord is ready, delete every Discord role recorded in this server's own guild-role records and forget those records, and SHALL never delete roles it has no record of.
+### REQ-298
+**Event-driven.** WHEN a guild first reaches a prestige tier, THE SYSTEM SHALL record that tier's Discord role for every member in the guild at that moment, permanently, and SHALL give each linked member only the role for their highest earned tier (taking away their lower prestige roles); members who link later SHALL receive theirs on linking. Prestiges earned before this feature SHALL be backfilled from prestige and membership history. WHERE an icon path is configured, THE SYSTEM SHALL set each prestige role's icon from the in-game badge when the role has none.
+### REQ-300
+**Ubiquitous.** THE SYSTEM SHALL work out a guild's combined playtime from each member's stored play ticks, reading online members live and storing a member's value when they join and when they leave, and SHALL NOT read an offline player's statistics while totalling a guild. A member with no stored value (for example every member on the first start after upgrading, or an offline player added to a guild) SHALL be read on the server thread by a backfill limited to about 2 ms and 4 players every 2 ticks, reading members a guild is waiting on first; until all of a guild's members are known, THE SYSTEM SHALL leave that guild's combined-playtime progress and payouts as they were.
+### REQ-281
+**Event-driven.** WHEN a guild-home or allied-home teleport lands, THE SYSTEM SHALL play the message studio's "Quiet portal" cue to that player only: entity.enderman.teleport (volume 0.13, pitch 1.3), then block.note_block.harp (volume 0.23, pitch 1.1) five ticks later. Staff SHALL be able to audition it with `/lumaguilds sounds home-teleport`.
+### REQ-280
+**Unwanted behaviour.** IF a guild moment's sound would be stopped before it finishes, THEN THE SYSTEM SHALL let it ring out instead, because Minecraft can't fade a playing sound and stopping one by name is a hard cut that also silences the player's own copies of it (crits, level-ups). The war call and defeat SHALL not use the wither-spawn roar, which played as low background noise; a low bass note gives the weight instead.
+### REQ-277
+**Ubiquitous.** THE SYSTEM SHALL show the badge of the guild's current prestige tier (as in REQ-269) above the nameplate of its Hall statue and its Hall preview, still and facing the front, with its lower edge clear above the nameplate so it never covers the guild's name.
+
+### REQ-278
+**Event-driven.** WHEN staff hang a wall banner on any side of the column of blocks under a Hall of Prestige pedestal (up to four blocks down), and WHENEVER the guild holding that pedestal changes, THE SYSTEM SHALL repaint that banner as the holding guild's banner, or plain white while nobody holds the pedestal. The Hall statue SHALL not show a floating banner or a floating trophy (this replaces the floating banner of REQ-270).
+
+### REQ-279
+**Event-driven.** WHEN a guild holding a Hall of Prestige pedestal changes its banner, THE SYSTEM SHALL repaint the banner hanging under that pedestal within a few seconds, without staff running a refresh and without rebuilding the statue.
+
+### REQ-280
+**Unwanted behaviour.** IF a guild moment's sound would be stopped before it finishes, THEN THE SYSTEM SHALL let it ring out instead, because Minecraft can't fade a playing sound and stopping one by name is a hard cut that also silences the player's own copies of it (crits, level-ups). The war call and defeat SHALL not use the wither-spawn roar, which played as low background noise; a low bass note gives the weight instead.
+
+### REQ-281
+**Event-driven.** WHEN a guild-home or allied-home teleport lands, THE SYSTEM SHALL play the message studio's "Quiet portal" cue to that player only: entity.enderman.teleport (volume 0.13, pitch 1.3), then block.note_block.harp (volume 0.23, pitch 1.1) five ticks later. Staff SHALL be able to audition it with `/lumaguilds sounds home-teleport`.
+
+### REQ-282
+**Ubiquitous.** THE SYSTEM SHALL show a Hall statue's nameplate still, facing the front of the statue like its prestige badge, rather than turning to follow each viewer.
+
+### REQ-283
+**Ubiquitous.** THE SYSTEM SHALL pose every Hall statue in Guard and SHALL offer only the Nameplate, Title flourish and Plinth theme slots in Hall Display; Pose, Spotlight, Hall sound, Aura and Trophy are removed, and saved choices for them are ignored.
+
+### REQ-284
+**Ubiquitous.** THE SYSTEM SHALL show each prestiged guild's prestige ("Prestige N") on its guild leaderboard row, on the members line so the card layout and order are unchanged.
+
+### REQ-285
+**Ubiquitous.** THE SYSTEM SHALL show the guild's actual standing ("#N of M guilds") on the Guild Progression page's Guild Rank item, using the leaderboard's level order.
+
+### REQ-286
+**Ubiquitous.** THE SYSTEM SHALL show each Guild Advancement with the same item icon it has in the vanilla advancements screen.
+
+### REQ-287
+**Ubiquitous.** THE SYSTEM SHALL draw the Chronicle's Earning Guide, Prestige Milestones and Retained Legacy Perks tabs as clearly clickable buttons without prestige icons, and SHALL show each retained legacy perk with the icon of its kind (bank, homes, travel) rather than the prestige badge.
+
+### REQ-288
+**Ubiquitous.** THE SYSTEM SHALL call the home-slot rewards "Guild Homes" and the allied-home reward "Ally Homes", and SHALL show the guild's prestige badge on the Chronicle's Prestige Rewards button.
+
+### REQ-289
+**Ubiquitous.** THE SYSTEM SHALL not offer `/g bannerman` nor render guild banners on members' backs, and SHALL clear any such banner displays left in the world.
+
+### REQ-290
+**Ubiquitous.** THE SYSTEM SHALL not offer Peaceful and Hostile guild modes (no `/g mode`, mode menus, settings controls, help topic or mode lines in guild info), and SHALL treat every guild as able to war.
+
+### REQ-291
+**Ubiquitous.** THE SYSTEM SHALL not offer `/g start`, the Getting Started menu or its first-join prompt.
+
+### REQ-292
+**Unwanted behaviour.** IF anything tries to damage, kill, ignite or handle a Hall statue entity (including a creative-mode player, whom invulnerability does not stop), THEN THE SYSTEM SHALL cancel it; and IF a statue is removed anyway (for example with /kill), THEN THE SYSTEM SHALL rebuild it, giving up only after three removals in a row each within seconds of a build.
+
+### REQ-293
+**Ubiquitous.** THE SYSTEM SHALL offer one rewards menu, the Guild Chronicle, in place of the separate Chapter 2 Rewards menu: its first page leads with the guild's current benefits (bank capacity, home slots, members, cooldown and fee multipliers) above the reward tree. Clients without dialogs SHALL get the same rewards as a chest list titled Guild Chronicle, and a guild whose reward state isn't ready SHALL see its legacy perks there.
+
+### REQ-294
+**Unwanted behaviour.** IF a Hall statue is drawn with the animated model, THEN THE SYSTEM SHALL keep its mannequin invisible and bare, so a client never sees a plain armored figure while the model loads, and SHALL show players who can't see the model (Bedrock) a separate plain standing figure.
+
+### REQ-295
+**Event-driven.** WHEN a player runs /guild history for someone, THE SYSTEM SHALL name that player in the header, and SHALL ship the header under a new language key so servers holding the old saved header (with an unfilled name placeholder) pick up the new one.
+
+### REQ-296
+**State-driven.** WHILE a Hall statue is drawn with the animated model, THE SYSTEM SHALL draw the guild's chosen armor (material, trim and leather dye, or the tier default for parts not chosen) on the model, in the Hall and in the preview.
+
+### REQ-297
+**Event-driven.** WHEN a guild manager copies worn armor into the Hall Display and a piece has a custom resource-pack look (an equipment asset outside the minecraft namespace, such as the Crown of Sorrow), THE SYSTEM SHALL keep that look, and the statue SHALL wear it: on the model (through BetterModel's custom armor of the same name), on the plain figure, and in the menu.
+
+### REQ-301
+**Event-driven.** WHEN the website requests `GET /api/community/prestige` with the web API bearer token, THE SYSTEM SHALL return the Hall of Prestige feed (schemaVersion 1): each prestiged guild in in-game Hall order with its tier history (date first reached, kept reward, fee paid, whether it was first on the server, and the members in the guild at that moment), the first guild to reach each tier including disbanded guilds, the ten most recent prestiges, and server totals. It SHALL refuse the request when no bearer token is configured, list the Tier III extra stall perk only while EnthusiaMarket is enabled, and change `revision` only when the public data changes.
+
+### REQ-302
+**Event-driven.** WHEN a member completes a guild advancement that pays guild XP and another member of the same guild is online on the same connection, THE SYSTEM SHALL pay that guild no XP for this completion, SHALL tell the member why in a private message, and SHALL leave the guild's payout open so the next member on a different connection still pays it. A connection shared by `guild_advancements.gateway_players` (default 4) or more online players server-wide counts as a gateway and SHALL NOT block. An unreadable connection SHALL pay as usual and log one warning. Guild-wide goals (level, combined playtime, member count, age) have no single participant and are not checked. Only the addresses of players online at that moment are compared; none are stored. `guild_advancements.shared_connection_check: false` turns the check off.

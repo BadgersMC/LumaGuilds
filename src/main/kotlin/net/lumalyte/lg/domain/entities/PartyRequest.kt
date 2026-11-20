@@ -23,7 +23,8 @@ data class PartyRequest(
     val message: String? = null,
     val status: PartyRequestStatus = PartyRequestStatus.PENDING,
     val createdAt: Instant,
-    val expiresAt: Instant
+    val expiresAt: Instant,
+    val partyId: UUID? = null
 ) {
     init {
         require(fromGuildId != toGuildId) { "A guild cannot send a party request to itself." }

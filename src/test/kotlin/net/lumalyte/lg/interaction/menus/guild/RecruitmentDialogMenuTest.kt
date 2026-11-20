@@ -176,4 +176,32 @@ internal class RecruitmentDialogMenuTest : RecruitmentDialogFixture() {
             },
         )
     }
+
+    // REQ-236: browsing recruiting guilds is a card under the status, and nothing hides behind "More listing options".
+    @Test
+    fun managementShowsBrowseCardAndToolsAsButtons() {
+        controller.screen = RecruitmentScreen.MANAGE
+        var browsed = 0
+        val entries = listOf(
+            RecruitmentButton("Status", listOf("Recruitment Closed")),
+            RecruitmentButton("Preview Our Listing") { },
+            RecruitmentButton("recruitment.setup") { },
+            RecruitmentButton("recruitment.settings") { },
+            RecruitmentButton("recruitment.browse") { browsed++ },
+            RecruitmentButton("recruitment.mine") { },
+        )
+        menu().show(RecruitmentView("Manage", entries, emptyList()))
+        val page = requireNotNull(renderedPage)
+        val plain = { c: net.kyori.adventure.text.Component -> PlainTextComponentSerializer.plainText().serialize(c) }
+        assertTrue(page.bodyActions.isEmpty(), "No More listing options link")
+        val labels = page.actions.map { plain(it.label) }
+        assertTrue(labels.containsAll(listOf("recruitment.setup", "recruitment.settings", "recruitment.mine")), labels.toString())
+        assertTrue("recruitment.browse" !in labels, "Browse is a card, not a grid button")
+        // One centred gold button under the status, not an icon row plus a card.
+        assertEquals(1, page.items.size, "Only the status card is a body item")
+        val feature = requireNotNull(page.featureAction)
+        assertEquals("recruitment.browse_card.title", plain(feature.label))
+        feature.action()
+        assertEquals(1, browsed)
+    }
 }

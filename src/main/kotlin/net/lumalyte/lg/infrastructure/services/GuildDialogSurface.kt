@@ -92,6 +92,7 @@ internal class GuildDialogSurface private constructor(private val theme: GuiThem
                 when (font) {
                     "lumaguilds:dialogs" -> 514 // shared 256px card/header bitmap plus 1px advance
                     "lumaguilds:dialog_icons" -> 22
+                    GuildDialogFeatureButton.FONT -> GuildDialogFeatureButton.halfAdvance(code)
                     "lumaguilds:dialog_spacing_v2" -> when (code) {
                         0xE000 -> -514
                         0xE001 -> 8

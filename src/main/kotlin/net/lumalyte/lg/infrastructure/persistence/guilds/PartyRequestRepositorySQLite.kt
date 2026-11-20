@@ -24,7 +24,7 @@ class PartyRequestRepositorySQLite(private val storage: Storage<Database>) : Par
     private fun createPartyRequestTable() {
         val sql = """
             CREATE TABLE IF NOT EXISTS party_requests (
-                id TEXT PRIMARY KEY,
+                id VARCHAR(36) PRIMARY KEY,
                 from_guild_id TEXT NOT NULL,
                 to_guild_id TEXT NOT NULL,
                 requester_id TEXT NOT NULL,
@@ -37,6 +37,18 @@ class PartyRequestRepositorySQLite(private val storage: Storage<Database>) : Par
         
         try {
             storage.connection.executeUpdate(sql)
+            // Existing installations predate party-bound requests; legacy rows remain null.
+            storage.connection.connection.use { connection ->
+                val metadata = connection.metaData
+                val hasColumn = listOf("party_requests", "PARTY_REQUESTS").any { table ->
+                    listOf("party_id", "PARTY_ID").any { column ->
+                        metadata.getColumns(connection.catalog, null, table, column).use { it.next() }
+                    }
+                }
+                if (!hasColumn) connection.createStatement().use {
+                    it.executeUpdate("ALTER TABLE party_requests ADD COLUMN party_id VARCHAR(36) NULL")
+                }
+            }
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to create party_requests table", e)
         }
@@ -44,7 +56,7 @@ class PartyRequestRepositorySQLite(private val storage: Storage<Database>) : Par
     
     private fun preload() {
         val sql = """
-            SELECT id, from_guild_id, to_guild_id, requester_id, message, status, created_at, expires_at
+            SELECT id, from_guild_id, to_guild_id, requester_id, message, status, created_at, expires_at, party_id
             FROM party_requests
         """.trimIndent()
         
@@ -68,14 +80,15 @@ class PartyRequestRepositorySQLite(private val storage: Storage<Database>) : Par
             message = rs.getString("message"),
             status = PartyRequestStatus.valueOf(rs.getString("status")),
             createdAt = rs.getInstantNotNull("created_at"),
-            expiresAt = rs.getInstantNotNull("expires_at")
+            expiresAt = rs.getInstantNotNull("expires_at"),
+            partyId = rs.getString("party_id")?.let(UUID::fromString)
         )
     }
     
     override fun add(request: PartyRequest): Boolean {
         val sql = """
-            INSERT INTO party_requests (id, from_guild_id, to_guild_id, requester_id, message, status, created_at, expires_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO party_requests (id, from_guild_id, to_guild_id, requester_id, message, status, created_at, expires_at, party_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """.trimIndent()
         
         return try {
@@ -87,7 +100,8 @@ class PartyRequestRepositorySQLite(private val storage: Storage<Database>) : Par
                 request.message,
                 request.status.name,
                 request.createdAt.toString(),
-                request.expiresAt.toString()
+                request.expiresAt.toString(),
+                request.partyId?.toString()
             )
             
             requests[request.id] = request

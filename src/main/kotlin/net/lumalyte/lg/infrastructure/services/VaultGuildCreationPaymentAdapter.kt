@@ -16,15 +16,17 @@ import java.util.UUID
 class VaultGuildCreationPaymentAdapter(
     private val personal: PersonalEconomyPort,
     private val journal: GuildCreationVaultJournal,
+    private val legacyPending: (UUID) -> UUID?,
 ) : GuildCreationPaymentPort {
-    override fun pendingReservation(playerId: UUID): UUID? = journal.pending(playerId)
+    override fun pendingReservation(playerId: UUID): UUID? = legacyPending(playerId) ?: journal.pending(playerId)
 
     override fun reserve(transactionId: UUID, playerId: UUID, requestedValue: Long): PhysicalReservationResult {
         if (requestedValue <= 0) return PhysicalReservationResult.Unavailable
         val available = try {
             if (!personal.isAvailable()) return PhysicalReservationResult.Unavailable
             personal.balance(playerId)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            net.lumalyte.lg.application.logging.SwallowedErrors.log("VaultGuildCreationPaymentAdapter:28", e)
             return PhysicalReservationResult.Unavailable
         } ?: return PhysicalReservationResult.Unavailable
         if (available < requestedValue) return PhysicalReservationResult.Insufficient
@@ -39,7 +41,8 @@ class VaultGuildCreationPaymentAdapter(
                 return PhysicalReservationResult.Unknown
             val debit = try {
                 personal.debit(playerId, requestedValue)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                net.lumalyte.lg.application.logging.SwallowedErrors.log("VaultGuildCreationPaymentAdapter:43", e)
                 // A thrown transfer may have changed the account.
                 return PhysicalReservationResult.Unknown
             }
@@ -53,7 +56,8 @@ class VaultGuildCreationPaymentAdapter(
                 is ExternalTransferResult.Rejected,
                 is ExternalTransferResult.Failed -> PhysicalReservationResult.Unknown
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            net.lumalyte.lg.application.logging.SwallowedErrors.log("VaultGuildCreationPaymentAdapter:57", e)
             PhysicalReservationResult.Unknown
         }
     }
@@ -66,7 +70,8 @@ class VaultGuildCreationPaymentAdapter(
             if (state.phase != "DEBITED") return PhysicalCommitResult.Unknown
             if (journal.finish(reservation, "DEBITED", "COMMITTED"))
                 PhysicalCommitResult.Committed else PhysicalCommitResult.Unknown
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            net.lumalyte.lg.application.logging.SwallowedErrors.log("VaultGuildCreationPaymentAdapter:70", e)
             PhysicalCommitResult.Unknown
         }
     }
@@ -81,12 +86,14 @@ class VaultGuildCreationPaymentAdapter(
             // CREDITING is an irreversible no-replay boundary even after process restart.
             val credited = try {
                 personal.credit(reservation.playerId, reservation.value)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                net.lumalyte.lg.application.logging.SwallowedErrors.log("VaultGuildCreationPaymentAdapter:85", e)
                 return false
             }
             credited == ExternalTransferResult.Applied &&
                 journal.finish(reservation, "CREDITING", "RESTORED")
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            net.lumalyte.lg.application.logging.SwallowedErrors.log("VaultGuildCreationPaymentAdapter:90", e)
             false
         }
     }

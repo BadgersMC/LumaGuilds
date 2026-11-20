@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.domain.values.PrestigeNumeral
 import net.lumalyte.lg.infrastructure.i18n.bedrock
 import net.lumalyte.lg.infrastructure.i18n.rewardStatusText
 
@@ -65,7 +66,7 @@ class BedrockGuildProgressionInfoMenu(
         if (isScopedInspector()) return readOnlyProgression()
         when (val rewards = progressionService.getRewardState(guild.id)) {
             GuildRewardRead.Unavailable -> return CustomForm.builder()
-                .title(lang.bedrock("chapter_two_rewards.title"))
+                .title(lang.bedrock("chronicle.title"))
                 .label(lang.bedrock("chapter_two_rewards.unavailable")).build()
             is GuildRewardRead.Available -> return rewardCatalog(rewards)
             GuildRewardRead.Disabled -> Unit
@@ -114,15 +115,15 @@ class BedrockGuildProgressionInfoMenu(
 
     private fun rewardCatalog(rewards: GuildRewardRead.Available): Form {
         if (members.getMember(player.uniqueId, guild.id) == null) return CustomForm.builder()
-            .title(lang.bedrock("chapter_two_rewards.title"))
+            .title(lang.bedrock("chronicle.title"))
             .label(lang.bedrock("chapter_two_rewards.purchase.unauthorized")).build()
         val offers = rewards.entitlements.offers.toList()
         return SimpleForm.builder()
-            .title(lang.bedrock("chapter_two_rewards.title"))
+            .title(lang.bedrock("chronicle.title"))
             .content(listOf(createLevelAndExperienceSection(), createSourceUsageSection(),
                 lang.bedrock("chapter_two_rewards.explanation"),
                 lang.bedrock("chapter_two_rewards.capacity_bank", "capacity" to rewards.entitlements.bankCapacity),
-                lang.bedrock("chapter_two_rewards.capacity_home_member", "homes" to rewards.entitlements.homeCapacity, "members" to rewards.entitlements.memberCapacity),
+                lang.bedrock("chapter_two_rewards.capacity_home_member", "homes" to rewards.entitlements.homeCapacity, "members" to net.lumalyte.lg.interaction.menus.memberCapacityShown(guild.id, rewards.entitlements.memberCapacity)),
                 lang.bedrock("chapter_two_rewards.multipliers", "cooldown" to rewards.entitlements.homeCooldownMultiplier, "fee" to rewards.entitlements.withdrawalFeeMultiplier)
             ).joinToString("\n"))
             .apply { offers.forEach { offer -> button((listOf(
@@ -132,6 +133,7 @@ class BedrockGuildProgressionInfoMenu(
                 if (offer.status == RewardOfferStatus.AVAILABLE) listOf(lang.bedrock("chapter_two_rewards.purchase.select"))
                 else emptyList()).joinToString("\n")) } }
             .button(prestigeButtonLabel())
+            .button(lang.bedrock("hall.display.title"))
             .button(lang.bedrock("quest_discovery.menu_name"))
             .button(lang.bedrock("chapter_two_rewards.back"))
             .validResultHandler { response ->
@@ -161,6 +163,8 @@ class BedrockGuildProgressionInfoMenu(
                             BedrockPrestigeSelectionMenu(menuNavigator, player, guild, logger)
                         )
                     } else if (index == offers.size + 1) {
+                        bedrockNavigator.openMenu(BedrockHallDisplayMenu(menuNavigator, player, guild, logger))
+                    } else if (index == offers.size + 2) {
                         openQuests()
                     } else {
                         bedrockNavigator.goBack()
@@ -182,7 +186,7 @@ class BedrockGuildProgressionInfoMenu(
             !overview.enabled -> lang.bedrock("menu.guild_progression.prestige.state.disabled")
             overview.prestigeCount >= overview.maxPrestigeCount -> lang.bedrock(
                 "menu.guild_progression.prestige.state.maximum",
-                "count" to overview.prestigeCount, "max" to overview.maxPrestigeCount
+                "count" to PrestigeNumeral.of(overview.prestigeCount), "max" to PrestigeNumeral.of(overview.maxPrestigeCount)
             )
             overview.currentLevel < 100 -> lang.bedrock(
                 "menu.guild_progression.prestige.state.level", "level" to overview.currentLevel
@@ -190,7 +194,7 @@ class BedrockGuildProgressionInfoMenu(
             overview.choices.isEmpty() -> lang.bedrock("menu.guild_progression.prestige.state.no_choices")
             else -> lang.bedrock(
                 "menu.guild_progression.prestige.state.ready",
-                "count" to overview.prestigeCount, "max" to overview.maxPrestigeCount,
+                "count" to PrestigeNumeral.of(overview.prestigeCount), "max" to PrestigeNumeral.of(overview.maxPrestigeCount),
                 "fee" to (overview.nextFee ?: 0L), "choices" to overview.choices.size
             )
         }

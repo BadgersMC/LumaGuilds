@@ -31,7 +31,9 @@ internal object VaultCapacityUnlockSchema {
         // even for guilds whose top rows are empty. Prestige and Chapter-1 history
         // independently prove full-row entitlement after the level reset.
         val hasProgression = tableExists(connection, "guild_progression")
-        val levelExpression = if (hasProgression) "COALESCE(p.current_level, g.level, 1)" else "COALESCE(g.level, 1)"
+        // Some older or partial schemas have no guilds.level column; treat those guilds as level 1.
+        val guildLevel = if (columnExists(connection, "guilds", "level")) "g.level" else "1"
+        val levelExpression = if (hasProgression) "COALESCE(p.current_level, $guildLevel, 1)" else "COALESCE($guildLevel, 1)"
         val join = if (hasProgression) " LEFT JOIN guild_progression p ON p.guild_id = g.id" else ""
         val guilds = connection.prepareStatement(
             "SELECT g.id, $levelExpression AS level FROM guilds g$join",
@@ -63,9 +65,15 @@ internal object VaultCapacityUnlockSchema {
 
     /** Read historic evidence and monotonically raise the durable high-water mark. */
     fun resolve(connection: Connection, guildId: UUID, currentLevelSlots: Int, mariaDb: Boolean): Int {
-        val (prestige, earnedBaseHomes) = if (tableExists(connection, "guild_reward_accounts")) {
+        // Columns differ between this fork and upstream, so read only the ones that exist.
+        val hasRewards = tableExists(connection, "guild_reward_accounts") &&
+            columnExists(connection, "guild_reward_accounts", "prestige_count")
+        val homesColumn = if (hasRewards && columnExists(connection, "guild_reward_accounts", "base_home_slots_earned")) {
+            "base_home_slots_earned"
+        } else "1"
+        val (prestige, earnedBaseHomes) = if (hasRewards) {
             connection.prepareStatement(
-                "SELECT prestige_count, base_home_slots_earned FROM guild_reward_accounts WHERE guild_id = ?",
+                "SELECT prestige_count, $homesColumn FROM guild_reward_accounts WHERE guild_id = ?",
             ).use { query ->
                 query.setString(1, guildId.toString())
                 query.executeQuery().use { rows ->
@@ -81,7 +89,9 @@ internal object VaultCapacityUnlockSchema {
                 query.executeQuery().use { rows -> if (rows.next()) rows.getInt(1) else 0 }
             }
         } else 0
-        val beforeChapterReset = if (tableExists(connection, "chapter_migration_receipts")) {
+        val beforeChapterReset = if (tableExists(connection, "chapter_migration_receipts") &&
+            listOf("before_level", "migration_kind", "dry_run", "status").all { columnExists(connection, "chapter_migration_receipts", it) }
+        ) {
             connection.prepareStatement(
                 "SELECT MAX(before_level) FROM chapter_migration_receipts " +
                     "WHERE guild_id = ? AND migration_kind = 'CHAPTER_1_TO_2' AND dry_run = 0 AND status = 'APPLIED'",
@@ -136,4 +146,11 @@ internal object VaultCapacityUnlockSchema {
             }
         }
     }
+
+    private fun columnExists(connection: Connection, table: String, column: String): Boolean =
+        connection.metaData.getColumns(null, null, table, null).use { columns ->
+            var found = false
+            while (columns.next()) if (columns.getString("COLUMN_NAME").equals(column, ignoreCase = true)) found = true
+            found
+        }
 }

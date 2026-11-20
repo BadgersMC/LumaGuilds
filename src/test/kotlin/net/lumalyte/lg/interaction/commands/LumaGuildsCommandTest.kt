@@ -422,6 +422,8 @@ class LumaGuildsCommandTest {
 
     @Test
     fun `tab completion should include override`() {
+        // REQ-189: subcommands are suggested only to senders who may use them.
+        player.addAttachment(mockPlugin, "bellclaims.admin", true)
         // When: Player tab completes /bellclaims
         val completions = command.onTabComplete(player, mockCommand, "bellclaims", arrayOf(""))
 
@@ -431,6 +433,8 @@ class LumaGuildsCommandTest {
 
     @Test
     fun `tab completion should filter override with partial input`() {
+        // REQ-189: subcommands are suggested only to senders who may use them.
+        player.addAttachment(mockPlugin, "bellclaims.admin", true)
         // When: Player tab completes /bellclaims ov
         val completions = command.onTabComplete(player, mockCommand, "bellclaims", arrayOf("ov"))
 

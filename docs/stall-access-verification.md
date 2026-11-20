@@ -9,3 +9,9 @@ SPEAR: spec above; prove alliance contract tests and existing stall menu safety 
 Stacked on the existing community guild UI branch (#215). Merge that prerequisite first. No live deployment or player acceptance is claimed.
 
 Local validation: Java 25 full test and shadowJar passed, 1,681 cases, zero failures/errors, 16 environment/integration skips. New alliance contract and existing stall-menu safety tests pass. Actual rank contract maps Market MANAGE_SHOPS to Guilds EDIT_SHOP_STOCK; the shortcut uses that existing permission and Market rechecks it. Optional ignored compile-time companion jars were copied from the existing checkout; no production files changed.
+
+## Companion menu title
+
+When a companion plugin requests a chest title for a guild and an online Java viewer, Guilds shall return its existing themed title only for supported row counts and a registered Nexo background. Otherwise the service shall return no override so the caller can keep its plain title. The service provides presentation only; the companion plugin owns all authorization and actions.
+
+Client acceptance: open Market visitor access from Guild Stalls, verify the owning guild's artwork and vanilla icons, change the guild theme and reopen, then verify the plain title with Vanilla or a Bedrock client.

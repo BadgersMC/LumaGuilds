@@ -541,17 +541,10 @@ party:
   min_party_name_length: 1
   default_party_duration_hours: 24
   max_simultaneous_parties_per_guild: 3
-  allow_private_parties: true  # Allow creation of private guild-only parties
 
   # Party Chat
   party_chat_enabled: true
   party_chat_priority: 100
-  use_minimessage: true  # Enable MiniMessage formatting support (allows tags like <gradient>, <rainbow>, <bold>, etc.)
-  party_chat_format: "[{lumaguilds_party_name}] %lumaguilds_guild_rank% %lumaguilds_guild_emoji%%lumaguilds_guild_tag% %luckperms-suffix% {player_name} ⋙ {message}"
-  use_simplified_guild_party_format: true  # Use simplified format for guild-internal parties (Guild_Chat, Officer_Chat, etc.)
-  guild_party_chat_format: "[{lumaguilds_party_name}] %lumaguilds_guild_rank% {player_name} ⋙ {message}"  # Simplified format for guild-internal parties - no guild tag/emoji spam
-  party_chat_prefix: "[PARTY]"
-  party_chat_suffix: ""
   chat_input_listener_priority: "HIGHEST"  # HIGHEST, HIGH, NORMAL, LOW, LOWEST
 
   # Party chat auto-routing listener priority (for /pc switch auto-routing)

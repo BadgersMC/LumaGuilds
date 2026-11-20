@@ -6,6 +6,7 @@ import net.lumalyte.lg.utils.NexoItemProvider
 import net.lumalyte.lg.utils.MenuTitleBuilder
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import net.lumalyte.lg.infrastructure.i18n.gui
 import net.lumalyte.lg.infrastructure.i18n.guiTitle
 
@@ -35,6 +36,9 @@ import org.koin.core.component.inject
 import java.time.Duration
 import java.time.Instant
 import java.util.*
+
+/** Chat messages take the duration as plain text; a Component argument prints its debug form. */
+internal fun plainDuration(duration: Component): String = PlainTextComponentSerializer.plainText().serialize(duration)
 
 class EnemiesListMenu(
     private val menuNavigator: MenuNavigator,
@@ -242,10 +246,10 @@ class EnemiesListMenu(
 
         val warDetailsGuiItem = GuiItem(warDetailsItem) {
             player.sendMessage(lang.msg("menu.enemies_list.feedback.details_header", "guild" to guildName))
-            player.sendMessage(lang.msg("menu.enemies_list.feedback.started", "duration" to formatDuration(Duration.between(relation.createdAt, Instant.now()))))
+            player.sendMessage(lang.msg("menu.enemies_list.feedback.started", "duration" to plainDuration(formatDuration(Duration.between(relation.createdAt, Instant.now())))))
             player.sendMessage(lang.msg("menu.enemies_list.feedback.type", "type" to relation.type.name))
             if (relation.expiresAt != null) {
-                player.sendMessage(lang.msg("menu.enemies_list.feedback.expires", "duration" to formatDuration(Duration.between(Instant.now(), relation.expiresAt))))
+                player.sendMessage(lang.msg("menu.enemies_list.feedback.expires", "duration" to plainDuration(formatDuration(Duration.between(Instant.now(), relation.expiresAt)))))
             }
         }
         pane.addItem(warDetailsGuiItem, 7, 1)

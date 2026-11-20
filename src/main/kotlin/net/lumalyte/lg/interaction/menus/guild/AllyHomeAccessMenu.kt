@@ -57,19 +57,21 @@ class AllyHomeAccessMenu(
                 if (otherGuild != null) otherId to otherGuild.name else null
             }
         val allowed = current.allyHomeAllowedGuilds.toMutableSet()
+        val access = guildService.allyHomeAccess(guild.id)
 
-        val gui = ChestGui(4, MenuTitleBuilder.build(guild.guiTheme, 4, lang.guiTitle("menu.ally_home_access.title")))
-        val pane = StaticPane(0, 0, 9, 4)
+        val gui = ChestGui(ROWS, MenuTitleBuilder.build(guild.guiTheme, ROWS, lang.guiTitle("menu.ally_home_access.title")))
+        val pane = StaticPane(0, 0, 9, ROWS)
         gui.setOnTopClick { it.isCancelled = true }
         gui.setOnBottomClick {
             if (it.click == ClickType.SHIFT_LEFT || it.click == ClickType.SHIFT_RIGHT) it.isCancelled = true
         }
         gui.addPane(pane)
 
-        allies.take(18).forEachIndexed { idx, (allyId, allyName) ->
-            val row = idx / 9
-            val col = idx % 9
+        // REQ-182: rows 0-1 are the allies. Left-click allows or denies; right-click
+        // opens that ally's ranks and players.
+        allies.take(MAX_ALLIES).forEachIndexed { idx, (allyId, allyName) ->
             val on = allyId in allowed
+            val picks = access.visitorRanks[allyId]
             val item = NexoItemProvider.getItemStackOrFallback(
                 if (on) "lg_toggle_on" else "lg_toggle_off"
             ) { ItemStack.of(if (on) Material.LIME_DYE else Material.GRAY_DYE) }
@@ -77,22 +79,59 @@ class AllyHomeAccessMenu(
                     if (on) lang.gui("menu.ally_home_access.ally.allowed", "guild" to allyName)
                     else lang.gui("menu.ally_home_access.ally.denied", "guild" to allyName)
                 )
+                .lore(
+                    if (picks == null) lang.gui("menu.ally_home_access.ally.ranks_all")
+                    else lang.gui("menu.ally_home_access.ally.ranks_some", "count" to picks.size)
+                )
+                .lore(lang.gui("menu.common.blank"))
                 .lore(lang.gui("menu.ally_home_access.ally.toggle"))
-            pane.addItem(GuiItem(item) {
+                .lore(lang.gui("menu.ally_home_access.ally.configure"))
+            pane.addItem(GuiItem(item) { event ->
+                if (event.isRightClick) {
+                    menuNavigator.openMenu(AllyHomeVisitorMenu(menuNavigator, player, guild, allyId, allyName))
+                    return@GuiItem
+                }
                 if (allyId in allowed) allowed.remove(allyId) else allowed.add(allyId)
                 guildService.setAllyHomeAllowedGuilds(guild.id, allowed.toSet(), player.uniqueId)
                 open()
-            }, col, row)
+            }, idx % 9, idx / 9)
         }
+
+        addBlockedRow(pane, access.blockedPlayers)
 
         val info = ItemStack.of(Material.BOOK)
             .name(lang.gui("menu.ally_home_access.info.name"))
             .lore(lang.gui("menu.ally_home_access.info.description"))
             .lore(lang.gui("menu.ally_home_access.info.instructions"))
-        pane.addItem(GuiItem(info), 4, 3)
+        pane.addItem(GuiItem(info), 4, ROWS - 1)
 
         addBackButton(pane)
         gui.show(player)
+    }
+
+    /** REQ-182: row 3 lists blocked players; clicking a head unblocks them. */
+    private fun addBlockedRow(pane: StaticPane, blocked: Set<java.util.UUID>) {
+        val label = ItemStack.of(Material.BARRIER)
+            .name(lang.gui("menu.ally_home_access.blocked.name", "count" to blocked.size))
+            .lore(
+                if (blocked.isEmpty()) lang.gui("menu.ally_home_access.blocked.none")
+                else lang.gui("menu.ally_home_access.blocked.description")
+            )
+        pane.addItem(GuiItem(label), 0, BLOCKED_ROW)
+        blocked.map { org.bukkit.Bukkit.getOfflinePlayer(it) }
+            .sortedBy { (it.name ?: it.uniqueId.toString()).lowercase() }
+            .take(8)
+            .forEachIndexed { idx, target ->
+                val head = net.lumalyte.lg.utils.createHead(target)
+                    .name(lang.gui("menu.ally_home_access.blocked.player", "player" to (target.name ?: target.uniqueId.toString())))
+                    .lore(lang.gui("menu.ally_home_access.blocked.unblock"))
+                pane.addItem(GuiItem(head) {
+                    if (!guildService.setAllyHomeBlocked(guild.id, target.uniqueId, false, player.uniqueId)) {
+                        player.sendMessage(lang.msg("menu.ally_home_access.save_failed"))
+                    }
+                    open()
+                }, idx + 1, BLOCKED_ROW)
+            }
     }
 
     private fun addBackButton(pane: StaticPane) {
@@ -100,12 +139,18 @@ class AllyHomeAccessMenu(
             .name(lang.gui("menu.ally_home_access.back"))
         pane.addItem(GuiItem(backItem) {
             returnToHomes()
-        }, 8, 3)
+        }, 8, ROWS - 1)
     }
 
     private fun returnToHomes() {
         menuNavigator.returnTo(GuildHomeMenu::class.java) {
             menuFactory.createGuildHomeMenu(menuNavigator, player, guild)
         }
+    }
+
+    private companion object {
+        const val ROWS = 4
+        const val MAX_ALLIES = 18
+        const val BLOCKED_ROW = 2
     }
 }

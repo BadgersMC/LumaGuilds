@@ -24,7 +24,7 @@ class BankDepositXpQuotes(
             !policy.enabled -> BankDepositXpEligibility.DISABLED
             else -> BankDepositXpEligibility.ELIGIBLE
         }
-        val boost = settings.xpBoost
+        val boost = net.lumalyte.lg.domain.values.ActiveExperienceBoost.at(occurredAt, settings.xpBoost, settings.weekendBoost)
         val multiplier = if (eligibility == BankDepositXpEligibility.ELIGIBLE && boost != null &&
             ExperienceSource.BANK_DEPOSIT in boost.sources && occurredAt >= boost.startsAt && occurredAt < boost.endsAt
         ) boost.multiplier else 1.0

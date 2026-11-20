@@ -15,6 +15,7 @@ class GuildInfoSeason2ContractTest {
         assertTrue(source.contains("guild = guildService.getGuild(guild.id) ?: run"))
         assertTrue(source.contains("menu.guild_info.feedback.guild_missing"))
         assertFalse(source.contains("memberService.getMember(player.uniqueId, guild.id) == null"))
-        assertFalse(source.contains("RankPermission."))
+        // REQ-192: the only permission on the public page decides whether officer buttons show.
+        assertFalse(source.replace("RankPermission.MANAGE_MEMBERS", "").contains("RankPermission."))
     }
 }

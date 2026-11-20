@@ -35,7 +35,6 @@ bedrock:
       name:
         label: Party Name
         placeholder: Enter a party name
-      private: Create a private party
       invite_other: Invite another guild
       select_guild: Select a guild
       none: None
@@ -46,7 +45,6 @@ bedrock:
         need_guilds: '<red>❌ A public party needs at least two guilds.'
         created: '<green>✅ Party created successfully!'
         name_set: '<gray>Party name: <white><party>'
-        private_created: '<green>Created as a private party.'
         invited: '<green>Invited <guild> to the party.'
         failed: '<red>❌ Failed to create party.'
     management:
@@ -391,7 +389,6 @@ bedrock:
       tag: Guild Tag
       statistics: Statistics
       information: Guild Information
-      mode: Guild Mode
       rank_list: Rank List
       invite: Invite Player
       kick: Kick Member
@@ -555,22 +552,9 @@ bedrock:
     description: View authoritative guild membership, combat, war, invitation, progression, and economy statistics.
     header:
       format: '<gold><bold>━━━ <title> ━━━'
-      overview: Overview
-      economy: Economy
       invitations: Invitations
     date_format:
-      overview: MMM dd, yyyy
       activity: MMM dd, HH:mm
-    overview: |-
-      <aqua>Total Members<gray>: <white><total_members>
-      <green>Online Members<gray>: <white><online_members>
-      <yellow>Created<gray>: <white><created>
-      <light_purple>Level<gray>: <white><level>
-      <dark_aqua>Experience<gray>: <white><experience>
-    economy: |-
-      <gold>Guild Balance<gray>: <yellow><balance> <gray>coins
-      <aqua>Total Transactions<gray>: <white><transactions>
-      <dark_aqua>Average Transaction<gray>: <white><average> <gray>coins
     invitations:
       content: |-
         <gold>Total Invitations Sent<gray>: <white><total>
@@ -587,6 +571,7 @@ bedrock:
     header:
       format: '<gold><bold>━━━ <title> ━━━'
       overview: Guild Overview
+      prestige: Prestige
       members: Members
       relations: Relations
       wars: Active War Kill Progress
@@ -596,18 +581,9 @@ bedrock:
       no_emoji: No emoji set
       no_relations: None
     overview:
-      peaceful: |-
+      basic: |-
         <aqua>Guild Name<gray>: <white><guild>
         <light_purple>Level<gray>: <white><level>
-        <yellow>Mode<gray>: <green>Peaceful
-        <gold>Emoji<gray>: <white><emoji>
-        <dark_aqua>Description<gray>: <gray><description>
-        <dark_purple>Tag<gray>: <white><tag>
-        <yellow>Founded<gray>: <white><founded>
-      hostile: |-
-        <aqua>Guild Name<gray>: <white><guild>
-        <light_purple>Level<gray>: <white><level>
-        <yellow>Mode<gray>: <red>Hostile
         <gold>Emoji<gray>: <white><emoji>
         <dark_aqua>Description<gray>: <gray><description>
         <dark_purple>Tag<gray>: <white><tag>
@@ -638,6 +614,12 @@ bedrock:
     wars:
       none: '<gray>No active wars'
       entry: '<red>vs <opponent><gray>: <green><kills><gray>/<yellow><target> kills'
+    prestige:
+      none: '<gray>This guild has not prestiged yet.'
+      unavailable: '<gray>Prestige history is unavailable right now.'
+      current: '<light_purple>Current<gray>: <white>Prestige <tier>'
+      entry: '<gray>Prestige <white><tier></white> · <white><date>'
+      entry_first: '<gray>Prestige <white><tier></white> · <white><date></white> <gold>✦ First on the server'
   rank_list:
     title: 'Guild Ranks - <guild>'
     no_ranks: No ranks have been created
@@ -734,14 +716,14 @@ bedrock:
       locked_summary: '<gray><active> accessible homes, <locked> saved and locked'
     button:
       teleport: '<home> (Teleport)'
-      locked: '<red>🔒 <home> — Locked Outpost (repurchase after prestige)'
+      locked_v2: '<red>🔒 <home> — Locked (buy a Guild Homes reward after prestige)'
       activate: '<home> (Activate)'
       inactive: '<home> (Inactive)'
       no_homes: No homes have been set
       set_new: Set New Home
       remove: Remove Home
       access: Home Rank Access
-      ally_access: Ally Home Access
+      ally_access: Allied Homes
     access:
       title: 'Home Access - <guild>'
       description: '<gray>Select a home to configure its rank whitelist.'
@@ -768,13 +750,29 @@ bedrock:
       activation_review_no_transaction: '<yellow>? Home activation failed and automatic gold compensation did not complete. Contact an administrator.'
       removed: '<green>✅ Guild home ''<home>'' has been removed.'
       remove_failed: '<red>❌ Failed to remove the guild home.'
-      restored: '<green>Guild home ''<home>'' restored with your paid Outpost credit. No extra charge.'
-      restore_unavailable: '<red>''<home>'' is saved but locked. Purchase an Outpost after prestige first.'
+      restored_v2: '<green>Guild home ''<home>'' restored with your paid Guild Homes credit. No extra charge.'
+      restore_unavailable_v2: '<red>''<home>'' is saved but locked. Buy a Guild Homes reward after prestige first.'
   home_access:
     description: '<gray>Toggle which guild ranks may use this home. The owner rank is always allowed.'
+  allied_homes:
+    set: 'Set allied home <slot> here'
+    move: 'Move allied home <slot> here'
+    remove: 'Remove allied home <slot>'
   ally_home_access:
     missing_guild: '<red>The guild could not be reloaded.'
     no_allies: '<gray>Your guild has no active allies to configure.'
+    blocked_button: 'Blocked players (<count>)'
+    blocked_title: 'Blocked players'
+    blocked_hint: 'Untick a player to unblock them.'
+    saved: '<green>Allied-home access saved.'
+    visitor:
+      title: 'Visitors from <guild>'
+      allowed: 'Allow <guild> to use your allied homes'
+      rank: 'Rank: <rank>'
+      members_header: 'Block players (ticked = blocked)'
+      ours_header: 'Our ranks that may visit <guild> (the owner always can)'
+      ours_rank: 'Our rank: <rank>'
+      block: '<player>'
   member_rank_confirmation:
     title: '⚡ Confirm Rank Change'
     unknown_rank: Unknown
@@ -1247,6 +1245,14 @@ bedrock:
 
       <gray>Requested by: <white><player>
       <red>This deletes the guild and removes every member. This cannot be undone.
+    prestige: |-
+
+      <gold>This guild is Prestige <tier>.</gold> <red>Disbanding loses that tier and its permanent rewards for good.
+      <gray>Members keep the advancements and tags they earned, and the guild's server-firsts stay in the history under <white><guild><gray>.
+    prestige_unknown: |-
+
+      <red>Any prestige tier this guild has, and its permanent rewards, will be lost for good.
+      <gray>Members keep the advancements and tags they earned, and the guild's server-firsts stay in the history under <white><guild><gray>.
     button:
       disband: Disband Guild Permanently
       keep: Keep Guild
@@ -1328,65 +1334,6 @@ bedrock:
       announcement_sound_effects: Announcement Sound Effects
       war_declaration_sound_effects: War Declaration Sound Effects
       ally_home_access: Ally Home Teleportation
-  mode:
-    title: 'Guild Mode - <guild>'
-    content:
-      peaceful: |-
-        <gray>Choose how your guild interacts with other guilds.
-
-        <gold><bold>━━━ CURRENT MODE ━━━
-        <yellow>Current Mode<gray>: <green>Peaceful
-        <gray>Last Changed: <white><last_changed>
-
-        <green><bold>PEACEFUL BENEFITS
-        <gray>• PvP protection in guild territory
-        • Safer trading and cooperation
-        • Protection from hostile conflict
-
-        <red><bold>HOSTILE BENEFITS
-        <gray>• Engage in guild PvP
-        • Participate in guild wars
-        • Compete with rival guilds
-
-        <yellow>Switch Cooldown<gray>: <white><cooldown_days> days
-      hostile: |-
-        <gray>Choose how your guild interacts with other guilds.
-
-        <gold><bold>━━━ CURRENT MODE ━━━
-        <yellow>Current Mode<gray>: <red>Hostile
-        <gray>Last Changed: <white><last_changed>
-
-        <green><bold>PEACEFUL BENEFITS
-        <gray>• PvP protection in guild territory
-        • Safer trading and cooperation
-        • Protection from hostile conflict
-
-        <red><bold>HOSTILE BENEFITS
-        <gray>• Engage in guild PvP
-        • Participate in guild wars
-        • Compete with rival guilds
-
-        <yellow>Switch Cooldown<gray>: <white><cooldown_days> days
-    button:
-      peaceful: '<green>Switch to Peaceful'
-      peaceful_locked: '<gray>Switch to Peaceful <red>(Cannot switch yet)'
-      hostile: '<red>Switch to Hostile'
-      hostile_locked: '<gray>Switch to Hostile <red>(Cannot switch yet)'
-    feedback:
-      active_war: '<red>You cannot switch to Peaceful while your guild is in an active war.'
-      switched_peaceful: '<green>Guild mode switched to Peaceful.'
-      switched_hostile: '<green>Guild mode switched to Hostile.'
-      switch_failed: '<red>Failed to change the guild mode.'
-    time:
-      never: Never
-      no_previous_changes: No previous changes
-      cooldown_expired: Cooldown expired
-      lock_expired: Lock expired
-      until_peaceful: '<days>d <hours>h until you can switch to Peaceful'
-      until_hostile: '<days>d <hours>h until you can switch to Hostile'
-      days_ago: '<days>d <hours>h ago'
-      hours_ago: '<hours>h ago'
-      recently: Recently
   rank_management:
     title: 'Guild Rank Management - <guild>'
     mode:
@@ -1442,28 +1389,14 @@ bedrock:
       label: Guild Description
       placeholder: Enter a guild description
     mode:
-      label: Guild Mode
       peaceful: Peaceful
       hostile: Hostile
     info:
-      peaceful: |-
+      basic: |-
         <gray>Configure your guild's basic settings.
 
         <gold><bold>━━━ GUILD INFO ━━━
         <yellow>Created<gray>: <white><created>
-        <light_purple>Level<gray>: <white>1 <gray>| <dark_aqua>Experience<gray>: <white>0/800
-        <yellow>Mode<gray>: <green><mode>
-
-        <gray>Configure your guild's basic information below.
-      hostile: |-
-        <gray>Configure your guild's basic settings.
-
-        <gold><bold>━━━ GUILD INFO ━━━
-        <yellow>Created<gray>: <white><created>
-        <light_purple>Level<gray>: <white>1 <gray>| <dark_aqua>Experience<gray>: <white>0/800
-        <yellow>Mode<gray>: <red><mode>
-
-        <gray>Configure your guild's basic information below.
     validation:
       section: |-
         <gold><bold>━━━ VALIDATION ━━━
@@ -1485,7 +1418,6 @@ bedrock:
     error:
       no_settings_permission: You do not have permission to rename this guild.
       no_description_permission: You do not have permission to edit the guild description.
-      no_mode_permission: You do not have permission to change the guild mode.
       processing: '<red>[ERROR] Could not process the guild settings form.'
       mode_disabled: Guild mode changes are disabled.
       mode_cooldown: 'Guild mode can be changed again in <days> days and <hours> hours.'
@@ -1757,6 +1689,12 @@ command:
     unknown_claim: Claim was not found.
     unknown_partition: There is no claim partition at your current location.
   guild:
+    allyhome:
+      second_set: "<green>Second allied home set to your current location."
+      second_removed: "<green>Second allied home removed."
+      second_locked: "<red>Your guild unlocks a second allied home at Prestige II."
+      no_second: "<red><guild> has no second allied home."
+      slot_usage: "<red>Use 1 or 2 for the allied home, e.g. <white>/g allyhome \\<guild> 2</white>."
     balance:
       success: '<dark_gray>[<gold>LumaGuilds<dark_gray>] <yellow><guild><gray>''s balance: <gold>$<balance>'
     home:
@@ -1816,10 +1754,6 @@ command:
           menu: '<click:run_command:''/g help identity''><hover:show_text:''<gold>Open Tags, Banners & Identity help''><dark_gray>  [<yellow>Tags, Banners & Identity<dark_gray>] <gray>Set your guild tag, description, and banner.</hover></click>'
           page: |-
             <gold><bold>─── Help · Tags, Banners & Identity ───<newline><gray>Set your guild tag, description, and banner.<newline><yellow>Commands:<newline><click:suggest_command:'/g tag '><hover:show_text:'<gold>Set or edit your guild tag.<newline><gray>Click to prefill in chat'><white>  /g tag [text]</hover></click><newline><click:suggest_command:'/g desc '><hover:show_text:'<gold>Set your guild description.<newline><gray>Click to prefill in chat'><white>  /g desc \<text></hover></click><newline><click:suggest_command:'/g rename '><hover:show_text:'<gold>Rename your guild.<newline><gray>Click to prefill in chat'><white>  /g rename \<name></hover></click><newline><click:suggest_command:'/g emoji'><hover:show_text:'<gold>Pick a guild emoji.<newline><gray>Click to prefill in chat'><white>  /g emoji</hover></click><newline><newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/identity/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/identity/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
-        mode:
-          menu: '<click:run_command:''/g help mode''><hover:show_text:''<gold>Open Mode help''><dark_gray>  [<yellow>Mode (Peaceful / Hostile)<dark_gray>] <gray>Switch your guild between peaceful and hostile mode.</hover></click>'
-          page: |-
-            <gold><bold>─── Help · Mode (Peaceful / Hostile) ───<newline><gray>Switch your guild between peaceful and hostile mode.<newline><yellow>Commands:<newline><click:suggest_command:'/g mode'><hover:show_text:'<gold>Open the mode selection menu.<newline><gray>Click to prefill in chat'><white>  /g mode</hover></click><newline><newline><gray>Read more: <click:open_url:'https://badgersmc.github.io/LumaGuilds/players/mode/'><hover:show_text:'<gold>Open in browser'><aqua><underlined>https://badgersmc.github.io/LumaGuilds/players/mode/</hover></click><newline><click:run_command:'/g help'><hover:show_text:'<gold>Open the topic menu'><yellow>[Back to topics]</hover></click>
         lfg:
           menu: '<click:run_command:''/g help lfg''><hover:show_text:''<gold>Open LFG & Invites help''><dark_gray>  [<yellow>LFG & Invites<dark_gray>] <gray>Manage invites, decline requests, and use LFG to find a guild.</hover></click>'
           page: |-
@@ -1869,12 +1803,6 @@ command:
         blank_line_2: '<gray><index>. <yellow><label> <dark_gray>— <gold>$<balance>'
         lumaguilds_top_guilds_by_balance: '<dark_gray>[<gold>LumaGuilds<dark_gray>] <white>Top Guilds by Balance'
         no_guild_balance_data_available: '<red>No guild balance data available.'
-      bannerman:
-        failed_to_toggle_bannerman: '<red>❌ Failed to toggle bannerman.'
-        you_don_t_have_permission_to_toggle: '<red>You don''t have permission to toggle the bannerman.'
-        you_need_the_manage_banner_permission: '<gray>You need the MANAGE_BANNER permission.'
-      checkallyhomecooldown:
-        please_wait_s_before_teleporting_again: '<red>◷ Please wait <elapsed_seconds>s before teleporting again.'
       create:
         a_new_guild_has_been_founded_by: '<gold>⌂ <yellow>A new guild has been founded: <gold><name> <yellow>by <gold><player><yellow>!'
         basic_punctuation: '<gray> • Basic punctuation: '' & -'
@@ -1964,20 +1892,20 @@ command:
         disabled: '<gray>Guild member login notifications disabled.'
         save_failed: '<red>❌ Could not save your notification preference. Please try again.'
       history:
-        blank_line_2: '<gold><bold>╚<length>╝'
-        current: '<green>(current)'
-        guild: '<green><guild>'
-        guild_disbanded: '<dark_gray>Guild Disbanded'
-        guild_history: '<gold><bold>╔══ Guild History: <display_name> ══╗'
+        footer: '<dark_gray><strikethrough>                                                            </strikethrough>'
+        current: '<green>● Current'
+        guild: '<white><guild>'
+        guild_disbanded: '<dark_gray>● Disbanded'
+        guild_history_v2: '<dark_gray><strikethrough>              </strikethrough> <gold><bold>Guild History</bold> <dark_gray>· <white><display_name> <dark_gray><strikethrough>              </strikethrough>'
         has_no_guild_history: '<gray><display_name> has no guild history.'
-        joined_date: ' <gray>• Joined <yellow><join_date>'
-        joined_prefix: '<white><index>. '
-        kicked: '<red>Kicked'
-        left: '<gray>Left'
+        joined_date: ' <dark_gray>— <gray>joined <yellow><join_date>'
+        joined_prefix: ' <dark_gray><index>. '
+        kicked: '<red>● Kicked'
+        left: '<gray>● Left'
         player_has_never_played_on_this_server: '<red>Player ''<gold><target_player_name><red>'' has never played on this server.'
-        status_separator: ' <gray>• '
-        total_guilds_joined: '<gray>Total guilds joined: <yellow><size>'
-        unknown: '<dark_gray>[UNKNOWN]'
+        status_separator: ' <dark_gray>· '
+        total_guilds_joined: ' <white><display_name> <dark_gray>· <gray><size> <gray>guilds joined'
+        unknown: '<dark_gray>Unknown guild'
       home:
         ask_a_guild_manager_to_grant_your: '<gray>Ask a guild manager to grant your rank access.'
         available_homes: '<gray>Available homes: <white><join_to_string>'
@@ -1991,10 +1919,9 @@ command:
         no_guild_homes_have_been_set: '<red>No guild homes have been set.'
         no_pending_unsafe_teleport_to_confirm_or: '<red>No pending unsafe teleport to confirm, or confirmation expired.'
         restore_no_permission: '<red>You cannot restore guild homes.'
-        locked: '<red>Guild home ''<home>'' is locked. Repurchase one Outpost after prestige to restore it.'
+        locked_v2: '<red>Guild home ''<home>'' is locked. Buy a Guild Homes reward after prestige to restore it.'
         restore_success: '<green>Guild home ''<home>'' restored. No additional gold was charged.'
-        restore_unavailable: '<red>Cannot restore ''<home>''. First purchase an Outpost at your current prestige.'
-        please_wait_s_before_teleporting_again: '<red>◷ Please wait <remaining_seconds>s before teleporting again.'
+        restore_unavailable_v2: '<red>Cannot restore ''<home>''. First buy a Guild Homes reward at your current prestige.'
         use_guild_home_name_to_teleport_to: '<gray>Use <gold>/guild home \<name> <gray>to teleport to a specific home.'
         use_guild_sethome_to_set_your_first: '<gray>Use <gold>/guild sethome <gray>to set your first home.'
         you_already_have_a_teleport_in_progress: '<red>You already have a teleport in progress. Please wait for it to complete.'
@@ -2077,21 +2004,6 @@ command:
       modchat:
         mod_chat_disabled_your_messages_go_to: '<gray>Mod chat <red>disabled<gray>. Your messages go to main chat.'
         mod_chat_enabled_run_g_modchat_again: '<blue>✅ <dark_blue>Mod chat <blue>enabled<blue>! Run /g modchat again to disable.'
-      mode:
-        cooldown_expired: 'Cooldown expired'
-        cooldown_prefix: '<red>❌ '
-        lock_expired: 'Lock expired'
-        lock_prefix: '<red>❌ '
-        no_previous_changes: 'No previous changes'
-        switch_to_hostile: '<days>d <hours>h until you can switch to Hostile'
-        switch_to_peaceful: '<days>d <hours>h until you can switch to Peaceful'
-        cannot_switch_to_peaceful_mode_during_active: '<red>❌ Cannot switch to peaceful mode during active war!'
-        failed_to_change_guild_mode_you_may: '<red>❌ Failed to change guild mode. You may not have permission.'
-        guild_is_already_in_mode: '<red>❌ Guild is already in <uppercase> mode!'
-        guild_mode_changed_to: '<green>✅ Guild mode changed to <uppercase>!'
-        guild_mode_switching_is_disabled_by_server: '<red>❌ Guild mode switching is disabled by server configuration.'
-        guilds_cannot_change_between_peaceful_and_hostile: '<gray>Guilds cannot change between Peaceful and Hostile modes.'
-        invalid_mode_use_peaceful_or_hostile: '<red>Invalid mode. Use ''peaceful'' or ''hostile''.'
       neutral:
         failed_to_send_peace_request: '<red>✗ Failed to send peace request.'
         has_requested_to_end_hostilities_with_your: '<white><guild> <gray>has requested to end hostilities with your guild! Use <gold>/guild menu <gray>→ Relations to respond.'
@@ -2105,10 +2017,6 @@ command:
         members: '<gray>  Members: <white><member_count>'
         permissions: '<gray>  Permissions: <white><permissions>'
         priority: '<yellow><rank> <gray>(Priority: <priority>)'
-      refreshbannermandisplay:
-        bannerman_disabled: '<gray>Bannerman disabled.'
-        bannerman_enabled_guild_members_will_wear_the: '<green>✅ Bannerman enabled — guild members will wear the banner on their backs.'
-        bannerman_state_was_saved_but_live_refresh: '<yellow>Bannerman state was saved, but live refresh failed. Try relogging.'
       removeallyhome:
         ally_home_removed: '<green>✅ Ally home removed.'
         failed_to_remove_ally_home_it_may: '<red>❌ Failed to remove ally home. It may not be set or you lack permission.'
@@ -2256,20 +2164,6 @@ command:
         parties_are_disabled_on_this_server: '<red>❌ Parties are disabled on this server!'
       clear:
         failed_to_clear_party_preference: '<red>❌ Failed to clear party preference!'
-        returned_to_global_chat: '<green>✅ Returned to GLOBAL chat'
-        your_messages_will_now_go_to_global: '<gray>Your messages will now go to global chat'
-      help:
-        blank_line: '<gold>========================='
-        party_chat_commands: '<gold>=== Party Chat Commands ==='
-        party_preferences_persist_across_restarts: '<gray>Party preferences persist across restarts!'
-        pc_clear_return_to_default_party: '<white>/pc clear <gray>- Return to default party'
-        pc_help_show_this_help: '<white>/pc help <gray>- Show this help'
-        pc_message_send_message_to_current_party: '<white>/pc \<message> <gray>- Send message to current party'
-        pc_show_current_party_info: '<white>/pc <gray>- Show current party info'
-        pc_switch_list_available_parties: '<white>/pc switch <gray>- List available parties'
-        pc_switch_name_switch_to_party_or: '<white>/pc switch \<name> <gray>- Switch to party or GLOBAL'
-        pc_toggle_toggle_seeing_party_messages_visibility: '<white>/pc toggle <gray>- Toggle seeing party messages (visibility)'
-        use_pc_switch_global_to_send_to: '<gray>Use <white>/pc switch GLOBAL <gray>to send to global chat!'
       sendpartymessage:
         contact_a_moderator_to_appeal: '<gray>Contact a moderator to appeal.'
         failed_to_send_party_message: '<red>❌ Failed to send party message!'
@@ -2277,63 +2171,18 @@ command:
         some_party_members_may_have_party_chat: '<gray>Some party members may have party chat visibility disabled'
         the_party_may_have_been_disbanded_or: '<gray>The party may have been disbanded or expired.'
         time_remaining_h_m: '<gray>Time remaining: <white><hours>h <minutes>m'
-        use_pc_partyname_to_switch_to_a: '<gray>Use <white>/pc \<partyname> <gray>to switch to a party first'
         you_are_banned_from_this_channel: '<red>❌ You are banned from this channel!'
         you_are_muted_in_this_channel: '<red>❌ You are muted in this channel!'
-        you_are_not_in_an_active_party: '<red>❌ You are not in an active party!'
         you_are_permanently_muted_in_this_channel: '<red>❌ You are permanently muted in this channel!'
         you_don_t_have_permission_to_chat: '<red>❌ You don''t have permission to chat in this party!'
         your_message_was_not_sent_because_there: '<gray>Your message was not sent because there are no recipients'
       showcurrentpartyinfo:
-        expires_in_hours_line: '<gray>Expires: <white>in <hours>h'
-        expires_never_line: '<gray>Expires: <white>Never'
-        open_to_all: 'Open to all'
-        role_restricted: 'Role-restricted'
-        available_parties: '<gray>Available parties: <white><size>'
-        blank_line: '<gold>====================='
-        current_party: '<gold>=== Current Party ==='
-        guilds: '<gray>Guilds: <white><size>'
-        name: '<gray>Name: <white><unnamed>'
-        restrictions: '<gray>Restrictions: <white><all>'
-        status_active_you_are_sending_to_this: '<gray>Status: <green>Active (you are sending to this party)'
-        use_pc_message_to_send_a_message: '<gray>Use <white>/pc \<message> <gray>to send a message'
-        use_pc_switch_global_to_return_to: '<gray>Use <white>/pc switch GLOBAL <gray>to return to global chat'
-        use_pc_switch_to_see_and_join: '<gray>Use <white>/pc switch <gray>to see and join a party'
-        use_pc_switch_to_see_other_parties: '<gray>Use <white>/pc switch <gray>to see other parties'
-        you_are_currently_using_global_chat: '<green>✅ You are currently using <underlined>GLOBAL<green> chat'
         your_active_party_is_no_longer_available: '<red>❌ Your active party is no longer available!'
-        your_messages_go_to_global_chat_not: '<gray>Your messages go to global chat, not party chat'
-      switch:
-        failed_to_switch_to_global_chat: '<red>❌ Failed to switch to global chat!'
-        party_not_found: '<red>❌ Party not found: <white><target_name>'
-        switched_to_global_chat: '<green>✅ Switched to GLOBAL chat'
-        use_pc_switch_partyname_to_switch_back: '<gray>Use <white>/pc switch \<partyname> <gray>to switch back to a party'
-        use_pc_switch_to_see_available_parties: '<gray>Use <white>/pc switch <gray>to see available parties'
-        you_are_already_using_global_chat: '<gray>You are already using global chat'
-        your_messages_will_now_go_to_global: '<gray>Your messages will now go to global chat, not party chat'
       switchlist:
-        available_parties: '<gold>=== Available Parties ==='
-        blank_line_4: '<gold>========================'
-        global: '<gray>  GLOBAL'
-        global_current: '<green>▶ GLOBAL <gray>(current)'
-        no_available_parties_to_switch_to: '<red>❌ No available parties to switch to!'
-        party: '<gray>  <white><party>'
-        party_current: '<green>▶ <white><party> <gray>(current)'
-        use_pc_switch_name_to_switch: '<gray>Use <white>/pc switch \<name> <gray>to switch'
         you_are_not_in_any_guild: '<red>❌ You are not in any guild!'
       switchtoparty:
-        all_your_messages_will_now_go_to: '<gray>All your messages will now go to this party chat!'
         failed_to_save_party_preference: '<red>❌ Failed to save party preference!'
-        switched_to_party: '<green>✅ Switched to party: <white><unnamed>'
-        this_preference_will_persist_across_server_restarts: '<gray><italic>This preference will persist across server restarts!'
-        use_pc_to_see_current_party_info: '<gray>Use <white>/pc <gray>to see current party info'
-      toggle:
-        party_chat_off: '<yellow>⚠️ Party chat: <underlined>OFF'
-        party_chat_on: '<green>✅ Party chat: <underlined>ON'
-        use_pc_switch_party_to_also_send: '<gray>Use <white>/pc switch \<party> <gray>to also send to a party channel'
-        you_will_no_longer_see_party_messages: '<gray>You will no longer see party messages'
-        you_will_now_see_party_messages_in: '<gray>You will now see party messages in your chat'
-        your_messages_now_go_to_global_chat: '<gray>Your messages now go to global chat'
+        guild_chat_off: '<gray>You left guild chat. Only one chat can be on at a time.'
     quick_ally_chat:
       default:
         quick_ally_chat: '<dark_aqua>=== Quick Ally Chat ==='
@@ -2538,30 +2387,6 @@ menu:
     creation:
       title: '<white>Create New Party - <guild>'
       unnamed: Unnamed
-      type:
-        private_name: '<red>Party Type'
-        public_name: '<green>Party Type'
-        private_status: Private (Guild Only)
-        public_status: Public (Multi-Guild)
-        current: '<gray>Current: <white><type>'
-        private_header: '<gray>Private parties:'
-        private_members: '<gray>• Only your guild members'
-        private_invites: '<gray>• No guild invitations'
-        private_management: '<gray>• Simpler party management'
-        public_header: '<gray>Public parties:'
-        public_invites: '<gray>• Can invite other guilds'
-        public_coordination: '<gray>• More complex coordination'
-        make_public: '<yellow>Click to make public'
-        make_private: '<yellow>Click to make private'
-        private: private
-        public: public
-      private_info:
-        name: '<green>✅ Private Guild Party'
-        first: '<gray>This party will only include'
-        second: '<gray>members from your guild'
-        no_invites: '<gray>• No external guild invitations'
-        management: '<gray>• Simpler management'
-        members: '<gray>• All guild members can join'
       name:
         name: '<gold>Party Name'
         value: '<white><party>'
@@ -2621,7 +2446,6 @@ menu:
         create_lore: '<gray>Create the party with selected settings'
         ready: '<green>Ready to create party!'
         confirm: '<yellow>Click to confirm'
-        need_one: '<red>• Need at least 1 guild'
         need_two: '<red>• Need at least 2 guilds'
         clear: '<red>Clear All'
         clear_lore: '<gray>Reset all selections'
@@ -2639,8 +2463,6 @@ menu:
         name_length: 'Name must be 32 characters or less (current: <current>)'
       feedback:
         disabled: '<red>❌ Parties are disabled on this server!'
-        type_changed: '<green>✅ Party type changed to <type>'
-        private_disabled: '<red>❌ Private parties are disabled in the configuration!'
         already_waiting: '<yellow>Already waiting for name input. Type the name or click cancel.'
         restrictions_disabled: '<red>❌ Disabled role restrictions - all guild members can join'
         restrictions_enabled: '<green>✅ Enabled role restrictions - select roles below'
@@ -2648,7 +2470,6 @@ menu:
         enable_restrictions: '<red>❌ Enable role restrictions first!'
         role_removed: '<red>❌ Removed <rank> from allowed roles'
         role_added: '<green>✅ Added <rank> to allowed roles'
-        need_one: '<red>❌ Cannot create party - need at least 1 guild!'
         need_two: '<red>❌ Cannot create party - need at least 2 guilds!'
         cleared: '<yellow>Cleared all selections!'
         name_spaces: '<red>❌ Party names cannot contain spaces!'
@@ -2659,7 +2480,6 @@ menu:
         created_guilds: '<gray>Guilds: <white><count>'
         created_roles: '<gray>Role restrictions: <white><count> roles'
         expires: '<gray>Expires in: <white>24 hours'
-        private_created: '<green>✅ Private party created! All guild members can now join.'
         create_failed: '<red>❌ Failed to create party!'
         create_error: '<red>❌ Error creating party!'
         invite_sent: '<gray>✉ Invite sent to <white><guild>'
@@ -2676,7 +2496,6 @@ menu:
       title: '<white>Parties • <guild>'
       unnamed: Unnamed
       never: Never
-      this_channel: this channel
       no_message: No message
       permission:
         required: '<red>Requires Admin+ permission'
@@ -2689,14 +2508,10 @@ menu:
         members: '<gray>Members: <white><count> guilds'
         created: '<gray>Created: <white><date>'
         expires: '<gray>Expires: <white><date>'
-      more:
-        name: '<yellow>+<count> More Parties'
-        lore: '<yellow>Click to view all parties'
+        open: '<yellow>Click to open'
       moderate:
         name: '<gold>Moderate Channel'
         lore: '<gray>Manage mutes, bans, and kicks'
-        channel: '<gray>for <channel>'
-        click: '<yellow>Click to moderate'
       incoming:
         name: '<green>Incoming Requests'
         lore: '<gray>Party invitations to join'
@@ -2704,37 +2519,19 @@ menu:
         name: '<yellow>Outgoing Requests'
         lore: '<gray>Your party''s sent invitations'
       request_count: '<gray>Count: <white><count>'
-      send:
-        name: '<green>Send Party Request'
-        locked_name: '<red>❌ Send Party Request'
-        lore: '<gray>Invite another guild to a party'
-        hint: '<yellow>Click to choose a guild'
-        locked_lore: '<gray>Only administrators can send party requests'
       create:
         name: '<gold>Create New Party'
         locked_name: '<red>❌ Create New Party'
         lore: '<gray>Start a fresh party'
         hint: '<yellow>Click to create a party'
         locked_lore: '<gray>Only administrators can create parties'
-      access:
-        name: '<aqua>Party Access Settings'
-        locked_name: '<red>❌ Party Access Settings'
-        lore: '<gray>Configure who can join parties'
-        default: '<gray>Default: All guild members'
-        action: '<yellow>Click to set rank restrictions'
       permissions:
-        name: '<yellow>Party Permissions'
         view: '<gray>View invites: <white>Everyone'
-        accept: '<gray>Accept invites: <white>Admin and up'
-        send: '<gray>Send invites: <white>Admin and up'
         manage: '<gray>Change settings: <white>Admin and up'
         join: '<gray>Join parties: <white>Everyone (or chosen ranks)'
       info:
         name: '<gold>How Parties Work'
         invite_only: '<gray>All parties are invite-only'
-        no_browser: '<gray>No public party browser'
-        events: '<gray>Parties coordinate guild events'
-        restrictions: '<gray>Rank restrictions available'
       back:
         name: '<yellow>⬅ Back'
         lore: '<gray>Return to the previous menu'
@@ -2751,20 +2548,7 @@ menu:
         lore: '<gray>Return to the previous menu'
       feedback:
         disabled: '<red>❌ Parties are disabled on this server!'
-        send_permission: '<red>❌ You need Admin+ permission to send party requests!'
         create_permission: '<red>❌ You need Admin+ permission to create parties!'
-        access_permission: '<red>❌ You need Admin+ permission to manage party access!'
-        details_coming_soon: '<yellow>Party details use the current party status and moderation data.'
-        details_description: '<gray>Use the available party and moderation controls for member status and restrictions.'
-        list_coming_soon: '<yellow>The active-party list is shown in the party management view.'
-        list_description: '<gray>Current active parties are loaded from the persisted party service.'
-        send_coming_soon: '<yellow>Party invitations are handled through the existing request and creation flows.'
-        send_description: '<gray>Use the party request or creation controls to invite another guild.'
-        create_coming_soon: '<yellow>Party creation is available through the dedicated creation menu.'
-        create_description: '<gray>Create a private party or invite guilds using the current party service.'
-        access_coming_soon: '<yellow>Party access is controlled by guild rank permissions and per-party role restrictions.'
-        access_description: '<gray>There is no separate mutable party-permission table.'
-        access_example: '<gray>Adjust guild rank permissions or party role restrictions instead.'
         no_incoming: '<yellow>No incoming party requests!'
         no_incoming_description: '<gray>Your guild hasn''t received any party invitations.'
         accepted: '<green>✅ Party invitation accepted!'
@@ -2956,14 +2740,9 @@ menu:
         name: '<white>⚔ <gray><display_name>'
       information:
         lore:
-          line_1: '<gray>Overview, members,'
-          line_2: '<gray>allies and wars at a glance'
+          line_1: '<gray>Members, overview,'
+          line_2: '<gray>allies and wars'
         name: '<blue>Information'
-      members:
-        lore:
-          line_1: '<gray>Member list, invites,'
-          line_2: '<gray>kicks and promotions'
-        name: '<aqua>Members'
       progression:
         lore:
           line_1: '<gray>Guild leveling, XP,'
@@ -3016,6 +2795,10 @@ menu:
             irreversible: '<red>This action cannot be undone!'
             level: '<gray>Level: <white><level>'
             vault_loss: '<gray>All vault items will be lost.'
+            prestige: '<gold>Prestige <tier>: <red>lost for good, with its permanent rewards.'
+            prestige_unknown: '<red>Any prestige tier is lost for good, with its permanent rewards.'
+            prestige_keep: '<gray>Members keep their advancements and tags.'
+            prestige_history: '<gray>Server-firsts stay in the history under <white><guild><gray>.'
           name: '<red>Disband Guild'
       title: '<white><bold>Disband <guild>?'
     leave:
@@ -3834,19 +3617,6 @@ menu:
           description: '<gray>Invite, kick and promote members'
           details: '<yellow>Click to manage members'
         name: '<yellow>Members'
-      mode:
-        lore:
-          action: '<yellow>Click to change mode'
-          current:
-            hostile: '<gray>Current: <white>HOSTILE'
-            peaceful: '<gray>Current: <white>PEACEFUL'
-          default_hostile: '<gray>All guilds are hostile by default'
-          disabled: '<red>Mode switching disabled'
-          hostile: '<gray>Hostile: PvP and wars enabled'
-          hostile_cooldown: '<red>◷ Cannot switch to Hostile: <days>d <hours>h remaining'
-          peaceful: '<gray>Peaceful: no PvP, safe trading'
-          peaceful_cooldown: '<red>◷ Cannot switch to Peaceful: <days>d <hours>h remaining'
-        name: '<yellow>Guild Mode'
       name:
         lore:
           chat: '<gray>the guild name from chat'
@@ -3986,6 +3756,12 @@ menu:
       duration: '<gray>Duration: <white><days> days'
       must_accept: '<gray>They must accept your declaration for war to begin.'
       send_failed: '<red>❌ Failed to send war declaration!'
+      blocked:
+        declaration_cooldown: '<red>⏳ Your guild declared a war recently. You can declare again in <white><time><red>.'
+        own_farming_cooldown: '<red>⏳ Your guild just won a war. You can declare again in <white><time><red>.'
+        target_farming_cooldown: '<red>⏳ <white><guild><red> just won a war and can''t be challenged for <white><time><red>.'
+        own_war_limit: '<red>Your guild is already in as many wars as it can fight at once.'
+        target_war_limit: '<red><white><guild><red> is already in as many wars as it can fight at once.'
       sent: '<gold>⚔ WAR DECLARATION SENT to <guild>!'
       terms_cancelled: '<gray>War terms input cancelled'
       terms_prompt: '<yellow>Type your war terms in chat (or ''cancel'' to skip):'
@@ -4147,29 +3923,20 @@ menu:
   statistics:
     common:
       active_wars: '<gray>Active Wars: <white><count>'
-      activity_rate: '<gray>Activity Rate: <yellow><rate>%'
       activity_level:
         gold: '<gray>Activity Level: <gold><level>'
         green: '<gray>Activity Level: <green><level>'
         red: '<gray>Activity Level: <red><level>'
         yellow: '<gray>Activity Level: <yellow><level>'
-      average_deaths: '<gray>Avg Deaths/Member: <white><average>'
-      average_kills: '<gray>Avg Kills/Member: <white><average>'
       draws: '<gray>Draws: <yellow><count>'
-      efficiency: '<gray>Kill Efficiency: <yellow><percent>%'
-      efficiency_score: '<gray>Efficiency Score: <white><value>/100'
       kd_ratio: '<gray>K/D Ratio: <yellow><ratio>'
-      kill_death_ratio: '<gray>Kill/Death Ratio: <yellow><ratio>'
       losses: '<gray>Losses: <red><count>'
       net_kills:
         negative: '<gray>Net Kills: <red><count>'
         positive: '<gray>Net Kills: <green><count>'
-      offline: '<gray>Offline: <gray><count>'
       no_contribution_data: '<gray>No contribution data'
       no_kill_data: '<gray>No kill data available'
-      no_period_data: '<gray>No recorded data for this period'
       no_rivalry_data: '<gray>No finished wars yet'
-      balance_unavailable: '<red>Guild balance unavailable'
       unavailable: '<red>Data unavailable — check server logs'
       no_invitation_data: '<gray>No invitation data available'
       total_invitations: '<gray>Total Invitations Sent: <white><count>'
@@ -4178,17 +3945,6 @@ menu:
         second: '<gray><rank>. <player>: <white><count> invites'
         third: '<red><rank>. <player>: <white><count> invites'
         other: '<white><rank>. <player>: <white><count> invites'
-      online: '<gray>Online Now: <green><count>'
-      overall_rating:
-        gold: '<gray>Overall Rating: <gold><rating>'
-        green: '<gray>Overall Rating: <green><rating>'
-        red: '<gray>Overall Rating: <red><rating>'
-        yellow: '<gray>Overall Rating: <yellow><rating>'
-      performance_grade:
-        gold: '<gray>Performance Grade: <gold><rating>'
-        green: '<gray>Performance Grade: <green><rating>'
-        red: '<gray>Performance Grade: <red><rating>'
-        yellow: '<gray>Performance Grade: <yellow><rating>'
       ranked_contribution:
         first: '<gold><rank>. <player>: <white>$<amount>'
         other: '<white><rank>. <player>: <white>$<amount>'
@@ -4199,40 +3955,17 @@ menu:
         other: '<white><rank>. <player>: <white><kills> kills'
         second: '<gray><rank>. <player>: <white><kills> kills'
         third: '<red><rank>. <player>: <white><kills> kills'
-      total_deaths: '<gray>Total Deaths: <white><count>'
-      total_kills: '<gray>Total Kills: <white><count>'
-      total_members: '<gray>Total Members: <white><count>'
       total_wars: '<gray>Total Wars: <white><count>'
       win_rate: '<gray>Win Rate: <yellow><rate>%'
       wins: '<gray>Wins: <green><count>'
       attacker: Attacker
       defender: Defender
       more: '<gray>... and <count> more'
-      total_deaths_red: '<gray>Total Deaths: <red><count>'
-      total_kills_green: '<gray>Total Kills: <green><count>'
       unknown_guild: Unknown Guild
-      efficiency_white: '<gray>Kill Efficiency: <white><percent>%'
-      balance: '<gold>Balance: <white><amount>'
       kdr_against: '<gray>KDR: <yellow><ratio>'
       page_info: '<gray>Page <page>/<total>'
-      ranking: '<gray>Rank: <yellow>#<rank>'
       wars_fought: '<gray>Wars Fought: <yellow><count>'
-      war_record: '<gray>War Record: <green><wins>W</green> <red><losses>L</red>'
     detail:
-      kd:
-        name: '<light_purple>K/D ANALYSIS'
-      kills:
-        name: '<dark_red>⚔ KILL STATISTICS'
-      members:
-        more: '<yellow>... and <count> more members'
-        name: '<aqua>MEMBER SUMMARY'
-        player:
-          offline: '<gray>Online: <gray>No'
-          offline_name: '<gray><player>'
-          online: '<gray>Online: <green>Yes'
-          online_name: '<green><player>'
-      performance:
-        name: '<yellow>PERFORMANCE METRICS'
       recent:
         kill: '<green><killer> <gray>→ <red><victim>'
         kill_with_weapon: '<green><killer> <gray>→ <red><victim> <gray>with <white><weapon>'
@@ -4276,8 +4009,6 @@ menu:
           loss_streak: '<gray>Current Streak: <red>Loss <white>x<count>'
           name: '<yellow>WAR STATISTICS'
           win_streak: '<gray>Current Streak: <green>Win <white>x<count>'
-      period_item:
-        name: '<gold><period>'
       rivalry:
         enemy: '<red><guild>'
       achievements:
@@ -4308,44 +4039,29 @@ menu:
         well_rounded:
           locked: '<gray>? Well Rounded'
           unlocked: '<green>? Well Rounded'
-      comparison:
-        guild: '<yellow><guild>'
-    period:
-      '$key': '<green>$key'
     item:
+      combat:
+        name: '<red>Combat'
+        lore:
+          totals: '<gray>Kills: <white><kills></white> · Deaths: <white><deaths>'
+          week: '<gray>This week: <white><kills></white> kills · <white><deaths></white> deaths'
+          month: '<gray>Last 30 days: <white><kills></white> kills · <white><deaths></white> deaths'
+          all_time: '<gray>All time: <white><kills></white> kills · <white><deaths></white> deaths'
+          empty: '<dark_gray>Kills are counted from this update on.'
       back:
         lore: '<gray>Return to the previous menu'
-      achievements:
+      advancements:
         lore:
-          count: '<gray>Milestones unlocked: <white><count>'
-          net_kills: '<gray>Net Kills: <white><milestone>'
-          total_kills: '<gray>Total Kills: <white><milestone>'
-        name: '<yellow>Guild Achievements'
-      kd:
-        name: '<light_purple>K/D Analysis'
-      kills:
-        lore:
-          action: '<yellow>Click for the full breakdown'
-        name: '<dark_red>Kill Statistics'
-      members:
-        name: '<aqua>Member Statistics'
-      performance:
-        name: '<yellow>Performance Metrics'
-      period:
-        lore:
-          description: '<gray>View stats by time period'
-          periods: '<gray>Daily, weekly or monthly'
-        name: '<dark_aqua>Period Statistics'
+          earned: '<gray>Advancements: <white><count>/<total> earned'
+          tracking: '<gray>Tracking: <gold><title> <gray>(<current>/<goal>)'
+          count: '<gray>Combat milestones: <white><count>/<total> met'
+          open: '<yellow>Click to open Guild Advancements'
+        name: '<yellow>Guild Advancements'
       recent:
         lore:
           kills: '<gray>Recent kills: <white><count>'
           latest: '<gray>Most recent kills, any date'
         name: '<white>Recent Activity'
-      refresh:
-        lore:
-          description: '<gray>Update all statistics'
-          details: '<yellow>Click to refresh'
-        name: '<green>Refresh Statistics'
       rivalry:
         lore:
           description: '<gray>Kills vs other guilds'
@@ -4367,10 +4083,6 @@ menu:
         lore:
           unavailable: '<red>War system not available'
         name: '<dark_red>War Statistics'
-      comparison:
-        name: '<gold>Guild Comparison'
-        lore:
-          description: '<gray>Compare stats across all guilds'
       next_page:
         name: '<white>Next Page ➡'
       previous_page:
@@ -4378,20 +4090,13 @@ menu:
     title: '<white>Statistics • <guild>'
     feedback:
       load_failed:
-        kd: '<red>❌ Failed to load K/D analysis. Please try again later.'
-        kills: '<red>❌ Failed to load kill statistics. Please try again later.'
-        members: '<red>❌ Failed to load member statistics. Please try again later.'
-        performance: '<red>❌ Failed to load performance statistics. Please try again later.'
         recent: '<red>❌ Failed to load recent activity. Please try again later.'
         top_contributors: '<red>❌ Failed to load top contributors. Please try again later.'
         top_killers: '<red>❌ Failed to load top killers. Please try again later.'
         top_inviters: '<red>❌ Failed to load invitation statistics. Please try again later.'
         wars: '<red>❌ Failed to load war statistics. Please try again later.'
         achievements: '<red>❌ Failed to load achievements.'
-        comparison: '<red>❌ Failed to load comparison data.'
-        period: '<red>❌ Failed to load period statistics.'
         rivalry: '<red>❌ Failed to load rivalry data.'
-      refreshing: '<green>Refreshing statistics...'
     rating:
       activity:
         active: Active
@@ -4400,35 +4105,6 @@ menu:
         lightly_active: Lightly Active
         moderately_active: Moderately Active
         very_active: Very Active
-      kd:
-        average: Average
-        below_average: Below Average
-        excellent: Excellent
-        godlike: Godlike
-        good: Good
-        needs_improvement: Needs Improvement
-        very_good: Very Good
-      kill_milestone:
-        bloodbath: Bloodbath (500+)
-        butcher: Butcher (100+)
-        carnage: Carnage (1k+)
-        massacre: Massacre (10k+)
-        novice: Novice (<100)
-        slaughter: Slaughter (5k+)
-      net_kill_milestone:
-        balanced: Balanced (0+)
-        challenged: Challenged (-50)
-        conqueror: Conqueror (500+)
-        dominator: Dominator (1k+)
-        struggling: Struggling (-100)
-        warrior: Warrior (100+)
-      performance:
-        elite: Elite
-        legendary: Legendary
-        novice: Novice
-        recruit: Recruit
-        skilled: Skilled
-        veteran: Veteran
   incoming_requests:
     title: "<white>Incoming Relation Requests"
     fallback:
@@ -4512,17 +4188,83 @@ menu:
       grant: "<yellow>Click to grant"
     back: "<gray>← Back to Homes"
 
+  allied_homes:
+    title: "<white>Allied Homes"
+    button:
+      name: "<gold>Allied Homes"
+      description: "<gray>Set your allied homes and choose who may use them"
+    locked:
+      name: "<gray>Allied Homes <red>(locked)"
+      description_v2: '<gray>Unlocks with the <white>Ally Homes</white> reward (guild level 50).'
+      feedback_v2: '<red>Ally homes unlock with the Ally Homes reward at guild level 50.'
+    slot:
+      name: "<gold>Allied Home <slot>"
+      unset: "<gray>Not set yet."
+      at: "<gray><world> <white><x>, <y>, <z>"
+      set_here: "<yellow>Click to set it where you stand"
+      move_here: "<yellow>Left-click: move it to where you stand"
+      remove: "<yellow>Right-click: remove it"
+      locked:
+        name: "<gray>Allied Home 2 <red>(locked)"
+        description: "<gray>Unlocks at <white>Prestige II</white>."
+    access:
+      description: "<gray>Choose which allies, their ranks and players may visit"
+    info:
+      name: "<yellow>How allied homes work"
+      line_1: "<gray>Allies you allow use <white>/g allyhome <guild></white> or their Homes menu."
+      line_2: "<gray>Your own members reach allied homes the same way."
+    back: "<gray>← Back to Homes"
+    feedback:
+      set: "<green>Allied home set to your current location."
+      removed: "<green>Allied home removed."
+      failed: "<red>Couldn't change that allied home. You may lack permission."
   ally_home_access:
-    title: "<white>Ally-home Access"
+    title: "<white>Allied-home Access"
     permission_denied: "<red>❌ You need MANAGE_HOME to configure ally-home access."
+    save_failed: "<red>Couldn't save that change. Try again."
     ally:
       allowed: "<green>✓ <guild>"
       denied: "<red>✗ <guild>"
-      toggle: '<yellow>Click to toggle inbound access'
+      ranks_all: "<gray>Ranks: every rank"
+      ranks_some: "<gray>Ranks: <white><count></white> picked"
+      toggle: '<yellow>Left-click: allow or deny this ally'
+      configure: '<yellow>Right-click: pick ranks and block players'
+    blocked:
+      name: "<red>Blocked players (<count>)"
+      description: "<gray>Click a head to unblock that player."
+      none: "<gray>No one is blocked. Block players from an ally's page."
+      player: "<red><player>"
+      unblock: "<yellow>Click to unblock"
+    visitor:
+      title: "<white>Visitors from <guild>"
+      ranks_header: "<yellow>Which of their ranks may visit"
+      ranks_hint: "<gray>Their ranks that may use YOUR allied homes. Click to allow or deny."
+      ours_header: "<yellow>Our ranks that may visit <guild>"
+      ours_default: "<gray>Now: ranks with <white>Use ally homes</white> (default)."
+      ours_custom: "<gray>Now: your picks for this ally only."
+      ours_owner: "<gray>The guild owner can always visit."
+      ours_toggle: "<yellow>Click to allow or deny visiting <guild>"
+      ours_reset:
+        name: "<green>Use rank permissions"
+        description: "<gray>Clears your picks for this ally; Use ally homes decides again."
+      rank:
+        allowed: "<green>✓ <rank>"
+        denied: "<red>✗ <rank>"
+        toggle: "<yellow>Click to allow or deny this rank"
+      reset:
+        name: "<green>Allow every rank"
+        description: "<gray>Clears your rank picks for this ally."
+      member:
+        can: "<green><player>"
+        blocked: "<red><player> (blocked)"
+        toggle: "<yellow>Click to block or unblock"
+      previous: "<yellow>← Previous page"
+      next: "<yellow>Next page →"
+      back: "<gray>← Back to allied-home access"
     info:
-      name: "<yellow>Outbound access (read-only)"
-      description: "<gray>To control which of YOUR ranks can use ally homes,"
-      instructions: "<gray>edit the <white>USE_ALLY_HOMES<gray> permission in rank settings."
+      name: "<yellow>Who can use your allied homes"
+      description: "<gray>Pick which allies, which of their ranks, and which players may visit."
+      instructions: "<gray>Visitors also need <white>Use ally homes<gray> in their own guild."
     back: "<gray>← Back to Homes"
 
   bank_security:
@@ -4799,9 +4541,6 @@ menu:
     title: "<white>⚔ Select War Target (<page>/<pages>)"
     guild:
       name: "<gold><guild>"
-      mode:
-        hostile: "<gray>Mode: <red>HOSTILE"
-        peaceful: "<gray>Mode: <green>PEACEFUL"
       members: "<gray>Members: <white><count>"
       level: "<gray>Level: <yellow><level>"
       peaceful:
@@ -5246,48 +4985,31 @@ menu:
 
   guild_info:
     title: '<white>Guild Info • <guild>'
+    prestige:
+      name: '<light_purple><bold>Prestige'
+      none: '<gray>This guild has not prestiged yet.'
+      unavailable: '<gray>Prestige history is unavailable right now.'
+      current: '<gray>Current: <light_purple>Prestige <tier>'
+      entry: '<gray>Prestige <white><tier></white> <dark_gray>·</dark_gray> <white><date>'
+      entry_first: '<gray>Prestige <white><tier></white> <dark_gray>·</dark_gray> <white><date></white> <gold>✦ First on the server'
     feedback:
       guild_missing: "<red>This guild no longer exists."
     fallback:
       unknown_player: "Unknown Player"
       member: "Member"
     overview:
-      name: "<gold>Guild Overview"
-      guild: "<gray>Name: <white><guild>"
-      level: "<gray>Level: <yellow><level>"
-      mode: "<gray>Mode: <white><mode>"
+      prestige: '<light_purple>Prestige <tier> <dark_gray>· <gray>Level <white><level>'
+      level_only: '<gray>Level <white><level>'
+      active_wars: '<gray>Active wars'
       emoji: "<gray>Emoji: <white><emoji>"
       tag: "<gray>Tag: <white><tag>"
       founded: "<gray>Founded: <white><date>"
       date_format: "yyyy-MM-dd"
-      modes:
-        peaceful: "Peaceful"
-        hostile: "Hostile"
     description:
       name: "<gold>Description"
       value: "<reset><description>"
       invite_hint: '<yellow>Click to get the Discord invite in chat'
       chat_prefix: "<gray>Guild description: <reset>"
-    members:
-      name: "<aqua>Members (<white><count><aqua>)"
-      description: '<yellow>Click to see every member'
-      player: "<white><player>"
-      rank: "<gray>Rank: <white><rank>"
-      more: "<gray>... and <count> more"
-      more_hint: '<gray>Open Members to see everyone'
-    relations:
-      entry: "<gray>• <white><guild>"
-      more: "<gray>... and <count> more"
-      view_all: "<yellow>Click to view the full list"
-      allies:
-        name: "<green>Allies (<white><count><green>)"
-        none: "<gray>No allies"
-      truces:
-        name: "<white>Truces (<count>)"
-        none: "<gray>No truces"
-      wars:
-        name: "<red>Wars (<white><count><red>)"
-        none: "<gray>No active wars"
     relation_browser:
       allies:
         title: "<green>Allies - <guild>"
@@ -5299,10 +5021,6 @@ menu:
         guild_name: "<red>⚔ <guild>"
       members: "<gray>Members: <white><count>"
       level: "<gray>Level: <white><level>"
-      mode:
-        line: "<gray>Mode: <mode>"
-        peaceful: "<green>Peaceful"
-        hostile: "<red>Hostile"
       open: "<yellow>Click to view guild info"
       previous:
         name: '<white>⬅ Previous Page'
@@ -5317,24 +5035,7 @@ menu:
         name: '<yellow>⬅ Back'
         description: '<gray>Return to the previous menu'
     statistics:
-      name: "<yellow>Statistics"
-      balance: "<gray>Bank Balance: <gold>$<balance>"
-      level: "<gray>Level: <yellow><level>"
       war_kills: "<red>War vs <opponent><gray>: <green><kills><gray>/<yellow><target> kills"
-      home:
-        present: "<gray>Has Guild Home: <green>Yes"
-        missing: "<gray>Has Guild Home: <red>No"
-      banner:
-        present: "<gray>Has Banner: <green>Yes"
-        missing: "<gray>Has Banner: <red>No"
-    progression:
-      name: "<light_purple>Progression"
-      level: "<gray>Level: <yellow><level>"
-      next: "<gray>Next Level: <yellow><level>"
-    back:
-      name: '<yellow>⬅ Back'
-      description: '<gray>Return to the previous menu'
-
   truce_request:
     title: "<white>Request Truce"
     feedback:
@@ -5546,6 +5247,7 @@ menu:
       target_10: "  <dark_gray>▪ <white>10 kills <gray>- Standard battle"
       target_25: "  <dark_gray>▪ <white>25 kills <gray>- Extended war"
       target_50: "  <dark_gray>▪ <white>50 kills <gray>- Epic campaign"
+      target_other: "  <dark_gray>▪ <white><count> kills"
       objective_description: '<gray>Kill <count> enemy players'
     survival:
       name: "<gray>Time Survival"
@@ -5587,57 +5289,12 @@ menu:
       discarded: "<gray>Changes discarded."
 
   guild_mode:
-    title: "<white>Change Guild Mode"
-    mode:
-      peaceful: "PEACEFUL"
-      hostile: "HOSTILE"
-    current:
-      name: '<yellow>Current Mode'
-      mode: "<gray>Mode: <white><mode>"
-      changed: "<gray>Changed: <white><time>"
-    disabled:
-      message: '<red>Mode switching is turned off on this server'
-      description: "<gray>Guilds cannot change between Peaceful and Hostile modes"
-    peaceful:
-      name: '<green>☮ Switch to Peaceful'
-      benefits: '<gray>In Peaceful mode:'
-      no_pvp: "<gray>• No PvP in guild claims"
-      safe_trading: "<gray>• Safe trading environment"
-      no_wars: "<gray>• Prevents war declarations"
-      cooldown: '<red>Cooldown: <days> days'
-      active_war: '<red>Not available during a war'
-      click: '<yellow>Click to switch to Peaceful'
-    hostile:
-      name: '<red>⚔ Switch to Hostile'
-      benefits: '<gray>In Hostile mode:'
-      pvp: "<gray>• PvP enabled in claims"
-      wars: "<gray>• Can declare wars"
-      competitive: "<gray>• Competitive gameplay"
-      lock: '<red>Locked for <days> days after switching'
-      click: '<yellow>Click to switch to Hostile'
-    switch:
-      unavailable: '<red>You cannot switch yet'
-      reason: "<red><reason>"
-    feedback:
-      peaceful_success: "<green>✅ Guild mode switched to PEACEFUL!"
-      hostile_success: "<green>✅ Guild mode switched to HOSTILE!"
-      failed: "<red>❌ Failed to change guild mode. Check permissions."
-      active_war: "<red>❌ Cannot switch to peaceful mode during active war!"
-      blocked: "<red>❌ <reason>"
     cooldown:
       no_changes: "No previous changes"
       expired: "Cooldown expired"
       lock_expired: "Lock expired"
       peaceful: "<days>d <hours>h until you can switch to Peaceful"
       hostile: "<days>d <hours>h until you can switch to Hostile"
-    time:
-      never: "Never"
-      recently: "Recently"
-      days_ago: "<days>d <hours>h ago"
-      hours_ago: "<hours>h ago"
-    back:
-      name: '<yellow>⬅ Back'
-      description: '<gray>Return to the previous menu'
 
   guild_war_management:
     title: '<white>Warfare • <guild>'
@@ -6038,6 +5695,29 @@ menu:
         available: "<green><bar> <gray><percent>%"
       daily_period: "<gray>Current daily period: <yellow><used> <gray>/ <yellow><cap> <gray>max"
       weekly_period: "<gray>Current weekly period: <yellow><used> <gray>/ <yellow><cap> <gray>max"
+      daily_resets: "<gray>Today: <yellow><used> <gray>/ <yellow><cap> <gray>· resets in <white><time>"
+      weekly_resets: "<gray>This week: <yellow><used> <gray>/ <yellow><cap> <gray>· resets in <white><time>"
+      award_each: "<gold>+<xp> guild XP each time"
+      award_range: "<gold>+<min> to <max> guild XP each time"
+      counts:
+        mob_kill: "<gray>Any hostile mob (bosses have their own)"
+        player_kill: "<gray>Other players, not your guildmates"
+        crop_break: "<gray>Fully grown crops, broken or right-click harvested"
+        block_break: "<gray>Natural dirt, stone, sand, nether and end blocks and logs"
+        block_place: "<gray>Placing building blocks"
+        ore: "<gray>Natural ores; rarer ores give more"
+        crafting: "<gray>Crafting tools, gear and rare blocks; better items give more"
+        smelting: "<gray>Items taken out of a furnace"
+        fishing: "<gray>Each catch"
+        enchanting: "<gray>Each enchantment at a table"
+        brewing: "<gray>Potions a brewing stand brewed, taken out once"
+        exploration: "<gray>Adventure advancements"
+        bank_deposit: "<gray>Gold put in the guild bank"
+        recruit: "<gray>New members who stay and play"
+        war_win: "<gray>Winning a war"
+        boss: "<gray>The member who lands the killing blow"
+        weekly_activity: "<gray>Members active this week"
+        advancement: "<gray>Completing a guild advancement"
       unlimited: "<green>Unlimited <gray>· no cap"
       names:
         shop_sale: "Guild Shop Sales"
@@ -6058,10 +5738,11 @@ menu:
         claim_destroyed: "Claims"
         weekly_activity: "Weekly Activity"
         admin_bonus: "Admin Bonus"
+        guild_advancement: "Guild Advancements"
     rank:
       name: "<gold>Guild Rank"
-      description: "<gray>Your guild's standing"
-      scope: "<gray>among all guilds"
+      standing: "<gold>#<rank> <gray>of <white><total> <gray>guilds"
+      standing_hint: "<gray>By level, as on the leaderboard."
     sources:
       name: "<yellow>XP Sources"
       description: "<gray>How to earn guild XP:"
@@ -6097,8 +5778,8 @@ menu:
         ally_home_access: "Ally Home Access"
     prestige:
       name: "<light_purple>Prestige"
-      description: "<gray>Reset your guild to Level 1"
-      rewards: "<gray>and permanently retain one eligible purchased reward."
+      description: "<gray>Take your guild back to Level 1 for a lasting reward:"
+      rewards: "<gray>keep one purchased reward forever, plus a home slot and a new badge."
       requirement: "<gray>Requires Level <light_purple>100"
       action: '<yellow>Click to choose the reward you will retain'
       state:
@@ -6120,16 +5801,41 @@ menu:
       confirmation:
         title: "<white>Confirm Guild Prestige"
         summary:
-          name: "<light_purple>Prestige Summary"
-          reward: "<gray>Retain permanently: <white><reward>"
-          fee: "<gray>Fee: <gold><fee> Gold Ore"
-          reset: "<yellow>Your guild progression resets to Level 1."
-          permanent: "<green>Existing permanent rewards and home-capacity purchases remain."
+          name: "<light_purple>Prestige <tier> Summary"
+          final: "<gold>This is the final prestige."
+          earn_heading: "<gold>You earn"
+          badge: "<green>+ The Prestige <tier> badge"
+          reward: "<green>+ Keep forever: <white><reward>"
+          home_slot: "<green>+ 1 permanent home slot <gray>(<before> → <after>)"
+          hall_theme: "<green>+ Hall theme: <theme> <gray>(<owned> of 6 owned)"
+          hall_theme_all: "<green>+ Hall theme: <theme> <gray>(every theme owned)"
+          perk_second_ally_home: "<green>+ New perk: a second allied home (<white>/g setallyhome 2</white>)"
+          perk_extra_stall: "<green>+ New perk: one more guild market stall"
+          perk_second_vault: "<green>+ New perk: a second guild vault for items (<white>/g getvault 2</white>)"
+          member_limit: "<green>+ Member limit stays at <white><limit></white> as you climb again"
+          discord_role: "<green>+ Your guild keeps its Discord role below level <level>"
+          carry: "<green>+ <xp> XP carried over: you start at <white>level <level>"
+          member_advancement: "<green>+ Members in the guild <hours>h or more get the Prestige <tier> advancement"
+          first: "<gold>+ First on the server: no guild has reached Prestige <tier> yet"
+          announced: "<green>+ Announced to the server"
+          announced_fanfare: "<green>+ Announced to the server, with a fanfare"
+          announced_discord: "<green>+ Announced to the server and on Discord"
+          announced_discord_fanfare: "<green>+ Announced to the server and on Discord, with a fanfare"
+          cost_heading: "<gold>It costs"
+          fee: "<red>- <fee> Gold Ore from the guild bank"
+          reset: "<red>- Back to level 1, guild XP back to 0"
+          reset_carry: "<red>- Back to level 1"
+          rewards_reset: "<red>- Level perks and every other purchased reward reset"
+          keep_heading: "<gold>It keeps"
+          permanent: "<gray>Rewards from earlier prestiges, home slots, saved homes, members and gold."
+          overflow: "<gray>Gold above the new bank capacity stays and can be withdrawn, but nothing can be added until capacity catches up."
+          unavailable: "<red>Couldn't load what this prestige gives. Close this and try again."
         confirm: "<green>Confirm Prestige"
         cancel: "<red>Cancel"
       feedback:
         quote_failed: "<red>Prestige conditions changed. Review the current progression state and try again."
-        applied: "<green>Guild prestige complete. <reward> is now permanent. Fee: <fee> Gold Ore. Prestige count: <count>."
+        applied: "<green>Guild prestige complete. <reward> is now permanent. Fee: <fee> Gold Ore. Your guild is now Prestige <count>."
+        carried: "<aqua><xp> XP carried over, so your guild starts this climb at Level <level>."
         failed: "<red>The prestige result could not be confirmed. Retry this same confirmation; you will not be charged twice."
         rejected:
           unavailable: "<red>Prestige is currently unavailable."
@@ -6280,7 +5986,6 @@ menu:
     feedback:
       no_manage_permission: '<red>You don''t have permission to manage relations.'
       no_enemy_permission: '<red>You don''t have permission to declare enemy status.'
-      history_placeholder: '<yellow>Diplomatic history coming soon!'
   guild_emoji:
     title: '<white>Guild Emoji - <guild>'
     current:
@@ -6389,10 +6094,10 @@ menu:
       none: '<gray>No homes set yet'
       additional: '<yellow>Click to set additional homes'
       maximum: '<red>Maximum slots reached'
-      locked_count: '<red><count> saved homes are locked until an Outpost is repurchased'
+      locked_count_v2: '<red><count> saved homes are locked until a Guild Homes reward is bought again'
     locked:
-      name: '<red>Locked Outpost: <home>'
-      description: '<gray>Purchase an Outpost after prestige to restore this saved home.'
+      name_v2: '<red>Locked home: <home>'
+      description_v2: '<gray>Buy a Guild Homes reward after prestige to restore this saved home.'
     set:
       main:
         name: '<green>Set Main Home'
@@ -6441,7 +6146,6 @@ menu:
       click: '<yellow>Click to manage'
     ally_access:
       name: '<gold>Ally Home Access'
-      description: '<gray>Choose which allies can use your ally home'
     ally:
       none:
         name: '<gray>No Ally Homes Available'
@@ -6485,9 +6189,9 @@ menu:
       activation_review: '<yellow>? Home payment outcome needs administrator review. Transaction: <transaction>'
       activation_review_no_transaction: '<yellow>? Home activation failed and automatic gold compensation did not complete. Contact an administrator.'
       world_missing: '<red>❌ Could not find the world for guild home.'
-      locked_hint: '<red>  [LOCKED — /guild home unlock <home> after an Outpost purchase]'
-      restored: '<green>Guild home ''<home>'' restored using a paid Outpost credit.'
-      restore_unavailable: '<red>''<home>'' is locked. Purchase an Outpost at this prestige first.'
+      locked_hint_v2: '<red>  [LOCKED — /guild home unlock <home> after a Guild Homes purchase]'
+      restored_v2: '<green>Guild home ''<home>'' restored using a paid Guild Homes credit.'
+      restore_unavailable_v2: '<red>''<home>'' is locked. Buy a Guild Homes reward at this prestige first.'
   tag_editor:
     title: '<white>Tag Editor - <guild>'
     current:
@@ -7141,6 +6845,60 @@ permission:
     lore: Allows you to view lecterns
     name: View
 admin:
+  sounds:
+    help: '<yellow>/lumaguilds sounds [id|all|stop] <gray>- Hear any guild sound yourself; nothing changes'
+    players_only: '<red>Only a player in game can preview sounds.'
+    header: '<gold>Guild sounds <gray>(<count>) · click one to hear it, hover to see when it plays'
+    group: '<yellow><group>'
+    entry: '<dark_gray> ▶ <white><label> <dark_gray>(<id>)'
+    footer: '<gray>Click here to play them all in order, or use <white>/lumaguilds sounds stop<gray>.'
+    unknown: '<red>No guild sound called <white><id></white>. Use <white>/lumaguilds sounds</white> to see them all.'
+    now: '<gold>♪ <label> <gray>· <when>'
+    playing_all: '<gray>Playing all <white><count></white> guild sounds in order (about <seconds>s). Only you can hear them.'
+    finished: '<gray>That was every guild sound.'
+    stopped: '<gray>Sound preview stopped.'
+  hall:
+    help: '<yellow>/lumaguilds hall pedestal set|remove \<n>, hall list, hall refresh <gray>- Place the Hall of Prestige statues'
+    usage: '<gray>Usage: <white>/lumaguilds hall pedestal set|remove \<1-24> <gray>| <white>hall list <gray>| <white>hall refresh'
+    players_only: '<red>Stand where the statue should go and run this in game.'
+    set: '<green>Pedestal <slot> set at <x>, <y>, <z>. <gray>The statue faces the way you were looking.'
+    removed: '<yellow>Pedestal <slot> removed.'
+    missing: '<red>There is no pedestal <slot>.'
+    none: '<gray>No Hall pedestals yet. Stand on a spot and use <white>/lumaguilds hall pedestal set 1'
+    list_header: '<gold>Hall of Prestige pedestals (<count>):'
+    list_line: '<gray>#<slot> <white><world> <x> <y> <z> <gray>· <gold><guild>'
+    refreshing: '<green>Rebuilding the Hall statues.'
+  prestige:
+    help: '<yellow>/lumaguilds prestige info|set|grant|rerun \<guild> <gray>- Inspect or correct a guild''s prestige (Tab shows what to type). <yellow>/lumaguilds prestige preview \<tier> <gray>- Watch the rank-up yourself'
+    usage: '<gray>Usage: <white>/lumaguilds prestige info|set|grant|rerun \<guild> ... <gray>or <white>/lumaguilds prestige preview \<tier> [guild]'
+    preview:
+      players_only: '<red>Only a player in game can watch the preview.'
+      usage: '<gray>Usage: <white>/lumaguilds prestige preview \<1-6> [guild] <gray>- plays the rank-up to you only; nothing changes.'
+      playing: '<gray>Previewing the <gold>Prestige <tier></gold> rank-up as <white><guild></white>. Only you can see and hear it; nothing was changed.'
+    guild_not_found: '<red>No guild named <white><guild></white>.'
+    unavailable: '<red>Prestige data for <white><guild></white> could not be read or changed.'
+    info:
+      header: '<gold><guild></gold> <gray>— Prestige <white><tier></white> (<count>/<max>), level <white><level>'
+      kept: '<gray>Kept rewards: <white><rewards>'
+      no_history: '<gray>No applied prestiges.'
+      record: '<gray> • Prestige <white><tier></white> on <white><date></white>, kept <white><reward></white>, by <white><player>'
+      adjustment: '<yellow> • Staff set <old> → <new> on <date> (<player>)'
+    set:
+      preview: '<yellow><guild>: prestige <white><old></white> → <white><new></white>, removing the kept rewards of those tiers: <white><rewards></white>, and one home slot per tier. Level, XP and gold stay. Run <white><confirm></white> to apply.'
+      done: '<green><guild>: prestige set <old> → <new>. Removed kept rewards: <rewards>.'
+      raise: '<yellow>Each prestige keeps a reward, so raise <guild> one tier at a time with <white>/lumaguilds prestige grant</white>.'
+      unchanged: '<gray><guild> already has that prestige count.'
+      range: '<red>The count must be between 0 and <max>.'
+    grant:
+      choices: '<yellow>Pick the reward <guild> keeps: <white><choices>'
+      none: '<red><guild> has no prestige choices left (it may be at the maximum).'
+      preview: '<yellow>Grant <guild> a free prestige keeping <white><reward></white>? Its level resets as for a normal prestige and everyone is told. Run <white><confirm></white>.'
+      done: '<green><guild> is now Prestige <tier> (granted by staff).'
+      rejected: '<red>Grant refused: <reason>.'
+    rerun:
+      none: '<gray><guild> has no applied prestiges to re-run.'
+      preview: '<yellow>Re-run member rewards for <guild> (Prestige <tiers>)? Members who already got them may get them twice. Run <white><confirm></white>.'
+      done: '<green>Re-ran member rewards for <guild> (Prestige <tiers>). Online members are credited now, others on join.'
   owner_recovery:
     help: '<yellow>/lumaguilds owner recover \<guild-uuid> \<member-uuid> <gray>- Preview recovery of an ownerless guild'
     usage: '<yellow>Usage: /lumaguilds owner recover \<guild-uuid> \<member-uuid> [confirm \<token>]. Use full UUIDs; first run without confirmation.'
@@ -7376,6 +7134,31 @@ party:
     return_global: '<gray>Use <white>/pc switch GLOBAL <gray>to return to global chat'
     send_failed: '<red>❌ Failed to send party message!'
 notification:
+  moments:
+    declared:
+      title: '<dark_red><bold>WAR DECLARED'
+      subtitle: '<gold><declarer> <white>has declared war on <gold><defender>'
+      chat: '<red>⚔ WAR DECLARED <dark_gray>» <gold><declarer> <white>has declared war on <gold><defender><white>!'
+    begins:
+      title: '<red><bold>WAR BEGINS'
+      subtitle: '<gold><first> <white>and <gold><second>'
+      chat: '<red>⚔ WAR BEGINS <dark_gray>» <white>War between <gold><first> <white>and <gold><second> <white>has begun.'
+    victory:
+      title: '<gold><bold>VICTORY'
+      subtitle: '<white>Your guild defeated <gold><guild>'
+      chat: '<gold>⚔ VICTORY <dark_gray>» <white>Your guild defeated <gold><guild><white>.'
+    defeat:
+      title: '<dark_red><bold>DEFEAT'
+      subtitle: '<gold><guild> <white>defeated your guild'
+      chat: '<red>⚔ DEFEAT <dark_gray>» <gold><guild> <white>defeated your guild.'
+    peace:
+      title: '<green><bold>PEACE AGREED'
+      subtitle: '<white>Peace between <gold><first> <white>and <gold><second>'
+      chat: '<green>☮ PEACE AGREED <dark_gray>» <white>Peace agreement accepted.'
+    alliance:
+      title: '<aqua><bold>ALLIANCE FORMED'
+      subtitle: '<gold><first> <white>and <gold><second> <white>are now allies'
+      chat: '<aqua>❖ ALLIANCE FORMED <dark_gray>» <gold><first> <white>and <gold><second> <white>are now allies.'
   war:
     kill:
       killer: '<gold>⚔ WAR KILL! <gray>You killed <red><victim><gray>!'
@@ -7423,6 +7206,7 @@ notification:
     guild_channel_missing: '<red>❌ Guild channel ''<channel>'' is not configured in RoseChat. Ask staff to enable it in channels.yml.'
     ally_channel_missing: '<red>❌ Ally channel ''<channel>'' is not configured in RoseChat.'
     mod_channel_missing: '<red>❌ Mod chat channel is not configured.'
+    party_chat_off: '<gray>Party chat is off. Use <white>/pc switch<gray> to talk with other guilds again.'
     not_in_guild: '<red>❌ You are not in a guild!'
     guild_muted: '<red>❌ Your guild is muted—guild chat is disabled until the mute expires.'
     mod_permission: '<red>❌ Only guild moderators can use mod chat!'
@@ -7452,6 +7236,10 @@ notification:
         description: '<gold><objective> <gray>— <gold><xp> Guild EXP awarded'
         fallback: '<green>Quest complete: <gold><objective> <gray>(<gold><xp> Guild EXP<gray>)'
   progression:
+    prestige:
+      title: '<gold><bold>PRESTIGE <tier></bold>'
+      subtitle: '<yellow><guild> <gray>has prestiged'
+      animation_subtitle: '<#fff3b0><guild>'
     level_up:
       title: '<gold>⭐ <bold>GUILD LEVEL UP!</bold> ⭐'
       subtitle: '<yellow><guild> <gray>reached level <yellow><level>'
@@ -7463,6 +7251,8 @@ notification:
       perks: '<gray>New Perks:'
       perk: '<gray>  • <green><perk>'
   teleport:
+    cooldown: "<red>◷ Please wait <seconds>s before teleporting home again."
+    no_longer_allowed: "<red>Teleport cancelled: you can no longer use that allied home."
     in_combat: '<yellow>◷ Cannot teleport in combat.'
     countdown_started: '<yellow>◷ Teleportation countdown started! Don''t move for <duration>...'
     duration:
@@ -7502,8 +7292,7 @@ notification:
       without_tag: '<gray><player>:</gray> <message>'
     party:
       default_name: Party
-      with_tag: '<light_purple>[P] <tag> <player>:</light_purple> <message>'
-      without_tag: '<light_purple>[P] <player>:</light_purple> <message>'
+      line: '<dark_gray>[<aqua>Party</aqua>] [<yellow><guild></yellow>]</dark_gray> <white><player></white> <aqua>»</aqua> <white><message>'
   vault:
     inventory:
       access_denied: '<red>You no longer have access to this guild vault.'
@@ -7554,13 +7343,11 @@ notification:
       hurry: '<red><bold>ACT FAST</bold> <gray>» <white>Items will despawn if not picked up!'
 
 chapter_two_rewards:
-  title: '<gold>Chapter 2 Rewards'
   capacity_bank: '<gray>Bank capacity: <white><capacity>'
   capacity_home_member: '<gray>Home slots: <white><homes> <gray>· Members: <white><members>'
   multipliers: '<gray>Home cooldown ×<cooldown>; withdrawal fee ×<fee>'
   unavailable: '<red>Guild rewards are temporarily unavailable. Please try again later.'
   explanation: '<gray>Reaching a level unlocks an offer. Benefits require a purchase.'
-  view: '<yellow>View all reward offers'
   name: '<white><reward>'
   level_price: '<gray>Level <level> · <price> guild gold'
   purchase:
@@ -7575,7 +7362,7 @@ chapter_two_rewards:
     no_quote: '<red>This offer is unavailable or you lack purchase permission. Refresh and check your guild rank.'
     insufficient: '<red>Your guild does not have enough gold for this reward.'
     bank_unavailable: '<red>The guild bank is frozen or has a pending transfer. Resolve it before purchasing.'
-    home_audit_pending: '<yellow>Guild Outpost purchases are paused until staff verifies your saved home ownership. No gold was charged.'
+    home_audit_pending_v2: '<yellow>Guild Homes purchases are paused until staff verifies your saved home ownership. No gold was charged.'
     changed: '<yellow>The offer changed. Review the refreshed catalog before purchasing.'
     ineligible: '<yellow>This reward is locked, already owned, or provides no additional benefit.'
   back: '<yellow>Back'
@@ -7631,13 +7418,20 @@ guild_stall:
   not_member: '<red>You are no longer a member of this guild.'
   unavailable: '<yellow>Market stall information is unavailable. Try Refresh later.'
   none: '<gray>Your guild does not currently own a Market stall.'
-  location: '<gray>Location: <white><world> / <location>'
+  location: '<gray>Location: <white><world> · <location>'
   state: '<gray>Status: <white><state>'
-  rent: '<gray>Rent: <gold><amount> gold <gray>per <interval>'
-  due: '<gray>Next rent (UTC): <white><time>'
-  grace: '<gray>Grace ends (UTC): <white><time>'
-  members: '<gray>Guild members with shop access: <white><count>'
-  unknown: '<gray>Not available'
+  rent: '<gray>Rent: <gold><amount> gold <gray><interval>'
+  every_day: '<gray>every day'
+  every_week: '<gray>every week'
+  every: '<gray>every <time>'
+  due: '<gray>Next rent in <white><time>'
+  due_now: '<red>Rent due now'
+  grace: '<yellow>Grace period ends in <white><time>'
+  members: '<gray>Members with shop access: <white><count>'
+  open_hint: '<yellow>Click to see who can use it'
+  stall_title: '<gold><stall>'
+  nobody: '<gray>Nobody has shop access yet'
+  nobody_hint: '<yellow>Use Access to choose who can use it'
   active: '<green>Active'
   grace_state: '<yellow>Grace period'
   held: '<red>Moderation hold'
@@ -7703,47 +7497,7 @@ community:
 
 
 onboarding:
-  title: "Getting Started"
-  dashboard: "Your guild's first steps, requirements and shortcuts."
-  overview: "Members: <members>/<capacity>. Completed labels describe current guild milestones; other entries are guidance."
-  failed: "<red>Could not save dismissal. Please try again later."
-  unavailable: "<red>This guild is unavailable or you are no longer a member."
-  permission: "<yellow>Your guild rank does not permit this action. Ask a guild leader."
-  join_first: "<yellow>Create or join a guild to unlock these steps."
-  invite_requirement: "<yellow>Inviting requires member-management permission and a free member slot."
-  home_unlock: "<yellow>Unlock a home slot through progression first. Click to review rewards and requirements."
-  home_costs: "<yellow>Home-slot unlock and home activation are separate purchases. Review current prices in their menus; moving an active home is free."
-  help: "All help topics"
-  refresh: "Refresh progress"
-  dismiss: "Dismiss prompt"
   member_overview_hint: "<gray>Use <yellow>/guild<gray> to view your guild."
-  dismissed: "<gray>Getting Started remains available with /g start. The first-time prompt will not repeat."
-  open: " <green>[Open guide]"
-  prompt: "<gold>Welcome to <guild>! Explore your guild's first steps."
-  states:
-    completed: "Completed"
-    available: "Available"
-    locked: "Locked"
-  topics:
-    membership: "Create or join a guild"
-    invites: "Invite your first member"
-    ranks: "Understand guild ranks"
-    chat: "Use guild chat"
-    home: "Establish a guild home"
-    quests: "Explore guild quests"
-    progression: "Reach the next guild level"
-    bank: "Understand the guild bank"
-    stalls: "Explore guild stalls"
-  details:
-    membership: "Use /g create followed by a name, or browse guilds to join. Creation and joining may have configured costs."
-    invites: "Leaders can invite players from the member menu. Member capacity comes from current unlocked rewards."
-    ranks: "Leaders customize ranks and grant permissions. Members should ask a leader about their access."
-    chat: "Use /gc for guild chat and /gac for allied chat. Personal chat settings are available here."
-    home: "Unlock a home slot, then set and activate a home. Existing active homes can move for free."
-    quests: "Open current guild quests to see objectives, progress and rewards. Participation keeps existing rules."
-    progression: "Earn guild XP through supported activities and quests. Review rewards, requirements and prices here."
-    bank: "Bank deposits and withdrawals follow your rank permissions. Physical vault permissions are separate."
-    stalls: "Guild Stalls shows authoritative ownership and member access, or explains unavailable Market data."
 
 recruitment:
   category: "Activity"
@@ -7790,6 +7544,9 @@ recruitment:
   discord_setup: "<yellow>Add a Guild Discord Invite and application instructions in Recruitment Settings before choosing Discord.</yellow>"
   title: Guild Recruitment
   browse: Find a Guild
+  browse_card:
+    title: "Browse Recruiting Guilds"
+    hint: "See every guild recruiting right now"
   mine: My Applications
   search: Search by Name or Interest
   filter: "Guild Mode Filter (Any / Peaceful / Hostile)"
@@ -7889,7 +7646,6 @@ dialog_v2:
   guild_settings: "Guild Settings"
   guild_frame: "Guild frame"
   more_settings: "More guild settings"
-  more_listing_options: "More listing options"
   more_filters: "More filters and preferences"
   filters: "Filters"
   open_recruitment: "Open recruitment"
@@ -7911,6 +7667,7 @@ dialog_v2:
   frame_subtitle: "Preview a frame, then apply it to your guild."
   apply_frame: "Apply selected frame"
   leaderboard: "Guild Leaderboard"
+  leaderboard_prestige: "<gray> · <gold>Prestige <tier>"
   guild_rankings: "Guild standings"
   recorded_wins: "Wins from up to 52 retained completed quest sets"
   rank_level: "Level"
@@ -7946,6 +7703,8 @@ guild_dialogs:
 
 chronicle:
   title: '<gold>Guild Chronicle</gold>'
+  open: '<yellow>Open the Guild Chronicle</yellow>'
+  benefits: '<gold>Your guild''s rewards now</gold>'
   range: '<gray><guild> · Guild level <level> · Levels <first>–<last></gray>'
   detail: '<gray><guild> · Guild level <level></gray>'
   tracked: '<gold>Tracked guild goal</gold>'
@@ -7967,12 +7726,12 @@ chronicle:
   all: '<white>All</white>'
   treasury: '<gold>Treasury</gold>'
   travel: '<aqua>Travel</aqua>'
-  outposts: '<green>Outposts</green>'
-  bank_effect: '<gray>Bank capacity: +<amount> before the configured ceiling.</gray>'
-  home_effect: '<gray>Home capacity: +<amount> slots.</gray>'
-  cooldown_effect: '<gray>Home cooldown tier: <percent>% of base. Best owned tier applies.</gray>'
-  fee_effect: '<gray>Withdrawal fee tier: <percent>% of configured fee. Best owned tier applies.</gray>'
-  ally_effect: '<gray>Unlock access to allied guild homes under existing access rules.</gray>'
+  outposts_v2: '<green>Guild Homes</green>'
+  bank_effect: '<gray>Bank capacity: +<amount>, up to the server maximum.</gray>'
+  home_effect: '<gray>Home slots: +<amount>.</gray>'
+  cooldown_effect: '<gray>Home teleports: <seconds>s countdown, cooldown <percent>% of normal. Your best Quick Travel applies.</gray>'
+  fee_effect: '<gray>Bank withdrawal fee: <percent>% of normal. Your best Treasury Discount applies.</gray>'
+  ally_effect: '<gray>Members can use allied guild homes they have been given access to.</gray>'
   shared: '<gray>Shared guild goal; Manage Guild Settings is required to change it.</gray>'
   change: '<gold>Current: <current> → after purchase: <after></gold>'
   percent_change: '<gold>Current: <current>% → after purchase: <after>% of base.</gold>'
@@ -7989,64 +7748,438 @@ chronicle:
   prestige:
     action: '<gold>Prestige rewards</gold>'
     title: '<gold>Prestige rewards and earning guide</gold>'
-    subtitle: '<gray>Permanent rewards, retention choices and exact acquisition rules</gray>'
+    subtitle: '<gray>What prestige costs, what resets and what you keep</gray>'
     overview: '<gold>Earning guide</gold>'
     milestones: '<gold>Prestige milestones</gold>'
     legacy: '<gold>Retained legacy perks</gold>'
     seal: '<gold>✦ PRESTIGE LEGACY · PERMANENT ✦</gold>'
     progress: '<gold>Prestige <count>/<max> · Current guild level <level></gold>'
     home_bonus: '<green>Permanent prestige home-capacity bonus: +<count></green>'
-    fee: '<gold>Next prestige fee: <fee> guild gold, subject to the final quote.</gold>'
+    fee: '<gold>Next prestige fee: <fee> guild gold.</gold>'
     maximum: '<gray>Lifetime prestige maximum reached.</gray>'
-    earn_title: '<gold>How to earn the next prestige rewards</gold>'
-    earn_level: '<gray>1. Reach guild level 100 again in the current run.</gray>'
-    earn_purchase: '<gray>2. Already own an eligible Bank Extension, Quick Travel, Treasury Discount or Allied Waypoints reward.</gray>'
-    earn_confirm: '<gray>3. Select one eligible owned reward, review the fee and reset details, then confirm through the existing authorized prestige transaction. Each applied prestige also adds one permanent home-capacity slot.</gray>'
-    preserved_title: '<gold>What survives and what resets</gold>'
-    preserved_homes: '<green>Purchased home capacity, saved home locations and previously paid home activations survive prestige.</green>'
-    preserved_rewards: '<green>Previously permanent rewards remain; exactly one newly selected eligible owned reward becomes permanent.</green>'
-    reset: '<gray>Guild level resets to 1 and run XP to 0. Other non-permanent current-run purchases reset. No currency or guild-XP bonus is awarded.</gray>'
+    earn_title: '<gold>How to prestige</gold>'
+    earn_level: '<gray>1. Reach guild level 100.</gray>'
+    earn_purchase_v2: '<gray>2. Own at least one Bank Extension, Quick Travel, Treasury Discount or Ally Homes reward.</gray>'
+    earn_confirm: '<gray>3. Choose the one to keep forever, check the fee and confirm. Every prestige also adds one permanent home slot.</gray>'
+    preserved_title: '<gold>What stays and what resets</gold>'
+    preserved_homes: '<green>Purchased home slots, saved homes and paid home activations stay.</green>'
+    preserved_rewards: '<green>Rewards kept from earlier prestiges stay, and the one you choose now joins them. Members and gold stay too.</green>'
+    reset: '<gray>Your level goes back to 1. Level perks and other purchased rewards reset, so you buy them again as you climb. The confirmation shows whether XP carries over.</gray>'
     chapter: '<gray>Chapter rollover follows server policy separately from prestige.</gray>'
-    none: '<gray>No prestige-retained rewards recorded yet. Home capacity bought permanently is a separate acquisition route.</gray>'
-    retained: '<gold>Earned by purchasing this reward and selecting it during an applied prestige; retained under the existing rules.</gold>'
+    none: '<gray>No rewards kept from prestige yet. Purchased home slots are kept on their own.</gray>'
+    retained: '<gold>Kept forever from an earlier prestige.</gold>'
     review: '<gold>Review eligible retention choices</gold>'
-    milestone: '<gold>Prestige <tier> · Fee: <fee> guild gold · +1 permanent home slot and one eligible retention choice.</gold>'
-    milestone_earned: '<green>✓ This prestige milestone is earned.</green>'
-    milestone_locked: '<gray>Reach level 100 in that run, meet the existing restrictions, select an eligible owned reward and confirm the exact fee.</gray>'
+    milestone_title: '<gold>Prestige <tier></gold>'
+    milestone_next: '<yellow>Next · Fee <fee> guild gold</yellow>'
+    milestone_fee: '<gray>Fee <fee> guild gold</gray>'
+    milestone_home: '<gray>+ 1 permanent home slot</gray>'
+    milestone_keep: '<gray>+ Keep one reward forever</gray>'
+    milestone_theme: '<gray>+ A Hall theme of your choice</gray>'
+    milestone_member_cap: '<gold>+ Member cap stays at its level-100 size</gold>'
+    milestone_discord: '<gold>+ Prestige Discord role</gold>'
+    milestone_ally_home: '<gold>+ A second allied home</gold>'
+    milestone_stall: '<gold>+ One extra Market stall</gold>'
+    milestone_vault: '<gold>+ A second guild vault (/g getvault 2)</gold>'
+    milestone_announce: '<gray>+ Rank-up announcement for the whole server</gray>'
+    milestone_earned: '<green>✓ Earned</green>'
 
 achievements:
   back_statistics: '<white>Back to Statistics</white>'
-  personal_scope: '<gold>Personal achievements</gold>'
-  guild_scope: '<gold>Guild combat milestones</gold>'
-  guild_summary: '<gray><count>/8 current conditions met · Page <page>/2</gray>'
+  guild_summary: '<gray>Combat milestones · <count>/<total> met · Page <page>/<pages></gray>'
   guild_met: '<green>Current condition met</green>'
   guild_not_met: '<gray>Current condition not met</gray>'
   guild_rules: '<gray>Current guild statistics; wars use the latest 100 retained records. These badges can change and grant no extra XP or permanent award.</gray>'
   title: '<gold>Guild Advancements</gold>'
-  inspect_overview: '<white>Overview</white>'
-  inspect_earning: '<white>How to earn</white>'
-  inspect_reward: '<white>Reward</white>'
-  inspect_rules: '<white>Record rules</white>'
-  subtitle: '<gray><category> · Branch page <page>/<pages> · Select a connected milestone</gray>'
+  subtitle: '<gray><category> · <done>/<total> done · Page <page>/<pages></gray>'
+  detail_subtitle: '<gray><category></gray>'
+  card_reward: '<gold>+<amount> guild XP</gold>'
+  card_tracked: '<yellow>Tracking</yellow>'
+  tracking: '<gold>Tracking: <title> <current>/<goal></gold>'
+  milestones_tab: '<white>Combat milestones</white>'
+  back_category: '<white>Back to <category></white>'
   unavailable: '<red>Achievement data is unavailable. Existing progress was not cleared.</red>'
   completed: '<gold>✓ Completed · <current>/<goal></gold>'
   progress: '<gray>◇ In progress · <current>/<goal></gray>'
-  how: '<gold>How to earn and who receives credit</gold>'
-  reward: '<gold>Completion reward</gold>'
   personal_xp: '<green><amount> personal Minecraft XP, once per player.</green>'
-  no_extra: '<gray>Achievement completion; no extra XP configured.</gray>'
-  no_guild_xp: '<gray>These XP rewards are personal experience, not guild progression XP.</gray>'
-  record_rules: '<gold>Saved personal achievement record</gold>'
-  offline: '<gray>Shared activities credit online guild members. Offline activity is not replayed; current guild level and combined playtime are checked again when online.</gray>'
-  retained: '<gray>Completed achievements and tracked goals remain on your player record across reconnects, guild changes and prestige.</gray>'
-  connections: '<gray>Tree lines organize milestones; they do not add purchase requirements or consume skill points.</gray>'
-  previous: '<white>Earlier milestones</white>'
-  next: '<white>Later milestones</white>'
-  track: '<gold>Track achievement</gold>'
-  untrack: '<white>Untrack achievement</white>'
-  goal: '<gold>Tracked achievement</gold>'
+  no_guild_xp: '<gray>No guild XP for this one.</gray>'
+  guild_xp: '<gold><amount> guild XP, paid once to the guild by whichever member completes it first.</gold>'
+  previous: '<white>Previous</white>'
+  next: '<white>Next</white>'
+  track: '<gold>Track this goal</gold>'
+  untrack: '<white>Untrack</white>'
   tree_action: '<white>Open advancement tree</white>'
   tree_key_hint: '<gold>Open Minecraft Advancements with your configured key: </gold>'
   tree_find_hint: '<gold>. Select the banner tab (the renderer may call it Enthusia), then look for Guild Mastery milestones and their descriptions. Drag the tree to pan. Your saved progress and tracked goal are unchanged.</gold>'
   renderer_unavailable: '<yellow>The optional EnthusiaAdvancements renderer is unavailable. Tracking and personal rewards remain available in this dialog.</yellow>'
   back: '<white>Back to guild menu</white>'
+
+war_duration:
+  objective: "<gold>Duration: Until the kill target is reached"
+  current_kills: "<gray>Current: <white>Until a guild gets <kills> kills"
+  declare_kills: "<gray>Duration: <white>Until a guild gets <kills> kills"
+  option: "<dark_gray>• <gray><label>"
+  option_selected: "<white>▶ <label>"
+  option_days: "<days> days (<name>)"
+  until_kills: "Until a guild gets <kills> kills"
+  names:
+    quick: "Quick skirmish"
+    standard: "Standard war"
+    extended: "Extended campaign"
+    season: "Season-long war"
+  bedrock_until_target: "Until a guild reaches the kill target below"
+  bedrock_objective: "Until the kill target is reached"
+  bedrock_hours: "<hours> hours"
+discord:
+  prestige:
+    title: '{guild} reached Prestige {tier}'
+    actor: 'Prestiged by {player}'
+    kept: 'Reward kept: {reward}'
+    first: 'First guild to reach Prestige {tier}!'
+    footer: 'Enthusia SMP'
+# REQ-191 to REQ-196: the combined guild page.
+guild_page:
+  member_title: '<white>Member • <player>'
+  relations_title: '<white>Relations • <guild>'
+  bans_title: '<white>Banned • <guild>'
+  description:
+    none: '<gray>No description yet.'
+  level:
+    name: '<green>Level <level>'
+    members: '<gray>Member cap: <white><limit>'
+  card:
+    name: '<gold><guild>'
+    leader: '<gray>Leader: <white><leader>'
+    members: '<gray>Members: <white><count>/<limit> <dark_gray>·</dark_gray> <green><online> online'
+    balance: '<gray>Bank balance: <gold>$<balance>'
+    facts_header: 'Guild facts'
+    fact:
+      home: '<gray>Has guild home: <value>'
+      banner: '<gray>Has banner: <value>'
+      vault: '<gray>Has vault: <value>'
+      shop: '<gray>Has guild shop: <value>'
+    'yes': '<green>Yes'
+    'no': '<red>No'
+  relations:
+    name: '<white>Relations'
+    allies: '<green><count> allies'
+    enemies: '<red><count> enemies'
+    truces: '<gray><count> truces'
+    hint: '<yellow>Click to open'
+  roster:
+    name: '<white><player>'
+    rank: '<gray>Rank: <rank>'
+    online: '<green>Online'
+    last_seen:
+      minutes: '<gray>Last seen: <white><amount>m ago'
+      hours: '<gray>Last seen: <white><amount>h ago'
+      days: '<gray>Last seen: <white><amount>d ago'
+      unknown: '<gray>Last seen: <white>unknown'
+    joined: '<gray>Joined: <white><date>'
+    contribution: '<gray>Bank contribution: <gold>$<amount>'
+    open: '<yellow>Click to open their page'
+  nav:
+    previous: '<white>Previous page'
+    next: '<white>Next page'
+    page: '<white>Page <page> of <pages>'
+    page_count: '<gray><count> members'
+    sort: '<white>Sort: <order>'
+    sort_hint: '<yellow>Click to change'
+    order:
+      rank: 'rank (highest first)'
+      online: 'online first'
+      name: 'name'
+    back: '<white>Back'
+    invite: '<green>Invite a player'
+    bans: '<red>Banned players'
+    bans_count: '<gray><count> banned'
+  member:
+    promote: '<green>Promote to <rank>'
+    promote_plain: '<green>Promote'
+    demote: '<yellow>Demote to <rank>'
+    demote_plain: '<yellow>Demote'
+    kick: '<red>Kick'
+    kick_lore: '<gray>Removes them from the guild. They can be invited back.'
+    ban: '<red>Ban'
+    ban_lore: '<gray>Kicks them and blocks invites and join requests until unbanned.'
+    click: '<yellow>Click to confirm'
+    click_rank: '<yellow>Click to change their rank'
+    denied:
+      no_permission: '<red>You need the Manage Members permission.'
+      self: "<red>You can't do this to yourself."
+      not_outranked: "<red>You can't change someone of your rank or higher."
+      top_rank_for_viewer: "<red>Your rank can't give that rank."
+      lowest_rank: '<red>Already the lowest rank.'
+    feedback:
+      promoted: '<green><player> is now <rank>.'
+      demoted: '<yellow><player> is now <rank>.'
+      failed: "<red>That didn't work. Refresh the page and try again."
+      gone: '<red>That player is no longer in the guild.'
+  relation_rows:
+    allies: '<green>Allies'
+    enemies: '<red>Enemies'
+    truces: '<gray>Truces'
+    none: '<gray>None'
+    guild: '<white><guild>'
+    view: '<yellow>Click to view their guild'
+    more: '<white>and <count> more'
+    more_hint: '<yellow>Click to see all'
+  bans:
+    entry: '<white><player>'
+    by: '<gray>Banned by: <white><by>'
+    date: '<gray>Banned on: <white><date>'
+    unban: '<yellow>Click to unban'
+    empty: '<gray>Nobody is banned.'
+    unbanned: '<green><player> is unbanned.'
+    failed: "<red>Couldn't unban <player>. Try again."
+# REQ-194: guild bans.
+guild_ban:
+  confirm:
+    title: '<white>Ban <player>?'
+    confirm: '<red>Ban <player>'
+    member_lore: '<gray>Removes them from the guild and blocks them from rejoining.'
+    outsider_lore: '<gray>Blocks invites and join requests from them.'
+    undo_lore: '<gray>Unban them any time from Banned players.'
+    cancel: '<green>Cancel'
+  command:
+    banned: '<green><player> is banned from your guild.'
+    preview_member: '<yellow>This removes <player> from the guild and blocks them from rejoining. Add confirm to the end of the command to do it.'
+    preview_outsider: '<yellow>This blocks <player> from joining your guild. Add confirm to the end of the command to do it.'
+    unknown_player: '<red>No player named <player> has played here.'
+    no_permission: '<red>You need the Manage Members permission to do that.'
+    self: "<red>You can't ban yourself."
+    owner: "<red>The guild leader can't be banned."
+    not_outranked: '<red>You can only ban members below your rank.'
+    already_banned: '<yellow><player> is already banned.'
+    failed: "<red>Couldn't save that. Try again."
+    unbanned: '<green><player> is unbanned.'
+    not_banned: "<yellow><player> isn't banned from your guild."
+  notify:
+    target: '<red>You were banned from <guild>.'
+# REQ-203/REQ-204: diplomacy history.
+diplomacy_history:
+  title: '<white>Diplomacy history • <guild>'
+  button: 'Diplomacy History'
+  when: '<gray><date>'
+  when_by: '<gray><date> · by <white><player>'
+  empty:
+    name: '<gray>No history yet'
+    lore: '<gray>Alliances, enemies, truces, peace and war results are recorded from this update on.'
+  kind:
+    allied: '<green>Allied with <guild>'
+    alliance_ended: '<gray>Alliance with <guild> ended'
+    declared_enemies: '<red>Declared <guild> enemies'
+    declared_enemies_by: '<red><guild> declared you enemies'
+    truce_started: '<white>Truce with <guild> for <days> days'
+    truce_ended: '<gray>Truce with <guild> ended'
+    peace: '<green>Peace with <guild>'
+    war_won: '<gold>Won the war against <guild>'
+    war_lost: '<red>Lost the war against <guild>'
+    war_drawn: '<gray>War with <guild> ended in a draw'
+# REQ-206: a party's page.
+party_chat:
+  no_guild: '<red>You need to be in a guild to use party chat.'
+  no_party: '<gray>Your guild is not in a party. Use <white>/party invite [guild]<gray> to start one.'
+  turned_on: '<green>Party chat on: your messages go to <white><party><green>. Type <white>/pc<green> again to turn it off.'
+  turned_off: '<gray>Party chat off. Your messages go to normal chat again.'
+  already_on: '<gray>Party chat is already on for <white><party><gray>. Type <white>/pc off<gray> to turn it off.'
+  already_off: '<gray>Party chat is already off. Type <white>/pc<gray> to turn it on.'
+  muted: '<gray>Party messages hidden. Type <white>/pc mute<gray> to show them again.'
+  unmuted: '<green>Party messages shown again.'
+  help:
+    header: '<gold><bold>Party chat</bold>'
+    toggle: '<yellow>/pc <gray>— turn party chat on or off'
+    message: '<yellow>/pc [message] <gray>— send one message to your party'
+    on_off: '<yellow>/pc on <gray>/ <yellow>/pc off <gray>— turn party chat on or off'
+    mute: '<yellow>/pc mute <gray>— hide or show party messages'
+party_command:
+  unnamed: 'Unnamed party'
+  disabled: '<red>Parties are turned off on this server.'
+  no_guild: '<red>You need to be in a guild to use parties.'
+  no_permission: '<red>You need the Manage Parties permission in your guild.'
+  no_party: '<gray>Your guild is not in a party. Use <white>/party invite [guild]<gray> to start one.'
+  unknown_guild: '<red>No guild called <white><guild><red>.'
+  failed: '<red>That didn''t work. Try again from <white>/party<red>.'
+  help:
+    header: '<gold><bold>Party commands</bold> <gray>(click one to fill it in)'
+    menu: '<yellow>/party <gray>— open the party menu'
+    invite: '<yellow>/party invite [guild] <gray>— invite a guild, or open the invite page'
+    accept: '<yellow>/party accept [guild] <gray>— accept a guild''s request'
+    deny: '<yellow>/party deny [guild] <gray>— deny a guild''s request'
+    cancel: '<yellow>/party cancel [guild] <gray>— cancel your guild''s request'
+    info: '<yellow>/party info <gray>— your guild''s party'
+    list: '<yellow>/party list <gray>— every party between guilds'
+    chat: '<yellow>/party chat [message] <gray>— party chat on or off, or send one message'
+    rename: '<yellow>/party rename [name] <gray>— rename your party'
+    leave: '<yellow>/party leave <gray>— your guild leaves the party'
+    disband: '<yellow>/party disband <gray>— end the party (leader''s guild)'
+  invite:
+    created: '<green>Started a new party for your guild.'
+    sent: '<green>Invited <white><guild><green> to your party.'
+    received: '<aqua><guild><gray> invited your guild to a party.'
+    already_in: '<yellow><guild> is already in your party.'
+    already_invited: '<yellow><guild> already has an invite from your guild.'
+    own_guild: '<red>You can''t invite your own guild.'
+  accept:
+    done: '<green>Your guild joined the party with <white><guild><green>.'
+  deny:
+    done: '<gray>Denied the request from <white><guild><gray>.'
+  cancel:
+    done: '<gray>Cancelled your request to <white><guild><gray>.'
+  requests:
+    incoming_header: '<gold>Requests to your guild:'
+    outgoing_header: '<gold>Requests from your guild:'
+    none_incoming: '<gray>No guild has asked your guild to join a party.'
+    none_outgoing: '<gray>Your guild has no requests waiting.'
+    entry: '<gray>• <white><guild>'
+    accept: '<green>[Accept]'
+    deny: '<red>[Deny]'
+    cancel: '<red>[Cancel]'
+    no_request: '<red>There''s no request with <white><guild><red>. Invites last 15 minutes, so ask them to send a new one.'
+  info:
+    date_format: 'MMM d, h:mm a'
+    header: '<gold><bold><party>'
+    leader: '<gray>Leader: <white><player>'
+    guilds: '<gray>Guilds: <white><guilds>'
+    online: '<gray>Online: <white><count>'
+    ends: '<gray>Ends: <white><date>'
+    waiting: '<yellow>Waiting for another guild to accept an invite.'
+  list:
+    header: '<gold>Parties (<count>):'
+    entry: '<gray>• <aqua><party><gray>: <white><guilds>'
+    empty: '<gray>There are no parties right now.'
+  leave:
+    confirm: '<yellow>Run <white>/party leave<yellow> again within 30 seconds to leave <white><party><yellow>. <gray>(click)'
+    done: '<gray>Your guild left <white><party><gray>.'
+  disband:
+    confirm: '<yellow>Run <white>/party disband<yellow> again within 30 seconds to end <white><party><yellow>. <gray>(click)'
+    done: '<gray>Ended <white><party><gray>.'
+    not_leader: '<red>Only the party leader''s guild can end the party. Use <white>/party leave<red> instead.'
+  rename:
+    done: '<green>Party renamed to <white><party><green>.'
+    bad_name: '<red>Party names are 1 to 32 characters with no spaces.'
+party_page:
+  title: '<white>Party • <party>'
+  card:
+    name: '<aqua><party>'
+    leader: '<gray>Leader: <white><leader>'
+    created: '<gray>Created: <white><date>'
+    expires: '<gray>Expires: <white><date>'
+    never: '<gray>Expires: <white>Never'
+    open_to_all: '<gray>Open to: <white>Every member'
+    open_to: '<gray>Open to: <ranks>'
+    chat: '<yellow>Chat with /pc'
+  guild:
+    name: '<white><guild>'
+    started: '<gold>Started this party'
+    member: '<gray>In this party'
+    view: '<yellow>Click to view their guild'
+  invite:
+    name: '<green>Invite a Guild'
+    lore: '<gray>They join when they accept.'
+    title: '<white>Invite a guild'
+    click: '<yellow>Click to invite'
+    already: '<gray>Already invited'
+  leave:
+    name: '<red>Leave Party'
+    lore: '<gray>Your guild leaves <party>.'
+    hint: '<yellow>Click to leave'
+    confirm: '<red>Click again to confirm'
+  feedback:
+    gone: '<red>That party has ended.'
+    left: '<yellow>Your guild left <party>.'
+    leave_failed: "<red>Couldn't leave the party. Try again."
+    invited: '<green>Invited <guild>. They join when they accept.'
+    invite_failed: "<red>Couldn't invite <guild>. They may already be invited or in a party with you."
+second_vault:
+  title: '<guild> Vault II'
+  title_withdraw_only: '<guild> Vault II (withdraw only)'
+  hologram: '<gold>⚑ <guild> Vault II'
+  hologram_withdraw_only: "<gold>⚑ <guild> Vault II</gold>\n<red>withdraw only"
+  withdraw_only: '<red>Guild Vault II is withdraw only. Your guild needs Prestige VI to put items in.'
+  no_drag: '<yellow>Drag-clicking is disabled in vaults. Move items one at a time.'
+  item:
+    name: '<gold>⚑ Guild Vault II'
+    guild: '<gray><guild>'
+    place: '<gray>Place to set up your second vault.'
+    items_only: '<gray>Items only. Gold stays in the main vault.'
+    capacity: '<gray>Capacity now: <white><slots> slots</white>. It grows as your guild levels up.'
+    received: '<green>You received a Guild Vault II chest. Place it to set up your second vault.'
+  place:
+    placed: '<gold>Second vault placed!'
+    where: '<gray>Location: <white><x>, <y>, <z>'
+    capacity: '<gray>Open it here or with <white>/g vault 2</white>. Capacity: <white><slots> slots</white>. It grows as your guild levels up.'
+    locked: '<red>Your guild needs Prestige VI to have a second vault.'
+    already: '<red>Your guild already has a second vault.'
+    next_to_vault: "<red>A vault can't go next to another vault."
+    not_yours: "<red>This Guild Vault II chest isn't for your guild."
+    failed: "<red>The second vault can't go here. Try another spot inside your guild's land."
+  open:
+    members_only: '<red>Only members of this guild can open this vault.'
+    not_placed: "<red>Your guild hasn't placed a second vault. Use <white>/g getvault 2</white>."
+  break:
+    warning: '<yellow>This is your guild''s second vault.'
+    warning_drop: '<yellow>Breaking it drops every item inside.'
+    warning_keep: '<yellow>Breaking it keeps the items stored for when you place it again.'
+    dropped: '<yellow>Second vault broken. Its items dropped. Pick them up quickly.'
+    kept: '<yellow>Second vault removed. Its items are stored until you place it again with <white>/g getvault 2</white>.'
+
+# REQ-260 to REQ-262: Hall of Prestige themes and Hall Display.
+hall:
+  pick:
+    title: "Choose a Hall Theme"
+    name: "<gold><theme> theme"
+    intro: "<gray>Its Hall of Prestige cosmetics:"
+    line: "<white>· <slot>: <value>"
+    owned: "<dark_gray>Your guild already owns this theme"
+    action: "<yellow>Click to choose"
+    back: "<gray>Back"
+    bedrock_content: "Choose the Hall theme this prestige earns. Your guild gets every cosmetic in it."
+    bedrock_cosmetics: "<list>"
+  display:
+    title: "Hall Display"
+    subtitle: "<gray><guild> · Prestige <tier> · <owned> of 6 themes"
+    statue_name: "<gold><name>"
+    statue_tier: "<white>Prestige <tier>"
+    statue_skin: "<gray>Skin: <white><name>"
+    statue_note: "<gray>Shows when your guild takes a pedestal in the Hall of Prestige."
+    view_only: "<dark_gray>Members who can manage the banner can change it."
+    picks_title: "<yellow>Choose a theme (<count> to pick)"
+    picks_body: "<gray>Your guild has prestiged more times than it has themes."
+    pick_action: "<yellow>Choose a theme"
+    pick_subtitle: "<gray>Choose a theme · <count> to pick"
+    none_title: "<gold>No Hall themes yet"
+    none_body: "<gray>Every prestige earns a Hall theme of your choice."
+    slot: "<gold><slot>"
+    slot_value: "<white><value> <gray>(<theme>)"
+    slot_subtitle: "<gray><slot>: choose from the themes your guild owns"
+    option: "<white><value>"
+    option_wearing: "<green>Wearing"
+    option_owned: "<yellow><theme> · click to wear"
+    option_locked: "<dark_gray>Earn this theme at a prestige"
+    use_default: "<gray>Use the default"
+    wear_all: "<gold>Wear a whole theme"
+    preview: "<aqua>Preview in the world"
+    armor: "<gold>Statue armor"
+    armor_subtitle: "<gray>Wear the armor you want on the statue, then copy it. Only the look is copied; you keep your armor."
+    armor_default: "<gray><part>: <white><material> <dark_gray>(default)"
+    armor_plain: "<gray><part>: <white><material>"
+    armor_trimmed: "<gray><part>: <white><material> <gray>· <white><trim> <gray>trim, <white><trim_material>"
+    armor_copy: "<green>Copy what I'm wearing"
+    armor_reset: "<red>Back to default"
+    wear_all_subtitle: "<gray>Set every slot to one theme"
+    skin: "<gold>Statue skin"
+    skin_value: "<white><name>"
+    skin_owner: "<gray>Guild owner (default)"
+    skin_subtitle: "<gray>Whose skin the statue wears · Page <page>/<pages>"
+    bedrock_slot: "<slot>: <value>"
+    bedrock_wear: "Wear the <theme> theme"
+  feedback:
+    saved: "<green>Hall display saved."
+    not_allowed: "<red>Only members who can manage the guild banner can change the Hall display."
+    no_picks: "<red>Your guild has no theme left to pick, or already owns that theme."
+    not_owned: "<red>Your guild doesn't own that theme yet."
+    not_a_member: "<red>That player isn't in your guild."
+    failed: "<red>The Hall display couldn't be loaded or saved. Try again."
+    preview: "<aqua>Hall preview for <seconds>s, only you can see it. <gray>Pose: <pose>."
+    preview_still: "<aqua>Hall preview for <seconds>s, only you can see it. <gray>Pose: <pose> (shown standing; this server can't animate it)."
+    armor_none: "<red>You aren't wearing any armor the statue can copy."

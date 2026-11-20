@@ -14,9 +14,6 @@ import net.lumalyte.lg.domain.entities.RelationType
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.values.*
 import net.lumalyte.lg.utils.GuildDisplayUtils
-import me.clip.placeholderapi.PlaceholderAPI
-import net.kyori.adventure.text.minimessage.MiniMessage
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.Sound
 import org.slf4j.LoggerFactory
@@ -94,7 +91,8 @@ class ChatServiceBukkit(
     }
 
     private fun formatGuildTag(guild: Guild, brackets: Boolean = true): String {
-        val displayedGuild = guild.copy(emoji = nexoEmojiService.getEmojiPlaceholder(guild.emoji))
+        // An emoji whose glyph no longer resolves comes back empty; Guild rejects that, so drop it.
+        val displayedGuild = guild.copy(emoji = displayEmoji(nexoEmojiService.getEmojiPlaceholder(guild.emoji)))
         return GuildDisplayUtils.createGuildTag(displayedGuild, brackets)
     }
 
@@ -263,9 +261,7 @@ class ChatServiceBukkit(
 
                 // Get online members of the specific party
                 val partyMembers = partyService.getOnlinePartyMembers(activeParty.id)
-                partyMembers.filter { playerId ->
-                    getVisibilitySettings(playerId).partyChatVisible
-                }.toSet()
+                net.lumalyte.lg.domain.values.PartyRecipients.of(partyMembers, senderId) { getVisibilitySettings(it).partyChatVisible }
             }
             ChatChannel.PUBLIC -> {
                 // Return all online players for public chat
@@ -352,73 +348,19 @@ class ChatServiceBukkit(
         }
     }
 
+    /**
+     * REQ-223: like guild chat: [Party], then the sender's guild name and name.
+     * Built here rather than through PlaceholderAPI, so no raw placeholder can leak into chat.
+     */
+    @Suppress("UNUSED_PARAMETER")
     private fun formatPartyMessage(senderId: UUID, senderName: String, message: String, guildTag: String): String {
-        try {
-            val config = configService.loadConfig().party
-
-            if (!config.partyChatEnabled) {
-                // Fallback to basic formatting if disabled
-                return if (guildTag.isNotEmpty()) {
-                    lang.plain("notification.chat.party.with_tag", "tag" to guildTag, "player" to senderName, "message" to message)
-                } else {
-                    lang.plain("notification.chat.party.without_tag", "player" to senderName, "message" to message)
-                }
-            }
-
-            // Get the party name for the sender using the current active party
-            val party = getCurrentActiveParty(senderId)
-            val partyName = party?.name ?: lang.raw("notification.chat.party.default_name")
-
-            // Get the player object for PlaceholderAPI
-            val player = Bukkit.getPlayer(senderId)
-            if (player == null) {
-                logger.warn("Player $senderId not found for party message formatting")
-                return lang.plain("notification.chat.party.without_tag", "player" to senderName, "message" to message)
-            }
-
-            // Determine if this is a guild-internal party (single guild only)
-            val isGuildInternalParty = party != null && party.guildIds.size == 1
-
-            // Choose the appropriate format based on whether it's guild-internal and config setting
-            var chatFormat = if (isGuildInternalParty && config.useSimplifiedGuildPartyFormat) {
-                config.guildPartyChatFormat // Simplified format for Guild_Chat, Officer_Chat, etc.
-            } else {
-                config.partyChatFormat // Full format for multi-guild parties or if simplified format is disabled
-            }
-
-            // Parse MiniMessage from config format string FIRST if enabled
-            // This allows config to have things like: "<gradient:blue:cyan>[{party_name}]</gradient>"
-            if (config.useMiniMessage) {
-                try {
-                    val miniMessage = MiniMessage.miniMessage()
-                    val component = miniMessage.deserialize(chatFormat)
-                    chatFormat = LegacyComponentSerializer.legacySection().serialize(component)
-                } catch (e: Exception) {
-                    logger.warn("Failed to parse MiniMessage in config format: ${e.message}")
-                    // Continue with unparsed format
-                }
-            }
-
-            // Build the format string with internal placeholders (using {} to distinguish from PlaceholderAPI)
-            var formattedMessage = chatFormat
-                .replace("{lumaguilds_party_name}", partyName)
-                .replace("{player_name}", senderName)
-                .replace("{message}", message)
-
-            // Parse all PlaceholderAPI placeholders (including %lumaguilds_guild_rank%, %lumaguilds_rel_<player>_status%, etc.)
-            formattedMessage = PlaceholderAPI.setPlaceholders(player, formattedMessage)
-
-            return formattedMessage
-        } catch (e: Exception) {
-            // Service operation - catching all exceptions to prevent service failure
-            logger.error("Error formatting party message", e)
-            // Fallback to basic formatting
-            return if (guildTag.isNotEmpty()) {
-                lang.plain("notification.chat.party.with_tag", "tag" to guildTag, "player" to senderName, "message" to message)
-            } else {
-                lang.plain("notification.chat.party.without_tag", "player" to senderName, "message" to message)
-            }
-        }
+        val guild = memberService.getPlayerGuilds(senderId).firstOrNull()?.let(guildService::getGuild)
+        return lang.plain(
+            "notification.chat.party.line",
+            "guild" to (guild?.name ?: lang.raw("notification.chat.party.default_name")),
+            "player" to senderName,
+            "message" to message,
+        )
     }
 
     private fun guildChatPlayer(senderId: UUID, senderName: String, guild: Guild?): String {
@@ -674,6 +616,10 @@ class ChatServiceBukkit(
     }
 
     companion object {
+        /** A value Guild accepts as its emoji (`:name:`), or null to show none. */
+        internal fun displayEmoji(placeholder: String?): String? =
+            placeholder?.takeIf { it.length > 2 && it.startsWith(":") && it.endsWith(":") }
+
         const val UNKNOWN_PLAYER = "Unknown"
 
         /**

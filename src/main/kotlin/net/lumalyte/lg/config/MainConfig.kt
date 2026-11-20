@@ -42,11 +42,23 @@ data class MainConfig(
     var seasonalElo: SeasonalEloConfig = SeasonalEloConfig(),
     var warBanner: WarBannerConfig = WarBannerConfig(),
     var discordGuildRoles: DiscordGuildRolesConfig = DiscordGuildRolesConfig(),
+    var discordPrestigeRoles: DiscordPrestigeRolesConfig = DiscordPrestigeRolesConfig(),
     var guildList: GuildListConfig = GuildListConfig(),
     var recruitment: RecruitmentConfig = RecruitmentConfig(),
+    var advancementXp: AdvancementXpConfig = AdvancementXpConfig(),
     // Runtime feature gates. Legacy staging defaults are upgraded by ConfigCompatibilityMigrator.
     var chapterTwoRewardsEnabled: Boolean = true,
     var chapterTwoGoldCostsEnabled: Boolean = false
+)
+
+/**
+ * REQ-302: a guild advancement completed by a member on the same connection as another online member
+ * of their guild pays no guild XP. [gatewayPlayers]: a connection shared by this many online players
+ * server-wide is a gateway (proxy, Bedrock bridge, school), not one person, and never blocks; 0 = off.
+ */
+data class AdvancementXpConfig(
+    val sharedConnectionCheck: Boolean = true,
+    val gatewayPlayers: Int = 4,
 )
 
 /**
@@ -67,6 +79,8 @@ data class DiscordGuildRolesConfig(
     var enabled: Boolean = true,
     var minimumLevel: Int = 50,
     var roleNameFormat: String = "Guild • <guild>",
+    /** REQ-299: with [enabled] off, delete the roles this server created (its own records) once. */
+    var removeOnDisable: Boolean = false,
 ) {
     init {
         require(minimumLevel in 1..100) { "discord.guild_roles.minimum_level must be between 1 and 100" }
@@ -75,6 +89,19 @@ data class DiscordGuildRolesConfig(
             "discord.guild_roles.role_name_format must contain <guild>"
         }
     }
+}
+
+/**
+ * REQ-298: one Discord role per prestige tier (1..6), given to the members a guild had when it first
+ * reached that tier. [iconPath] is a PNG per tier ("<tier>" is replaced), relative to the server folder,
+ * set as the role icon when the role has none.
+ */
+data class DiscordPrestigeRolesConfig(
+    var enabled: Boolean = false,
+    var roles: Map<Int, String> = emptyMap(),
+    var iconPath: String = "",
+) {
+    fun role(tier: Int): String? = roles[tier]?.takeIf { it.isNotBlank() }
 }
 
 data class SeasonalEloConfig(
@@ -166,7 +193,9 @@ data class GuildConfig(
     // Ranks and Members
     var maxCustomRanks: Int = 10,
     var maxRankNameLength: Int = 16,
-    var maxMembersPerGuild: Int = 50,
+    var maxMembersPerGuild: Int = 100,
+    /** REQ-190: member cap by level. */
+    var memberCapacity: MemberCapacityConfig = MemberCapacityConfig(),
     
     // Home System
     var homeTeleportCooldownSeconds: Int = 5,
@@ -199,6 +228,8 @@ data class GuildConfig(
 
     // Emoji Grants — map guild names to emoji permission nodes
     var emojiGrants: Map<String, String> = emptyMap(),
+    // REQ-216/217: the emojis a guild may pick, and guild-only logos
+    var emojiChoices: net.lumalyte.lg.domain.values.GuildEmojiRules = net.lumalyte.lg.domain.values.GuildEmojiRules(),
     val creationCooldown: net.lumalyte.lg.domain.values.GuildCreationCooldown =
         net.lumalyte.lg.domain.values.GuildCreationCooldown()
 )
@@ -315,10 +346,12 @@ data class CombatConfig(
     // War System
     var warDeclarationCooldownHours: Int = 24,
     var warFarmingCooldownHours: Int = 1,
-    var warDurationHours: Int = 168, // 1 week
+    var warDurationHours: Int = 720, // 30-day maximum for timed wars
     var warEndGracePeriodMinutes: Int = 30,
     var maxSimultaneousWars: Int = 3,
     var warKillWinTarget: Int = 25,
+    /** Largest kill objective a guild may choose for a war (REQ-230). */
+    var warKillTargetMax: Int = 50,
 
     // Experience and Rewards
     var killExperience: Int = 10,
@@ -414,17 +447,10 @@ data class PartyConfig(
     var minPartyNameLength: Int = 1,
     var defaultPartyDurationHours: Int = 24,
     var maxSimultaneousPartiesPerGuild: Int = 3,
-    var allowPrivateParties: Boolean = true, // Allow creation of private guild-only parties
 
     // Party Chat
     var partyChatEnabled: Boolean = true,
     var partyChatPriority: Int = 100,
-    var useMiniMessage: Boolean = true, // Enable MiniMessage formatting support (allows tags like <gradient>, <rainbow>, etc.)
-    var partyChatFormat: String = "[{lumaguilds_party_name}] %lumaguilds_guild_rank% %lumaguilds_guild_emoji%%lumaguilds_guild_tag% %luckperms-suffix% {player_name} ⋙ {message}",
-    var useSimplifiedGuildPartyFormat: Boolean = true, // Use simplified format for guild-internal parties (Guild_Chat, Officer_Chat, etc.)
-    var guildPartyChatFormat: String = "[{lumaguilds_party_name}] %lumaguilds_guild_rank% {player_name} ⋙ {message}", // Simplified format for guild-internal parties (no guild tag/emoji spam)
-    var partyChatPrefix: String = "[PARTY]",
-    var partyChatSuffix: String = "",
     var chatInputListenerPriority: String = "HIGHEST", // HIGHEST, HIGH, NORMAL, LOW, LOWEST
     var partyChatListenerPriority: String = "LOWEST", // Event priority for party chat auto-routing after /pc switch (LOWEST = runs first, before ChatControl)
 
@@ -433,10 +459,39 @@ data class PartyConfig(
     var defaultToAllMembers: Boolean = true
 )
 
+/** REQ-154 member credits. Disabled unless an operator enables them. */
+data class PrestigeMemberCreditsConfig(
+    var enabled: Boolean = false,
+    var minTenureHours: Long = 24,
+    var commands: List<String> = emptyList(),
+    var firstReachCommands: List<String> = emptyList(),
+)
+
+/** REQ-164 prestige fanfare switches. */
+data class PrestigeFanfareConfig(
+    var enabled: Boolean = true,
+    var serverWide: Boolean = true,
+    var memberTitle: Boolean = true,
+    /** REQ-251: members on Java with the pack see the animated rank-up instead of the plain title. */
+    var memberAnimation: Boolean = true,
+)
+
+/** Uncoloured fallback; the shipped config.yml carries the coloured badges. */
+val DEFAULT_PRESTIGE_BADGES = listOf("", "✦I", "✦II", "✦III", "✦IV", "✦V", "✦VI")
+
 data class PrestigeConfig(
     var enabled: Boolean = true,
     var maxCount: Int = 6,
-    var fees: List<Long> = listOf(10_000L, 20_000L, 30_000L, 30_000L, 30_000L, 30_000L),
+    // REQ-178: 20% below the original 10k/20k/30k fees (Fain, 2026-11-09).
+    var fees: List<Long> = listOf(8_000L, 16_000L, 24_000L, 24_000L, 24_000L, 24_000L),
+    var memberCredits: PrestigeMemberCreditsConfig = PrestigeMemberCreditsConfig(),
+    /** REQ-155 placeholder badges; index 0 is "no prestige". */
+    var badges: List<String> = DEFAULT_PRESTIGE_BADGES,
+    var fanfare: PrestigeFanfareConfig = PrestigeFanfareConfig(),
+    var carryOver: PrestigeCarryOverConfig = PrestigeCarryOverConfig(),
+    var perks: PrestigePerksConfig = PrestigePerksConfig(),
+    var discord: net.lumalyte.lg.application.services.PrestigeDiscordSettings =
+        net.lumalyte.lg.application.services.PrestigeDiscordSettings(),
 ) {
     init {
         require(maxCount in 1..6) { "Prestige lifetime maximum must be between 1 and 6" }
@@ -448,6 +503,36 @@ data class PrestigeConfig(
     fun feeFor(currentPrestigeCount: Int): Long {
         require(currentPrestigeCount in 0 until maxCount)
         return fees[currentPrestigeCount]
+    }
+}
+
+/** REQ-180, REQ-181: the prestige tier at which each practical perk unlocks. */
+data class PrestigePerksConfig(
+    val secondAllyHomeTier: Int = 2,
+    val extraStallTier: Int = 3,
+    /** REQ-242: the tier that unlocks a second guild vault. */
+    val secondVaultTier: Int = 6,
+)
+
+/** REQ-175: XP earned past level 100 can start the next climb, up to the start of [landingLevel]. */
+data class PrestigeCarryOverConfig(
+    var enabled: Boolean = false,
+    var landingLevel: Int = 5,
+) {
+    init {
+        require(landingLevel in 1..99) { "Prestige carry-over landing level must be between 1 and 99" }
+    }
+}
+
+/** REQ-178: every guild earns [multiplier] times activity XP on [days] in [zone]. */
+data class WeekendBoostConfig(
+    val enabled: Boolean = true,
+    val multiplier: Double = 2.0,
+    val days: Set<java.time.DayOfWeek> = setOf(java.time.DayOfWeek.SATURDAY, java.time.DayOfWeek.SUNDAY),
+    val zone: java.time.ZoneId = java.time.ZoneId.of("America/New_York"),
+) {
+    init {
+        require(multiplier.isFinite() && multiplier >= 1.0) { "Weekend XP multiplier must be at least 1" }
     }
 }
 
@@ -489,7 +574,8 @@ data class ProgressionConfig(
     // 0 in either field disables the cleanup task entirely.
     var transactionRetentionDays: Int = 90,
     var transactionCleanupIntervalHours: Int = 24,
-    val xpBoost: net.lumalyte.lg.domain.values.ExperienceBoost? = null
+    val xpBoost: net.lumalyte.lg.domain.values.ExperienceBoost? = null,
+    val weekendBoost: WeekendBoostConfig = WeekendBoostConfig()
 )
 
 object ChapterTwoExperiencePolicies {
@@ -538,6 +624,7 @@ object ChapterTwoExperiencePolicies {
         enabled(ExperienceSource.WARDEN_KILL, 600, 6_000, CapPeriod.WEEKLY)
 
         enabled(ExperienceSource.WEEKLY_ACTIVITY, 1, 0, CapPeriod.UNLIMITED)
+        enabled(ExperienceSource.GUILD_ADVANCEMENT, 1, 0, CapPeriod.UNLIMITED)
         enabled(ExperienceSource.ADMIN_BONUS, 1, 0, CapPeriod.UNLIMITED)
         return policies.toMap()
     }
@@ -545,7 +632,10 @@ object ChapterTwoExperiencePolicies {
 
 object ChapterTwoTargetPools {
     fun defaultMaterials(): Map<String, Set<String>> = mapOf(
-        "common_break" to setOf("GRASS_BLOCK", "DIRT", "STONE", "DEEPSLATE", "NETHERRACK", "SAND", "GRAVEL"),
+        // REQ-257: natural ground, stone and logs players actually dig and chop.
+        "common_break" to setOf(
+            "GRASS_BLOCK", "DIRT", "COARSE_DIRT", "PODZOL", "MYCELIUM", "ROOTED_DIRT", "MUD", "CLAY", "MOSS_BLOCK", "STONE", "DEEPSLATE", "TUFF", "ANDESITE", "DIORITE", "GRANITE", "CALCITE", "SANDSTONE", "RED_SANDSTONE", "SAND", "RED_SAND", "GRAVEL", "SNOW_BLOCK", "NETHERRACK", "SOUL_SAND", "SOUL_SOIL", "BLACKSTONE", "BASALT", "END_STONE", "OAK_LOG", "SPRUCE_LOG", "BIRCH_LOG", "JUNGLE_LOG", "ACACIA_LOG", "DARK_OAK_LOG", "MANGROVE_LOG", "CHERRY_LOG", "PALE_OAK_LOG", "CRIMSON_STEM", "WARPED_STEM",
+        ),
         "common_place" to setOf("DIRT", "STONE", "COBBLESTONE", "OAK_PLANKS", "SPRUCE_PLANKS", "BRICKS"),
         "common_craft" to setOf("STICK", "TORCH", "CHEST", "CRAFTING_TABLE"),
         "utility_craft" to setOf("BUCKET", "COMPASS", "CLOCK", "FISHING_ROD"),
@@ -554,7 +644,10 @@ object ChapterTwoTargetPools {
     )
 
     fun defaultEntities(): Map<String, Set<String>> = mapOf(
-        "normal_mobs" to setOf("ZOMBIE", "SKELETON", "CREEPER", "SPIDER", "ENDERMAN"),
+        // REQ-257: every hostile mob except the bosses, which have their own sources; neutral mobs stay out.
+        "normal_mobs" to setOf(
+            "ZOMBIE", "ZOMBIE_VILLAGER", "HUSK", "DROWNED", "SKELETON", "STRAY", "BOGGED", "WITHER_SKELETON", "CREEPER", "SPIDER", "CAVE_SPIDER", "ENDERMAN", "ENDERMITE", "SILVERFISH", "WITCH", "SLIME", "MAGMA_CUBE", "BLAZE", "GHAST", "PHANTOM", "GUARDIAN", "PILLAGER", "VINDICATOR", "EVOKER", "RAVAGER", "VEX", "HOGLIN", "ZOGLIN", "PIGLIN_BRUTE", "SHULKER", "BREEZE", "CREAKING",
+        ),
     )
 }
 
@@ -749,3 +842,16 @@ data class NameFilterNormalization(
     // Collapse repeated characters: "heeelllooo" → "hello"
     var collapseRepeats: Boolean = true
 )
+
+/** REQ-190: `base + per_step x floor(level / step_levels)`, at most [max]. */
+data class MemberCapacityConfig(
+    val enabled: Boolean = true,
+    val base: Int = 10,
+    val perStep: Int = 5,
+    val stepLevels: Int = 5,
+    val max: Int = 100,
+) {
+    init {
+        require(base >= 1 && perStep >= 0 && stepLevels >= 1 && max >= base) { "Invalid member capacity settings" }
+    }
+}

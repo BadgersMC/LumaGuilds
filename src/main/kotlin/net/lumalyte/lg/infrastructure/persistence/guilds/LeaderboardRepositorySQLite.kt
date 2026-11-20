@@ -220,17 +220,25 @@ class LeaderboardRepositorySQLite(private val storage: Storage<Database>) : Lead
     }
 
     private fun mapResultSetToLeaderboardSnapshot(rs: co.aikar.idb.DbRow): LeaderboardSnapshot {
-        // For simplicity, we'll store entries as JSON in the database
-        // In a real implementation, you'd parse this back to a list of LeaderboardEntry
+        val createdAt = Instant.ofEpochMilli(longColumn(rs, "snapshot_time"))
+        // Rows written before the period bounds were stored have "{}" metadata: treat them as
+        // ending at the snapshot time (a start equal to the end would fail LeaderboardSnapshot's check).
+        val metadata = rs.getString("metadata").orEmpty()
+        val end = SNAPSHOT_END.find(metadata)?.groupValues?.get(1)?.toLongOrNull()?.let(Instant::ofEpochMilli) ?: createdAt
+        val start = SNAPSHOT_START.find(metadata)?.groupValues?.get(1)?.toLongOrNull()?.let(Instant::ofEpochMilli)
+            ?.takeIf { it.isBefore(end) } ?: end.minusMillis(1)
         return LeaderboardSnapshot(
             id = UUID.fromString(rs.getString("id")),
             type = LeaderboardType.valueOf(rs.getString("leaderboard_type")),
-            periodStart = Instant.ofEpochMilli(rs.getLong("snapshot_time")), // Use snapshot time as period start
-            periodEnd = Instant.ofEpochMilli(rs.getLong("snapshot_time")), // Use snapshot time as period end for simplicity
+            periodStart = start,
+            periodEnd = end,
             data = rs.getString("entries_data"),
-            createdAt = Instant.ofEpochMilli(rs.getLong("snapshot_time"))
+            createdAt = createdAt,
+            period = runCatching { LeaderboardPeriod.valueOf(rs.getString("period")) }.getOrDefault(LeaderboardPeriod.ALL_TIME),
         )
     }
+
+    private fun longColumn(rs: co.aikar.idb.DbRow, column: String): Long = (rs.get<Any>(column) as Number).toLong()
 
     private fun mapResultSetToLeaderboardConfig(rs: co.aikar.idb.DbRow): LeaderboardConfig {
         return LeaderboardConfig(
@@ -357,15 +365,13 @@ class LeaderboardRepositorySQLite(private val storage: Storage<Database>) : Lead
         """.trimIndent()
 
         return try {
-            // For simplicity, we'll just store placeholder data
-            // In a real implementation, you'd serialize the entries and metadata
             storage.connection.executeUpdate(sql,
                 snapshot.id.toString(),
                 snapshot.type.name,
-                LeaderboardPeriod.ALL_TIME.name, // Use ALL_TIME as default period
+                snapshot.period.name,
                 snapshot.createdAt.toEpochMilli(),
                 snapshot.data,
-                "{}"  // Placeholder for metadata JSON
+                """{"periodStart":${snapshot.periodStart.toEpochMilli()},"periodEnd":${snapshot.periodEnd.toEpochMilli()}}"""
             ) > 0
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to save leaderboard snapshot", e)
@@ -382,7 +388,7 @@ class LeaderboardRepositorySQLite(private val storage: Storage<Database>) : Lead
         """.trimIndent()
 
         return try {
-            val results = storage.connection.getResults(sql, LeaderboardType.KILLS.name, period.name, limit)
+            val results = storage.connection.getResults(sql, type.snapshotType.name, period.name, limit)
             results.map { mapResultSetToLeaderboardSnapshot(it) }
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to get leaderboard snapshots", e)
@@ -544,5 +550,10 @@ class LeaderboardRepositorySQLite(private val storage: Storage<Database>) : Lead
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to update last updated timestamps", e)
         }
+    }
+
+    private companion object {
+        val SNAPSHOT_START = Regex("\"periodStart\"\\s*:\\s*(-?\\d+)")
+        val SNAPSHOT_END = Regex("\"periodEnd\"\\s*:\\s*(-?\\d+)")
     }
 }

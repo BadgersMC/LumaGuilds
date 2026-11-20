@@ -42,8 +42,21 @@ object QuestDisplayFormatter {
                 "${actionVerb(quest.action)} $amount ${countedTarget(quest.target, quest.targetCount, quest.action)}"
         }
         val rendered = conditions(quest.conditions)
-        return if (rendered.isBlank()) objective else "$objective $rendered"
+        val described = if (rendered.isBlank()) objective else "$objective $rendered"
+        return requirement(quest)?.let { "$described ($it)" } ?: described
     }
+
+    /** REQ-177: the counting rule players otherwise only learn by failing. */
+    private fun requirement(quest: QuestDefinition): String? = when {
+        quest.action == QuestAction.MINE_BLOCKS &&
+            quest.target.provenancePolicy == net.lumalyte.lg.domain.entities.BlockProvenancePolicy.NATURAL_ONLY ->
+            "blocks placed by players don't count"
+        quest.action == QuestAction.HARVEST_CROPS && quest.target.id.substringAfterLast('/') !in GROWN_PLANTS ->
+            "fully grown only"
+        else -> null
+    }
+
+    private val GROWN_PLANTS = setOf("sugar_cane", "cactus", "kelp", "bamboo")
 
     private fun actionVerb(action: QuestAction): String = when (action) {
         QuestAction.KILL_PLAYERS, QuestAction.KILL_MOBS -> "Kill"

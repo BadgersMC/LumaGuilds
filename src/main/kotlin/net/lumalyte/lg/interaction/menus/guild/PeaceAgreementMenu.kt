@@ -106,7 +106,7 @@ class PeaceAgreementMenu(
 
             val warItem = ItemStack.of(Material.RED_WOOL)
                 .name(lang.gui("menu.peace_agreement.war.name", "guild" to (enemyGuild?.name ?: lang.raw("general.unknown"))))
-                .lore(lang.gui("menu.peace_agreement.war.duration", "days" to war.duration.toDays()))
+                .lore(if (war.objectiveBased) lang.gui("war_duration.objective") else lang.gui("menu.peace_agreement.war.duration", "days" to war.duration.toDays()))
                 .lore(lang.gui("menu.peace_agreement.war.status", "status" to war.status))
                 .lore(lang.gui("menu.common.blank"))
                 .lore(lang.gui("menu.peace_agreement.war.propose"))

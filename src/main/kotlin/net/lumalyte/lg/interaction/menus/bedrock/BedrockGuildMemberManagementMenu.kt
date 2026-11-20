@@ -40,6 +40,7 @@ class BedrockGuildMemberManagementMenu(
             .button(lang.bedrock("bedrock.member_management.button.kick"))
             .button(lang.bedrock("bedrock.member_management.button.promote"))
             .button(lang.bedrock("bedrock.member_management.button.demote"))
+            .button(lang.bedrock("guild_page.nav.bans"))
             .validResultHandler { response ->
                 when (response.clickedButtonId()) {
                     0 -> openMemberList()
@@ -47,6 +48,7 @@ class BedrockGuildMemberManagementMenu(
                     2 -> openKickMenu()
                     3 -> openPromoteMenu()
                     4 -> openDemoteMenu()
+                    5 -> bedrockNavigator.openMenu(BedrockGuildBannedPlayersMenu(menuNavigator, player, guild, logger))
                 }
             }
             .closedOrInvalidResultHandler { _, _ ->

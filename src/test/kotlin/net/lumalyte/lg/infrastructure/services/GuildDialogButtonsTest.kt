@@ -26,10 +26,17 @@ internal class GuildDialogButtonsTest {
                         else -> (width / 2) * 2
                     }
                 }).single()
-                assertEquals((width - 2) * 2, measured.second)
+                // REQ-240: vanilla scrolls labels wider than width - 4, which made the art drift.
+                assertEquals((width - 4) * 2, measured.second)
                 assertNull(label.clickEvent())
             }
         }
+    }
+
+    @Test fun artStartsOnePixelLeftOfTheCentredLabelSoItStillCoversTheButton() {
+        val label = assertNotNull(art(GuiTheme.ENTHUSIA).label(Component.text("Browse"), 180))
+        val first = PlainTextComponentSerializer.plainText().serialize(label).first()
+        assertEquals('\uE000', first)
     }
 
     @Test fun unsupportedLabelsAndUninstalledContractKeepNativeRendering() {

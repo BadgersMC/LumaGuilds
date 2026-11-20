@@ -2,10 +2,10 @@
 title: LFG & Invites
 audience: player
 topic: lfg
-summary: Manage guild invites, decline requests, find guilds via LFG, and kick members.
-keywords: [lfg, invite, accept, decline, kick, invites]
+summary: Manage guild invites, decline requests, find guilds via LFG, and kick or ban members.
+keywords: [lfg, invite, accept, decline, kick, ban, invites]
 related: [guilds, ranks]
-updated: 2026-05-13
+updated: 2026-11-10
 ---
 
 # LFG & Invites
@@ -21,6 +21,8 @@ Manage guild invites, decline requests, find guilds via LFG, and kick members.
 | `/g decline <guild>` | `lumaguilds.guild.decline` | Decline an invite from a guild. |
 | `/g lfg` | `lumaguilds.guild.lfg` | Toggle "looking for guild" status. |
 | `/g kick <player>` | `lumaguilds.guild.kick` | Kick a member from your guild. |
+| `/g ban <player> [confirm]` | `lumaguilds.guild.ban` | Remove a player and stop them rejoining. |
+| `/g unban <player>` | `lumaguilds.guild.ban` | Let a banned player join again. |
 
 ## How it works
 
@@ -86,8 +88,20 @@ Run `/g kick <player>` to remove them from your guild:
 
 This works whether they're online or offline. Your rank must outrank theirs — otherwise the kick is refused. (See [Ranks & Permissions](ranks.md) for rank hierarchy.)
 
+## Banning a player
+
+A ban kicks the player (if they are a member) and blocks invites, applications and join requests from them until someone unbans them. You need the Manage Members permission and, for a member, a higher rank than theirs. The guild leader can't be banned.
+
+```text
+/g ban Steve
+/g ban Steve confirm
+```
+
+The first command only says what will happen; add `confirm` to do it. You can also ban from a member's page in `/g info`, and unban from **Banned players** on the same page, or with `/g unban <player>`.
+
 ## Gotchas
 
+- Online kicks from the menu now respect rank priority too (an officer could kick a co-leader there — fixed in 2026).
 - Offline kicks now respect rank priority (used to let mods kick anyone offline — fixed in 2026).
 - The promote/demote confirmation menu shows the real player name even when the target is offline (used to say "Unknown Player" — fixed in 2026).
 - Open vs invite-only is a guild-level setting; even with `/g lfg` on, you can't auto-join an invite-only guild.

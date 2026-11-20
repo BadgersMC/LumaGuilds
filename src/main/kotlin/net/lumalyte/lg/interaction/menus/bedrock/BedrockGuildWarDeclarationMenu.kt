@@ -64,19 +64,22 @@ class BedrockGuildWarDeclarationMenu(
 
         val guildNames = allGuilds.map { it.name }
         val guildOptions = if (guildNames.isEmpty()) listOf(lang.bedrock("bedrock.war_declaration.no_target_option")) else guildNames
-        val durationOptions = listOf(
-            lang.bedrock("bedrock.war_declaration.duration.one_day"),
-            lang.bedrock("bedrock.war_declaration.duration.three_days"),
-            lang.bedrock("bedrock.war_declaration.duration.seven_days"),
-            lang.bedrock("bedrock.war_declaration.duration.fourteen_days"),
-            lang.bedrock("bedrock.war_declaration.duration.thirty_days")
-        )
+        val maximumDuration = Duration.ofHours(mainConfig.combat.warDurationHours.coerceAtLeast(1).toLong())
+        val offeredDurations = listOf(
+            Duration.ofDays(1) to lang.bedrock("bedrock.war_declaration.duration.one_day"),
+            Duration.ofDays(3) to lang.bedrock("bedrock.war_declaration.duration.three_days"),
+            Duration.ofDays(7) to lang.bedrock("bedrock.war_declaration.duration.seven_days"),
+            Duration.ofDays(14) to lang.bedrock("bedrock.war_declaration.duration.fourteen_days"),
+            Duration.ofDays(30) to lang.bedrock("bedrock.war_declaration.duration.thirty_days"),
+        ).filter { it.first <= maximumDuration }
+        val availableDurations = offeredDurations.ifEmpty {
+            listOf(maximumDuration to lang.bedrock("war_duration.bedrock_hours", "hours" to maximumDuration.toHours()))
+        }
+        val durationChoices = availableDurations.map { it.first }
+        val durationOptions = availableDurations.map { it.second } + lang.bedrock("war_duration.bedrock_until_target")
         val guildBalance = bankService.getBalance(guild.id)
         val killCap = warService.getWarKillWinTarget().coerceAtLeast(1)
-        val killTargets = (listOf(5, 10, 25, 50).filter { it <= killCap } + killCap)
-            .filter { it > 0 }
-            .distinct()
-            .sorted()
+        val killTargets = warService.killTargetOptions()
         val survivalTargets = listOf(12, 24, 48, 72)
         val claimTargets = listOf(1, 3, 5, 10)
 
@@ -91,7 +94,7 @@ class BedrockGuildWarDeclarationMenu(
             .dropdown(
                 lang.bedrock("bedrock.war_declaration.duration.label"),
                 durationOptions,
-                2 // Default to 7 days
+                durationChoices.indexOf(Duration.ofDays(7)).coerceAtLeast(0)
             )
             .toggle(
                 lang.bedrock("bedrock.war_declaration.rated.label"),
@@ -185,14 +188,8 @@ class BedrockGuildWarDeclarationMenu(
                     return@validResultHandler
                 }
 
-                val duration = when (durationIndex) {
-                    0 -> Duration.ofDays(1)
-                    1 -> Duration.ofDays(3)
-                    2 -> Duration.ofDays(7)
-                    3 -> Duration.ofDays(14)
-                    4 -> Duration.ofDays(30)
-                    else -> Duration.ofDays(7)
-                }
+                val objectiveBased = durationIndex == durationChoices.size
+                val duration = durationChoices.getOrElse(durationIndex) { durationChoices.first() }
 
                 val objectives = mutableSetOf<WarObjective>()
                 if (territoryObjective) {
@@ -232,7 +229,7 @@ class BedrockGuildWarDeclarationMenu(
                     wagerSlider.toInt()
                 }
 
-                handleWarDeclaration(targetGuild, duration, objectives, terms, wagerAmount, rated)
+                handleWarDeclaration(targetGuild, duration, objectives, terms, wagerAmount, rated, objectiveBased)
             }
             .closedOrInvalidResultHandler { _, _ ->
                 bedrockNavigator.goBack()
@@ -247,6 +244,7 @@ class BedrockGuildWarDeclarationMenu(
         terms: String,
         wagerAmount: Int,
         rated: Boolean,
+        objectiveBased: Boolean,
     ) {
         if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.DECLARE_WAR)) {
             player.sendMessage(lang.msg("bedrock.war_declaration.feedback.no_permission"))
@@ -284,20 +282,19 @@ class BedrockGuildWarDeclarationMenu(
         // REQ-024: no auto-accept — every declaration goes through the accept/decline
         // flow. REQ-039: escrow is handled by the war service on acceptance; the menu
         // no longer moves bank funds itself.
-        val declaration = warService.createWarDeclaration(
-            declaringGuildId = guild.id,
-            defendingGuildId = targetGuild.id,
-            duration = duration,
-            objectives = objectives,
-            wagerAmount = wagerAmount,
-            terms = if (terms.isNotBlank()) terms else null,
-            actorId = player.uniqueId,
-            rated = rated,
-        )
+        val declaration = if (objectiveBased) {
+            warService.createObjectiveWarDeclaration(
+                guild.id, targetGuild.id, objectives, wagerAmount, terms.takeIf { it.isNotBlank() }, player.uniqueId, rated,
+            )
+        } else {
+            warService.createWarDeclaration(
+                guild.id, targetGuild.id, duration, objectives, wagerAmount, terms.takeIf { it.isNotBlank() }, player.uniqueId, rated,
+            )
+        }
 
         if (declaration != null) {
             player.sendMessage(lang.msg("bedrock.war_declaration.feedback.sent", "guild" to targetGuild.name))
-            player.sendMessage(lang.msg("bedrock.war_declaration.feedback.duration", "days" to duration.toDays()))
+            player.sendMessage(if (declaration.objectiveBased) lang.msg("war_duration.objective") else lang.msg("bedrock.war_declaration.feedback.duration", "days" to declaration.proposedDuration.toDays()))
             if (declaration.isRated) {
                 player.sendMessage(lang.msg("bedrock.war_declaration.feedback.rated_created"))
             } else {

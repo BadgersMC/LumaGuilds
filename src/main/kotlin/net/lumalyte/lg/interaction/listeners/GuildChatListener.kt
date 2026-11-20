@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.listeners
 
+import net.lumalyte.lg.application.persistence.PlayerPartyPreferenceRepository
 import dev.rosewood.rosechat.chat.channel.Channel
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildService
@@ -34,6 +35,7 @@ class GuildChatListener : Listener, KoinComponent {
     private val memberService: MemberService by inject()
     private val penaltyService: PenaltyService by inject()
     private val lang: LangService by inject()
+    private val partyPreferences: PlayerPartyPreferenceRepository by inject()
 
     private val logger = LoggerFactory.getLogger(GuildChatListener::class.java)
 
@@ -83,6 +85,7 @@ class GuildChatListener : Listener, KoinComponent {
             previousChannelId[player.uniqueId] = currentId
         }
         adapter.switchChannel(player, guildChannel)
+        turnPartyChatOff(player)
         return true
     }
 
@@ -110,6 +113,7 @@ class GuildChatListener : Listener, KoinComponent {
             previousChannelId[player.uniqueId] = currentId
         }
         adapter.switchChannel(player, allyChannel)
+        turnPartyChatOff(player)
         return true
     }
 
@@ -133,6 +137,24 @@ class GuildChatListener : Listener, KoinComponent {
 
         // Entering → check guild membership and MODERATE_CHAT permission.
         return enterModChat(player, modChannel, current)
+    }
+
+    /** REQ-209: guild, ally and mod chat turn party chat off. */
+    private fun turnPartyChatOff(player: Player) {
+        if (partyPreferences.getByPlayerId(player.uniqueId) == null) return
+        partyPreferences.removeByPlayerId(player.uniqueId)
+        player.sendMessage(lang.msg("notification.guild_chat.party_chat_off"))
+    }
+
+    /**
+     * REQ-209: moves the player out of guild, ally or mod chat back to their previous channel.
+     * @return true if they were in one of those channels.
+     */
+    fun leaveGuildChannels(player: Player): Boolean {
+        val currentId = adapter.getCurrentChannel(player)?.id ?: return false
+        if (canCachePrevious(currentId)) return false
+        leaveAndRestore(player)
+        return true
     }
 
     private fun leaveAndRestore(player: Player) {
@@ -161,6 +183,7 @@ class GuildChatListener : Listener, KoinComponent {
             previousChannelId[player.uniqueId] = currentId
         }
         adapter.switchChannel(player, modChannel)
+        turnPartyChatOff(player)
         return true
     }
 

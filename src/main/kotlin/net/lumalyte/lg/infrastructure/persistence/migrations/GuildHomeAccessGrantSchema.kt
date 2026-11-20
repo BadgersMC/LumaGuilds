@@ -7,7 +7,7 @@ import java.sql.Connection
  * DELETEs/REINSERTs guild_homes rows on every guild save.
  */
 object GuildHomeAccessGrantSchema {
-    const val VERSION = 51
+    const val VERSION = 54
     const val POLICY = "guild_home_access_policies"
     const val GRANTS = "guild_home_access_grants"
 

@@ -22,6 +22,7 @@ import net.lumalyte.lg.domain.values.ExperiencePolicy
 import net.lumalyte.lg.domain.values.ExperienceSource
 import net.lumalyte.lg.domain.values.PeriodWindow
 import net.lumalyte.lg.api.events.GuildLevelChangedEvent
+import net.lumalyte.lg.api.events.GuildLevelUpEvent
 import org.bukkit.Bukkit
 import org.bukkit.plugin.Plugin
 import org.bukkit.plugin.PluginManager
@@ -72,6 +73,35 @@ class ProgressionServiceBukkitAwardTest {
 
         assertEquals(QUEST_REWARD_XP, awards.requestedXp)
         verify(exactly = 1) { progression.refreshGuildProgression(guildId) }
+    }
+
+    /** REQ-229: callers can tell a first payout from a repeated one. */
+    @Test
+    fun systemAwardReportsPaidNowThenAlreadyPaid() {
+        val awards = RecordingRepository()
+        val service = serviceWith(awards, mockk<ProgressionRepository>(relaxed = true))
+        val guildId = UUID.randomUUID()
+        assertEquals(net.lumalyte.lg.domain.values.SystemAward.PAID_NOW,
+            service.awardSystemExperienceOnce(guildId, 500, ExperienceSource.GUILD_ADVANCEMENT, UUID.randomUUID()))
+        awards.duplicate = true
+        assertEquals(net.lumalyte.lg.domain.values.SystemAward.ALREADY_PAID,
+            service.awardSystemExperienceOnce(guildId, 500, ExperienceSource.GUILD_ADVANCEMENT, UUID.randomUUID()))
+    }
+
+    /** REQ-227: advancement XP goes through the once-only ledger under its own source and payout ID. */
+    @Test
+    fun advancementXpUsesItsOwnSourceAndPayoutId() {
+        val awards = RecordingRepository()
+        val progression = mockk<ProgressionRepository>(relaxed = true)
+        val guildId = UUID.randomUUID()
+        val payout = UUID.randomUUID()
+        val service = serviceWith(awards, progression)
+
+        assertTrue(service.awardUncappedSystemExperienceOnce(guildId, 2_500, ExperienceSource.GUILD_ADVANCEMENT, payout))
+
+        assertEquals(ExperienceSource.GUILD_ADVANCEMENT, awards.request?.source)
+        assertEquals(payout, awards.request?.transactionId)
+        assertEquals(2_500, awards.requestedXp)
     }
 
     @Test
@@ -125,7 +155,30 @@ class ProgressionServiceBukkitAwardTest {
         withCapturedLevelEvents { pluginManager ->
             assertEquals(DISCORD_ROLE_LEVEL, service.awardExperience(guildId, AWARD_XP, ExperienceSource.MOB_KILL))
             verifyLevelChange(pluginManager, guildId)
+            verify(exactly = 1) {
+                pluginManager.callEvent(match { it is GuildLevelUpEvent && it.guildId == guildId && it.newLevel == DISCORD_ROLE_LEVEL })
+            }
             verify(exactly = 1) { progressionRepository.refreshGuildProgression(guildId) }
+        }
+    }
+
+    @Test
+    fun questLevelUpPublishesNotificationEventOnce() {
+        val awards = RecordingRepository().apply { leveledUpTo = DISCORD_ROLE_LEVEL }
+        val service = serviceWith(awards)
+        val guildId = UUID.randomUUID()
+        withCapturedLevelEvents { pluginManager ->
+            assertTrue(service.awardUncappedSystemExperienceOnce(
+                guildId, QUEST_REWARD_XP, ExperienceSource.WEEKLY_ACTIVITY, UUID.randomUUID(),
+            ))
+            awards.duplicate = true
+            assertTrue(service.awardUncappedSystemExperienceOnce(
+                guildId, QUEST_REWARD_XP, ExperienceSource.WEEKLY_ACTIVITY, UUID.randomUUID(),
+            ))
+            verifyLevelChange(pluginManager, guildId)
+            verify(exactly = 1) {
+                pluginManager.callEvent(match { it is GuildLevelUpEvent && it.guildId == guildId && it.newLevel == DISCORD_ROLE_LEVEL })
+            }
         }
     }
 
@@ -255,6 +308,7 @@ class ProgressionServiceBukkitAwardTest {
         var policy: ExperiencePolicy? = null
         var requestedXp: Int? = null
         var leveledUpTo: Int? = null
+        var duplicate = false
 
         override fun awardAtomically(
             request: ExperienceAwardRequest,
@@ -265,6 +319,7 @@ class ProgressionServiceBukkitAwardTest {
             this.request = request
             this.policy = policy
             this.requestedXp = requestedXp
+            if (duplicate) return ExperienceAwardResult.Duplicate
             return ExperienceAwardResult.Awarded(requestedXp, requestedXp, policy.isCapped, leveledUpTo)
         }
     }

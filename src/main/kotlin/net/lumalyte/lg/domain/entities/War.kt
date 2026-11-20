@@ -23,6 +23,7 @@ data class War(
     val ratedChapterId: String? = null,
     val farmingCooldownGuildId: UUID? = null,
     val farmingCooldownUntil: Instant? = null,
+    val objectiveBased: Boolean = false,
 ) {
     init {
         require(declaringGuildId != defendingGuildId) { "Guild cannot declare war on itself" }
@@ -54,7 +55,7 @@ data class War(
      * Gets the remaining duration of the war.
      */
     val remainingDuration: Duration?
-        get() = startedAt?.let { start ->
+        get() = if (objectiveBased) null else startedAt?.let { start ->
             val endTime = start.plus(duration)
             val now = Instant.now()
             if (now.isBefore(endTime)) {
@@ -68,9 +69,9 @@ data class War(
      * Checks if the war has expired.
      */
     val isExpired: Boolean
-        get() = startedAt?.plus(duration)?.let { endTime ->
+        get() = !objectiveBased && (startedAt?.plus(duration)?.let { endTime ->
             !Instant.now().isBefore(endTime)
-        } ?: false
+        } ?: false)
 
     companion object {
         fun create(declaringGuildId: UUID, defendingGuildId: UUID, duration: Duration = Duration.ofDays(7)): War {
@@ -185,7 +186,8 @@ data class WarDeclaration(
     val ratedChapterId: String? = null,
     val declarationCooldownUntil: Instant? = null,
     val accepted: Boolean = false,
-    val rejected: Boolean = false
+    val rejected: Boolean = false,
+    val objectiveBased: Boolean = false,
 ) {
     init {
         require(ratedChapterId == null || ratedChapterId.isNotBlank()) { "Rated chapter id cannot be blank" }

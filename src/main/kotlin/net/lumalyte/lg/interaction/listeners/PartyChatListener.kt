@@ -54,6 +54,21 @@ class PartyChatListener : Listener, KoinComponent {
 
     private val logger = LoggerFactory.getLogger(PartyChatListener::class.java)
 
+    /**
+     * REQ-222: Paper fires the legacy chat event first, and RoseChat and InteractiveChat broadcast
+     * from it. Cancel it here for party chat; [onPlayerChat] still runs and sends the message.
+     */
+    @Suppress("DEPRECATION")
+    fun onLegacyChat(event: org.bukkit.event.player.AsyncPlayerChatEvent) {
+        val player = event.player
+        if (chatInputListener.isInInputMode(player)) return
+        if (!configService.loadConfig().partiesEnabled) return
+        if (preferenceRepository.getByPlayerId(player.uniqueId) == null) return
+        event.isCancelled = true
+        event.recipients.clear()
+        player.setMetadata(chatClaimMeta, FixedMetadataValue(plugin, true))
+    }
+
     fun onPlayerChat(event: AsyncChatEvent) {
         val player = event.player
 

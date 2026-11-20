@@ -4,6 +4,8 @@ import net.badgersmc.nexus.i18n.LangHost
 import net.badgersmc.nexus.i18n.LangService
 import net.badgersmc.nexus.i18n.Locale
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+import net.kyori.adventure.text.Component
+import net.lumalyte.lg.interaction.menus.guild.plainDuration
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -12,6 +14,14 @@ import java.nio.file.Path
 
 class LangServiceRenderingTest {
     @Test
+    fun `enemy duration chat renders text for both started and expiry`() {
+        val lang = langService()
+        val duration = Component.text("4 months")
+        val started = plainText.serialize(lang.msg("menu.enemies_list.feedback.started", "duration" to plainDuration(duration)))
+        val expires = plainText.serialize(lang.msg("menu.enemies_list.feedback.expires", "duration" to plainDuration(duration)))
+        assertEquals("Started: 4 months ago", started)
+        assertEquals("Expires: 4 months", expires)
+    }
     fun `shipped bank titles are compact and independent of guild length`() {
         val lang = langService()
         assertEquals(lang.guiTitle("menu.bank.history.compact_title"), lang.bankHistoryTitle("G".repeat(32)))

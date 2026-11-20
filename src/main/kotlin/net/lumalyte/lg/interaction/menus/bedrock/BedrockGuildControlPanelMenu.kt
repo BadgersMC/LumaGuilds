@@ -42,10 +42,6 @@ class BedrockGuildControlPanelMenu(
             bedrockNavigator.openMenu(menuFactory.createLfgBrowserMenu(menuNavigator, player))
         })
 
-        buttons.add(MenuButton(lang.bedrock("onboarding.title"), config.editIconUrl, config.editIconPath) {
-            bedrockNavigator.openMenu(menuFactory.createGuildGettingStartedMenu(menuNavigator, player, guild.id))
-        })
-
         buttons.add(MenuButton(lang.bedrock("guild_stall.title"), config.guildStallsIconUrl, config.guildStallsIconPath) {
             bedrockNavigator.openMenu(menuFactory.createGuildStallMenu(menuNavigator, player, guild))
         })
@@ -79,12 +75,6 @@ class BedrockGuildControlPanelMenu(
             bedrockNavigator.openMenu(BedrockGuildInfoMenu(menuNavigator, player, guild, logger))
         })
 
-        // Conditionally add mode button
-        if (mainConfig.guild.modeSwitchingEnabled) {
-            buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.mode"), config.guildSettingsIconUrl, config.guildSettingsIconPath) {
-                bedrockNavigator.openMenu(BedrockGuildModeMenu(menuNavigator, player, guild, logger))
-            })
-        }
 
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.rank_list"), config.guildSettingsIconUrl, config.guildSettingsIconPath) {
             bedrockNavigator.openMenu(BedrockGuildRankListMenu(menuNavigator, player, guild, logger))

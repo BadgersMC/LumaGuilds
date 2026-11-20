@@ -43,6 +43,19 @@ interface WarService {
     ): WarDeclaration?
 
     /**
+     * Creates a declaration with no time limit. The kill target decides victory.
+     */
+    fun createObjectiveWarDeclaration(
+        declaringGuildId: UUID,
+        defendingGuildId: UUID,
+        objectives: Set<WarObjective>,
+        wagerAmount: Int,
+        terms: String?,
+        actorId: UUID,
+        rated: Boolean,
+    ): WarDeclaration? = null
+
+    /**
      * Accepts a war declaration.
      *
      * @param declarationId The ID of the war declaration.
@@ -149,6 +162,13 @@ interface WarService {
     /** Configured opposing-guild kill count that automatically wins an active war. */
     fun getWarKillWinTarget(): Int
 
+    /** REQ-230: the kill count that ends [war]: its kill objective, else [getWarKillWinTarget]. */
+    fun killTargetFor(war: War): Int =
+        net.lumalyte.lg.domain.values.WarKillTargets.forWar(war.objectives, getWarKillWinTarget())
+
+    /** REQ-230: kill targets a guild may choose when declaring. */
+    fun killTargetOptions(): List<Int> = listOf(5, 10, getWarKillWinTarget()).distinct().sorted()
+
     /**
      * Updates war statistics.
      *
@@ -200,6 +220,12 @@ interface WarService {
      * @return true if the guild can declare war, false otherwise.
      */
     fun canGuildDeclareWar(guildId: UUID): Boolean
+
+    /**
+     * REQ-239: the first cooldown or war limit stopping [declaringGuildId] from
+     * declaring on [defendingGuildId], or null when neither applies.
+     */
+    fun declarationBlock(declaringGuildId: UUID, defendingGuildId: UUID): net.lumalyte.lg.domain.values.WarDeclarationBlock? = null
 
     /**
      * Checks if a player can manage wars for their guild.

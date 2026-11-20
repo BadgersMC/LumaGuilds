@@ -32,11 +32,12 @@ internal object VaultItemPermissions {
             InventoryAction.COLLECT_TO_CURSOR to WITHDRAW,
         )
 
-    fun required(action: InventoryAction, rawSlot: Int, vaultSize: Int): Set<RankPermission> {
+    /** [goldButton] is false for the second vault (REQ-244), where slot 0 is an ordinary slot. */
+    fun required(action: InventoryAction, rawSlot: Int, vaultSize: Int, goldButton: Boolean = true): Set<RankPermission> {
         return when {
             // Gold button checks its own requested operation.
-            rawSlot == 0 -> emptySet()
-            rawSlot in 1 until vaultSize -> VAULT_ACTIONS[action].orEmpty()
+            goldButton && rawSlot == 0 -> emptySet()
+            rawSlot in 0 until vaultSize -> VAULT_ACTIONS[action].orEmpty()
             else -> PLAYER_ACTIONS[action].orEmpty()
         }
     }

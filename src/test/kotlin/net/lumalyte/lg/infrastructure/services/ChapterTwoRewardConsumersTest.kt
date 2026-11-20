@@ -41,7 +41,7 @@ class ChapterTwoRewardConsumersTest {
         assertEquals(gold.effectiveCapacity, progression.getMaxBankBalance(guild).toLong())
         // Legacy permanent home-1 is historical evidence, not an active paid Outpost at P0.
         assertEquals(1, progression.getMaxHomes(guild))
-        assertEquals(50, members.getMemberLimit(guild))
+        assertEquals(main.guild.maxMembersPerGuild, members.getMemberLimit(guild))
         assertEquals(members.getMemberLimit(guild), progression.getMaxMembers(guild))
         assertEquals(0.9, progression.getWithdrawalFeeMultiplier(guild))
         assertEquals(main.bank.withdrawalFeePercent * 0.9, gold.policy.withdrawalFeePercent)

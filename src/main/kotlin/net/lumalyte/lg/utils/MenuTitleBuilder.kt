@@ -49,6 +49,7 @@ object MenuTitleBuilder {
         val theme = theme.resolved()
         // Vanilla style: plain chest title. White text is meant for the dark themed backgrounds,
         // so it is reset to the default chest colour; other colours are kept.
+        val title = fit(title)
         if (!theme.hasBackground) return title.replace("§f", "§r")
         val themeKey = theme.name.lowercase()
         val glyphName = "guild_bg_${themeKey}_${rows}_row"
@@ -58,5 +59,54 @@ object MenuTitleBuilder {
         } else {
             prefix
         }
+    }
+
+    /**
+     * REQ-232: GUI pixels available to a title. It starts about 13px into the 176px menu and must
+     * stop before the right edge (measured on TEST: "DIPLOMATIC RELATIONS - GoldProofOct26" overran).
+     */
+    const val TITLE_WIDTH: Int = 155
+
+    private const val ELLIPSIS = "..."
+
+    /** Shortens [title] with "..." so its visible text fits [TITLE_WIDTH]; § colour codes are kept. */
+    fun fit(title: String, maxWidth: Int = TITLE_WIDTH): String {
+        if (width(title) <= maxWidth) return title
+        val budget = maxWidth - width(ELLIPSIS)
+        val out = StringBuilder()
+        var used = 0
+        var i = 0
+        while (i < title.length) {
+            val c = title[i]
+            if (c == '§' && i + 1 < title.length) {
+                out.append(c).append(title[i + 1]); i += 2; continue
+            }
+            val w = charWidth(c)
+            if (used + w > budget) break
+            out.append(c); used += w; i++
+        }
+        return out.toString().trimEnd() + ELLIPSIS
+    }
+
+    /** Visible width in GUI pixels with the vanilla font, ignoring § colour codes. */
+    fun width(text: String): Int {
+        var total = 0
+        var i = 0
+        while (i < text.length) {
+            if (text[i] == '§' && i + 1 < text.length) { i += 2; continue }
+            total += charWidth(text[i]); i++
+        }
+        return total
+    }
+
+    /** Advance (glyph plus 1px spacing) of a vanilla default-font character. */
+    private fun charWidth(c: Char): Int = when (c) {
+        ' ' -> 4
+        '!', '\'', ',', '.', ':', ';', '|', 'i' -> 2
+        '`', 'l' -> 3
+        'I', 't', '[', ']', '(', ')', '{', '}', '"', '*' -> 4
+        'f', 'k', '<', '>' -> 5
+        '@', '~' -> 7
+        else -> 6
     }
 }

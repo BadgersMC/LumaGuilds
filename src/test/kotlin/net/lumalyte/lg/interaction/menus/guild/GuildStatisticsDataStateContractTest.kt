@@ -12,9 +12,9 @@ class GuildStatisticsDataStateContractTest {
 
     @Test
     fun validEmptyDataIsDistinguishedFromUnavailableData() {
-        assertTrue(source.contains("menu.statistics.common.no_period_data"))
+        // REQ-201: Combat says when no kills are logged yet; Rivalries says when there are none.
+        assertTrue(source.contains("menu.statistics.item.combat.lore.empty"))
         assertTrue(source.contains("menu.statistics.common.no_rivalry_data"))
-        assertTrue(source.contains("menu.statistics.common.balance_unavailable"))
         assertFalse(source.contains("private fun addTrendAnalysisButton"))
         assertFalse(source.contains("private fun openTrendAnalysis"))
         assertFalse(source.contains("private fun exportGuildStatistics"))

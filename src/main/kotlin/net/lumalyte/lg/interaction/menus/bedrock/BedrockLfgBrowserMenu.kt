@@ -99,7 +99,8 @@ class BedrockLfgBrowserMenu(
     }
 
     private fun guildButton(guild: Guild): String {
-        val maximum = configService.loadConfig().guild.maxMembersPerGuild
+        // REQ-190: each guild's own member cap.
+        val maximum = minOf(configService.loadConfig().guild.maxMembersPerGuild, memberService.getMemberLimit(guild.id))
         val members = memberService.getMemberCount(guild.id)
         val mode = if (guild.mode == GuildMode.PEACEFUL) {
             lang.bedrock("bedrock.lfg_browser.mode.peaceful")

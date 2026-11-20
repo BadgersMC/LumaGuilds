@@ -100,6 +100,12 @@ class BedrockGuildRelationsMenu(
             )
             .addButtonWithImage(
                 config,
+                lang.bedrock("diplomacy_history.button"),
+                config.editIconUrl,
+                config.editIconPath
+            )
+            .addButtonWithImage(
+                config,
                 lang.bedrock("bedrock.relations_management.back"),
                 config.closeIconUrl,
                 config.closeIconPath
@@ -122,7 +128,9 @@ class BedrockGuildRelationsMenu(
             4 -> openDeclareWarMenu()
             5 -> openRequestAllianceMenu()
             6 -> openRequestTruceMenu()
-            7 -> bedrockNavigator.goBack()
+            // REQ-204
+            7 -> bedrockNavigator.openMenu(BedrockGuildDiplomacyHistoryMenu(menuNavigator, player, guild, logger))
+            8 -> bedrockNavigator.goBack()
         }
     }
 

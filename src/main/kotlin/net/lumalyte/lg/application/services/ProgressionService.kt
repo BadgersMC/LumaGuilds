@@ -51,6 +51,20 @@ interface ProgressionService {
         awardExperience(guildId, experience, source)
 
     /**
+     * Like [awardUncappedSystemExperienceOnce], but reports whether this call applied the payout
+     * or it had already been applied (REQ-229).
+     */
+    fun awardSystemExperienceOnce(
+        guildId: UUID,
+        experience: Int,
+        source: ExperienceSource,
+        transactionId: UUID,
+    ): net.lumalyte.lg.domain.values.SystemAward =
+        if (awardUncappedSystemExperienceOnce(guildId, experience, source, transactionId))
+            net.lumalyte.lg.domain.values.SystemAward.PAID_NOW
+        else net.lumalyte.lg.domain.values.SystemAward.FAILED
+
+    /**
      * Idempotent system-XP award for crash-recoverable workflows.
      * Returns true when the transaction was applied or had already been applied.
      */

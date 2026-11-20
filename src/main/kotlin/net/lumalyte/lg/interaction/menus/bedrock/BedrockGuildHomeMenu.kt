@@ -60,7 +60,7 @@ class BedrockGuildHomeMenu(
                         val locked = guildService.isHomeLocked(guild.id, homeName)
                         val active = homeActivationService.isActive(guild.id, homeName)
                         button(if (locked) {
-                            lang.bedrock("bedrock.home.button.locked", "home" to homeName)
+                            lang.bedrock("bedrock.home.button.locked_v2", "home" to homeName)
                         } else if (active) {
                             lang.bedrock("bedrock.home.button.teleport", "home" to homeName)
                         } else if (canManageHomes()) {
@@ -124,9 +124,9 @@ class BedrockGuildHomeMenu(
             if (home != null) {
                 if (guildService.isHomeLocked(guild.id, homeName)) {
                     if (canManageHomes() && guildService.restoreLockedOutpost(guild.id, homeName, player.uniqueId)) {
-                        player.sendMessage(lang.msg("bedrock.home.feedback.restored", "home" to homeName))
+                        player.sendMessage(lang.msg("bedrock.home.feedback.restored_v2", "home" to homeName))
                     } else {
-                        player.sendMessage(lang.msg("bedrock.home.feedback.restore_unavailable", "home" to homeName))
+                        player.sendMessage(lang.msg("bedrock.home.feedback.restore_unavailable_v2", "home" to homeName))
                     }
                     bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
                     return
@@ -209,14 +209,11 @@ class BedrockGuildHomeMenu(
                 player.sendMessage(lang.msg("menu.guild_home.feedback.unsafe_teleport"))
                 player.sendMessage(lang.msg("menu.guild_home.feedback.safety_hint"))
             } else {
-                teleportationService.startTeleportGuarded(
-                    player, targetLocation,
-                    mayProceed = {
-                        guildService.canUseHome(player.uniqueId, guild.id, homeName) &&
-                            homeActivationService.isActive(guild.id, homeName) &&
-                            guildService.getHome(guild.id, homeName) == home
-                    },
-                )
+                teleportationService.startHomeTeleport(player, targetLocation, stillAllowed = {
+                    guildService.canUseHome(player.uniqueId, guild.id, homeName) &&
+                        homeActivationService.isActive(guild.id, homeName) &&
+                        guildService.getHome(guild.id, homeName) == home
+                })
             }
         } catch (e: Exception) {
             logger.log(Level.WARNING, "Error teleporting to home", e)

@@ -35,6 +35,8 @@ class WarNotificationServiceBukkit(
     private val warRepository: WarRepository,
     private val lang: LangService,
     private val toastSender: ToastSender,
+    /** REQ-233: the mockup's title, chat line and sound; without it the older toast is used. */
+    private val moments: GuildMomentPresenter? = null,
 ) : WarNotificationService {
     private val logger = LoggerFactory.getLogger(WarNotificationServiceBukkit::class.java)
 
@@ -53,7 +55,7 @@ class WarNotificationServiceBukkit(
             ownGuild = defending,
             opponent = declaring,
             recipientIds = recipients?.declarationReceived,
-            durationSeconds = declaration.proposedDuration.seconds,
+            durationSeconds = if (declaration.objectiveBased) 0 else declaration.proposedDuration.seconds,
             objectiveCount = declaration.objectives.size,
             objectiveDescription = objective,
             wagerAmount = declaration.wagerAmount,
@@ -67,7 +69,7 @@ class WarNotificationServiceBukkit(
             ownGuild = declaring,
             opponent = defending,
             recipientIds = recipients?.declarationSent,
-            durationSeconds = declaration.proposedDuration.seconds,
+            durationSeconds = if (declaration.objectiveBased) 0 else declaration.proposedDuration.seconds,
             objectiveCount = declaration.objectives.size,
             objectiveDescription = objective,
             wagerAmount = declaration.wagerAmount,
@@ -92,7 +94,7 @@ class WarNotificationServiceBukkit(
             ownGuild = declaring,
             opponent = defending,
             recipientIds = recipients?.acceptanceDeclaring,
-            durationSeconds = war.duration.seconds,
+            durationSeconds = if (war.objectiveBased) 0 else war.duration.seconds,
             objectiveCount = war.objectives.size,
             objectiveDescription = objective,
             createdAt = createdAt,
@@ -103,7 +105,7 @@ class WarNotificationServiceBukkit(
             ownGuild = defending,
             opponent = declaring,
             recipientIds = recipients?.acceptanceDefending,
-            durationSeconds = war.duration.seconds,
+            durationSeconds = if (war.objectiveBased) 0 else war.duration.seconds,
             objectiveCount = war.objectives.size,
             objectiveDescription = objective,
             createdAt = createdAt,
@@ -111,6 +113,7 @@ class WarNotificationServiceBukkit(
     }
 
     override fun warEnded(war: War) {
+        if (war.winner == null && war.peaceTerms != null) announcePeace(war)
         val winnerId = war.winner ?: return
         val loserId = war.loser ?: return
         val winner = guildRepository.getById(winnerId) ?: return
@@ -149,6 +152,19 @@ class WarNotificationServiceBukkit(
                 "loser" to loser.name,
             )
         )
+    }
+
+    /** REQ-233: accepted peace is shown to online members of both guilds. */
+    private fun announcePeace(war: War) {
+        val presenter = moments ?: return
+        val declaring = guildRepository.getById(war.declaringGuildId) ?: return
+        val defending = guildRepository.getById(war.defendingGuildId) ?: return
+        val show = Runnable {
+            listOf(declaring.id, defending.id).flatMap { memberRepository.getByGuild(it) }.map { it.playerId }.toSet()
+                .mapNotNull(Bukkit::getPlayer).filter { it.isOnline }
+                .forEach { presenter.show(it, net.lumalyte.lg.domain.values.GuildMoment.PEACE, declaring.name, defending.name) }
+        }
+        if (Bukkit.isPrimaryThread()) show.run() else Bukkit.getScheduler().runTask(plugin, show)
     }
 
     override fun deliverUnread(playerId: UUID) {
@@ -307,7 +323,7 @@ class WarNotificationServiceBukkit(
                     ownGuildId = declaration.defendingGuildId,
                     opponentGuildId = declaration.declaringGuildId,
                     recipientIds = record.notificationRecipients.declarationReceived,
-                    durationSeconds = declaration.proposedDuration.seconds,
+                    durationSeconds = if (declaration.objectiveBased) 0 else declaration.proposedDuration.seconds,
                     objectiveCount = declaration.objectives.size,
                     objectiveDescription = objective,
                     wagerAmount = declaration.wagerAmount,
@@ -321,7 +337,7 @@ class WarNotificationServiceBukkit(
                     ownGuildId = declaration.declaringGuildId,
                     opponentGuildId = declaration.defendingGuildId,
                     recipientIds = record.notificationRecipients.declarationSent,
-                    durationSeconds = declaration.proposedDuration.seconds,
+                    durationSeconds = if (declaration.objectiveBased) 0 else declaration.proposedDuration.seconds,
                     objectiveCount = declaration.objectives.size,
                     objectiveDescription = objective,
                     wagerAmount = declaration.wagerAmount,
@@ -342,7 +358,7 @@ class WarNotificationServiceBukkit(
                     ownGuildId = war.declaringGuildId,
                     opponentGuildId = war.defendingGuildId,
                     recipientIds = record.notificationRecipients.acceptanceDeclaring,
-                    durationSeconds = war.duration.seconds,
+                    durationSeconds = if (war.objectiveBased) 0 else war.duration.seconds,
                     objectiveCount = war.objectives.size,
                     objectiveDescription = objective,
                     createdAt = startedAt,
@@ -353,7 +369,7 @@ class WarNotificationServiceBukkit(
                     ownGuildId = war.defendingGuildId,
                     opponentGuildId = war.declaringGuildId,
                     recipientIds = record.notificationRecipients.acceptanceDefending,
-                    durationSeconds = war.duration.seconds,
+                    durationSeconds = if (war.objectiveBased) 0 else war.duration.seconds,
                     objectiveCount = war.objectives.size,
                     objectiveDescription = objective,
                     createdAt = startedAt,
@@ -439,6 +455,20 @@ class WarNotificationServiceBukkit(
     }
 
     private fun present(player: Player, notification: WarNotification) {
+        moments?.let { presenter ->
+            val moment = net.lumalyte.lg.domain.values.GuildMoment.of(notification.kind)
+            val own = guildRepository.getById(notification.ownGuildId)?.name ?: notification.opponentName
+            when (notification.kind) {
+                WarNotificationKind.DECLARATION_RECEIVED, WarNotificationKind.DECLARATION_SENT -> {
+                    val (declarer, defender) = net.lumalyte.lg.domain.values.GuildMoment.declaringFirst(notification.kind, own, notification.opponentName)
+                    presenter.show(player, moment, declarer, defender)
+                }
+                WarNotificationKind.WAR_ACCEPTED -> presenter.show(player, moment, own, notification.opponentName)
+                WarNotificationKind.VICTORY, WarNotificationKind.DEFEAT -> presenter.show(player, moment, notification.opponentName)
+            }
+            sendChatDetails(player, notification, summary = false)
+            return
+        }
         val title = toastTitle(notification.kind)
         val description = toastDescription(notification)
         val frame = toastFrame(notification.kind)
@@ -474,16 +504,24 @@ class WarNotificationServiceBukkit(
         sendChatDetails(player, notification)
     }
 
-    private fun sendChatDetails(player: Player, notification: WarNotification) {
+    private fun sendChatDetails(player: Player, notification: WarNotification, summary: Boolean = true) {
         player.sendMessage(lang.msg("notification.war.lifecycle.chat.divider"))
-        player.sendMessage(
+        if (summary) player.sendMessage(
             lang.msg(
                 chatSummaryKey(notification.kind),
                 "guild" to notification.opponentName,
             )
         )
 
-        if (notification.durationSeconds > 0) {
+        val objectiveBased = if (notification.durationSeconds == 0L) {
+            runCatching {
+                val record = warRepository.get(notification.eventId)
+                record?.war?.objectiveBased ?: record?.declaration?.objectiveBased ?: false
+            }.getOrDefault(false)
+        } else false
+        if (objectiveBased) {
+            player.sendMessage(lang.msg("war_duration.objective"))
+        } else if (notification.durationSeconds > 0) {
             player.sendMessage(
                 lang.msg(
                     "notification.war.lifecycle.chat.duration",

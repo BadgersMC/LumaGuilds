@@ -3,6 +3,8 @@ package net.lumalyte.lg.interaction.menus.bedrock
 import net.lumalyte.lg.infrastructure.i18n.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.application.services.DisbandPrestigeWarning
+import net.lumalyte.lg.application.services.GuildPrestigeStandings
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuNavigator
@@ -25,11 +27,25 @@ class BedrockGuildDisbandConfirmationMenu(
 
     private val guildService: GuildService by inject()
     private val lang: LangService by inject()
+    private val standings: GuildPrestigeStandings by inject()
+
+    /** REQ-162: the disband text, with the prestige warning for a prestiged guild. */
+    private fun content(): String {
+        val base = lang.bedrock("bedrock.disband_confirmation.content", "guild" to guild.name, "player" to player.name)
+        val warning = when (val prestige = DisbandPrestigeWarning.of(standings, guild.id)) {
+            DisbandPrestigeWarning.None -> return base
+            is DisbandPrestigeWarning.Tier ->
+                lang.bedrock("bedrock.disband_confirmation.prestige", "tier" to prestige.roman, "guild" to guild.name)
+            DisbandPrestigeWarning.Unknown ->
+                lang.bedrock("bedrock.disband_confirmation.prestige_unknown", "guild" to guild.name)
+        }
+        return base + "\n" + warning
+    }
 
     override fun getForm(): Form {
         return SimpleForm.builder()
             .title(lang.bedrock("bedrock.disband_confirmation.title"))
-            .content(lang.bedrock("bedrock.disband_confirmation.content", "guild" to guild.name, "player" to player.name))
+            .content(content())
             .button(lang.bedrock("bedrock.disband_confirmation.button.disband"))
             .button(lang.bedrock("bedrock.disband_confirmation.button.keep"))
             .validResultHandler { response ->

@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.domain.values.PrestigeNumeral
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import net.badgersmc.nexus.i18n.LangService
@@ -89,33 +90,55 @@ class GuildProgressionMenu(
         return canInspectGuild() && (hasQuestPermission || isScopedInspector())
     }
 
+    private val loader: net.lumalyte.lg.interaction.menus.MenuLoader by lazy {
+        getKoin().getOrNull() ?: net.lumalyte.lg.interaction.menus.MenuLoader.Immediate
+    }
+    private var cachedOverview: net.lumalyte.lg.domain.rewards.PrestigeOverview? = null
+
+    private sealed interface Snapshot {
+        data object NoAccess : Snapshot
+        data object Unavailable : Snapshot
+        data object LoadFailed : Snapshot
+        data class Ready(
+            val guild: Guild,
+            val reward: GuildRewardRead,
+            val progression: GuildProgressionDisplay,
+            val sourceUsage: List<net.lumalyte.lg.application.services.SourceUsageView>,
+            val overview: net.lumalyte.lg.domain.rewards.PrestigeOverview?,
+        ) : Snapshot
+    }
+
+    /** REQ-266: every database read for this screen, run off the main thread. */
+    private fun readSnapshot(): Snapshot {
+        val fresh = guildService.getGuild(guild.id) ?: guild
+        // Members, or staff inspecting this guild read-only (upstream admin view).
+        if (!canInspectGuild()) return Snapshot.NoAccess
+        val reward = progressionService.getRewardState(fresh.id)
+        if (reward == GuildRewardRead.Unavailable) return Snapshot.Unavailable
+        rewardState = reward
+        val progression = repoProgression() ?: return Snapshot.LoadFailed
+        val usage = progressionService.getSourceUsage(fresh.id).filter { it.source != ExperienceSource.ADMIN_BONUS }
+        return Snapshot.Ready(fresh, reward, progression, usage, prestigeService.overview(fresh.id))
+    }
+
     override fun open() {
-        guild = guildService.getGuild(guild.id) ?: guild
-
-        if (!canInspectGuild()) {
-            player.sendMessage(lang.msg("menu.guild_progression.feedback.no_access"))
-            menuNavigator.goBack()
-            return
+        val token = menuNavigator.currentNavigationToken()
+        loader.load(player, { menuNavigator.isNavigationCurrent(token) }, ::readSnapshot) { snapshot ->
+            when (snapshot) {
+                Snapshot.NoAccess -> { player.sendMessage(lang.msg("menu.guild_progression.feedback.no_access")); menuNavigator.goBack() }
+                Snapshot.Unavailable -> { player.sendMessage(lang.msg("chapter_two_rewards.unavailable")); menuNavigator.goBack() }
+                Snapshot.LoadFailed -> { player.sendMessage(lang.msg("menu.guild_progression.feedback.load_failed")); menuNavigator.goBack() }
+                is Snapshot.Ready -> render(snapshot)
+            }
         }
+    }
 
-        rewardState = progressionService.getRewardState(guild.id)
-        if (rewardState == GuildRewardRead.Unavailable) {
-            player.sendMessage(lang.msg("chapter_two_rewards.unavailable"))
-            menuNavigator.goBack()
-            return
-        }
-
-        // Fetch fresh progression data
-        val progression = progressionService.let {
-            repoProgression()
-        } ?: run {
-            player.sendMessage(lang.msg("menu.guild_progression.feedback.load_failed"))
-            menuNavigator.goBack()
-            return
-        }
-
-        val sourceUsage = progressionService.getSourceUsage(guild.id)
-            .filter { it.source != ExperienceSource.ADMIN_BONUS }
+    private fun render(snapshot: Snapshot.Ready) {
+        guild = snapshot.guild
+        rewardState = snapshot.reward
+        cachedOverview = snapshot.overview
+        val progression = snapshot.progression
+        val sourceUsage = snapshot.sourceUsage
         if (!sourceDetails && RecruitmentPresentation.supportsDialog(player) &&
             showProgressionDialog(progression)) return
         val totalPages = ((sourceUsage.size + itemsPerPage - 1) / itemsPerPage).coerceAtLeast(1)
@@ -227,9 +250,8 @@ class GuildProgressionMenu(
             if (isMember()) nativeAction(lang.gui("achievements.title")) {
                 menuNavigator.openMenu(GuildAchievementsMenu(menuNavigator, player, guild))
             } else null,
-            if (isMember() && rewardState is GuildRewardRead.Available) nativeAction(lang.gui("chronicle.title")) {
-                menuNavigator.openMenu(GuildChronicleMenu(menuNavigator, player, guild))
-            } else null,
+            // REQ-293: the Guild Chronicle is the one rewards menu (it absorbed Chapter 2 Rewards).
+            if (isMember()) nativeAction(lang.gui("chronicle.title"), ::openRewards) else null,
             nativeAction(lang.gui("guild_dialogs.progression.quests"), ::openNativeQuests),
             nativeAction(lang.gui("dialog_v2.leaderboard")) {
                 menuNavigator.openMenu(menuFactory.createGuildLeaderboardMenu(menuNavigator, player, guild))
@@ -238,13 +260,6 @@ class GuildProgressionMenu(
                 sourceDetails = true
                 open()
             },
-            if (isMember()) nativeAction(lang.gui("chapter_two_rewards.title")) {
-                if (rewardState is GuildRewardRead.Available) {
-                    openRewardCatalog()
-                } else {
-                    showLegacyPerks()
-                }
-            } else null,
             if (isMember()) nativeAction(lang.gui("menu.guild_progression.prestige.name"), ::openNativePrestige) else null,
         )
 
@@ -349,6 +364,9 @@ class GuildProgressionMenu(
         val item = ItemStack.of(material).also { it.editMeta { meta ->
             meta.displayName(lang.gui("menu.guild_progression.source.name", "source" to name))
             val lore = mutableListOf<Component>()
+            lore += sourceAwardLines(usage.pool)
+            sourceCounts(usage.pool)?.let { lore += it }
+            if (lore.isNotEmpty()) lore += Component.empty()
             if (cap != null) {
                 val progress = when (state) {
                     "capped" -> lang.gui("menu.guild_progression.source.progress.capped", "bar" to bars, "percent" to percent)
@@ -357,9 +375,18 @@ class GuildProgressionMenu(
                     else -> lang.gui("menu.guild_progression.source.progress.available", "bar" to bars, "percent" to percent)
                 }
                 lore.add(progress)
+                val resets = usage.resetsAt?.let { resetIn(it) }
                 val usageLine = when (usage.period) {
-                    CapPeriod.DAILY -> lang.gui("menu.guild_progression.source.daily_period", "used" to usedXp, "cap" to cap)
-                    CapPeriod.WEEKLY -> lang.gui("menu.guild_progression.source.weekly_period", "used" to usedXp, "cap" to cap)
+                    CapPeriod.DAILY -> if (resets != null) {
+                        lang.gui("menu.guild_progression.source.daily_resets", "used" to usedXp, "cap" to cap, "time" to resets)
+                    } else {
+                        lang.gui("menu.guild_progression.source.daily_period", "used" to usedXp, "cap" to cap)
+                    }
+                    CapPeriod.WEEKLY -> if (resets != null) {
+                        lang.gui("menu.guild_progression.source.weekly_resets", "used" to usedXp, "cap" to cap, "time" to resets)
+                    } else {
+                        lang.gui("menu.guild_progression.source.weekly_period", "used" to usedXp, "cap" to cap)
+                    }
                     CapPeriod.UNLIMITED -> lang.gui("menu.guild_progression.source.unlimited")
                 }
                 lore.add(usageLine)
@@ -371,12 +398,73 @@ class GuildProgressionMenu(
         pane.addItem(GuiItem(item) { it.isCancelled = true }, x, y)
     }
 
+    /** REQ-259: what one action is worth, read from the live source policies. */
+    private fun sourceAwardLines(pool: String): List<Component> {
+        val policies = configService.loadConfig().progression.sourcePolicies.values
+            .filter { it.pool == pool && it.enabled && it.awardXp > 0 }
+            .sortedBy { it.awardXp }
+        return when {
+            policies.isEmpty() -> emptyList()
+            policies.size == 1 || policies.all { it.awardXp == policies.first().awardXp } ->
+                listOf(lang.gui("menu.guild_progression.source.award_each", "xp" to policies.first().awardXp))
+            else -> listOf(lang.gui(
+                "menu.guild_progression.source.award_range",
+                "min" to policies.first().awardXp,
+                "max" to policies.last().awardXp,
+            ))
+        }
+    }
+
+    /** REQ-259: what counts towards a source, in plain words. */
+    private fun sourceCounts(pool: String): Component? = when (pool) {
+        "MOB_KILL" -> lang.gui("menu.guild_progression.source.counts.mob_kill")
+        "PLAYER_KILL" -> lang.gui("menu.guild_progression.source.counts.player_kill")
+        "CROP_BREAK" -> lang.gui("menu.guild_progression.source.counts.crop_break")
+        "BLOCK_BREAK" -> lang.gui("menu.guild_progression.source.counts.block_break")
+        "BLOCK_PLACE" -> lang.gui("menu.guild_progression.source.counts.block_place")
+        "ORE" -> lang.gui("menu.guild_progression.source.counts.ore")
+        "CRAFTING" -> lang.gui("menu.guild_progression.source.counts.crafting")
+        "SMELTING" -> lang.gui("menu.guild_progression.source.counts.smelting")
+        "FISHING" -> lang.gui("menu.guild_progression.source.counts.fishing")
+        "ENCHANTING" -> lang.gui("menu.guild_progression.source.counts.enchanting")
+        "BREWING" -> lang.gui("menu.guild_progression.source.counts.brewing")
+        "EXPLORATION_MILESTONE" -> lang.gui("menu.guild_progression.source.counts.exploration")
+        "BANK_DEPOSIT" -> lang.gui("menu.guild_progression.source.counts.bank_deposit")
+        "QUALIFIED_RECRUIT" -> lang.gui("menu.guild_progression.source.counts.recruit")
+        "PRE_CAP_WAR_WIN" -> lang.gui("menu.guild_progression.source.counts.war_win")
+        "ENDER_DRAGON_KILL", "WITHER_KILL", "ELDER_GUARDIAN_KILL", "WARDEN_KILL" ->
+            lang.gui("menu.guild_progression.source.counts.boss")
+        "WEEKLY_ACTIVITY" -> lang.gui("menu.guild_progression.source.counts.weekly_activity")
+        "GUILD_ADVANCEMENT" -> lang.gui("menu.guild_progression.source.counts.advancement")
+        else -> null
+    }
+
+    private fun resetIn(at: java.time.Instant): String {
+        val left = java.time.Duration.between(java.time.Instant.now(), at).coerceAtLeast(java.time.Duration.ZERO)
+        val days = left.toDays()
+        val hours = left.toHours() % 24
+        val minutes = left.toMinutes() % 60
+        return when {
+            days > 0 -> "${days}d ${hours}h"
+            hours > 0 -> "${hours}h ${minutes}m"
+            else -> "${minutes.coerceAtLeast(1)}m"
+        }
+    }
+
     private fun addRankInfo(pane: StaticPane, x: Int, y: Int) {
         val item = NexoItemProvider.getItemStackOrFallback("lg_nav_ranks") {
             ItemStack.of(Material.GOLD_INGOT)
         }.also { it.editMeta { meta ->
             meta.displayName(lang.gui("menu.guild_progression.rank.name"))
-            meta.lore(listOf(lang.gui("menu.guild_progression.rank.description"), lang.gui("menu.guild_progression.rank.scope")))
+            // REQ-285: the guild's actual place, matching the leaderboard's level standings.
+            val standing = runCatching {
+                val koin = org.koin.core.context.GlobalContext.get()
+                GuildLeaderboardSource(guildService, memberService, koin.get<net.lumalyte.lg.application.services.QuestService>()).levelStanding(guild.id)
+            }.getOrNull()
+            meta.lore(listOfNotNull(
+                standing?.let { (rank, total) -> lang.gui("menu.guild_progression.rank.standing", "rank" to rank, "total" to total) },
+                lang.gui("menu.guild_progression.rank.standing_hint"),
+            ))
         }}
         pane.addItem(GuiItem(item) { it.isCancelled = true }, x, y)
     }
@@ -409,10 +497,10 @@ class GuildProgressionMenu(
             val item = NexoItemProvider.getItemStackOrFallback("lg_reward") {
                 ItemStack.of(Material.DIAMOND)
             }.also { it.editMeta { meta ->
-                meta.displayName(lang.gui("chapter_two_rewards.title"))
-                meta.lore(listOf(lang.gui("chapter_two_rewards.explanation"), lang.gui("chapter_two_rewards.view")))
+                meta.displayName(lang.gui("chronicle.title"))
+                meta.lore(listOf(lang.gui("chapter_two_rewards.explanation"), lang.gui("chronicle.open")))
             } }
-            pane.addItem(GuiItem(item) { event -> event.isCancelled = true; openRewardCatalog() }, x, y)
+            pane.addItem(GuiItem(item) { event -> event.isCancelled = true; openRewards() }, x, y)
             return
         }
         val perks = progressionService.getUnlockedPerks(guild.id)
@@ -434,6 +522,19 @@ class GuildProgressionMenu(
         pane.addItem(GuiItem(item) { it.isCancelled = true }, x, y)
     }
 
+    /**
+     * REQ-293: the single rewards menu. Dialog clients get the Guild Chronicle; clients without dialogs get
+     * the chest list of the same rewards; a guild whose reward state isn't ready sees its legacy perks.
+     */
+    private fun openRewards() {
+        if (!isMember()) return
+        when {
+            rewardState !is GuildRewardRead.Available -> showLegacyPerks()
+            RecruitmentPresentation.supportsDialog(player) -> menuNavigator.openMenu(GuildChronicleMenu(menuNavigator, player, guild))
+            else -> openRewardCatalog()
+        }
+    }
+
     private fun openRewardCatalog() {
         guild = guildService.getGuild(guild.id) ?: guild
         if (memberService.getMember(player.uniqueId, guild.id) == null) return
@@ -442,8 +543,7 @@ class GuildProgressionMenu(
             player.sendMessage(lang.msg("chapter_two_rewards.unavailable"))
             return
         }
-        if (RecruitmentPresentation.supportsDialog(player) && showRewardDialog(state)) return
-        val gui = ChestGui(6, lang.guiTitle("chapter_two_rewards.title"))
+        val gui = ChestGui(6, lang.guiTitle("chronicle.title"))
         val pane = StaticPane(0, 0, 9, 6)
         gui.setOnGlobalClick { it.isCancelled = true }
         state.entitlements.offers.forEachIndexed { index, offer ->
@@ -466,10 +566,10 @@ class GuildProgressionMenu(
         }
         val benefits = state.entitlements
         val summary = ItemStack.of(Material.GOLD_INGOT).also { it.editMeta { meta ->
-            meta.displayName(lang.gui("chapter_two_rewards.title"))
+            meta.displayName(lang.gui("chronicle.benefits"))
             meta.lore(listOf(
                 lang.gui("chapter_two_rewards.capacity_bank", "capacity" to benefits.bankCapacity),
-                lang.gui("chapter_two_rewards.capacity_home_member", "homes" to benefits.homeCapacity, "members" to benefits.memberCapacity),
+                lang.gui("chapter_two_rewards.capacity_home_member", "homes" to benefits.homeCapacity, "members" to net.lumalyte.lg.interaction.menus.memberCapacityShown(guild.id, benefits.memberCapacity)),
                 lang.gui("chapter_two_rewards.multipliers", "cooldown" to benefits.homeCooldownMultiplier, "fee" to benefits.withdrawalFeeMultiplier)))
         } }
         pane.addItem(GuiItem(summary) { it.isCancelled = true }, 4, 5)
@@ -477,39 +577,6 @@ class GuildProgressionMenu(
         pane.addItem(GuiItem(back) { it.isCancelled = true; open() }, 8, 5)
         gui.addPane(pane)
         gui.show(player)
-    }
-
-    private fun showRewardDialog(state: GuildRewardRead.Available): Boolean {
-        val offers = state.entitlements.offers.sortedBy { it.reward.level }
-        val pages = maxOf(1, (offers.size + 3) / 4)
-        rewardPage = rewardPage.coerceIn(0, pages - 1)
-        val token = menuNavigator.currentNavigationToken()
-        val visible = offers.drop(rewardPage * 4).take(4)
-        val cards = visible.mapIndexed { index, offer ->
-            val title = Component.text(offer.reward.name)
-            val icon = when (offer.status) {
-                RewardOfferStatus.AVAILABLE -> "lg_reward"
-                RewardOfferStatus.PURCHASED, RewardOfferStatus.PERMANENT -> "lg_confirm"
-                else -> "lg_cancel"
-            }
-            referenceItem(icon, listOf(title, referenceRewardEffect(lang, offer.reward.effect)), referenceAction(title, icon) {
-                GuildChronicleMenu(menuNavigator, player, guild, initialRewardId = offer.reward.id,
-                    returnToBrowser = ::openRewardCatalog).open()
-            }, right = listOf(lang.rewardStatus(offer.status),
-                lang.gui("chapter_two_rewards.level_price", "level" to offer.reward.level, "price" to offer.reward.price)),
-                section = if (index == 0 || visible[index - 1].reward.level != offer.reward.level)
-                    Component.text("${lang.raw("dialog_v2.rank_level")} ${offer.reward.level}") else null)
-        }
-        val controls = buildList {
-            if (rewardPage > 0) add(referenceAction(lang.gui("recruitment.previous"), "lg_page_prev") { rewardPage--; openRewardCatalog() })
-            if (rewardPage + 1 < pages) add(referenceAction(lang.gui("recruitment.next"), "lg_page_next") { rewardPage++; openRewardCatalog() })
-        }
-        return nativeDialog.show(player, GuildDialogPage(lang.gui("dialog_v2.perks"), cards, controls,
-            referenceAction(lang.gui("recruitment.dialog.back"), "lg_back", ::open), theme = guild.guiTheme,
-            columns = 2, framedHeading = true,
-            subtitle = Component.text("${guild.name} · ${lang.raw("dialog_v2.rank_level")} ${state.level} · ${rewardPage + 1}/$pages")), {
-            player.isOnline && menuNavigator.isNavigationCurrent(token) && memberService.getMember(player.uniqueId, guild.id) != null
-        }) { player.sendMessage(lang.msg("chapter_two_rewards.unavailable")) }
     }
 
     private fun showLegacyPerks() {
@@ -534,10 +601,8 @@ class GuildProgressionMenu(
     }
 
     private fun addPrestigeInfo(pane: StaticPane, x: Int, y: Int) {
-        val overview = prestigeService.overview(guild.id)
-        val item = NexoItemProvider.getItemStackOrFallback("lg_prestige") {
-            ItemStack.of(Material.NETHER_STAR)
-        }.also { it.editMeta { meta ->
+        val overview = cachedOverview
+        val item = PrestigeIcon.item(overview?.prestigeCount ?: 0).also { it.editMeta { meta ->
             meta.displayName(lang.gui("menu.guild_progression.prestige.name"))
             val lore = mutableListOf<Component>(
                 lang.gui("menu.guild_progression.prestige.description"),
@@ -551,8 +616,8 @@ class GuildProgressionMenu(
                 overview.prestigeCount >= overview.maxPrestigeCount ->
                     lore += lang.gui(
                         "menu.guild_progression.prestige.state.maximum",
-                        "count" to overview.prestigeCount,
-                        "max" to overview.maxPrestigeCount,
+                        "count" to PrestigeNumeral.of(overview.prestigeCount),
+                        "max" to PrestigeNumeral.of(overview.maxPrestigeCount),
                     )
                 overview.currentLevel < 100 -> lore += lang.gui(
                     "menu.guild_progression.prestige.state.level",
@@ -563,8 +628,8 @@ class GuildProgressionMenu(
                 else -> {
                     lore += lang.gui(
                         "menu.guild_progression.prestige.state.ready",
-                        "count" to overview.prestigeCount,
-                        "max" to overview.maxPrestigeCount,
+                        "count" to PrestigeNumeral.of(overview.prestigeCount),
+                        "max" to PrestigeNumeral.of(overview.maxPrestigeCount),
                         "fee" to (overview.nextFee ?: 0L),
                         "choices" to overview.choices.size,
                     )
@@ -607,6 +672,7 @@ class GuildProgressionMenu(
                     "reward" to reward.name,
                 ))
                 meta.lore(listOf(
+                    referenceRewardEffect(lang, reward.effect),
                     lang.gui("menu.guild_progression.prestige.selection.reward.level", "level" to reward.level),
                     lang.gui("menu.guild_progression.prestige.selection.reward.retain"),
                     lang.gui(
@@ -625,7 +691,7 @@ class GuildProgressionMenu(
                     player.sendMessage(lang.msg("menu.guild_progression.prestige.feedback.quote_failed"))
                     open()
                 } else {
-                    GuildPrestigeConfirmationMenu(player, quote, reward.name, ::openPrestigeSelection, ::open).open()
+                    pickHallTheme(quote, reward.name)
                 }
             }, index % 9, index / 9)
         }
@@ -640,6 +706,26 @@ class GuildProgressionMenu(
 
         gui.addPane(pane)
         gui.show(player)
+    }
+
+    /**
+     * REQ-260: choose the Hall theme this prestige earns, then confirm. With one theme left it is
+     * picked for the guild; without the Hall service the step is skipped and the pick stays open.
+     */
+    private fun pickHallTheme(quote: net.lumalyte.lg.domain.rewards.PrestigeQuote, rewardName: String) {
+        val themes = org.koin.core.context.GlobalContext.get()
+            .getOrNull<net.lumalyte.lg.application.services.HallThemeService>()
+        val owned = themes?.display(guild.id)?.owned
+        val confirm = { theme: net.lumalyte.lg.domain.rewards.HallTheme? ->
+            GuildPrestigeConfirmationMenu(player, quote, rewardName, ::openPrestigeSelection, ::open,
+                theme, (owned?.size ?: 0) + 1).open()
+        }
+        val left = owned?.let { has -> net.lumalyte.lg.domain.rewards.HallTheme.entries.filterNot { it in has } }
+        when {
+            left.isNullOrEmpty() -> confirm(null)
+            left.size == 1 -> confirm(left.single())
+            else -> GuildPrestigeThemeMenu(player, owned, ::openPrestigeSelection) { confirm(it) }.open()
+        }
     }
 
     private fun addBackButton(pane: StaticPane, x: Int, y: Int) {
@@ -719,6 +805,7 @@ class GuildProgressionMenu(
         ExperienceSource.CLAIM_DESTROYED -> "lg_claim_removed"
         ExperienceSource.WEEKLY_ACTIVITY -> "lg_weekly_activity"
         ExperienceSource.ADMIN_BONUS -> "lg_admin_bonus"
+        ExperienceSource.GUILD_ADVANCEMENT -> "lg_prestige"
     }
 
     private fun sourceToVanillaMaterial(source: ExperienceSource, pool: String): Material = when (pool) {
@@ -764,6 +851,7 @@ class GuildProgressionMenu(
         ExperienceSource.WARDEN_KILL -> Material.ECHO_SHARD
         ExperienceSource.CLAIM_CREATED, ExperienceSource.CLAIM_DESTROYED -> Material.GOLDEN_SHOVEL
         ExperienceSource.WEEKLY_ACTIVITY, ExperienceSource.ADMIN_BONUS -> Material.NETHER_STAR
+        ExperienceSource.GUILD_ADVANCEMENT -> Material.KNOWLEDGE_BOOK
     }
 
     private fun sourceToDisplayName(source: ExperienceSource): Component = when (source) {
@@ -785,6 +873,7 @@ class GuildProgressionMenu(
         ExperienceSource.CLAIM_DESTROYED -> lang.gui("menu.guild_progression.source.names.claim_destroyed")
         ExperienceSource.WEEKLY_ACTIVITY -> lang.gui("menu.guild_progression.source.names.weekly_activity")
         ExperienceSource.ADMIN_BONUS -> lang.gui("menu.guild_progression.source.names.admin_bonus")
+        ExperienceSource.GUILD_ADVANCEMENT -> lang.gui("menu.guild_progression.source.names.guild_advancement")
         else -> Component.text(source.name.lowercase().replace('_', ' '))
     }
 

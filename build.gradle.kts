@@ -105,6 +105,9 @@ dependencies {
     // Nexo API (com.nexomc.nexo.api.NexoItems) for custom item textures/icons.
     // compileOnly — Nexo bundles its API at runtime; shading would conflict.
     compileOnly("com.nexomc:nexo:1.21.0")
+    // REQ-272: Hall statue poses through BetterModel player limbs (soft dependency).
+    compileOnly("io.github.toxicity188:bettermodel-api:3.6.0")
+    compileOnly("io.github.toxicity188:bettermodel-bukkit-api:3.6.0")
 
     // LiteBans API (litebans.api.* — Events/Entry/Database) for Guild Strikes.
     // Resolved from JitPack (official API repo: gitlab.com/ruany/LiteBansAPI),
@@ -186,10 +189,18 @@ tasks.register<Test>("mariaDbRewardTest") {
         includeTestsMatching("*GuildOutpostCombinedAcceptanceTest")
         includeTestsMatching("*ExperienceBoostRepositorySQLTest")
         includeTestsMatching("*PrestigeRepositorySQLTest")
+        includeTestsMatching("*PrestigeCreditLedgerSQLTest")
+        includeTestsMatching("*PrestigeTombstoneSQLTest")
+        includeTestsMatching("*AllyHomeAccessSQLTest")
+        includeTestsMatching("*MemberCapacityFloorSQLTest")
+        includeTestsMatching("*GuildBanRepositorySQLTest")
+        includeTestsMatching("*GuildKillLogSQLTest")
+        includeTestsMatching("*DiplomacyHistorySQLTest")
         includeTestsMatching("*ChronicleGoalSQLTest")
         includeTestsMatching("*GuildCreation*SQLTest")
         includeTestsMatching("*GuildCosmeticUnlockRepositorySQLiteTest")
         includeTestsMatching("*GuildInsertColumnOrderTest")
+        includeTestsMatching("*GuildDescriptionPersistenceTest")
         includeTestsMatching("*GuildThemeUpdateSQLTest")
         includeTestsMatching("*GuildChatReconnectSettingsRepositorySQLTest")
         includeTestsMatching("*GuildOnboardingRepositorySQLTest")
@@ -199,6 +210,16 @@ tasks.register<Test>("mariaDbRewardTest") {
         includeTestsMatching("*InviteBlockMigrationSQLTest")
         includeTestsMatching("*InviteBlockDurabilitySQLTest")
         includeTestsMatching("*QuestFixturePersistenceTest")
+        includeTestsMatching("*PartyInvitationMigrationSQLTest")
+        includeTestsMatching("*RelationsSchemaRepairSQLTest")
+        includeTestsMatching("*HallDisplayRepositorySQLTest")
+        includeTestsMatching("*HallPedestalRepositorySQLTest")
+        includeTestsMatching("*SecondVaultRepositorySQLTest")
+        includeTestsMatching("*DialogV2PreferencesSQLTest")
+        includeTestsMatching("*GuildRecruitment*Test")
+        includeTestsMatching("*Recruitment*SQLTest")
+        includeTestsMatching("*VaultGuildCreationPaymentSQLTest")
+        includeTestsMatching("*PublicPlayerGuildSnapshotSqlTest")
     }
     doFirst {
         val port = providers.gradleProperty("mariaDbTestPort").orNull

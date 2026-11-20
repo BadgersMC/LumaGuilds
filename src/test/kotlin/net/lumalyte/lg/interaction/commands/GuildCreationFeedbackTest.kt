@@ -18,8 +18,10 @@ class GuildCreationFeedbackTest {
         stopKoin()
         val guilds = mockk<GuildService>()
         val repository = mockk<GuildRepository>()
-        val costs = mockk<GuildCostService>()
         val config = mockk<ConfigService>()
+        val payments = mockk<GuildCreationPaymentPort>(relaxed = true)
+        every { payments.pendingReservation(any()) } returns null
+        val costs = GuildCostService({ config.loadConfig() }, payments, mockk(relaxed = true))
         val lang = mockk<LangService>(relaxed = true)
         val player = mockk<Player>(relaxed = true)
         every { player.uniqueId } returns UUID.randomUUID()
@@ -28,10 +30,6 @@ class GuildCreationFeedbackTest {
         every { repository.creationCooldownUntil(any()) } returns java.time.Instant.now().plusSeconds(3600)
         every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = false)
         every { guilds.createGuild(any(), any(), any()) } returns null
-        every { costs.createGuild(any(), any(), any()) } answers {
-            thirdArg<() -> net.lumalyte.lg.domain.entities.Guild?>().invoke()
-            GuildCreationCostResult.CreationFailed(compensated = true)
-        }
         startKoin { modules(module {
             single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
         }) }
@@ -41,36 +39,73 @@ class GuildCreationFeedbackTest {
         every { player.hasPermission("lumaguilds.guild.creationcooldown.bypass") } returns true
         GuildCommand().onCreate(player, "Valid Name", null)
         verify(exactly = 1) { guilds.createGuild(any(), any(), any()) }
-        verify(exactly = 1) { costs.createGuild(any(), any(), any()) }
+        verify(exactly = 0) { payments.reserve(any(), any(), any()) }
+        verify(exactly = 0) { lang.msg("command.migrated.guild.create.raw_gold_paid", *anyVararg()) }
+        verify(exactly = 1) { lang.msg("command.migrated.guild.create.the_name_is_already_taken_by_another", *anyVararg()) }
     }
 
-    @Test fun freeCreationStillReportsAnUnresolvedPaidReservation() {
+    @Test fun freeCommandCannotBypassPendingOrUnavailablePaymentLookup() {
         stopKoin()
         val guilds = mockk<GuildService>()
         val repository = mockk<GuildRepository>()
-        val costs = mockk<GuildCostService>()
         val config = mockk<ConfigService>()
         val lang = mockk<LangService>(relaxed = true)
         val player = mockk<Player>(relaxed = true)
+        val payments = mockk<GuildCreationPaymentPort>()
+        val costs = GuildCostService({ config.loadConfig() }, payments, mockk(relaxed = true))
         val playerId = UUID.randomUUID()
-        val pending = UUID.randomUUID()
         every { player.uniqueId } returns playerId
         every { guilds.getPlayerGuilds(playerId) } returns emptySet()
-        every { repository.isNameTaken(any()) } returns false
         every { repository.creationCooldownUntil(playerId) } returns null
+        every { repository.isNameTaken(any()) } returns false
         every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = false)
-        every { costs.createGuild(any(), playerId, any()) } returns GuildCreationCostResult.PendingReview(pending)
         startKoin { modules(module {
             single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
         }) }
-
+        every { payments.pendingReservation(playerId) } returns UUID.randomUUID()
         GuildCommand().onCreate(player, "Valid Name", null)
-
-        verify(exactly = 1) { costs.createGuild(any(), playerId, any()) }
+        every { payments.pendingReservation(playerId) } throws IllegalStateException("database unavailable")
+        GuildCommand().onCreate(player, "Valid Name", null)
         verify(exactly = 0) { guilds.createGuild(any(), any(), any()) }
-        verify(exactly = 1) {
-            lang.msg("command.migrated.guild.create.payment_outcome_uncertain", *anyVararg())
-        }
+        verify(exactly = 0) { payments.reserve(any(), any(), any()) }
+        verify(exactly = 1) { lang.msg("command.migrated.guild.create.payment_outcome_uncertain", *anyVararg()) }
+        verify(exactly = 1) { lang.msg("command.migrated.guild.create.raw_gold_unavailable") }
+    }
+
+    @Test fun freeCommandCreatesAndAnnouncesWithoutCharging() {
+        stopKoin()
+        val guilds = mockk<GuildService>()
+        val repository = mockk<GuildRepository>()
+        val config = mockk<ConfigService>()
+        val lang = mockk<LangService>(relaxed = true)
+        val player = mockk<Player>(relaxed = true)
+        val server = mockk<org.bukkit.Server>(relaxed = true)
+        val payments = mockk<GuildCreationPaymentPort>(relaxed = true)
+        every { payments.pendingReservation(any()) } returns null
+        val costs = GuildCostService({ config.loadConfig() }, payments, mockk(relaxed = true))
+        val playerId = UUID.randomUUID()
+        val guild = net.lumalyte.lg.domain.entities.Guild(UUID.randomUUID(), "Valid Name", createdAt = java.time.Instant.now())
+        every { player.uniqueId } returns playerId
+        every { player.server } returns server
+        every { server.logger } returns java.util.logging.Logger.getAnonymousLogger()
+        every { guilds.getPlayerGuilds(playerId) } returns emptySet()
+        every { guilds.createGuild("Valid Name", playerId, null) } returns guild
+        every { repository.creationCooldownUntil(playerId) } returns null
+        every { repository.isNameTaken(any()) } returns false
+        every { config.loadConfig() } returns MainConfig(chapterTwoGoldCostsEnabled = false)
+        mockkObject(net.lumalyte.lg.utils.ChatUtils)
+        every { net.lumalyte.lg.utils.ChatUtils.broadcastMessage(any<String>(), any()) } just Runs
+        every { net.lumalyte.lg.utils.ChatUtils.broadcastMessage(any<net.kyori.adventure.text.Component>(), any()) } just Runs
+        startKoin { modules(module {
+            single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
+        }) }
+        GuildCommand().onCreate(player, "Valid Name", null)
+        verify(exactly = 1) { guilds.createGuild("Valid Name", playerId, null) }
+        verify(exactly = 0) { payments.reserve(any(), any(), any()) }
+        verify(exactly = 0) { lang.msg("command.migrated.guild.create.raw_gold_paid", *anyVararg()) }
+        verify(exactly = 1) { lang.msg("command.migrated.guild.create.guild_created_successfully", *anyVararg()) }
+        verify(exactly = 1) { lang.msg("command.migrated.guild.create.you_are_now_the_owner_of_the") }
+        verify(exactly = 1) { lang.msg("command.migrated.guild.create.a_new_guild_has_been_founded_by", *anyVararg()) }
     }
 
     @Test fun bypassRetainsMembershipValidationAndPaidCreationFailures() {

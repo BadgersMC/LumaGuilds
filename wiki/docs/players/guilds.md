@@ -64,7 +64,7 @@ Use `/g list` to browse guilds. Use `/g lfg` for the looking-for-guild flow and 
 /g list
 ```
 
-Use `/g info [guild]` to zoom into one guild's details — members, homes, relations, and level.
+Use `/g info [guild]` to open a guild's page. The top row shows its description, level, prestige, relations and a guild card (leader, members, and Yes/No for guild home, banner, vault and guild shop). Below are its members, sorted by rank. Click a member to see their page; officers with Manage Members can promote, demote, kick or ban from there.
 
 ```text
 /g info WhiteLotus

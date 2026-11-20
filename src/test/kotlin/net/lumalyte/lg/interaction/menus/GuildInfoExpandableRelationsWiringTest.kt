@@ -9,13 +9,13 @@ class GuildInfoExpandableRelationsWiringTest {
     @Test
     fun `Java guild info exposes full ally and enemy browsers`() {
         val source = File(
-            "src/main/kotlin/net/lumalyte/lg/interaction/menus/guild/GuildInfoMenu.kt"
+            "src/main/kotlin/net/lumalyte/lg/interaction/menus/guild/GuildRelationsOverviewMenu.kt"
         ).readText()
 
         assertTrue(source.contains("createGuildRelationBrowserMenu"))
         assertTrue(source.contains("RelationType.ALLY"))
         assertTrue(source.contains("RelationType.ENEMY"))
-        assertTrue(source.contains("menu.guild_info.relations.view_all"))
+        assertTrue(source.contains("guild_page.relation_rows.more_hint"))  // REQ-196: rows open the full browsers
     }
 
     @Test

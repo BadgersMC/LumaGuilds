@@ -28,11 +28,12 @@ object QuestAmountPolicy {
             QuestTargetRarity.RARE -> QuestAmountRange(2, 20)
             else -> QuestAmountRange(25, 500)
         }
+        // REQ-176: production asked for 210 diamond hoes and 1,100 banners; keep crafts weekly-sized.
         QuestAction.CRAFT_ITEMS -> when (rarity) {
             QuestTargetRarity.PRECIOUS -> QuestAmountRange(1, 32)
             QuestTargetRarity.RARE -> QuestAmountRange(8, 128)
-            QuestTargetRarity.UNCOMMON -> QuestAmountRange(32, 512)
-            else -> QuestAmountRange(64, 2_000)
+            QuestTargetRarity.UNCOMMON -> QuestAmountRange(8, 64)
+            else -> QuestAmountRange(64, 800)
         }
         QuestAction.SMELT_ITEMS -> when (rarity) {
             QuestTargetRarity.PRECIOUS -> QuestAmountRange(8, 128)

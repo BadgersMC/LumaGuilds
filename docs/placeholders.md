@@ -51,6 +51,25 @@ Resolve to `""` (empty) if the player has no guild — except `has_guild`, which
 | `%lumaguilds_guild_xp_to_next%` | XP remaining to level up |
 | `%lumaguilds_guild_xp_progress_pct%` | Percent progress (e.g. `62.5`) |
 
+### Prestige
+
+Cached for 30 seconds per guild and refreshed as soon as the guild prestiges.
+Empty for players without a guild, or if the prestige data can't be read.
+
+| Placeholder | Value |
+|---|---|
+| `%lumaguilds_guild_prestige%` | Prestige tier, `0` to `6` |
+| `%lumaguilds_guild_prestige_roman%` | `I` to `VI`; empty at tier 0 |
+| `%lumaguilds_guild_prestige_badge%` | Badge text from `progression.prestige.badges`; empty at tier 0 |
+| `%lumaguilds_guild_prestige_badge_minimessage%` | The same badge as MiniMessage, for Velocitab and other MiniMessage tab lists |
+| `%lumaguilds_guild_prestige_max%` | Configured lifetime maximum |
+| `%lumaguilds_guild_prestige_first_tier%` | Highest tier this guild reached first on the server; `0` if none |
+| `%lumaguilds_guild_prestige_last_date%` | UTC date of the latest prestige (`2026-10-24`); empty if none |
+
+For TAB or nametags, put `%lumaguilds_guild_prestige_badge%` before the guild tag.
+The default badges are coloured text (`✦I` to `✦VI`); replace them with Nexo glyph
+text once the badge glyphs are in the resource pack.
+
 ---
 
 ## Player's Guild Rank in Leaderboards
@@ -64,6 +83,7 @@ Returns the 1-based rank of the player's guild in the top 25, or `""` if not ran
 | `%lumaguilds_guild_rank_activity%` | Current week activity score |
 | `%lumaguilds_guild_rank_members%` | Member count |
 | `%lumaguilds_guild_rank_age%` | Oldest first |
+| `%lumaguilds_guild_rank_prestige%` | Prestige tier, then level and XP |
 
 ---
 
@@ -71,7 +91,7 @@ Returns the 1-based rank of the player's guild in the top 25, or `""` if not ran
 
 Format: `%lumaguilds_top_<category>_<rank>_<field>%`
 
-- **category** — `level` · `balance` · `activity` · `members` · `age`
+- **category** — `level` · `balance` · `activity` · `members` · `age` · `prestige`
 - **rank** — `1` to `25` (1-based)
 - **field** — see table below
 
@@ -84,7 +104,7 @@ Cached for 30 seconds. Returns `""` if the slot is empty.
 | `tag_mm` | Tag normalized to MiniMessage |
 | `tag_plain` | Tag with formatting stripped |
 | `id` | Guild UUID |
-| `value` | The metric being ranked on (level / balance / activity score / members / epoch second for age) |
+| `value` | The metric being ranked on (level / balance / activity score / members / epoch second for age / prestige tier) |
 | `level` | Guild level |
 | `members` | Member count |
 | `balance` | Bank balance |
@@ -92,6 +112,12 @@ Cached for 30 seconds. Returns `""` if the slot is empty.
 | `age_days` | Days since creation |
 | `emoji` | Nexo placeholder (`%nexo_<name>%`) |
 | `emoji_mm` | Nexo glyph tag — `:name:` → `<glyph:name>`; null/blank → empty; other values pass through |
+| `prestige` | Prestige tier |
+| `prestige_roman` | `I` to `VI`; empty at tier 0 |
+| `prestige_badge` | Configured badge; empty at tier 0 |
+
+The `prestige` category orders guilds by tier, then current-run level and XP, so it
+also shows which guilds are closest to their next prestige.
 
 ### Examples
 
@@ -101,6 +127,8 @@ Cached for 30 seconds. Returns `""` if the slot is empty.
 %lumaguilds_top_level_3_tag_plain%     → "Wolves"
 %lumaguilds_top_activity_2_members%    → "12"
 %lumaguilds_top_age_1_age_days%        → "287"
+%lumaguilds_top_prestige_1_name%       → "Vibe"
+%lumaguilds_top_prestige_1_prestige_badge% → "✦VI" (coloured)
 ```
 
 ---

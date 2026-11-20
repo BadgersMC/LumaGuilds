@@ -52,13 +52,31 @@ class GuildServiceBukkit(
     private val homeActivationService: GuildHomeActivationService,
     // Null (tests, partial wiring) fails closed: holiday themes stay locked.
     private val themeAccess: net.lumalyte.lg.application.services.GuildCosmeticUnlockService? = null,
+    // REQ-180/REQ-182. Null (tests, partial wiring): one allied home, no host rules.
+    private val allyHomeAccess: net.lumalyte.lg.application.persistence.AllyHomeAccessRepository? = null,
+    private val prestigePerks: net.lumalyte.lg.application.services.GuildPrestigePerks? = null,
+    // Whether a guild owns Allied Waypoints. Null: ask the progression service.
+    private val allyHomesUnlocked: ((UUID) -> Boolean)? = null,
+    // REQ-194: a disbanded guild's bans are dropped.
+    private val guildBans: net.lumalyte.lg.application.persistence.GuildBanRepository? = null,
     // Mandatory at runtime: missing v51 wiring must never silently bypass a locked home.
     private val homeAccess: GuildHomeAccessRepository,
 ) : GuildService, KoinComponent {
+    /**
+     * Allied homes need the Allied Waypoints reward. The menus always required it;
+     * commands did not (audit 2026-11-10). A failed lookup reads as locked.
+     */
+    private fun hasAlliedWaypoints(guildId: UUID): Boolean {
+        allyHomesUnlocked?.let { return it(guildId) }
+        // No DI context only happens in unit tests that predate this check.
+        val koin = org.koin.core.context.GlobalContext.getOrNull() ?: return true
+        return runCatching {
+            koin.get<net.lumalyte.lg.application.services.ProgressionService>()
+                .hasPerkUnlocked(guildId, net.lumalyte.lg.domain.values.PerkType.ALLY_HOME_ACCESS)
+        }.getOrDefault(false)
+    }
 
-    // Lazy because BannermanListeners depends on GuildService, which would create a Koin
-    // resolution cycle if injected eagerly through the constructor.
-    private val bannermanListeners: net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners by inject()
+
 
     private val logger = LoggerFactory.getLogger(GuildServiceBukkit::class.java)
 
@@ -183,6 +201,8 @@ class GuildServiceBukkit(
             memberRepository.evictGuild(guildId)
             rankRepository.evictGuild(guildId)
             relationRepository.evictGuild(guildId)
+            runCatching { allyHomeAccess?.deleteGuild(guildId) } // REQ-180/182: best effort; rules are inert once the guild is gone
+            runCatching { guildBans?.removeGuild(guildId) } // REQ-194: best effort; bans of a gone guild block nothing
             // Clean up vault chest and hologram if exists
             if (vaultLocation != null && vaultCleanup != null) {
                 // Remove hologram first
@@ -198,6 +218,17 @@ class GuildServiceBukkit(
                         logger.warn("Failed to remove vault chest during disbandment: ${removeResult.message}")
                     }
                 }
+            }
+
+            // REQ-246: the second vault's items drop at its chest and its records go, like the main vault.
+            runCatching {
+                org.koin.core.context.GlobalContext.getOrNull()
+                    ?.getOrNull<SecondVaultService>()?.disband(guildId)
+            }.onFailure { logger.warn("Failed to clear the second vault of guild $guildId", it) }
+            // REQ-260: a disbanded guild's Hall themes and display go with it.
+            runCatching {
+                org.koin.core.context.GlobalContext.getOrNull()
+                    ?.getOrNull<net.lumalyte.lg.application.services.HallThemeService>()?.disbanded(guildId)
             }
 
             logger.info("Guild $guildId disbanded by $actorId")
@@ -257,7 +288,6 @@ class GuildServiceBukkit(
             Bukkit.getPluginManager().callEvent(GuildBannerSetEvent(guildId, actorId))
             Bukkit.getPluginManager().callEvent(GuildBannerChangedEvent(guildId, banner != null))
 
-            bannermanListeners.onGuildBannerChanged(guildId)
         }
         return result
     }
@@ -571,11 +601,7 @@ class GuildServiceBukkit(
             val guild = guildRepository.getById(guildId) ?: return emptyMap()
 
             // Check if requesting guild has the perk
-            val progressionService = org.koin.core.context.GlobalContext.get()
-                .get<net.lumalyte.lg.application.services.ProgressionService>()
-            if (!progressionService.hasPerkUnlocked(guildId, net.lumalyte.lg.domain.values.PerkType.ALLY_HOME_ACCESS)) {
-                return emptyMap()
-            }
+            if (!hasAlliedWaypoints(guildId)) return emptyMap()
 
             // Get active ally relations
             val allyRelations = relationRepository.getByGuildAndType(
@@ -587,9 +613,7 @@ class GuildServiceBukkit(
                 val allyGuildId = relation.getOtherGuild(guildId)
 
                 // Ally must also have the perk unlocked (mutual requirement)
-                if (!progressionService.hasPerkUnlocked(allyGuildId, net.lumalyte.lg.domain.values.PerkType.ALLY_HOME_ACCESS)) {
-                    continue
-                }
+                if (!hasAlliedWaypoints(allyGuildId)) continue
 
                 val allyGuild = guildRepository.getById(allyGuildId) ?: continue
                 val allyHome = allyGuild.allyHome ?: continue
@@ -602,12 +626,17 @@ class GuildServiceBukkit(
         }
     }
 
-    override fun setAllyHome(guildId: UUID, home: GuildHome, actorId: UUID): Boolean {
+    override fun setAllyHome(guildId: UUID, home: GuildHome, actorId: UUID, slot: Int): Boolean {
         try {
             val guild = guildRepository.getById(guildId) ?: return false
-            if (!hasPermission(actorId, guildId, RankPermission.MANAGE_MEMBERS)) {
+            if (!hasPermission(actorId, guildId, RankPermission.MANAGE_HOME)) {
                 logger.warn("Player $actorId attempted to set ally home for guild $guildId without permission")
                 return false
+            }
+            if (!hasAlliedWaypoints(guildId)) return false
+            if (slot != 1) {
+                if (slot != 2 || allyHomeSlots(guildId) < 2) return false
+                return allyHomeAccess?.setSecondHome(guildId, home) ?: false
             }
             val updatedGuild = guild.copy(allyHome = home)
             val result = guildRepository.update(updatedGuild)
@@ -621,12 +650,17 @@ class GuildServiceBukkit(
         }
     }
 
-    override fun removeAllyHome(guildId: UUID, actorId: UUID): Boolean {
+    override fun removeAllyHome(guildId: UUID, actorId: UUID, slot: Int): Boolean {
         try {
             val guild = guildRepository.getById(guildId) ?: return false
-            if (!hasPermission(actorId, guildId, RankPermission.MANAGE_MEMBERS)) {
+            if (!hasPermission(actorId, guildId, RankPermission.MANAGE_HOME)) {
                 logger.warn("Player $actorId attempted to remove ally home for guild $guildId without permission")
                 return false
+            }
+            if (slot != 1) {
+                // Removing is allowed even after losing the perk, so nothing lingers.
+                if (slot != 2 || allyHomeAccess?.secondHome(guildId) == null) return false
+                return allyHomeAccess.setSecondHome(guildId, null)
             }
             if (guild.allyHome == null) return false
             val updatedGuild = guild.copy(allyHome = null)
@@ -641,8 +675,57 @@ class GuildServiceBukkit(
         }
     }
 
-    override fun getAllyHome(guildId: UUID): GuildHome? {
-        return guildRepository.getById(guildId)?.allyHome
+    override fun getAllyHome(guildId: UUID, slot: Int): GuildHome? = when (slot) {
+        1 -> guildRepository.getById(guildId)?.allyHome
+        2 -> if (allyHomeSlots(guildId) >= 2) allyHomeAccess?.secondHome(guildId) else null
+        else -> null
+    }
+
+    override fun allyHomeSlots(guildId: UUID): Int =
+        if (allyHomeAccess == null) 1 else runCatching { prestigePerks?.allyHomeSlots(guildId) }.getOrNull() ?: 1
+
+    // Each slot is listed on its own, so an ally with only a second allied home still shows.
+    override fun getAllyHomeEntries(guildId: UUID): List<net.lumalyte.lg.application.services.AllyHomeEntry> = try {
+        if (guildRepository.getById(guildId) == null || !hasAlliedWaypoints(guildId)) {
+            emptyList()
+        } else {
+            relationRepository.getByGuildAndType(guildId, net.lumalyte.lg.domain.entities.RelationType.ALLY)
+                .filter { it.isActive() }
+                .mapNotNull { guildRepository.getById(it.getOtherGuild(guildId)) }
+                .filter { hasAlliedWaypoints(it.id) }
+                .distinctBy { it.id }
+                .sortedBy { it.name.lowercase() }
+                .flatMap { ally ->
+                    (1..2).mapNotNull { slot ->
+                        getAllyHome(ally.id, slot)
+                            ?.let { net.lumalyte.lg.application.services.AllyHomeEntry(ally.id, ally.name, slot, it) }
+                    }
+                }
+        }
+    } catch (e: Exception) {
+        logger.error("Error listing ally homes for guild $guildId", e)
+        emptyList()
+    }
+
+    override fun allyHomeAccess(hostGuildId: UUID): net.lumalyte.lg.domain.values.AllyHomeAccess =
+        allyHomeAccess?.access(hostGuildId) ?: net.lumalyte.lg.domain.values.AllyHomeAccess()
+
+    override fun setAllyHomeVisitorRanks(hostGuildId: UUID, visitorGuildId: UUID, rankIds: Set<UUID>?, actorId: UUID): Boolean {
+        if (!hasPermission(actorId, hostGuildId, RankPermission.MANAGE_HOME)) return false
+        return allyHomeAccess?.setVisitorRanks(hostGuildId, visitorGuildId, rankIds) ?: false
+    }
+
+    override fun allyHomeOutboundRanks(guildId: UUID): Map<UUID, Set<UUID>> =
+        allyHomeAccess?.outboundRanks(guildId) ?: emptyMap()
+
+    override fun setAllyHomeOutboundRanks(guildId: UUID, allyGuildId: UUID, rankIds: Set<UUID>?, actorId: UUID): Boolean {
+        if (!hasPermission(actorId, guildId, RankPermission.MANAGE_HOME)) return false
+        return allyHomeAccess?.setOutboundRanks(guildId, allyGuildId, rankIds) ?: false
+    }
+
+    override fun setAllyHomeBlocked(hostGuildId: UUID, playerId: UUID, blocked: Boolean, actorId: UUID): Boolean {
+        if (!hasPermission(actorId, hostGuildId, RankPermission.MANAGE_HOME)) return false
+        return allyHomeAccess?.setBlocked(hostGuildId, playerId, blocked) ?: false
     }
 
     override fun setMode(guildId: UUID, mode: GuildMode, actorId: UUID): Boolean {
@@ -808,10 +891,11 @@ class GuildServiceBukkit(
         return guildRepository.updateGuiTheme(guildId, guild.guiTheme, theme)
     }
 
-    override fun canUseAllyHome(playerId: UUID, sourceGuildId: UUID, targetGuildId: UUID): Boolean {
+    override fun canUseAllyHome(playerId: UUID, sourceGuildId: UUID, targetGuildId: UUID, slot: Int): Boolean {
         if (guildRepository.getById(sourceGuildId) == null) return false
         val targetGuild = guildRepository.getById(targetGuildId) ?: return false
-        if (targetGuild.allyHome == null) return false
+        if (!hasAlliedWaypoints(sourceGuildId) || !hasAlliedWaypoints(targetGuildId)) return false
+        if (getAllyHome(targetGuildId, slot) == null) return false
         if (sourceGuildId !in targetGuild.allyHomeAllowedGuilds) return false
         // Guard against stale or manually-injected whitelist entries: the two guilds must
         // currently be actively allied, not merely whitelisted from a prior alliance.
@@ -821,14 +905,22 @@ class GuildServiceBukkit(
         if (!activeAlliance) return false
         val member = memberRepository.getByPlayerAndGuild(playerId, sourceGuildId) ?: return false
         val rank = rankRepository.getById(member.rankId) ?: return false
+        // REQ-182: the host's own rank picks and blocks apply to every visitor, owners included.
+        if (!allyHomeAccess(targetGuildId).admits(sourceGuildId, rank.id, playerId)) return false
         val ownerRank = rankRepository.getHighestRank(sourceGuildId)
-        if (ownerRank != null && rank.id == ownerRank.id) return true
-        return RankPermission.USE_ALLY_HOMES in rank.permissions
+        // REQ-183: the visitor's own guild may pick its ranks for this ally.
+        return net.lumalyte.lg.domain.values.AllyHomeOutbound.allows(
+            pick = allyHomeOutboundRanks(sourceGuildId)[targetGuildId],
+            rankId = rank.id,
+            isOwner = ownerRank != null && rank.id == ownerRank.id,
+            hasUsePermission = RankPermission.USE_ALLY_HOMES in rank.permissions,
+        )
     }
 
-    override fun canUseOwnAllyHome(playerId: UUID, guildId: UUID): Boolean {
-        val guild = guildRepository.getById(guildId) ?: return false
-        if (guild.allyHome == null) return false
+    override fun canUseOwnAllyHome(playerId: UUID, guildId: UUID, slot: Int): Boolean {
+        guildRepository.getById(guildId) ?: return false
+        if (!hasAlliedWaypoints(guildId)) return false
+        if (getAllyHome(guildId, slot) == null) return false
         val member = memberRepository.getByPlayerAndGuild(playerId, guildId) ?: return false
         val rank = rankRepository.getById(member.rankId) ?: return false
         // Guild owner (highest-priority rank) always has access; otherwise gate on USE_ALLY_HOMES.

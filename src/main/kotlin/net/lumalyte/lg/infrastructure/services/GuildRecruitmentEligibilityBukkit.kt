@@ -11,11 +11,14 @@ import java.util.UUID
 internal class GuildRecruitmentEligibilityBukkit(
     private val storage: Storage<Database>,
     private val members: MemberService,
+    // REQ-194: (guildId, playerId) -> banned from that guild; fails closed in the ban service.
+    private val guildBanned: (UUID, UUID) -> Boolean = { _, _ -> false },
     private val banned: (UUID) -> Boolean = { Bukkit.getOfflinePlayer(it).isBanned },
 ) : GuildRecruitmentEligibility {
     /** Banned players and players refusing any member of a guild cannot enter through recruitment. */
     override fun allows(player: UUID, guild: UUID): Boolean {
         if (banned(player)) return false
+        if (guildBanned(guild, player)) return false
         val blocked = storage.connection.connection.use { blockedPlayers(it, player) }
         return members.getGuildMembers(guild).none { it.playerId in blocked }
     }

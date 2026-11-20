@@ -506,7 +506,11 @@ class GuildBankStatisticsMenu(
         val transactions = bankService.getTransactionHistory(guild.id, 10)
 
         return transactions.map { transaction ->
-            val actorName = Bukkit.getOfflinePlayer(transaction.actorId).name ?: lang.raw("menu.bank.history.value.unknown")
+            val actorName = net.lumalyte.lg.interaction.menus.BankHistoryPresentation.actorName(
+                transaction.actorId,
+                lang.raw("menu.bank.history.value.system"),
+                lang.raw("menu.bank.history.value.unknown"),
+            ) { Bukkit.getOfflinePlayer(it).name }
             val action = when (transaction.type) {
                 TransactionType.DEPOSIT -> lang.gui("menu.bank.stats.activity.deposited", "amount" to transaction.amount)
                 TransactionType.WITHDRAWAL -> lang.gui("menu.bank.stats.activity.withdrew", "amount" to transaction.amount)

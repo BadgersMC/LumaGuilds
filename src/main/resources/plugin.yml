@@ -5,7 +5,7 @@ load: STARTUP
 main: net.lumalyte.lg.LumaGuilds
 # Advancements is discovered through Bukkit service lifecycle events; ordering it
 # before Guilds creates a cycle with KOTH (Guilds -> KOTH -> Advancements).
-softdepend: [Vault, PlaceholderAPI, LiteBans, EnthusiaStaff, EnthusiaPlaytime, Nexo, packetevents, DiscordSRV]
+softdepend: [Vault, PlaceholderAPI, LiteBans, EnthusiaStaff, EnthusiaPlaytime, Nexo, packetevents, DiscordSRV, BetterModel]
 depend: [RoseChat]
 
 commands:
@@ -25,6 +25,9 @@ commands:
   claimoverride:
     description: Override claim permissions
     usage: /claimoverride <subcommand> [args]
+  party:
+    description: Parties between guilds — invite, requests, info, chat
+    usage: /party [invite|accept|deny|cancel|info|list|chat|rename|leave|disband|help]
   pc:
     description: Party chat commands
     usage: /pc <subcommand> [args]
@@ -80,13 +83,13 @@ permissions:
       lumaguilds.guild.allyhome: true
       lumaguilds.guild.ranks: true
       lumaguilds.guild.emoji: true
-      lumaguilds.guild.mode: true
       lumaguilds.guild.disband: true
       lumaguilds.guild.menu: true
       lumaguilds.guild.quests: true
       lumaguilds.guild.leaderboard: true
       lumaguilds.guild.invite: true
       lumaguilds.guild.kick: true
+      lumaguilds.guild.ban: true
       lumaguilds.guild.tag: true
       lumaguilds.guild.description: true
       lumaguilds.guild.war: true
@@ -94,7 +97,6 @@ permissions:
       lumaguilds.guild.info: true
       lumaguilds.guild.history: true
       lumaguilds.guild.chat: true
-      lumaguilds.guild.bannerman: true
       lumaguilds.guild.bal: true
       lumaguilds.guild.baltop: true
       lumaguilds.guild.join: true
@@ -115,9 +117,6 @@ permissions:
 
   lumaguilds.guild.chat:
     description: Toggle guild chat mode (messages go to guild only)
-    default: true
-  lumaguilds.guild.bannerman:
-    description: Toggle guild bannerman rendering (banner on members' backs)
     default: true
   lumaguilds.guild.create:
     description: Create new guilds
@@ -140,9 +139,6 @@ permissions:
   lumaguilds.guild.emoji:
     description: Change guild emoji
     default: true
-  lumaguilds.guild.mode:
-    description: Change guild mode (peaceful/hostile)
-    default: true
   lumaguilds.guild.disband:
     description: Disband your guild
     default: true
@@ -160,6 +156,9 @@ permissions:
     default: true
   lumaguilds.guild.kick:
     description: Kick players from guild
+    default: true
+  lumaguilds.guild.ban:
+    description: Ban and unban players from your guild
     default: true
   lumaguilds.guild.tag:
     description: Change guild tag
@@ -302,6 +301,10 @@ permissions:
     description: Override claim permissions
     default: op
 
+  lumaguilds.party:
+    description: Use /party (guild rank permissions still decide what each player can change)
+    default: true
+
   # Party Chat Permissions
   lumaguilds.partychat.*:
     description: All party chat permissions
@@ -322,6 +325,9 @@ permissions:
       lumaguilds.admin.bypass: true
       lumaguilds.admin.view: true
       lumaguilds.admin.xp: true
+      lumaguilds.admin.prestige: true
+      lumaguilds.admin.sounds: true
+      lumaguilds.admin.hall: true
 
   bellclaims.admin:
     description: Allows access to admin commands including guild override mode
@@ -337,6 +343,16 @@ permissions:
 
   lumaguilds.admin.xp:
     description: Grant permanent guild XP with /lumaguilds xp give
+    default: op
+
+  lumaguilds.admin.prestige:
+    description: Inspect, set, grant and re-run guild prestige with /lumaguilds prestige
+    default: op
+
+  lumaguilds.admin.sounds:
+    description: Preview every guild sound with /lumaguilds sounds
+  lumaguilds.admin.hall:
+    description: Place Hall of Prestige pedestals with /lumaguilds hall
     default: op
 
   lumaguilds.admin.owner.recover:

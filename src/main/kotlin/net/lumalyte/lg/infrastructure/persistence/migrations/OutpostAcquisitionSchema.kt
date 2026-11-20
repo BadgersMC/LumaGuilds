@@ -7,7 +7,7 @@ import java.sql.Connection
  * Existing permanent Outpost receipts remain immutable evidence, not active grants.
  */
 internal object OutpostAcquisitionSchema {
-    const val VERSION = 50
+    const val VERSION = 53
 
     fun create(connection: Connection, mariaDb: Boolean) {
         val engine = if (mariaDb) " ENGINE=InnoDB" else ""

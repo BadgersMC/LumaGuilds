@@ -17,9 +17,14 @@ import java.util.concurrent.atomic.AtomicInteger
 class WebApiServer(
     private val plugin: JavaPlugin,
     private val config: WebApiConfig,
-    private val guildLeaderboardHandler: GuildLeaderboardHandler
+    private val guildLeaderboardHandler: GuildLeaderboardHandler,
+    /** REQ-301: the Hall of Prestige feed; null leaves the route unavailable. */
+    private val prestigeFeed: net.lumalyte.lg.infrastructure.web.handlers.PrestigeHallFeed? = null,
+    private val playerGuildSnapshot: ((List<java.util.UUID>) -> Map<String, Any?>)? = null,
+    private val guildQuestSnapshot: (() -> Map<String, Any?>?)? = null,
 ) {
     private val gson: Gson = GsonBuilder().disableHtmlEscaping().create()
+    private val questGson: Gson = GsonBuilder().disableHtmlEscaping().serializeNulls().create()
     private var server: HttpServer? = null
 
     fun start() {
@@ -32,6 +37,9 @@ class WebApiServer(
         val httpServer = HttpServer.create(InetSocketAddress(config.host, config.port), 0)
         httpServer.createContext("/api/leaderboards/guilds", ::handleGuildLeaderboard)
         httpServer.createContext("/api/community/guild-directory", ::handleGuildDirectory)
+        httpServer.createContext("/api/community/prestige", ::handlePrestige)
+        httpServer.createContext("/api/community/guildquests", ::handleGuildQuests)
+        httpServer.createContext("/api/community/player-guilds", ::handlePlayerGuilds)
         httpServer.createContext("/api/health") { exchange ->
             respondJson(exchange, 200, mapOf("status" to "ok"))
         }
@@ -102,6 +110,31 @@ class WebApiServer(
         }
     }
 
+    // REQ-301: like the directory, this feed is never public, even when the leaderboard token is blank.
+    private fun handlePrestige(exchange: HttpExchange) {
+        try {
+            if (exchange.requestURI.path != "/api/community/prestige") {
+                respondJson(exchange, 404, mapOf("error" to "not_found")); return
+            }
+            if (exchange.requestMethod != "GET") {
+                respondJson(exchange, 405, mapOf("error" to "method_not_allowed")); return
+            }
+            if (config.bearerToken.isBlank() || !isAuthorized(exchange)) {
+                respondJson(exchange, 401, mapOf("error" to "unauthorized")); return
+            }
+            val feed = prestigeFeed ?: run { respondJson(exchange, 503, mapOf("error" to "prestige_unavailable")); return }
+            val bytes = net.lumalyte.lg.infrastructure.web.handlers.PrestigeHallFeed.GSON.toJson(feed.build())
+                .toByteArray(StandardCharsets.UTF_8)
+            exchange.responseHeaders.add("Content-Type", "application/json; charset=utf-8")
+            exchange.responseHeaders.add("Cache-Control", "no-store")
+            exchange.sendResponseHeaders(200, bytes.size.toLong())
+            exchange.responseBody.use { it.write(bytes) }
+        } catch (t: Exception) {
+            plugin.logger.warning("[WebApi] prestige feed failed: ${t.message}")
+            respondJson(exchange, 503, mapOf("error" to "prestige_unavailable"))
+        }
+    }
+
     private fun isAuthorized(exchange: HttpExchange): Boolean {
         val token = config.bearerToken
         if (token.isBlank()) return true
@@ -111,6 +144,36 @@ class WebApiServer(
         return constantTimeEquals(provided, token)
     }
 
+    @Volatile private var questCache: Pair<Long, Map<String, Any?>>? = null
+    private val questCacheLock = Any()
+    private fun cachedQuestSnapshot(): Map<String, Any?>? = synchronized(questCacheLock) {
+        val cached = questCache
+        if (cached != null && System.currentTimeMillis() - cached.first < 60_000L) return@synchronized cached.second
+        val data = guildQuestSnapshot?.invoke() ?: return@synchronized null
+        if (questGson.toJson(data).toByteArray(StandardCharsets.UTF_8).size > 150_000) return@synchronized null
+        questCache = System.currentTimeMillis() to data
+        data
+    }
+    private fun handleGuildQuests(exchange: HttpExchange) {
+        try {
+            if (exchange.requestURI.path != "/api/community/guildquests") {
+                respondJson(exchange, 404, mapOf("error" to "not_found")); return
+            }
+            if (exchange.requestMethod != "GET") {
+                respondJson(exchange, 405, mapOf("error" to "method_not_allowed")); return
+            }
+            if (config.bearerToken.isBlank() || !isAuthorized(exchange)) {
+                respondJson(exchange, 401, mapOf("error" to "unauthorized")); return
+            }
+            val data = cachedQuestSnapshot()
+            respondJson(exchange, if (data == null) 503 else 200,
+                data ?: mapOf("error" to "quest_export_unavailable"), questGson)
+        } catch (_: Exception) {
+            plugin.logger.warning("[WebApi] quest export failed")
+            respondJson(exchange, 503, mapOf("error" to "quest_export_unavailable"))
+        }
+    }
+
     private fun constantTimeEquals(a: String, b: String): Boolean {
         if (a.length != b.length) return false
         var result = 0
@@ -118,8 +181,34 @@ class WebApiServer(
         return result == 0
     }
 
-    private fun respondJson(exchange: HttpExchange, status: Int, body: Any) {
-        val bytes = gson.toJson(body).toByteArray(StandardCharsets.UTF_8)
+    private fun handlePlayerGuilds(exchange: HttpExchange) {
+        try {
+            if (exchange.requestURI.path != "/api/community/player-guilds") {
+                respondJson(exchange, 404, mapOf("error" to "not_found")); return
+            }
+            if (exchange.requestMethod != "GET") {
+                respondJson(exchange, 405, mapOf("error" to "method_not_allowed")); return
+            }
+            if (config.bearerToken.isBlank() || !isAuthorized(exchange)) {
+                respondJson(exchange, 401, mapOf("error" to "unauthorized")); return
+            }
+            val query = parseQuery(exchange.requestURI.rawQuery)
+            val raw = query["players"]?.split(',').orEmpty()
+            if (query.keys != setOf("players") || raw.size !in 1..50 || raw.map { it.lowercase() }.distinct().size != raw.size ||
+                raw.any { !it.matches(Regex("[a-fA-F0-9]{8}(-[a-fA-F0-9]{4}){3}-[a-fA-F0-9]{12}")) }) {
+                respondJson(exchange, 400, mapOf("error" to "invalid_players")); return
+            }
+            val data = playerGuildSnapshot?.invoke(raw.map(java.util.UUID::fromString))
+            if (data == null) { respondJson(exchange, 503, mapOf("error" to "guild_lookup_unavailable")); return }
+            if (questGson.toJson(data).toByteArray(StandardCharsets.UTF_8).size > 150_000) {
+                respondJson(exchange, 503, mapOf("error" to "guild_lookup_too_large")); return
+            }
+            respondJson(exchange, 200, data, questGson)
+        } catch (_: Exception) { respondJson(exchange, 503, mapOf("error" to "guild_lookup_unavailable")) }
+    }
+
+    private fun respondJson(exchange: HttpExchange, status: Int, body: Any, serializer: Gson = gson) {
+        val bytes = serializer.toJson(body).toByteArray(StandardCharsets.UTF_8)
         exchange.responseHeaders.add("Content-Type", "application/json; charset=utf-8")
         exchange.responseHeaders.add("Cache-Control", "no-store")
         exchange.sendResponseHeaders(status, bytes.size.toLong())

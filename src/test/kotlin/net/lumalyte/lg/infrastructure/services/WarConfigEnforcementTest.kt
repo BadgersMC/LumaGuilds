@@ -1115,10 +1115,12 @@ class WarConfigEnforcementTest {
 
     @Test
     fun `configured kill target rejects oversized objectives`() {
+        // REQ-230: war_kill_target_max caps a chosen kill objective; war_kill_win_target is only the default.
         val service = newService(
             mockk(),
             combatConfig = CombatConfig(
                 warKillWinTarget = 25,
+                warKillTargetMax = 50,
                 warDeclarationCooldownHours = 0,
                 warFarmingCooldownHours = 0,
             ),
@@ -1128,12 +1130,12 @@ class WarConfigEnforcementTest {
 
         assertNull(service.createWarDeclaration(
             declaring, defending, Duration.ofDays(1),
-            setOf(WarObjective(type = ObjectiveType.KILLS, targetValue = 50, description = "Too many kills")),
+            setOf(WarObjective(type = ObjectiveType.KILLS, targetValue = 51, description = "Too many kills")),
             actorId = UUID.randomUUID(),
         ))
         assertNotNull(service.createWarDeclaration(
             declaring, defending, Duration.ofDays(1),
-            setOf(WarObjective(type = ObjectiveType.KILLS, targetValue = 25, description = "Configured cap")),
+            setOf(WarObjective(type = ObjectiveType.KILLS, targetValue = 50, description = "Configured cap")),
             actorId = UUID.randomUUID(),
         ))
     }

@@ -14,6 +14,7 @@ class ExperienceBoostConfigTest {
         yaml = validConfig()
         val first = config.loadConfig().progression.xpBoost!!
         assertFalse(ExperienceSource.ADMIN_BONUS in first.sources)
+        assertFalse(ExperienceSource.GUILD_ADVANCEMENT in first.sources) // REQ-227
         assertTrue(ExperienceSource.WEEKLY_ACTIVITY in first.sources)
         yaml.set("progression.xp_boost.multiplier", 3.0)
         val next = config.loadConfig().progression.xpBoost!!

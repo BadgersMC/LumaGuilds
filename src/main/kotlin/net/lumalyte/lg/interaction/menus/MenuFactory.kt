@@ -46,7 +46,7 @@ class MenuFactory(
      * Determines if Bedrock menus should be used for a player based on configuration and platform detection
      * Includes enhanced error handling and logging
      */
-    private fun shouldUseBedrockMenus(player: Player): Boolean {
+    internal fun shouldUseBedrockMenus(player: Player): Boolean {
         return try {
             val config = configService.loadConfig()
 
@@ -317,7 +317,8 @@ class MenuFactory(
             // Use Bedrock guild member list menu with SimpleForm and player heads
             BedrockGuildMemberListMenu(menuNavigator, player, guild, logger)
         } else {
-            GuildMemberListMenu(menuNavigator, player, guild)
+            // REQ-191: on Java the member list is part of the guild page.
+            GuildInfoMenu(menuNavigator, player, guild)
         }
     }
 
@@ -491,21 +492,6 @@ class MenuFactory(
     }
 
     /**
-     * Creates a guild mode menu appropriate for the player's platform
-     */
-    fun createGuildModeMenu(
-        menuNavigator: MenuNavigator,
-        player: Player,
-        guild: net.lumalyte.lg.domain.entities.Guild
-    ): Menu {
-        return if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildModeMenu(menuNavigator, player, guild, logger)
-        } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildModeMenu(menuNavigator, player, guild)
-        }
-    }
-
-    /**
      * Creates a guild home menu appropriate for the player's platform
      */
     fun createGuildHomeMenu(
@@ -607,7 +593,8 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildMemberManagementMenu(menuNavigator, player, guild, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildMemberManagementMenu(menuNavigator, player, guild)
+            // REQ-191/REQ-193: on Java members are managed from the guild page.
+            GuildInfoMenu(menuNavigator, player, guild)
         }
     }
 
@@ -688,13 +675,6 @@ class MenuFactory(
         }
     }
 
-    /** Permission-aware guild onboarding for both menu clients. */
-    fun createGuildGettingStartedMenu(navigator: MenuNavigator, player: Player, guildId: java.util.UUID?): Menu =
-        if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildGettingStartedMenu(navigator, player, guildId, logger)
-        } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedMenu(navigator, player, guildId)
-        }
 
     fun createPlayerChatSettingsMenu(navigator: MenuNavigator, player: Player): Menu =
         if (shouldUseBedrockMenus(player)) net.lumalyte.lg.interaction.menus.bedrock.BedrockPlayerChatSettingsMenu(navigator, player, logger)

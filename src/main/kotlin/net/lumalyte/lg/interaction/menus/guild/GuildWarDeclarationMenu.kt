@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.domain.values.WarDeclarationBlock
+import net.lumalyte.lg.infrastructure.i18n.plain
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import net.lumalyte.lg.utils.NexoItemProvider
@@ -61,6 +63,7 @@ class GuildWarDeclarationMenu(
     
     // War configuration state
     private var selectedDuration: Duration = Duration.ofDays(7) // Default 7 days
+    private var objectiveBased = false
     private var selectedObjectives: MutableSet<WarObjective> = mutableSetOf()
     private var warTerms: String? = null
     private var inputMode: String? = null // Track what input mode we're in ("war_terms")
@@ -239,14 +242,23 @@ class GuildWarDeclarationMenu(
     }
 
     private fun addDurationSelection(pane: StaticPane) {
+        val kills = killTarget()
         val durationItem = ItemStack.of(Material.CLOCK)
             .name(lang.gui("menu.war_declaration.item.duration.name"))
-            .lore(lang.gui("menu.war_declaration.item.duration.lore.current", "days" to selectedDuration.toDays()))
+            .lore(if (objectiveBased) lang.gui("war_duration.current_kills", "kills" to kills)
+                else lang.gui("menu.war_declaration.item.duration.lore.current", "days" to selectedDuration.toDays()))
             .lore(lang.gui("menu.common.blank"))
             .lore(lang.gui("menu.war_declaration.item.duration.lore.available"))
-            .lore(lang.gui("menu.war_declaration.item.duration.lore.quick"))
-            .lore(lang.gui("menu.war_declaration.item.duration.lore.standard"))
-            .lore(lang.gui("menu.war_declaration.item.duration.lore.extended"))
+        // Every choice is listed with the current one marked (approved #40 mockup).
+        offeredDurations().forEach { option ->
+            val label = lang.plain("war_duration.option_days", "days" to option.toDays(), "name" to durationName(option.toDays()))
+            durationItem.lore(if (!objectiveBased && option == selectedDuration) lang.gui("war_duration.option_selected", "label" to label)
+                else lang.gui("war_duration.option", "label" to label))
+        }
+        val killLabel = lang.plain("war_duration.until_kills", "kills" to kills)
+        durationItem.lore(if (objectiveBased) lang.gui("war_duration.option_selected", "label" to killLabel)
+            else lang.gui("war_duration.option", "label" to killLabel))
+        durationItem
             .lore(lang.gui("menu.common.blank"))
             .lore(lang.gui("menu.war_declaration.item.duration.lore.action"))
 
@@ -517,7 +529,7 @@ class GuildWarDeclarationMenu(
             ItemStack.of(Material.DIAMOND_SWORD)
                 .name(lang.gui("menu.war_declaration.item.declare.name"))
                 .lore(lang.gui("menu.war_declaration.item.declare.lore.target", "guild" to target.name))
-                .lore(lang.gui("menu.war_declaration.item.declare.lore.duration", "days" to selectedDuration.toDays()))
+                .lore(if (objectiveBased) lang.gui("war_duration.declare_kills", "kills" to killTarget()) else lang.gui("menu.war_declaration.item.declare.lore.duration", "days" to selectedDuration.toDays()))
                 .lore(lang.gui("menu.war_declaration.item.declare.lore.objectives", "count" to selectedObjectives.size))
                 .lore(if (wagerAmount > 0) {
                     lang.gui("menu.war_declaration.item.declare.lore.wager", "amount" to wagerAmount)
@@ -586,24 +598,31 @@ class GuildWarDeclarationMenu(
                 return
             }
 
+            // REQ-239: say which cooldown or limit is in the way, and for how long.
+            val block = warService.declarationBlock(guild.id, target.id)
+            if (block != null) {
+                player.sendMessage(blockMessage(block, target.name))
+                player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
+                return
+            }
+
             // REQ-024: no auto-accept — every declaration goes through the
             // accept/decline flow. REQ-039: escrow is handled by the war service
             // (createWager deducts both guilds on acceptance); the menu no longer
             // moves bank funds itself.
-            val declaration = warService.createWarDeclaration(
-                declaringGuildId = guild.id,
-                defendingGuildId = target.id,
-                duration = selectedDuration,
-                objectives = selectedObjectives,
-                wagerAmount = wagerAmount,
-                terms = warTerms,
-                actorId = player.uniqueId,
-                rated = selectedRated,
-            )
+            val declaration = if (objectiveBased) {
+                warService.createObjectiveWarDeclaration(
+                    guild.id, target.id, selectedObjectives, wagerAmount, warTerms, player.uniqueId, selectedRated,
+                )
+            } else {
+                warService.createWarDeclaration(
+                    guild.id, target.id, selectedDuration, selectedObjectives, wagerAmount, warTerms, player.uniqueId, selectedRated,
+                )
+            }
 
             if (declaration != null) {
                 player.sendMessage(lang.msg("menu.war_declaration.feedback.sent", "guild" to target.name))
-                player.sendMessage(lang.msg("menu.war_declaration.feedback.duration", "days" to selectedDuration.toDays()))
+                player.sendMessage(if (declaration.objectiveBased) lang.msg("war_duration.objective") else lang.msg("menu.war_declaration.feedback.duration", "days" to declaration.proposedDuration.toDays()))
                 if (declaration.isRated) {
                     player.sendMessage(lang.msg("menu.war_declaration.feedback.rated_created"))
                 } else {
@@ -637,17 +656,53 @@ class GuildWarDeclarationMenu(
         }
     }
 
+    private fun blockMessage(block: WarDeclarationBlock, targetName: String): Component {
+        val time = block.remaining(java.time.Instant.now())?.let(WarDeclarationBlock::format) ?: ""
+        return when (block.reason) {
+            WarDeclarationBlock.Reason.DECLARATION_COOLDOWN ->
+                lang.msg("menu.war_declaration.feedback.blocked.declaration_cooldown", "time" to time)
+            WarDeclarationBlock.Reason.OWN_FARMING_COOLDOWN ->
+                lang.msg("menu.war_declaration.feedback.blocked.own_farming_cooldown", "time" to time)
+            WarDeclarationBlock.Reason.TARGET_FARMING_COOLDOWN ->
+                lang.msg("menu.war_declaration.feedback.blocked.target_farming_cooldown", "guild" to targetName, "time" to time)
+            WarDeclarationBlock.Reason.OWN_WAR_LIMIT ->
+                lang.msg("menu.war_declaration.feedback.blocked.own_war_limit")
+            WarDeclarationBlock.Reason.TARGET_WAR_LIMIT ->
+                lang.msg("menu.war_declaration.feedback.blocked.target_war_limit", "guild" to targetName)
+        }
+    }
+
     private fun selectTargetGuild(target: Guild) {
         targetGuild = target
         player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
         open() // Refresh to show configuration
     }
 
+    /** REQ-231: the chosen kill objective, else the server default. */
+    private fun killTarget(): Int = net.lumalyte.lg.domain.values.WarKillTargets.forWar(selectedObjectives, warService.getWarKillWinTarget())
+
+    /** Lengths up to the server cap, so prod offers 3 and 7 days until `war_duration_hours` is raised. */
+    private fun offeredDurations(): List<Duration> {
+        val maxHours = configService.loadConfig().combat.warDurationHours.coerceAtLeast(1)
+        return listOf(3L, 7L, 14L, 30L).map(Duration::ofDays).filter { it <= Duration.ofHours(maxHours.toLong()) }
+    }
+
+    private fun durationName(days: Long): String = when (days) {
+        3L -> lang.plain("war_duration.names.quick")
+        7L -> lang.plain("war_duration.names.standard")
+        14L -> lang.plain("war_duration.names.extended")
+        else -> lang.plain("war_duration.names.season")
+    }
+
     private fun cycleDuration() {
-        selectedDuration = when (selectedDuration.toDays()) {
-            3L -> Duration.ofDays(7)
-            7L -> Duration.ofDays(14)
-            else -> Duration.ofDays(3)
+        val maxHours = configService.loadConfig().combat.warDurationHours.coerceAtLeast(1)
+        val durations = offeredDurations()
+        if (objectiveBased) {
+            objectiveBased = false
+            selectedDuration = durations.firstOrNull() ?: Duration.ofHours(maxHours.toLong())
+        } else {
+            val next = durations.firstOrNull { it > selectedDuration }
+            if (next == null) objectiveBased = true else selectedDuration = next
         }
         player.playSound(player.location, Sound.UI_BUTTON_CLICK, 1.0f, 1.0f)
     }
@@ -662,11 +717,7 @@ class GuildWarDeclarationMenu(
     }
 
     private fun cycleKillTarget() {
-        val killCap = warService.getWarKillWinTarget()
-        val killTargets = (listOf(5, 10, 25, 50).filter { it <= killCap } + killCap)
-            .filter { it > 0 }
-            .distinct()
-            .sorted()
+        val killTargets = warService.killTargetOptions()
         val currentKills = selectedObjectives.firstOrNull()?.targetValue ?: killTargets.first()
         val currentIndex = killTargets.indexOf(currentKills)
         val nextIndex = if (currentIndex == -1 || currentIndex >= killTargets.size - 1) 0 else currentIndex + 1

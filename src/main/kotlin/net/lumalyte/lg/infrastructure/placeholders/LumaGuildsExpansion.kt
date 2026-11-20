@@ -40,6 +40,7 @@ import java.util.concurrent.ConcurrentHashMap
  * - %lumaguilds_guild_name% - Player's guild name
  * - %lumaguilds_guild_tag% - Player's guild tag, MiniMessage rendered to legacy §-codes (chat-safe)
  * - %lumaguilds_guild_tag_minimessage% - Player's guild tag normalized to MiniMessage (proxy/MiniMessage-safe, e.g. Velocitab)
+ * - %lumaguilds_guild_prestige_badge_minimessage% - Prestige badge as MiniMessage (Velocitab-safe)
  * - %lumaguilds_guild_tag_raw% - Raw tag string as stored (may contain MiniMessage tags)
  * - %lumaguilds_guild_tag_plain% - Tag with all formatting stripped
  * - %lumaguilds_guild_emoji% - Player's guild emoji (converted to %nexo_<emoji>% format for backend tab/scoreboard/chat)
@@ -108,6 +109,11 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     private val questService: QuestService by inject()
     private val storage: Storage<Database> by inject()
     private val seasonalElo: net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator by inject()
+    private val prestigeStandings: net.lumalyte.lg.application.services.GuildPrestigeStandings by inject()
+
+    // loadConfig() rebuilds the whole config, so badge settings share the 30s cache cycle.
+    private data class CachedPrestigeSettings(val expiresAt: Instant, val badges: List<String>, val maxCount: Int)
+    @Volatile private var prestigeSettingsCache: CachedPrestigeSettings? = null
 
     private val miniMessage = MiniMessage.miniMessage()
     private val plainSerializer = PlainTextComponentSerializer.plainText()
@@ -167,8 +173,16 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
 
         // Get guild information
         val guild = guildService.getGuild(guildId) ?: return ""
+        // REQ-190: the member cap comes from the member service, not the flat reward number.
+        if (ident == "guild_reward_member_capacity") {
+            return runCatching { memberService.getMemberLimit(guildId).toString() }.getOrDefault("")
+        }
         if (ident.startsWith("guild_reward_")) return RewardPlaceholder.value(ident, progressionService.getRewardState(guildId))
         if (ident.startsWith("source_")) return sourceUsagePlaceholder(guildId, ident)
+        if (ident.startsWith("guild_prestige")) {
+            val settings = prestigeSettings()
+            return PrestigePlaceholder.value(ident, safePrestigeStanding(guildId), settings.badges, settings.maxCount) { nexoEmojiService.glyphFont(it) }
+        }
 
         return when (identifier.lowercase()) {
             // Basic guild info
@@ -211,6 +225,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
             "guild_rank_activity" -> rankInTop("activity", guildId)
             "guild_rank_members" -> rankInTop("members", guildId)
             "guild_rank_age" -> rankInTop("age", guildId)
+            "guild_rank_prestige" -> rankInTop("prestige", guildId)
 
             // Online member count
             "guild_online_members" -> {
@@ -218,7 +233,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
                     memberService.getGuildMembers(guildId).count {
                         Bukkit.getPlayer(it.playerId)?.isOnline == true
                     }.toString()
-                } catch (_: Exception) { "0" }
+                } catch (e: Exception) { net.lumalyte.lg.application.logging.SwallowedErrors.log("LumaGuildsExpansion:236", e); "0" }
             }
 
             // Member info
@@ -344,7 +359,8 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     private fun handleWeeklyQuestPlaceholder(identifier: String, guildId: UUID?): String {
         return try {
             handleWeeklyQuestPlaceholderUnsafe(identifier, guildId)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            net.lumalyte.lg.application.logging.SwallowedErrors.log("LumaGuildsExpansion:362", e)
             ""
         }
     }
@@ -549,7 +565,23 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         "age_days" -> Duration.between(guild.createdAt, Instant.now()).toDays().toString()
         "emoji" -> convertEmojiToNexoPlaceholder(guild.emoji)
         "emoji_mm" -> nexoEmojiService.emojiToGlyphTag(guild.emoji)
+        "prestige" -> safePrestigeStanding(guild.id)?.tier?.toString() ?: ""
+        "prestige_roman" -> safePrestigeStanding(guild.id)?.let { PrestigePlaceholder.roman(it.tier) } ?: ""
+        "prestige_badge" -> safePrestigeStanding(guild.id)?.let { PrestigePlaceholder.badge(it.tier, prestigeSettings().badges) } ?: ""
         else -> ""
+    }
+
+    private fun safePrestigeStanding(guildId: UUID) = runCatching { prestigeStandings.standing(guildId) }.getOrNull()
+
+    private fun prestigeSettings(): CachedPrestigeSettings {
+        val now = Instant.now()
+        prestigeSettingsCache?.takeIf { it.expiresAt.isAfter(now) }?.let { return it }
+        val prestige = runCatching { configService.loadConfig().progression.prestige }.getOrNull()
+        return CachedPrestigeSettings(
+            now.plusSeconds(topCacheTtlSeconds),
+            prestige?.badges ?: net.lumalyte.lg.config.DEFAULT_PRESTIGE_BADGES,
+            prestige?.maxCount ?: 6,
+        ).also { prestigeSettingsCache = it }
     }
 
     private fun formatScore(score: Double): String {
@@ -567,7 +599,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         val now = Instant.now()
         val cached = topCache[category]
         if (cached != null && cached.expiresAt.isAfter(now)) return cached.rows
-        val computed = try { computeTop(category) } catch (_: Exception) { emptyList() }
+        val computed = try { computeTop(category) } catch (e: Exception) { net.lumalyte.lg.application.logging.SwallowedErrors.log("LumaGuildsExpansion:601", e); emptyList() }
         topCache[category] = CachedTop(now.plusSeconds(topCacheTtlSeconds), computed)
         return computed
     }
@@ -582,6 +614,15 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
                 }
                 .sortedByDescending { it.value }
                 .take(limit)
+            // REQ-156: tier first, then current-run level and XP; value is the tier.
+            "prestige" -> guildService.getAllGuilds()
+                .map { g ->
+                    val xp = progressionRepository.getGuildProgression(g.id)?.totalExperience ?: 0
+                    Triple(g.id, safePrestigeStanding(g.id)?.tier ?: 0, g.level * 1_000_000.0 + xp)
+                }
+                .sortedWith(compareByDescending<Triple<UUID, Int, Double>> { it.second }.thenByDescending { it.third })
+                .take(limit)
+                .map { TopRow(it.first, it.second.toDouble()) }
             "balance" -> guildService.getAllGuilds()
                 .map { g -> TopRow(g.id, safeBalance(g.id).toDouble()) }
                 .sortedByDescending { it.value }
@@ -604,10 +645,10 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
     }
 
     private fun safeProgression(guildId: UUID) =
-        try { progressionRepository.getGuildProgression(guildId) } catch (_: Exception) { null }
+        try { progressionRepository.getGuildProgression(guildId) } catch (e: Exception) { net.lumalyte.lg.application.logging.SwallowedErrors.log("LumaGuildsExpansion:647", e); null }
 
     private fun safeSeasonalElo(guildId: UUID) =
-        try { seasonalElo.view(guildId) } catch (_: Exception) { null }
+        try { seasonalElo.view(guildId) } catch (e: Exception) { net.lumalyte.lg.application.logging.SwallowedErrors.log("LumaGuildsExpansion:650", e); null }
 
     private fun sourceUsagePlaceholder(guildId: UUID, identifier: String): String {
         return try {
@@ -616,21 +657,22 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
                 progressionService.getSourceUsage(guildId),
                 configService.loadConfig().progression.sourcePolicies,
             )
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            net.lumalyte.lg.application.logging.SwallowedErrors.log("LumaGuildsExpansion:659", e)
             ""
         }
     }
 
     private fun safeBalance(guildId: UUID): Int =
-        try { bankService.getBalance(guildId) } catch (_: Exception) { 0 }
+        try { bankService.getBalance(guildId) } catch (e: Exception) { net.lumalyte.lg.application.logging.SwallowedErrors.log("LumaGuildsExpansion:665", e); 0 }
 
     private fun safeMemberCount(guildId: UUID): Int =
-        try { memberService.getMemberCount(guildId) } catch (_: Exception) { 0 }
+        try { memberService.getMemberCount(guildId) } catch (e: Exception) { net.lumalyte.lg.application.logging.SwallowedErrors.log("LumaGuildsExpansion:668", e); 0 }
 
     private fun safeWeeklyActivityScore(guildId: UUID): Int =
         try {
             leaderboardRepository.getWeeklyActivity(guildId, currentWeekStart())?.totalScore ?: 0
-        } catch (_: Exception) { 0 }
+        } catch (e: Exception) { net.lumalyte.lg.application.logging.SwallowedErrors.log("LumaGuildsExpansion:673", e); 0 }
 
     private fun handleChapterPlaceholder(identifier: String): String {
         return try {
@@ -646,18 +688,20 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
                     else -> ""
                 }
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            net.lumalyte.lg.application.logging.SwallowedErrors.log("LumaGuildsExpansion:689", e)
             ""
         }
     }
 
     private fun safeGuildCount(): String =
-        try { guildService.getAllGuilds().size.toString() } catch (_: Exception) { "0" }
+        try { guildService.getAllGuilds().size.toString() } catch (e: Exception) { net.lumalyte.lg.application.logging.SwallowedErrors.log("LumaGuildsExpansion:695", e); "0" }
 
     private fun stripFormatting(tag: String): String =
         try {
             plainSerializer.serialize(miniMessage.deserialize(tag))
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            net.lumalyte.lg.application.logging.SwallowedErrors.log("LumaGuildsExpansion:700", e)
             tag
         }
 
@@ -673,7 +717,8 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         val raw = guild.tag ?: return "§6${guild.name}"
         return try {
             legacySerializer.serialize(miniMessage.deserialize(raw))
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            net.lumalyte.lg.application.logging.SwallowedErrors.log("LumaGuildsExpansion:716", e)
             raw
         }
     }
@@ -682,7 +727,8 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
         val raw = guild.tag ?: return guild.name
         return try {
             plainSerializer.serialize(miniMessage.deserialize(raw))
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            net.lumalyte.lg.application.logging.SwallowedErrors.log("LumaGuildsExpansion:725", e)
             raw
         }
     }
@@ -710,7 +756,7 @@ class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
 
     companion object {
         private const val TOP_CACHE_LIMIT = 25
-        private val TOP_CATEGORIES = setOf("level", "balance", "activity", "members", "age")
+        private val TOP_CATEGORIES = setOf("level", "balance", "activity", "members", "age", "prestige")
         private val WEEKLY_QUEST_PATTERN = Regex("guild_weekly_quest_(\\d+)_(.+)")
         private val SOURCE_USAGE_PATTERN = Regex("source_(.+)_(used|remaining)")
         private val PERMANENT_PLACEHOLDERS = setOf("permanent_level", "permanent_xp", "permanent_xp_to_next")

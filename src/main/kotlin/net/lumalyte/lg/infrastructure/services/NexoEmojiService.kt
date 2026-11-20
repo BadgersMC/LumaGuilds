@@ -4,6 +4,8 @@ import com.nexomc.nexo.NexoPlugin
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.GuildCosmeticUnlockService
 import net.lumalyte.lg.domain.entities.HolidayGuildEmoji
+import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.domain.values.GuildEmojiRules
 import java.util.UUID
 import org.bukkit.entity.Player
 import org.slf4j.LoggerFactory
@@ -75,6 +77,7 @@ class NexoEmojiService internal constructor(
     private val configService: ConfigService,
     private val glyphResolver: NexoGlyphResolver = NexoPublicGlyphResolver,
     private val guildCosmetics: GuildCosmeticUnlockService? = null,
+    private val guildLookup: (UUID) -> Guild? = { null },
 ) {
 
     /** Creates the service using the optional installed Nexo plugin. */
@@ -82,6 +85,9 @@ class NexoEmojiService internal constructor(
 
     constructor(configService: ConfigService, guildCosmetics: GuildCosmeticUnlockService) :
         this(configService, NexoPublicGlyphResolver, guildCosmetics)
+
+    constructor(configService: ConfigService, guildCosmetics: GuildCosmeticUnlockService, guildLookup: (UUID) -> Guild?) :
+        this(configService, NexoPublicGlyphResolver, guildCosmetics, guildLookup)
 
     private val logger = LoggerFactory.getLogger(NexoEmojiService::class.java)
 
@@ -133,16 +139,23 @@ class NexoEmojiService internal constructor(
         return hasPermission
     }
 
-    /** Selection entitlement belongs to this guild; ordinary emoji permissions are unchanged. */
+    /**
+     * Whether this guild may save [emoji]. REQ-216 to REQ-218: the approved list and guild-only
+     * logos decide, not the player's own emoji permissions; the pumpkin needs the guild unlock.
+     */
+    @Suppress("UNUSED_PARAMETER")
     fun hasGuildEmojiPermission(player: Player, emoji: String, guildId: UUID?): Boolean {
         val canonical = validatedEmojiName(emoji) ?: return false
-        return if (canonical == HolidayGuildEmoji.GLYPH) {
-            emoji == HolidayGuildEmoji.PLACEHOLDER && guildId != null &&
+        if (canonical == HolidayGuildEmoji.GLYPH) {
+            return emoji == HolidayGuildEmoji.PLACEHOLDER && guildId != null &&
                 guildCosmetics?.ownsPumpkinEmoji(guildId) == true
-        } else {
-            hasEmojiPermission(player, emoji)
         }
+        val guild = guildId?.let(guildLookup)
+        val current = guild?.emoji?.let(::extractEmojiName)
+        return emojiRules().canPick(canonical, guild?.name, current)
     }
+
+    private fun emojiRules(): GuildEmojiRules = configService.loadConfig().guild.emojiChoices
     
     /**
      * Gets a formatted display name for the guild including the emoji if set.
@@ -262,6 +275,15 @@ class NexoEmojiService internal constructor(
      * @param emoji The emoji placeholder to check.
      * @return true if the emoji exists in Nexo, false otherwise.
      */
+    /** The Nexo font of the glyph drawn with [c], or null for ordinary text. */
+    fun glyphFont(c: Char): String? = try {
+        nexoFontManager()?.let { manager -> manager.unicodeGlyphMap[c]?.let { manager.glyphFromID(it)?.font?.asString() } }
+    } catch (_: RuntimeException) {
+        null
+    } catch (_: LinkageError) {
+        null
+    }
+
     fun doesEmojiExist(emoji: String): Boolean = resolveEmoji(emoji) != null
 
     /**
@@ -297,35 +319,19 @@ class NexoEmojiService internal constructor(
     fun getPlayerUnlockedEmojis(player: Player): List<String> = getPlayerUnlockedEmojis(player, null)
 
     /** Lists personal emojis plus the pumpkin entitlement owned by this guild. */
+    @Suppress("UNUSED_PARAMETER")
     fun getPlayerUnlockedEmojis(player: Player, guildId: UUID?): List<String> {
-        if (!isNexoAvailable()) {
-            logger.debug("Nexo not available, cannot get unlocked emojis for ${player.name}")
-            return emptyList()
-        }
-        val availableEmojis = getAvailableEmojisFromNexo().orEmpty()
-        val holidayEmojis =
-            if (doesEmojiExist(HolidayGuildEmoji.PLACEHOLDER)) {
+        // Without Nexo no glyph resolves, so doesEmojiExist leaves the list empty.
+        val guild = guildId?.let(guildLookup)
+        val holiday =
+            if (guildId != null && guildCosmetics?.ownsPumpkinEmoji(guildId) == true &&
+                doesEmojiExist(HolidayGuildEmoji.PLACEHOLDER)
+            ) {
                 listOf(HolidayGuildEmoji.GLYPH)
             } else {
                 emptyList()
             }
-        return (availableEmojis + holidayEmojis).distinct().filter { emojiName ->
-            hasGuildEmojiPermission(player, createEmojiPlaceholder(emojiName), guildId)
-        }
-    }
-
-    /**
-     * Gets all available emoji names from Nexo using FontManager's emoji collection.
-     * This is a cached operation for performance.
-     *
-     * @return List of emoji names (without colons), or null if unavailable.
-     */
-    private fun getAvailableEmojisFromNexo(): List<String>? {
-        return try {
-            nexoFontManager()?.emojis()?.map { it.id }
-        } catch (e: RuntimeException) {
-            logger.warn("Error getting available emojis from FontManager: ${e.message}")
-            null
-        }
+        // REQ-216/217: only the approved list (plus this guild's logo), whatever the player holds.
+        return (emojiRules().choices(guild?.name).filter { doesEmojiExist(createEmojiPlaceholder(it)) } + holiday).distinct()
     }
 }

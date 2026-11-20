@@ -16,6 +16,10 @@ object GuildInvitationManager {
 
     private var inviteBlocks: InviteBlockService? = null
 
+    // REQ-194: (guildId, playerId) -> banned; fails closed inside the ban service.
+    @Volatile
+    var guildBans: ((UUID, UUID) -> Boolean)? = null
+
     /**
      * Initialize the manager with a repository instance.
      * This must be called during plugin startup.
@@ -38,6 +42,7 @@ object GuildInvitationManager {
         // Every guild invite passes here: refused, without saying why, when the invited player blocked the inviter or
         // a member of the guild (and when the blocks could not be loaded).
         if (inviteBlocks?.refusesGuildInvite(invitedPlayerId, guildId, inviterPlayerId) == true) return false
+        if (guildBans?.invoke(guildId, invitedPlayerId) == true) return false
 
         val invitation = GuildInvitation(
             guildId = guildId,
@@ -66,6 +71,7 @@ object GuildInvitationManager {
         // An invite stops counting once the player blocks the inviter or someone who is now in that guild.
         return repository.getByPlayer(playerId)
             .filterNot { inviteBlocks?.refusesGuildInvite(playerId, it.guildId, it.inviterPlayerId) == true }
+            .filterNot { guildBans?.invoke(it.guildId, playerId) == true }
             .map { it.guildId to it.guildName }
     }
 
@@ -76,6 +82,7 @@ object GuildInvitationManager {
         return repository.getByPlayer(playerId)
             .firstOrNull { it.guildName.equals(guildName, ignoreCase = true) }
             ?.takeUnless { inviteBlocks?.refusesGuildInvite(playerId, it.guildId, it.inviterPlayerId) == true }
+            ?.takeUnless { guildBans?.invoke(it.guildId, playerId) == true }
             ?.let { it.guildId to it.guildName }
     }
 

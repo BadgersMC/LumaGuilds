@@ -50,6 +50,8 @@ internal data class GuildDialogPage(
     val showCategoryInput: Boolean = true,
     val framedHeading: Boolean = false,
     val diagram: List<List<GuildDialogAction>> = emptyList(),
+    /** REQ-236: one gold full-width button drawn after the body items; its label is plain text. */
+    val featureAction: GuildDialogAction? = null,
 )
 
 /** Uses public Paper dialog APIs; Nexo item models remain owned by the private pack. */
@@ -180,7 +182,14 @@ internal class GuildMenuDialog : GuildDialogPresenter {
                 TEXT_WIDTH,
             )
         }
-        val bodies = links + diagram + page.items.flatMap { itemBodies(it, callbacks, skin) }
+        val feature = page.featureAction?.let { action ->
+            val art = if (GuildDialogFeatureButton.available(page.theme)) GuildDialogFeatureButton.label(action.label) else null
+            val content = clickableGuildDialogCard(art ?: GuildDialogFeatureButton.fallback(action.label), action) {
+                ClickEvent.callback({ audience -> callbacks.submit(audience, it.action) }, callbackOptions())
+            }
+            DialogBody.plainMessage(content, GuildDialogFeatureButton.BODY_WIDTH)
+        }
+        val bodies = links + diagram + page.items.flatMap { itemBodies(it, callbacks, skin) } + listOfNotNull(feature)
         val frame = if (page.framedHeading) skin?.referenceFrame(page.title, page.subtitle) else null
         val surface = GuildDialogSurface.resolve(page.theme)?.heading(page.title, page.subtitle, bodies)
         return DialogBase.builder(if (surface != null || frame != null) Component.empty() else page.title.color(guildDialogAccent(page.theme)))

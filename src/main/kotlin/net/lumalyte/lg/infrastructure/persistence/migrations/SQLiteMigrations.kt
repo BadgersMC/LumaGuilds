@@ -271,6 +271,22 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(BankContributionSchema.VERSION)
                 dbVersion = BankContributionSchema.VERSION
             }
+            PrestigeTombstoneSchema.create(connection, mariaDb = false)
+            if (dbVersion < PrestigeTombstoneSchema.VERSION) {
+                updateDatabaseVersion(PrestigeTombstoneSchema.VERSION)
+                dbVersion = PrestigeTombstoneSchema.VERSION
+            }
+            AllyHomeAccessSchema.create(connection, mariaDb = false)
+            if (dbVersion < AllyHomeAccessSchema.VERSION) {
+                updateDatabaseVersion(AllyHomeAccessSchema.VERSION)
+                dbVersion = AllyHomeAccessSchema.VERSION
+            }
+            VaultCapacityUnlockSchema.create(connection, mariaDb = false, backfill = dbVersion < VaultCapacityUnlockSchema.VERSION)
+            if (dbVersion < VaultCapacityUnlockSchema.VERSION) {
+                updateDatabaseVersion(VaultCapacityUnlockSchema.VERSION)
+                dbVersion = VaultCapacityUnlockSchema.VERSION
+            }
+            // Upstream's v50/v51, renumbered: this fork already used 50 to 52 for its own tables.
             OutpostAcquisitionSchema.create(connection, mariaDb = false)
             if (dbVersion < OutpostAcquisitionSchema.VERSION) {
                 updateDatabaseVersion(OutpostAcquisitionSchema.VERSION)
@@ -281,11 +297,7 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
                 updateDatabaseVersion(GuildHomeAccessGrantSchema.VERSION)
                 dbVersion = GuildHomeAccessGrantSchema.VERSION
             }
-            VaultCapacityUnlockSchema.create(connection, mariaDb = false, backfill = dbVersion < VaultCapacityUnlockSchema.VERSION)
-            if (dbVersion < VaultCapacityUnlockSchema.VERSION) {
-                updateDatabaseVersion(VaultCapacityUnlockSchema.VERSION)
-                dbVersion = VaultCapacityUnlockSchema.VERSION
-            }
+            GuildDescriptionSchema.ensure(connection)
             // Validate that all required tables exist, recreate if missing
             validateAndRepairSchema()
 
@@ -1485,6 +1497,9 @@ class SQLiteMigrations(private val plugin: JavaPlugin, private val connection: C
             QuestCompletionNotificationSchema.TABLE, GuildChatRankSettingsSchema.TABLE,
             GuildHomeActivationSchema.ACTIVATIONS_TABLE, GuildHomeActivationSchema.CREDITS_TABLE,
             InviteBlockSchema.TABLE, BankDepositXpSchema.DELIVERIES, BankDepositXpSchema.SEQUENCES,
+            PrestigeTombstoneSchema.TABLE,
+            AllyHomeAccessSchema.VISITOR_RANKS, AllyHomeAccessSchema.BLOCKED, AllyHomeAccessSchema.SECOND_HOMES,
+            AllyHomeAccessSchema.OUTBOUND_RANKS,
             BankContributionSchema.ACCOUNTS,
             BankContributionSchema.RECEIPTS,
             BankContributionSchema.QUESTS,

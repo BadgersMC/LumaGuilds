@@ -149,6 +149,19 @@ class LumaGuilds : JavaPlugin() {
         )
         logColored("✓ GuildVisualLookup registered in ServicesManager for cross-plugin integration")
         Bukkit.getServicesManager().register(
+            net.lumalyte.lg.api.GuildMenuTitleLookup::class.java,
+            net.lumalyte.lg.infrastructure.services.GuildMenuTitleLookupBukkit(get().get(), get().get()),
+            this,
+            ServicePriority.Normal,
+        )
+        Bukkit.getServicesManager().register(
+            net.lumalyte.lg.api.GuildPrestigePerkLookup::class.java,
+            net.lumalyte.lg.api.GuildPrestigePerkLookupImpl(get().get()),
+            this,
+            ServicePriority.Normal,
+        )
+        logColored("✓ GuildPrestigePerkLookup registered in ServicesManager for Market stall caps")
+        Bukkit.getServicesManager().register(
             net.lumalyte.lg.api.GuildAllianceLookup::class.java,
             net.lumalyte.lg.api.GuildAllianceLookupImpl(get().get()),
             this,
@@ -185,6 +198,9 @@ class LumaGuilds : JavaPlugin() {
             get().get<net.lumalyte.lg.application.persistence.GuildInvitationRepository>(),
             get().get<net.lumalyte.lg.application.services.InviteBlockService>(),
         )
+        // REQ-194: no invites to players banned from the guild.
+        val guildBans = get().get<net.lumalyte.lg.application.services.GuildBanService>()
+        net.lumalyte.lg.infrastructure.services.GuildInvitationManager.guildBans = guildBans::isBanned
 
         // Initialize Gold Balance Button
         net.lumalyte.lg.application.utilities.GoldBalanceButton.initialize(this, get().get())
@@ -208,6 +224,12 @@ class LumaGuilds : JavaPlugin() {
         // Start hologram service and recreate all holograms
         hologramService.start()
         hologramService.recreateAllHolograms()
+        // REQ-246: second vaults come back after a restart with their chests and holograms.
+        try {
+            get().get<net.lumalyte.lg.infrastructure.services.SecondVaultService>().start()
+        } catch (e: Exception) {
+            logColored("❌ Failed to restore second vaults: ${e.message}")
+        }
 
         // Configure command completions (ACF handles this automatically)
         configureCommandCompletions()
@@ -408,14 +430,6 @@ class LumaGuilds : JavaPlugin() {
 
         // Progression system info
         logColored("📈 Progression: XP rate ${config.progression.playerKillXp} (player kills), ${config.progression.cropBreakXp} (crops)")
-
-        // Party system info
-        val partyStatus = if (config.party.allowPrivateParties) {
-            "✓ Private parties allowed"
-        } else {
-            "✗ Private parties disabled"
-        }
-        logColored(partyStatus)
 
         // War system info
         logColored("⚔️ War system: Kill-based objectives, High-stakes wagering")
@@ -753,6 +767,30 @@ class LumaGuilds : JavaPlugin() {
                 .mapNotNull { Bukkit.getOfflinePlayer(it.playerId).name }
         }
 
+        // REQ-194: /g unban offers the guild's banned players.
+        commandManager.commandCompletions.registerAsyncCompletion("guildbans") { context ->
+            val player = context.player ?: return@registerAsyncCompletion emptyList()
+            val guild = get().get<net.lumalyte.lg.application.services.GuildService>()
+                .getPlayerGuilds(player.uniqueId).firstOrNull() ?: return@registerAsyncCompletion emptyList()
+            get().get<net.lumalyte.lg.application.services.GuildBanService>().bans(guild.id)
+                .mapNotNull { Bukkit.getOfflinePlayer(it.playerId).name }
+                .ifEmpty { listOf("<player>") }
+        }
+
+        // REQ-189: /g sethome offers the guild's existing homes (to move one) and a hint for a new name.
+        commandManager.commandCompletions.registerAsyncCompletion("sethomenames") { context ->
+            val player = context.player ?: return@registerAsyncCompletion listOf("<name>")
+            val guildService = get().get<net.lumalyte.lg.application.services.GuildService>()
+            val guild = guildService.getPlayerGuilds(player.uniqueId).firstOrNull()
+                ?: return@registerAsyncCompletion listOf("<name>")
+            guildService.getHomes(guild.id).homeNames.sorted() + "<name>"
+        }
+
+        // REQ-189: /g help topics.
+        commandManager.commandCompletions.registerCompletion("helptopics") { _ ->
+            net.lumalyte.lg.interaction.help.HelpTopics.all.map { it.slug }
+        }
+
         commandManager.commandCompletions.registerAsyncCompletion("guilds") { _ ->
             val guildService = get().get<net.lumalyte.lg.application.services.GuildService>()
             net.lumalyte.lg.utils.GuildResolver.suggestions(guildService)
@@ -782,7 +820,6 @@ class LumaGuilds : JavaPlugin() {
         commandManager.commandCompletions.registerAsyncCompletion("allyguilds") { context ->
             val player = context.player ?: return@registerAsyncCompletion emptyList()
             val guildService = get().get<net.lumalyte.lg.application.services.GuildService>()
-            val relationService = get().get<net.lumalyte.lg.application.services.RelationService>()
             val guilds = guildService.getPlayerGuilds(player.uniqueId)
             if (guilds.isEmpty()) return@registerAsyncCompletion emptyList()
             val sourceGuild = guilds.first()
@@ -792,15 +829,9 @@ class LumaGuilds : JavaPlugin() {
                 guildService.canUseOwnAllyHome(player.uniqueId, sourceGuild.id)) {
                 results.add(sourceGuild.name)
             }
-            relationService
-                .getGuildRelationsByType(sourceGuild.id, net.lumalyte.lg.domain.entities.RelationType.ALLY)
-                .mapNotNullTo(results) { rel ->
-                    val otherId = rel.getOtherGuild(sourceGuild.id)
-                    val other = guildService.getGuild(otherId) ?: return@mapNotNullTo null
-                    if (other.allyHome == null) return@mapNotNullTo null
-                    if (!guildService.canUseAllyHome(player.uniqueId, sourceGuild.id, other.id)) return@mapNotNullTo null
-                    other.name
-                }
+            guildService.getAllyHomeEntries(sourceGuild.id)
+                .filter { e -> e.guildId?.let { guildService.canUseAllyHome(player.uniqueId, sourceGuild.id, it, e.slot) } == true }
+                .mapTo(results) { it.guildName }
             results.distinct().sorted()
         }
 
@@ -835,33 +866,15 @@ class LumaGuilds : JavaPlugin() {
         }
 
         // Register parties completion (shows available parties for the player)
-        commandManager.commandCompletions.registerAsyncCompletion("parties") { context ->
-            val player = context.player ?: return@registerAsyncCompletion listOf("GLOBAL")
-            val playerId = player.uniqueId
-
+        // REQ-221: the player's guild party, by name (or "party" when it has none).
+        commandManager.commandCompletions.registerAsyncCompletion("guildparty") { context ->
+            val player = context.player ?: return@registerAsyncCompletion emptyList()
             val partyService = get().get<net.lumalyte.lg.application.services.PartyService>()
             val guildService = get().get<net.lumalyte.lg.application.services.GuildService>()
-
-            // Get player's guild IDs
-            val playerGuildIds = guildService.getPlayerGuilds(playerId).map { it.id }.toSet()
-
-            if (playerGuildIds.isEmpty()) {
-                return@registerAsyncCompletion listOf("GLOBAL")
-            }
-
-            // Get all active parties for player's guilds
-            val activeParties = playerGuildIds.flatMap { guildId ->
-                partyService.getActivePartiesForGuild(guildId)
-            }.toSet()
-
-            // Filter out parties the player is banned from and get their names
-            val partyNames = activeParties
-                .filter { party -> !party.isPlayerBanned(playerId) }
-                .mapNotNull { party -> party.name }
-                .sorted()
-
-            // Always include GLOBAL option first
-            listOf("GLOBAL") + partyNames
+            guildService.getPlayerGuilds(player.uniqueId).flatMap { partyService.getActivePartiesForGuild(it.id) }
+                .filter { !it.isPrivateParty() }
+                .map { it.name ?: "party" }
+                .distinct()
         }
     }
 
@@ -892,7 +905,9 @@ class LumaGuilds : JavaPlugin() {
      */
     private fun registerNonClaimCommands() {
         commandManager.registerCommand(GuildCommand())
-        commandManager.registerCommand(PartyChatCommand())
+        val partyChatCommand = PartyChatCommand()
+        commandManager.registerCommand(partyChatCommand)
+        commandManager.registerCommand(net.lumalyte.lg.interaction.commands.PartyCommand(partyChatCommand))
         commandManager.registerCommand(QuickGuildChatCommand())
         commandManager.registerCommand(QuickAllyChatCommand())
         commandManager.registerCommand(QuickModChatCommand())
@@ -983,6 +998,15 @@ class LumaGuilds : JavaPlugin() {
             this,
             false // ignoreCancelled=false: run even if RoseChat/other plugins already cancelled
         )
+        @Suppress("DEPRECATION")
+        server.pluginManager.registerEvent(
+            org.bukkit.event.player.AsyncPlayerChatEvent::class.java,
+            partyChatListener,
+            org.bukkit.event.EventPriority.LOWEST,
+            { _, event -> partyChatListener.onLegacyChat(event as org.bukkit.event.player.AsyncPlayerChatEvent) },
+            this,
+            false,
+        )
         logColored("✓ Party chat auto-routing registered (priority: ${config.party.partyChatListenerPriority})")
 
         server.pluginManager.registerEvents(BannerSelectionListener(), this)
@@ -1005,20 +1029,18 @@ class LumaGuilds : JavaPlugin() {
         server.pluginManager.registerEvents(net.lumalyte.lg.interaction.listeners.GuildVaultCraftingPreventionListener(), this)
         server.pluginManager.registerEvents(GuildVaultFuelPreventionListener(), this)
 
-        // Register bannerman listener and tick task
-        val bannermanRenderer = get().get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanRenderService>()
-        val bannermanListeners = get().get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners>()
-        server.pluginManager.registerEvents(bannermanListeners, this)
-        net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanTickTask(
-            this,
-            bannermanRenderer,
-            bannermanListeners::trySpawn, // respawn banners despawned for swim/elytra poses
-        ).start()
-        bannermanRenderer.sweepOrphans()
+        // REQ-289: bannerman (the guild banner on members' backs) is removed. Its listener and tick task are no
+        // longer started; the sweep still clears any banner displays an older build left in the world.
+        get().get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanRenderService>().sweepOrphans()
 
         // Register progression event listener
         val progressionEventListener = get().get<ProgressionEventListener>()
         server.pluginManager.registerEvents(progressionEventListener, this)
+
+        // REQ-154: credit members for their guild's prestiges when they join.
+        server.pluginManager.registerEvents(
+            get().get<net.lumalyte.lg.infrastructure.listeners.PrestigeCreditJoinListener>(), this,
+        )
 
         val questProgressListener = get().get<net.lumalyte.lg.infrastructure.listeners.QuestProgressListener>()
         server.pluginManager.registerEvents(questProgressListener, this)
@@ -1029,28 +1051,47 @@ class LumaGuilds : JavaPlugin() {
             logColored("❌ Failed to start weekly quest coordinator: ${e.message}")
         }
 
-        // Register guild channel creation listener (for creating default channels)
-        val guildChannelCreationListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildChannelCreationListener>()
-        server.pluginManager.registerEvents(guildChannelCreationListener, this)
+        // REQ-208: end the old single-guild parties (Guild_Chat, Officer_Chat, Leader_Chat).
+        try {
+            val ended = get().get<net.lumalyte.lg.application.services.PrivatePartyRetirement>().run()
+            if (ended > 0) logColored("✓ Ended $ended single-guild parties; guild chat now uses /g chat")
+        } catch (e: Exception) {
+            logColored("❌ Failed to end single-guild parties: ${e.message}")
+        }
 
         // Register vault protection listener
         vaultProtectionListener = net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener()
         server.pluginManager.registerEvents(vaultProtectionListener, this)
+        server.pluginManager.registerEvents(get().get<net.lumalyte.lg.infrastructure.listeners.SecondVaultListener>(), this)
 
         // Register vault inventory listener (for gold button and real-time sync)
         val vaultInventoryListener = get().get<net.lumalyte.lg.interaction.listeners.VaultInventoryListener>()
         server.pluginManager.registerEvents(vaultInventoryListener, this)
 
         // Register player session cleanup listener
-        server.pluginManager.registerEvents(get().get<net.lumalyte.lg.infrastructure.listeners.GuildOnboardingListener>(), this)
         val recruitmentListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildRecruitmentListener>()
         server.pluginManager.registerEvents(recruitmentListener, this)
         recruitmentListener.start()
         get().get<net.lumalyte.lg.infrastructure.services.GuildAchievementRuntime>().start()
+        get().get<net.lumalyte.lg.infrastructure.services.HallPreviewService>().start()
+        get().get<net.lumalyte.lg.infrastructure.services.HallStatueService>().start()
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.PlayerSessionListener(), this)
 
         // Register war kill tracking listener
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.WarKillTrackingListener(), this)
+        server.pluginManager.registerEvents(
+            net.lumalyte.lg.infrastructure.listeners.GuildAllianceMomentListener(get().get(), get().get(), get().get()),
+            this,
+        )
+        server.pluginManager.registerEvents(
+            net.lumalyte.lg.infrastructure.listeners.DiplomacyWarListener(get().get<net.lumalyte.lg.application.services.DiplomacyLog>()),
+            this,
+        )
+        // REQ-199: every player kill goes to the kill log behind guild statistics.
+        server.pluginManager.registerEvents(
+            net.lumalyte.lg.infrastructure.listeners.GuildKillLogListener(this, get().get<net.lumalyte.lg.application.services.KillService>()),
+            this,
+        )
         server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.CombatAntiGriefListener(), this)
         val warService = get().get<net.lumalyte.lg.application.services.WarService>()
         val recoveredKillVictories = warService.reconcilePendingKillVictories()
@@ -1080,10 +1121,13 @@ class LumaGuilds : JavaPlugin() {
         // Register emoji grant listener and reconcile all plugin-managed permissions.
         val emojiGrantListener = get().get<net.lumalyte.lg.infrastructure.listeners.GuildEmojiGrantListener>()
         server.pluginManager.registerEvents(emojiGrantListener, this)
-        val emojiResult = get().get<net.lumalyte.lg.infrastructure.services.GuildEmojiGrantService>().reconcileAll()
-        if (!emojiResult.successful) {
-            logger.warning("Emoji permission reconciliation completed with ${emojiResult.failed} failure(s)")
-        }
+        // LuckPerms console commands fail while worlds are still loading, so wait for the first tick.
+        server.scheduler.runTask(this, Runnable {
+            val emojiResult = get().get<net.lumalyte.lg.infrastructure.services.GuildEmojiGrantService>().reconcileAll()
+            if (!emojiResult.successful) {
+                logger.warning("Emoji permission reconciliation completed with ${emojiResult.failed} failure(s)")
+            }
+        })
 
         // Optional DiscordSRV guild-role integration. The listener is always registered;
         // the service is a no-op unless discord.guild_roles.enabled is explicitly enabled.
@@ -1130,6 +1174,39 @@ class LumaGuilds : JavaPlugin() {
                     }
                 }
             }, 20L * 60L, 20L * 60L * 5L)
+        }
+
+        // REQ-299: a server with guild roles off can delete the roles it created, once Discord is ready.
+        if (!discordRoleConfig.enabled && discordRoleConfig.removeOnDisable) {
+            val gateway = get().get<net.lumalyte.lg.application.services.DiscordGuildRoleGateway>()
+            val service = get().get<net.lumalyte.lg.application.services.GuildDiscordRoleService>()
+            var tries = 0
+            lateinit var task: org.bukkit.scheduler.BukkitTask
+            task = server.scheduler.runTaskTimer(this, Runnable {
+                if (++tries > 40) { task.cancel(); logger.warning("Discord never became ready; managed guild roles were not removed"); return@Runnable }
+                if (!gateway.isAvailable()) return@Runnable
+                task.cancel()
+                service.removeAllManaged().whenComplete { result, error ->
+                    if (error != null) logger.warning("Removing managed Discord guild roles failed: ${error.message}")
+                    else logColored("✓ Removed this server's Discord guild roles (${result.failures} failure(s))")
+                }
+            }, 20L * 15L, 20L * 15L)
+        }
+        // REQ-298: Discord roles for guild prestige. Awards are recorded whenever enabled; Discord is
+        // caught up at startup (or when DiscordSRV becomes ready), on account links, and every 30 minutes.
+        server.pluginManager.registerEvents(
+            get().get<net.lumalyte.lg.infrastructure.listeners.PrestigeDiscordRoleListener>(), this)
+        if (get().get<net.lumalyte.lg.application.services.ConfigService>().loadConfig().discordPrestigeRoles.enabled) {
+            get().get<net.lumalyte.lg.application.services.DiscordAccountLinkSubscription>().subscribe()
+            val prestigeRoles = get().get<net.lumalyte.lg.application.services.PrestigeDiscordRoleService>()
+            val catchUp = Runnable {
+                prestigeRoles.reconcileAll().whenComplete { changed, error ->
+                    if (error != null) logger.warning("Prestige Discord role sync failed: ${error.message}")
+                    else if (changed > 0) logColored("✓ Prestige Discord roles: $changed role change(s)")
+                }
+            }
+            server.scheduler.runTaskLater(this, catchUp, 20L * 30L)
+            server.scheduler.runTaskTimer(this, catchUp, 20L * 60L * 30L, 20L * 60L * 30L)
         }
 
         // Public Discord guild profiles are independent of Discord role syncing:
@@ -1515,6 +1592,8 @@ class LumaGuilds : JavaPlugin() {
             return
         }
         runCatching { org.koin.core.context.GlobalContext.getOrNull()?.getOrNull<net.lumalyte.lg.infrastructure.services.GuildAchievementRuntime>()?.stop() }
+        runCatching { org.koin.core.context.GlobalContext.getOrNull()?.getOrNull<net.lumalyte.lg.infrastructure.services.HallPreviewService>()?.stop() }
+        runCatching { org.koin.core.context.GlobalContext.getOrNull()?.getOrNull<net.lumalyte.lg.infrastructure.services.HallStatueService>()?.stop() }
         // This irreversible gate must run before unrelated cleanup can throw or services are unregistered.
         inviteBlockLifecycle?.close()
         inviteBlockLifecycle = null
@@ -1583,6 +1662,10 @@ class LumaGuilds : JavaPlugin() {
             // Broad exception handling acceptable - shutdown should be resilient
             logger.warning("Failed to stop guild team service: ${e.message}")
         }
+
+        // REQ-244: write any open second vaults before shutting down.
+        runCatching { get().getOrNull<net.lumalyte.lg.infrastructure.services.SecondVaultService>()?.stop() }
+            .onFailure { logger.warning("Failed to save second vaults: ${it.message}") }
 
         // Stop vault auto-save service (this will flush all pending writes)
         try {

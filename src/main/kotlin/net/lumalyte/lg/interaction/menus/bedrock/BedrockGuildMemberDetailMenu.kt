@@ -59,6 +59,9 @@ class BedrockGuildMemberDetailMenu(
             actions += { openRankChange() }
             builder = builder.button(lang.bedrock("bedrock.member_detail.button.kick"))
             actions += { openKickConfirmation() }
+            // REQ-194: the ban service checks rank and permission again on confirm.
+            builder = builder.button(lang.bedrock("guild_page.member.ban"))
+            actions += { bedrockNavigator.openMenu(BedrockGuildBanConfirmationMenu(menuNavigator, player, guild, member.playerId, logger)) }
         }
 
         builder = builder.button(lang.bedrock("bedrock.member_detail.button.back"))

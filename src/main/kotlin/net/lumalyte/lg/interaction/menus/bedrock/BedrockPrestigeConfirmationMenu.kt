@@ -1,5 +1,8 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.interaction.menus.guild.bedrockPrestigeSummaryLines
+import net.lumalyte.lg.domain.rewards.RewardCatalog
+import net.lumalyte.lg.domain.values.PrestigeNumeral
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.services.GuildPrestigeService
@@ -25,26 +28,24 @@ class BedrockPrestigeConfirmationMenu(
     private val back: () -> Unit,
     private val success: () -> Unit,
     logger: Logger,
+    /** REQ-260: the Hall theme picked for this prestige and how many the guild will then own. */
+    private val hallTheme: net.lumalyte.lg.domain.rewards.HallTheme? = null,
+    private val themesOwnedAfter: Int = 0,
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
     private val prestige: GuildPrestigeService by inject()
     private val lang: LangService by inject()
+    private val catalog: RewardCatalog by inject()
     private val plugin: Plugin by inject()
 
     override fun getForm(): Form = ModalForm.builder()
         .title(lang.bedrock("menu.guild_progression.prestige.confirmation.title"))
         .content(
-            listOf(
-                lang.bedrock(
-                    "menu.guild_progression.prestige.confirmation.summary.reward",
-                    "reward" to retainedRewardName,
-                ),
-                lang.bedrock(
-                    "menu.guild_progression.prestige.confirmation.summary.fee",
-                    "fee" to quote.quotedFee,
-                ),
-                lang.bedrock("menu.guild_progression.prestige.confirmation.summary.reset"),
-                lang.bedrock("menu.guild_progression.prestige.confirmation.summary.permanent"),
-            ).joinToString("\n")
+            // REQ-249: exactly what this prestige earns, costs and keeps.
+            prestige.preview(quote)?.let { preview ->
+                bedrockPrestigeSummaryLines(lang, preview, retainedRewardName, catalog.find(quote.retainedRewardId)?.effect,
+                    hallTheme?.let { net.lumalyte.lg.domain.rewards.PrestigeSummaryLine.HallThemeEarned(it, themesOwnedAfter) })
+                    .joinToString("\n")
+            } ?: lang.bedrock("menu.guild_progression.prestige.confirmation.summary.unavailable")
         )
         .button1(lang.bedrock("menu.guild_progression.prestige.confirmation.confirm"))
         .button2(lang.bedrock("menu.guild_progression.prestige.confirmation.cancel"))
@@ -65,8 +66,15 @@ class BedrockPrestigeConfirmationMenu(
             return
         }
 
-        val result = prestige.confirm(player.uniqueId, quote)
+        val result = prestige.confirm(player.uniqueId, quote, hallTheme)
         player.sendMessage(feedback(result))
+        if (result is PrestigeResult.Applied && result.carriedExperience > 0) {
+            player.sendMessage(lang.msg(
+                "menu.guild_progression.prestige.feedback.carried",
+                "xp" to result.carriedExperience,
+                "level" to result.postLevel,
+            ))
+        }
         when (result) {
             is PrestigeResult.Applied -> success()
             is PrestigeResult.Rejected -> back()
@@ -79,7 +87,7 @@ class BedrockPrestigeConfirmationMenu(
             "menu.guild_progression.prestige.feedback.applied",
             "reward" to retainedRewardName,
             "fee" to result.fee,
-            "count" to result.prestigeCount,
+            "count" to PrestigeNumeral.of(result.prestigeCount),
         )
         is PrestigeResult.Failed ->
             lang.msg("menu.guild_progression.prestige.feedback.failed")

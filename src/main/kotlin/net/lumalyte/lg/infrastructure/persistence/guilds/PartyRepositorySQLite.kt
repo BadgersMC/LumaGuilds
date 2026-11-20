@@ -11,6 +11,7 @@ import net.lumalyte.lg.domain.entities.PartyStatus
 import net.lumalyte.lg.infrastructure.persistence.getInstant
 import net.lumalyte.lg.infrastructure.persistence.getInstantNotNull
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect
 import java.sql.SQLException
 import java.time.Instant
 import java.util.UUID
@@ -20,6 +21,10 @@ class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepos
     private val parties: MutableMap<UUID, Party> = mutableMapOf()
     private val gson = Gson()
 
+    private fun storedTime(value: Instant?): Any? = value?.let {
+        if (storage.dialect == SqlDialect.MARIADB) java.sql.Timestamp.from(it) else it.toString()
+    }
+
     init {
         createPartyTable()
         preload()
@@ -28,7 +33,7 @@ class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepos
     private fun createPartyTable() {
         val sql = """
             CREATE TABLE IF NOT EXISTS parties (
-                id TEXT PRIMARY KEY,
+                id VARCHAR(36) PRIMARY KEY,
                 name TEXT,
                 guild_ids TEXT NOT NULL,
                 leader_id TEXT NOT NULL,
@@ -41,6 +46,23 @@ class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepos
         
         try {
             storage.connection.executeUpdate(sql)
+            storage.connection.connection.use { connection ->
+                val metadata = connection.metaData
+                for ((name, declaration) in listOf(
+                    "muted_players" to "TEXT NULL",
+                    "banned_players" to "TEXT NULL",
+                    "shared" to "INTEGER NOT NULL DEFAULT 0",
+                )) {
+                    val hasColumn = listOf("parties", "PARTIES").any { table ->
+                        listOf(name, name.uppercase()).any { column ->
+                            metadata.getColumns(connection.catalog, null, table, column).use { it.next() }
+                        }
+                    }
+                    if (!hasColumn) connection.createStatement().use {
+                        it.executeUpdate("ALTER TABLE parties ADD COLUMN $name $declaration")
+                    }
+                }
+            }
         } catch (e: SQLException) {
             throw DatabaseOperationException("Failed to create parties table", e)
         }
@@ -49,7 +71,7 @@ class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepos
     private fun preload() {
         val sql = """
             SELECT id, name, guild_ids, leader_id, status, created_at, expires_at, restricted_roles,
-                   muted_players, banned_players
+                   muted_players, banned_players, shared
             FROM parties
         """.trimIndent()
 
@@ -92,15 +114,16 @@ class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepos
             expiresAt = rs.getInstant("expires_at"),
             restrictedRoles = restrictedRoles,
             mutedPlayers = mutedPlayers,
-            bannedPlayers = bannedPlayers
+            bannedPlayers = bannedPlayers,
+            shared = rs.getInt("shared") == 1
         )
     }
     
     override fun add(party: Party): Boolean {
         val sql = """
             INSERT INTO parties (id, name, guild_ids, leader_id, status, created_at, expires_at, restricted_roles,
-                                 muted_players, banned_players)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                 muted_players, banned_players, shared)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """.trimIndent()
 
         return try {
@@ -115,11 +138,12 @@ class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepos
                 guildIdsString,
                 party.leaderId.toString(),
                 party.status.name,
-                party.createdAt.toString(),
-                party.expiresAt?.toString(),
+                storedTime(party.createdAt),
+                storedTime(party.expiresAt),
                 restrictedRolesString,
                 mutedPlayersJson,
-                bannedPlayersJson
+                bannedPlayersJson,
+                if (party.shared) 1 else 0
             )
 
             parties[party.id] = party
@@ -133,7 +157,7 @@ class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepos
         val sql = """
             UPDATE parties
             SET name = ?, guild_ids = ?, leader_id = ?, status = ?, expires_at = ?, restricted_roles = ?,
-                muted_players = ?, banned_players = ?
+                muted_players = ?, banned_players = ?, shared = ?
             WHERE id = ?
         """.trimIndent()
 
@@ -148,10 +172,11 @@ class PartyRepositorySQLite(private val storage: Storage<Database>) : PartyRepos
                 guildIdsString,
                 party.leaderId.toString(),
                 party.status.name,
-                party.expiresAt?.toString(),
+                storedTime(party.expiresAt),
                 restrictedRolesString,
                 mutedPlayersJson,
                 bannedPlayersJson,
+                if (party.shared) 1 else 0,
                 party.id.toString()
             )
 

@@ -18,14 +18,14 @@ internal object WarRecordCodec {
         .create()
 
     fun encode(record: DurableWarRecord): String = gson.toJson(JsonObject().apply {
-        addProperty("version", 4)
+        addProperty("version", 5)
         add("record", gson.toJsonTree(record))
     })
 
     fun decode(payload: String): DurableWarRecord = try {
         val root = JsonParser.parseString(payload).asJsonObject
         val version = root.get("version")?.asInt
-        check(version != null && version in 1..4) { "Unsupported war record version" }
+        check(version != null && version in 1..5) { "Unsupported war record version" }
         val json = root.getAsJsonObject("record").deepCopy()
         check(json.keySet().containsAll(setOf("id", "revision", "fundingCycle", "declaration", "war", "stats", "wager",
             "paymentPhase", "settlementChosen", "settlementWinner", "paymentAttempts"))) { "Incomplete war record" }
@@ -77,6 +77,14 @@ internal object WarRecordCodec {
                 check(it.has("farmingCooldownGuildId") && it.has("farmingCooldownUntil")) {
                     "Incomplete war farming cooldown identity"
                 }
+            }
+        }
+
+        // Version 5 records ending mode explicitly. Older records were all timed.
+        for (part in listOf("declaration", "war")) {
+            json.get(part)?.takeUnless { it.isJsonNull }?.asJsonObject?.let {
+                if (version < 5) it.addProperty("objectiveBased", false)
+                else check(it.has("objectiveBased")) { "Incomplete war ending mode" }
             }
         }
 

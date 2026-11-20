@@ -26,9 +26,7 @@ internal class RecruitmentDialogMenu(
             if (controller.screen == RecruitmentScreen.MANAGE) {
                 rawView.copy(
                     items =
-                        rawView.items.filterNot {
-                            it.label in managementToolLabels()
-                        },
+                        rawView.items.filterNot { it.label == controller.lang.raw("recruitment.browse") },
                 )
             } else {
                 rawView
@@ -78,19 +76,11 @@ internal class RecruitmentDialogMenu(
                                 ) {
                                     advancedFilters(rawView)
                                 }
-                        RecruitmentScreen.MANAGE ->
-                            listOf(
-                                GuildDialogAction(
-                                    Component.text(controller.lang.raw("dialog_v2.more_listing_options")),
-                                    Component.empty(),
-                                ) {
-                                    managementTools(rawView)
-                                },
-                            )
                         else -> emptyList()
                     },
                 bodyActionGroupSize = if (controller.screen == RecruitmentScreen.FILTER) 3 else null,
                 showCategoryInput = false,
+                featureAction = browseAction(rawView),
             ),
         )
     }
@@ -105,29 +95,14 @@ internal class RecruitmentDialogMenu(
             else -> view.title
         }
 
-    private fun managementToolLabels(): Set<String> =
-        setOf(
-            controller.lang.raw("recruitment.setup"),
-            controller.lang.raw("recruitment.settings"),
-            controller.lang.raw("recruitment.browse"),
-            controller.lang.raw("recruitment.mine"),
-        )
-
-    private fun managementTools(view: RecruitmentView) {
-        present(
-            GuildDialogPage(
-                Component.text(controller.lang.raw("dialog_v2.more_listing_options")),
-                emptyList(),
-                view.items.filter { it.label in managementToolLabels() && it.isInteractive() }.map { action(it) },
-                GuildDialogAction(
-                    Component.text(controller.lang.raw("recruitment.dialog.back")),
-                    Component.empty(),
-                    controller.refresh,
-                ),
-                columns = 2,
-                theme = controller.theme(),
-            ),
-        )
+    /** REQ-236: one gold button under the status so players find the board of recruiting guilds. */
+    private fun browseAction(view: RecruitmentView): GuildDialogAction? {
+        if (controller.screen != RecruitmentScreen.MANAGE) return null
+        val browse = view.items.firstOrNull { it.label == controller.lang.raw("recruitment.browse") && it.isInteractive() } ?: return null
+        return GuildDialogAction(
+            guildDialogIconLabel(Component.text(controller.lang.raw("recruitment.browse_card.title")), browse.icon),
+            Component.text(controller.lang.raw("recruitment.browse_card.hint"), NamedTextColor.YELLOW),
+        ) { controller.run(browse.action) }
     }
 
     private fun advancedFilters(view: RecruitmentView) {

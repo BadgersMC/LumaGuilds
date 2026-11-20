@@ -97,7 +97,8 @@ class ProgressionServiceBukkit(
         experience: Int,
         source: ExperienceSource,
     ): Int? {
-        require(source == ExperienceSource.WEEKLY_ACTIVITY || source == ExperienceSource.ADMIN_BONUS) {
+        require(source == ExperienceSource.WEEKLY_ACTIVITY || source == ExperienceSource.ADMIN_BONUS ||
+            source == ExperienceSource.GUILD_ADVANCEMENT) {
             "Only trusted system sources may bypass caps"
         }
         if (experience <= 0) return null
@@ -113,11 +114,20 @@ class ProgressionServiceBukkit(
         experience: Int,
         source: ExperienceSource,
         transactionId: UUID,
-    ): Boolean {
-        require(source == ExperienceSource.WEEKLY_ACTIVITY || source == ExperienceSource.ADMIN_BONUS) {
+    ): Boolean = awardSystemExperienceOnce(guildId, experience, source, transactionId) !=
+        net.lumalyte.lg.domain.values.SystemAward.FAILED
+
+    override fun awardSystemExperienceOnce(
+        guildId: UUID,
+        experience: Int,
+        source: ExperienceSource,
+        transactionId: UUID,
+    ): net.lumalyte.lg.domain.values.SystemAward {
+        require(source == ExperienceSource.WEEKLY_ACTIVITY || source == ExperienceSource.ADMIN_BONUS ||
+            source == ExperienceSource.GUILD_ADVANCEMENT) {
             "Only trusted system sources may bypass caps"
         }
-        if (experience <= 0) return true
+        if (experience <= 0) return net.lumalyte.lg.domain.values.SystemAward.ALREADY_PAID
         val policy = ExperiencePolicy(source, source.defaultPool, 1, 0, CapPeriod.UNLIMITED, true)
         return when (val result = permanentExperienceService.award(
             ExperienceAwardRequest(
@@ -132,13 +142,13 @@ class ProgressionServiceBukkit(
         )) {
             is ExperienceAwardResult.Awarded -> {
                 publishAwardedExperience(guildId, result.leveledUpTo)
-                true
+                net.lumalyte.lg.domain.values.SystemAward.PAID_NOW
             }
             ExperienceAwardResult.Duplicate -> {
                 publishAwardedExperience(guildId, null)
-                true
+                net.lumalyte.lg.domain.values.SystemAward.ALREADY_PAID
             }
-            is ExperienceAwardResult.NoAllowance, is ExperienceAwardResult.Rejected -> false
+            is ExperienceAwardResult.NoAllowance, is ExperienceAwardResult.Rejected -> net.lumalyte.lg.domain.values.SystemAward.FAILED
         }
     }
 
@@ -407,6 +417,10 @@ class ProgressionServiceBukkit(
     }
 
     override fun getMaxMembers(guildId: UUID): Int {
+        // REQ-190: the member service owns the cap (level, prestige, floor).
+        org.koin.core.context.GlobalContext.getOrNull()
+            ?.getOrNull<net.lumalyte.lg.application.services.MemberService>()
+            ?.let { members -> runCatching { return members.getMemberLimit(guildId) } }
         guildRewards?.entitlementsIfEnabled(guildId)?.let { return it.memberCapacity }
         val progression = progressionRepository.getGuildProgression(guildId) ?: return 10 // Default
         val progressionConfig = progressionConfigService.getProgressionConfig()
@@ -595,7 +609,11 @@ class ProgressionServiceBukkit(
         } catch (error: Exception) {
             logger.warn("Failed to refresh guild progression after XP award for $guildId", error)
         }
-        if (newLevel != null) publishLevelChanged(guildId, newLevel)
+        if (newLevel != null) {
+            publishLevelChanged(guildId, newLevel)
+            runCatching { processLevelUp(guildId, newLevel) }
+                .onFailure { logger.warn("Failed to process guild level up for $guildId at level $newLevel", it) }
+        }
     }
 
     private fun publishLevelChanged(guildId: UUID, newLevel: Int) {

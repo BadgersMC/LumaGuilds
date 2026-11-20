@@ -30,13 +30,14 @@ class BedrockGuildStatisticsTruthfulnessContractTest {
         listOf(
             "KillService",
             "WarService",
-            "LeaderboardService",
+            "GuildKillLog",
             "GuildService",
             "killService.getGuildKillStats(guild.id)",
             "warService.getWarHistory(guild.id",
             "killService.getTopKillers",
             "bankService.getMemberContributions(guild.id)",
-            "leaderboardService.getEntityEntry",
+            "killService.getKillStatsForPeriod(guild.id",
+            "killLog.rivals(guild.id",
             "killService.getKillsBetweenGuilds"
         ).forEach { expected ->
             assertTrue(source.contains(expected), "missing authoritative statistics behavior: $expected")
@@ -48,7 +49,6 @@ class BedrockGuildStatisticsTruthfulnessContractTest {
         listOf(
             "menu.statistics.common.no_kill_data",
             "menu.statistics.common.no_contribution_data",
-            "menu.statistics.common.no_period_data",
             "menu.statistics.common.no_rivalry_data",
             "menu.statistics.common.unavailable"
         ).forEach { expected ->

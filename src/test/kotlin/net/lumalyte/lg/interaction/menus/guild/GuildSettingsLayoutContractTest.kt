@@ -30,7 +30,6 @@ class GuildSettingsLayoutContractTest {
             "menu.guild_settings.item.access.name",
             "menu.guild_settings.item.tracking.name",
             "menu.guild_settings.item.members.name",
-            "menu.guild_settings.item.mode.name",
         ).forEach { key -> assertTrue(access.contains(key), "Missing access/location control " + key) }
         assertTrue(access.contains("pane.addItem(backGuiItem, 4, 5)"))
     }

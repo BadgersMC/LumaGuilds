@@ -1,13 +1,11 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
 import net.badgersmc.nexus.i18n.LangService
-import net.lumalyte.lg.application.persistence.ProgressionRepository
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.InvitationLeaderboardPage
 import net.lumalyte.lg.application.services.InvitationStatisticsService
 import net.lumalyte.lg.application.services.KillService
-import net.lumalyte.lg.application.services.LeaderboardService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.application.services.WarService
 import net.lumalyte.lg.domain.entities.Guild
@@ -39,13 +37,12 @@ class BedrockGuildStatisticsMenu(
 ) : BaseBedrockMenu(menuNavigator, player, logger) {
 
     private val killService: KillService by inject()
+    private val killLog: net.lumalyte.lg.application.persistence.GuildKillLog by inject()
     private val warService: WarService by inject()
     private val memberService: MemberService by inject()
     private val bankService: BankService by inject()
     private val guildService: GuildService by inject()
-    private val leaderboardService: LeaderboardService by inject()
     private val invitationStatisticsService: InvitationStatisticsService by inject()
-    private val progressionRepository: ProgressionRepository by inject()
     private val lang: LangService by inject()
     private val plugin: Plugin by inject()
     private var invitationPage = 0
@@ -70,16 +67,17 @@ class BedrockGuildStatisticsMenu(
             .title(lang.bedrock("bedrock.statistics.title", "guild" to guild.name))
             .apply { statsIcon?.let { icon(it) } }
             .label(lang.bedrock("bedrock.statistics.description"))
-            .label(section(lang.bedrock("bedrock.statistics.header.overview")))
-            .label(createOverviewSection())
-            .label(section(lang.bedrock("menu.statistics.detail.kills.name")))
+            // REQ-201: the same eight sections as the Java menu.
+            .label(section(lang.bedrock("menu.statistics.item.combat.name")))
             .label(createKillSection())
             .label(section(lang.bedrock("menu.statistics.detail.wars.summary.name")))
             .label(createWarSection())
-            .label(section(lang.bedrock("menu.statistics.detail.performance.name")))
-            .label(createMemberPerformanceSection())
             .label(section(lang.bedrock("menu.statistics.detail.recent.name")))
             .label(createRecentActivitySection())
+            .label(section(lang.bedrock("menu.statistics.item.rivalry.name")))
+            .label(createRivalrySection())
+            .label(section(lang.bedrock("menu.statistics.item.advancements.name")))
+            .label(createAchievementsSection())
             .label(section(lang.bedrock("menu.statistics.detail.top_killers.name")))
             .label(createTopKillersSection())
             .label(section(lang.bedrock("menu.statistics.detail.top_contributors.name")))
@@ -96,18 +94,6 @@ class BedrockGuildStatisticsMenu(
                 leaderboardPage.page
             )
         }
-
-        builder
-            .label(section(lang.bedrock("menu.statistics.detail.kd.name")))
-            .label(createKdSection())
-            .label(section(lang.bedrock("menu.statistics.item.period.name")))
-            .label(createPeriodicSection())
-            .label(section(lang.bedrock("menu.statistics.item.rivalry.name")))
-            .label(createRivalrySection())
-            .label(section(lang.bedrock("menu.statistics.item.achievements.name")))
-            .label(createAchievementsSection())
-            .label(section(lang.bedrock("bedrock.statistics.header.economy")))
-            .label(createEconomySection())
 
         return builder
             .validResultHandler { response ->
@@ -137,37 +123,20 @@ class BedrockGuildStatisticsMenu(
     private fun section(title: String): String =
         lang.bedrock("bedrock.statistics.header.format", "title" to title)
 
-    private fun createOverviewSection(): String {
-        val members = memberService.getGuildMembers(guild.id)
-        val online = members.count { player.server.getPlayer(it.playerId)?.isOnline == true }
-        val created = DateTimeFormatter.ofPattern(lang.raw("bedrock.statistics.date_format.overview"))
-            .format(guild.createdAt.atZone(ZoneId.systemDefault()))
-        val progression = progressionRepository.getGuildProgression(guild.id)
-        val experience = progression?.let {
-            "${it.experienceThisLevel}/${it.experienceForNextLevel}"
-        } ?: lang.bedrock("menu.statistics.common.unavailable")
-
-        return lang.bedrock(
-            "bedrock.statistics.overview",
-            "total_members" to members.size,
-            "online_members" to online,
-            "created" to created,
-            "level" to (progression?.currentLevel ?: guild.level),
-            "experience" to experience
-        )
-    }
-
     private fun createKillSection(): String {
         val stats = runCatching { killService.getGuildKillStats(guild.id) }.getOrNull()
             ?: return lang.bedrock("menu.statistics.common.unavailable")
         if (stats.totalKills == 0 && stats.totalDeaths == 0) {
             return lang.bedrock("menu.statistics.common.no_kill_data")
         }
+        val now = java.time.Instant.now()
+        val week = killService.getKillStatsForPeriod(guild.id, now.minus(java.time.Duration.ofDays(7)), now)
+        val month = killService.getKillStatsForPeriod(guild.id, now.minus(java.time.Duration.ofDays(30)), now)
         return listOf(
-            lang.bedrock("menu.statistics.common.total_kills", "count" to stats.totalKills),
-            lang.bedrock("menu.statistics.common.total_deaths", "count" to stats.totalDeaths),
-            netKills(stats),
-            lang.bedrock("menu.statistics.common.kd_ratio", "ratio" to format(stats.killDeathRatio))
+            lang.bedrock("menu.statistics.item.combat.lore.totals", "kills" to stats.totalKills, "deaths" to stats.totalDeaths),
+            lang.bedrock("menu.statistics.common.kd_ratio", "ratio" to format(stats.killDeathRatio)),
+            lang.bedrock("menu.statistics.item.combat.lore.week", "kills" to week.totalKills, "deaths" to week.totalDeaths),
+            lang.bedrock("menu.statistics.item.combat.lore.month", "kills" to month.totalKills, "deaths" to month.totalDeaths),
         ).joinToString("\n")
     }
 
@@ -185,26 +154,6 @@ class BedrockGuildStatisticsMenu(
             lang.bedrock("menu.statistics.common.wins", "count" to wins),
             lang.bedrock("menu.statistics.common.losses", "count" to losses),
             lang.bedrock("menu.statistics.common.draws", "count" to draws)
-        ).joinToString("\n")
-    }
-
-    private fun createMemberPerformanceSection(): String {
-        val members = memberService.getGuildMembers(guild.id)
-        val online = members.count { player.server.getPlayer(it.playerId)?.isOnline == true }
-        val stats = runCatching { killService.getGuildKillStats(guild.id) }.getOrNull()
-            ?: return listOf(
-                lang.bedrock("menu.statistics.common.total_members", "count" to members.size),
-                lang.bedrock("menu.statistics.common.online", "count" to online),
-                lang.bedrock("menu.statistics.common.unavailable")
-            ).joinToString("\n")
-        val avgKills = if (members.isEmpty()) 0.0 else stats.totalKills.toDouble() / members.size
-        val avgDeaths = if (members.isEmpty()) 0.0 else stats.totalDeaths.toDouble() / members.size
-        return listOf(
-            lang.bedrock("menu.statistics.common.total_members", "count" to members.size),
-            lang.bedrock("menu.statistics.common.online", "count" to online),
-            lang.bedrock("menu.statistics.common.offline", "count" to members.size - online),
-            lang.bedrock("menu.statistics.common.average_kills", "average" to format(avgKills)),
-            lang.bedrock("menu.statistics.common.average_deaths", "average" to format(avgDeaths))
         ).joinToString("\n")
     }
 
@@ -281,51 +230,14 @@ class BedrockGuildStatisticsMenu(
         )
     }
 
-    private fun createKdSection(): String {
-        val stats = runCatching { killService.getGuildKillStats(guild.id) }.getOrNull()
-            ?: return lang.bedrock("menu.statistics.common.unavailable")
-        if (stats.totalKills == 0 && stats.totalDeaths == 0) {
-            return lang.bedrock("menu.statistics.common.no_kill_data")
-        }
-        return listOf(
-            lang.bedrock("menu.statistics.common.kill_death_ratio", "ratio" to format(stats.killDeathRatio)),
-            netKills(stats)
-        ).joinToString("\n")
-    }
-
-    private fun createPeriodicSection(): String {
-        val periods = listOf(
-            "daily" to LeaderboardPeriod.DAILY,
-            "weekly" to LeaderboardPeriod.WEEKLY,
-            "monthly" to LeaderboardPeriod.MONTHLY,
-            "all_time" to LeaderboardPeriod.ALL_TIME
-        )
-        return periods.joinToString("\n\n") { (key, period) ->
-            val name = lang.bedrock("menu.statistics.period.$key")
-            val entry = runCatching {
-                leaderboardService.getEntityEntry(LeaderboardType.KILLS, guild.id, period)
-            }.getOrNull()
-            if (entry == null) {
-                "$name\n${lang.bedrock("menu.statistics.common.no_period_data")}"
-            } else {
-                val lines = mutableListOf(
-                    name,
-                    lang.bedrock("menu.statistics.common.total_kills", "count" to entry.value.toInt())
-                )
-                if (entry.rank > 0) {
-                    lines += lang.bedrock("menu.statistics.common.ranking", "rank" to entry.rank)
-                }
-                lines.joinToString("\n")
-            }
-        }
-    }
-
     private fun createRivalrySection(): String {
         val history = runCatching { warService.getWarHistory(guild.id, 100) }.getOrNull()
             ?: return lang.bedrock("menu.statistics.common.unavailable")
-        val rivals = history.map {
+        // REQ-202: guilds fought most first, then war opponents.
+        val fought = runCatching { killLog.rivals(guild.id, 5).map { it.guildId } }.getOrDefault(emptyList())
+        val rivals = (fought + history.map {
             if (it.declaringGuildId == guild.id) it.defendingGuildId else it.declaringGuildId
-        }.distinct().take(5)
+        }).distinct().filter { guildService.getGuild(it) != null }.take(5)
         if (rivals.isEmpty()) return lang.bedrock("menu.statistics.common.no_rivalry_data")
 
         return rivals.joinToString("\n\n") { rivalId ->
@@ -364,7 +276,17 @@ class BedrockGuildStatisticsMenu(
             ?: return lang.bedrock("menu.statistics.common.unavailable")
         val wins = wars.count { it.winner == guild.id }
 
-        return listOf(
+        // REQ-274: lead with Guild Advancements progress, as on Java; the combat milestones follow.
+        val advancements = runCatching {
+            getKoin().getOrNull<net.lumalyte.lg.infrastructure.services.GuildAchievementRuntime>()?.let { runtime ->
+                val record = runtime.read(player) ?: return@let null
+                val nodes = runtime.engine.definitions.filter { it.requirement != "ROOT" }
+                lang.bedrock("menu.statistics.item.advancements.lore.earned",
+                    "count" to nodes.count { (record.progress[it.id] ?: 0) >= it.goal }, "total" to nodes.size)
+            }
+        }.getOrNull()
+        return listOfNotNull(
+            advancements,
             achievementLabel("first_blood", kills.totalKills >= 1),
             achievementLabel("centurion", kills.totalKills >= 100),
             achievementLabel("warlord", kills.totalKills >= 1000),
@@ -422,22 +344,6 @@ class BedrockGuildStatisticsMenu(
             lang.bedrock("menu.statistics.detail.achievements.well_rounded.locked")
         }
         else -> lang.bedrock("menu.statistics.common.unavailable")
-    }
-
-    private fun createEconomySection(): String {
-        val stats = runCatching { bankService.getBankStats(guild.id) }.getOrNull()
-            ?: return lang.bedrock("menu.statistics.common.unavailable")
-        val average = if (stats.totalTransactions > 0) {
-            stats.transactionVolume.toDouble() / stats.totalTransactions
-        } else {
-            0.0
-        }
-        return lang.bedrock(
-            "bedrock.statistics.economy",
-            "balance" to stats.currentBalance,
-            "transactions" to stats.totalTransactions,
-            "average" to format(average)
-        )
     }
 
     private fun rankedKills(rank: Int, name: String, kills: Int): String = when (rank) {

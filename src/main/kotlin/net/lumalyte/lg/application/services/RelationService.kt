@@ -106,6 +106,12 @@ interface RelationService {
     fun cancelRequest(relationId: UUID, cancellingGuildId: UUID, actorId: UUID): Boolean
     
     /**
+     * REQ-203: ends an active alliance from one side. Needs Manage Relations in [guildId].
+     * Returns false when there is no active alliance or the player can't manage relations.
+     */
+    fun breakAlliance(relationId: UUID, guildId: UUID, actorId: UUID): Boolean
+
+    /**
      * Gets the current relation between two guilds.
      *
      * @param guildA The first guild ID.

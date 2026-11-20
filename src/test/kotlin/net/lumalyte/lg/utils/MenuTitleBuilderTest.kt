@@ -267,4 +267,28 @@ class MenuTitleBuilderTest {
         assertEquals(GuiTheme.ENTHUSIA, GuiTheme.fromKey("no_such_theme"))
         assertEquals(GuiTheme.OBSIDIAN, GuiTheme.fromKey("obsidian"))
     }
+
+    // REQ-232: titles fit the title bar.
+    @Test
+    fun `long guild names are shortened to fit the title bar`() {
+        val built = MenuTitleBuilder.build(GuiTheme.DEFAULT, 4, "§fDIPLOMATIC RELATIONS - GoldProofOct26")
+        val visible = built.substringAfter("<shift:-162>")
+        assertTrue(visible.endsWith("..."), visible)
+        assertTrue(MenuTitleBuilder.width(visible) <= MenuTitleBuilder.TITLE_WIDTH, "$visible is ${MenuTitleBuilder.width(visible)}px")
+        assertTrue(visible.startsWith("§fDIPLOMATIC RELATIONS"), visible)
+    }
+
+    @Test
+    fun `short titles and colour codes are left untouched`() {
+        assertEquals("§fGUILD INFO - Vibe", MenuTitleBuilder.fit("§fGUILD INFO - Vibe"))
+        assertEquals(MenuTitleBuilder.width("ABC"), MenuTitleBuilder.width("§a§lABC"))
+    }
+
+    @Test
+    fun `vanilla style titles are shortened too`() {
+        val built = MenuTitleBuilder.build(GuiTheme.VANILLA, 4, "DIPLOMATIC RELATIONS - AVeryVeryLongGuildName")
+        assertTrue(built.endsWith("..."), built)
+        assertTrue(MenuTitleBuilder.width(built) <= MenuTitleBuilder.TITLE_WIDTH)
+    }
 }
+

@@ -81,7 +81,8 @@ internal class BedrockGuildLeaderboardMenu(
         }
         snapshot.rows.forEach { row ->
             action("#${row.rank} ${row.guild.name}${if (row.guild.id == own?.id) " (you)" else ""}\n" +
-                "${row.score} ${labels[tab]} · ${row.members} ${lang.bedrock("dialog_v2.members")}") {
+                "${row.score} ${labels[tab]} · ${row.members} ${lang.bedrock("dialog_v2.members")}" +
+                (if (row.prestige > 0) " · Prestige ${net.lumalyte.lg.domain.values.PrestigeNumeral.of(row.prestige)}" else "")) {
                 menuNavigator.openMenu(BedrockGuildRecruitmentMenu(menuNavigator, player, logger, row.guild.id))
             }
         }

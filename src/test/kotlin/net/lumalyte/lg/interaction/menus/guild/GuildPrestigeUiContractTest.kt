@@ -26,7 +26,7 @@ class GuildPrestigeUiContractTest {
     @Test
     fun `confirmation retries the same quote and uses the prestige service`() {
         assertTrue(confirmationSource.contains("private val quote: PrestigeQuote"))
-        assertTrue(confirmationSource.contains("prestige.confirm(player.uniqueId, quote)"))
+        assertTrue(confirmationSource.contains("prestige.confirm(player.uniqueId, quote, hallTheme)"))
         assertTrue(confirmationSource.contains("is PrestigeResult.Failed"))
         assertTrue(confirmationSource.contains("open()"))
     }

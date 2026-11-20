@@ -306,7 +306,8 @@ class GuildRelationsMenu(private val menuNavigator: MenuNavigator, private val p
     }
 
     private fun openDiplomaticHistoryMenu() {
-        player.sendMessage(lang.msg("menu.guild_relations.feedback.history_placeholder"))
+        // REQ-204
+        menuNavigator.openMenu(GuildDiplomacyHistoryMenu(menuNavigator, player, guild))
     }
 
     private fun openNeutralGuildsMenu() {

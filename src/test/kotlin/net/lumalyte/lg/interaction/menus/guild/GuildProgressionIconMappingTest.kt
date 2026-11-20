@@ -54,6 +54,7 @@ class GuildProgressionIconMappingTest {
             ExperienceSource.CLAIM_DESTROYED to "lg_claim_removed",
             ExperienceSource.WEEKLY_ACTIVITY to "lg_weekly_activity",
             ExperienceSource.ADMIN_BONUS to "lg_admin_bonus",
+            ExperienceSource.GUILD_ADVANCEMENT to "lg_prestige",
         )
 
         assertEquals(ExperienceSource.entries.toSet(), expected.keys)

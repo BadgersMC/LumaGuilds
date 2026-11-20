@@ -32,6 +32,18 @@ class QuestDisplayFormatterTest {
     }
 
     @Test
+    fun `quests say how blocks and crops are counted`() {
+        val natural = quest(QuestAction.MINE_BLOCKS, "minecraft:block/coal_ore", 200).let {
+            it.copy(target = it.target.copy(provenancePolicy = net.lumalyte.lg.domain.entities.BlockProvenancePolicy.NATURAL_ONLY))
+        }
+        assertEquals("Mine 200 Coal Ore (blocks placed by players don't count)", QuestDisplayFormatter.description(natural))
+        assertEquals("Harvest 500 Wheat (fully grown only)",
+            QuestDisplayFormatter.description(quest(QuestAction.HARVEST_CROPS, "minecraft:block/wheat", 500)))
+        assertEquals("Harvest 500 Kelp",
+            QuestDisplayFormatter.description(quest(QuestAction.HARVEST_CROPS, "minecraft:block/kelp", 500)))
+    }
+
+    @Test
     fun `custom provider target hides namespace and kind in display text`() {
         assertEquals("Ancient Ore", QuestDisplayFormatter.target("nexo:block/ancient_ore"))
     }

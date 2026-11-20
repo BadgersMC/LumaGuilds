@@ -21,7 +21,7 @@ import java.util.logging.Logger
 
 /**
  * Bedrock Edition party creation menu using Cumulus CustomForm
- * Allows creating parties with name and type (private/public)
+ * Creates a party with a name and the first guild to invite (REQ-207: parties are always between guilds)
  */
 class BedrockPartyCreationMenu(
     menuNavigator: MenuNavigator,
@@ -73,10 +73,6 @@ class BedrockPartyCreationMenu(
                 lang.bedrock("bedrock.party.creation.name.placeholder"),
                 ""
             )
-            .toggle(
-                lang.bedrock("bedrock.party.creation.private"),
-                mainConfig.party.allowPrivateParties
-            )
             .apply {
                 if (guildNames.isNotEmpty()) {
                     label(lang.bedrock("bedrock.party.creation.invite_other"))
@@ -88,15 +84,14 @@ class BedrockPartyCreationMenu(
             }
             .validResultHandler { response ->
                 val partyName = response.asInput(1)?.trim() ?: ""
-                val isPrivate = response.asToggle(2)
 
                 // Get selected guild if any
-                val selectedGuildIndex = if (guildNames.isNotEmpty()) response.asDropdown(4) else 0
+                val selectedGuildIndex = if (guildNames.isNotEmpty()) response.asDropdown(3) else 0
                 val selectedGuild = if (selectedGuildIndex > 0 && guildNames.isNotEmpty()) {
                     allGuilds.getOrNull(selectedGuildIndex - 1)
                 } else null
 
-                handlePartyCreation(partyName, isPrivate, selectedGuild)
+                handlePartyCreation(partyName, selectedGuild)
             }
             .closedOrInvalidResultHandler { _, _ ->
                 bedrockNavigator.goBack()
@@ -104,7 +99,7 @@ class BedrockPartyCreationMenu(
             .build()
     }
 
-    private fun handlePartyCreation(partyName: String, isPrivate: Boolean, invitedGuild: Guild?) {
+    private fun handlePartyCreation(partyName: String, invitedGuild: Guild?) {
         if (!partyService.canManageParties(player.uniqueId, guild.id)) {
             player.sendMessage(lang.msg("bedrock.party.creation.no_permission"))
             bedrockNavigator.goBack()
@@ -120,7 +115,7 @@ class BedrockPartyCreationMenu(
 
         // Build guild set
         val guildIds = mutableSetOf(guild.id)
-        if (!isPrivate && invitedGuild != null) {
+        if (invitedGuild != null) {
             guildIds.add(invitedGuild.id)
         }
 
@@ -133,7 +128,7 @@ class BedrockPartyCreationMenu(
         }
 
         // Check if we have enough guilds for public party
-        if (!isPrivate && guildIds.size < 2) {
+        if (guildIds.size < 2) {
             player.sendMessage(lang.msg("bedrock.party.creation.feedback.need_guilds"))
             bedrockNavigator.goBack()
             return
@@ -146,7 +141,8 @@ class BedrockPartyCreationMenu(
         val party = Party(
             id = UUID.randomUUID(),
             name = partyName.ifBlank { null },
-            guildIds = guildIds,
+            guildIds = setOf(guild.id),
+            shared = true,
             leaderId = player.uniqueId,
             status = PartyStatus.ACTIVE,
             createdAt = java.time.Instant.now(),
@@ -161,10 +157,13 @@ class BedrockPartyCreationMenu(
             if (partyName.isNotBlank()) {
                 player.sendMessage(lang.msg("bedrock.party.creation.feedback.name_set", "party" to partyName))
             }
-            if (isPrivate) {
-                player.sendMessage(lang.msg("bedrock.party.creation.feedback.private_created"))
-            } else if (invitedGuild != null) {
-                player.sendMessage(lang.msg("bedrock.party.creation.feedback.invited", "guild" to invitedGuild.name))
+            if (invitedGuild != null) {
+                val request = partyService.inviteToParty(createdParty.id, guild.id, invitedGuild.id, player.uniqueId)
+                if (request != null) {
+                    player.sendMessage(lang.msg("bedrock.party.creation.feedback.invited", "guild" to invitedGuild.name))
+                } else {
+                    player.sendMessage(lang.msg("menu.party.creation.feedback.invite_failed", "guild" to invitedGuild.name))
+                }
             }
             bedrockNavigator.goBack()
         } else {

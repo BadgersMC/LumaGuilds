@@ -52,9 +52,11 @@ internal class GuildLeaderboardDialogMenu(
                             "#$rank ${guild.name}${if (guild.id == ownGuild?.id) " (you)" else ""}",
                             if (guild.id == ownGuild?.id) NamedTextColor.GREEN else NamedTextColor.GOLD,
                         ),
-                        Component.text(
-                            "${row.members} ${lang.raw("dialog_v2.members")}",
-                        ),
+                        // REQ-284: prestige rides on the members line, so the card keeps its two lines.
+                        Component.text("${row.members} ${lang.raw("dialog_v2.members")}").let { line ->
+                            if (row.prestige > 0) line.append(lang.gui("dialog_v2.leaderboard_prestige",
+                                "tier" to net.lumalyte.lg.domain.values.PrestigeNumeral.of(row.prestige))) else line
+                        },
                     )
                 GuildDialogItem(
                     GuildBannerItemResolver.resolveForDisplay(guild),

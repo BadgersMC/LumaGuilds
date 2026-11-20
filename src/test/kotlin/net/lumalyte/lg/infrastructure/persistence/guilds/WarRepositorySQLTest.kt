@@ -18,6 +18,29 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class WarRepositorySQLTest {
+    @Test fun objectiveEndingSurvivesCodecAndNeverExpires() {
+        val initial = record()
+        val declaration = requireNotNull(initial.declaration).copy(objectiveBased = true)
+        val war = requireNotNull(initial.war).copy(objectiveBased = true, startedAt = Instant.EPOCH)
+        val restored = WarRecordCodec.decode(WarRecordCodec.encode(initial.copy(declaration = declaration, war = war)))
+        assertTrue(requireNotNull(restored.declaration).objectiveBased)
+        assertTrue(requireNotNull(restored.war).objectiveBased)
+        assertFalse(restored.war!!.isExpired)
+        assertEquals(null, restored.war!!.remainingDuration)
+    }
+
+    @Test fun oldRecordsRemainTimed() {
+        val original = record()
+        val json = JsonParser.parseString(WarRecordCodec.encode(original)).asJsonObject
+        json.addProperty("version", 4)
+        val stored = json.getAsJsonObject("record")
+        stored.getAsJsonObject("war").remove("objectiveBased")
+        stored.getAsJsonObject("declaration").remove("objectiveBased")
+        val decoded = WarRecordCodec.decode(json.toString())
+        assertFalse(requireNotNull(decoded.war).objectiveBased)
+        assertFalse(requireNotNull(decoded.declaration).objectiveBased)
+    }
+
     @Test fun `duplicate-key insert races return conflict but other SQL failures propagate`() {
         val jdbc = io.mockk.mockk<java.sql.Connection>(relaxed = true)
         val statement = io.mockk.mockk<java.sql.PreparedStatement>(relaxed = true)

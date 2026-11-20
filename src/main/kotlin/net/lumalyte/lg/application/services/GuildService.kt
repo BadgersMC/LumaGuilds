@@ -176,11 +176,39 @@ interface GuildService {
      */
     fun getAllyHomes(guildId: UUID): Map<String, GuildHome>
 
-    fun setAllyHome(guildId: UUID, home: GuildHome, actorId: UUID): Boolean
+    /** REQ-180: [slot] 2 needs the guild's second allied home (Prestige II by default). */
+    fun setAllyHome(guildId: UUID, home: GuildHome, actorId: UUID, slot: Int = 1): Boolean
 
-    fun removeAllyHome(guildId: UUID, actorId: UUID): Boolean
+    fun removeAllyHome(guildId: UUID, actorId: UUID, slot: Int = 1): Boolean
 
-    fun getAllyHome(guildId: UUID): GuildHome?
+    /** The guild's allied home in [slot]; slot 2 reads as absent while the guild lacks the perk. */
+    fun getAllyHome(guildId: UUID, slot: Int = 1): GuildHome?
+
+    /** REQ-180: how many allied homes the guild may keep (1, or 2 from Prestige II). */
+    fun allyHomeSlots(guildId: UUID): Int = 1
+
+    /**
+     * REQ-180: every allied home a guild's members can see, both slots of each ally
+     * with the perk, in ally-name then slot order.
+     */
+    fun getAllyHomeEntries(guildId: UUID): List<AllyHomeEntry> =
+        getAllyHomes(guildId).map { (name, home) -> AllyHomeEntry(getGuildByName(name)?.id, name, 1, home) }
+
+    /** REQ-182: the host's rank picks and blocked players. */
+    fun allyHomeAccess(hostGuildId: UUID): net.lumalyte.lg.domain.values.AllyHomeAccess =
+        net.lumalyte.lg.domain.values.AllyHomeAccess()
+
+    /** REQ-182: `null` admits every rank of [visitorGuildId] again. Needs Manage home. */
+    fun setAllyHomeVisitorRanks(hostGuildId: UUID, visitorGuildId: UUID, rankIds: Set<UUID>?, actorId: UUID): Boolean = false
+
+    /** REQ-183: per ally, this guild's own ranks that may visit it (no entry: rank permissions decide). */
+    fun allyHomeOutboundRanks(guildId: UUID): Map<UUID, Set<UUID>> = emptyMap()
+
+    /** REQ-183: `null` returns that ally to rank permissions. Needs Manage home. */
+    fun setAllyHomeOutboundRanks(guildId: UUID, allyGuildId: UUID, rankIds: Set<UUID>?, actorId: UUID): Boolean = false
+
+    /** REQ-182: blocks or unblocks one player from the host's allied homes. Needs Manage home. */
+    fun setAllyHomeBlocked(hostGuildId: UUID, playerId: UUID, blocked: Boolean, actorId: UUID): Boolean = false
 
     /**
      * Sets the mode for a guild (Peaceful/Hostile).
@@ -365,9 +393,11 @@ interface GuildService {
      * - player is in `sourceGuildId`, AND
      * - target guild has an ally-home set, AND
      * - source guild is in target.allyHomeAllowedGuilds (inbound), AND
-     * - (player's rank in source is Owner) OR (rank has USE_ALLY_HOMES permission).
+     * - (player's rank in source is Owner) OR (rank has USE_ALLY_HOMES permission), AND
+     * - the target's own rules admit the player's rank and do not block the player (REQ-182).
+     * [slot] picks the target's first or second allied home (REQ-180).
      */
-    fun canUseAllyHome(playerId: UUID, sourceGuildId: UUID, targetGuildId: UUID): Boolean
+    fun canUseAllyHome(playerId: UUID, sourceGuildId: UUID, targetGuildId: UUID, slot: Int = 1): Boolean
 
     /**
      * Checks whether a player may teleport to their OWN guild's ally-home. Returns true when:
@@ -378,7 +408,7 @@ interface GuildService {
      * This is distinct from [canUseAllyHome], which gates teleporting to an *allied* guild's
      * ally-home and therefore requires an active alliance between two different guilds.
      */
-    fun canUseOwnAllyHome(playerId: UUID, guildId: UUID): Boolean
+    fun canUseOwnAllyHome(playerId: UUID, guildId: UUID, slot: Int = 1): Boolean
 
     /**
      * Updates the rank whitelist for a named home. Caller must have MANAGE_HOME.
@@ -403,3 +433,6 @@ interface GuildService {
      */
     fun setGuiTheme(guildId: UUID, theme: net.lumalyte.lg.utils.GuiTheme, actorId: UUID): Boolean
 }
+
+/** REQ-180: one allied home a guild's members can see. [guildId] is null if the guild vanished. */
+data class AllyHomeEntry(val guildId: UUID?, val guildName: String, val slot: Int, val home: GuildHome)

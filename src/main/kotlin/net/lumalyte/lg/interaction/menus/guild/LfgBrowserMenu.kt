@@ -81,7 +81,8 @@ class LfgBrowserMenu(
 
         for ((index, guild) in guilds.withIndex()) {
             val page = index / 45  // 45 slots per page (9x5)
-            val guildItem = createGuildItem(guild, maxMembers)
+            // REQ-190: each guild's own member cap.
+            val guildItem = createGuildItem(guild, minOf(maxMembers, memberService.getMemberLimit(guild.id)))
             val guildGuiItem = GuiItem(guildItem) {
                 player.closeInventory()
                 // Open join requirements menu

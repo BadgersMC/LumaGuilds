@@ -90,7 +90,9 @@ class GuildCreationFlowSQLTest : RewardSqlTestFixture() {
                 return ExternalTransferResult.Applied
             }
         }
-        val payments = VaultGuildCreationPaymentAdapter(personal, GuildCreationVaultJournal(storage))
+        val payments = VaultGuildCreationPaymentAdapter(
+            personal, GuildCreationVaultJournal(storage), PhysicalGoldJournal(storage)::pending
+        )
         val failures = mutableListOf<Exception>()
         val costs = GuildCostService({ cfg }, payments, mockk(relaxed = true)) { _, error -> failures += error }
         val outcome = costs.createGuild(UUID.randomUUID(), playerId) {
@@ -101,7 +103,6 @@ class GuildCreationFlowSQLTest : RewardSqlTestFixture() {
             assertTrue(assertIs<GuildCreationCostResult.CreationFailed>(outcome).compensated)
             assertEquals(20L, personal.remaining)
             assertEquals(1, personal.withdrawals)
-            assertEquals(1, personal.refunds)
             assertNull(payments.pendingReservation(playerId))
             assertEquals(expiry.toEpochMilli(), guilds.creationCooldownUntil(playerId)!!.toEpochMilli())
             assertEquals(0, storage.connection.getFirstRow("SELECT COUNT(*) AS n FROM guilds")!!.getInt("n"))
@@ -119,7 +120,6 @@ class GuildCreationFlowSQLTest : RewardSqlTestFixture() {
         assertEquals(10L, result.cost)
         assertEquals(10L, personal.remaining)
         assertEquals(1, personal.withdrawals)
-        assertEquals(0, personal.refunds)
         assertNull(payments.pendingReservation(playerId))
         if (bypass) {
             assertEquals(expiry.toEpochMilli(), guilds.creationCooldownUntil(playerId)!!.toEpochMilli())

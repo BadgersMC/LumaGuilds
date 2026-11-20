@@ -18,7 +18,9 @@ import java.util.UUID
 class RelationServiceBukkit(
     private val relationRepository: RelationRepository,
     private val memberService: MemberService,
-    private val guildRepository: GuildRepository
+    private val guildRepository: GuildRepository,
+    // REQ-203: diplomacy history; null in tests and partial wiring.
+    private val diplomacyLog: net.lumalyte.lg.application.services.DiplomacyLog? = null,
 ) : RelationService {
     
     private val logger = LoggerFactory.getLogger(RelationServiceBukkit::class.java)
@@ -143,6 +145,7 @@ class RelationServiceBukkit(
             return if (relationRepository.update(updatedRelation)) {
                 logger.info("Alliance accepted between guilds ${relation.guildA} and ${relation.guildB}")
                 addAllyInboundWhitelist(relation.guildA, relation.guildB)
+                diplomacyLog?.allied(relation.guildA, relation.guildB, actorId)
                 // Fire relation change event
                 Bukkit.getPluginManager().callEvent(
                     GuildRelationChangeEvent(relation.guildA, relation.guildB, RelationType.ALLY, updatedRelation)
@@ -198,6 +201,8 @@ class RelationServiceBukkit(
             return if (success) {
                 logger.info("War declared between guilds ${relation.guildA} and ${relation.guildB}")
                 if (wasAlly) removeAllyInboundWhitelist(relation.guildA, relation.guildB)
+                if (wasAlly) diplomacyLog?.allianceEnded(declaringGuildId, targetGuildId, actorId)
+                diplomacyLog?.declaredEnemies(declaringGuildId, targetGuildId, actorId)
                 // Fire relation change event
                 Bukkit.getPluginManager().callEvent(
                     GuildRelationChangeEvent(relation.guildA, relation.guildB, RelationType.ENEMY, relation)
@@ -305,6 +310,8 @@ class RelationServiceBukkit(
             
             return if (relationRepository.update(updatedRelation)) {
                 logger.info("Truce accepted between guilds ${relation.guildA} and ${relation.guildB}")
+                val days = relation.expiresAt?.let { Duration.between(Instant.now(), it).toDays().toInt() }?.coerceAtLeast(1) ?: 0
+                diplomacyLog?.truceStarted(relation.guildA, relation.guildB, actorId, days)
                 // Fire relation change event
                 Bukkit.getPluginManager().callEvent(
                     GuildRelationChangeEvent(relation.guildA, relation.guildB, RelationType.TRUCE, updatedRelation)
@@ -403,6 +410,7 @@ class RelationServiceBukkit(
             // Remove the relation (neutral is the default state)
             return if (relationRepository.remove(relationId)) {
                 logger.info("Unenemy accepted, relation removed between guilds ${relation.guildA} and ${relation.guildB}")
+                diplomacyLog?.peace(relation.guildA, relation.guildB, actorId)
                 val neutralRelation = relation.copy(status = RelationStatus.ACTIVE)
                 // Fire relation change event
                 Bukkit.getPluginManager().callEvent(
@@ -611,6 +619,20 @@ class RelationServiceBukkit(
         }
     }
     
+    override fun breakAlliance(relationId: UUID, guildId: UUID, actorId: UUID): Boolean {
+        if (!canManageRelations(actorId, guildId)) return false
+        val relation = relationRepository.getById(relationId) ?: return false
+        if (!relation.involves(guildId) || relation.type != RelationType.ALLY || relation.status != RelationStatus.ACTIVE) return false
+        if (!relationRepository.remove(relation.id)) return false
+        removeAllyInboundWhitelist(relation.guildA, relation.guildB)
+        diplomacyLog?.allianceEnded(guildId, relation.getOtherGuild(guildId), actorId)
+        logger.info("Alliance ${relation.id} broken by guild $guildId (actor=$actorId)")
+        val neutral = relation.copy(type = RelationType.NEUTRAL, status = RelationStatus.ACTIVE, updatedAt = Instant.now())
+        runCatching { Bukkit.getPluginManager().callEvent(GuildRelationChangeEvent(relation.guildA, relation.guildB, RelationType.NEUTRAL, neutral)) }
+            .onFailure { logger.warn("Unable to fire relation change for broken alliance ${relation.id}", it) }
+        return true
+    }
+
     override fun processExpiredRelations(): Int {
         try {
             val expiredRelations = relationRepository.getExpiredRelations()
@@ -629,6 +651,7 @@ class RelationServiceBukkit(
                         
                         if (relationRepository.update(updatedRelation)) {
                             logger.info("Truce expired between guilds ${relation.guildA} and ${relation.guildB}, reverted to enemy")
+                            diplomacyLog?.truceEnded(relation.guildA, relation.guildB)
                             // Fire relation change event
                             Bukkit.getPluginManager().callEvent(
                                 GuildRelationChangeEvent(relation.guildA, relation.guildB, RelationType.ENEMY, updatedRelation)

@@ -262,9 +262,8 @@ class AlliesListMenu(
     }
 
     private fun breakAlliance(relation: Relation, guildName: String) {
-        // Use repository to remove relation (unilateral break)
-        val relationRepository: net.lumalyte.lg.application.persistence.RelationRepository by inject()
-        val success = relationRepository.remove(relation.id)
+        // REQ-203: through the service, so the ally whitelist is cleared and the history logged.
+        val success = relationService.breakAlliance(relation.id, guild.id, player.uniqueId)
 
         if (success) {
             player.sendMessage(lang.msg("menu.allies_list.feedback.broken", "guild" to guildName))

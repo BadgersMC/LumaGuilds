@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class DiscordSrvAccountLinkSubscription(
     private val service: GuildDiscordRoleService,
+    private val prestigeRoles: net.lumalyte.lg.application.services.PrestigeDiscordRoleService,
     private val executor: ExecutorService,
 ) : DiscordAccountLinkSubscription {
     private val logger = LoggerFactory.getLogger(DiscordSrvAccountLinkSubscription::class.java)
@@ -42,6 +43,7 @@ class DiscordSrvAccountLinkSubscription(
                 .supplyAsync(service::reconcileAll, executor)
                 .thenCompose { it },
         )
+        prestigeRoles.reconcileAll() // REQ-298
     }
 
     @Subscribe
@@ -50,6 +52,7 @@ class DiscordSrvAccountLinkSubscription(
             "Discord account link player=${event.player.uniqueId}",
             service.discordAccountLinked(event.player.uniqueId),
         )
+        prestigeRoles.linked(event.player.uniqueId) // REQ-298
     }
 
     @Subscribe

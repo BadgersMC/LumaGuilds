@@ -8,9 +8,11 @@ import io.mockk.runs
 import io.mockk.verify
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
+import net.lumalyte.lg.application.persistence.PlayerPartyPreferenceRepository
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.domain.entities.PlayerPartyPreference
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.values.ChatChannelIds
 import net.lumalyte.lg.infrastructure.services.RoseChatAdapter
@@ -34,6 +36,7 @@ internal class GuildChatListenerTest {
     private val guildService = mockk<GuildService>()
     private val memberService = mockk<MemberService>()
     private val lang = mockk<LangService>(relaxed = true)
+    private val preferences = mockk<PlayerPartyPreferenceRepository>(relaxed = true)
 
     private val player = mockk<Player>(relaxed = true)
     private val playerId = UUID.randomUUID()
@@ -54,6 +57,7 @@ internal class GuildChatListenerTest {
                 single { guildService }
                 single { memberService }
                 single { lang }
+                single { preferences }
                 single { GuildChatListener() }
             })
         }
@@ -230,5 +234,54 @@ internal class GuildChatListenerTest {
         val result = listener.toggleGuildChat(player)
         assertFalse(result)
         verify { player.sendMessage(any<Component>()) }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // REQ-209: one chat at a time
+    // ══════════════════════════════════════════════════════════════════
+
+    private fun enterModChatSetup() {
+        every { adapter.getChannel(ChatChannelIds.MODCHAT) } returns modChannel
+        every { adapter.getCurrentChannel(player) } returns otherChannel
+        every { adapter.switchChannel(player, modChannel) } just runs
+        every { guildService.getPlayerGuilds(playerId) } returns setOf(guildA)
+        every { memberService.hasPermission(playerId, guildA.id, RankPermission.MODERATE_CHAT) } returns true
+    }
+
+    @Test
+    fun `entering mod chat turns party chat off`() {
+        enterModChatSetup()
+        every { preferences.getByPlayerId(playerId) } returns PlayerPartyPreference(playerId, UUID.randomUUID())
+
+        assertTrue(listener.toggleModChat(player)!!)
+        verify(exactly = 1) { preferences.removeByPlayerId(playerId) }
+        verify { lang.msg("notification.guild_chat.party_chat_off") }
+    }
+
+    @Test
+    fun `entering mod chat without party chat changes nothing`() {
+        enterModChatSetup()
+        every { preferences.getByPlayerId(playerId) } returns null
+
+        assertTrue(listener.toggleModChat(player)!!)
+        verify(exactly = 0) { preferences.removeByPlayerId(any()) }
+    }
+
+    @Test
+    fun `leaveGuildChannels moves a player out of mod chat`() {
+        every { adapter.getCurrentChannel(player) } returns modChannel
+        every { adapter.getDefaultChannel() } returns defaultChannel
+        every { adapter.switchChannel(player, defaultChannel) } just runs
+
+        assertTrue(listener.leaveGuildChannels(player))
+        verify(exactly = 1) { adapter.switchChannel(player, defaultChannel) }
+    }
+
+    @Test
+    fun `leaveGuildChannels leaves other channels alone`() {
+        every { adapter.getCurrentChannel(player) } returns otherChannel
+
+        assertFalse(listener.leaveGuildChannels(player))
+        verify(exactly = 0) { adapter.switchChannel(any(), any()) }
     }
 }

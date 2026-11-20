@@ -5,6 +5,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.lumalyte.lg.application.services.GuildPrestigeAnnouncement
 import net.lumalyte.lg.application.services.GuildService
+import net.lumalyte.lg.domain.values.PrestigeNumeral
 import org.bukkit.Bukkit
 import java.util.UUID
 
@@ -16,12 +17,7 @@ class GuildPrestigeAnnouncementBukkit(
 ) : GuildPrestigeAnnouncement {
     override fun announce(guildId: UUID, prestigeCount: Int) {
         val guild = guilds.getGuild(guildId) ?: error("Committed prestige guild is unavailable: $guildId")
-        val tier = when (prestigeCount) {
-            1 -> "I"
-            2 -> "II"
-            3 -> "III"
-            else -> prestigeCount.toString()
-        }
+        val tier = PrestigeNumeral.of(prestigeCount)
         broadcaster(lang.msg(
             "notification.guild.prestige.broadcast",
             // Nexus accepts serialized components as strings; serialization escapes literal tags.

@@ -36,13 +36,23 @@ class GuildPrestigeAnnouncementBukkitTest {
         every { guilds.getGuild(guild.id) } returns guild
         val sent = mutableListOf<Component>()
         val adapter = GuildPrestigeAnnouncementBukkit(guilds, lang()) { sent += it }
-        listOf(1, 2, 3, 4).forEach { adapter.announce(guild.id, it) }
-        assertEquals(listOf("I", "II", "III", "4").map {
+        (1..6).forEach { adapter.announce(guild.id, it) }
+        assertEquals(listOf("I", "II", "III", "IV", "V", "VI").map {
             "✦ Enthusiast has reached Guild Prestige $it!"
         }, sent.map(PlainTextComponentSerializer.plainText()::serialize))
         val json = GsonComponentSerializer.gson().serialize(sent.first())
         assertTrue(json.contains("gold"))
         assertTrue(json.contains("light_purple"))
+    }
+
+    @Test
+    fun `the prestige-applied message names the new tier in Roman numerals`() {
+        val text = PlainTextComponentSerializer.plainText().serialize(lang().msg(
+            "menu.guild_progression.prestige.feedback.applied",
+            "reward" to "Bank Extension 3", "fee" to 30000,
+            "count" to net.lumalyte.lg.domain.values.PrestigeNumeral.of(4),
+        ))
+        assertEquals("Guild prestige complete. Bank Extension 3 is now permanent. Fee: 30000 Gold Ore. Your guild is now Prestige IV.", text)
     }
 
     @Test

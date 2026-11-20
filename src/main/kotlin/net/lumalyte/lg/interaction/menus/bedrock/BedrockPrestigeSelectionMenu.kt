@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.bedrock
 
+import net.lumalyte.lg.interaction.menus.guild.bedrockRewardEffect
+import net.lumalyte.lg.domain.values.PrestigeNumeral
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.GuildPrestigeService
 import net.lumalyte.lg.domain.entities.Guild
@@ -41,6 +43,7 @@ class BedrockPrestigeSelectionMenu(
                         "menu.guild_progression.prestige.selection.reward.name",
                         "reward" to reward.name,
                     ),
+                    bedrockRewardEffect(lang, reward.effect),
                     lang.bedrock(
                         "menu.guild_progression.prestige.selection.reward.level",
                         "level" to reward.level,
@@ -81,15 +84,28 @@ class BedrockPrestigeSelectionMenu(
             open()
             return
         }
-        BedrockPrestigeConfirmationMenu(
-            menuNavigator = menuNavigator,
-            player = player,
-            quote = quote,
-            retainedRewardName = rewardName,
-            back = ::open,
-            success = { bedrockNavigator.goBack() },
-            logger = logger,
-        ).open()
+        val themes = org.koin.core.context.GlobalContext.get()
+            .getOrNull<net.lumalyte.lg.application.services.HallThemeService>()
+        val owned = themes?.display(guild.id)?.owned
+        val confirm = { theme: net.lumalyte.lg.domain.rewards.HallTheme? ->
+            BedrockPrestigeConfirmationMenu(
+                menuNavigator = menuNavigator,
+                player = player,
+                quote = quote,
+                retainedRewardName = rewardName,
+                back = ::open,
+                success = { bedrockNavigator.goBack() },
+                logger = logger,
+                hallTheme = theme,
+                themesOwnedAfter = (owned?.size ?: 0) + 1,
+            ).open()
+        }
+        val left = owned?.let { has -> net.lumalyte.lg.domain.rewards.HallTheme.entries.filterNot { it in has } }
+        when {
+            left.isNullOrEmpty() -> confirm(null)
+            left.size == 1 -> confirm(left.single())
+            else -> BedrockPrestigeThemeMenu(menuNavigator, player, left, ::open, confirm, logger).open()
+        }
     }
 
     private fun statusForm(message: String): Form = SimpleForm.builder()
@@ -122,8 +138,8 @@ class BedrockPrestigeSelectionMenu(
         overview.prestigeCount >= overview.maxPrestigeCount ->
             lang.bedrock(
                 "menu.guild_progression.prestige.state.maximum",
-                "count" to overview.prestigeCount,
-                "max" to overview.maxPrestigeCount,
+                "count" to PrestigeNumeral.of(overview.prestigeCount),
+                "max" to PrestigeNumeral.of(overview.maxPrestigeCount),
             )
         overview.currentLevel < 100 ->
             lang.bedrock(
@@ -135,8 +151,8 @@ class BedrockPrestigeSelectionMenu(
         else ->
             lang.bedrock(
                 "menu.guild_progression.prestige.state.ready",
-                "count" to overview.prestigeCount,
-                "max" to overview.maxPrestigeCount,
+                "count" to PrestigeNumeral.of(overview.prestigeCount),
+                "max" to PrestigeNumeral.of(overview.maxPrestigeCount),
                 "fee" to (overview.nextFee ?: 0L),
                 "choices" to overview.choices.size,
             )

@@ -11,6 +11,7 @@ import net.lumalyte.lg.application.services.WarNotificationService
 import net.lumalyte.lg.application.services.ChapterTwoGuildAwardService
 import net.lumalyte.lg.application.services.ProgressionService
 import net.lumalyte.lg.domain.values.ExperienceSource
+import net.lumalyte.lg.domain.values.WarDeclarationBlock
 import net.lumalyte.lg.domain.entities.*
 import net.lumalyte.lg.api.events.GuildWarDeclaredEvent
 import net.lumalyte.lg.api.events.GuildWarEndEvent
@@ -172,6 +173,32 @@ class WarServiceBukkit(
         terms: String?,
         actorId: UUID,
         rated: Boolean,
+    ): WarDeclaration? = createDeclaration(
+        declaringGuildId, defendingGuildId, duration, objectives, wagerAmount, terms, actorId, rated, false,
+    )
+
+    override fun createObjectiveWarDeclaration(
+        declaringGuildId: UUID,
+        defendingGuildId: UUID,
+        objectives: Set<WarObjective>,
+        wagerAmount: Int,
+        terms: String?,
+        actorId: UUID,
+        rated: Boolean,
+    ): WarDeclaration? = createDeclaration(
+        declaringGuildId, defendingGuildId, Duration.ofDays(7), objectives, wagerAmount, terms, actorId, rated, true,
+    )
+
+    private fun createDeclaration(
+        declaringGuildId: UUID,
+        defendingGuildId: UUID,
+        duration: Duration,
+        objectives: Set<WarObjective>,
+        wagerAmount: Int,
+        terms: String?,
+        actorId: UUID,
+        rated: Boolean,
+        objectiveBased: Boolean,
     ): WarDeclaration? {
         if (!canPlayerManageWars(actorId, declaringGuildId)) {
             logger.warn("Player $actorId attempted to declare war for guild $declaringGuildId without permission")
@@ -227,7 +254,7 @@ class WarServiceBukkit(
                 return null
             }
 
-            if (!objectivesFitKillTarget(objectives, config.combat.warKillWinTarget)) {
+            if (!objectivesFitKillTarget(objectives, maxKillTarget())) {
                 logger.warn("Cannot create war declaration - objective target is invalid or exceeds global kill target")
                 return null
             }
@@ -260,6 +287,7 @@ class WarServiceBukkit(
                 declaringGuildId = declaringGuildId,
                 defendingGuildId = defendingGuildId,
                 proposedDuration = effectiveWarDuration(duration),
+                objectiveBased = objectiveBased,
                 objectives = objectives,
                 terms = terms,
                 wagerAmount = wagerAmount,
@@ -314,7 +342,7 @@ class WarServiceBukkit(
                 val snapshot = warRepository.getAll()
                 val knownWars = snapshot.mapNotNull { it.war }
                 val combat = configService.loadConfig().combat
-                if (!objectivesFitKillTarget(declaration.objectives, combat.warKillWinTarget)) {
+                if (!objectivesFitKillTarget(declaration.objectives, maxKillTarget())) {
                     logger.warn("Cannot accept war declaration $declarationId - objective target is no longer valid")
                     return null
                 }
@@ -349,7 +377,8 @@ class WarServiceBukkit(
             if (record.war == null) {
                 val pending = War(id = declarationId, declaringGuildId = declaration.declaringGuildId,
                     defendingGuildId = declaration.defendingGuildId, duration = declaration.proposedDuration,
-                    objectives = declaration.objectives, ratedChapterId = declaration.ratedChapterId)
+                    objectives = declaration.objectives, ratedChapterId = declaration.ratedChapterId,
+                    objectiveBased = declaration.objectiveBased)
                 persist(record.copy(war = pending, stats = WarStats(declarationId)))
             }
             if (declaration.wagerAmount > 0 && createWager(declarationId, declaration.wagerAmount, declaration.wagerAmount) == null) {
@@ -543,6 +572,14 @@ class WarServiceBukkit(
         return warRepository.get(warId)?.stats ?: WarStats(warId)
     }
 
+    private fun maxKillTarget(): Int = configService.loadConfig().combat.let {
+        net.lumalyte.lg.domain.values.WarKillTargets.maximum(it.warKillWinTarget, it.warKillTargetMax)
+    }
+
+    override fun killTargetOptions(): List<Int> = configService.loadConfig().combat.let {
+        net.lumalyte.lg.domain.values.WarKillTargets.options(it.warKillWinTarget, it.warKillTargetMax)
+    }
+
     override fun getWarKillWinTarget(): Int =
         configService.loadConfig().combat.warKillWinTarget.also {
             check(it > 0) { "combat.war_kill_win_target must be positive" }
@@ -607,7 +644,7 @@ class WarServiceBukkit(
         }
         persist(record.copy(stats = updated))
 
-        val target = getWarKillWinTarget()
+        val target = killTargetFor(war)
         val winner = killerGuildId.takeIf { killVictoryTerms(war, updated, killerGuildId) != null }
         return net.lumalyte.lg.application.services.WarKillCounterUpdate(updated, target, winner)
     }
@@ -660,19 +697,12 @@ class WarServiceBukkit(
             war.defendingGuildId -> stats.defendingGuildKills
             else -> return null
         }
-        val target = getWarKillWinTarget()
-        if (killerKills >= target) {
-            return "Victory achieved by reaching the global war kill target ($killerKills/$target)"
-        }
-
-        val objectiveTarget = war.objectives
-            .asSequence()
-            .filter { it.type == ObjectiveType.KILLS && it.targetValue > 0 }
-            .map { it.targetValue }
-            .minOrNull()
-        return objectiveTarget
-            ?.takeIf { killerKills >= it }
-            ?.let { "Victory achieved through kill objective ($killerKills/$it)" }
+        // REQ-230: the war's own kill objective decides it; wars without one use the configured default.
+        val target = killTargetFor(war)
+        if (killerKills < target) return null
+        val chosen = war.objectives.any { it.type == ObjectiveType.KILLS && it.targetValue > 0 }
+        return if (chosen) "Victory achieved through kill objective ($killerKills/$target)"
+        else "Victory achieved by reaching the war kill target ($killerKills/$target)"
     }
 
     @Synchronized
@@ -838,6 +868,24 @@ class WarServiceBukkit(
      * (REQ-008), refined upward by progression war slots — consistent with the
      * check in `createWarDeclaration`.
      */
+    override fun declarationBlock(
+        declaringGuildId: UUID,
+        defendingGuildId: UUID,
+    ): WarDeclarationBlock? {
+        val snapshot = warRepository.getAll()
+        val combat = configService.loadConfig().combat
+        return declarationBlock(
+            now = Instant.now(),
+            declarationCooldownEnd = declarationCooldownEnd(declaringGuildId, snapshot, combat.warDeclarationCooldownHours),
+            ownFarmingEnd = farmingCooldownEnd(declaringGuildId, snapshot, combat.warFarmingCooldownHours),
+            targetFarmingEnd = farmingCooldownEnd(defendingGuildId, snapshot, combat.warFarmingCooldownHours),
+            ownWarsFull = activeWarCount(declaringGuildId, snapshot.mapNotNull { it.war }) >=
+                maxWarsForGuild(declaringGuildId, combat.maxSimultaneousWars),
+            targetWarsFull = activeWarCount(defendingGuildId, snapshot.mapNotNull { it.war }) >=
+                maxWarsForGuild(defendingGuildId, combat.maxSimultaneousWars),
+        )
+    }
+
     override fun canGuildDeclareWar(guildId: UUID): Boolean {
         if (guildRepository.getById(guildId)?.mode != GuildMode.HOSTILE) return false
         val snapshot = warRepository.getAll()
@@ -979,7 +1027,7 @@ class WarServiceBukkit(
         // until duration + grace period have both elapsed.
         val graceSeconds = configService.loadConfig().combat.warEndGracePeriodMinutes * 60L
         val expiredWars = snapshot.values.mapNotNull { it.war }.filter { war ->
-            war.isActive && war.startedAt != null &&
+            war.isActive && !war.objectiveBased && war.startedAt != null &&
                 war.startedAt!!.plus(war.duration).plusSeconds(graceSeconds).isBefore(now)
         }
         for (war in expiredWars) {
@@ -1000,7 +1048,7 @@ class WarServiceBukkit(
     override fun validateObjectives(objectives: Set<WarObjective>): Boolean =
         objectives.isNotEmpty() &&
             objectives.size <= 5 &&
-            objectivesFitKillTarget(objectives, getWarKillWinTarget())
+            objectivesFitKillTarget(objectives, maxKillTarget())
 
     override fun getWarHistory(guildId: UUID, limit: Int): List<War> {
         return wars.values
@@ -1325,6 +1373,28 @@ class WarServiceBukkit(
          * base, refined upward by the highest progression war-slot reward among the
          * levels the guild has reached. `levelRewards` is keyed by level number.
          */
+        /** REQ-239: pure ordering of declaration blocks, checked in the same order as createWarDeclaration. */
+        fun declarationBlock(
+            now: Instant,
+            declarationCooldownEnd: Instant?,
+            ownFarmingEnd: Instant?,
+            targetFarmingEnd: Instant?,
+            ownWarsFull: Boolean,
+            targetWarsFull: Boolean,
+        ): WarDeclarationBlock? {
+            fun active(end: Instant?) = end != null && now.isBefore(end)
+            return when {
+                active(declarationCooldownEnd) ->
+                    WarDeclarationBlock(WarDeclarationBlock.Reason.DECLARATION_COOLDOWN, declarationCooldownEnd)
+                active(ownFarmingEnd) -> WarDeclarationBlock(WarDeclarationBlock.Reason.OWN_FARMING_COOLDOWN, ownFarmingEnd)
+                active(targetFarmingEnd) ->
+                    WarDeclarationBlock(WarDeclarationBlock.Reason.TARGET_FARMING_COOLDOWN, targetFarmingEnd)
+                ownWarsFull -> WarDeclarationBlock(WarDeclarationBlock.Reason.OWN_WAR_LIMIT)
+                targetWarsFull -> WarDeclarationBlock(WarDeclarationBlock.Reason.TARGET_WAR_LIMIT)
+                else -> null
+            }
+        }
+
         fun maxWarsForGuild(currentLevel: Int?, configMax: Int, levelRewards: Map<Int, net.lumalyte.lg.config.LevelRewardConfig>): Int {
             if (currentLevel == null) return configMax
             var maxWars = configMax

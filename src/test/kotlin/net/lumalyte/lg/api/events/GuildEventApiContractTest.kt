@@ -43,6 +43,7 @@ class GuildEventApiContractTest {
         GuildMemberJoinEvent::class.java,
         GuildMemberRemovedEvent::class.java,
         GuildOwnershipTransferEvent::class.java,
+        GuildPrestigeEvent::class.java,
         GuildRelationChangeEvent::class.java,
         GuildTrackingChangedEvent::class.java,
         GuildVaultPlacedEvent::class.java,
@@ -52,6 +53,10 @@ class GuildEventApiContractTest {
     )
 
     private val constructorSignatures = mapOf(
+        GuildPrestigeEvent::class.java to listOf(
+            UUID::class.java, UUID::class.java, Int::class.javaPrimitiveType, String::class.java,
+            java.time.Instant::class.java, Boolean::class.javaPrimitiveType,
+        ),
         GuildBankContributionEvent::class.java to List(3) { UUID::class.java },
         GuildBankDepositEvent::class.java to listOf(UUID::class.java, UUID::class.java, Int::class.javaPrimitiveType),
         GuildBannerChangedEvent::class.java to listOf(UUID::class.java, Boolean::class.javaPrimitiveType),
@@ -91,6 +96,14 @@ class GuildEventApiContractTest {
     )
 
     private val payloadContracts = mapOf(
+        GuildPrestigeEvent::class to listOf(
+            PayloadContract("guildId", typeOf<UUID>()),
+            PayloadContract("actorId", typeOf<UUID>()),
+            PayloadContract("tier", typeOf<Int>()),
+            PayloadContract("retainedRewardId", typeOf<String>()),
+            PayloadContract("appliedAt", typeOf<java.time.Instant>()),
+            PayloadContract("firstToReachTier", typeOf<Boolean>())
+        ),
         GuildBankContributionEvent::class to listOf(
             PayloadContract("guildId", typeOf<UUID>()),
             PayloadContract("playerId", typeOf<UUID>()),
@@ -272,6 +285,7 @@ class GuildEventApiContractTest {
             GuildMemberJoinEvent(first, second),
             GuildMemberRemovedEvent(first, second, third, true),
             GuildOwnershipTransferEvent(first, second, third),
+            GuildPrestigeEvent(first, second, 1, "bank-1", java.time.Instant.EPOCH, false),
             GuildRelationChangeEvent(first, second, RelationType.entries.first(), mockk<Relation>()),
             GuildTrackingChangedEvent(first, true),
             GuildVaultPlacedEvent(first, second),

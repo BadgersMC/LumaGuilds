@@ -42,6 +42,8 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
                 val rarity = blockRarity(material, compressionBlocks)
 
                 if (ageable) {
+                    // REQ-176: only farm crops; frosted ice, stems and vines are not harvests.
+                    if (!QuestTargetPool.isHarvestTarget(material.name)) return@forEach
                     result += target(
                         id = blockId(material),
                         action = QuestAction.HARVEST_CROPS,
@@ -49,7 +51,7 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
                         provenance = BlockProvenancePolicy.ANY
                     )
                 } else {
-                    if (isNaturalMineTarget(material, playerProducibleBlocks)) {
+                    if (isNaturalMineTarget(material, playerProducibleBlocks) && QuestTargetPool.isMineTarget(material.name)) {
                         result += target(
                             id = blockId(material),
                             action = QuestAction.MINE_BLOCKS,
@@ -57,7 +59,7 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
                             provenance = BlockProvenancePolicy.NATURAL_ONLY
                         )
                     }
-                    if (material.isItem) {
+                    if (material.isItem && QuestTargetPool.isPlaceTarget(material.name)) {
                         result += target(
                             id = blockId(material),
                             action = QuestAction.PLACE_BLOCKS,
@@ -75,11 +77,8 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
                 type.entityClass?.let { LivingEntity::class.java.isAssignableFrom(it) && !Player::class.java.isAssignableFrom(it) } == true
             }
             .forEach { type ->
-                val rarity = when (type.name) {
-                    "ENDER_DRAGON", "WITHER" -> QuestTargetRarity.PRECIOUS
-                    "WARDEN", "ELDER_GUARDIAN", "RAVAGER" -> QuestTargetRarity.RARE
-                    else -> QuestTargetRarity.COMMON
-                }
+                // REQ-176: hostiles, bosses and farm animals only.
+                val rarity = QuestTargetPool.mobRarity(type.name) ?: return@forEach
                 result += target(
                     id = entityId(type),
                     action = QuestAction.KILL_MOBS,
@@ -98,6 +97,7 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
             .filter(::isCraftingMatrixRecipe)
             .map(Recipe::getResult)
             .filter { !it.type.isLegacy && !it.type.isAir }
+            .filter { QuestTargetPool.isCraftTarget(it.type.name) }
             .distinctBy { it.type.key }
             .forEach { stack ->
                 result += target(
@@ -110,6 +110,7 @@ class BukkitQuestTargetProvider(private val plugin: Plugin) : QuestTargetProvide
         recipes.filterIsInstance<CookingRecipe<*>>()
             .map { it.result }
             .filter { !it.type.isLegacy && !it.type.isAir }
+            .filter { QuestTargetPool.isSmeltTarget(it.type.name) }
             .distinctBy { it.type.key }
             .forEach { stack ->
                 result += target(

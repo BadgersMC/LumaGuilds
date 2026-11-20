@@ -13,6 +13,7 @@ import net.lumalyte.lg.application.persistence.PlayerPartyPreferenceRepository
 import net.lumalyte.lg.domain.entities.Party
 import net.lumalyte.lg.domain.entities.PlayerPartyPreference
 import net.lumalyte.lg.domain.values.ChatChannel
+import net.lumalyte.lg.domain.values.PartyChatIntent
 import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
@@ -23,7 +24,12 @@ import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
+/**
+ * REQ-221: /pc. A guild has one party between guilds, so nothing needs naming:
+ * /pc toggles party chat, /pc on|off|mute|help, and any other text is sent once.
+ */
 @CommandAlias("pc|pchat|partychat")
+@CommandPermission("lumaguilds.partychat")
 class PartyChatCommand : BaseCommand(), KoinComponent {
 
     private val lang: LangService by inject()
@@ -34,312 +40,88 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
     private val partyRepository: PartyRepository by inject()
     private val preferenceRepository: PlayerPartyPreferenceRepository by inject()
     private val configService: ConfigService by inject()
+    private val guildChat: net.lumalyte.lg.interaction.listeners.GuildChatListener by inject()
 
-    private fun checkPartiesEnabled(player: Player): Boolean {
+    private val actions by lazy {
+        net.lumalyte.lg.application.services.PartyActions(partyService, guildService) {
+            Duration.ofHours(configService.loadConfig().party.defaultPartyDurationHours.toLong())
+        }
+    }
+
+    @Default
+    @CommandCompletion("on|off|switch|mute|help @guildparty")
+    fun onPartyChat(player: Player, vararg args: String) {
         if (!configService.loadConfig().partiesEnabled) {
             player.sendMessage(lang.msg("command.migrated.party_chat.checkpartiesenabled.parties_are_disabled_on_this_server"))
-            return false
-        }
-        return true
-    }
-
-    @Default
-    @CommandPermission("lumaguilds.partychat")
-    fun onPartyChat(player: Player) {
-        if (!checkPartiesEnabled(player)) return
-
-        // No arguments - show current party info
-        showCurrentPartyInfo(player)
-    }
-
-    @Default
-    @CommandPermission("lumaguilds.partychat")
-    @CommandCompletion("@parties switch help toggle clear")
-    fun onPartyChat(player: Player, firstArg: String) {
-        if (!checkPartiesEnabled(player)) return
-
-        val playerId = player.uniqueId
-
-        // Try to find a party with this name first
-        val targetParty = findPartyByName(playerId, firstArg)
-
-        if (targetParty != null) {
-            // Switch to the specified party
-            switchToParty(player, targetParty)
-        } else {
-            // Treat as a message to send to current party
-            sendPartyMessage(player, firstArg)
-        }
-    }
-
-    @Default
-    @CommandPermission("lumaguilds.partychat")
-    fun onPartyChat(player: Player, firstArg: String, vararg restArgs: String) {
-        val playerId = player.uniqueId
-        val fullMessage = (arrayOf(firstArg) + restArgs).joinToString(" ")
-
-        // Try to find a party with the first argument as name
-        val targetParty = findPartyByName(playerId, firstArg)
-
-        if (targetParty != null && restArgs.isEmpty()) {
-            // Switch to the specified party (single argument)
-            switchToParty(player, targetParty)
-        } else {
-            // Send the full message to current party
-            sendPartyMessage(player, fullMessage)
-        }
-    }
-
-    @Subcommand("switch")
-    @CommandPermission("lumaguilds.partychat")
-    @CommandCompletion("GLOBAL|@parties")
-    fun onSwitch(player: Player, targetName: String) {
-        if (!checkPartiesEnabled(player)) return
-
-        val playerId = player.uniqueId
-
-        // Handle GLOBAL option - clear party preference to use global chat
-        if (targetName.equals("GLOBAL", ignoreCase = true)) {
-            val hadActiveParty = preferenceRepository.getByPlayerId(playerId) != null
-
-            if (hadActiveParty) {
-                val success = preferenceRepository.removeByPlayerId(playerId)
-                if (success) {
-                    player.sendMessage(lang.msg("command.migrated.party_chat.switch.switched_to_global_chat"))
-                    player.sendMessage(lang.msg("command.migrated.party_chat.switch.your_messages_will_now_go_to_global"))
-                    player.sendMessage(lang.msg("command.migrated.party_chat.switch.use_pc_switch_partyname_to_switch_back"))
-                } else {
-                    player.sendMessage(lang.msg("command.migrated.party_chat.switch.failed_to_switch_to_global_chat"))
-                }
-            } else {
-                player.sendMessage(lang.msg("command.migrated.party_chat.switch.you_are_already_using_global_chat"))
-            }
             return
         }
-
-        // Try to find a party with this name
-        val targetParty = findPartyByName(playerId, targetName)
-
-        if (targetParty != null) {
-            switchToParty(player, targetParty)
-        } else {
-            player.sendMessage(lang.msg("command.migrated.party_chat.switch.party_not_found", "target_name" to targetName))
-            player.sendMessage(lang.msg("command.migrated.party_chat.switch.use_pc_switch_to_see_available_parties"))
+        when (val intent = PartyChatIntent.parse(args.toList())) {
+            PartyChatIntent.Toggle -> if (preferenceRepository.getByPlayerId(player.uniqueId) != null) partyChatOff(player) else turnOn(player)
+            PartyChatIntent.On -> turnOn(player)
+            PartyChatIntent.Off -> partyChatOff(player)
+            PartyChatIntent.Mute -> toggleMute(player)
+            PartyChatIntent.Help -> help(player)
+            is PartyChatIntent.Message -> guildParty(player)?.let { sendPartyMessage(player, intent.text, it) }
         }
     }
 
-    @Subcommand("switch")
-    @CommandPermission("lumaguilds.partychat")
-    @CommandCompletion("")
-    fun onSwitchList(player: Player) {
-        if (!checkPartiesEnabled(player)) return
-
-        val playerId = player.uniqueId
-        val playerGuildIds = getPlayerGuildIds(playerId)
-
-        if (playerGuildIds.isEmpty()) {
-            player.sendMessage(lang.msg("command.migrated.party_chat.switchlist.you_are_not_in_any_guild"))
-            return
+    /** The player's guild's party, or null after telling them why there is none. */
+    internal fun guildParty(player: Player): Party? {
+        val guildIds = getPlayerGuildIds(player.uniqueId)
+        if (guildIds.isEmpty()) {
+            player.sendMessage(lang.msg("party_chat.no_guild"))
+            return null
         }
-
-        val activeParties = playerGuildIds.flatMap { guildId: UUID ->
-            partyService.getActivePartiesForGuild(guildId)
-        }.toSet()
-
-        // Filter out parties the player is banned from
-        val accessibleParties = activeParties.filter { party ->
-            !party.isPlayerBanned(playerId)
-        }
-
-        if (accessibleParties.isEmpty()) {
-            player.sendMessage(lang.msg("command.migrated.party_chat.switchlist.no_available_parties_to_switch_to"))
-            return
-        }
-
-        val currentParty = getCurrentActiveParty(playerId)
-        val isUsingGlobal = preferenceRepository.getByPlayerId(playerId) == null
-
-        player.sendMessage(lang.msg("command.migrated.party_chat.switchlist.available_parties"))
-
-        // Show GLOBAL option
-        if (isUsingGlobal) {
-            player.sendMessage(lang.msg("command.migrated.party_chat.switchlist.global_current"))
-        } else {
-            player.sendMessage(lang.msg("command.migrated.party_chat.switchlist.global"))
-        }
-
-        accessibleParties.forEach { party ->
-            val isCurrent = currentParty?.id == party.id
-            val partyName = party.name ?: lang.raw("command.migrated.party_chat.common.unnamed")
-            val row = if (isCurrent) {
-                lang.msg("command.migrated.party_chat.switchlist.party_current", "party" to partyName)
-            } else {
-                lang.msg("command.migrated.party_chat.switchlist.party", "party" to partyName)
-            }
-            player.sendMessage(row)
-        }
-
-        player.sendMessage(lang.msg("command.migrated.party_chat.switchlist.blank_line_4"))
-        player.sendMessage(lang.msg("command.migrated.party_chat.switchlist.use_pc_switch_name_to_switch"))
-    }
-
-    @Subcommand("toggle")
-    @CommandPermission("lumaguilds.partychat")
-    @CommandCompletion("")
-    fun onToggle(player: Player) {
-        if (!checkPartiesEnabled(player)) return
-
-        val playerId = player.uniqueId
-
-        // Get current visibility state before toggling
-        val currentSettings = chatService.getVisibilitySettings(playerId)
-        val wasVisible = currentSettings.partyChatVisible
-
-        // Toggle party chat visibility setting
-        val newVisibilityState = chatService.toggleChatVisibility(playerId, ChatChannel.PARTY)
-
-        // Show appropriate message based on new state
-        if (newVisibilityState) {
-            player.sendMessage(lang.msg("command.migrated.party_chat.toggle.party_chat_on"))
-            player.sendMessage(lang.msg("command.migrated.party_chat.toggle.you_will_now_see_party_messages_in"))
-            player.sendMessage(lang.msg("command.migrated.party_chat.toggle.use_pc_switch_party_to_also_send"))
-        } else {
-            // When toggling OFF, also clear the active party preference so the player's
-            // messages go to global chat. Leaving the preference while visibility is off
-            // causes "Failed to send party message!" because the sender is filtered out
-            // of their own recipient list.
-            val hadActiveParty = preferenceRepository.getByPlayerId(playerId) != null
-            if (hadActiveParty) {
-                val removed = preferenceRepository.removeByPlayerId(playerId)
-                if (!removed) {
-                    player.sendMessage(lang.msg("command.migrated.party_chat.switch.failed_to_switch_to_global_chat"))
-                    return
-                }
-            }
-            player.sendMessage(lang.msg("command.migrated.party_chat.toggle.party_chat_off"))
-            player.sendMessage(lang.msg("command.migrated.party_chat.toggle.you_will_no_longer_see_party_messages"))
-            player.sendMessage(lang.msg("command.migrated.party_chat.toggle.your_messages_now_go_to_global_chat"))
-        }
-    }
-
-    @Subcommand("help")
-    @CommandPermission("lumaguilds.partychat")
-    @CommandCompletion("")
-    fun onHelp(player: Player) {
-        if (!checkPartiesEnabled(player)) return
-
-        player.sendMessage(lang.msg("command.migrated.party_chat.help.party_chat_commands"))
-        player.sendMessage(lang.msg("command.migrated.party_chat.help.pc_show_current_party_info"))
-        player.sendMessage(lang.msg("command.migrated.party_chat.help.pc_message_send_message_to_current_party"))
-        player.sendMessage(lang.msg("command.migrated.party_chat.help.pc_switch_list_available_parties"))
-        player.sendMessage(lang.msg("command.migrated.party_chat.help.pc_switch_name_switch_to_party_or"))
-        player.sendMessage(lang.msg("command.migrated.party_chat.help.pc_toggle_toggle_seeing_party_messages_visibility"))
-        player.sendMessage(lang.msg("command.migrated.party_chat.help.pc_clear_return_to_default_party"))
-        player.sendMessage(lang.msg("command.migrated.party_chat.help.pc_help_show_this_help"))
-        player.sendMessage(lang.msg("command.migrated.party_chat.help.blank_line"))
-        player.sendMessage(lang.msg("command.migrated.party_chat.help.use_pc_switch_global_to_send_to"))
-        player.sendMessage(lang.msg("command.migrated.party_chat.help.party_preferences_persist_across_restarts"))
-    }
-
-    @Subcommand("clear")
-    @CommandPermission("lumaguilds.partychat")
-    @CommandCompletion("")
-    fun onClear(player: Player) {
-        val playerId = player.uniqueId
-        val hadActiveParty = preferenceRepository.getByPlayerId(playerId) != null
-
-        if (hadActiveParty) {
-            val success = preferenceRepository.removeByPlayerId(playerId)
-            if (success) {
-                player.sendMessage(lang.msg("command.migrated.party_chat.clear.returned_to_global_chat"))
-                player.sendMessage(lang.msg("command.migrated.party_chat.clear.your_messages_will_now_go_to_global"))
-            } else {
-                player.sendMessage(lang.msg("command.migrated.party_chat.clear.failed_to_clear_party_preference"))
-            }
-        } else {
-            player.sendMessage(lang.msg("command.migrated.party_chat.switch.you_are_already_using_global_chat"))
-        }
-
-        // Show current party info after clearing
-        showCurrentPartyInfo(player)
-    }
-
-    private fun showCurrentPartyInfo(player: Player) {
-        val playerId = player.uniqueId
-        val hasStoredPreference = preferenceRepository.getByPlayerId(playerId) != null
-        val party = getCurrentActiveParty(playerId)
-
+        val party = guildIds.firstNotNullOfOrNull { actions.partyOf(it) }
         if (party == null) {
-            player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.you_are_currently_using_global_chat"))
-            player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.your_messages_go_to_global_chat_not"))
-
-            // Show available parties
-            val playerGuildIds = getPlayerGuildIds(playerId)
-            if (playerGuildIds.isNotEmpty()) {
-                val activeParties = playerGuildIds.flatMap { guildId: UUID ->
-                    partyService.getActivePartiesForGuild(guildId)
-                }.toSet()
-
-                if (activeParties.isNotEmpty()) {
-                    player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.available_parties", "size" to activeParties.size))
-                    player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.use_pc_switch_to_see_and_join"))
-                }
-            }
-            return
+            player.sendMessage(lang.msg("party_chat.no_party"))
+            return null
         }
-
-        // Verify the party is still active
-        if (!party.isActive()) {
-            player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.your_active_party_is_no_longer_available"))
-            preferenceRepository.removeByPlayerId(playerId) // Clear the invalid reference
-            return
+        if (party.isPlayerBanned(player.uniqueId)) {
+            player.sendMessage(lang.msg("command.migrated.party_chat.sendpartymessage.you_are_banned_from_this_channel"))
+            return null
         }
-
-        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.current_party"))
-        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.name", "unnamed" to (party.name ?: lang.raw("command.migrated.party_chat.common.unnamed"))))
-        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.guilds", "size" to party.guildIds.size))
-        val restrictions = if (party.hasRoleRestrictions()) {
-            lang.raw("command.migrated.party_chat.showcurrentpartyinfo.role_restricted")
-        } else {
-            lang.raw("command.migrated.party_chat.showcurrentpartyinfo.open_to_all")
-        }
-        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.restrictions", "all" to restrictions))
-        if (party.expiresAt != null) {
-            player.sendMessage(
-                lang.msg(
-                    "command.migrated.party_chat.showcurrentpartyinfo.expires_in_hours_line",
-                    "hours" to java.time.Duration.between(java.time.Instant.now(), party.expiresAt).toHours(),
-                ),
-            )
-        } else {
-            player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.expires_never_line"))
-        }
-        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.status_active_you_are_sending_to_this"))
-        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.blank_line"))
-        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.use_pc_message_to_send_a_message"))
-        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.use_pc_switch_to_see_other_parties"))
-        player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.use_pc_switch_global_to_return_to"))
+        return party
     }
 
-    private fun findPartyByName(playerId: UUID, partyName: String): net.lumalyte.lg.domain.entities.Party? {
-        // Get all active parties for the player's guilds
-        val playerGuildIds = getPlayerGuildIds(playerId)
-        val activeParties = playerGuildIds.flatMap { guildId: UUID ->
-            partyService.getActivePartiesForGuild(guildId)
-        }.toSet()
-
-        // Filter out parties the player is banned from
-        val accessibleParties = activeParties.filter { party ->
-            !party.isPlayerBanned(playerId)
+    private fun turnOn(player: Player) {
+        val party = guildParty(player) ?: return
+        if (preferenceRepository.getByPlayerId(player.uniqueId)?.partyId == party.id) {
+            player.sendMessage(lang.msg("party_chat.already_on", "party" to partyName(party)))
+            return
         }
+        switchToParty(player, party)
+    }
 
-        // Find party by exact name match (case insensitive)
-        return accessibleParties.find { party ->
-            party.name?.equals(partyName, ignoreCase = true) ?: false
+    private fun toggleMute(player: Player) {
+        val visible = chatService.toggleChatVisibility(player.uniqueId, ChatChannel.PARTY)
+        if (!visible) preferenceRepository.removeByPlayerId(player.uniqueId)
+        player.sendMessage(if (visible) lang.msg("party_chat.unmuted") else lang.msg("party_chat.muted"))
+    }
+
+    private fun help(player: Player) {
+        player.sendMessage(lang.msg("party_chat.help.header"))
+        player.sendMessage(lang.msg("party_chat.help.toggle"))
+        player.sendMessage(lang.msg("party_chat.help.message"))
+        player.sendMessage(lang.msg("party_chat.help.on_off"))
+        player.sendMessage(lang.msg("party_chat.help.mute"))
+    }
+
+    private fun partyName(party: Party) = party.name ?: lang.raw("command.migrated.party_chat.common.unnamed")
+
+    internal fun partyChatOff(player: Player) {
+        if (preferenceRepository.getByPlayerId(player.uniqueId) == null) {
+            player.sendMessage(lang.msg("party_chat.already_off"))
+            return
+        }
+        if (preferenceRepository.removeByPlayerId(player.uniqueId)) {
+            player.sendMessage(lang.msg("party_chat.turned_off"))
+        } else {
+            player.sendMessage(lang.msg("command.migrated.party_chat.clear.failed_to_clear_party_preference"))
         }
     }
 
-    private fun switchToParty(player: Player, party: net.lumalyte.lg.domain.entities.Party) {
+    internal fun switchToParty(player: Player, party: net.lumalyte.lg.domain.entities.Party) {
         val playerId = player.uniqueId
 
         // Store the active party preference persistently
@@ -347,23 +129,27 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
         val success = preferenceRepository.save(preference)
 
         if (success) {
-            player.sendMessage(lang.msg("command.migrated.party_chat.switchtoparty.switched_to_party", "unnamed" to (party.name ?: lang.raw("command.migrated.party_chat.common.unnamed"))))
-            player.sendMessage(lang.msg("command.migrated.party_chat.switchtoparty.all_your_messages_will_now_go_to"))
-            player.sendMessage(lang.msg("command.migrated.party_chat.switchtoparty.use_pc_to_see_current_party_info"))
-            player.sendMessage(lang.msg("command.migrated.party_chat.showcurrentpartyinfo.use_pc_switch_global_to_return_to"))
-            player.sendMessage(lang.msg("command.migrated.party_chat.switchtoparty.this_preference_will_persist_across_server_restarts"))
+            // REQ-222: turning party chat on shows party messages again.
+            if (!chatService.getVisibilitySettings(playerId).partyChatVisible) {
+                chatService.toggleChatVisibility(playerId, ChatChannel.PARTY)
+            }
+            player.sendMessage(lang.msg("party_chat.turned_on", "party" to partyName(party)))
+            // REQ-209: one chat at a time.
+            if (guildChat.leaveGuildChannels(player)) {
+                player.sendMessage(lang.msg("command.migrated.party_chat.switchtoparty.guild_chat_off"))
+            }
         } else {
             player.sendMessage(lang.msg("command.migrated.party_chat.switchtoparty.failed_to_save_party_preference"))
         }
     }
 
-    private fun sendPartyMessage(player: Player, message: String) {
+    /** Sends one message to [target], or to the player's current party chat when [target] is null. */
+    internal fun sendPartyMessage(player: Player, message: String, target: net.lumalyte.lg.domain.entities.Party? = null) {
         val playerId = player.uniqueId
-        val party = getCurrentActiveParty(playerId)
+        val party = target ?: getCurrentActiveParty(playerId)
 
         if (party == null) {
-            player.sendMessage(lang.msg("command.migrated.party_chat.sendpartymessage.you_are_not_in_an_active_party"))
-            player.sendMessage(lang.msg("command.migrated.party_chat.sendpartymessage.use_pc_partyname_to_switch_to_a"))
+            player.sendMessage(lang.msg("party_chat.no_party"))
             return
         }
 
@@ -455,17 +241,6 @@ class PartyChatCommand : BaseCommand(), KoinComponent {
 
         // No automatic party assignment - players are in GLOBAL chat by default
         return null
-    }
-
-    private fun clearInvalidPartyReferences() {
-        val allParties = partyRepository.getAll().filter { it.isActive() }
-        val validPartyIds = allParties.map { it.id }.toSet()
-
-        val removedCount = preferenceRepository.removeInvalidPreferences(validPartyIds)
-
-        if (removedCount > 0) {
-            // Could log this for debugging
-        }
     }
 
 }

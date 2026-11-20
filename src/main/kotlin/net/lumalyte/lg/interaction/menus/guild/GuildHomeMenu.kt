@@ -68,10 +68,11 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         addHomeAccessButtons(pane)
 
         // Ally home teleport buttons (if perk unlocked)
-        if (progressionService.hasPerkUnlocked(guild.id, net.lumalyte.lg.domain.values.PerkType.ALLY_HOME_ACCESS)) {
-            addAllyHomeButtons(pane, 0, 5)
-            addAllyHomeAccessButton(pane)
-        }
+        val alliedWaypoints =
+            progressionService.hasPerkUnlocked(guild.id, net.lumalyte.lg.domain.values.PerkType.ALLY_HOME_ACCESS)
+        if (alliedWaypoints) addAllyHomeButtons(pane, 0, 5)
+        // The door always shows to managers, so the feature can be found before it is unlocked.
+        addAllyHomeAccessButton(pane, alliedWaypoints)
 
         // Back button: bottom centre, same as every guild menu (ally homes skip this slot)
         addBackButton(pane, BACK_SLOT, BOTTOM_ROW)
@@ -103,7 +104,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
         slotsItem.lore(lang.gui("menu.common.blank"))
         val lockedHomes = allHomes.homeNames.count { guildService.isHomeLocked(guild.id, it) }
-        if (lockedHomes > 0) slotsItem.lore(lang.gui("menu.guild_home.slots.locked_count", "count" to lockedHomes))
+        if (lockedHomes > 0) slotsItem.lore(lang.gui("menu.guild_home.slots.locked_count_v2", "count" to lockedHomes))
         if (guildService.canCreateNewHome(guild.id)) {
             slotsItem.lore(lang.gui("menu.guild_home.slots.additional"))
         } else {
@@ -195,7 +196,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                     else if (active) teleportIcon() else ItemStack.of(Material.GOLD_INGOT)
                 val mainName =
                     if (locked) {
-                        lang.gui("menu.guild_home.locked.name", "home" to mainHomeName)
+                        lang.gui("menu.guild_home.locked.name_v2", "home" to mainHomeName)
                     } else if (active) {
                         lang.gui("menu.guild_home.teleport.main.name")
                     } else {
@@ -203,7 +204,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                     }
                 val mainDescription =
                     if (locked) {
-                        lang.gui("menu.guild_home.locked.description")
+                        lang.gui("menu.guild_home.locked.description_v2")
                     } else if (active) {
                         lang.gui("menu.guild_home.teleport.main.description")
                     } else {
@@ -259,8 +260,8 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             val active = homeActivationService.isActive(guild.id, homeName)
             val item = if (locked) {
                 ItemStack.of(Material.BARRIER)
-                    .name(lang.gui("menu.guild_home.locked.name", "home" to homeName))
-                    .lore(lang.gui("menu.guild_home.locked.description"))
+                    .name(lang.gui("menu.guild_home.locked.name_v2", "home" to homeName))
+                    .lore(lang.gui("menu.guild_home.locked.description_v2"))
             } else if (active) {
                 NexoItemProvider.getItemStackOrFallback("lg_home_access") { ItemStack.of(Material.IRON_DOOR) }
                     .name(lang.gui("menu.guild_home.access.name", "home" to homeName))
@@ -281,21 +282,29 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         }
     }
 
-    private fun addAllyHomeAccessButton(pane: StaticPane) {
+    private fun addAllyHomeAccessButton(pane: StaticPane, unlocked: Boolean = true) {
         if (!rankService.hasPermission(player.uniqueId, guild.id, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_HOME)) return
+        if (!unlocked) {
+            val locked = ItemStack.of(Material.IRON_DOOR)
+                .name(lang.gui("menu.allied_homes.locked.name"))
+                .lore(lang.gui("menu.allied_homes.locked.description_v2"))
+            pane.addItem(GuiItem(locked) { player.sendMessage(lang.msg("menu.allied_homes.locked.feedback_v2")) },
+                ALLY_ACCESS_SLOT, BOTTOM_ROW)
+            return
+        }
         val allyAccessItem =
             NexoItemProvider.getItemStackOrFallback("lg_ally_access") { ItemStack.of(Material.IRON_DOOR) }
-                .name(lang.gui("menu.guild_home.ally_access.name"))
-                .lore(lang.gui("menu.guild_home.ally_access.description"))
+                .name(lang.gui("menu.allied_homes.button.name"))
+                .lore(lang.gui("menu.allied_homes.button.description"))
                 .lore(lang.gui("menu.guild_home.access.click"))
         val allyAccessGuiItem = GuiItem(allyAccessItem) {
-            menuNavigator.openMenu(menuFactory.createAllyHomeAccessMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(AlliedHomesMenu(menuNavigator, player, guild))
         }
         pane.addItem(allyAccessGuiItem, ALLY_ACCESS_SLOT, BOTTOM_ROW)
     }
 
     private fun addAllyHomeButtons(pane: StaticPane, x: Int, y: Int) {
-        val allyHomes = guildService.getAllyHomes(guild.id)
+        val allyHomes = guildService.getAllyHomeEntries(guild.id)
         if (allyHomes.isEmpty()) {
             val noAllyItem =
                 NexoItemProvider.getItemStackOrFallback("lg_ally_home_locked") { ItemStack.of(Material.GRAY_DYE) }
@@ -308,13 +317,16 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         }
 
         var slot = x
-        for ((guildName, home) in allyHomes) {
+        for (entry in allyHomes) {
             if (slot == 4) slot++ // slot 4 is the standard Back position
             if (slot >= 7) break // Max 6 ally homes on row (slots 0-3 and 5-6)
+            val home = entry.home
+            // REQ-180: a second allied home is labelled with its number.
+            val guildName = if (entry.slot == 1) entry.guildName else "${entry.guildName} #${entry.slot}"
             val worldName = Bukkit.getWorld(home.worldId)?.name ?: lang.raw("general.unknown")
-            val targetGuild = guildService.getGuildByName(guildName)
-            val allowed = targetGuild != null &&
-                guildService.canUseAllyHome(player.uniqueId, guild.id, targetGuild.id)
+            val targetGuildId = entry.guildId
+            val allowed = targetGuildId != null &&
+                guildService.canUseAllyHome(player.uniqueId, guild.id, targetGuildId, entry.slot)
             val allyIcon =
                 NexoItemProvider.getItemStackOrFallback(if (allowed) "lg_ally_home" else "lg_ally_home_locked") {
                     ItemStack.of(if (allowed) Material.ENDER_EYE else Material.BARRIER)
@@ -336,24 +348,26 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
                     .lore(allyAction)
 
             val guiItem = GuiItem(allyItem) {
-                teleportToAllyHome(targetGuild?.id)
+                teleportToAllyHome(targetGuildId, entry.slot)
             }
             pane.addItem(guiItem, slot, y)
             slot++
         }
     }
 
-    private fun teleportToAllyHome(targetGuildId: UUID?) {
+    private fun teleportToAllyHome(targetGuildId: UUID?, slot: Int = 1) {
         if (targetGuildId == null) return denyAllyHome()
         val currentTarget = guildService.getGuild(targetGuildId) ?: return denyAllyHome()
-        val currentHome = currentTarget.allyHome ?: return denyAllyHome()
-        if (!canTeleportToAllyHome(currentTarget, currentHome)) return denyAllyHome()
-        startTeleportCountdown(currentHome)
+        val currentHome = guildService.getAllyHome(targetGuildId, slot) ?: return denyAllyHome()
+        if (!canTeleportToAllyHome(currentTarget, currentHome, slot)) return denyAllyHome()
+        // REQ-182: the host's rules are checked again when the countdown ends.
+        startTeleportCountdown(currentHome) { canTeleportToAllyHome(currentTarget, currentHome, slot) }
     }
 
-    private fun canTeleportToAllyHome(target: Guild, home: GuildHome): Boolean {
-        val eligibleHome = guildService.getAllyHomes(guild.id)[target.name]
-        return eligibleHome == home && guildService.canUseAllyHome(player.uniqueId, guild.id, target.id)
+    private fun canTeleportToAllyHome(target: Guild, home: GuildHome, slot: Int = 1): Boolean {
+        val eligible = guildService.getAllyHomeEntries(guild.id)
+            .any { it.guildId == target.id && it.slot == slot && it.home == home }
+        return eligible && guildService.canUseAllyHome(player.uniqueId, guild.id, target.id, slot)
     }
 
     private fun denyAllyHome() {
@@ -440,7 +454,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             val worldName = Bukkit.getWorld(home.worldId)?.name ?: lang.raw("general.unknown")
             player.sendMessage(lang.msg("menu.guild_home.slots.row", "home" to name, "marker" to marker, "world" to worldName))
             if (guildService.isHomeLocked(guild.id, name)) {
-                player.sendMessage(lang.msg("menu.guild_home.feedback.locked_hint", "home" to name))
+                player.sendMessage(lang.msg("menu.guild_home.feedback.locked_hint_v2", "home" to name))
             }
         }
         player.sendMessage(lang.msg("menu.guild_home.list.command"))
@@ -509,8 +523,8 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
 
     private fun restoreLockedOutpost(homeName: String) {
         val success = guildService.restoreLockedOutpost(guild.id, homeName, player.uniqueId)
-        if (success) player.sendMessage(lang.msg("menu.guild_home.feedback.restored", "home" to homeName))
-        else player.sendMessage(lang.msg("menu.guild_home.feedback.restore_unavailable", "home" to homeName))
+        if (success) player.sendMessage(lang.msg("menu.guild_home.feedback.restored_v2", "home" to homeName))
+        else player.sendMessage(lang.msg("menu.guild_home.feedback.restore_unavailable_v2", "home" to homeName))
         open()
     }
 
@@ -554,7 +568,7 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
         pane.addItem(guiItem, x, y)
     }
 
-    private fun startTeleportCountdown(home: GuildHome, homeName: String? = null) {
+    private fun startTeleportCountdown(home: GuildHome, homeName: String? = null, stillAllowed: (() -> Boolean)? = null) {
         val world = Bukkit.getWorld(home.worldId)
         if (world == null) {
             player.sendMessage(lang.msg("menu.guild_home.feedback.world_missing"))
@@ -576,18 +590,16 @@ class GuildHomeMenu(private val menuNavigator: MenuNavigator, private val player
             return
         }
 
-        if (homeName != null) {
-            teleportationService.startTeleportGuarded(
-                player, targetLocation,
-                mayProceed = {
-                    guildService.canUseHome(player.uniqueId, guild.id, homeName) &&
-                        homeActivationService.isActive(guild.id, homeName) &&
-                        guildService.getHome(guild.id, homeName) == home
-                },
-            )
-        } else {
-            teleportationService.startTeleport(player, targetLocation)
+        // Fork: cooldown and Quick Travel countdown (REQ-179). Upstream: a named home is rechecked
+        // (access, activation, same coordinates) at the last tick.
+        val recheck = stillAllowed ?: homeName?.let { name ->
+            {
+                guildService.canUseHome(player.uniqueId, guild.id, name) &&
+                    homeActivationService.isActive(guild.id, name) &&
+                    guildService.getHome(guild.id, name) == home
+            }
         }
+        teleportationService.startHomeTeleport(player, targetLocation, recheck)
     }
 
     private fun isLocationSafe(location: org.bukkit.Location): Boolean =

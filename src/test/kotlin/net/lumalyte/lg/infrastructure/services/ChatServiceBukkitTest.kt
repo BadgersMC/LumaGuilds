@@ -44,3 +44,14 @@ class ChatServiceBukkitTest {
         assertEquals("Hi", ChatServiceBukkit.stripLegacyColors("§X§R§F§F§0§0§0§0Hi"))
     }
 }
+
+/** Party and guild chat crashed when a guild's emoji glyph no longer resolved (TEST, 2026-11-10). */
+class ChatServiceGuildTagEmojiTest {
+    @org.junit.jupiter.api.Test
+    fun `an emoji that no longer resolves is dropped instead of breaking the guild copy`() {
+        kotlin.test.assertEquals(null, ChatServiceBukkit.displayEmoji(""))
+        kotlin.test.assertEquals(null, ChatServiceBukkit.displayEmoji(null))
+        kotlin.test.assertEquals(":crown:", ChatServiceBukkit.displayEmoji(":crown:"))
+        kotlin.test.assertEquals(null, ChatServiceBukkit.displayEmoji(""), "a rendered glyph is not a Nexo placeholder")
+    }
+}

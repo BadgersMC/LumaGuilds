@@ -4,6 +4,15 @@
 allprojects {
     repositories {
         maven { url = uri('https://api.modrinth.com/maven') }
+        // Do not query Iridium's repository for unrelated dependencies: its 502
+        // responses otherwise prevent their own repositories resolving them.
+        whenObjectAdded { repository ->
+            if (repository.hasProperty('url') && repository.url?.host == 'nexus.iridiumdevelopment.net') {
+                repository.content {
+                    includeGroupByRegex('com\\.iridium(\\..*)?')
+                }
+            }
+        }
     }
     configurations.configureEach {
         resolutionStrategy.dependencySubstitution {

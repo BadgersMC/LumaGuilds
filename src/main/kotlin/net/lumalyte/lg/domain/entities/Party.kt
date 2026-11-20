@@ -28,7 +28,8 @@ data class Party(
     val expiresAt: Instant? = null,
     val restrictedRoles: Set<UUID>? = null,
     val mutedPlayers: Map<UUID, Instant?> = emptyMap(),
-    val bannedPlayers: Set<UUID> = emptySet()
+    val bannedPlayers: Set<UUID> = emptySet(),
+    val shared: Boolean = false
 ) {
     init {
         require(guildIds.isNotEmpty()) { "A party must have at least 1 guild." }
@@ -86,7 +87,7 @@ data class Party(
      * Private parties function as guild-internal chat channels.
      */
     fun isPrivateParty(): Boolean {
-        return guildIds.size == 1
+        return guildIds.size == 1 && !shared
     }
 
     /**

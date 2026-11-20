@@ -9,6 +9,7 @@ import net.lumalyte.lg.utils.MenuTitleBuilder
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import net.lumalyte.lg.utils.inventoryframework.StaticPane
+import net.lumalyte.lg.application.services.DisbandPrestigeWarning
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.Menu
@@ -32,6 +33,7 @@ class GuildDisbandConfirmationMenu(
 
     private val guildService: GuildService by inject()
     private val lang: LangService by inject()
+    private val standings: net.lumalyte.lg.application.services.GuildPrestigeStandings by inject()
 
     override fun open() {
         // Permission pre-check before rendering the destructive button
@@ -64,6 +66,20 @@ class GuildDisbandConfirmationMenu(
                 .lore("")
                 .lore(lang.gui("menu.guild_confirmation.disband.item.info.lore.irreversible"))
                 .lore(lang.gui("menu.guild_confirmation.disband.item.info.lore.vault_loss"))
+        // REQ-162: a prestiged guild is told what it loses and what stays.
+        when (val warning = DisbandPrestigeWarning.of(standings, guild.id)) {
+            DisbandPrestigeWarning.None -> Unit
+            is DisbandPrestigeWarning.Tier, DisbandPrestigeWarning.Unknown -> {
+                infoItem.lore("")
+                if (warning is DisbandPrestigeWarning.Tier) {
+                    infoItem.lore(lang.gui("menu.guild_confirmation.disband.item.info.lore.prestige", "tier" to warning.roman))
+                } else {
+                    infoItem.lore(lang.gui("menu.guild_confirmation.disband.item.info.lore.prestige_unknown"))
+                }
+                infoItem.lore(lang.gui("menu.guild_confirmation.disband.item.info.lore.prestige_keep"))
+                infoItem.lore(lang.gui("menu.guild_confirmation.disband.item.info.lore.prestige_history", "guild" to guild.name))
+            }
+        }
         pane.addItem(GuiItem(infoItem), 4, 0)
 
         // Confirm button

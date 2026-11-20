@@ -23,6 +23,9 @@ class WarKillTrackingListener : Listener, KoinComponent {
     private val warService: WarService by inject()
     private val memberService: MemberService by inject()
     private val lang: LangService by inject()
+    private val moments: net.lumalyte.lg.infrastructure.services.GuildMomentPresenter? by lazy {
+        runCatching { getKoin().get<net.lumalyte.lg.infrastructure.services.GuildMomentPresenter>() }.getOrNull()
+    }
 
     private val logger = LoggerFactory.getLogger(WarKillTrackingListener::class.java)
 
@@ -80,6 +83,8 @@ class WarKillTrackingListener : Listener, KoinComponent {
                         }
 
                         killer.sendMessage(lang.msg("notification.war.kill.killer", "victim" to victim.name))
+                        // REQ-235: the mockup's war-kill cue.
+                        moments?.play(killer, net.lumalyte.lg.domain.values.GuildMoment.KILL)
                         victim.sendMessage(lang.msg("notification.war.kill.victim", "killer" to killer.name))
 
                         // A decisive kill is persisted first, but the terminal war transition

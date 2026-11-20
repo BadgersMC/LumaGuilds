@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.domain.rewards.RewardCatalog
+import net.lumalyte.lg.domain.values.PrestigeNumeral
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -31,31 +33,35 @@ class GuildPrestigeConfirmationMenu(
     private val retainedRewardName: String,
     private val back: () -> Unit,
     private val success: () -> Unit,
+    /** REQ-260: the Hall theme picked for this prestige and how many the guild will then own. */
+    private val hallTheme: net.lumalyte.lg.domain.rewards.HallTheme? = null,
+    private val themesOwnedAfter: Int = 0,
 ) : Menu, KoinComponent {
     private val prestige: GuildPrestigeService by inject()
     private val lang: LangService by inject()
+    private val catalog: RewardCatalog by inject()
 
     internal fun createGui(): ChestGui {
         val gui = ChestGui(3, lang.guiTitle("menu.guild_progression.prestige.confirmation.title"))
         gui.setOnGlobalClick { it.isCancelled = true }
         val pane = StaticPane(0, 0, 9, 3)
 
-        val summary = NexoItemProvider.getItemStackOrFallback("lg_prestige") {
-            ItemStack.of(Material.NETHER_STAR)
-        }.also { stack -> stack.editMeta { meta ->
-            meta.displayName(lang.gui("menu.guild_progression.prestige.confirmation.summary.name"))
-            meta.lore(listOf(
-                lang.gui(
-                    "menu.guild_progression.prestige.confirmation.summary.reward",
-                    "reward" to retainedRewardName,
-                ),
-                lang.gui(
-                    "menu.guild_progression.prestige.confirmation.summary.fee",
-                    "fee" to quote.quotedFee,
-                ),
-                lang.gui("menu.guild_progression.prestige.confirmation.summary.reset"),
-                lang.gui("menu.guild_progression.prestige.confirmation.summary.permanent"),
-            ))
+        val summary = PrestigeIcon.item(quote.expectedPrestigeCount + 1).also { stack -> stack.editMeta { meta ->
+            // REQ-249: exactly what this prestige earns, costs and keeps.
+            val lines = prestige.preview(quote)?.let { preview ->
+                prestigeSummaryLines(lang, preview, retainedRewardName, catalog.find(quote.retainedRewardId)?.effect,
+                    hallTheme?.let { net.lumalyte.lg.domain.rewards.PrestigeSummaryLine.HallThemeEarned(it, themesOwnedAfter) })
+            }
+            if (lines == null) {
+                meta.displayName(lang.gui(
+                    "menu.guild_progression.prestige.confirmation.summary.name",
+                    "tier" to PrestigeNumeral.of(quote.expectedPrestigeCount + 1),
+                ))
+                meta.lore(listOf(lang.gui("menu.guild_progression.prestige.confirmation.summary.unavailable")))
+            } else {
+                meta.displayName(lines.first())
+                meta.lore(lines.drop(1))
+            }
         } }
         pane.addItem(GuiItem(summary) { it.isCancelled = true }, 4, 0)
 
@@ -65,8 +71,15 @@ class GuildPrestigeConfirmationMenu(
         pane.addItem(GuiItem(confirm) { event ->
             event.isCancelled = true
             if (!player.isOnline) return@GuiItem
-            val result = prestige.confirm(player.uniqueId, quote)
+            val result = prestige.confirm(player.uniqueId, quote, hallTheme)
             player.sendMessage(feedback(result))
+            if (result is PrestigeResult.Applied && result.carriedExperience > 0) {
+                player.sendMessage(lang.msg(
+                    "menu.guild_progression.prestige.feedback.carried",
+                    "xp" to result.carriedExperience,
+                    "level" to result.postLevel,
+                ))
+            }
             when (result) {
                 is PrestigeResult.Applied -> success()
                 is PrestigeResult.Rejected -> back()
@@ -98,7 +111,7 @@ class GuildPrestigeConfirmationMenu(
             "menu.guild_progression.prestige.feedback.applied",
             "reward" to retainedRewardName,
             "fee" to result.fee,
-            "count" to result.prestigeCount,
+            "count" to PrestigeNumeral.of(result.prestigeCount),
         )
         is PrestigeResult.Failed ->
             lang.msg("menu.guild_progression.prestige.feedback.failed")

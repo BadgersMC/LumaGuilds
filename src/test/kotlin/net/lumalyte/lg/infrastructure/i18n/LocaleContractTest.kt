@@ -100,10 +100,6 @@ class LocaleContractTest {
         "menu.statistics.chart.title.contributions",
         "menu.statistics.chart.title.kills",
         "menu.statistics.chart.title.weeks_ago",
-        "menu.statistics.period.daily",
-        "menu.statistics.period.weekly",
-        "menu.statistics.period.monthly",
-        "menu.statistics.period.all_time",
         "menu.tag_editor.validation.double_brackets",
         "menu.tag_editor.validation.empty",
         "menu.tag_editor.validation.format_error",
@@ -139,7 +135,6 @@ class LocaleContractTest {
             "dialog_v2.guild_settings",
             "dialog_v2.guild_frame",
             "dialog_v2.more_settings",
-            "dialog_v2.more_listing_options",
             "dialog_v2.more_filters",
             "dialog_v2.open_recruitment",
             "dialog_v2.close_recruitment",
@@ -397,8 +392,11 @@ class LocaleContractTest {
         // The new key must be used so an existing override cannot send members to
         // the management-only command.
         val retainedLegacyKeys = setOf(
-            "command.migrated.guild.join.override_bypassing_invitation_check",
             "command.migrated.guild.joinguilddirectly.use_guild_menu_to_get_started",
+            "menu.war_declaration.item.duration.lore.quick",
+            "menu.war_declaration.item.duration.lore.standard",
+            "menu.war_declaration.item.duration.lore.extended",
+            "command.migrated.guild.join.override_bypassing_invitation_check",
         )
         assertEquals(retainedLegacyKeys, unused, unused.sorted().joinToString())
     }
@@ -499,7 +497,7 @@ class LocaleContractTest {
         const val BASELINE_POSITIONAL_PLACEHOLDERS = 0
         const val BASELINE_MISSING_KEYS = 0
         // Reference dialogs add thirteen finite state-dependent calls.
-        const val BASELINE_DYNAMIC_CALLS = 53 // Recruitment Back now uses one literal key.
+        const val BASELINE_DYNAMIC_CALLS = 52 // REQ-290 removed the guild mode menus.
         const val BASELINE_HARDCODED_PLAYER_TEXT = 0
         const val BASELINE_PLACEHOLDER_MISMATCHES = 0
     }

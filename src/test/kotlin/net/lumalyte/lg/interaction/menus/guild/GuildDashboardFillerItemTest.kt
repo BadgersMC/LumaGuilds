@@ -54,13 +54,13 @@ internal class GuildDashboardFillerItemTest {
     }
 
     @Test
-    fun `GuildDashboard wires statistics below economy in the bottom right slot`() {
+    fun `GuildDashboard wires statistics on the top row`() {
         val source = Path.of(System.getProperty("user.dir"))
             .resolve("src/main/kotlin/net/lumalyte/lg/interaction/menus/guild/GuildDashboard.kt")
             .toFile()
             .readText()
 
-        assertTrue(source.contains("addNavButton(pane, 8, 2, \"lg_nav_statistics\""))
+        assertTrue(source.contains("addNavButton(pane, 6, 0, \"lg_nav_statistics\""))
         assertTrue(source.contains("menuFactory.createGuildStatisticsMenu(menuNavigator, player, guild)"))
     }
 }

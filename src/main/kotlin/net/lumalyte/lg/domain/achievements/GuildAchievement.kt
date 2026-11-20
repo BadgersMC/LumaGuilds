@@ -17,9 +17,11 @@ data class GuildAchievement(
     val frame: String,
     val x: Float,
     val y: Float,
+    /** Guild progression XP paid once to the guild on first completion (REQ-227). */
+    val guildXp: Int = 0,
 ) {
     init {
-        require(id.matches(Regex("[a-z0-9_]+")) && goal > 0 && personalXp in 0..10000)
+        require(id.matches(Regex("[a-z0-9_]+")) && goal > 0 && personalXp in 0..10000 && guildXp in 0..1_000_000)
         require(title.isNotBlank() && category.isNotBlank())
     }
 }

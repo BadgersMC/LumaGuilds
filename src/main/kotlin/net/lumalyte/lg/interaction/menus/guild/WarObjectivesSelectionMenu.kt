@@ -81,11 +81,9 @@ class WarObjectivesSelectionMenu(
     private fun addKillsObjectiveItem(pane: StaticPane, x: Int, y: Int) {
         val killObjective = tempObjectives.firstOrNull { it.type == ObjectiveType.KILLS }
         val hasObjective = killObjective != null
-        val killCap = configService.loadConfig().combat.warKillWinTarget
-        val killTargets = (listOf(5, 10, 25, 50).filter { it <= killCap } + killCap)
-            .filter { it > 0 }
-            .distinct()
-            .sorted()
+        val killTargets = configService.loadConfig().combat.let {
+            net.lumalyte.lg.domain.values.WarKillTargets.options(it.warKillWinTarget, it.warKillTargetMax)
+        }
         val currentValue = killObjective?.targetValue ?: killTargets.first()
 
         val item = ItemStack.of(if (hasObjective) Material.DIAMOND_SWORD else Material.IRON_SWORD)
@@ -95,11 +93,17 @@ class WarObjectivesSelectionMenu(
             .lore(lang.gui("menu.war_objectives.kills.current", "count" to currentValue))
             .lore(lang.gui("menu.common.blank"))
             .lore(lang.gui("menu.war_objectives.common.available_targets"))
-            .lore(lang.gui("menu.war_objectives.kills.target_5"))
-            .lore(lang.gui("menu.war_objectives.kills.target_10"))
-            .lore(lang.gui("menu.war_objectives.kills.target_25"))
-            .lore(lang.gui("menu.war_objectives.kills.target_50"))
-            .lore(lang.gui("menu.common.blank"))
+        // Only targets this server allows are listed (REQ-230).
+        killTargets.forEach { target ->
+            item.lore(when (target) {
+                5 -> lang.gui("menu.war_objectives.kills.target_5")
+                10 -> lang.gui("menu.war_objectives.kills.target_10")
+                25 -> lang.gui("menu.war_objectives.kills.target_25")
+                50 -> lang.gui("menu.war_objectives.kills.target_50")
+                else -> lang.gui("menu.war_objectives.kills.target_other", "count" to target)
+            })
+        }
+        item.lore(lang.gui("menu.common.blank"))
             .lore(if (hasObjective) lang.gui("menu.war_objectives.common.cycle_target") else lang.gui("menu.war_objectives.common.add"))
             .lore(if (hasObjective) lang.gui("menu.war_objectives.common.remove") else lang.gui("menu.common.blank"))
 

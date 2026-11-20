@@ -30,12 +30,15 @@ internal class GuildDialogButtons private constructor(theme: GuiTheme) {
         }?.singleOrNull() ?: return null
         val contentWidth = ceil(row.second / 2.0).toInt()
         val inside = width - 2
-        if (contentWidth > inside) return null
+        if (contentWidth > inside - 1) return null
         val left = (inside - contentWidth) / 2
         val code = 0xE100 + index * GLYPH_STRIDE
-        return Component.text().append(glyph(code)).append(glyph(0xE000))
+        // REQ-240: vanilla scrolls a button label side to side once it is wider than
+        // width - 4. Start the art 1px left of the label and end the label 1px short,
+        // so the label is exactly width - 4 and the art still spans width - 2.
+        return Component.text().append(glyph(0xE000)).append(glyph(code)).append(glyph(0xE000))
             .append(glyph(code + 1)).append(glyph(0xE001 + index))
-            .append(pad(left)).append(row.first).append(pad(inside - left - contentWidth)).build()
+            .append(pad(left)).append(row.first).append(pad(inside - 1 - left - contentWidth)).build()
     }
 
     companion object {

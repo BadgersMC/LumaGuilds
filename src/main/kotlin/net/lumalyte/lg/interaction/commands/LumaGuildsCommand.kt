@@ -57,6 +57,42 @@ class LumaGuildsCommand(
     private val memberService: MemberService by inject()
     private val menuFactory: MenuFactory by inject()
     private val ownerRecovery by lazy { GuildOwnerRecoveryCommand(memberService, lang) }
+    // REQ-275: Hall of Prestige pedestals.
+    private val hallStaff by lazy {
+        HallStaffCommand(
+            pedestals = { getKoin().get() },
+            refresh = { getKoin().getOrNull<net.lumalyte.lg.infrastructure.services.HallStatueService>()?.refreshSoon(retryFailed = true) },
+            plans = {
+                getKoin().getOrNull<net.lumalyte.lg.infrastructure.services.HallStatueService>()?.currentPlans()
+                    ?.map { it.pedestal.slot to "${it.guildName} (${net.lumalyte.lg.domain.values.PrestigeNumeral.of(it.prestige)})" }
+                    ?: emptyList()
+            },
+            lang = lang,
+        )
+    }
+    private val prestigeStaff by lazy {
+        val catalog = getKoin().get<net.lumalyte.lg.domain.rewards.RewardCatalog>()
+        PrestigeStaffCommand(
+            { getKoin().get() }, guildService, lang, rewardName = { catalog.find(it)?.name ?: it },
+            preview = { player, tier, guild ->
+                getKoin().get<net.lumalyte.lg.application.services.PrestigeFanfare>().preview(player, tier, guild)
+            },
+            ownGuildName = { player -> guildService.getPlayerGuilds(player).firstOrNull()?.name },
+        )
+    }
+
+    private val sounds by lazy {
+        val plugin = JavaPlugin.getPlugin(LumaGuilds::class.java)
+        val presenter = getKoin().get<net.lumalyte.lg.infrastructure.services.GuildMomentPresenter>()
+        GuildSoundsCommand(
+            lang,
+            play = { player, entry -> presenter.play(player, entry.cues) },
+            later = { ticks, task -> Bukkit.getScheduler().runTaskLater(plugin, Runnable(task), ticks) },
+            stop = { player, entry ->
+                entry.cues.forEach { player.stopSound(net.kyori.adventure.sound.SoundStop.named(net.kyori.adventure.key.Key.key(it.sound))) }
+            },
+        )
+    }
 
     // Resolved lazily and nullable: GuildRolePermissionResolver is only registered when
     // claims are enabled. Touching it via `by inject()` would crash the override command
@@ -81,6 +117,9 @@ class LumaGuildsCommand(
             "override", "bypass" -> handleOverride(sender)
             "admin" -> handleAdmin(sender, args)
             "owner" -> ownerRecovery.execute(sender, args)
+            "prestige" -> prestigeStaff.execute(sender, args)
+            "sounds" -> sounds.execute(sender, args)
+            "hall" -> hallStaff.execute(sender, args)
             "spawnbanner" -> handleSpawnBanner(sender, args)
             "warcutover" -> handleWarCutover(sender, args)
             "help" -> showHelp(sender)
@@ -787,7 +826,14 @@ class LumaGuildsCommand(
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_override_toggle_admin_override_mode_admin"))
         sender.sendMessage("/lumaguilds bypass — toggle staff bypass; /lumaguilds admin view <guild> — inspect without joining")
         sender.sendMessage(lang.msg("spawn_banner.feedback.help"))
+        if (sender.hasPermission(PrestigeStaffCommand.PERMISSION)) {
+            sender.sendMessage(lang.msg("admin.prestige.help"))
+        }
+        if (sender.hasPermission(HallStaffCommand.PERMISSION)) {
+            sender.sendMessage(lang.msg("admin.hall.help"))
+        }
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.warcutover"))
+        sender.sendMessage(lang.msg("admin.sounds.help"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.bellclaims_help_show_this_help"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.reload_commands_are_for_development_some_changes"))
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.disband_is_for_emergency_use_only_removes"))
@@ -795,65 +841,46 @@ class LumaGuildsCommand(
         sender.sendMessage(lang.msg("admin.migrated.luma_guilds.showhelp.override_grants_owner_permissions_in_all_guilds"))
     }
 
-    override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): MutableList<String> {
-        if (sender !is Player) return mutableListOf()
+    // REQ-189: values or a <hint> for every argument; see LumaGuildsCompletions.
+    override fun onTabComplete(sender: CommandSender, command: Command, alias: String, args: Array<out String>): MutableList<String> =
+        completions(sender).complete(args.toList()).toMutableList()
 
-        return when (args.size) {
-            1 -> mutableListOf(
-                "reload", "progressionreload", "xp", "disband", "migrate", "chapter", "override", "bypass", "admin", "owner",
-                "spawnbanner", "warcutover", "help"
-            ).filter {
-                it.startsWith(args[0]) && (it != "owner" || sender.hasPermission(GuildOwnerRecoveryCommand.PERMISSION))
-            }.toMutableList()
-            2 -> when (args[0].lowercase()) {
-                "admin" -> if (sender.hasPermission("lumaguilds.admin.view") || sender.hasPermission("bellclaims.admin")) {
-                    mutableListOf("view", "exit").filter { it.startsWith(args[1], true) }.toMutableList()
-                } else mutableListOf()
-                "owner" -> if (sender.hasPermission(GuildOwnerRecoveryCommand.PERMISSION)) {
-                    mutableListOf("recover").filter { it.startsWith(args[1], true) }.toMutableList()
-                } else mutableListOf()
-                "disband" -> {
-                    net.lumalyte.lg.utils.GuildResolver.suggestions(guildService)
-                        .filter { it.contains(args[1], ignoreCase = true) }
-                        .toMutableList()
-                }
-                "xp" -> mutableListOf("give").filter { it.startsWith(args[1], ignoreCase = true) }.toMutableList()
-                "migrate" -> mutableListOf("confirm")
-                "warcutover" -> mutableListOf("CONFIRM")
-                "chapter" -> mutableListOf("status", "backup", "postpone", "retry", "force")
-                    .filter { it.startsWith(args[1]) }
-                    .toMutableList()
-                "spawnbanner" -> mutableListOf("1", "2", "3", "refresh", "list")
-                    .filter { it.startsWith(args[1], ignoreCase = true) }
-                    .toMutableList()
-                else -> mutableListOf()
-            }
-            3 -> when (args[0].lowercase()) {
-                "admin" -> if (args[1].equals("view", ignoreCase = true) &&
-                    (sender.hasPermission("lumaguilds.admin.view") || sender.hasPermission("bellclaims.admin"))) {
-                    GuildResolver.suggestions(guildService)
-                        .filter { it.contains(args[2], ignoreCase = true) }
-                        .toMutableList()
-                } else mutableListOf()
-                "xp" -> if (args[1].equals("give", ignoreCase = true)) {
-                    net.lumalyte.lg.utils.GuildResolver.suggestions(guildService)
-                        .filter { it.contains(args[2], ignoreCase = true) }
-                        .toMutableList()
-                } else {
-                    mutableListOf()
-                }
-                "disband" -> mutableListOf("confirm")
-                "spawnbanner" -> if (args[1].toIntOrNull() != null) {
-                    SpawnBannerCategory.entries
-                        .map { it.commandName }
-                        .filter { it.startsWith(args[2], ignoreCase = true) }
-                        .toMutableList()
-                } else {
-                    mutableListOf()
-                }
-                else -> mutableListOf()
-            }
-            else -> mutableListOf()
+    private fun completions(sender: CommandSender) = LumaGuildsCompletions(
+        allowed = { permission ->
+            if (permission == LumaGuildsCompletions.OP) sender !is Player || sender.isOp else sender.hasPermission(permission)
+        },
+        guildNames = { net.lumalyte.lg.utils.GuildResolver.suggestions(guildService) },
+        prestige = { name -> prestigeFacts(name) },
+    )
+
+    // Tab completion runs on every keypress; keep each guild's facts for a few seconds
+    // so it does not read the database each time.
+    private val prestigeFactsCache =
+        java.util.concurrent.ConcurrentHashMap<UUID, Pair<Long, LumaGuildsCompletions.PrestigeFacts>>()
+
+    private fun prestigeFacts(name: String): LumaGuildsCompletions.PrestigeFacts? {
+        val guild = net.lumalyte.lg.utils.GuildResolver.resolveGuildByName(name, guildService) ?: return null
+        val now = System.currentTimeMillis()
+        prestigeFactsCache[guild.id]?.takeIf { it.first > now }?.let { return it.second }
+        return readPrestigeFacts(guild.id)?.also {
+            if (prestigeFactsCache.size > FACTS_CACHE_LIMIT) prestigeFactsCache.clear()
+            prestigeFactsCache[guild.id] = (now + FACTS_CACHE_MILLIS) to it
         }
+    }
+
+    private fun readPrestigeFacts(guildId: UUID): LumaGuildsCompletions.PrestigeFacts? {
+        val guild = guildService.getGuild(guildId) ?: return null
+        val staff = getKoin().getOrNull<net.lumalyte.lg.application.services.PrestigeStaffService>() ?: return null
+        val info = runCatching { staff.info(guild.id) }.getOrNull() ?: return null
+        return LumaGuildsCompletions.PrestigeFacts(
+            count = info.prestigeCount,
+            rewardChoices = runCatching { staff.grantChoices(guild.id).map { it.id } }.getOrDefault(emptyList()),
+            tiers = info.history.map { it.tier },
+        )
+    }
+
+    private companion object {
+        const val FACTS_CACHE_MILLIS = 5_000L
+        const val FACTS_CACHE_LIMIT = 200
     }
 }

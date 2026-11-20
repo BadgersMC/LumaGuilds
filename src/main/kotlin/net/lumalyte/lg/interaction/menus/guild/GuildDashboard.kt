@@ -29,8 +29,9 @@ import org.koin.core.component.inject
 /**
  * Guild Dashboard — the hub-and-spoke entry point for guild management.
  *
- * A 3-row menu with 8 navigation category icons and a guild info display.
- * Replaces the old 6-row flat control panel.
+ * REQ-198: a 3-row menu grouped by row around the guild banner: the guild at a glance on top,
+ * running it in the middle, Getting Started, diplomacy, war and the guarded Guild Actions below.
+ * Members has no button: Information opens the combined guild page (REQ-191).
  */
 class GuildDashboard(
     private val menuNavigator: MenuNavigator,
@@ -79,27 +80,22 @@ class GuildDashboard(
         }
         gui.addPane(pane)
 
-        addNavButton(pane, 2, 0, "lg_book", Material.BOOK,
-            lang.gui("onboarding.title"), lang.gui("onboarding.dashboard")) {
-            menuNavigator.openMenu(menuFactory.createGuildGettingStartedMenu(menuNavigator, player, guild.id))
-        }
-
         // Guild info display at top center
         addGuildInfoDisplay(pane, 4, 0)
 
-        addNavButton(pane, 6, 0, "lg_members", Material.PLAYER_HEAD,
+        addNavButton(pane, 6, 1, "lg_members", Material.PLAYER_HEAD,
             lang.gui("recruitment.title"), lang.gui("recruitment.manage")) {
             menuNavigator.openMenu(menuFactory.createLfgBrowserMenu(menuNavigator, player))
         }
 
-        addNavButton(pane, 0, 0, "lg_nav_stalls", Material.OAK_SIGN,
+        addNavButton(pane, 5, 1, "lg_nav_stalls", Material.OAK_SIGN,
             lang.gui("guild_stall.title"), lang.gui("guild_stall.choose")) {
             menuNavigator.openMenu(menuFactory.createGuildStallMenu(menuNavigator, player, guild))
         }
 
         // Top-right corner: Guild Actions (parties, vault, leave, disband) — kept apart from
         // the everyday sections so the destructive options are never a misclick away.
-        addNavButton(pane, 8, 0, "lg_nav_actions", Material.ANVIL,
+        addNavButton(pane, 8, 2, "lg_nav_actions", Material.ANVIL,
             lang.gui("menu.dashboard.item.actions.name"),
             lang.gui("menu.dashboard.item.actions.lore.line_1"),
             lang.gui("menu.dashboard.item.actions.lore.line_2")) {
@@ -107,35 +103,29 @@ class GuildDashboard(
         }
 
         // Row 1 (y=1): Information, Members, Ranks, Economy
-        addNavButton(pane, 0, 1, "lg_nav_info", Material.KNOWLEDGE_BOOK,
+        addNavButton(pane, 2, 0, "lg_nav_info", Material.KNOWLEDGE_BOOK,
             lang.gui("menu.dashboard.item.information.name"),
             lang.gui("menu.dashboard.item.information.lore.line_1"),
             lang.gui("menu.dashboard.item.information.lore.line_2")) {
             menuNavigator.openMenu(menuFactory.createGuildInfoMenu(menuNavigator, player, guild))
         }
 
-        addNavButton(pane, 2, 1, "lg_nav_members", Material.PLAYER_HEAD,
-            lang.gui("menu.dashboard.item.members.name"),
-            lang.gui("menu.dashboard.item.members.lore.line_1"),
-            lang.gui("menu.dashboard.item.members.lore.line_2")) {
-            menuNavigator.openMenu(menuFactory.createGuildMemberManagementMenu(menuNavigator, player, guild))
-        }
 
-        addNavButton(pane, 4, 1, "lg_nav_ranks", Material.IRON_SWORD,
+        addNavButton(pane, 2, 1, "lg_nav_ranks", Material.IRON_SWORD,
             lang.gui("menu.dashboard.item.ranks.name"),
             lang.gui("menu.dashboard.item.ranks.lore.line_1"),
             lang.gui("menu.dashboard.item.ranks.lore.line_2")) {
             menuNavigator.openMenu(menuFactory.createGuildRankManagementMenu(menuNavigator, player, guild))
         }
 
-        addNavButton(pane, 6, 1, "lg_nav_quests", Material.CLOCK,
+        addNavButton(pane, 5, 0, "lg_nav_quests", Material.CLOCK,
             lang.gui("menu.dashboard.item.quests.name"),
             lang.gui("menu.dashboard.item.quests.lore.line_1"),
             lang.gui("menu.dashboard.item.quests.lore.line_2")) {
             menuNavigator.openMenu(menuFactory.createGuildQuestsMenu(menuNavigator, player, guild))
         }
 
-        addNavButton(pane, 8, 1, "lg_nav_economy", Material.GOLD_BLOCK,
+        addNavButton(pane, 3, 1, "lg_nav_economy", Material.GOLD_BLOCK,
             lang.gui("menu.dashboard.item.economy.name"),
             lang.gui("menu.dashboard.item.economy.lore.line_1"),
             lang.gui("menu.dashboard.item.economy.lore.line_2")) {
@@ -143,35 +133,35 @@ class GuildDashboard(
         }
 
         // Row 2 (y=2): Settings, Progression, Diplomacy, Warfare, Statistics
-        addNavButton(pane, 0, 2, "lg_nav_settings", Material.COMMAND_BLOCK,
+        addNavButton(pane, 4, 1, "lg_nav_settings", Material.COMMAND_BLOCK,
             lang.gui("menu.dashboard.item.settings.name"),
             lang.gui("menu.dashboard.item.settings.lore.line_1"),
             lang.gui("menu.dashboard.item.settings.lore.line_2")) {
             menuNavigator.openMenu(menuFactory.createGuildSettingsMenu(menuNavigator, player, guild))
         }
 
-        addNavButton(pane, 2, 2, "lg_nav_progression", Material.EXPERIENCE_BOTTLE,
+        addNavButton(pane, 3, 0, "lg_nav_progression", Material.EXPERIENCE_BOTTLE,
             lang.gui("menu.dashboard.item.progression.name"),
             lang.gui("menu.dashboard.item.progression.lore.line_1"),
             lang.gui("menu.dashboard.item.progression.lore.line_2")) {
             menuNavigator.openMenu(menuFactory.createGuildProgressionMenu(menuNavigator, player, guild))
         }
 
-        addNavButton(pane, 4, 2, "lg_nav_diplomacy", Material.BOOK,
+        addNavButton(pane, 3, 2, "lg_nav_diplomacy", Material.BOOK,
             lang.gui("menu.dashboard.item.diplomacy.name"),
             lang.gui("menu.dashboard.item.diplomacy.lore.line_1"),
             lang.gui("menu.dashboard.item.diplomacy.lore.line_2")) {
             menuNavigator.openMenu(menuFactory.createGuildRelationsMenu(menuNavigator, player, guild))
         }
 
-        addNavButton(pane, 6, 2, "lg_nav_warfare", Material.DIAMOND_SWORD,
+        addNavButton(pane, 5, 2, "lg_nav_warfare", Material.DIAMOND_SWORD,
             lang.gui("menu.dashboard.item.warfare.name"),
             lang.gui("menu.dashboard.item.warfare.lore.line_1"),
             lang.gui("menu.dashboard.item.warfare.lore.line_2")) {
             menuNavigator.openMenu(menuFactory.createGuildWarManagementMenu(menuNavigator, player, guild))
         }
 
-        addNavButton(pane, 8, 2, "lg_nav_statistics", Material.BOOKSHELF,
+        addNavButton(pane, 6, 0, "lg_nav_statistics", Material.BOOKSHELF,
             lang.gui("menu.dashboard.item.statistics.name"),
             lang.gui("menu.dashboard.item.statistics.lore.line_1"),
             lang.gui("menu.dashboard.item.statistics.lore.line_2")) {

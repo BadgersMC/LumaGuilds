@@ -82,20 +82,10 @@ class WarGuildSelectionMenu(
     private fun addGuildItem(pane: StaticPane, guild: Guild, x: Int, y: Int) {
         val memberCount = memberService.getGuildMembers(guild.id).size
 
-        // Choose icon based on guild mode
-        val icon = when (guild.mode) {
-            GuildMode.HOSTILE -> Material.DIAMOND_SWORD
-            GuildMode.PEACEFUL -> Material.IRON_SWORD
-        }
+        val icon = Material.DIAMOND_SWORD
 
         val item = ItemStack.of(icon)
             .name(lang.gui("menu.war_guild_selection.guild.name", "guild" to guild.name))
-            .lore(
-                when (guild.mode) {
-                    GuildMode.HOSTILE -> lang.gui("menu.war_guild_selection.guild.mode.hostile")
-                    GuildMode.PEACEFUL -> lang.gui("menu.war_guild_selection.guild.mode.peaceful")
-                }
-            )
             .lore(lang.gui("menu.war_guild_selection.guild.members", "count" to memberCount))
             .lore(lang.gui("menu.war_guild_selection.guild.level", "level" to guild.level))
             .lore(lang.gui("menu.common.blank"))

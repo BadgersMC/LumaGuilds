@@ -59,6 +59,9 @@ enum class ExperienceSource(private val poolOverride: String? = null) {
     // System
     WEEKLY_ACTIVITY,
 
+    /** Once-per-guild reward for completing a guild advancement (REQ-227). Never boosted. */
+    GUILD_ADVANCEMENT,
+
     /** Explicit administrator-issued experience bonus. */
     ADMIN_BONUS,
     ;

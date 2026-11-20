@@ -49,6 +49,79 @@ class WarRestartRecoveryTest {
             })
     }
 
+    @Test fun objectiveWarPersistsAndSettlesAfterKillTarget() {
+        var wars = service()
+        val declaration = assertNotNull(wars.createObjectiveWarDeclaration(first, second, emptySet(), 100, null, UUID.randomUUID(), false))
+        assertTrue(declaration.objectiveBased)
+        val active = assertNotNull(wars.acceptWarDeclaration(declaration.id, UUID.randomUUID()))
+        assertTrue(active.objectiveBased)
+        // Exercise scheduled expiry after a restart beyond the placeholder duration.
+        val repository = WarRepositorySQL(storage)
+        val saved = requireNotNull(repository.get(active.id))
+        assertTrue(repository.save(saved.copy(war = requireNotNull(saved.war).copy(
+            startedAt = java.time.Instant.now().minus(Duration.ofDays(40))
+        ))))
+        wars = service()
+        assertTrue(requireNotNull(wars.getWar(active.id)).objectiveBased)
+        wars.processExpiredWars()
+        assertEquals(WarStatus.ACTIVE, wars.getWar(active.id)?.status)
+        repeat(25) { assertNotNull(wars.recordOpposingGuildKill(active.id, first, second)) }
+        assertTrue(wars.resolveReachedKillTarget(active.id, first))
+        wars = service()
+        assertEquals(WarStatus.ENDED, wars.getWar(active.id)?.status)
+        assertEquals(first, wars.getWar(active.id)?.winner)
+        assertEquals(1_100, gold.balance(first))
+        assertEquals(900, gold.balance(second))
+    }
+
+    @Test fun `objective war resolves on the selected kill target after restart`() {
+        var wars = service()
+        val objective = WarObjective(type = ObjectiveType.KILLS, targetValue = 5, description = "Kill 5 enemies")
+        val declaration = assertNotNull(wars.createObjectiveWarDeclaration(
+            first, second, setOf(objective), 100, null, UUID.randomUUID(), false
+        ))
+        val active = assertNotNull(wars.acceptWarDeclaration(declaration.id, UUID.randomUUID()))
+        repeat(4) {
+            val update = assertNotNull(wars.recordOpposingGuildKill(active.id, first, second))
+            assertNull(update.winnerGuildId)
+        }
+        wars = service()
+        val decisive = assertNotNull(wars.recordOpposingGuildKill(active.id, first, second))
+        assertEquals(first, decisive.winnerGuildId)
+        assertTrue(wars.resolveReachedKillTarget(active.id, first))
+        wars = service()
+        assertEquals(first, wars.getWar(active.id)?.winner)
+        assertEquals(1_100, gold.balance(first))
+        assertEquals(900, gold.balance(second))
+    }
+    /** REQ-230: a 50-kill objective is allowed and the war keeps going past the default 25. */
+    @Test fun `a fifty kill war ends at fifty not at the default target`() {
+        var wars = service()
+        val objective = WarObjective(type = ObjectiveType.KILLS, targetValue = 50, description = "Kill 50 enemies")
+        val declaration = assertNotNull(wars.createObjectiveWarDeclaration(
+            first, second, setOf(objective), 100, null, UUID.randomUUID(), false
+        ))
+        val active = assertNotNull(wars.acceptWarDeclaration(declaration.id, UUID.randomUUID()))
+        assertEquals(50, wars.killTargetFor(active))
+        repeat(49) {
+            val update = assertNotNull(wars.recordOpposingGuildKill(active.id, first, second))
+            assertNull(update.winnerGuildId, "No winner at ${update.stats.declaringGuildKills} kills")
+            assertEquals(50, update.killTarget)
+        }
+        assertFalse(wars.resolveReachedKillTarget(active.id, first))
+        wars = service()
+        val decisive = assertNotNull(wars.recordOpposingGuildKill(active.id, first, second))
+        assertEquals(first, decisive.winnerGuildId)
+        assertTrue(wars.resolveReachedKillTarget(active.id, first))
+    }
+
+    @Test fun `kill objectives above the maximum are refused`() {
+        val wars = service()
+        val tooMany = WarObjective(type = ObjectiveType.KILLS, targetValue = 51, description = "Kill 51 enemies")
+        assertNull(wars.createObjectiveWarDeclaration(first, second, setOf(tooMany), 100, null, UUID.randomUUID(), false))
+        assertEquals(listOf(5, 10, 25, 50), wars.killTargetOptions())
+    }
+
     @Test fun `paid war keeps identity statistics and one settlement across service restarts`() {
         var wars = service()
         val declaration = assertNotNull(wars.createWarDeclaration(first, second, Duration.ofDays(1), emptySet(),
