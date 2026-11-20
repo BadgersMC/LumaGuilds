@@ -11,6 +11,9 @@ import net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimCreationMenu
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimPlayerMenu
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimTransferNamingMenu
 import net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedMenu
+import net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedNavigationDependencies
+import net.lumalyte.lg.application.services.GuildGettingStartedService
+import net.lumalyte.lg.application.persistence.GuildOnboardingRepository
 import org.bukkit.Location
 import org.bukkit.entity.Player
 import org.junit.jupiter.api.Test
@@ -30,7 +33,16 @@ class SimpleMenuConstructorInjectionTest {
             this.bedrock.bedrockMenusEnabled = bedrock
             this.bedrock.forceBedrockMenus = bedrock
         }
-        return MenuFactory(mockk<PlatformDetectionService>(), config, Logger.getAnonymousLogger(), lang)
+        return MenuFactory(mockk<PlatformDetectionService>(), config, Logger.getAnonymousLogger(), lang).apply {
+            bindGettingStartedDependencies { factory ->
+                GuildGettingStartedNavigationDependencies(
+                    mockk<GuildGettingStartedService>(),
+                    factory,
+                    mockk<GuildOnboardingRepository>(),
+                    lang,
+                )
+            }
+        }
     }
 
     @Test

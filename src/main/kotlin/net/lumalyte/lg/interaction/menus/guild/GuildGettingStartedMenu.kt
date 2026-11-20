@@ -27,8 +27,9 @@ internal class GuildGettingStartedMenu(
     private val player: Player,
     guildId: UUID?,
     private val lang: LangService,
+    navigationDependencies: GuildGettingStartedNavigationDependencies,
 ) : Menu {
-    private val navigation = GuildGettingStartedNavigation(navigator, player, guildId)
+    private val navigation = GuildGettingStartedNavigation(navigator, player, guildId, navigationDependencies)
     override fun open() {
         val current = navigation.snapshot() ?: run { player.sendMessage(lang.msg("onboarding.unavailable")); return }
         val title = lang.guiTitle("onboarding.title")

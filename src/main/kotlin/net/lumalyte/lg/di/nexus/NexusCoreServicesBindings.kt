@@ -9,6 +9,8 @@ import net.lumalyte.lg.application.services.ChatService
 import net.lumalyte.lg.application.services.GuildListService
 import net.lumalyte.lg.application.services.FormCacheService
 import net.lumalyte.lg.application.services.FormValidationService
+import net.lumalyte.lg.application.services.GuildGettingStartedService
+import net.lumalyte.lg.application.persistence.GuildOnboardingRepository
 import net.lumalyte.lg.application.services.PlatformDetectionService
 import net.lumalyte.lg.application.services.PlayerMetadataService
 import net.lumalyte.lg.config.MainConfig
@@ -18,6 +20,7 @@ import net.lumalyte.lg.infrastructure.services.FormCacheServiceGuava
 import net.lumalyte.lg.infrastructure.services.FormValidationServiceImpl
 import net.lumalyte.lg.infrastructure.services.PlayerMetadataServiceVault
 import net.lumalyte.lg.interaction.menus.MenuFactory
+import net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedNavigationDependencies
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockMenuDependencies
 import org.bukkit.plugin.Plugin
 import net.lumalyte.lg.utils.MenuItemBuilder
@@ -82,6 +85,14 @@ internal fun NexusContext.registerCoreServiceBindings(plugin: LumaGuilds) {
             chatServiceProvider = { getBean<ChatService>() },
         ).apply {
             bindGuildListService { getBean<GuildListService>() }
+            bindGettingStartedDependencies { factory ->
+                GuildGettingStartedNavigationDependencies(
+                    service = getBean<GuildGettingStartedService>(),
+                    menuFactory = factory,
+                    prompts = getBean<GuildOnboardingRepository>(),
+                    lang = getBean<LangService>(),
+                )
+            }
         }
     }
 }

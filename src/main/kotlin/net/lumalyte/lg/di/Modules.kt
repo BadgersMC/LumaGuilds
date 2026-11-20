@@ -282,7 +282,17 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
 
     // Menu factory
     single<net.lumalyte.lg.interaction.menus.MenuFactory> {
-        net.lumalyte.lg.interaction.menus.MenuFactory(get(), get(), get(), get())
+        val legacyScope = this
+        net.lumalyte.lg.interaction.menus.MenuFactory(get(), get(), get(), get()).apply {
+            bindGettingStartedDependencies { factory ->
+                net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedNavigationDependencies(
+                    service = legacyScope.get<net.lumalyte.lg.application.services.GuildGettingStartedService>(),
+                    menuFactory = factory,
+                    prompts = legacyScope.get<net.lumalyte.lg.application.persistence.GuildOnboardingRepository>(),
+                    lang = legacyScope.get<LangService>(),
+                )
+            }
+        }
     }
 }
 

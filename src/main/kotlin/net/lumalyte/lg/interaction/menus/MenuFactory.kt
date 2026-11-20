@@ -21,6 +21,7 @@ import net.lumalyte.lg.interaction.menus.bedrock.BedrockJoinRequirementsMenu
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockTagEditorMenu
 import net.lumalyte.lg.interaction.menus.common.ConfirmationMenu
 import net.lumalyte.lg.interaction.menus.guild.GuildInfoMenu
+import net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedNavigationDependencies
 import net.lumalyte.lg.interaction.menus.guild.GuildDisbandConfirmationMenu
 import net.lumalyte.lg.interaction.menus.guild.GuildInviteConfirmationMenu
 import net.lumalyte.lg.interaction.menus.guild.GuildKickConfirmationMenu
@@ -48,6 +49,16 @@ class MenuFactory(
 ) {
     private val bedrockDependencies by lazy { bedrockDependencyProvider?.invoke(this) }
     private var guildListServiceProvider: (() -> GuildListService)? = null
+    private var gettingStartedDependenciesProvider: ((MenuFactory) -> GuildGettingStartedNavigationDependencies)? = null
+
+    /** Bind shared onboarding navigation explicitly without constructing cyclic service graphs at startup. */
+    internal fun bindGettingStartedDependencies(provider: (MenuFactory) -> GuildGettingStartedNavigationDependencies) {
+        check(gettingStartedDependenciesProvider == null) { "Onboarding navigation provider already bound" }
+        gettingStartedDependenciesProvider = provider
+    }
+
+    private fun gettingStartedDependencies(): GuildGettingStartedNavigationDependencies =
+        checkNotNull(gettingStartedDependenciesProvider) { "Onboarding navigation provider was not bound" }(this)
 
     /** Only the Nexus graph configures this internal directory-service provider. */
     internal fun bindGuildListService(provider: () -> GuildListService) {
@@ -704,12 +715,16 @@ class MenuFactory(
     }
 
     /** Permission-aware guild onboarding for both menu clients. */
-    fun createGuildGettingStartedMenu(navigator: MenuNavigator, player: Player, guildId: java.util.UUID?): Menu =
-        if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildGettingStartedMenu(navigator, player, guildId, logger)
+    fun createGuildGettingStartedMenu(navigator: MenuNavigator, player: Player, guildId: java.util.UUID?): Menu {
+        val dependencies = gettingStartedDependencies()
+        return if (shouldUseBedrockMenus(player)) {
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildGettingStartedMenu(
+                navigator, player, guildId, logger, dependencies, bedrockDependencies,
+            )
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedMenu(navigator, player, guildId, lang)
+            net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedMenu(navigator, player, guildId, lang, dependencies)
         }
+    }
 
     fun createPlayerChatSettingsMenu(navigator: MenuNavigator, player: Player): Menu =
         if (shouldUseBedrockMenus(player)) net.lumalyte.lg.interaction.menus.bedrock.BedrockPlayerChatSettingsMenu(
