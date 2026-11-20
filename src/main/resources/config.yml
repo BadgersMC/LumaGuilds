@@ -102,6 +102,20 @@ custom_claim_tool_model_id: 732000
 custom_move_tool_model_id: 732001
 
 # =====================================
+# Guild advancements
+# =====================================
+guild_advancements:
+  # REQ-302: when a member completes a guild advancement while another online member of
+  # their guild is on the same connection (most likely an alt), the guild gets no XP for it.
+  # The advancement stays open, so the next member on a different connection pays it.
+  # Only connections of players online at that moment are compared; nothing is stored.
+  shared_connection_check: true
+  # A connection shared by this many online players server-wide is treated as a gateway
+  # (a proxy, the Bedrock bridge, a school network), not one person, and never blocks.
+  # 0 turns that exception off.
+  gateway_players: 4
+
+# =====================================
 # Web API (read-only JSON endpoint for the website)
 # =====================================
 # Exposes public leaderboard data (e.g. top guilds) as JSON over HTTP.
@@ -114,8 +128,9 @@ web_api:
   port: 8123
   # If set, requests must include "Authorization: Bearer <token>".
   # Leave empty to disable auth (only safe behind firewall / loopback).
-  # The guild directory and the Hall of Prestige feed (/api/community/prestige,
-  # REQ-301) always need the token and are refused while it is empty.
+  # The website feeds always need the token and are refused while it is empty:
+  # /api/community/guild-directory, /api/community/prestige (REQ-301),
+  # /api/community/guildquests and /api/community/player-guilds?players=uuid,...
   bearer_token: ""
   leaderboard_limit_default: 10
   leaderboard_limit_max: 50

@@ -207,7 +207,9 @@ internal class GuildAchievementRuntimeTest {
     private data class Paid(val guild: UUID, val amount: Int, val tx: UUID)
 
     private fun xpRuntime(server: org.mockbukkit.mockbukkit.ServerMock, guild: UUID, players: List<org.bukkit.entity.Player>,
-                          level: Int?, paid: MutableList<Paid>, accept: () -> Boolean = { true }): GuildAchievementRuntime {
+                          level: Int?, paid: MutableList<Paid>, accept: () -> Boolean = { true },
+                          eligibility: (org.bukkit.entity.Player, UUID) -> net.lumalyte.lg.domain.values.AdvancementXpEligibility.Decision =
+                              { _, _ -> net.lumalyte.lg.domain.values.AdvancementXpEligibility.Decision.ELIGIBLE }): GuildAchievementRuntime {
         val plugin = spyk(MockBukkit.createMockPlugin("LumaGuilds"))
         every { plugin.getResource("guild-achievements.json") } answers { javaClass.classLoader.getResourceAsStream("guild-achievements.json") }
         val members = mockk<MemberRepository>()
@@ -221,7 +223,8 @@ internal class GuildAchievementRuntimeTest {
         every { stalls.read(any(), any()) } returns java.util.concurrent.CompletableFuture.completedFuture(
             net.lumalyte.lg.application.services.StallReadResult.Unavailable)
         return GuildAchievementRuntime(plugin, members, progression, stalls,
-            guildXp = { g, amount, tx -> paid += Paid(g, amount, tx); outcome(accept()) }, playtimeStore = net.lumalyte.lg.domain.values.MemberPlaytimeStore.InMemory())
+            guildXp = { g, amount, tx -> paid += Paid(g, amount, tx); outcome(accept()) }, playtimeStore = net.lumalyte.lg.domain.values.MemberPlaytimeStore.InMemory(),
+            xpEligibility = eligibility)
     }
 
     private fun outcome(accepted: Boolean): SystemAward = SystemAward.FAILED.takeUnless { accepted } ?: SystemAward.PAID_NOW
@@ -248,6 +251,41 @@ internal class GuildAchievementRuntimeTest {
         verify(exactly = 0) { a.giveExp(0) }
     }
 
+    @Test fun `REQ-302 an alt on a shared connection earns no guild XP and the next member still can`() {
+        val server = MockBukkit.mock()
+        val guild = UUID.randomUUID()
+        val alt = onlinePlayer(server); val other = onlinePlayer(server)
+        val messages = mutableListOf<String>()
+        every { alt.sendMessage(any<net.kyori.adventure.text.Component>()) } answers {
+            messages += net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(firstArg())
+        }
+        val paid = mutableListOf<Paid>()
+        val runtime = xpRuntime(server, guild, listOf(alt, other), null, paid) { player, _ ->
+            if (player.uniqueId == alt.uniqueId) net.lumalyte.lg.domain.values.AdvancementXpEligibility.Decision.SHARED
+            else net.lumalyte.lg.domain.values.AdvancementXpEligibility.Decision.ELIGIBLE
+        }
+        runtime.signal(alt, "GUILD_WAR_WON", receipt = "war-1")
+        assertEquals(emptyList<Paid>(), paid)
+        assertTrue(messages.any { "same connection" in it }, messages.toString())
+        assertFalse(messages.any { "guild XP" in it && it.startsWith("+") })
+
+        runtime.signal(other, "GUILD_WAR_WON", receipt = "war-1")
+        val victor = runtime.engine.definitions.first { it.id == "to_the_victor" }
+        assertEquals(listOf(Paid(guild, victor.guildXp, GuildAchievementRuntime.payoutId(guild, "to_the_victor"))), paid)
+    }
+
+    @Test fun `REQ-302 an unreadable connection still pays`() {
+        val server = MockBukkit.mock()
+        val guild = UUID.randomUUID()
+        val player = onlinePlayer(server)
+        val paid = mutableListOf<Paid>()
+        val runtime = xpRuntime(server, guild, listOf(player), null, paid) { _, _ ->
+            net.lumalyte.lg.domain.values.AdvancementXpEligibility.Decision.UNKNOWN
+        }
+        runtime.signal(player, "GUILD_WAR_WON", receipt = "war-1")
+        assertEquals(1, paid.size)
+    }
+
     @Test fun `guilds already at a level are paid once even when members had already completed it`() {
         val server = MockBukkit.mock()
         val guild = UUID.randomUUID()
@@ -272,7 +310,7 @@ internal class GuildAchievementRuntimeTest {
         val player = onlinePlayer(server)
         val paid = mutableListOf<Paid>()
         var accept = false
-        val runtime = xpRuntime(server, guild, listOf(player), 10, paid) { accept }
+        val runtime = xpRuntime(server, guild, listOf(player), 10, paid, accept = { accept })
         val tx = GuildAchievementRuntime.payoutId(guild, "expanding_the_empire")
         runtime.initialize(player)
         val refused = paid.count { it.tx == tx }

@@ -561,6 +561,11 @@ WHEN a player opens or interacts with a guild vault THE SYSTEM SHALL recheck cur
 ### REQ-150 — Guild recruitment upgrade
 
 The approved recruitment behavior, player/recruiter flows, discovery integration and delivery gates are specified as REC-001 through REC-012 in [Guild recruitment delivery](plans/guild-recruitment.md). This upgrade retains existing LFG access and fee policy, adds dedicated rank authority and requires explicit applicant confirmation before admission.
+### REQ-WEBSITE-QUEST-001
+WHEN a website consumer requests the current guild quest snapshot THE SYSTEM SHALL require a configured bearer token and return bounded public quest definitions and standings from a consistent read, without granting rewards or exporting private identities.
+
+### REQ-WEBSITE-MEMBERSHIP-002
+WHEN a website consumer requests bounded player guild associations THE SYSTEM SHALL require a configured bearer token and return only verified current public memberships; unavailable or inconsistent reads SHALL NOT be reported as an empty membership.
 
 ### REQ-149 — Dynamic Vault economy provider lifecycle
 **Event-driven.** WHEN Vault is present but no Economy provider is registered, personal-account guild-bank operations SHALL report the provider as unavailable without declaring the bank permanently broken. BEFORE each personal-account economy operation THE SYSTEM SHALL resolve the currently registered Vault Economy provider, SHALL discover a provider registered after LumaGuilds startup, and SHALL discard a cached provider that is unregistered or replaced. Physical guild-gold and ordinary vault storage SHALL retain their existing availability semantics.
@@ -1043,3 +1048,6 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-301
 **Event-driven.** WHEN the website requests `GET /api/community/prestige` with the web API bearer token, THE SYSTEM SHALL return the Hall of Prestige feed (schemaVersion 1): each prestiged guild in in-game Hall order with its tier history (date first reached, kept reward, fee paid, whether it was first on the server, and the members in the guild at that moment), the first guild to reach each tier including disbanded guilds, the ten most recent prestiges, and server totals. It SHALL refuse the request when no bearer token is configured, list the Tier III extra stall perk only while EnthusiaMarket is enabled, and change `revision` only when the public data changes.
+
+### REQ-302
+**Event-driven.** WHEN a member completes a guild advancement that pays guild XP and another member of the same guild is online on the same connection, THE SYSTEM SHALL pay that guild no XP for this completion, SHALL tell the member why in a private message, and SHALL leave the guild's payout open so the next member on a different connection still pays it. A connection shared by `guild_advancements.gateway_players` (default 4) or more online players server-wide counts as a gateway and SHALL NOT block. An unreadable connection SHALL pay as usual and log one warning. Guild-wide goals (level, combined playtime, member count, age) have no single participant and are not checked. Only the addresses of players online at that moment are compared; none are stored. `guild_advancements.shared_connection_check: false` turns the check off.

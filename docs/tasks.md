@@ -25,7 +25,10 @@ Every task carries exactly one tag (`TDD` / `DOC` / `INFRA`), a `References:` li
   - Tag: `TDD`
   - References: REQ-134.
   - Evidence: `docs/plans/2026-10-18-shop-xp-registration.md`. Startup wiring regression fails on current main; real Bukkit discovery and actual Market 1.0.53 gateway lifecycle pass after registration. Full build and hosted/client evidence are recorded separately.
-
+- [x] **LG-WEBSITE-FEEDS** Public quest and player-guild snapshots.
+  - Tag: `TDD`
+  - References: REQ-WEBSITE-QUEST-001; REQ-WEBSITE-MEMBERSHIP-002.
+  - Evidence (2026-11-20): brought onto main from closed draft #23. `GET /api/community/guildquests` and `GET /api/community/player-guilds?players=` pass their focused tests (SQLite, loopback HTTP, blank-token rejection), and their output was accepted by enthusia-site main `418b316`'s own validators (`projectGuildQuests`, `projectSnapshot('players')`). The site reads them as `COMMUNITY_GUILDQUESTS_API_URL` and `COMMUNITY_PLAYER_GUILDS_API_URL` with their `_TOKEN`s. Live server acceptance is still open.
 - [~] **LG-2010** Guild stall menus and optional read adapter.
   - Tag: `TDD`
   - References: REQ-124/125; Market REQ-340/341.
@@ -1561,3 +1564,4 @@ Decision (Fain, 2026-11-16): one theme per prestige, chosen on the prestige scre
 - [x] **LEGACY-VAULT-DESERIALIZE** Tag: TDD. The legacy vault item fallback deserialized any Java class; it now allows only java.lang/java.util types with depth/size limits. Evidence: LegacyItemMapTest.
 - [x] **PLAYTIME-STORE-REQUIRED** Tag: TDD. REQ-300 `playtimeStore` has no in-memory default, so a second DI graph (upstream #254) can't silently drop persistence.
 - [x] **PRESTIGE-WEB-FEED** Tag: TDD. REQ-301 `GET /api/community/prestige` for the enthusia.info Hall of Prestige, matching the website handoff's `prestige-snapshot.schema.json` (output checked against it). Evidence: PrestigeHallFeedTest, PrestigeRepositorySQLTest. Needs `web_api` enabled with a bearer token, and the site's Codex work to read it.
+- [x] **ADVANCEMENT-XP-SHARED-CONNECTION** Tag: TDD. REQ-302. Takes the online-members eligibility rule from closed prototype #25 into main's per-player advancement model; the prototype's guild-scoped progress, address history, HMAC fingerprints and outbox were not needed. Evidence: AdvancementXpEligibilityTest, AdvancementXpConnectionsTest, GuildAchievementRuntimeTest (shared connection holds XP, the next member pays it; unreadable connection pays).

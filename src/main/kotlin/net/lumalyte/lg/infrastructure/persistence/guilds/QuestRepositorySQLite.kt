@@ -22,7 +22,8 @@ import java.time.Instant
 import java.util.Base64
 import java.util.UUID
 
-class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepository {
+class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepository,
+    net.lumalyte.lg.application.persistence.PublicQuestSnapshotReader {
     private val mariaDb = storage.javaClass.simpleName.contains("MariaDB")
 
     override fun currentBankQuestRevision(): Long = storage.connection.connection.use { connection ->
@@ -260,6 +261,53 @@ class QuestRepositorySQLite(private val storage: Storage<Database>) : QuestRepos
         storage.connection.getFirstRow(
             "SELECT week_id, starts_at, ends_at FROM weekly_quest_sets WHERE active = 1 LIMIT 1"
         )?.let(::mapQuestSet)
+
+    override fun readPublicQuestSnapshot(): net.lumalyte.lg.application.persistence.PublicQuestCapture {
+        // A single SELECT has one database read view, even while async bank/war
+        // progress writes or a weekly reset transaction execute concurrently.
+        val rows = storage.connection.getResults("""
+            WITH active AS (SELECT * FROM weekly_quest_sets WHERE active = 1 LIMIT 1),
+            ranked AS (
+              SELECT week_id, quest_id, guild_id, current_count, claimed, reward_delivered,
+                ROW_NUMBER() OVER (PARTITION BY week_id, quest_id
+                  ORDER BY current_count DESC, guild_id ASC) AS public_rank
+              FROM guild_quest_progress WHERE week_id = (SELECT week_id FROM active)
+            )
+            SELECT q.*, s.starts_at, s.ends_at, p.guild_id, p.current_count,
+              p.claimed, p.reward_delivered, g.name AS public_guild_name
+            FROM active s JOIN weekly_quest_definitions q ON q.week_id = s.week_id
+            LEFT JOIN ranked p ON p.week_id = q.week_id AND p.quest_id = q.quest_id AND p.public_rank <= 50
+            LEFT JOIN guilds g ON g.id = p.guild_id
+            ORDER BY q.quest_order ASC, q.quest_id ASC, p.public_rank ASC
+            LIMIT 2000
+        """.trimIndent())
+        val first = rows.firstOrNull()
+            ?: return net.lumalyte.lg.application.persistence.PublicQuestCapture(null)
+        val quests = rows.distinctBy { it.getString("quest_id") }.map(::mapQuest)
+        check(quests.size <= 30) { "Public quest limit exceeded" }
+        val progress = mutableMapOf<String, MutableList<GuildQuestProgress>>()
+        val names = mutableMapOf<UUID, String>()
+        rows.forEach { row ->
+            val guildId = row.nullableString("guild_id")?.let(UUID::fromString)
+            val name = row.nullableString("public_guild_name")
+            if (guildId != null && !name.isNullOrBlank()) {
+                names[guildId] = name
+                val questId = row.getString("quest_id")
+                progress.getOrPut(questId) { mutableListOf() }.add(GuildQuestProgress(
+                    weekId = first.getString("week_id"), questId = questId, guildId = guildId,
+                    currentCount = row.longValue("current_count"),
+                    claimed = row.getInt("claimed") == 1,
+                    rewardDelivered = row.getInt("reward_delivered") == 1,
+                ))
+            }
+        }
+        check(names.size <= 200) { "Public guild limit exceeded" }
+        return net.lumalyte.lg.application.persistence.PublicQuestCapture(
+            WeeklyQuestSet(first.getString("week_id"),
+                Instant.ofEpochMilli(first.longValue("starts_at")),
+                Instant.ofEpochMilli(first.longValue("ends_at")), quests), progress, names,
+        )
+    }
 
     override fun getQuestSet(weekId: String): WeeklyQuestSet? =
         storage.connection.getFirstRow(

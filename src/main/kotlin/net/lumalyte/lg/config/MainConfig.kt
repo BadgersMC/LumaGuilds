@@ -45,9 +45,20 @@ data class MainConfig(
     var discordPrestigeRoles: DiscordPrestigeRolesConfig = DiscordPrestigeRolesConfig(),
     var guildList: GuildListConfig = GuildListConfig(),
     var recruitment: RecruitmentConfig = RecruitmentConfig(),
+    var advancementXp: AdvancementXpConfig = AdvancementXpConfig(),
     // Runtime feature gates. Legacy staging defaults are upgraded by ConfigCompatibilityMigrator.
     var chapterTwoRewardsEnabled: Boolean = true,
     var chapterTwoGoldCostsEnabled: Boolean = false
+)
+
+/**
+ * REQ-302: a guild advancement completed by a member on the same connection as another online member
+ * of their guild pays no guild XP. [gatewayPlayers]: a connection shared by this many online players
+ * server-wide is a gateway (proxy, Bedrock bridge, school), not one person, and never blocks; 0 = off.
+ */
+data class AdvancementXpConfig(
+    val sharedConnectionCheck: Boolean = true,
+    val gatewayPlayers: Int = 4,
 )
 
 /**

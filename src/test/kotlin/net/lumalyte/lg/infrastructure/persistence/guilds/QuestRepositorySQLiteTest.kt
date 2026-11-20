@@ -191,4 +191,27 @@ class QuestRepositorySQLiteTest {
         )
         return WeeklyQuestSet("2026-W35", Instant.parse("2026-08-24T00:00:00Z"), Instant.parse("2026-08-31T00:00:00Z"), listOf(definition))
     }
+
+    @Test
+    fun `public snapshot is a read-only active set with exact counts and UUID tie ordering`() {
+        storage.connection.executeUpdate("CREATE TABLE guilds (id TEXT PRIMARY KEY, name TEXT NOT NULL)")
+        val alpha = UUID.fromString("00000000-0000-0000-0000-000000000001")
+        val beta = UUID.fromString("00000000-0000-0000-0000-000000000002")
+        storage.connection.executeUpdate("INSERT INTO guilds(id,name) VALUES (?,?)", alpha.toString(), "Alpha")
+        storage.connection.executeUpdate("INSERT INTO guilds(id,name) VALUES (?,?)", beta.toString(), "Beta")
+        assertEquals(null, repository.readPublicQuestSnapshot().week)
+        val set = questSet()
+        repository.saveActiveQuestSet(set)
+        val actor = UUID.randomUUID()
+        repository.saveProgress(GuildQuestProgress(set.weekId, "zombies", beta, Long.MAX_VALUE, claimActorId = actor))
+        repository.saveProgress(GuildQuestProgress(set.weekId, "zombies", alpha, Long.MAX_VALUE, claimActorId = actor))
+        val capture = repository.readPublicQuestSnapshot()
+        assertEquals(set, capture.week)
+        assertEquals(listOf(alpha, beta), capture.progress["zombies"]!!.map { it.guildId })
+        assertEquals(Long.MAX_VALUE, capture.progress["zombies"]!![0].currentCount)
+        assertTrue(capture.progress.values.flatten().all { it.claimActorId == null })
+        assertEquals(mapOf(alpha to "Alpha", beta to "Beta"), capture.guildNames)
+        assertFalse(repository.getProgress(set.weekId, "zombies", alpha)!!.claimed)
+        assertEquals(actor, repository.getProgress(set.weekId, "zombies", alpha)!!.claimActorId)
+    }
 }
