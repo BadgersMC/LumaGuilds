@@ -14,3 +14,6 @@ fun LangService.localizedClaimFlagNames(flags: Iterable<Flag>): List<Component> 
 
 fun LangService.localizedClaimPermissionNames(permissions: Iterable<ClaimPermission>): List<Component> =
     permissions.map { this.msg(it.nameKey) }
+
+/** Finite Flag enum keys are already declared in the locale contract. */
+fun LangService.localizedClaimFlagPlain(flag: Flag): String = this.plain(flag.nameKey)
