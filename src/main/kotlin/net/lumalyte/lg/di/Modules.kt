@@ -1080,7 +1080,17 @@ fun progressionModule() = module {
         net.lumalyte.lg.infrastructure.web.WebApiServer(
             plugin = get<LumaGuilds>(),
             config = get<ConfigService>().loadConfig().webApi,
-            guildLeaderboardHandler = get()
+            guildLeaderboardHandler = get(),
+            prestigeFeed = net.lumalyte.lg.infrastructure.web.handlers.PrestigeHallFeed(
+                history = get(),
+                adjustments = getOrNull(),
+                disbanded = get(),
+                stints = get(),
+                guilds = net.lumalyte.lg.infrastructure.web.handlers.PrestigeHallGuildsBukkit(get(), get(), get(), get()),
+                catalog = get(),
+                config = { get<ConfigService>().loadConfig().progression.prestige },
+                stallsLive = { org.bukkit.Bukkit.getPluginManager().isPluginEnabled("EnthusiaMarket") },
+            ),
         )
     }
     single<ModeService> { ModeServiceBukkit(get(), get(), get(), get()) }

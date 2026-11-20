@@ -12,6 +12,7 @@ import java.util.UUID
  * @property periodEnd The timestamp when the period ended.
  * @property data The JSON-formatted leaderboard data.
  * @property createdAt The timestamp when the snapshot was created.
+ * @property period The leaderboard period this snapshot closed.
  */
 data class LeaderboardSnapshot(
     val id: UUID,
@@ -19,7 +20,8 @@ data class LeaderboardSnapshot(
     val periodStart: Instant,
     val periodEnd: Instant,
     val data: String,
-    val createdAt: Instant
+    val createdAt: Instant,
+    val period: LeaderboardPeriod = LeaderboardPeriod.ALL_TIME,
 ) {
     init {
         require(periodStart.isBefore(periodEnd)) { "Period start must be before period end." }
@@ -48,7 +50,14 @@ enum class ExtendedLeaderboardType {
     PLAYER_KILLS,
     PLAYER_DEATHS,
     PLAYER_KILL_STREAK,
-    WEEKLY_ACTIVITY
+    WEEKLY_ACTIVITY;
+
+    /** The [LeaderboardType] a snapshot of this leaderboard is stored under. */
+    val snapshotType: LeaderboardType get() = when (this) {
+        GUILD_KILLS, GUILD_DEATHS, PLAYER_KILLS, PLAYER_DEATHS, PLAYER_KILL_STREAK -> LeaderboardType.KILLS
+        GUILD_LEVEL, GUILD_BANK_BALANCE, GUILD_CLAIM_COUNT, GUILD_MEMBER_COUNT -> LeaderboardType.LEVEL
+        WEEKLY_ACTIVITY -> LeaderboardType.WEEKLY_ACTIVITY
+    }
 }
 
 /**

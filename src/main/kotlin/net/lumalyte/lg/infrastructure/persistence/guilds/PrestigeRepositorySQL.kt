@@ -105,6 +105,36 @@ class PrestigeRepositorySQL(
         "g.transaction_id = CONVERT(p.transaction_id USING utf8mb4) COLLATE utf8mb4_unicode_ci"
     else "g.transaction_id = p.transaction_id"
 
+    override fun applied(): List<net.lumalyte.lg.domain.rewards.AppliedPrestige> =
+        storage.connection.connection.use { connection ->
+            connection.prepareStatement(
+                """SELECT p.transaction_id, p.guild_id, p.actor_id, p.prestige_count,
+                          p.retained_reward_id, p.quoted_fee, g.created_at
+                   FROM guild_prestige_transactions p
+                   JOIN guild_gold_operations g ON $journalJoin
+                   WHERE p.outcome = 'APPLIED' AND g.status = 'APPLIED'
+                   ORDER BY g.created_at, p.transaction_id"""
+            ).use { statement ->
+                statement.executeQuery().use { rows ->
+                    buildList {
+                        while (rows.next()) add(
+                            net.lumalyte.lg.domain.rewards.AppliedPrestige(
+                                PrestigeRecord(
+                                    transactionId = UUID.fromString(rows.getString("transaction_id")),
+                                    guildId = UUID.fromString(rows.getString("guild_id")),
+                                    actorId = UUID.fromString(rows.getString("actor_id")),
+                                    tier = rows.getInt("prestige_count"),
+                                    retainedRewardId = rows.getString("retained_reward_id"),
+                                    appliedAt = Instant.ofEpochMilli(rows.getLong("created_at")),
+                                ),
+                                feePaid = rows.getLong("quoted_fee"),
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
     private fun records(filter: String, value: Any, limit: Int? = null): List<PrestigeRecord> =
         storage.connection.connection.use { connection ->
             connection.prepareStatement(

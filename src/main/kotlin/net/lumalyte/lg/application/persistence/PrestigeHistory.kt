@@ -13,4 +13,7 @@ interface PrestigeHistory {
 
     /** REQ-275: every guild with at least one prestige, with when it reached its current count. */
     fun standings(): List<net.lumalyte.lg.domain.rewards.HallStanding> = emptyList()
+
+    /** REQ-301: every applied prestige on the server, oldest first, with the fee each one paid. */
+    fun applied(): List<net.lumalyte.lg.domain.rewards.AppliedPrestige> = emptyList()
 }

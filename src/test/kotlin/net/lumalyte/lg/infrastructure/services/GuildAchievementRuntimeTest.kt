@@ -31,7 +31,7 @@ internal class GuildAchievementRuntimeTest {
         val stalls = mockk<net.lumalyte.lg.application.services.GuildStallReadService>()
         every { stalls.read(guild, player.uniqueId) } returns java.util.concurrent.CompletableFuture.completedFuture(
             net.lumalyte.lg.application.services.StallReadResult.Unavailable)
-        val runtime = GuildAchievementRuntime(plugin, members, progression, stalls)
+        val runtime = GuildAchievementRuntime(plugin, members, progression, stalls, playtimeStore = net.lumalyte.lg.domain.values.MemberPlaytimeStore.InMemory())
         runtime.initializeAfterJoin(player)
         assertTrue(runtime.read(player)!!.progress.isEmpty())
         server.scheduler.performTicks(19L)
@@ -59,7 +59,7 @@ internal class GuildAchievementRuntimeTest {
         val stalls = mockk<net.lumalyte.lg.application.services.GuildStallReadService>()
         var next = java.util.concurrent.CompletableFuture<net.lumalyte.lg.application.services.StallReadResult>()
         every { stalls.read(guild, player.uniqueId) } answers { next }
-        val runtime = GuildAchievementRuntime(plugin, members, mockk(), stalls)
+        val runtime = GuildAchievementRuntime(plugin, members, mockk(), stalls, playtimeStore = net.lumalyte.lg.domain.values.MemberPlaytimeStore.InMemory())
         fun result(state: String) = net.lumalyte.lg.application.services.StallReadResult.Available(listOf(
             net.lumalyte.lg.application.services.GuildStallInfo("stall", "region", "world", state, 1, 60, null, null, null, emptyList())))
         fun complete(value: net.lumalyte.lg.application.services.StallReadResult) {
@@ -100,11 +100,11 @@ internal class GuildAchievementRuntimeTest {
         val members = mockk<MemberRepository>()
         every { members.getGuildsByPlayer(player.uniqueId) } returns setOf(guild)
         val progress = mockk<ProgressionRepository>()
-        val first = GuildAchievementRuntime(plugin, members, progress)
+        val first = GuildAchievementRuntime(plugin, members, progress, playtimeStore = net.lumalyte.lg.domain.values.MemberPlaytimeStore.InMemory())
         first.signal(player, "GUILD_WAR_WON", receipt = "war-123")
         assertEquals(300, paid)
         assertTrue(first.track(player, "to_the_victor"))
-        val reopened = GuildAchievementRuntime(plugin, members, progress)
+        val reopened = GuildAchievementRuntime(plugin, members, progress, playtimeStore = net.lumalyte.lg.domain.values.MemberPlaytimeStore.InMemory())
         assertEquals("to_the_victor", reopened.read(player)!!.tracked)
         reopened.signal(player, "GUILD_WAR_WON", receipt = "war-123")
         reopened.signal(player, "GUILD_WAR_WON", receipt = "war-456")
@@ -123,7 +123,7 @@ internal class GuildAchievementRuntimeTest {
         player.persistentDataContainer.set(key, PersistentDataType.STRING, "invalid retained data")
         val members = mockk<MemberRepository>()
         every { members.getGuildsByPlayer(player.uniqueId) } returns setOf(UUID.randomUUID())
-        val subject = GuildAchievementRuntime(plugin, members, mockk())
+        val subject = GuildAchievementRuntime(plugin, members, mockk(), playtimeStore = net.lumalyte.lg.domain.values.MemberPlaytimeStore.InMemory())
         subject.signal(player, "GUILD_WAR_WON")
         assertNull(subject.read(player))
         assertEquals("invalid retained data", player.persistentDataContainer.get(key, PersistentDataType.STRING))
@@ -150,7 +150,7 @@ internal class GuildAchievementRuntimeTest {
             net.lumalyte.lg.application.services.StallReadResult.Unavailable)
         val now = java.time.Instant.parse("2026-11-13T00:00:00Z")
         val runtime = GuildAchievementRuntime(plugin, members, progression, stalls,
-            createdAt = { if (it == guild) now.minus(java.time.Duration.ofDays(200)).plusSeconds(60) else null }, clock = { now })
+            createdAt = { if (it == guild) now.minus(java.time.Duration.ofDays(200)).plusSeconds(60) else null }, clock = { now }, playtimeStore = net.lumalyte.lg.domain.values.MemberPlaytimeStore.InMemory())
         runtime.initialize(player)
         val record = runtime.read(player)!!
         val byGoal = { req: String -> runtime.engine.definitions.filter { it.requirement == req }.associate { it.goal to it.id } }
@@ -221,7 +221,7 @@ internal class GuildAchievementRuntimeTest {
         every { stalls.read(any(), any()) } returns java.util.concurrent.CompletableFuture.completedFuture(
             net.lumalyte.lg.application.services.StallReadResult.Unavailable)
         return GuildAchievementRuntime(plugin, members, progression, stalls,
-            guildXp = { g, amount, tx -> paid += Paid(g, amount, tx); outcome(accept()) })
+            guildXp = { g, amount, tx -> paid += Paid(g, amount, tx); outcome(accept()) }, playtimeStore = net.lumalyte.lg.domain.values.MemberPlaytimeStore.InMemory())
     }
 
     private fun outcome(accepted: Boolean): SystemAward = SystemAward.FAILED.takeUnless { accepted } ?: SystemAward.PAID_NOW
@@ -313,7 +313,7 @@ internal class GuildAchievementRuntimeTest {
         every { stalls.read(any(), any()) } returns java.util.concurrent.CompletableFuture.completedFuture(
             net.lumalyte.lg.application.services.StallReadResult.Unavailable)
         val runtime = GuildAchievementRuntime(plugin, members, progression, stalls,
-            guildXp = { _, _, _ -> SystemAward.ALREADY_PAID })
+            guildXp = { _, _, _ -> SystemAward.ALREADY_PAID }, playtimeStore = net.lumalyte.lg.domain.values.MemberPlaytimeStore.InMemory())
         runtime.initialize(player)
         val said = generateSequence { (player as org.mockbukkit.mockbukkit.entity.PlayerMock).nextComponentMessage() }
             .map { net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(it) }.toList()
@@ -338,7 +338,7 @@ internal class GuildAchievementRuntimeTest {
             net.lumalyte.lg.application.services.StallReadResult.Unavailable)
         // A real-ledger fake: the first attempt for an ID pays, later attempts are duplicates.
         val runtime = GuildAchievementRuntime(plugin, members, progression, stalls,
-            guildXp = { _, _, id -> if (ledger.add(id)) SystemAward.PAID_NOW else SystemAward.ALREADY_PAID })
+            guildXp = { _, _, id -> if (ledger.add(id)) SystemAward.PAID_NOW else SystemAward.ALREADY_PAID }, playtimeStore = net.lumalyte.lg.domain.values.MemberPlaytimeStore.InMemory())
         runtime.initialize(player)
         val said = generateSequence { (player as org.mockbukkit.mockbukkit.entity.PlayerMock).nextComponentMessage() }
             .map { net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(it) }.toList()

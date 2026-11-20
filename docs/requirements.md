@@ -1040,3 +1040,6 @@ Plan: `plans/2026-11-14-prestige-second-vault.md`.
 
 ### REQ-297
 **Event-driven.** WHEN a guild manager copies worn armor into the Hall Display and a piece has a custom resource-pack look (an equipment asset outside the minecraft namespace, such as the Crown of Sorrow), THE SYSTEM SHALL keep that look, and the statue SHALL wear it: on the model (through BetterModel's custom armor of the same name), on the plain figure, and in the menu.
+
+### REQ-301
+**Event-driven.** WHEN the website requests `GET /api/community/prestige` with the web API bearer token, THE SYSTEM SHALL return the Hall of Prestige feed (schemaVersion 1): each prestiged guild in in-game Hall order with its tier history (date first reached, kept reward, fee paid, whether it was first on the server, and the members in the guild at that moment), the first guild to reach each tier including disbanded guilds, the ten most recent prestiges, and server totals. It SHALL refuse the request when no bearer token is configured, list the Tier III extra stall perk only while EnthusiaMarket is enabled, and change `revision` only when the public data changes.

@@ -14,6 +14,7 @@ import java.util.Base64
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayInputStream
 import java.io.ObjectInputStream
+import java.io.ObjectInputFilter
 import java.util.zip.ZipException
 
 /**
@@ -270,13 +271,9 @@ class GuildVaultRepositorySQLite(private val storage: Storage<Database>) : Guild
             }
         }
 
-        // Try legacy Java ObjectInputStream format
+        // Try legacy Java ObjectInputStream format (a serialized ItemStack.serialize() map)
         try {
-            val byteArrayInputStream = ByteArrayInputStream(bytes)
-            val objectInputStream = ObjectInputStream(byteArrayInputStream)
-            @Suppress("UNCHECKED_CAST")
-            val serialized = objectInputStream.readObject() as Map<String, Any>
-            objectInputStream.close()
+            val serialized = LegacyItemMap.read(bytes) ?: return null
             return ItemStack.deserialize(serialized)
         } catch (e: Exception) {
             // Legacy format failed - item is from an old/incompatible version or corrupted
@@ -284,5 +281,22 @@ class GuildVaultRepositorySQLite(private val storage: Storage<Database>) : Guild
             logger.debug("Skipped item with unreadable legacy format (${e.javaClass.simpleName})")
             return null
         }
+    }
+}
+
+/**
+ * Reads the legacy vault item format: a Java-serialized `Map<String, Any>` from
+ * ItemStack.serialize(). Only JDK collection, string and boxed-primitive classes may be
+ * deserialized, so a crafted database value can't load arbitrary classes.
+ */
+internal object LegacyItemMap {
+    private val filter: ObjectInputFilter = ObjectInputFilter.Config.createFilter(
+        "maxdepth=32;maxrefs=10000;maxarray=10000;maxbytes=1048576;java.lang.*;java.util.*;!*"
+    )
+
+    fun read(bytes: ByteArray): Map<String, Any>? = ObjectInputStream(ByteArrayInputStream(bytes)).use { input ->
+        input.setObjectInputFilter(filter)
+        @Suppress("UNCHECKED_CAST")
+        (input.readObject() as? Map<*, *>)?.takeIf { map -> map.keys.all { it is String } } as Map<String, Any>?
     }
 }
