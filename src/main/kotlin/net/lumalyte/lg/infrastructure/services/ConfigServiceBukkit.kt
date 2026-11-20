@@ -59,6 +59,10 @@ class ConfigServiceBukkit(private val configProvider: () -> FileConfiguration): 
                 onboardingDelaySeconds = config.getInt("recruitment.onboarding_delay_seconds", 300),
                 reminderMinutes = config.getInt("recruitment.reminder_minutes", 0),
             ),
+            advancementXp = net.lumalyte.lg.config.AdvancementXpConfig(
+                sharedConnectionCheck = config.getBoolean("guild_advancements.shared_connection_check", true),
+                gatewayPlayers = config.getInt("guild_advancements.gateway_players", 4).coerceAtLeast(0),
+            ),
             chapterTwoRewardsEnabled = config.getBoolean("progression.chapter_two_rewards_enabled", true),
             chapterTwoGoldCostsEnabled = config.getBoolean("progression.chapter_two_gold_costs_enabled", false)
         )

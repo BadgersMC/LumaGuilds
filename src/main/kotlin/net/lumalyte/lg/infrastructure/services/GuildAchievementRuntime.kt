@@ -35,6 +35,12 @@ internal class GuildAchievementRuntime(
      * member's stats on each start.
      */
     playtimeStore: net.lumalyte.lg.domain.values.MemberPlaytimeStore,
+    /**
+     * REQ-302: whether [participant]'s completion may pay [guildId]'s advancement XP. Guild-wide goals
+     * (level, playtime, members, age) have no single participant and are never checked.
+     */
+    private val xpEligibility: (participant: Player, guildId: UUID) -> net.lumalyte.lg.domain.values.AdvancementXpEligibility.Decision =
+        { _, _ -> net.lumalyte.lg.domain.values.AdvancementXpEligibility.Decision.ELIGIBLE },
 ) {
     internal val playtime = GuildPlaytime(plugin, members, playtimeStore)
     /** True while a member is being caught up on join, so reward-free completions stay private (REQ-229). */
@@ -183,10 +189,27 @@ internal class GuildAchievementRuntime(
             write(player, change.record)
             if (xp > 0) player.giveExp(xp)
             val guildId = guild(player.uniqueId)
-            val payouts = change.completed.associateWith { node -> guildId?.let { payGuild(it, node) } }
+            val held = mutableMapOf<String, net.lumalyte.lg.domain.values.AdvancementXpEligibility.Decision>()
+            val payouts = change.completed.associateWith { node ->
+                guildId?.let { guild ->
+                    val decision = if (node.guildXp > 0 && payoutId(guild, node.id) !in paidGuildXp) eligibility(player, guild) else null
+                    if (decision == net.lumalyte.lg.domain.values.AdvancementXpEligibility.Decision.UNKNOWN) warnUncheckable()
+                    // Only a shared connection holds XP back: a player can't hide their own address, so an
+                    // unreadable one means the proxy doesn't forward addresses, and must not stop all XP.
+                    if (decision == net.lumalyte.lg.domain.values.AdvancementXpEligibility.Decision.SHARED) {
+                        held[node.id] = decision
+                        null
+                    } else payGuild(guild, node)
+                }
+            }
             if (change.completed.isNotEmpty()) flush(player)
             if (change.completed.isNotEmpty()) projection.project(player, change.record)
-            change.completed.forEach { announce(player, it, broadcasts(payouts[it], joining)) }
+            change.completed.forEach { node ->
+                val decision = held[node.id]
+                announce(player, node, decision == null && broadcasts(payouts[node], joining), withheld = decision)
+                if (decision != null) plugin.logger.info(
+                    "Held guild XP for advancement ${node.id} (guild $guildId, completed by ${player.uniqueId}): ${decision.name.lowercase()} connection")
+            }
         } catch (error: Exception) {
             // Only a verified unchanged XP outcome is retryable. Ambiguous outcomes retain claimed IDs.
             if (Triple(player.totalExperience, player.level, player.exp) == oldXp) {
@@ -202,11 +225,17 @@ internal class GuildAchievementRuntime(
     }
 
     /** [public] celebrates to the server (toast, chat, Discord); otherwise only this member is told. */
-    private fun announce(player: Player, node: GuildAchievement, public: Boolean) {
+    private fun announce(player: Player, node: GuildAchievement, public: Boolean,
+        withheld: net.lumalyte.lg.domain.values.AdvancementXpEligibility.Decision? = null) {
         if (public) projection.celebrate(player, node.id)
         player.sendMessage(net.kyori.adventure.text.Component.text(
-            if (public) "Guild achievement: ${node.title}" else "Guild achievement: ${node.title} (your guild earned this earlier)",
+            if (public || withheld != null) "Guild achievement: ${node.title}" else "Guild achievement: ${node.title} (your guild earned this earlier)",
             net.kyori.adventure.text.format.NamedTextColor.GOLD,
+        ))
+        if (withheld != null) player.sendMessage(net.kyori.adventure.text.Component.text(
+            "This didn't earn your guild XP: another guild member online now is on the same connection. " +
+                "It will pay out when a member on a different connection completes it.",
+            net.kyori.adventure.text.format.NamedTextColor.GRAY,
         ))
         node.messages.forEach {
             player.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(it))
@@ -252,6 +281,19 @@ internal class GuildAchievementRuntime(
         val age = createdAt(guild)?.let { java.time.Duration.between(it, clock()).toDays().coerceIn(0L, Int.MAX_VALUE.toLong()).toInt() }
         return GuildTotals(progression.getGuildProgression(guild)?.currentLevel, hours, roster.size, age)
     }
+
+    @Volatile private var warnedUncheckable = false
+
+    private fun warnUncheckable() {
+        if (warnedUncheckable) return
+        warnedUncheckable = true
+        plugin.logger.warning("Guild advancement XP: a player's connection address can't be read (is the proxy forwarding " +
+            "real addresses?). The shared-connection check is skipped for such players until this is fixed.")
+    }
+
+    private fun eligibility(player: Player, guildId: UUID): net.lumalyte.lg.domain.values.AdvancementXpEligibility.Decision =
+        runCatching { xpEligibility(player, guildId) }
+            .getOrDefault(net.lumalyte.lg.domain.values.AdvancementXpEligibility.Decision.UNKNOWN)
 
     /** Each guild is paid once per advancement; the XP ledger rejects a repeated payout ID. */
     /** Null when [node] pays no guild XP, so there is no ledger entry to tell a first from a repeat. */
