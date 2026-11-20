@@ -1746,6 +1746,9 @@ command:
     untrust_all:
       does_not_exist: 'Claim <claim> does not have permission <permission> granted claim wide.'
       success: 'Permission <permission> has been revoked claim wide in claim <claim>.'
+  claim_override:
+    enabled: '<green>Claim override enabled.'
+    disabled: '<yellow>Claim override disabled.'
   claim_list:
     header: Claims
     no_claims: You have no claims. Interact with a bell to get started.
