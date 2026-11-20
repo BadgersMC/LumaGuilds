@@ -89,6 +89,9 @@ data class PrestigeRecord(
     val appliedAt: Instant,
 )
 
+/** REQ-301: an applied prestige and the guild-bank gold it cost. */
+data class AppliedPrestige(val record: PrestigeRecord, val feePaid: Long)
+
 /** A newly committed prestige as published to listeners (REQ-153). */
 data class PrestigeCompletion(
     val transactionId: UUID,

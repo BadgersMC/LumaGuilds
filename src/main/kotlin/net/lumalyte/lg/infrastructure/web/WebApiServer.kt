@@ -17,7 +17,9 @@ import java.util.concurrent.atomic.AtomicInteger
 class WebApiServer(
     private val plugin: JavaPlugin,
     private val config: WebApiConfig,
-    private val guildLeaderboardHandler: GuildLeaderboardHandler
+    private val guildLeaderboardHandler: GuildLeaderboardHandler,
+    /** REQ-301: the Hall of Prestige feed; null leaves the route unavailable. */
+    private val prestigeFeed: net.lumalyte.lg.infrastructure.web.handlers.PrestigeHallFeed? = null,
 ) {
     private val gson: Gson = GsonBuilder().disableHtmlEscaping().create()
     private var server: HttpServer? = null
@@ -32,6 +34,7 @@ class WebApiServer(
         val httpServer = HttpServer.create(InetSocketAddress(config.host, config.port), 0)
         httpServer.createContext("/api/leaderboards/guilds", ::handleGuildLeaderboard)
         httpServer.createContext("/api/community/guild-directory", ::handleGuildDirectory)
+        httpServer.createContext("/api/community/prestige", ::handlePrestige)
         httpServer.createContext("/api/health") { exchange ->
             respondJson(exchange, 200, mapOf("status" to "ok"))
         }
@@ -99,6 +102,31 @@ class WebApiServer(
             respondJson(exchange, 200, guildLeaderboardHandler.buildDirectoryPage(offset, limit, params["revision"]))
         } catch (_: Exception) {
             respondJson(exchange, 503, mapOf("error" to "directory_unavailable"))
+        }
+    }
+
+    // REQ-301: like the directory, this feed is never public, even when the leaderboard token is blank.
+    private fun handlePrestige(exchange: HttpExchange) {
+        try {
+            if (exchange.requestURI.path != "/api/community/prestige") {
+                respondJson(exchange, 404, mapOf("error" to "not_found")); return
+            }
+            if (exchange.requestMethod != "GET") {
+                respondJson(exchange, 405, mapOf("error" to "method_not_allowed")); return
+            }
+            if (config.bearerToken.isBlank() || !isAuthorized(exchange)) {
+                respondJson(exchange, 401, mapOf("error" to "unauthorized")); return
+            }
+            val feed = prestigeFeed ?: run { respondJson(exchange, 503, mapOf("error" to "prestige_unavailable")); return }
+            val bytes = net.lumalyte.lg.infrastructure.web.handlers.PrestigeHallFeed.GSON.toJson(feed.build())
+                .toByteArray(StandardCharsets.UTF_8)
+            exchange.responseHeaders.add("Content-Type", "application/json; charset=utf-8")
+            exchange.responseHeaders.add("Cache-Control", "no-store")
+            exchange.sendResponseHeaders(200, bytes.size.toLong())
+            exchange.responseBody.use { it.write(bytes) }
+        } catch (t: Exception) {
+            plugin.logger.warning("[WebApi] prestige feed failed: ${t.message}")
+            respondJson(exchange, 503, mapOf("error" to "prestige_unavailable"))
         }
     }
 

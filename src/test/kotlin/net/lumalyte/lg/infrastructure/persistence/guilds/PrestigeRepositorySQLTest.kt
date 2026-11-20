@@ -498,6 +498,18 @@ class PrestigeRepositorySQLTest : RewardSqlTestFixture() {
     }
 
     @Test
+    fun `REQ-301 applied lists every applied prestige with the fee it paid`() {
+        val subject = open()
+        val request = quote()
+        assertIs<PrestigeResult.Applied>(subject.repository.confirm(request) { null })
+        assertIs<PrestigeResult.Rejected>(subject.repository.confirm(quote()) { null })
+
+        val applied = subject.repository.applied().single()
+        assertEquals(subject.repository.history(guildId).single(), applied.record)
+        assertEquals(request.quotedFee, applied.feePaid)
+    }
+
+    @Test
     fun `history includes receipts made before this change in tier order`() {
         val subject = open()
         val first = subject.insertAppliedReceipt(enemyGuildId, 1, 1_000L)
