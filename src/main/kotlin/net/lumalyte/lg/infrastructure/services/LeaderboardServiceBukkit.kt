@@ -26,18 +26,7 @@ class LeaderboardServiceBukkit(
         LeaderboardType.WEEKLY_ACTIVITY -> ExtendedLeaderboardType.WEEKLY_ACTIVITY
     }
 
-    private fun ExtendedLeaderboardType.toSimple(): LeaderboardType = when (this) {
-        ExtendedLeaderboardType.GUILD_KILLS -> LeaderboardType.KILLS
-        ExtendedLeaderboardType.GUILD_DEATHS -> LeaderboardType.KILLS
-        ExtendedLeaderboardType.GUILD_LEVEL -> LeaderboardType.LEVEL
-        ExtendedLeaderboardType.GUILD_BANK_BALANCE -> LeaderboardType.LEVEL
-        ExtendedLeaderboardType.GUILD_CLAIM_COUNT -> LeaderboardType.LEVEL
-        ExtendedLeaderboardType.GUILD_MEMBER_COUNT -> LeaderboardType.LEVEL
-        ExtendedLeaderboardType.PLAYER_KILLS -> LeaderboardType.KILLS
-        ExtendedLeaderboardType.PLAYER_DEATHS -> LeaderboardType.KILLS
-        ExtendedLeaderboardType.PLAYER_KILL_STREAK -> LeaderboardType.KILLS
-        ExtendedLeaderboardType.WEEKLY_ACTIVITY -> LeaderboardType.WEEKLY_ACTIVITY
-    }
+    private fun ExtendedLeaderboardType.toSimple(): LeaderboardType = snapshotType
 
     // --- Leaderboard queries ---
 
@@ -306,7 +295,8 @@ class LeaderboardServiceBukkit(
                 periodStart = periodStart,
                 periodEnd = now,
                 data = data,
-                createdAt = now
+                createdAt = now,
+                period = period,
             )
 
             repository.saveLeaderboardSnapshot(snapshot)

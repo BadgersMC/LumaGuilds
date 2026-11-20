@@ -24,6 +24,8 @@ class GuildRepositorySQLite(
     private val storage: Storage<Database>,
     private val initialLevelXp: () -> Int,
 ) : GuildRepository {
+    private val logger = org.slf4j.LoggerFactory.getLogger(GuildRepositorySQLite::class.java)
+
     constructor(storage: Storage<Database>) : this(storage, {
         net.lumalyte.lg.domain.values.ProgressionCurve.from(net.lumalyte.lg.config.ProgressionConfig())
             .experienceForNextLevel(1)
@@ -156,7 +158,7 @@ class GuildRepositorySQLite(
                 false
             }
         } catch (e: Exception) {
-            println("WARN [GuildRepositorySQLite] Failed to check column existence: ${e.message}")
+            logger.warn("Failed to check column existence: ${e.message}")
             false
         }
     }
@@ -228,7 +230,7 @@ class GuildRepositorySQLite(
             val msg = e.message.orEmpty()
             if (!msg.contains("duplicate column", ignoreCase = true) &&
                 !msg.contains("already exists", ignoreCase = true)) {
-                println("WARN [GuildRepositorySQLite] Failed to add tracking_enabled column: $msg")
+                logger.warn("Failed to add tracking_enabled column: $msg")
             }
         }
     }
@@ -243,7 +245,7 @@ class GuildRepositorySQLite(
             val msg = e.message.orEmpty()
             if (!msg.contains("duplicate column", ignoreCase = true) &&
                 !msg.contains("already exists", ignoreCase = true)) {
-                println("WARN [GuildRepositorySQLite] Failed to add bank_frozen column: $msg")
+                logger.warn("Failed to add bank_frozen column: $msg")
             }
         }
     }
@@ -263,7 +265,7 @@ class GuildRepositorySQLite(
                 val msg = e.message.orEmpty()
                 if (!msg.contains("duplicate column", ignoreCase = true) &&
                     !msg.contains("already exists", ignoreCase = true)) {
-                    println("WARN [GuildRepositorySQLite] Failed to add ally home column: $msg")
+                    logger.warn("Failed to add ally home column: $msg")
                 }
             }
         }
@@ -278,7 +280,7 @@ class GuildRepositorySQLite(
             val msg = e.message.orEmpty()
             if (!msg.contains("duplicate column", ignoreCase = true) &&
                 !msg.contains("already exists", ignoreCase = true)) {
-                println("WARN [GuildRepositorySQLite] Failed to add gui_theme column: $msg")
+                logger.warn("Failed to add gui_theme column: $msg")
             }
         }
     }
@@ -299,9 +301,9 @@ class GuildRepositorySQLite(
                     "WHERE ally_home_world IN (${themes.joinToString(",") { "?" }})",
                 *themes.toTypedArray(),
             )
-            if (repaired > 0) println("INFO [GuildRepositorySQLite] Repaired $repaired guild row(s) written with shifted theme/ally-home columns")
+            if (repaired > 0) logger.info("Repaired $repaired guild row(s) written with shifted theme/ally-home columns")
         } catch (e: SQLException) {
-            println("WARN [GuildRepositorySQLite] Could not repair guild rows with shifted theme/ally-home columns: ${e.message}")
+            logger.warn("Could not repair guild rows with shifted theme/ally-home columns: ${e.message}")
         }
     }
 
@@ -348,7 +350,7 @@ class GuildRepositorySQLite(
                         if (trimmed.isEmpty()) null else try {
                             UUID.fromString(trimmed)
                         } catch (e: IllegalArgumentException) {
-                            println("WARN [GuildRepositorySQLite] Ignoring invalid allowed_ranks UUID '$trimmed' for guild '$guildId' home '$homeName': ${e.message}")
+                            logger.warn("Ignoring invalid allowed_ranks UUID '$trimmed' for guild '$guildId' home '$homeName': ${e.message}")
                             null
                         }
                     }
@@ -359,7 +361,7 @@ class GuildRepositorySQLite(
         } catch (e: SQLException) {
             // Table may not exist on a freshly upgraded plugin running against a stale DB.
             // Fall back to legacy columns by returning an empty map.
-            println("WARN [GuildRepositorySQLite] guild_homes preload failed (continuing with legacy columns): ${e.message}")
+            logger.warn("guild_homes preload failed (continuing with legacy columns): ${e.message}")
             return emptyMap()
         }
         return byGuild.mapValues { (_, m) -> GuildHomes(m.toMap()) }
@@ -529,14 +531,14 @@ class GuildRepositorySQLite(
                     if (trimmed.isEmpty()) null else try {
                         UUID.fromString(trimmed)
                     } catch (ex: IllegalArgumentException) {
-                        println("WARN [GuildRepositorySQLite] Ignoring invalid ally_home_allowed_guilds UUID '$trimmed' for guild '$id': ${ex.message}")
+                        logger.warn("Ignoring invalid ally_home_allowed_guilds UUID '$trimmed' for guild '$id': ${ex.message}")
                         null
                     }
                 }
                 .toSet()
         } catch (e: SQLException) {
             // Column may not exist yet on a freshly upgraded plugin running against a stale DB.
-            println("WARN [GuildRepositorySQLite] Failed to load ally_home_allowed_guilds for guild '$id': ${e.message}")
+            logger.warn("Failed to load ally_home_allowed_guilds for guild '$id': ${e.message}")
             emptySet()
         }
 
@@ -549,10 +551,8 @@ class GuildRepositorySQLite(
         }
 
         // Debug logging for vault data loading
-        println("DEBUG [GuildRepositorySQLite] Loading guild '$name'")
-        println("  vault_status from DB: '$vaultStatusStr' -> $vaultStatus")
-        println("  vault_chest_world from DB: '$vaultChestWorldStr'")
-        println("  vault_chest_location: $vaultChestLocation")
+        logger.debug("Loading guild '{}': vault_status '{}' -> {}, vault_chest_world '{}', vault_chest_location {}",
+            name, vaultStatusStr, vaultStatus, vaultChestWorldStr, vaultChestLocation)
 
         return Guild(
             id = id,
@@ -998,9 +998,8 @@ class GuildRepositorySQLite(
             val mainHome = guild.homes.defaultHome
 
             // Debug logging for vault updates
-            println("DEBUG [GuildRepositorySQLite] Updating guild '${guild.name}' (${guild.id})")
-            println("  vault_status: ${guild.vaultStatus.name}")
-            println("  vault_chest_location: ${guild.vaultChestLocation}")
+            logger.debug("Updating guild '{}' ({}): vault_status {}, vault_chest_location {}",
+                guild.name, guild.id, guild.vaultStatus.name, guild.vaultChestLocation)
 
             val rowsAffected = if (hasLfgColumns && hasTrackingColumn && hasBankFrozenColumn) {
                 storage.connection.executeUpdate(sql,
@@ -1162,7 +1161,7 @@ class GuildRepositorySQLite(
                 )
             }
 
-            println("  rows affected: $rowsAffected")
+            logger.debug("Guild {} update: {} row(s) affected", guild.id, rowsAffected)
 
             if (rowsAffected > 0) {
                 // Persist the full named-home map; legacy home_* columns above only cover the default home.
@@ -1173,7 +1172,7 @@ class GuildRepositorySQLite(
             }
             rowsAffected > 0
         } catch (e: SQLException) {
-            println("ERROR [GuildRepositorySQLite] Failed to update guild: ${e.message}")
+            logger.error("Failed to update guild: ${e.message}")
             e.printStackTrace()
             false
         }

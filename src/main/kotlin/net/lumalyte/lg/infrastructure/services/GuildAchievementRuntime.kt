@@ -29,8 +29,12 @@ internal class GuildAchievementRuntime(
      */
     private val guildXp: (guildId: UUID, amount: Int, payoutId: UUID) -> net.lumalyte.lg.domain.values.SystemAward =
         { _, _, _ -> net.lumalyte.lg.domain.values.SystemAward.PAID_NOW },
-    /** REQ-300: where each member's last known playtime is kept between restarts. */
-    playtimeStore: net.lumalyte.lg.domain.values.MemberPlaytimeStore = net.lumalyte.lg.domain.values.MemberPlaytimeStore.InMemory(),
+    /**
+     * REQ-300: where each member's last known playtime is kept between restarts. Required on
+     * purpose: an in-memory default would let a wiring that forgets it silently re-read every
+     * member's stats on each start.
+     */
+    playtimeStore: net.lumalyte.lg.domain.values.MemberPlaytimeStore,
 ) {
     internal val playtime = GuildPlaytime(plugin, members, playtimeStore)
     /** True while a member is being caught up on join, so reward-free completions stay private (REQ-229). */
