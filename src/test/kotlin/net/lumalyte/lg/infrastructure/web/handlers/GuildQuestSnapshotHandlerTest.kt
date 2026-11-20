@@ -39,6 +39,9 @@ class GuildQuestSnapshotHandlerTest {
         assertFalse(json.contains("claimActorId"))
         assertEquals("2026-W42", snapshot["currentWeekId"])
         assertEquals(true, snapshot["limited"])
+        // Kept for a check against the website's own validator (projectGuildQuests).
+        java.io.File("build/guildquests-feed-sample.json").apply { parentFile.mkdirs() }
+            .writeText(com.google.gson.GsonBuilder().serializeNulls().create().toJson(snapshot))
     }
     @Test fun `missing provider is unavailable rather than fabricated quests`() {
         assertNull(GuildQuestSnapshotHandler(null, mockk()).build())

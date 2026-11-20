@@ -114,8 +114,9 @@ web_api:
   port: 8123
   # If set, requests must include "Authorization: Bearer <token>".
   # Leave empty to disable auth (only safe behind firewall / loopback).
-  # The guild directory and the Hall of Prestige feed (/api/community/prestige,
-  # REQ-301) always need the token and are refused while it is empty.
+  # The website feeds always need the token and are refused while it is empty:
+  # /api/community/guild-directory, /api/community/prestige (REQ-301),
+  # /api/community/guildquests and /api/community/player-guilds?players=uuid,...
   bearer_token: ""
   leaderboard_limit_default: 10
   leaderboard_limit_max: 50

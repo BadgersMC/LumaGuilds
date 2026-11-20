@@ -26,6 +26,8 @@ class PublicPlayerGuildSnapshotSqlTest : RewardSqlTestFixture() {
     @Test fun `one database snapshot returns actual public membership and known empty player`() {
         val absent=UUID.randomUUID()
         val snapshot=PublicPlayerGuildSnapshotSql(storage).build(listOf(player,absent))
+        java.io.File("build/player-guilds-feed-sample.json").apply { parentFile.mkdirs() }
+            .writeText(com.google.gson.GsonBuilder().serializeNulls().create().toJson(snapshot))
         val items=snapshot["items"] as List<*>
         val row=items[0] as Map<*,*>
         val entry=(row["guildMemberships"] as List<*>).single() as Map<*,*>
