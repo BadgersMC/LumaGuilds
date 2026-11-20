@@ -19,6 +19,8 @@ import net.lumalyte.lg.application.results.common.TextValidationErrorResult
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.infrastructure.ChatInfoBuilder
 import net.lumalyte.lg.infrastructure.i18n.plain
+import net.lumalyte.lg.infrastructure.i18n.localizedClaimFlagNames
+import net.lumalyte.lg.infrastructure.i18n.localizedClaimPermissionNames
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import java.time.ZoneId
@@ -64,8 +66,8 @@ class NexusClaimInfoCommand(
         chatInfo.addRow(lang.msg("command.claim.info.row.creation_date", "creation_date" to dateTimeFormatter.format(claim.creationTime)))
         chatInfo.addRow(lang.msg("command.claim.info.row.partition_count", "partition_count" to getClaimPartitions.execute(claimId).count().toString()))
         chatInfo.addRow(lang.msg("command.claim.info.row.block_count", "block_count" to getClaimBlockCount.execute(claimId).toString()))
-        chatInfo.addRow(lang.msg("command.claim.info.row.flags", "flags" to getClaimFlags.execute(claimId).map { lang.msg(it.nameKey) }))
-        chatInfo.addRow(lang.msg("command.claim.info.row.default_permissions", "permissions" to getClaimPermissions.execute(claimId).map { lang.msg(it.nameKey) }))
+        chatInfo.addRow(lang.msg("command.claim.info.row.flags", "flags" to lang.localizedClaimFlagNames(getClaimFlags.execute(claimId))))
+        chatInfo.addRow(lang.msg("command.claim.info.row.default_permissions", "permissions" to lang.localizedClaimPermissionNames(getClaimPermissions.execute(claimId))))
         chatInfo.addRow(lang.msg("command.claim.info.row.trusted_users", "trusted_users" to getPlayersWithPermissionInClaim.execute(claimId).count().toString()))
         chatInfo.addSpace()
         player.sendMessage(chatInfo.create())
