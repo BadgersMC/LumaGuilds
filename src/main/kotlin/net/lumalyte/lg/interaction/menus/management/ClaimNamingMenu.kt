@@ -21,14 +21,13 @@ import org.bukkit.SoundCategory
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 import kotlin.getValue
 
 class ClaimNamingMenu(private val player: Player, private val menuNavigator: MenuNavigator,
-                        private val location: Location): Menu, KoinComponent {
-    private val lang: LangService by inject()
-    private val createClaim: CreateClaim by inject()
+                        private val location: Location, private val services: MenuServices): Menu {
+    private val lang: LangService by services.langService
+    private val createClaim: CreateClaim by services.createClaim
     private var name = ""
     private var isConfirming = false
 
@@ -75,7 +74,7 @@ class ClaimNamingMenu(private val player: Player, private val menuNavigator: Men
                         1.0f,
                         1.0f
                     )
-                    menuNavigator.openMenu(ClaimManagementMenu(menuNavigator, player, result.claim))
+                    menuNavigator.openMenu(ClaimManagementMenu(menuNavigator, player, result.claim, services = services))
                 }
 
                 is net.lumalyte.lg.application.results.claim.CreateClaimResult.LimitExceeded -> {

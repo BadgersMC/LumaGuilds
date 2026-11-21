@@ -33,21 +33,20 @@ import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 
 class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                          private var claim: Claim): Menu, KoinComponent {
-    private val lang: LangService by inject()
-    private val getClaimFlags: GetClaimFlags by inject()
-    private val getPlayersWithPermissionInClaim: GetPlayersWithPermissionInClaim by inject()
-    private val convertClaimToGuild: ConvertClaimToGuild by inject()
-    private val claimRepository: ClaimRepository by inject()
-    private val registerClaimMenuOpening: RegisterClaimMenuOpening by inject()
-    private val givePlayerClaimTool: GivePlayerClaimTool by inject()
-    private val givePlayerMoveTool: GivePlayerMoveTool by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
-    private val claimManagementAuthorizer: ClaimManagementAuthorizer by inject()
+                          private var claim: Claim, private val services: MenuServices): Menu {
+    private val lang: LangService by services.langService
+    private val getClaimFlags: GetClaimFlags by services.getClaimFlags
+    private val getPlayersWithPermissionInClaim: GetPlayersWithPermissionInClaim by services.getPlayersWithPermissionInClaim
+    private val convertClaimToGuild: ConvertClaimToGuild by services.convertClaimToGuild
+    private val claimRepository: ClaimRepository by services.claimRepository
+    private val registerClaimMenuOpening: RegisterClaimMenuOpening by services.registerClaimMenuOpening
+    private val givePlayerClaimTool: GivePlayerClaimTool by services.givePlayerClaimTool
+    private val givePlayerMoveTool: GivePlayerMoveTool by services.givePlayerMoveTool
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by services.menuFactory
+    private val claimManagementAuthorizer: ClaimManagementAuthorizer by services.claimManagementAuthorizer
 
     override fun open() {
         val playerId = player.uniqueId
@@ -87,7 +86,7 @@ class ClaimManagementMenu(private val menuNavigator: MenuNavigator, private val 
             .lore(lang.gui("menu.management.item.rename.lore"))
         val guiRenamingItem = GuiItem(renamingItem) {
             if (claimManagementAuthorizer.hasPermission(playerId, claim, RankPermission.MANAGE_CLAIMS)) {
-                menuNavigator.openMenu(ClaimRenamingMenu(menuNavigator, player, claim))
+                menuNavigator.openMenu(ClaimRenamingMenu(menuNavigator, player, claim, services = services))
             } else player.sendMessage(lang.msg("command.common.no_claim_permission"))
         }
         pane.addItem(guiRenamingItem, 3, 0)

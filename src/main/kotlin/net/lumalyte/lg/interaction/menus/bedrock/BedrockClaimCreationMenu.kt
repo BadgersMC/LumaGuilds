@@ -17,7 +17,7 @@ class BedrockClaimCreationMenu(
     player: Player,
     logger: Logger,
     private val lang: LangService,
-    dependencies: BedrockMenuDependencies? = null,
+    dependencies: BedrockMenuDependencies,
 ) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
 
     override fun getForm(): Form {

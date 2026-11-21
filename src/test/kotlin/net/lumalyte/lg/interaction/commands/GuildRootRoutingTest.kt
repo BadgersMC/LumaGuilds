@@ -41,7 +41,7 @@ class GuildRootRoutingTest {
         every { factory.createGuildControlPanelMenu(any(), player, guild) } returns menu
         startKoin { modules(module { single { guilds }; single { ranks }; single { overrides }; single { factory }; single { lang } }) }
         player.addAttachment(plugin, "lumaguilds.guild.menu", true)
-        BukkitCommandManager(plugin).registerCommand(GuildCommand())
+        BukkitCommandManager(plugin).registerCommand(net.lumalyte.lg.interaction.testListenerGuildCommand())
         for (command in listOf("guild", "g", "guild menu")) {
             clearMocks(menu, answers = false)
             server.dispatchCommand(player, command)

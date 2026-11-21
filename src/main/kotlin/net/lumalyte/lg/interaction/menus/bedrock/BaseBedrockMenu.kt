@@ -13,8 +13,6 @@ import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.bukkit.scheduler.BukkitRunnable
 import org.geysermc.floodgate.api.FloodgateApi
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import java.util.logging.Logger
@@ -26,8 +24,8 @@ abstract class BaseBedrockMenu(
     protected val menuNavigator: MenuNavigator,
     protected val player: Player,
     protected val logger: Logger,
-    private val dependencies: BedrockMenuDependencies? = null,
-) : Menu, BedrockMenu, KoinComponent {
+    private val dependencies: BedrockMenuDependencies,
+) : Menu, BedrockMenu {
 
     companion object {
         // Track active forms and their timeout tasks
@@ -65,26 +63,16 @@ abstract class BaseBedrockMenu(
 
     private val openGeneration = AtomicLong()
 
-    // Compatibility delegates are evaluated only for legacy menu instances.
-    // Explicit Nexus-created menus never query Koin.
-    private val legacyMenuFactory: MenuFactory by inject()
-    private val legacyLocalization: BedrockLocalizationService by inject()
-    private val legacyPlugin: Plugin by inject()
-    private val legacyLang: LangService by inject()
-    private val legacyCache: net.lumalyte.lg.application.services.FormCacheService by inject()
-    private val legacyValidation: net.lumalyte.lg.application.services.FormValidationService by inject()
-    private val legacyConfig: net.lumalyte.lg.application.services.ConfigService by inject()
-
-    protected val menuFactory get() = dependencies?.menuFactory ?: legacyMenuFactory
-    protected val bedrockLocalization get() = dependencies?.localization ?: legacyLocalization
-    private val plugin get() = dependencies?.plugin ?: legacyPlugin
-    private val lang get() = dependencies?.lang ?: legacyLang
-    protected val formCacheService get() = dependencies?.cache ?: legacyCache
-    protected val formValidationService get() = dependencies?.validation ?: legacyValidation
+    protected val menuFactory get() = dependencies.menuFactory
+    protected val bedrockLocalization get() = dependencies.localization
+    private val plugin get() = dependencies.plugin
+    private val lang get() = dependencies.lang
+    protected val formCacheService get() = dependencies.cache
+    protected val formValidationService get() = dependencies.validation
 
     /** Explicit dependencies for converted forms and the child forms they construct (REQ-NEXUS-DI-1). */
     protected val bedrockDependencies: BedrockMenuDependencies
-        get() = checkNotNull(dependencies) { "Bedrock menu dependencies were not supplied" }
+        get() = dependencies
 
     /** Typed lazy collaborators for converted forms; resolved through the explicit menu factory. */
     protected val services: net.lumalyte.lg.interaction.menus.MenuServices
@@ -95,7 +83,7 @@ abstract class BaseBedrockMenu(
      */
     protected fun getBedrockConfig(): BedrockConfig {
         return try {
-            (dependencies?.config ?: legacyConfig).loadConfig().bedrock
+            dependencies.config.loadConfig().bedrock
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Could not load Bedrock config, using defaults: ${e.message}")

@@ -98,7 +98,7 @@ class LumaGuildsCommandTest {
         }
 
         // Create command
-        command = LumaGuildsCommand({ xpTasks.add(it) }, { xpReplies.add(it) })
+        command = LumaGuildsCommand(net.lumalyte.lg.interaction.testListenerLumaGuildsCommandDependencies(), { xpTasks.add(it) }, { xpReplies.add(it) })
 
         // Create a mock player
         player = server.addPlayer("TestAdmin")
@@ -293,7 +293,7 @@ class LumaGuildsCommandTest {
     @Test
     fun xpScheduleRejected() {
         prepareXpGuild()
-        command = LumaGuildsCommand({ throw IllegalStateException(SCHEDULER_DISABLED) }, { xpReplies.add(it) })
+        command = LumaGuildsCommand(net.lumalyte.lg.interaction.testListenerLumaGuildsCommandDependencies(), { throw IllegalStateException(SCHEDULER_DISABLED) }, { xpReplies.add(it) })
         submitXp()
         verify(exactly = 0) { progressionService.awardUncappedSystemExperienceOnce(any(), any(), any(), any()) }
         assertTrue(player.nextMessage()?.contains("No award was attempted") == true)
@@ -304,7 +304,7 @@ class LumaGuildsCommandTest {
     fun xpReplyRejected() {
         prepareXpGuild()
         every { progressionService.awardUncappedSystemExperienceOnce(any(), any(), any(), any()) } returns true
-        command = LumaGuildsCommand({ xpTasks.add(it) }, { throw IllegalStateException(SCHEDULER_DISABLED) })
+        command = LumaGuildsCommand(net.lumalyte.lg.interaction.testListenerLumaGuildsCommandDependencies(), { xpTasks.add(it) }, { throw IllegalStateException(SCHEDULER_DISABLED) })
         submitXp()
         xpTasks.remove().run()
         verify(exactly = 1) { progressionService.awardUncappedSystemExperienceOnce(any(), any(), any(), any()) }

@@ -51,7 +51,9 @@ internal class RecruitmentControllerFlowTest {
     private val override = mockk<net.lumalyte.lg.application.services.AdminOverrideService>(relaxed = true)
     private var allowed = true
     private var published = RecruitmentProfile(guild.id, RecruitmentMode.IN_GAME, ORIGINAL_PITCH)
-    private val controller = RecruitmentController(player, {})
+    private val controller by lazy {
+        RecruitmentController(player, {}, services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices())
+    }
 
     @BeforeEach
     fun prepare() {
@@ -188,7 +190,7 @@ internal class RecruitmentControllerFlowTest {
         every { player.server.logger } returns java.util.logging.Logger.getAnonymousLogger()
         val menu = mockk<net.lumalyte.lg.interaction.menus.Menu>(relaxed = true)
         every { factory.createLfgBrowserMenu(any(), player) } returns menu
-        net.lumalyte.lg.interaction.commands.GuildCommand().onJoin(player, guild.name)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onJoin(player, guild.name)
         verify { menu.passData(payable) }
         verify { menu.open() }
         verify(exactly = 0) { lfg.joinGuild(any(), any()) }

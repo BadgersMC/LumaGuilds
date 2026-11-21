@@ -69,7 +69,7 @@ internal class GuildStallMenuSafetyTest {
         val client = mockk<GuildStallReadService>()
         every { client.read(guild.id, player.uniqueId) } returns pending
         navigator = MenuNavigator(player)
-        menu = GuildStallMenu(navigator, player, guild, false, client)
+        menu = GuildStallMenu(navigator, player, guild, false, client = client, services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices())
         navigator.openMenu(menu)
     }
 

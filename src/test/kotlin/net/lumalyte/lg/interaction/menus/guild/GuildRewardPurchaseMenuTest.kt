@@ -91,7 +91,9 @@ class GuildRewardPurchaseMenuTest {
     }
 
     private fun bedrock() = BedrockRewardPurchaseMenu(mockk<MenuNavigator>(relaxed = true), player,
-        quote, "Bank I", { returned++ }, Logger.getLogger("RewardPurchaseMenuTest"))
+        quote, "Bank I", { returned++ }, Logger.getLogger("RewardPurchaseMenuTest"),
+        dependencies = net.lumalyte.lg.interaction.menus.bedrock.bedrockWorkerLegacyDependencies(),
+)
 
     private fun respond(form: ModalForm, response: String) {
         val definition: FormDefinition<ModalForm, *, *> = FormDefinitions.instance().definitionFor(form)

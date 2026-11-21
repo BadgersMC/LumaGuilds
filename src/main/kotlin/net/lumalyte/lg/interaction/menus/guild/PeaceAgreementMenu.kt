@@ -27,8 +27,7 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
@@ -40,14 +39,15 @@ class PeaceAgreementMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private var guild: Guild,
+    private val services: MenuServices,
     private var targetGuild: Guild? = null
-) : Menu, KoinComponent, ChatInputHandler {
+) : Menu, ChatInputHandler {
 
-    private val warService: WarService by inject()
-    private val guildService: GuildService by inject()
-    private val memberService: net.lumalyte.lg.application.services.MemberService by inject()
-    private val chatInputListener: ChatInputListener by inject()
-    private val lang: LangService by inject()
+    private val warService: WarService by services.warService
+    private val guildService: GuildService by services.guildService
+    private val memberService: net.lumalyte.lg.application.services.MemberService by services.memberService
+    private val chatInputListener: ChatInputListener by services.chatInputListener
+    private val lang: LangService by services.langService
     private val logger = LoggerFactory.getLogger(PeaceAgreementMenu::class.java)
 
     // State for input handling

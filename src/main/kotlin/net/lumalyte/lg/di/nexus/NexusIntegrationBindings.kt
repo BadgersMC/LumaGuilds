@@ -51,15 +51,11 @@ private const val APOLLO_PLUGIN_NAME = "Apollo-Bukkit"
  * is live. The status line belongs to the live cutover / listener-registration step.
  *
  * Cutover blockers (not refactored in this tranche):
- *  - LumaGuildsExpansion is a KoinComponent (`by inject()` for ~15 services); resolving it
- *    from Nexus only constructs the object, its injected properties still read Koin.
- *  - GuildTeamListener reads GuildNotificationService through
- *    `org.koin.core.context.GlobalContext.get().getOrNull(...)` inside an event handler.
- *  - LumaGuilds.initialiseApollo() resolves LunarClientService and the listeners from Koin.
+ * Optional event collaborators are supplied through typed callbacks and remain unresolved until use.
  */
 internal fun NexusContext.registerIntegrationBindings(plugin: LumaGuilds) {
     // PlaceholderAPI expansion: lazy; PlaceholderAPI registration is left to plugin startup.
-    integrationSingleton { LumaGuildsExpansion() }
+    integrationSingleton { nexusLumaGuildsExpansion() }
 
     val apolloAvailable = try {
         Bukkit.getPluginManager().getPlugin(APOLLO_PLUGIN_NAME) != null
@@ -89,7 +85,8 @@ internal fun NexusContext.registerIntegrationBindings(plugin: LumaGuilds) {
                 memberService = getBean<MemberService>(),
                 // Koin getOrNull(): null when waypoints are disabled (bean never registered).
                 guildWaypointService = optionalGuildWaypointService(),
-            )
+            guildNotificationService = { if (containsBean("guildNotificationService")) getBean<net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService>() else null },
+        )
         }
     }
 

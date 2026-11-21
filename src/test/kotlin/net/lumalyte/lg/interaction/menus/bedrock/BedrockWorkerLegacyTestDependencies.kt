@@ -20,10 +20,15 @@ internal fun bedrockWorkerLegacyDependencies(): BedrockMenuDependencies {
         every { it.loadConfig() } returns MainConfig()
     }
     val lang = koin.get<LangService>()
-    val factory = MenuFactory(
+    val configuredFactory = koin.getOrNull<MenuFactory>()
+    val factory = configuredFactory ?: MenuFactory(
         mockk<PlatformDetectionService>(relaxed = true), config, Logger.getAnonymousLogger(), lang,
         menuServicesProvider = { owner -> koin.scopeRegistry.rootScope.legacyMenuServices(owner) },
     )
+    if (configuredFactory != null && io.mockk.isMockKMock(configuredFactory)) {
+        val services = koin.getScope("_root_").legacyMenuServices(configuredFactory)
+        every { configuredFactory.menuServices } returns services
+    }
     return BedrockMenuDependencies(
         menuFactory = factory,
         localization = koin.getOrNull() ?: mockk(relaxed = true),

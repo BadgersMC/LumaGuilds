@@ -59,7 +59,7 @@ class LumaGuildsExpansionGuildRankTest {
         every { rankService.getRank(officerRankId) } returns
             Rank(officerRankId, guildId, "Officer")
 
-        val expansion = LumaGuildsExpansion()
+        val expansion = net.lumalyte.lg.interaction.testListenerLumaGuildsExpansion()
 
         assertEquals("Owner", expansion.onPlaceholderRequest(player, "guild_rank"))
         assertEquals("Officer", expansion.onPlaceholderRequest(player, "guild_rank"))

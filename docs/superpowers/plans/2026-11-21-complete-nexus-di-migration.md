@@ -23,8 +23,8 @@ Scan: `grep -rn KoinComponent src/{main,test}/kotlin`, lines classified as impor
 | `import org.koin.core.component.KoinComponent` | 178 | 7 |
 | Comment mentions (`NexusIntegrationBindings.kt:54`, `NexusVaultBindings.kt:58`) | 2 | 0 |
 | Other (test assertions that a class is *not* a KoinComponent) | 0 | 10 |
-| **All `KoinComponent` tokens** | **320 in 182 files** | 17 in 7 files |
-| `by inject()` delegates | 883 lines in 208 files | – |
+| **All `KoinComponent` tokens** | **320 in 181 files** | 17 in 8 files |
+| `by inject()` delegates | 883 lines in 205 files | – |
 | `GlobalContext` / `getKoin()` lookups outside `di/Modules.kt` | MenuFactory 24, LumaGuilds 3, LumaGuildsCommand 4, GuildSettingsMenu 2, GuildChronicleMenu 2, GuildDashboard 1, GuildProgressionMenu 1, BedrockGuildSettingsMenu 1, GuildCommand 1, ProgressionEventListener 1, GuildTeamListener 1 | – |
 
 26 Bedrock forms use `by inject()` without naming `KoinComponent` (they inherit it from `BaseBedrockMenu`), so the
@@ -34,7 +34,7 @@ Baseline Java 25 `clean test` at `acf5898c`: **2,695 tests, 0 failures, 0 errors
 
 ## Design (follows ClaimPlayerMenu / BedrockMenuDependencies / MenuFactory providers)
 
-1. **`MenuServices`** (`interaction/menus/MenuServices.kt`): one explicit class whose 98 constructor properties are
+1. **`MenuServices`** (`interaction/menus/MenuServices.kt`): one explicit class whose 100 constructor properties are
    `Lazy<T>` for the exact types the menus injected (generated from the inventory). `by inject()` becomes
    `by services.<name>` – identical lazy first-use timing, so claim-only services stay unresolved while claims
    are disabled and no new startup cycles appear. Optional lookups keep `…OrNull` lazies. No generic lookup.
@@ -64,7 +64,7 @@ Integrator-owned shared roots (workers return patches, never commit them): `Luma
 | listeners | `swarm/nexus-complete-listeners-20261121` | 28 ACF commands, 15 interaction listeners, 6 infrastructure listeners, 3 services, 1 placeholder | 12,362 |
 
 Exact file lists: `D:/BadgersMC-Dev/LumaGuilds-Nexus-swarm-20261121/workers/<worker>.manifest` (206 files, no
-overlap; union + 4 shared roots = 211 inventory files). Known cross-partition construction edges, resolved by the
+overlap; union + 5 shared roots = 211 inventory files). Known cross-partition construction edges, resolved by the
 integrator: `GuildCommand → GuildStrikePenaltyMenu` (listeners→java-b), `VaultInventoryListener → GoldWithdrawMenu`
 (listeners→java-a), `BedrockGuildRecruitmentMenu → RecruitmentController` (bedrock→java-b).
 
@@ -83,4 +83,36 @@ integrator: `GuildCommand → GuildStrikePenaltyMenu` (listeners→java-b), `Vau
 
 | Tranche | Commit | KoinComponent decl / import / comment | `by inject()` | Full suite | CI |
 |---|---|---|---|---|---|
-| baseline | `acf5898c` | 140 / 178 / 2 | 883 | 2,695 pass, 106 skip | (existing) |
+| baseline | `acf5898c` | 140 / 178 / 2 | 883 | 2,695 total / 2,589 executed / 106 skipped | (existing) |
+
+
+## Completed consumer conversion and validation
+
+All four disjoint manifests completed: Java A, 39 files/40 classes; Java B, 45 files;
+Bedrock, 69 files; commands/listeners/services, 53 files. The initial 181 Kotlin files
+with 320 component occurrences now have zero production occurrences. The shared
+Bedrock base has no legacy interface or fallback, and its remaining three claim-form
+callers require explicit dependencies. Vault child menus receive a deferred typed bundle.
+
+The legacy PlaceholderAPI registration uses its explicit factory. Both claims modes
+resolve the real Koin graph. The original 80 claim bindings and role-resolver binding
+remain distinct from the 12 conditionally registered claim listeners. No domain or
+application implementation, checked localization keys, command/event annotations,
+SQL migrations, or production startup owner changed.
+
+- Combined integration selection: 663 tests, 143 suites, zero failures/errors/skips.
+- Full Java 25 `clean test --rerun`: 2,826 total, 521 suites, 2,720 executed,
+  106 skipped, zero failures/errors; exit 0 in 9m 31s.
+- All 1,610 source/build files remained frozen during the full run. SHA-256:
+  `6f82cec95a7e008c598533a4de38fb3865257a95819e10ea2a2514ca322e8cf2`.
+- The source guard failed before integration and passed afterward. The compiled
+  inheritance check confirms that Bedrock forms no longer inherit the old interface.
+- Semgrep source-pattern scan: 1,054 files, zero findings, zero scan errors.
+- Foundation `6df10cba` passed hosted Gradle and MariaDB in run `44909267615`.
+  The published integration checks are inspected separately on the exact PR #254 head.
+- Codacy remains an `ACTION_REQUIRED` quality gate. Koin/ACF startup remains
+  authoritative; Nexus activation and live client acceptance are deferred.
+
+Claude Code CLI prepared the inventory, shared foundation, isolated worktrees and
+regressions. Its five-hour usage limit was reached; Codex continued the conversions
+and integration. Worker edits and diagnostics remain in the external control directory.

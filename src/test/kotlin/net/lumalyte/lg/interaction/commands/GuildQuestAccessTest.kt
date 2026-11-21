@@ -40,7 +40,7 @@ class GuildQuestAccessTest {
         val menu = mockk<Menu>(relaxed = true)
         every { guilds.getPlayerGuilds(playerId) } returns setOf(guild)
         every { factory.createGuildQuestsMenu(any(), player, guild) } returns menu
-        GuildCommand().onQuests(player)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onQuests(player)
         verify(exactly = 1) { menu.open() }
         verify(exactly = 0) { factory.createGuildControlPanelMenu(any(), any(), any()) }
     }
@@ -48,7 +48,7 @@ class GuildQuestAccessTest {
     @Test fun `nonmember receives feedback without opening menu`() {
         every { guilds.getPlayerGuilds(playerId) } returns emptySet()
         every { lang.msg("command.migrated.guild.rename.you_are_not_in_a_guild") } returns Component.text("No guild")
-        GuildCommand().onQuests(player)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onQuests(player)
         verify(exactly = 1) { player.sendMessage(any<Component>()) }
         verify(exactly = 0) { factory.createGuildQuestsMenu(any(), any(), any()) }
     }

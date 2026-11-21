@@ -15,6 +15,7 @@ internal fun testMenuServices(
     fun <T : Any> pick(type: KClass<T>, create: () -> T): Lazy<T> =
         lazy { if (type in overrides) overrides[type] as T else create() }
     return MenuServices(
+        platformDetectionService = pick(net.lumalyte.lg.application.services.PlatformDetectionService::class) { mockk(relaxed = true) },
         acceptTransferRequest = pick(net.lumalyte.lg.application.actions.claim.transfer.AcceptTransferRequest::class) { mockk(relaxed = true) },
         adminOverrideService = pick(net.lumalyte.lg.application.services.AdminOverrideService::class) { mockk(relaxed = true) },
         bankAutomationService = pick(net.lumalyte.lg.application.services.BankAutomationService::class) { mockk(relaxed = true) },

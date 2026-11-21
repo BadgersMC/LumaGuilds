@@ -27,22 +27,21 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 // Locale keys stay literal so LocaleContractTest can see them.
 @Suppress("StringLiteralDuplication", "LibraryEntitiesShouldNotBePublic")
 class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                              private var guild: Guild): Menu, KoinComponent {
+                              private var guild: Guild, private val services: MenuServices): Menu {
 
-    private val partyService: PartyService by inject()
-    private val guildService: GuildService by inject()
-    private val memberService: MemberService by inject()
-    private val configService: ConfigService by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
-    private val lang: LangService by inject()
+    private val partyService: PartyService by services.partyService
+    private val guildService: GuildService by services.guildService
+    private val memberService: MemberService by services.memberService
+    private val configService: ConfigService by services.configService
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by services.menuFactory
+    private val lang: LangService by services.langService
 
     override fun open() {
         // Check if parties are enabled
@@ -290,7 +289,7 @@ class GuildPartyManagementMenu(private val menuNavigator: MenuNavigator, private
     }
 
     private fun openModerationMenu(party: Party) {
-        menuNavigator.openMenu(PartyModerationMenu(menuNavigator, player, guild, party))
+        menuNavigator.openMenu(PartyModerationMenu(menuNavigator, player, guild, party, services = services))
     }
 
     private fun openPartyListMenu() {

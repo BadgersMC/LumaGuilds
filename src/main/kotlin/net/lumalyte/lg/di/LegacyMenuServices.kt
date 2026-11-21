@@ -6,12 +6,13 @@ import org.koin.core.scope.Scope
 
 /**
  * Transitional legacy Koin wiring for [MenuServices] (REQ-NEXUS-DI-4). Every collaborator is resolved
- * from the Koin graph only when a menu first reads it, matching the former `by inject()` timing.
+ * from the Koin graph only when a menu first reads it, matching the former lazy collaborator timing.
  * Deleted at the Nexus cutover together with `coreModule()`.
  */
 internal fun Scope.legacyMenuServices(factory: MenuFactory): MenuServices {
     val scope = this
     return MenuServices(
+        platformDetectionService = lazy { scope.get<net.lumalyte.lg.application.services.PlatformDetectionService>() },
         acceptTransferRequest = lazy { scope.get<net.lumalyte.lg.application.actions.claim.transfer.AcceptTransferRequest>() },
         adminOverrideService = lazy { scope.get<net.lumalyte.lg.application.services.AdminOverrideService>() },
         bankAutomationService = lazy { scope.get<net.lumalyte.lg.application.services.BankAutomationService>() },

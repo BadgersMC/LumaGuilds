@@ -50,6 +50,7 @@ class VaultInventoryListener(
     private val progressionRepository: ProgressionRepository,
     bankService: Lazy<BankService>,
     lang: Lazy<LangService>,
+    private val menuServices: () -> net.lumalyte.lg.interaction.menus.MenuServices,
 ) : Listener {
 
     private val bankService: BankService by bankService
@@ -216,7 +217,7 @@ class VaultInventoryListener(
                     player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                     return
                 }
-                val depositMenu = GoldDepositMenu(plugin, player, guildId, guildName, vaultInventoryManager, transactionLogger, services = getKoin().get<net.lumalyte.lg.interaction.menus.MenuFactory>().menuServices)
+                val depositMenu = GoldDepositMenu(plugin, player, guildId, guildName, vaultInventoryManager, transactionLogger, services = menuServices())
                 depositMenu.open()
             }
             // Right Click: Open withdraw menu
@@ -227,7 +228,7 @@ class VaultInventoryListener(
                     player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                     return
                 }
-                val withdrawMenu = GoldWithdrawMenu(plugin, player, guildId, guildName, vaultInventoryManager, transactionLogger, services = getKoin().get<net.lumalyte.lg.interaction.menus.MenuFactory>().menuServices)
+                val withdrawMenu = GoldWithdrawMenu(plugin, player, guildId, guildName, vaultInventoryManager, transactionLogger, services = menuServices())
                 withdrawMenu.open()
             }
             else -> {

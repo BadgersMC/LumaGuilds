@@ -82,7 +82,7 @@ internal class GuildPartyReturnTest : GuildParentReturnFixture() {
         setField(creation, "partyName", "RaidNight")
         setField(creation, "restrictedRoles", mutableSetOf(role))
         val selection = traced(
-            GuildSelectionMenu(navigator, player, guild, mutableSetOf(guild.id, invited)), "selection", visits,
+            GuildSelectionMenu(navigator, player, guild, mutableSetOf(guild.id, invited), services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()), "selection", visits,
         )
         navigator.openMenu(dashboard(visits))
         navigator.openMenu(management)
@@ -110,14 +110,14 @@ internal class GuildPartyReturnTest : GuildParentReturnFixture() {
         val navigator = MenuNavigator(player)
         val visits = mutableListOf<String>()
         val management = management(navigator, visits)
-        val moderation = traced(PartyModerationMenu(navigator, player, guild, party), "moderation", visits)
+        val moderation = traced(PartyModerationMenu(navigator, player, guild, party, services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()), "moderation", visits)
         navigator.openMenu(dashboard(visits))
         navigator.openMenu(management)
         navigator.openMenu(moderation)
         click(paneFor(moderation, "addNavigationButtons"), 8, 5)
         assertEquals(1, field(moderation, "currentPage"))
         val detail = traced(
-            PlayerModerationMenu(navigator, player, guild, updated, participants.last().uniqueId), "detail", visits,
+            PlayerModerationMenu(navigator, player, guild, updated, participants.last().uniqueId, services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()), "detail", visits,
         )
         navigator.openMenu(detail)
         click(paneFor(detail, "addBackButton"), 4, 2)
@@ -136,7 +136,7 @@ internal class GuildPartyReturnTest : GuildParentReturnFixture() {
         }.toSet()
         every { guilds.getAllGuilds() } answers { available }
         every { members.getGuildMembers(any()) } returns emptySet()
-        val selection = GuildSelectionMenu(MenuNavigator(player), player, guild, mutableSetOf(guild.id))
+        val selection = GuildSelectionMenu(MenuNavigator(player), player, guild, mutableSetOf(guild.id), services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices())
         selection.open()
         assertEquals(45, visibleGuilds())
         click(paneFor(selection, "addNavigationButtons"), 8, 5)
@@ -156,10 +156,10 @@ internal class GuildPartyReturnTest : GuildParentReturnFixture() {
         val navigator = MenuNavigator(player)
         val visits = mutableListOf<String>()
         val party = Party(UUID.randomUUID(), "RaidNight", setOf(guild.id), player.uniqueId, createdAt = Instant.EPOCH)
-        val management = traced(GuildPartyManagementMenu(navigator, player, guild), "management", visits)
-        val moderation = traced(PartyModerationMenu(navigator, player, guild, party), "moderation", visits)
+        val management = traced(GuildPartyManagementMenu(navigator, player, guild, services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()), "management", visits)
+        val moderation = traced(PartyModerationMenu(navigator, player, guild, party, services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()), "moderation", visits)
         val detail = traced(
-            PlayerModerationMenu(navigator, player, guild, party, UUID.randomUUID()), "detail", visits,
+            PlayerModerationMenu(navigator, player, guild, party, UUID.randomUUID(), services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()), "detail", visits,
         )
         navigator.openMenu(dashboard(visits))
         navigator.openMenu(management)
@@ -182,13 +182,13 @@ internal class GuildPartyReturnTest : GuildParentReturnFixture() {
         every { members.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RELATIONS) } returns false
         val party = Party(UUID.randomUUID(), "RaidNight", setOf(guild.id), player.uniqueId, createdAt = Instant.EPOCH)
         val constructors: List<(MenuNavigator) -> Menu> = listOf(
-            { PartyModerationMenu(it, player, guild, party) },
-            { PlayerModerationMenu(it, player, guild, party, UUID.randomUUID()) },
+            { PartyModerationMenu(it, player, guild, party, services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()) },
+            { PlayerModerationMenu(it, player, guild, party, UUID.randomUUID(), services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()) },
         )
         constructors.forEach { create ->
             val navigator = MenuNavigator(player)
             val visits = mutableListOf<String>()
-            val management = traced(GuildPartyManagementMenu(navigator, player, guild), "management", visits)
+            val management = traced(GuildPartyManagementMenu(navigator, player, guild, services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()), "management", visits)
             every { factory.createGuildPartyManagementMenu(navigator, player, guild) } returns management
             val denied = spyk(create(navigator))
             navigator.openMenu(denied)

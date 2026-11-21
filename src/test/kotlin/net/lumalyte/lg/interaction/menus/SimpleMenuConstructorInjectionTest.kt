@@ -33,7 +33,7 @@ class SimpleMenuConstructorInjectionTest {
             this.bedrock.bedrockMenusEnabled = bedrock
             this.bedrock.forceBedrockMenus = bedrock
         }
-        return MenuFactory(mockk<PlatformDetectionService>(), config, Logger.getAnonymousLogger(), lang).apply {
+        return boundTestMenuFactory(mockk<PlatformDetectionService>(), config, Logger.getAnonymousLogger(), lang).apply {
             bindGettingStartedDependencies { factory ->
                 GuildGettingStartedNavigationDependencies(
                     mockk<GuildGettingStartedService>(),

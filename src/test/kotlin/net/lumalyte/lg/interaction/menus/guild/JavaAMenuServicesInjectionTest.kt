@@ -84,8 +84,19 @@ class JavaAMenuServicesInjectionTest {
         assertNull(GlobalContext.getOrNull(), "menus must never start or need a global Koin")
     }
 
-    private fun field(target: Any, name: String): Any? =
-        target.javaClass.getDeclaredField(name).apply { isAccessible = true }.get(target)
+    private fun field(target: Any, name: String): Any? {
+        val type = target.javaClass
+        type.declaredFields.firstOrNull { it.name == name }?.let {
+            return it.apply { isAccessible = true }.get(target)
+        }
+        // Kotlin can store a delegated collaborator as either a field or a synthetic accessor.
+        if (name.endsWith("\$delegate")) {
+            val property = name.removeSuffix("\$delegate").replaceFirstChar { it.uppercaseChar() }
+            return type.getDeclaredMethod("get${property}\$delegate", type)
+                .apply { isAccessible = true }.invoke(null, target)
+        }
+        error("Missing field $name on ${type.name}")
+    }
 
     private fun invoke(target: Any, name: String, vararg args: Any?): Any? =
         target.javaClass.declaredMethods.single { it.name == name && it.parameterCount == args.size }

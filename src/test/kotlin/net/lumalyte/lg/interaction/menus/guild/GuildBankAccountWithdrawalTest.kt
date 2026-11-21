@@ -262,7 +262,11 @@ internal class GuildBankAccountWithdrawalTest {
         val listener = net.lumalyte.lg.interaction.listeners.VaultInventoryListener(
             PluginKeys.getPlugin() as JavaPlugin, manager, mockk(relaxed = true),
             net.lumalyte.lg.config.VaultConfig(), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
-            mockk(relaxed = true))
+            mockk(relaxed = true),
+            lang = lazy { org.koin.core.context.GlobalContext.get().get<net.badgersmc.nexus.i18n.LangService>() },
+            bankService = lazy { org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.BankService>() },
+            menuServices = { net.lumalyte.lg.interaction.testListenerVaultMenuServices() },
+        )
         listener.javaClass.getDeclaredMethod("depositAllGold", org.bukkit.entity.Player::class.java,
             UUID::class.java, String::class.java).apply { isAccessible = true }.invoke(listener, player, guildId, "Test")
         assertEquals(1_040, balance)

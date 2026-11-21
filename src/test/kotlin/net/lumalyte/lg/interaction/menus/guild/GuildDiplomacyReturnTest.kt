@@ -18,10 +18,10 @@ internal class GuildDiplomacyReturnTest : GuildRankMenuFixture() {
         val constructors: List<(MenuNavigator) -> Menu> = listOf(
             { AlliesListMenu(it, player, guild, services = javaALegacyMenuServices()) },
             { EnemiesListMenu(it, player, guild, services = javaALegacyMenuServices()) },
-            { IncomingRequestsMenu(it, player, guild) },
-            { OutgoingRequestsMenu(it, player, guild) },
+            { IncomingRequestsMenu(it, player, guild, services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()) },
+            { OutgoingRequestsMenu(it, player, guild, services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()) },
             { AllianceRequestMenu(it, player, guild, services = javaALegacyMenuServices()) },
-            { TruceRequestMenu(it, player, guild) },
+            { TruceRequestMenu(it, player, guild, services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()) },
             { EnemyDeclarationMenu(it, player, guild, services = javaALegacyMenuServices()) },
         )
         constructors.forEach { create ->

@@ -311,6 +311,7 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
                 net.lumalyte.lg.interaction.menus.management.ClaimPlayerMenuDependencies(
                     lang = legacyScope.get<LangService>(),
                     getPlayersWithPermissionInClaim = legacyScope.get<GetPlayersWithPermissionInClaim>(),
+                    childMenuServices = { menuServices },
                 )
             }
             bindGettingStartedDependencies { factory ->
@@ -1050,6 +1051,7 @@ single {
             virtualDispatcher = get(named("VirtualDispatcher")),
             taskScope = get<CoroutineScope>(),
             provenanceOperations = get(),
+            lunarClientService = { getOrNull<net.lumalyte.lg.application.services.apollo.LunarClientService>() },
         )
     }
     single { net.lumalyte.lg.infrastructure.listeners.QuestProgressListener(get(), get(), get(), get(), get()) }
@@ -1298,7 +1300,10 @@ fun vaultModule() = module {
             get(),
             get(),
             get(),
-            get()
+            get(),
+            bankService = lazy { get<net.lumalyte.lg.application.services.BankService>() },
+            lang = lazy { get<net.badgersmc.nexus.i18n.LangService>() },
+            menuServices = { get<net.lumalyte.lg.interaction.menus.MenuFactory>().menuServices },
         )
     }
 }
@@ -1327,7 +1332,7 @@ fun utilitiesModule() = module {
  */
 fun integrationModule(plugin: LumaGuilds) = module {
     // PlaceholderAPI
-    singleOf(::LumaGuildsExpansion)
+    single { legacyLumaGuildsExpansion() }
 
     // Apollo Integration (Lunar Client)
     val apolloAvailable = try {
@@ -1357,8 +1362,9 @@ fun integrationModule(plugin: LumaGuilds) = module {
                 net.lumalyte.lg.infrastructure.listeners.apollo.GuildTeamListener(
                     guildTeamService = get(),
                     memberService = get(),
-                    guildWaypointService = getOrNull()
-                )
+                    guildWaypointService = getOrNull(),
+            guildNotificationService = { getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService>() },
+        )
             }
         }
 

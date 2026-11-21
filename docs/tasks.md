@@ -1099,7 +1099,7 @@ Menu audit follow-up (REQ-063):
     visual acceptance and mobile-accessible preview delivery remain outstanding.
 
 ## Nexus DI migration — complete KoinComponent removal (PR #254, 2026-11-21)
-- [~] **NEXUS-DI-COMPLETE** Convert every remaining KoinComponent / `by inject()` / global Koin lookup in production Kotlin to explicit constructor injection or typed lazy dependency bundles, wired in both the transitional Koin graph and the inert Nexus graph.
+- [x] **NEXUS-DI-COMPLETE** Convert every remaining KoinComponent / `by inject()` / global Koin lookup in production Kotlin to explicit constructor injection or typed lazy dependency bundles, wired in both the transitional Koin graph and the inert Nexus graph.
   - Tag: `TDD`
   - References: REQ-NEXUS-DI-1 through REQ-NEXUS-DI-5; `docs/NEXUS-MIGRATION.md`; plan and baseline manifest `docs/superpowers/plans/2026-11-21-complete-nexus-di-migration.md`.
-  - Evidence: recorded per tranche in the plan; Nexus activation, ACF removal and runtime acceptance remain separate gates.
+  - Evidence: all 181 initial component-token files and all 206 consumer-manifest files converted. Production component tokens and injection delegates: zero. Combined 663 tests pass; full Java 25 clean regression: 2,826 total / 2,720 executed / 106 skipped / zero failures/errors. Source-pattern scan: 1,054 files, zero findings/errors. Exact-head hosted CI is checked separately on PR #254. Nexus activation, ACF removal and real-client acceptance remain separate gates.

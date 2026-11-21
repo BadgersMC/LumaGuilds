@@ -38,6 +38,7 @@ internal fun NexusContext.registerProgressionListenerBindings() {
             virtualDispatcher = requireNotNull(dispatchers).virtualThread,
             taskScope = requireNotNull(scope) { "Nexus coroutine scope unavailable" },
             provenanceOperations = getBean<BlockProvenanceOperationQueue>(),
+            lunarClientService = { if (containsBean("lunarClientService")) getBean<net.lumalyte.lg.application.services.apollo.LunarClientService>() else null },
         )
     }
 }

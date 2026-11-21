@@ -37,25 +37,25 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 
 class EditToolMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                   private val partition: Partition? = null): Menu, KoinComponent {
-    private val lang: LangService by inject()
-    private val getVisualiserMode: GetVisualiserMode by inject()
-    private val toggleVisualiserMode: ToggleVisualiserMode by inject()
-    private val getClaimDetails: GetClaimDetails by inject()
-    private val getClaimBlockCount: GetClaimBlockCount by inject()
-    private val getClaimPartitions: GetClaimPartitions by inject()
-    private val displayVisualisation: DisplayVisualisation by inject()
-    private val clearVisualisation: ClearVisualisation by inject()
-    private val removePartition: RemovePartition by inject()
-    private val registerClaimMenuOpening: RegisterClaimMenuOpening by inject()
-    private val canRemovePartition: CanRemovePartition by inject()
-    private val doesPlayerHaveClaimOverride: DoesPlayerHaveClaimOverride by inject()
-    private val menuFactory: MenuFactory by inject()
-    private val claimManagementAuthorizer: ClaimManagementAuthorizer by inject()
+                   private val services: MenuServices,
+                   private val partition: Partition? = null): Menu {
+    private val lang: LangService by services.langService
+    private val getVisualiserMode: GetVisualiserMode by services.getVisualiserMode
+    private val toggleVisualiserMode: ToggleVisualiserMode by services.toggleVisualiserMode
+    private val getClaimDetails: GetClaimDetails by services.getClaimDetails
+    private val getClaimBlockCount: GetClaimBlockCount by services.getClaimBlockCount
+    private val getClaimPartitions: GetClaimPartitions by services.getClaimPartitions
+    private val displayVisualisation: DisplayVisualisation by services.displayVisualisation
+    private val clearVisualisation: ClearVisualisation by services.clearVisualisation
+    private val removePartition: RemovePartition by services.removePartition
+    private val registerClaimMenuOpening: RegisterClaimMenuOpening by services.registerClaimMenuOpening
+    private val canRemovePartition: CanRemovePartition by services.canRemovePartition
+    private val doesPlayerHaveClaimOverride: DoesPlayerHaveClaimOverride by services.doesPlayerHaveClaimOverride
+    private val menuFactory: MenuFactory by services.menuFactory
+    private val claimManagementAuthorizer: ClaimManagementAuthorizer by services.claimManagementAuthorizer
 
     override fun open() {
         val title = lang.guiTitle("menu.edit_tool.title")

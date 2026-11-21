@@ -1,5 +1,7 @@
 package net.lumalyte.lg.interaction
 
+import net.lumalyte.lg.di.legacyMenuServices
+
 /** Transitional legacy test fixtures; all service reads remain deferred until the original first use. */
 internal fun testListenerLumaGuildsExpansion(): net.lumalyte.lg.infrastructure.placeholders.LumaGuildsExpansion =
     net.lumalyte.lg.infrastructure.placeholders.LumaGuildsExpansion(
@@ -112,3 +114,9 @@ internal fun testListenerClaimPvpProtectionListener(): net.lumalyte.lg.interacti
         guildService = lazy { org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.GuildService>() },
     )
 
+internal fun testListenerVaultMenuServices(): net.lumalyte.lg.interaction.menus.MenuServices {
+    val koin = org.koin.core.context.GlobalContext.get()
+    val factory = koin.getOrNull<net.lumalyte.lg.interaction.menus.MenuFactory>()
+        ?: io.mockk.mockk<net.lumalyte.lg.interaction.menus.MenuFactory>(relaxed = true)
+    return koin.getScope("_root_").legacyMenuServices(factory)
+}

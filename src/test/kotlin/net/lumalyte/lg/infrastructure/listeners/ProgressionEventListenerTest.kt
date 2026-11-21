@@ -221,6 +221,7 @@ class ProgressionEventListenerTest {
             virtualDispatcher = Dispatchers.Unconfined,
             taskScope = taskScope,
             provenanceOperations = BlockProvenanceOperationQueue(Executor { it.run() }),
+            lunarClientService = { org.koin.core.context.GlobalContext.getOrNull()?.getOrNull<net.lumalyte.lg.application.services.apollo.LunarClientService>() },
         )
         return Fixture(listener, progressionService, player, taskScope)
     }

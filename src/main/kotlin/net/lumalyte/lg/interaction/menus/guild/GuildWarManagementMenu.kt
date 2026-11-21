@@ -28,8 +28,7 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -39,13 +38,13 @@ import java.util.*
 // Locale keys stay literal so LocaleContractTest can see them.
 @Suppress("StringLiteralDuplication", "LibraryEntitiesShouldNotBePublic")
 class GuildWarManagementMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                           private var guild: Guild): Menu, KoinComponent {
+                           private var guild: Guild, private val services: MenuServices): Menu {
 
-    private val warService: WarService by inject()
-    private val guildService: GuildService by inject()
-    private val seasonalElo: net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
-    private val lang: LangService by inject()
+    private val warService: WarService by services.warService
+    private val guildService: GuildService by services.guildService
+    private val seasonalElo: net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator by services.seasonalEloCoordinator
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by services.menuFactory
+    private val lang: LangService by services.langService
 
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(ZoneId.systemDefault())
 

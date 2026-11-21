@@ -9,6 +9,7 @@ import net.lumalyte.lg.interaction.menus.MenuServices
  * them, so optional claim/integration beans that are not registered are never requested at startup.
  */
 internal fun NexusContext.nexusMenuServices(factory: MenuFactory): MenuServices = MenuServices(
+        platformDetectionService = lazy { getBean<net.lumalyte.lg.application.services.PlatformDetectionService>() },
     acceptTransferRequest = lazy { getBean<net.lumalyte.lg.application.actions.claim.transfer.AcceptTransferRequest>() },
     adminOverrideService = lazy { getBean<net.lumalyte.lg.application.services.AdminOverrideService>() },
     bankAutomationService = lazy { getBean<net.lumalyte.lg.application.services.BankAutomationService>() },

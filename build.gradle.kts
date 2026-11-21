@@ -137,6 +137,9 @@ dependencies {
     // Lunar Client Apollo API
     compileOnly("com.lunarclient:apollo-api:1.2.3")
     compileOnly("com.lunarclient:apollo-extra-adventure4:1.2.3")
+    // Constructor/provider regressions exercise Apollo contracts without starting the optional plugin.
+    testRuntimeOnly("com.lunarclient:apollo-api:1.2.3")
+    testRuntimeOnly("com.lunarclient:apollo-extra-adventure4:1.2.3")
 
 }
 

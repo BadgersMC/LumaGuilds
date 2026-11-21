@@ -36,8 +36,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import net.kyori.adventure.text.Component
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 import java.time.Duration
 import java.util.*
 
@@ -45,19 +44,20 @@ class GuildWarDeclarationMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private var guild: Guild,
+    private val services: MenuServices,
     private var targetGuild: Guild? = null
-) : Menu, KoinComponent, ChatInputHandler {
+) : Menu, ChatInputHandler {
 
-    private val warService: WarService by inject()
-    private val guildService: GuildService by inject()
-    private val guildRepository: GuildRepository by inject()
-    private val memberService: MemberService by inject()
-    private val bankService: BankService by inject()
-    private val configService: ConfigService by inject()
-    private val seasonalElo: net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator by inject()
-    private val chatInputListener: ChatInputListener by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
-    private val lang: LangService by inject()
+    private val warService: WarService by services.warService
+    private val guildService: GuildService by services.guildService
+    private val guildRepository: GuildRepository by services.guildRepository
+    private val memberService: MemberService by services.memberService
+    private val bankService: BankService by services.bankService
+    private val configService: ConfigService by services.configService
+    private val seasonalElo: net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator by services.seasonalEloCoordinator
+    private val chatInputListener: ChatInputListener by services.chatInputListener
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by services.menuFactory
+    private val lang: LangService by services.langService
     
     // War configuration state
     private var selectedDuration: Duration = Duration.ofDays(7) // Default 7 days
@@ -688,12 +688,14 @@ class GuildWarDeclarationMenu(
         val objectivesMenu = WarObjectivesSelectionMenu(
             menuNavigator,
             player,
-            selectedObjectives
-        ) { updatedObjectives ->
-            // Callback: update the selected objectives
-            selectedObjectives.clear()
-            selectedObjectives.addAll(updatedObjectives)
-        }
+            selectedObjectives,
+            callback = { updatedObjectives ->
+                // Callback: update the selected objectives
+                selectedObjectives.clear()
+                selectedObjectives.addAll(updatedObjectives)
+            },
+            services = services,
+        )
         menuNavigator.openMenu(objectivesMenu)
     }
 
@@ -706,7 +708,8 @@ class GuildWarDeclarationMenu(
             callback = { selectedGuild ->
                 // Callback: set the selected guild as target
                 targetGuild = selectedGuild
-            }
+            },
+            services = services,
         )
         menuNavigator.openMenu(guildListMenu)
     }

@@ -50,10 +50,10 @@ class ClaimPvpProtectionListenerTest {
                 single { combatService }
                 single { getClaimAtPosition }
                 single { guildService }
-                single { ClaimPvpProtectionListener() }
+                single { net.lumalyte.lg.interaction.testListenerClaimPvpProtectionListener() }
             })
         }
-        listener = ClaimPvpProtectionListener()
+        listener = net.lumalyte.lg.interaction.testListenerClaimPvpProtectionListener()
     }
 
     // ---------- pipeline pieces ----------

@@ -33,19 +33,18 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 
 class RankEditMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                  private var guild: Guild, private var rank: Rank): Menu, KoinComponent, ChatInputHandler {
+                  private var guild: Guild, private var rank: Rank, private val services: MenuServices): Menu, ChatInputHandler {
 
-    private val rankService: RankService by inject()
-    private val adminOverrideService: AdminOverrideService by inject()
-    private val memberService: MemberService by inject()
-    private val chatInputListener: ChatInputListener by inject()
-    private val configService: ConfigService by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
-    private val lang: LangService by inject()
+    private val rankService: RankService by services.rankService
+    private val adminOverrideService: AdminOverrideService by services.adminOverrideService
+    private val memberService: MemberService by services.memberService
+    private val chatInputListener: ChatInputListener by services.chatInputListener
+    private val configService: ConfigService by services.configService
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by services.menuFactory
+    private val lang: LangService by services.langService
     
     // Edit state
     private var inputMode: String = "" // "name" or "icon"
@@ -498,7 +497,8 @@ class RankEditMenu(private val menuNavigator: MenuNavigator, private val player:
                 guild,
                 rank,
                 categoryName,
-                permissions
+                permissions,
+                services = services,
             )
         )
     }

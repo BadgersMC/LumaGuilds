@@ -26,7 +26,7 @@ internal class MenuFactoryLeaderboardTest {
         every { config.loadConfig() } returns MainConfig()
         every { platform.isCumulusAvailable() } returns true
         // Explicit services replace the former global-Koin lookup (REQ-NEXUS-DI-1); no Koin is started.
-        val factory = MenuFactory(
+        val factory = boundTestMenuFactory(
             platform, config, Logger.getAnonymousLogger(), lang,
             menuServicesProvider = { owner ->
                 testMenuServices(owner, mapOf(

@@ -19,14 +19,13 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 import kotlin.getValue
 
 class ClaimRenamingMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                        private val claim: Claim?): Menu, KoinComponent {
-    private val lang: LangService by inject()
-    private val updateClaimName: UpdateClaimName by inject()
+                        private val claim: Claim?, private val services: MenuServices): Menu {
+    private val lang: LangService by services.langService
+    private val updateClaimName: UpdateClaimName by services.updateClaimName
 
     private var name = ""
     private var isConfirming = false

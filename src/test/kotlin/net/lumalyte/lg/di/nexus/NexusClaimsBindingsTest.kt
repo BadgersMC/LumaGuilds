@@ -42,9 +42,16 @@ class NexusClaimsBindingsTest {
                 assertFalse("createClaim" in disabledNames)
                 assertFalse("playerStateRepository" in disabledNames)
                 val enabledOnly = enabledNames - disabledNames
-                assertEquals(81, enabledOnly.size) // 80 claimsModule + 1 guild-claims integration
-                assertTrue("guildRolePermissionResolver" in enabledOnly)
-                assertEquals(80, (enabledOnly - "guildRolePermissionResolver").size)
+                val claimListeners = setOf(
+                    "claimAnchorListener", "claimDestructionListener", "editToolListener", "editToolVisualisingListener",
+                    "harvestReplantListener", "moveToolListener", "partitionUpdateListener", "playerClaimProtectionListener",
+                    "claimPvpProtectionListener", "toolRemovalListener", "worldClaimProtectionListener", "closeInventoryListener",
+                )
+                assertTrue(claimListeners.all { it in enabledOnly }, "claim listeners must remain conditional")
+                val originalBindings = enabledOnly - claimListeners
+                assertEquals(81, originalBindings.size) // 80 claimsModule + 1 guild-claims integration
+                assertTrue("guildRolePermissionResolver" in originalBindings)
+                assertEquals(80, (originalBindings - "guildRolePermissionResolver").size)
                 assertTrue("createClaim" in enabledNames)
                 assertTrue("adminOverrideListener" in enabledNames)
                 assertTrue("playerStateRepository" in enabledNames)

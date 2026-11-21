@@ -24,7 +24,9 @@ internal abstract class RecruitmentDialogFixture {
             renderedPage = page
             true
         }
-    protected val controller = RecruitmentController(player, {})
+    protected val controller by lazy {
+        RecruitmentController(player, {}, services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices())
+    }
     protected var exits = 0
     protected var closes = 0
 

@@ -34,24 +34,24 @@ import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 import java.util.UUID
 
 class ClaimPlayerPermissionsMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                                 private val claim: Claim?, private val targetPlayer: OfflinePlayer?
-): Menu, KoinComponent {
-    private val lang: LangService by inject()
-    private val getPlayerClaimPermissions: GetClaimPlayerPermissions by inject()
-    private val grantAllPlayerClaimPermissions: GrantAllPlayerClaimPermissions by inject()
-    private val grantPlayerClaimPermission: GrantPlayerClaimPermission by inject()
-    private val revokePlayerClaimPermission: RevokePlayerClaimPermission by inject()
-    private val revokeAllPlayerClaimPermissions: RevokeAllPlayerClaimPermissions by inject()
-    private val canPlayerReceiveTransferRequest: CanPlayerReceiveTransferRequest by inject()
-    private val doesPlayerHaveTransferRequest: DoesPlayerHaveTransferRequest by inject()
-    private val offerPlayerTransferRequest: OfferPlayerTransferRequest by inject()
-    private val withdrawPlayerTransferRequest: WithdrawPlayerTransferRequest by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+                                 private val claim: Claim?, private val targetPlayer: OfflinePlayer?,
+                                 private val services: MenuServices,
+): Menu {
+    private val lang: LangService by services.langService
+    private val getPlayerClaimPermissions: GetClaimPlayerPermissions by services.getClaimPlayerPermissions
+    private val grantAllPlayerClaimPermissions: GrantAllPlayerClaimPermissions by services.grantAllPlayerClaimPermissions
+    private val grantPlayerClaimPermission: GrantPlayerClaimPermission by services.grantPlayerClaimPermission
+    private val revokePlayerClaimPermission: RevokePlayerClaimPermission by services.revokePlayerClaimPermission
+    private val revokeAllPlayerClaimPermissions: RevokeAllPlayerClaimPermissions by services.revokeAllPlayerClaimPermissions
+    private val canPlayerReceiveTransferRequest: CanPlayerReceiveTransferRequest by services.canPlayerReceiveTransferRequest
+    private val doesPlayerHaveTransferRequest: DoesPlayerHaveTransferRequest by services.doesPlayerHaveTransferRequest
+    private val offerPlayerTransferRequest: OfferPlayerTransferRequest by services.offerPlayerTransferRequest
+    private val withdrawPlayerTransferRequest: WithdrawPlayerTransferRequest by services.withdrawPlayerTransferRequest
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by services.menuFactory
 
     override fun open() {
         // Validate that claim and targetPlayer are provided

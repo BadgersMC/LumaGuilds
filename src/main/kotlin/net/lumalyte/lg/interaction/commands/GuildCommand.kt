@@ -1419,7 +1419,8 @@ class GuildCommand internal constructor(
         val menuNavigator = MenuNavigator(player)
         menuNavigator.openMenu(
             net.lumalyte.lg.interaction.menus.guild.GuildStrikePenaltyMenu(
-                menuNavigator, player, guild, strikesConfig
+                menuNavigator, player, guild, strikesConfig,
+                services = menuFactory.menuServices,
             )
         )
     }

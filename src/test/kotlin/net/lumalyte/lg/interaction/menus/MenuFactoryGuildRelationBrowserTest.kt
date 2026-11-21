@@ -29,7 +29,7 @@ class MenuFactoryGuildRelationBrowserTest {
         every { platform.isBedrockPlayer(player) } returns true
         every { platform.isCumulusAvailable() } returns true
         every { configService.loadConfig() } returns MainConfig()
-        val factory = MenuFactory(platform, configService, Logger.getAnonymousLogger(), mockk<LangService>())
+        val factory = boundTestMenuFactory(platform, configService, Logger.getAnonymousLogger(), mockk<LangService>())
 
         val menu = factory.createGuildRelationBrowserMenu(mockk(), player, guild, RelationType.ALLY)
 
@@ -44,7 +44,7 @@ class MenuFactoryGuildRelationBrowserTest {
         every { player.name } returns "JavaPlayer"
         every { platform.isBedrockPlayer(player) } returns false
         every { configService.loadConfig() } returns MainConfig()
-        val factory = MenuFactory(platform, configService, Logger.getAnonymousLogger(), mockk<LangService>())
+        val factory = boundTestMenuFactory(platform, configService, Logger.getAnonymousLogger(), mockk<LangService>())
 
         val menu = factory.createGuildRelationBrowserMenu(mockk(), player, guild, RelationType.ENEMY)
 

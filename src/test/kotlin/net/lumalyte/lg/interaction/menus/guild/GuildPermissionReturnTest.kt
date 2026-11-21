@@ -33,13 +33,13 @@ internal class GuildPermissionReturnTest : GuildParentReturnFixture() {
         val visits = mutableListOf<String>()
         val management = mockk<GuildRankManagementMenu>(relaxed = true)
         every { management.open() } answers { visits += "management"; Unit }
-        val editor = traced(RankEditMenu(navigator, player, guild, rank), "editor", visits)
+        val editor = traced(RankEditMenu(navigator, player, guild, rank, services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()), "editor", visits)
         navigator.openMenu(dashboard(visits))
         navigator.openMenu(management)
         navigator.openMenu(editor)
         every { ranks.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_RANKS) } returns false
         every { editor.open() } answers { callOriginal() }
-        navigator.openMenu(PermissionCategoryMenu(navigator, player, guild, rank, "Banking", emptyList()))
+        navigator.openMenu(PermissionCategoryMenu(navigator, player, guild, rank, "Banking", emptyList(), services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()))
         assertEquals("management", visits.last())
         navigator.goBack()
         assertEquals("dashboard", visits.last())
@@ -53,10 +53,10 @@ internal class GuildPermissionReturnTest : GuildParentReturnFixture() {
         val visits = mutableListOf<String>()
         val management = mockk<GuildRankManagementMenu>(relaxed = true)
         every { management.open() } answers { visits += "management"; Unit }
-        val editor = traced(RankEditMenu(navigator, player, guild, rank), "editor", visits)
+        val editor = traced(RankEditMenu(navigator, player, guild, rank, services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()), "editor", visits)
         setField(editor, "selectedIcon", Material.CHERRY_PLANKS)
         val category = traced(
-            PermissionCategoryMenu(navigator, player, guild, rank, "Banking", listOf(RankPermission.DEPOSIT_TO_BANK)),
+            PermissionCategoryMenu(navigator, player, guild, rank, "Banking", listOf(RankPermission.DEPOSIT_TO_BANK), services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()),
             "category", visits,
         )
         setField(category, "modifiedPermissions", mutableSetOf(RankPermission.DEPOSIT_TO_BANK))

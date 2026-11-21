@@ -55,10 +55,7 @@ private const val CLAIM_LOOKUP_BEAN = "getClaimAtPosition"
  * lookup happens at GuildVaultService's first construction, not at registration, so the
  * relative registration order of claims and vault bindings does not matter.
  *
- * Runtime note (not a registration concern): VaultInventoryListener is still a KoinComponent
- * and lazily injects BankService and LangService from Koin on first event handling. Its
- * construction here is safe, but it must not handle events in a Nexus-only runtime until
- * those two fields are constructor-injected.
+ * Listener collaborators are explicit and lazy; Bukkit registration remains runtime-owned.
  */
 internal fun NexusContext.registerVaultBindings() {
     // --- Repositories ---
@@ -116,6 +113,9 @@ internal fun NexusContext.registerVaultBindings() {
             getBean<MemberService>(),
             getBean<PlatformDetectionService>(),
             getBean<ProgressionRepository>(),
+            bankService = lazy { getBean<net.lumalyte.lg.application.services.BankService>() },
+            lang = lazy { getBean<net.badgersmc.nexus.i18n.LangService>() },
+            menuServices = { getBean<net.lumalyte.lg.interaction.menus.MenuFactory>().menuServices },
         )
     }
 }

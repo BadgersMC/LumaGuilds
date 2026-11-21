@@ -31,8 +31,7 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -47,26 +46,25 @@ class GuildSettingsMenu(
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory,
     private val configService: ConfigService,
     private val progressionService: ProgressionService,
-    private val progressionRepository: ProgressionRepository
-): Menu, KoinComponent {
+    private val progressionRepository: ProgressionRepository,
+    private val services: MenuServices,
+): Menu {
 
-    private val reconnectSettings: GuildChatReconnectSettingsService by inject()
-    private val lang: LangService by inject()
-    private val nexoEmojiService: NexoEmojiService by inject()
+    private val reconnectSettings: GuildChatReconnectSettingsService by services.guildChatReconnectSettingsService
+    private val lang: LangService by services.langService
+    private val nexoEmojiService: NexoEmojiService by services.nexoEmojiService
     private var settingsGroup: GuildSettingsGroup? = null
     private val settingsDialog by lazy { GuildSettingsDialog(lang) { guild.guiTheme } }
     private fun presentationDialog(): GuildPresentationSettingsDialog {
         val token = menuNavigator.currentNavigationToken()
         return GuildPresentationSettingsDialog(player, { guildService.getGuild(guild.id) ?: guild }, guildService,
-            getKoin().get(), lang,
+            services.guildRecruitmentService.value, lang,
             { menuNavigator.isNavigationCurrent(token) && guildService.getPlayerGuilds(player.uniqueId).any { it.id == guild.id } },
             { theme -> !theme.requiresUnlock || themeAccess?.isThemeAvailable(guild.id, theme) == true },
             { settingsGroup = GuildSettingsGroup.INFORMATION; open() }, { menuNavigator.goBack() })
     }
     // Holiday styles (REQ-121) are locked until earned; without the ledger they stay locked.
-    private val themeAccess by lazy {
-        getKoin().getOrNull<net.lumalyte.lg.application.services.GuildCosmeticUnlockService>()
-    }
+    private val themeAccess by services.guildCosmeticUnlockServiceOrNull
 
     override fun open() {
         if (guildService.getPlayerGuilds(player.uniqueId).none { it.id == guild.id }) {

@@ -14,7 +14,9 @@ import dev.rosewood.rosechat.lib.rosegarden.config.CommentedConfigurationSection
  * Registered in [LumaGuilds.onEnable] after Koin is initialised so that
  * guild/ally/modchat channels resolve from `channels.yml` on a delayed reload.
  */
-class LumaGuildsChannelProvider : ChannelProvider() {
+class LumaGuildsChannelProvider(
+    override val channelDependencies: LumaGuildsChannelDependencies,
+) : ChannelProvider(), LumaGuildsChannelDependencySource {
 
     override fun getSupportedPlugin(): String = "LumaGuilds"
 

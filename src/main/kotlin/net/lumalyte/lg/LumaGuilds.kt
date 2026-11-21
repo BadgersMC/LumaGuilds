@@ -11,7 +11,7 @@ import net.kyori.adventure.text.format.NamedTextColor
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.application.services.DailyWarCostsService
 import net.lumalyte.lg.application.services.accessibleHomeNames
-import net.lumalyte.lg.di.appModule
+import net.lumalyte.lg.di.*
 import net.lumalyte.lg.infrastructure.listeners.ProgressionEventListener
 import net.lumalyte.lg.infrastructure.persistence.migrations.MariaDBMigrations
 import net.lumalyte.lg.infrastructure.persistence.migrations.SQLiteMigrations
@@ -645,7 +645,7 @@ class LumaGuilds : JavaPlugin() {
     private fun initialisePlaceholderAPI() {
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             try {
-                val expansion = LumaGuildsExpansion()
+                val expansion = get().getScope("_root_").legacyLumaGuildsExpansion()
                 if (expansion.register()) {
                     logColored("✓ Successfully registered LumaGuilds PlaceholderAPI expansion!")
                     logColored("Available placeholders: %lumaguilds_guild_name%, %lumaguilds_guild_tag%, etc.")
@@ -878,57 +878,58 @@ class LumaGuilds : JavaPlugin() {
      * Registers claim-related commands.
      */
     private fun registerClaimCommands() {
-        commandManager.registerCommand(ClaimListCommand())
-        commandManager.registerCommand(ClaimCommand())
-        commandManager.registerCommand(InfoCommand())
-        commandManager.registerCommand(RenameCommand())
-        commandManager.registerCommand(DescriptionCommand())
-        commandManager.registerCommand(PartitionsCommand())
-        commandManager.registerCommand(AddFlagCommand())
-        commandManager.registerCommand(RemoveFlagCommand())
-        commandManager.registerCommand(TrustListCommand())
-        commandManager.registerCommand(TrustCommand())
-        commandManager.registerCommand(TrustAllCommand())
-        commandManager.registerCommand(UntrustCommand())
-        commandManager.registerCommand(UntrustAllCommand())
-        commandManager.registerCommand(RemoveCommand())
-        commandManager.registerCommand(ClaimOverrideCommand())
-        commandManager.registerCommand(ClaimMenuCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyClaimListCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyClaimCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyInfoCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyRenameCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyDescriptionCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyPartitionsCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyAddFlagCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyRemoveFlagCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyTrustListCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyTrustCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyTrustAllCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyUntrustCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyUntrustAllCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyRemoveCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyClaimOverrideCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyClaimMenuCommand())
     }
 
     /**
      * Registers non-claim commands (guilds, etc.).
      */
     private fun registerNonClaimCommands() {
-        commandManager.registerCommand(GuildCommand())
-        commandManager.registerCommand(PartyChatCommand())
-        commandManager.registerCommand(QuickGuildChatCommand())
-        commandManager.registerCommand(QuickAllyChatCommand())
-        commandManager.registerCommand(QuickModChatCommand())
-        commandManager.registerCommand(QuickAnnounceCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyGuildCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyPartyChatCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyQuickGuildChatCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyQuickAllyChatCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyQuickModChatCommand())
+        commandManager.registerCommand(get().getScope("_root_").legacyQuickAnnounceCommand())
         commandManager.registerCommand(
-            net.lumalyte.lg.interaction.commands
-                .FullscreenAnnounceCommand(),
+            get().getScope("_root_").legacyFullscreenAnnounceCommand(),
         )
 
         // Register LumaGuilds admin command
-        getCommand("lumaguilds")?.setExecutor(LumaGuildsCommand())
-        getCommand("lumaguilds")?.tabCompleter = LumaGuildsCommand()
+        getCommand("lumaguilds")?.setExecutor(get().getScope("_root_").legacyLumaGuildsCommand())
+        getCommand("lumaguilds")?.tabCompleter = get().getScope("_root_").legacyLumaGuildsCommand()
 
         // Register Bedrock cache stats command
-        getCommand("bedrockcachestats")?.setExecutor(BedrockCacheStatsCommand())
+        getCommand("bedrockcachestats")?.setExecutor(get().getScope("_root_").legacyBedrockCacheStatsCommand())
 
         // Register Vault Rollback admin command
         val vaultRollbackCommand = net.lumalyte.lg.interaction.commands.admin.VaultRollbackCommand(
             get().get(),
-            get().get()
+            get().get(),
+            lang = lazy { get().get<net.badgersmc.nexus.i18n.LangService>() },
         )
         getCommand("vaultrollback")?.setExecutor(vaultRollbackCommand)
         getCommand("vaultrollback")?.tabCompleter = vaultRollbackCommand
 
         // Register Bank Credit admin command
         val bankCreditCommand = net.lumalyte.lg.interaction.commands.admin.BankCreditCommand(
-            get().get()
+            get().get(),
+            lang = lazy { get().get<net.badgersmc.nexus.i18n.LangService>() },
         )
         getCommand("bankcredit")?.setExecutor(bankCreditCommand)
         getCommand("bankcredit")?.tabCompleter = bankCreditCommand
@@ -936,7 +937,8 @@ class LumaGuilds : JavaPlugin() {
         // Register Remove Vault admin command
         val removeVaultCommand = net.lumalyte.lg.interaction.commands.admin.RemoveVaultCommand(
             get().get(),
-            get().get()
+            get().get(),
+            lang = lazy { get().get<net.badgersmc.nexus.i18n.LangService>() },
         )
         getCommand("removevault")?.setExecutor(removeVaultCommand)
         getCommand("removevault")?.tabCompleter = removeVaultCommand
@@ -950,18 +952,20 @@ class LumaGuilds : JavaPlugin() {
      */
     private fun registerClaimEvents() {
         server.pluginManager.registerEvents(BlockLaunchListener(this), this)
-        server.pluginManager.registerEvents(ClaimAnchorListener(), this)
-        server.pluginManager.registerEvents(ClaimDestructionListener(), this)
-        server.pluginManager.registerEvents(EditToolListener(), this)
-        server.pluginManager.registerEvents(EditToolVisualisingListener(this), this)
-        server.pluginManager.registerEvents(HarvestReplantListener(), this)
-        server.pluginManager.registerEvents(MoveToolListener(), this)
-        server.pluginManager.registerEvents(PartitionUpdateListener(), this)
-        server.pluginManager.registerEvents(PlayerClaimProtectionListener(), this)
-        server.pluginManager.registerEvents(ClaimPvpProtectionListener(), this)
-        server.pluginManager.registerEvents(ToolRemovalListener(), this)
-        server.pluginManager.registerEvents(WorldClaimProtectionListener(), this)
-        server.pluginManager.registerEvents(CloseInventoryListener(), this)
+        server.pluginManager.registerEvents(get().getScope("_root_").legacyClaimAnchorListener(), this)
+        server.pluginManager.registerEvents(get().getScope("_root_").legacyClaimDestructionListener(), this)
+        server.pluginManager.registerEvents(get().getScope("_root_").legacyEditToolListener(), this)
+        server.pluginManager.registerEvents(EditToolVisualisingListener(this,
+            syncToolVisualization = lazy { get().get<net.lumalyte.lg.application.actions.player.tool.SyncToolVisualization>() },
+        ), this)
+        server.pluginManager.registerEvents(get().getScope("_root_").legacyHarvestReplantListener(), this)
+        server.pluginManager.registerEvents(get().getScope("_root_").legacyMoveToolListener(), this)
+        server.pluginManager.registerEvents(get().getScope("_root_").legacyPartitionUpdateListener(), this)
+        server.pluginManager.registerEvents(get().getScope("_root_").legacyPlayerClaimProtectionListener(), this)
+        server.pluginManager.registerEvents(get().getScope("_root_").legacyClaimPvpProtectionListener(), this)
+        server.pluginManager.registerEvents(get().getScope("_root_").legacyToolRemovalListener(), this)
+        server.pluginManager.registerEvents(get().getScope("_root_").legacyWorldClaimProtectionListener(), this)
+        server.pluginManager.registerEvents(get().getScope("_root_").legacyCloseInventoryListener(), this)
     }
 
     /**
@@ -982,7 +986,7 @@ class LumaGuilds : JavaPlugin() {
         logColored("✓ /g chat wired to RoseChat guild channel")
 
         // Register party chat listener with configurable priority (auto-routes messages to party after /pc switch)
-        val partyChatListener = PartyChatListener()
+        val partyChatListener = get().getScope("_root_").legacyPartyChatListener()
         val priority = parsePriority(config.party.partyChatListenerPriority)
         server.pluginManager.registerEvent(
             io.papermc.paper.event.player.AsyncChatEvent::class.java,
@@ -994,7 +998,7 @@ class LumaGuilds : JavaPlugin() {
         )
         logColored("✓ Party chat auto-routing registered (priority: ${config.party.partyChatListenerPriority})")
 
-        server.pluginManager.registerEvents(BannerSelectionListener(), this)
+        server.pluginManager.registerEvents(get().getScope("_root_").legacyBannerSelectionListener(), this)
         server.pluginManager.registerEvents(BannerFuelPreventionListener(), this)
         server.pluginManager.registerEvents(
             get().get<net.lumalyte.lg.infrastructure.listeners.WarBannerListener>(),
@@ -1043,7 +1047,7 @@ class LumaGuilds : JavaPlugin() {
         server.pluginManager.registerEvents(guildChannelCreationListener, this)
 
         // Register vault protection listener
-        vaultProtectionListener = net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener()
+        vaultProtectionListener = get().getScope("_root_").legacyVaultProtectionListener()
         server.pluginManager.registerEvents(vaultProtectionListener, this)
 
         // Register vault inventory listener (for gold button and real-time sync)
@@ -1056,11 +1060,11 @@ class LumaGuilds : JavaPlugin() {
         server.pluginManager.registerEvents(recruitmentListener, this)
         recruitmentListener.start()
         get().get<net.lumalyte.lg.infrastructure.services.GuildAchievementRuntime>().start()
-        server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.PlayerSessionListener(), this)
+        server.pluginManager.registerEvents(get().getScope("_root_").legacyPlayerSessionListener(), this)
 
         // Register war kill tracking listener
-        server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.WarKillTrackingListener(), this)
-        server.pluginManager.registerEvents(net.lumalyte.lg.infrastructure.listeners.CombatAntiGriefListener(), this)
+        server.pluginManager.registerEvents(get().getScope("_root_").legacyWarKillTrackingListener(), this)
+        server.pluginManager.registerEvents(get().getScope("_root_").legacyCombatAntiGriefListener(), this)
         val warService = get().get<net.lumalyte.lg.application.services.WarService>()
         val recoveredKillVictories = warService.reconcilePendingKillVictories()
         if (recoveredKillVictories > 0) {
@@ -1331,7 +1335,7 @@ class LumaGuilds : JavaPlugin() {
     private fun registerRoseChatChannels() {
         try {
             val channelManager = dev.rosewood.rosechat.api.RoseChatAPI.getInstance().channelManager
-            channelManager.register(LumaGuildsChannelProvider())
+            channelManager.register(LumaGuildsChannelProvider(get().getScope("_root_").legacyLumaGuildsChannelDependencies()))
 
             // One-tick delay: RoseChat has already tried to load channels at
             // startup and found no registered LumaGuilds provider. Now that the

@@ -32,23 +32,23 @@ import org.bukkit.inventory.ItemStack
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.title.Title
 import java.time.Duration as JavaDuration
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 import java.util.*
 
 class GuildWarAcceptanceMenu(
     private val menuNavigator: MenuNavigator, 
     private val player: Player,
     private var guild: Guild,
-    private val warDeclaration: WarDeclaration
-) : Menu, KoinComponent {
+    private val warDeclaration: WarDeclaration,
+    private val services: MenuServices,
+) : Menu {
 
-    private val warService: WarService by inject()
-    private val guildService: GuildService by inject()
-    private val memberService: MemberService by inject()
-    private val bankService: BankService by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
-    private val lang: LangService by inject()
+    private val warService: WarService by services.warService
+    private val guildService: GuildService by services.guildService
+    private val memberService: MemberService by services.memberService
+    private val bankService: BankService by services.bankService
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by services.menuFactory
+    private val lang: LangService by services.langService
 
     override fun open() {
         // Check permissions first

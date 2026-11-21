@@ -61,6 +61,7 @@ internal class RankCreationSelectionTest {
                     mockk<MenuNavigator>(relaxed = true),
                     player,
                     Guild(UUID.randomUUID(), "Selection", createdAt = Instant.EPOCH),
+                    services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices(),
                 ),
             )
         every { menu.open() } just Runs

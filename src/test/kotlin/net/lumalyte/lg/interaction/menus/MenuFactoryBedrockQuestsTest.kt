@@ -25,7 +25,7 @@ class MenuFactoryBedrockQuestsTest {
         every { platform.isBedrockPlayer(player) } returns true
         every { platform.isCumulusAvailable() } returns true
         every { configService.loadConfig() } returns MainConfig()
-        val factory = MenuFactory(platform, configService, Logger.getAnonymousLogger(), mockk<LangService>())
+        val factory = boundTestMenuFactory(platform, configService, Logger.getAnonymousLogger(), mockk<LangService>())
         val guild = Guild(UUID.randomUUID(), "Quest Guild", createdAt = Instant.now())
 
         val menu = factory.createGuildQuestsMenu(mockk(), player, guild)

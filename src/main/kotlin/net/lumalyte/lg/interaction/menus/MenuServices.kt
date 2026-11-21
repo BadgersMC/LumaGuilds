@@ -5,11 +5,12 @@ package net.lumalyte.lg.interaction.menus
  *
  * Each property is resolved by an explicit composition root (legacy Koin `coreModule()` or the inert
  * Nexus `registerCoreServiceBindings`) only when a menu first reads it. This preserves the lazy timing
- * of the former `by inject()` delegates: claim-only services stay unresolved while claims are disabled
+ * of the former lazy collaborator delegates: claim-only services stay unresolved while claims are disabled
  * and no menu construction can create a service-graph cycle at startup. This is not a service locator:
  * there is no generic lookup, only the enumerated typed collaborators below.
  */
 class MenuServices internal constructor(
+    val platformDetectionService: Lazy<net.lumalyte.lg.application.services.PlatformDetectionService>,
     val acceptTransferRequest: Lazy<net.lumalyte.lg.application.actions.claim.transfer.AcceptTransferRequest>,
     val adminOverrideService: Lazy<net.lumalyte.lg.application.services.AdminOverrideService>,
     val bankAutomationService: Lazy<net.lumalyte.lg.application.services.BankAutomationService>,

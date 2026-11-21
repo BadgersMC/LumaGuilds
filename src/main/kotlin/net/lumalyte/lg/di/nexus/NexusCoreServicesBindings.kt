@@ -101,6 +101,7 @@ internal fun NexusContext.registerCoreServiceBindings(plugin: LumaGuilds) {
                 ClaimPlayerMenuDependencies(
                     lang = getBean<LangService>(),
                     getPlayersWithPermissionInClaim = getBean<GetPlayersWithPermissionInClaim>(),
+                    childMenuServices = { menuServices },
                 )
             }
             bindGuildListService { getBean<GuildListService>() }

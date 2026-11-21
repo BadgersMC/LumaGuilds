@@ -74,6 +74,7 @@ internal class GuildHomeAnywhereMenuTest : GuildRankMenuFixture() {
         player.teleport(Location(world, 6.0, 68.0, 15.0))
         val menu = BedrockGuildHomeMenu(
             mockk<MenuNavigator>(relaxed = true), player, guild, Logger.getLogger("BedrockHomeAnywhereTest"),
+            dependencies = net.lumalyte.lg.interaction.menus.bedrock.bedrockWorkerLegacyDependencies(),
         )
 
         BedrockGuildHomeMenu::class.java.getDeclaredMethod("showSetHomeMenu")
@@ -127,6 +128,7 @@ internal class GuildHomeAnywhereMenuTest : GuildRankMenuFixture() {
         player.teleport(unsafe)
         val menu = BedrockGuildHomeMenu(
             mockk<MenuNavigator>(relaxed = true), player, guild, Logger.getLogger("BedrockUnsafeHomeTest"),
+            dependencies = net.lumalyte.lg.interaction.menus.bedrock.bedrockWorkerLegacyDependencies(),
         )
 
         BedrockGuildHomeMenu::class.java.getDeclaredMethod("showSetHomeMenu")

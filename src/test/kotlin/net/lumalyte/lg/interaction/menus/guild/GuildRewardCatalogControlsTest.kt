@@ -96,7 +96,7 @@ class GuildRewardCatalogControlsTest {
     }
 
     @Test fun `Bedrock unavailable selections never request a purchase quote`() {
-        val menu = spyk(BedrockGuildProgressionInfoMenu(mockk(relaxed = true), player, guild, Logger.getLogger("CatalogTest")))
+        val menu = spyk(BedrockGuildProgressionInfoMenu(mockk(relaxed = true), player, guild, Logger.getLogger("CatalogTest"), dependencies = net.lumalyte.lg.interaction.menus.bedrock.bedrockWorkerLegacyDependencies()))
         every { menu.open() } just Runs
         for ((index, status) in statuses.withIndex()) {
             if (status == RewardOfferStatus.AVAILABLE) continue

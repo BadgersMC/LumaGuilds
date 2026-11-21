@@ -80,7 +80,9 @@ class GuildProgressionQuestNavigationTest {
         verify(exactly = if (member && permission) 1 else 0) { navigator.openMenu(target) }
         clearMocks(navigator, answers = false)
         val bedrock = net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildProgressionInfoMenu(
-            navigator, player, guild, plugin.logger)
+            navigator, player, guild, plugin.logger,
+            dependencies = net.lumalyte.lg.interaction.menus.bedrock.bedrockWorkerLegacyDependencies(),
+)
         bedrock.javaClass.getDeclaredMethod("openQuests").apply { isAccessible = true }.invoke(bedrock)
         verify(exactly = if (member && permission) 1 else 0) { navigator.openMenu(target) }
     }

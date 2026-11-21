@@ -27,12 +27,17 @@ import kotlin.math.ceil
 data class ClaimPlayerMenuDependencies(
     val lang: LangService,
     val getPlayersWithPermissionInClaim: GetPlayersWithPermissionInClaim,
+    val childMenuServices: (() -> net.lumalyte.lg.interaction.menus.MenuServices)? = null,
 )
 
 class ClaimPlayerMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                       private val claim: Claim?, dependencies: ClaimPlayerMenuDependencies): Menu {
     private val lang = dependencies.lang
     private val getPlayersWithPermissionInClaim = dependencies.getPlayersWithPermissionInClaim
+    private val childMenuServices = dependencies.childMenuServices
+
+    private fun childServices(): net.lumalyte.lg.interaction.menus.MenuServices =
+        checkNotNull(childMenuServices) { "Claim player child menu services were not bound" }()
 
     private var page = 0
 
@@ -59,7 +64,7 @@ class ClaimPlayerMenu(private val menuNavigator: MenuNavigator, private val play
             .name(lang.gui("menu.all_players.item.search.name"))
             .lore(lang.gui("menu.all_players.item.search.lore"))
         val guiPlayerSearchItem = GuiItem(playerSearchItem) {
-            menuNavigator.openMenu(ClaimPlayerSearchMenu(menuNavigator, claim, player)) }
+            menuNavigator.openMenu(ClaimPlayerSearchMenu(menuNavigator, claim, player, services = childServices())) }
         controlsPane.addItem(guiPlayerSearchItem, 3, 0)
 
         // Add list of players
@@ -75,7 +80,7 @@ class ClaimPlayerMenu(private val menuNavigator: MenuNavigator, private val play
             val warpItem = createHead(Bukkit.getOfflinePlayer(targetPlayer.uniqueId))
                 .name("${Bukkit.getOfflinePlayer(targetPlayer.uniqueId).name}")
             val guiWarpItem = GuiItem(warpItem) {
-                menuNavigator.openMenu(ClaimPlayerPermissionsMenu(menuNavigator, player, claim, targetPlayer))
+                menuNavigator.openMenu(ClaimPlayerPermissionsMenu(menuNavigator, player, claim, targetPlayer, services = childServices()))
             }
             warpsPane.addItem(guiWarpItem, xSlot, ySlot)
 

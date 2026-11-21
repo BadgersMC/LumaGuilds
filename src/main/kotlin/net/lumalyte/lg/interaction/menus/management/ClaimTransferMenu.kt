@@ -9,14 +9,13 @@ import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.common.ConfirmationMenu
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 import kotlin.getValue
 
 class ClaimTransferMenu(private val menuNavigator: MenuNavigator, private val claim: Claim?,
-                        private val player: Player): Menu, KoinComponent {
-    private val lang: LangService by inject()
-    private val menuFactory: MenuFactory by inject()
+                        private val player: Player, private val services: MenuServices): Menu {
+    private val lang: LangService by services.langService
+    private val menuFactory: MenuFactory by services.menuFactory
 
     override fun open() {
         if (claim == null) {

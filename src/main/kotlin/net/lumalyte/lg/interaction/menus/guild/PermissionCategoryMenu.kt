@@ -29,18 +29,17 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 
 class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private val player: Player,
                             private var guild: Guild, private var rank: Rank,
                             private val categoryName: String, 
-                            private val categoryPermissions: List<RankPermission>): Menu, KoinComponent {
+                            private val categoryPermissions: List<RankPermission>, private val services: MenuServices): Menu {
 
-    private val rankService: RankService by inject()
-    private val adminOverrideService: AdminOverrideService by inject()
-    private val configService: ConfigService by inject()
-    private val lang: LangService by inject()
+    private val rankService: RankService by services.rankService
+    private val adminOverrideService: AdminOverrideService by services.adminOverrideService
+    private val configService: ConfigService by services.configService
+    private val lang: LangService by services.langService
     private var modifiedPermissions = rank.permissions.toMutableSet()
 
     private val selfEditDeniedMsg get() = lang.msg("menu.permission_category.feedback.self_edit_denied")
@@ -283,7 +282,7 @@ class PermissionCategoryMenu(private val menuNavigator: MenuNavigator, private v
 
     private fun returnToRankEditor(updatedRank: Rank) {
         menuNavigator.returnToWithData(RankEditMenu::class.java, updatedRank) {
-            RankEditMenu(menuNavigator, player, guild, updatedRank)
+            RankEditMenu(menuNavigator, player, guild, updatedRank, services = services)
         }
     }
 

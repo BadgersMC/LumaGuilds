@@ -23,8 +23,7 @@ import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 
 /**
  * Confirmation step for a single penalty action. Clicking confirm applies the
@@ -37,12 +36,13 @@ class GuildStrikePenaltyConfirmMenu(
     private val guild: Guild,
     private val penaltyType: PenaltyType,
     private val strikesConfig: StrikesConfig,
-) : Menu, KoinComponent {
+    private val services: MenuServices,
+) : Menu {
 
-    private val penaltyService: PenaltyService by inject()
-    private val memberService: net.lumalyte.lg.application.services.MemberService by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
-    private val lang: LangService by inject()
+    private val penaltyService: PenaltyService by services.penaltyService
+    private val memberService: net.lumalyte.lg.application.services.MemberService by services.memberService
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by services.menuFactory
+    private val lang: LangService by services.langService
 
     override fun open() {
         createGui().show(player)
@@ -129,7 +129,7 @@ class GuildStrikePenaltyConfirmMenu(
 
     private fun returnToPenaltyOptions() {
         menuNavigator.returnTo(GuildStrikePenaltyMenu::class.java) {
-            GuildStrikePenaltyMenu(menuNavigator, player, guild, strikesConfig)
+            GuildStrikePenaltyMenu(menuNavigator, player, guild, strikesConfig, services = services)
         }
     }
 

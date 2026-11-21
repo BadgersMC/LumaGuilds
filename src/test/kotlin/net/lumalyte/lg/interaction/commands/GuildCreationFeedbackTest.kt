@@ -36,10 +36,10 @@ class GuildCreationFeedbackTest {
             single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
         }) }
         every { player.hasPermission("lumaguilds.guild.creationcooldown.bypass") } returns false
-        GuildCommand().onCreate(player, "Valid Name", null)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onCreate(player, "Valid Name", null)
         verify(exactly = 0) { guilds.createGuild(any(), any(), any()) }
         every { player.hasPermission("lumaguilds.guild.creationcooldown.bypass") } returns true
-        GuildCommand().onCreate(player, "Valid Name", null)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onCreate(player, "Valid Name", null)
         verify(exactly = 1) { guilds.createGuild(any(), any(), any()) }
         verify(exactly = 1) { costs.createGuild(any(), any(), any()) }
     }
@@ -64,7 +64,7 @@ class GuildCreationFeedbackTest {
             single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
         }) }
 
-        GuildCommand().onCreate(player, "Valid Name", null)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onCreate(player, "Valid Name", null)
 
         verify(exactly = 1) { costs.createGuild(any(), playerId, any()) }
         verify(exactly = 0) { guilds.createGuild(any(), any(), any()) }
@@ -91,10 +91,10 @@ class GuildCreationFeedbackTest {
         startKoin { modules(module {
             single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
         }) }
-        GuildCommand().onCreate(player, "<red>Invalid", null)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onCreate(player, "<red>Invalid", null)
         every { guilds.getPlayerGuilds(any()) } returns setOf(
             net.lumalyte.lg.domain.entities.Guild(UUID.randomUUID(), "Existing", createdAt = java.time.Instant.now()))
-        GuildCommand().onCreate(player, "Valid Name", null)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onCreate(player, "Valid Name", null)
         verify(exactly = 0) { costs.createGuild(any(), any(), any()) }
         every { guilds.getPlayerGuilds(any()) } returns emptySet()
         val results = listOf(GuildCreationCostResult.InsufficientGold,
@@ -102,12 +102,12 @@ class GuildCreationFeedbackTest {
             GuildCreationCostResult.PendingReview(UUID.randomUUID()))
         for (result in results) {
             every { costs.createGuild(any(), playerId, any()) } returns result
-            GuildCommand().onCreate(player, "Valid Name", null)
+            net.lumalyte.lg.interaction.testListenerGuildCommand().onCreate(player, "Valid Name", null)
         }
         verify(exactly = 4) { costs.createGuild(any(), playerId, any()) }
         verify(exactly = 0) { guilds.createGuild(any(), any(), any()) }
         every { repository.creationCooldownUntil(any()) } throws IllegalStateException("database unavailable")
-        GuildCommand().onCreate(player, "Valid Name", null)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onCreate(player, "Valid Name", null)
         verify(exactly = 4) { costs.createGuild(any(), any(), any()) }
         verify(exactly = 1) { lang.msg("guild_creation_cooldown.unavailable") }
     }
@@ -150,7 +150,7 @@ class GuildCreationFeedbackTest {
             GuildCreationCostResult.PendingReview(tx),
         )) {
             every { costs.createGuild(any(), any(), any()) } returns result
-            GuildCommand().onCreate(player, "Valid Name", null)
+            net.lumalyte.lg.interaction.testListenerGuildCommand().onCreate(player, "Valid Name", null)
         }
         verify(exactly = 3) { lang.msg("command.migrated.guild.create.payment_outcome_uncertain", *anyVararg()) }
         verify(exactly = 0) { lang.msg("command.migrated.guild.create.the_name_is_already_taken_by_another", *anyVararg()) }
@@ -179,8 +179,8 @@ class GuildCreationFeedbackTest {
             single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
         }) }
 
-        GuildCommand().onCreate(player, "Taken Guild", null)
-        GuildCommand().onCreate(player, "tAkEn GuIlD", null)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onCreate(player, "Taken Guild", null)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onCreate(player, "tAkEn GuIlD", null)
 
         verify(exactly = 2) {
             lang.msg("command.migrated.guild.create.the_name_is_already_taken_by_another", *anyVararg())
@@ -206,7 +206,7 @@ class GuildCreationFeedbackTest {
             single { guilds }; single { repository }; single { costs }; single { config }; single { lang }
         }) }
 
-        GuildCommand().onCreate(player, "Valid New Guild", null)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onCreate(player, "Valid New Guild", null)
 
         verify(exactly = 1) { lang.msg("guild_creation_cooldown.unavailable") }
         verify(exactly = 0) { costs.createGuild(any(), any(), any()) }

@@ -10,7 +10,9 @@ class LumaGuildsChannelRankFormatTest {
 
     @Test
     fun `guild channel decorates chat and shout formats with current guild rank`() {
-        val channel = LumaGuildsChannel(mockk<ChannelProvider>(relaxed = true))
+        val channel = LumaGuildsChannel(mockk<ChannelProvider>(relaxed = true),
+            dependencies = net.lumalyte.lg.interaction.testListenerLumaGuildsChannelDependencies(),
+        )
         val config = YamlConfiguration().apply {
             set("channel-type", "GUILD")
             set("formats.chat", "{prefix}{player}{separator}{message}")
@@ -31,7 +33,9 @@ class LumaGuildsChannelRankFormatTest {
 
     @Test
     fun `ally channel format is not modified by rank restore`() {
-        val channel = LumaGuildsChannel(mockk<ChannelProvider>(relaxed = true))
+        val channel = LumaGuildsChannel(mockk<ChannelProvider>(relaxed = true),
+            dependencies = net.lumalyte.lg.interaction.testListenerLumaGuildsChannelDependencies(),
+        )
         val config = YamlConfiguration().apply {
             set("channel-type", "ALLY")
             set("formats.chat", "{prefix}{player}{separator}{message}")
@@ -46,7 +50,9 @@ class LumaGuildsChannelRankFormatTest {
     }
     @Test
     fun `guild channel honors custom rank format template`() {
-        val channel = LumaGuildsChannel(mockk<ChannelProvider>(relaxed = true))
+        val channel = LumaGuildsChannel(mockk<ChannelProvider>(relaxed = true),
+            dependencies = net.lumalyte.lg.interaction.testListenerLumaGuildsChannelDependencies(),
+        )
         val config = YamlConfiguration().apply {
             set("channel-type", "GUILD")
             set("guild-rank-format", "&6<&f<rank>&6>&r ")

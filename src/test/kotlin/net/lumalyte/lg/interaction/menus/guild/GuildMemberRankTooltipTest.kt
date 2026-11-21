@@ -49,10 +49,10 @@ internal class GuildMemberRankTooltipTest : GuildRankMenuFixture() {
         val menus =
             listOf(
                 GuildInfoMenu(navigator, player, guild, services = javaALegacyMenuServices()),
-                GuildPromotionMenu(navigator, player, guild),
+                GuildPromotionMenu(navigator, player, guild, services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()),
                 GuildMemberRankMenu(navigator, player, guild, member, services = javaALegacyMenuServices()),
                 GuildMemberRankConfirmationMenu(navigator, player, guild, member, rank, services = javaALegacyMenuServices()),
-                HomeAccessMenu(navigator, player, guild, "Home"),
+                HomeAccessMenu(navigator, player, guild, "Home", services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()),
             )
         assertAll(
             menus.map { menu ->
@@ -72,7 +72,7 @@ internal class GuildMemberRankTooltipTest : GuildRankMenuFixture() {
         val rank = bindRank(storedName)
         val navigator = MenuNavigator(player)
         val logger = Logger.getAnonymousLogger()
-        val assignment = BedrockGuildMemberRankMenu(navigator, player, guild, member, logger).getForm() as CustomForm
+        val assignment = BedrockGuildMemberRankMenu(navigator, player, guild, member, logger, dependencies = net.lumalyte.lg.interaction.menus.bedrock.bedrockWorkerLegacyDependencies()).getForm() as CustomForm
         assignment.content().filterNotNull().forEach { assertFalse(it.text().contains(HEX_DIGITS)) }
         assertRankDropdown(assignment)
         val confirmation =
@@ -83,6 +83,7 @@ internal class GuildMemberRankTooltipTest : GuildRankMenuFixture() {
                 member,
                 rank,
                 logger,
+                dependencies = net.lumalyte.lg.interaction.menus.bedrock.bedrockWorkerLegacyDependencies(),
             ).getForm() as SimpleForm
         assertFalse(confirmation.content().contains(HEX_DIGITS))
         assertEquals(storedName, rank.name)
@@ -96,7 +97,7 @@ internal class GuildMemberRankTooltipTest : GuildRankMenuFixture() {
         val above = rank.copy(id = UUID.randomUUID(), priority = 0)
         val below = rank.copy(id = UUID.randomUUID(), priority = 2)
         every { ranks.listRanks(guild.id) } returns setOf(above, rank, below)
-        RankEditMenu(MenuNavigator(player), player, guild, rank).open()
+        RankEditMenu(MenuNavigator(player), player, guild, rank, services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()).open()
         assertRankInventory("RankEditMenu")
     }
 
@@ -107,11 +108,11 @@ internal class GuildMemberRankTooltipTest : GuildRankMenuFixture() {
         val rank = bindRank(storedName)
         val navigator = MenuNavigator(player)
         val logger = Logger.getAnonymousLogger()
-        val members = BedrockGuildMemberListMenu(navigator, player, guild, logger).getForm() as SimpleForm
+        val members = BedrockGuildMemberListMenu(navigator, player, guild, logger, dependencies = net.lumalyte.lg.interaction.menus.bedrock.bedrockWorkerLegacyDependencies()).getForm() as SimpleForm
         members.buttons().filterNotNull().forEach { assertFalse(it.text().contains(HEX_DIGITS)) }
-        val promotion = BedrockGuildPromotionMenu(navigator, player, guild, logger).getForm() as CustomForm
+        val promotion = BedrockGuildPromotionMenu(navigator, player, guild, logger, dependencies = net.lumalyte.lg.interaction.menus.bedrock.bedrockWorkerLegacyDependencies()).getForm() as CustomForm
         assertFormLabels(promotion)
-        val editing = BedrockGuildRankManagementMenu(navigator, player, guild, rank, logger).getForm() as CustomForm
+        val editing = BedrockGuildRankManagementMenu(navigator, player, guild, rank, logger, dependencies = net.lumalyte.lg.interaction.menus.bedrock.bedrockWorkerLegacyDependencies()).getForm() as CustomForm
         assertFormLabels(editing)
         assertEquals(storedName, editing.content().filterIsInstance<InputComponent>().first().defaultText())
     }

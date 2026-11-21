@@ -118,7 +118,9 @@ class CommandLocalizationTest {
 
     @Test
     fun `permission denial renders localized plain text`() {
-        BankCreditCommand(bankService).onCommand(player, command, "bankcredit", emptyArray())
+        BankCreditCommand(bankService,
+            lang = lazy { org.koin.core.context.GlobalContext.get().get<net.badgersmc.nexus.i18n.LangService>() },
+        ).onCommand(player, command, "bankcredit", emptyArray())
 
         assertEquals(
             "You don't have permission to use this command",
@@ -134,7 +136,9 @@ class CommandLocalizationTest {
     fun `player-only denial renders localized plain text`() {
         val backups = mockk<VaultBackupService>(relaxed = true)
 
-        VaultRollbackCommand(guildService, backups)
+        VaultRollbackCommand(guildService, backups,
+            lang = lazy { org.koin.core.context.GlobalContext.get().get<net.badgersmc.nexus.i18n.LangService>() },
+        )
             .onCommand(server.consoleSender, command, "vaultrollback", emptyArray())
 
         assertEquals(
@@ -153,7 +157,7 @@ class CommandLocalizationTest {
         every { guildService.getPlayerGuilds(player.uniqueId) } returns setOf(guild)
         every { bankService.getBalance(guild.id) } returns 12_345
 
-        GuildCommand().onBalance(player, null)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onBalance(player, null)
 
         assertEquals(
             "[LumaGuilds] Starlight's balance: $12,345",
@@ -175,7 +179,9 @@ class CommandLocalizationTest {
         val target = server.addPlayer("Grace")
         every { bankService.depositPlayer(target.uniqueId, 75, any()) } returns false
 
-        BankCreditCommand(bankService)
+        BankCreditCommand(bankService,
+            lang = lazy { org.koin.core.context.GlobalContext.get().get<net.badgersmc.nexus.i18n.LangService>() },
+        )
             .onCommand(player, command, "bankcredit", arrayOf(target.name, "75"))
 
         assertEquals(
@@ -200,7 +206,7 @@ class CommandLocalizationTest {
             memberService.hasPermission(player.uniqueId, guild.id, RankPermission.DECLARE_WAR)
         } returns false
 
-        GuildCommand().onWar(player)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onWar(player)
 
         assertEquals(
             "You don't have permission to manage wars for your guild.",
@@ -222,7 +228,9 @@ class CommandLocalizationTest {
         every { bankService.depositPlayer(target.uniqueId, 75, any()) } returns true
         every { bankService.getPlayerBalance(target.uniqueId) } returns 1_250
 
-        BankCreditCommand(bankService)
+        BankCreditCommand(bankService,
+            lang = lazy { org.koin.core.context.GlobalContext.get().get<net.badgersmc.nexus.i18n.LangService>() },
+        )
             .onCommand(player, command, "bankcredit", arrayOf(target.name, "75"))
 
         assertEquals(
@@ -249,7 +257,7 @@ class CommandLocalizationTest {
 
     @Test
     fun `unknown help topic keeps the localized help command clickable`() {
-        GuildCommand().onHelp(player, "missing")
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onHelp(player, "missing")
 
         val message = requireNotNull(player.nextComponentMessage())
         assertEquals(
@@ -262,7 +270,7 @@ class CommandLocalizationTest {
     fun `unknown help topic renders hostile MiniMessage literally without attacker event`() {
         val hostileTopic = "<click:run_command:'/op Ada'>pwn</click>"
 
-        GuildCommand().onHelp(player, hostileTopic)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onHelp(player, hostileTopic)
 
         val message = requireNotNull(player.nextComponentMessage())
         assertEquals(true, hostileTopic in plainText.serialize(message))
@@ -275,7 +283,7 @@ class CommandLocalizationTest {
 
     @Test
     fun `unsafe home feedback translates typed safety issue and confirmation`() {
-        val allowed = GuildCommand().checkHomeSafety(
+        val allowed = net.lumalyte.lg.interaction.testListenerGuildCommand().checkHomeSafety(
             player,
             Location(null, 0.0, 64.0, 0.0),
             "/guild home confirm",
@@ -300,7 +308,7 @@ class CommandLocalizationTest {
             memberService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_BANNER)
         } returns true
 
-        GuildCommand().onTag(player, "<click:run_command:'/op me'>Click")
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onTag(player, "<click:run_command:'/op me'>Click")
 
         assertEquals(
             listOf("Guild tags cannot contain interactive 'click' tags. Use colors and formatting only."),
@@ -318,7 +326,7 @@ class CommandLocalizationTest {
         )
         every { guildService.getAvailableHomeSlots(guild.id) } returns 1
 
-        GuildCommand().onHomes(player)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onHomes(player)
 
         val messages = player.componentMessages()
         val row = messages.first { "main" in plainText.serialize(it) }
@@ -342,10 +350,10 @@ class CommandLocalizationTest {
         every { guildService.getPlayerGuilds(player.uniqueId) } returns setOf(guild)
         every { guildService.getHome(guild.id, any()) } returns null
         every { guildService.setHome(guild.id, "main", any(), player.uniqueId) } returns true
-        GuildCommand().onSetHome(player, null, null)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onSetHome(player, null, null)
         player.teleport(Location(world, 2.0, 70.0, 2.0))
 
-        GuildCommand().onSetHome(player, "unsafe", null)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onSetHome(player, "unsafe", null)
 
         io.mockk.verify(exactly = 1) {
             guildService.setHome(
@@ -370,9 +378,9 @@ class CommandLocalizationTest {
         every { guildService.getHome(guild.id, "lodge") } returns null
         every { guildService.setHome(guild.id, "lodge", any(), player.uniqueId) } returns true
 
-        GuildCommand().onSetHome(player, "lodge", null)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onSetHome(player, "lodge", null)
         player.teleport(Location(world, 3.0, 70.0, 4.0))
-        GuildCommand().onSetHome(player, "lodge", "unsafe")
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onSetHome(player, "lodge", "unsafe")
 
         io.mockk.verify(exactly = 1) {
             guildService.setHome(
@@ -399,7 +407,7 @@ class CommandLocalizationTest {
         every { guildService.getHome(guild.id, "lodge") } returns null
         every { guildService.setHome(guild.id, "lodge", any(), player.uniqueId) } returns true
 
-        GuildCommand().onSetHome(player, "lodge", null)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onSetHome(player, "lodge", null)
 
         io.mockk.verify(exactly = 1) {
             guildService.setHome(
