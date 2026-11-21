@@ -8,7 +8,7 @@ import kotlin.test.assertTrue
 /** REQ-121: content may never conceal sidebar, header or navigation controls. */
 class GuildProgressionLayoutTest {
     @Test fun `a full source page has unique slots clear of every control`() {
-        val menu = GuildProgressionMenu(mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk())
+        val menu = GuildProgressionMenu(mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), services = javaALegacyMenuServices())
         @Suppress("UNCHECKED_CAST")
         val slots = GuildProgressionMenu::class.java.getDeclaredField("gridSlots")
             .apply { isAccessible = true }.get(menu) as List<Int>

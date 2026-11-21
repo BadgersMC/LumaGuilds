@@ -30,7 +30,7 @@ internal class GuildMemberRankTooltipTest : GuildRankMenuFixture() {
     fun hexRankColorRenders(storedName: String) {
         every { ranks.getPlayerRank(player.uniqueId, guild.id) } returns
             Rank(UUID.randomUUID(), guild.id, storedName)
-        GuildMemberListMenu(MenuNavigator(player), player, guild).open()
+        GuildMemberListMenu(MenuNavigator(player), player, guild, services = javaALegacyMenuServices()).open()
         val lore = checkNotNull(player.openInventory.topInventory.getItem(0)?.lore())
         val rankLine = lore.first()
         val visible = PlainTextComponentSerializer.plainText().serialize(rankLine)
@@ -48,10 +48,10 @@ internal class GuildMemberRankTooltipTest : GuildRankMenuFixture() {
         val navigator = MenuNavigator(player)
         val menus =
             listOf(
-                GuildInfoMenu(navigator, player, guild),
+                GuildInfoMenu(navigator, player, guild, services = javaALegacyMenuServices()),
                 GuildPromotionMenu(navigator, player, guild),
-                GuildMemberRankMenu(navigator, player, guild, member),
-                GuildMemberRankConfirmationMenu(navigator, player, guild, member, rank),
+                GuildMemberRankMenu(navigator, player, guild, member, services = javaALegacyMenuServices()),
+                GuildMemberRankConfirmationMenu(navigator, player, guild, member, rank, services = javaALegacyMenuServices()),
                 HomeAccessMenu(navigator, player, guild, "Home"),
             )
         assertAll(

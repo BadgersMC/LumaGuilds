@@ -136,7 +136,7 @@ internal class AllyHomeMenuAuthorizationTest {
                     },
                 )
             }
-            val menu = GuildHomeMenu(mockk(relaxed = true), player, source)
+            val menu = GuildHomeMenu(mockk(relaxed = true), player, source, services = javaALegacyMenuServices())
             GuildHomeMenu::class.java
                 .getDeclaredMethod(
                     "addAllyHomeButtons",

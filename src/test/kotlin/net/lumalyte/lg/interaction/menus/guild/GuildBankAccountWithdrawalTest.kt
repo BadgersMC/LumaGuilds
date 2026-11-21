@@ -137,7 +137,7 @@ internal class GuildBankAccountWithdrawalTest {
             single<MenuFactory> { mockk(relaxed = true) }
         }) }
         menu = GuildBankMenu(mockk<MenuNavigator>(relaxed = true), player,
-            Guild(guildId, "Payout test", createdAt = Instant.EPOCH))
+            Guild(guildId, "Payout test", createdAt = Instant.EPOCH), services = javaALegacyMenuServices())
     }
 
     @AfterEach fun cleanup() {
@@ -167,7 +167,7 @@ internal class GuildBankAccountWithdrawalTest {
                 GuildGoldCapacityProvider { GuildGoldCapacity(1_000_000, 0) }))
         assertFalse(unavailableBank.isEconomyAvailable())
         org.koin.core.context.loadKoinModules(module { single<BankService> { unavailableBank } })
-        menu = GuildBankMenu(mockk(relaxed = true), player, Guild(guildId, "Physical only", createdAt = Instant.EPOCH))
+        menu = GuildBankMenu(mockk(relaxed = true), player, Guild(guildId, "Physical only", createdAt = Instant.EPOCH), services = javaALegacyMenuServices())
         menu.open()
         assertEquals(36, player.openInventory?.topInventory?.size, "Physical-only bank must open in the approved four-row shell")
         assertFalse(withdraw())
@@ -186,7 +186,7 @@ internal class GuildBankAccountWithdrawalTest {
 
     @Test fun physicalWithdrawalMenuUsesCanonicalServiceAndDeliversItems() {
         val physicalMenu = GoldWithdrawMenu(PluginKeys.getPlugin() as JavaPlugin, player, guildId, "Test",
-            manager, mockk(relaxed = true))
+            manager, mockk(relaxed = true), services = javaALegacyMenuServices())
         GoldWithdrawMenu::class.java.getDeclaredMethod("confirmWithdrawal", Long::class.javaPrimitiveType)
             .apply { isAccessible = true }.invoke(physicalMenu, 18L)
         assertEquals(982, balance)
@@ -202,7 +202,7 @@ internal class GuildBankAccountWithdrawalTest {
             Component.text((args[1] as Array<*>).joinToString())
         }
         val physicalMenu = GoldWithdrawMenu(PluginKeys.getPlugin() as JavaPlugin, player, guildId, "Test",
-            manager, mockk(relaxed = true))
+            manager, mockk(relaxed = true), services = javaALegacyMenuServices())
         physicalMenu.open()
         val lore = player.openInventory.topInventory.getItem(22)!!.itemMeta.lore()!!
         assertTrue(lore.any { plain.serialize(it).contains("985") && plain.serialize(it).contains("15") && plain.serialize(it).contains("1000") })
@@ -216,7 +216,7 @@ internal class GuildBankAccountWithdrawalTest {
     @Test fun vaultDepositAllMenuUsesCanonicalService() {
         player.inventory.addItem(ItemStack(Material.RAW_GOLD, 40))
         val depositMenu = GoldDepositMenu(PluginKeys.getPlugin() as JavaPlugin, player, guildId, "Test",
-            manager, mockk(relaxed = true))
+            manager, mockk(relaxed = true), services = javaALegacyMenuServices())
         GoldDepositMenu::class.java.getDeclaredMethod("depositAllGold")
             .apply { isAccessible = true }.invoke(depositMenu)
         assertEquals(1_040, balance)
@@ -225,7 +225,7 @@ internal class GuildBankAccountWithdrawalTest {
 
     @Test fun draggedDepositCreditsCanonicalBalanceOnClose() {
         val depositMenu = GoldDepositMenu(PluginKeys.getPlugin() as JavaPlugin, player, guildId, "Test",
-            manager, mockk(relaxed = true))
+            manager, mockk(relaxed = true), services = javaALegacyMenuServices())
         depositMenu.open()
         player.openInventory.topInventory.setItem(0, ItemStack(Material.RAW_GOLD, 40))
         player.closeInventory()
@@ -238,7 +238,7 @@ internal class GuildBankAccountWithdrawalTest {
             actorId = player.uniqueId, action = AuditAction.PAYOUT_PENDING,
             transactionId = UUID.randomUUID(), details = "Pending")
         val depositMenu = GoldDepositMenu(PluginKeys.getPlugin() as JavaPlugin, player, guildId, "Test",
-            manager, mockk(relaxed = true))
+            manager, mockk(relaxed = true), services = javaALegacyMenuServices())
         depositMenu.open()
         player.openInventory.topInventory.setItem(0, ItemStack(Material.RAW_GOLD, 40))
         player.closeInventory()
@@ -248,7 +248,7 @@ internal class GuildBankAccountWithdrawalTest {
 
     @Test fun disconnectReturnsDraggedItemsWithoutCrediting() {
         val depositMenu = GoldDepositMenu(PluginKeys.getPlugin() as JavaPlugin, player, guildId, "Test",
-            manager, mockk(relaxed = true))
+            manager, mockk(relaxed = true), services = javaALegacyMenuServices())
         depositMenu.open()
         player.openInventory.topInventory.setItem(0, ItemStack(Material.RAW_GOLD, 40))
         val quitting = player

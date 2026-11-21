@@ -8,7 +8,7 @@ import kotlin.test.assertEquals
 class GuildProgressionIconMappingTest {
     @Test
     fun `every experience source has intentional source artwork`() {
-        val menu = GuildProgressionMenu(mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk())
+        val menu = GuildProgressionMenu(mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), services = javaALegacyMenuServices())
         val method = GuildProgressionMenu::class.java
             .getDeclaredMethod("sourceToIconId", ExperienceSource::class.java)
             .apply { isAccessible = true }
@@ -63,7 +63,7 @@ class GuildProgressionIconMappingTest {
     }
     @Test
     fun `pooled presentation uses pool meaning instead of representative tier`() {
-        val menu = GuildProgressionMenu(mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk())
+        val menu = GuildProgressionMenu(mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), mockk(), services = javaALegacyMenuServices())
         val method = GuildProgressionMenu::class.java
             .getDeclaredMethod("sourceToPresentationIconId", ExperienceSource::class.java, String::class.java)
             .apply { isAccessible = true }

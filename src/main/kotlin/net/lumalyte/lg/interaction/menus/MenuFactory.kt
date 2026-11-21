@@ -193,7 +193,7 @@ class MenuFactory(
             BedrockGuildInviteConfirmationMenu(menuNavigator, player, guild, targetPlayer, logger)
         } else {
             // Fall back to Java guild invite confirmation menu
-            GuildInviteConfirmationMenu(menuNavigator, player, guild, targetPlayer)
+            GuildInviteConfirmationMenu(menuNavigator, player, guild, targetPlayer, services = menuServices)
         }
     }
 
@@ -211,7 +211,7 @@ class MenuFactory(
             BedrockGuildKickConfirmationMenu(menuNavigator, player, guild, memberToKick, logger)
         } else {
             // Fall back to Java guild kick confirmation menu
-            GuildKickConfirmationMenu(menuNavigator, player, guild, memberToKick)
+            GuildKickConfirmationMenu(menuNavigator, player, guild, memberToKick, services = menuServices)
         }
     }
 
@@ -230,7 +230,7 @@ class MenuFactory(
             BedrockGuildMemberRankConfirmationMenu(menuNavigator, player, guild, targetMember, newRank, logger)
         } else {
             // Fall back to Java guild member rank confirmation menu
-            GuildMemberRankConfirmationMenu(menuNavigator, player, guild, targetMember, newRank)
+            GuildMemberRankConfirmationMenu(menuNavigator, player, guild, targetMember, newRank, services = menuServices)
         }
     }
 
@@ -247,7 +247,7 @@ class MenuFactory(
             BedrockGuildDisbandConfirmationMenu(menuNavigator, player, guild, logger)
         } else {
             // Fall back to Java guild disband confirmation menu
-            GuildDisbandConfirmationMenu(menuNavigator, player, guild)
+            GuildDisbandConfirmationMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -264,7 +264,7 @@ class MenuFactory(
             BedrockGuildLeaveConfirmationMenu(menuNavigator, player, guild, logger)
         } else {
             // Fall back to Java guild leave confirmation menu
-            GuildLeaveConfirmationMenu(menuNavigator, player, guild)
+            GuildLeaveConfirmationMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -313,7 +313,7 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildInfoMenu(menuNavigator, player, guild, logger)
         } else {
-            GuildInfoMenu(menuNavigator, player, guild)
+            GuildInfoMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -326,7 +326,7 @@ class MenuFactory(
                 dependencies = bedrockDependencies,
             ).withGuildListServiceProvider(guildListServiceProvider)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildListMenu(menuNavigator, player)
+            net.lumalyte.lg.interaction.menus.guild.GuildListMenu(menuNavigator, player, services = menuServices)
         }
     }
 
@@ -369,7 +369,7 @@ class MenuFactory(
             // Use Bedrock guild member list menu with SimpleForm and player heads
             BedrockGuildMemberListMenu(menuNavigator, player, guild, logger)
         } else {
-            GuildMemberListMenu(menuNavigator, player, guild)
+            GuildMemberListMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -385,7 +385,7 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockEmojiSelectionMenu(menuNavigator, player, guild, parentMenu, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.EmojiSelectionMenu(menuNavigator, player, guild, parentMenu)
+            net.lumalyte.lg.interaction.menus.guild.EmojiSelectionMenu(menuNavigator, player, guild, parentMenu, services = menuServices)
         }
     }
 
@@ -420,7 +420,7 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildEmojiMenu(menuNavigator, player, guild, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildEmojiMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildEmojiMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -444,7 +444,7 @@ class MenuFactory(
             net.lumalyte.lg.interaction.menus.guild.GuildDashboard(
                 menuNavigator, player, guild,
                 guildService, rankService, memberService,
-                this
+                this, services = menuServices
             )
         }
     }
@@ -471,6 +471,7 @@ class MenuFactory(
             menuServices.configService.value,
             menuServices.progressionService.value,
             menuServices.progressionRepository.value,
+            services = menuServices,
         )
     }
 
@@ -507,7 +508,7 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockDescriptionEditorMenu(menuNavigator, player, guild, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.DescriptionEditorMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.DescriptionEditorMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -537,7 +538,7 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildBannerMenu(menuNavigator, player, guild, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildBannerMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildBannerMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -552,7 +553,7 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildModeMenu(menuNavigator, player, guild, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildModeMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildModeMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -567,7 +568,7 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildHomeMenu(menuNavigator, player, guild, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildHomeMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildHomeMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -598,7 +599,7 @@ class MenuFactory(
                 menuNavigator, player, guild, logger
             )
         } else {
-            net.lumalyte.lg.interaction.menus.guild.AllyHomeAccessMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.AllyHomeAccessMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -658,7 +659,7 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildMemberManagementMenu(menuNavigator, player, guild, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildMemberManagementMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildMemberManagementMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -735,7 +736,7 @@ class MenuFactory(
             // Use Bedrock guild bank menu with CustomForm and sliders
             BedrockGuildBankMenu(menuNavigator, player, guild, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildBankMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildBankMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -771,7 +772,7 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildBankStatisticsMenu(menuNavigator, player, guild, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildBankStatisticsMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildBankStatisticsMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -786,7 +787,7 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildMemberContributionsMenu(menuNavigator, player, guild, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildMemberContributionsMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildMemberContributionsMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -801,7 +802,7 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildBankTransactionHistoryMenu(menuNavigator, player, guild, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildBankTransactionHistoryMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildBankTransactionHistoryMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -816,7 +817,7 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildBankSecurityMenu(menuNavigator, player, guild, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildBankSecurityMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildBankSecurityMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -831,7 +832,7 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildBankAutomationMenu(menuNavigator, player, guild, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildBankAutomationMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildBankAutomationMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -846,7 +847,7 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildBankBudgetMenu(menuNavigator, player, guild, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildBankBudgetMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildBankBudgetMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -861,7 +862,7 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildStatisticsMenu(menuNavigator, player, guild, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildStatisticsMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildStatisticsMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -884,7 +885,7 @@ class MenuFactory(
             net.lumalyte.lg.interaction.menus.guild.GuildProgressionMenu(
                 menuNavigator, player, guild,
                 guildService, memberService, progressionService,
-                this, menuItemBuilder, configService, adminOverride
+                this, menuItemBuilder, configService, menuServices, adminOverride
             )
         }
     }
@@ -935,7 +936,7 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildInviteMenu(menuNavigator, player, guild, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildInviteMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildInviteMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -951,7 +952,7 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildMemberRankMenu(menuNavigator, player, guild, member, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildMemberRankMenu(menuNavigator, player, guild, member)
+            net.lumalyte.lg.interaction.menus.guild.GuildMemberRankMenu(menuNavigator, player, guild, member, services = menuServices)
         }
     }
 
@@ -966,7 +967,7 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildKickMenu(menuNavigator, player, guild, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildKickMenu(menuNavigator, player, guild)
+            net.lumalyte.lg.interaction.menus.guild.GuildKickMenu(menuNavigator, player, guild, services = menuServices)
         }
     }
 
@@ -1263,7 +1264,7 @@ class MenuFactory(
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
-        return net.lumalyte.lg.interaction.menus.guild.AlliesListMenu(menuNavigator, player, guild)
+        return net.lumalyte.lg.interaction.menus.guild.AlliesListMenu(menuNavigator, player, guild, services = menuServices)
     }
 
     /**
@@ -1274,7 +1275,7 @@ class MenuFactory(
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
-        return net.lumalyte.lg.interaction.menus.guild.EnemiesListMenu(menuNavigator, player, guild)
+        return net.lumalyte.lg.interaction.menus.guild.EnemiesListMenu(menuNavigator, player, guild, services = menuServices)
     }
 
     /**
@@ -1285,7 +1286,7 @@ class MenuFactory(
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
-        return net.lumalyte.lg.interaction.menus.guild.AllianceRequestMenu(menuNavigator, player, guild)
+        return net.lumalyte.lg.interaction.menus.guild.AllianceRequestMenu(menuNavigator, player, guild, services = menuServices)
     }
 
     /**
@@ -1307,7 +1308,7 @@ class MenuFactory(
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
-        return net.lumalyte.lg.interaction.menus.guild.EnemyDeclarationMenu(menuNavigator, player, guild)
+        return net.lumalyte.lg.interaction.menus.guild.EnemyDeclarationMenu(menuNavigator, player, guild, services = menuServices)
     }
 }
 

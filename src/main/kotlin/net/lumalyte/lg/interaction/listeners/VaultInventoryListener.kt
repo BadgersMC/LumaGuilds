@@ -216,7 +216,7 @@ class VaultInventoryListener(
                     player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                     return
                 }
-                val depositMenu = GoldDepositMenu(plugin, player, guildId, guildName, vaultInventoryManager, transactionLogger)
+                val depositMenu = GoldDepositMenu(plugin, player, guildId, guildName, vaultInventoryManager, transactionLogger, services = getKoin().get<net.lumalyte.lg.interaction.menus.MenuFactory>().menuServices)
                 depositMenu.open()
             }
             // Right Click: Open withdraw menu
@@ -227,7 +227,7 @@ class VaultInventoryListener(
                     player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                     return
                 }
-                val withdrawMenu = GoldWithdrawMenu(plugin, player, guildId, guildName, vaultInventoryManager, transactionLogger)
+                val withdrawMenu = GoldWithdrawMenu(plugin, player, guildId, guildName, vaultInventoryManager, transactionLogger, services = getKoin().get<net.lumalyte.lg.interaction.menus.MenuFactory>().menuServices)
                 withdrawMenu.open()
             }
             else -> {

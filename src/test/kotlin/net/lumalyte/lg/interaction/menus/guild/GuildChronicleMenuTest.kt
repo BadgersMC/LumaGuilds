@@ -44,12 +44,12 @@ internal class GuildChronicleMenuTest : RecruitmentDialogFixture() {
             single { mockk<GuildRewardPurchaseService>() }
         })
         val nav = MenuNavigator(player)
-        nav.openMenu(GuildChronicleMenu(nav, player, guild, presenter))
+        nav.openMenu(GuildChronicleMenu(nav, player, guild, javaALegacyMenuServices(), presenter))
         assertEquals(4, renderedPage!!.bodyActions.size)
         renderedPage!!.items.first().onClick!!.action()
         renderedPage!!.actions.first().action() // Track; no purchase permission granted.
         assertEquals("bank-1", repository.saved.rewardId)
-        nav.openMenu(GuildChronicleMenu(nav, player, guild, presenter))
+        nav.openMenu(GuildChronicleMenu(nav, player, guild, javaALegacyMenuServices(), presenter))
         assertEquals(4, renderedPage!!.actions.size) // Later, tracked goal, automatic benefits, prestige details.
         renderedPage!!.actions.first().action()
         assertEquals(5, renderedPage!!.actions.size) // Earlier and later are both present.
@@ -61,7 +61,7 @@ internal class GuildChronicleMenuTest : RecruitmentDialogFixture() {
         assertNull(repository.saved.rewardId)
         var returns = 0
         every { guilds.getGuild(guild.id) } returns guild.copy(guiTheme = net.lumalyte.lg.utils.GuiTheme.FROSTBOUND)
-        GuildChronicleMenu(nav, player, guild, presenter, initialRewardId = "bank-1",
+        GuildChronicleMenu(nav, player, guild, javaALegacyMenuServices(), presenter, initialRewardId = "bank-1",
             returnToBrowser = { returns++ }).open()
         assertEquals(net.lumalyte.lg.utils.GuiTheme.FROSTBOUND, renderedPage!!.theme)
         assertEquals(1, renderedPage!!.actions.size) // Track only; viewing grants no purchase permission.
