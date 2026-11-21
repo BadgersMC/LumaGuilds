@@ -22,6 +22,7 @@ import net.lumalyte.lg.infrastructure.services.FormCacheServiceGuava
 import net.lumalyte.lg.infrastructure.services.FormValidationServiceImpl
 import net.lumalyte.lg.infrastructure.services.PlayerMetadataServiceVault
 import net.lumalyte.lg.interaction.menus.MenuFactory
+import net.lumalyte.lg.interaction.menus.management.ClaimPlayerMenuDependencies
 import net.lumalyte.lg.interaction.menus.management.ClaimTrustMenuDependencies
 import net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedNavigationDependencies
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockMenuDependencies
@@ -93,6 +94,12 @@ internal fun NexusContext.registerCoreServiceBindings(plugin: LumaGuilds) {
                     lang = getBean<LangService>(),
                     getPlayersWithPermissionInClaim = getBean<GetPlayersWithPermissionInClaim>(),
                     getClaimPlayerPermissions = getBean<GetClaimPlayerPermissions>(),
+                )
+            }
+            bindClaimPlayerMenuDependencies {
+                ClaimPlayerMenuDependencies(
+                    lang = getBean<LangService>(),
+                    getPlayersWithPermissionInClaim = getBean<GetPlayersWithPermissionInClaim>(),
                 )
             }
             bindGuildListService { getBean<GuildListService>() }

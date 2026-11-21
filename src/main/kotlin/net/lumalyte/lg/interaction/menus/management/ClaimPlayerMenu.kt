@@ -20,15 +20,19 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.UUID
 import kotlin.math.ceil
 
+/** Explicit dependencies shared by legacy Koin and inactive Nexus menu construction. */
+data class ClaimPlayerMenuDependencies(
+    val lang: LangService,
+    val getPlayersWithPermissionInClaim: GetPlayersWithPermissionInClaim,
+)
+
 class ClaimPlayerMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                      private val claim: Claim?): Menu, KoinComponent {
-    private val lang: LangService by inject()
-    private val getPlayersWithPermissionInClaim: GetPlayersWithPermissionInClaim by inject()
+                      private val claim: Claim?, dependencies: ClaimPlayerMenuDependencies): Menu {
+    private val lang = dependencies.lang
+    private val getPlayersWithPermissionInClaim = dependencies.getPlayersWithPermissionInClaim
 
     private var page = 0
 

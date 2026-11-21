@@ -33,6 +33,7 @@ import net.lumalyte.lg.interaction.menus.guild.GuildSelectionMenu
 import net.lumalyte.lg.interaction.menus.guild.JoinRequirementsMenu
 import net.lumalyte.lg.interaction.menus.guild.LfgBrowserMenu
 import net.lumalyte.lg.interaction.menus.guild.PartyCreationMenu
+import net.lumalyte.lg.interaction.menus.management.ClaimPlayerMenuDependencies
 import net.lumalyte.lg.interaction.menus.management.ClaimTrustMenuDependencies
 import org.bukkit.entity.Player
 import java.util.logging.Logger
@@ -52,11 +53,18 @@ class MenuFactory(
     private var guildListServiceProvider: (() -> GuildListService)? = null
     private var gettingStartedDependenciesProvider: ((MenuFactory) -> GuildGettingStartedNavigationDependencies)? = null
     private var claimTrustDependenciesProvider: (() -> ClaimTrustMenuDependencies)? = null
+    private var claimPlayerDependenciesProvider: (() -> ClaimPlayerMenuDependencies)? = null
 
     /** Resolve claim services on demand; claims may be disabled and no provider is invoked at startup. */
     internal fun bindClaimTrustMenuDependencies(provider: () -> ClaimTrustMenuDependencies) {
         check(claimTrustDependenciesProvider == null) { "Claim trust menu dependencies already bound" }
         claimTrustDependenciesProvider = provider
+    }
+
+    /** Resolve claim player menu services on demand; no provider is invoked at startup or for Bedrock. */
+    internal fun bindClaimPlayerMenuDependencies(provider: () -> ClaimPlayerMenuDependencies) {
+        check(claimPlayerDependenciesProvider == null) { "Claim player menu dependencies already bound" }
+        claimPlayerDependenciesProvider = provider
     }
 
     /** Bind shared onboarding navigation explicitly without constructing cyclic service graphs at startup. */
@@ -1069,7 +1077,10 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimPlayerMenu(menuNavigator, player, claim as net.lumalyte.lg.domain.entities.Claim, logger, lang, bedrockDependencies)
         } else {
-            net.lumalyte.lg.interaction.menus.management.ClaimPlayerMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim)
+            val deps = checkNotNull(claimPlayerDependenciesProvider) { "Claim player menu dependencies were not bound" }()
+            net.lumalyte.lg.interaction.menus.management.ClaimPlayerMenu(
+                menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim, deps,
+            )
         }
     }
 

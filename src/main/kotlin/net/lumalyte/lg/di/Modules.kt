@@ -292,6 +292,12 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
                     getClaimPlayerPermissions = legacyScope.get<GetClaimPlayerPermissions>(),
                 )
             }
+            bindClaimPlayerMenuDependencies {
+                net.lumalyte.lg.interaction.menus.management.ClaimPlayerMenuDependencies(
+                    lang = legacyScope.get<LangService>(),
+                    getPlayersWithPermissionInClaim = legacyScope.get<GetPlayersWithPermissionInClaim>(),
+                )
+            }
             bindGettingStartedDependencies { factory ->
                 net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedNavigationDependencies(
                     service = legacyScope.get<net.lumalyte.lg.application.services.GuildGettingStartedService>(),
