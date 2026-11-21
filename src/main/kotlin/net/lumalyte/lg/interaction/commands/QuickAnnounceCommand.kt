@@ -10,8 +10,6 @@ import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.domain.entities.RankPermission
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /**
  * Guild announcement: `/ga <message>` sends a highlighted announcement to all
@@ -24,11 +22,16 @@ import org.koin.core.component.inject
  * &4 dark red, &5 dark purple, &6 gold, &7 gray, &8 dark gray, &9 blue.
  */
 @CommandAlias("ga")
-internal class QuickAnnounceCommand : BaseCommand(), KoinComponent {
-    private val lang: LangService by inject()
-    private val chatService: ChatService by inject()
-    private val guildService: GuildService by inject()
-    private val memberService: MemberService by inject()
+internal class QuickAnnounceCommand(
+    lang: Lazy<LangService>,
+    chatService: Lazy<ChatService>,
+    guildService: Lazy<GuildService>,
+    memberService: Lazy<MemberService>,
+) : BaseCommand() {
+    private val lang: LangService by lang
+    private val chatService: ChatService by chatService
+    private val guildService: GuildService by guildService
+    private val memberService: MemberService by memberService
 
     /** Shows usage help when `/ga` is typed without arguments. */
     @Default

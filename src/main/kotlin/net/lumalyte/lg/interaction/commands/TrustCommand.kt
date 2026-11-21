@@ -10,15 +10,16 @@ import net.lumalyte.lg.application.actions.claim.metadata.GetClaimDetails
 import net.lumalyte.lg.application.results.claim.permission.GrantPlayerClaimPermissionResult
 import org.bukkit.entity.Player
 import net.lumalyte.lg.domain.values.ClaimPermission
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.UUID
 
 @CommandAlias("claim")
-class TrustCommand : ClaimCommand(), KoinComponent {
-    private val lang: LangService by inject()
-    private val grantPlayerClaimPermission: GrantPlayerClaimPermission by inject()
-    private val getClaimDetails: GetClaimDetails by inject()
+class TrustCommand(
+    claimDependencies: ClaimCommandDependencies,
+    grantPlayerClaimPermission: Lazy<GrantPlayerClaimPermission>,
+) : ClaimCommand(claimDependencies) {
+    private val lang: LangService by claimDependencies.lang
+    private val grantPlayerClaimPermission: GrantPlayerClaimPermission by grantPlayerClaimPermission
+    private val getClaimDetails: GetClaimDetails by claimDependencies.getClaimDetails
 
     @Subcommand("trust")
     @CommandPermission("lumaguilds.command.claim.trust")

@@ -10,8 +10,6 @@ import net.lumalyte.lg.application.services.PenaltyService
 import net.lumalyte.lg.domain.values.ChatChannelIds
 import net.lumalyte.lg.infrastructure.services.RoseChatQuickChat
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /**
  * Quick guild chat: `/gc <message>` sends one message to guild chat without
@@ -21,10 +19,14 @@ import org.koin.core.component.inject
  * `/gc` alone shows help text.
  */
 @CommandAlias("gc")
-internal class QuickGuildChatCommand : BaseCommand(), KoinComponent {
-    private val lang: LangService by inject()
-    private val guildService: GuildService by inject()
-    private val penaltyService: PenaltyService by inject()
+internal class QuickGuildChatCommand(
+    lang: Lazy<LangService>,
+    guildService: Lazy<GuildService>,
+    penaltyService: Lazy<PenaltyService>,
+) : BaseCommand() {
+    private val lang: LangService by lang
+    private val guildService: GuildService by guildService
+    private val penaltyService: PenaltyService by penaltyService
 
     /** Shows usage help when `/gc` is typed without arguments. */
     @Default

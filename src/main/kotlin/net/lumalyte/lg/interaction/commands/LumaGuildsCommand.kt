@@ -26,8 +26,6 @@ import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.io.File
 import java.time.Instant
 import java.util.UUID
@@ -36,34 +34,59 @@ import org.bukkit.plugin.java.JavaPlugin
 import kotlin.io.path.exists
 
 /**
+ * Explicit collaborators for [LumaGuildsCommand] (REQ-NEXUS-DI-1..3). Required services are lazy and resolve on
+ * first use; optional lookups are typed providers invoked at each use, matching the former optional lookups.
+ */
+data class LumaGuildsCommandDependencies(
+    val lang: Lazy<LangService>,
+    val guildService: Lazy<GuildService>,
+    val adminOverrideService: Lazy<AdminOverrideService>,
+    val storage: Lazy<Storage<Database>>,
+    val spawnBannerService: Lazy<SpawnBannerServiceBukkit>,
+    val warService: Lazy<WarService>,
+    val progressionService: Lazy<ProgressionService>,
+    val memberService: Lazy<MemberService>,
+    val menuFactory: Lazy<MenuFactory>,
+    val progressionConfigService: Lazy<net.lumalyte.lg.infrastructure.services.ProgressionConfigService>,
+    val guildEmojiGrantService: Lazy<net.lumalyte.lg.infrastructure.services.GuildEmojiGrantService>,
+    /** Registered only when claims are enabled; null otherwise. Invoked on every override toggle. */
+    val guildRolePermissionResolver: () -> GuildRolePermissionResolver?,
+    /** Live progression listener, if registered; invoked on every config reload. */
+    val progressionEventListener: () -> net.lumalyte.lg.infrastructure.listeners.ProgressionEventListener?,
+)
+
+/**
  * Main LumaGuilds command handler for administrative functions
  */
 class LumaGuildsCommand(
+    dependencies: LumaGuildsCommandDependencies,
     private val xpWorker: (Runnable) -> Unit = { task ->
         Bukkit.getScheduler().runTaskAsynchronously(JavaPlugin.getPlugin(LumaGuilds::class.java), task)
     },
     private val xpReply: (Runnable) -> Unit = { task ->
         Bukkit.getScheduler().runTask(JavaPlugin.getPlugin(LumaGuilds::class.java), task)
     },
-) : CommandExecutor, TabCompleter, KoinComponent {
+) : CommandExecutor, TabCompleter {
 
-    private val lang: LangService by inject()
-    private val guildService: GuildService by inject()
-    private val adminOverrideService: AdminOverrideService by inject()
-    private val storage: Storage<Database> by inject()
-    private val spawnBannerService: SpawnBannerServiceBukkit by inject()
-    private val warService: WarService by inject()
-    private val progressionService: ProgressionService by inject()
-    private val memberService: MemberService by inject()
-    private val menuFactory: MenuFactory by inject()
+    private val lang: LangService by dependencies.lang
+    private val guildService: GuildService by dependencies.guildService
+    private val adminOverrideService: AdminOverrideService by dependencies.adminOverrideService
+    private val storage: Storage<Database> by dependencies.storage
+    private val spawnBannerService: SpawnBannerServiceBukkit by dependencies.spawnBannerService
+    private val warService: WarService by dependencies.warService
+    private val progressionService: ProgressionService by dependencies.progressionService
+    private val memberService: MemberService by dependencies.memberService
+    private val menuFactory: MenuFactory by dependencies.menuFactory
     private val ownerRecovery by lazy { GuildOwnerRecoveryCommand(memberService, lang) }
 
-    // Resolved lazily and nullable: GuildRolePermissionResolver is only registered when
-    // claims are enabled. Touching it via `by inject()` would crash the override command
-    // on claims-disabled servers.
+    // Resolved on each access and nullable: GuildRolePermissionResolver is only registered when
+    // claims are enabled. Resolving it eagerly would crash the override command on claims-disabled servers.
+    private val guildRolePermissionResolverProvider = dependencies.guildRolePermissionResolver
     private val guildRolePermissionResolver: GuildRolePermissionResolver?
-        get() = getKoin().getOrNull()
-    private val progressionConfigService: net.lumalyte.lg.infrastructure.services.ProgressionConfigService by inject()
+        get() = guildRolePermissionResolverProvider()
+    private val progressionConfigService: net.lumalyte.lg.infrastructure.services.ProgressionConfigService by dependencies.progressionConfigService
+    private val guildEmojiGrantService: net.lumalyte.lg.infrastructure.services.GuildEmojiGrantService by dependencies.guildEmojiGrantService
+    private val progressionEventListener = dependencies.progressionEventListener
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (args.isEmpty()) {
@@ -263,18 +286,14 @@ class LumaGuildsCommand(
             // Reinitialize config and services
             plugin.initConfig()
 
-            val emojiResult = org.koin.core.context.GlobalContext.get()
-                .get<net.lumalyte.lg.infrastructure.services.GuildEmojiGrantService>()
-                .reconcileAll()
+            val emojiResult = guildEmojiGrantService.reconcileAll()
             if (!emojiResult.successful) {
                 sender.sendMessage("LumaGuilds emoji permissions reconciled with ${emojiResult.failed} failure(s); check console.")
             }
 
             // Refresh cached configs in listeners
             plugin.vaultProtectionListener.refreshConfig()
-            org.koin.core.context.GlobalContext.get()
-                .getOrNull<net.lumalyte.lg.infrastructure.listeners.ProgressionEventListener>()
-                ?.refreshCaches()
+            progressionEventListener()?.refreshCaches()
 
             // Note: We don't reinitialize the entire plugin as that would require
             // stopping and restarting schedulers, recreating Koin context, etc.
@@ -307,9 +326,7 @@ class LumaGuildsCommand(
 
             // Reload the progression configuration
             progressionConfigService.reloadProgressionConfig()
-            org.koin.core.context.GlobalContext.get()
-                .getOrNull<net.lumalyte.lg.infrastructure.listeners.ProgressionEventListener>()
-                ?.refreshCaches()
+            progressionEventListener()?.refreshCaches()
 
             sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handleprogressionreload.progression_configuration_reloaded_successfully"))
             sender.sendMessage(lang.msg("admin.migrated.luma_guilds.handleprogressionreload.changes_to_level_rewards_and_xp_sources"))

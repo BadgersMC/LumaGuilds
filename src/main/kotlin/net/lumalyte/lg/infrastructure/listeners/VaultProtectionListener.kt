@@ -21,11 +21,21 @@ import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.event.entity.EntityExplodeEvent
 import org.bukkit.event.inventory.InventoryMoveItemEvent
 import org.bukkit.event.player.PlayerInteractEvent
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+
+/** Explicit lazy collaborators for [VaultProtectionListener] (REQ-NEXUS-DI-1..3); each resolves on first use. */
+data class VaultProtectionListenerDependencies(
+    val vaultService: Lazy<GuildVaultService>,
+    val guildService: Lazy<GuildService>,
+    val guildRepository: Lazy<net.lumalyte.lg.application.persistence.GuildRepository>,
+    val rankService: Lazy<net.lumalyte.lg.application.services.RankService>,
+    val memberService: Lazy<MemberService>,
+    val configService: Lazy<ConfigService>,
+    val hologramService: Lazy<net.lumalyte.lg.infrastructure.services.VaultHologramService>,
+    val lang: Lazy<LangService>,
+)
 
 /**
  * Listener for guild vault chest protection and placement.
@@ -36,16 +46,18 @@ import java.util.concurrent.ConcurrentHashMap
  * - Hopper/dropper/dispenser blocking (vaults are virtual, not physical chests)
  * - Piston blocking with backfire (attempting to push a vault destroys the piston)
  */
-class VaultProtectionListener : Listener, KoinComponent {
+class VaultProtectionListener(
+    dependencies: VaultProtectionListenerDependencies,
+) : Listener {
 
-    private val vaultService: GuildVaultService by inject()
-    private val guildService: GuildService by inject()
-    private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository by inject()
-    private val rankService: net.lumalyte.lg.application.services.RankService by inject()
-    private val memberService: MemberService by inject()
-    private val configService: ConfigService by inject()
-    private val hologramService: net.lumalyte.lg.infrastructure.services.VaultHologramService by inject()
-    private val lang: LangService by inject()
+    private val vaultService: GuildVaultService by dependencies.vaultService
+    private val guildService: GuildService by dependencies.guildService
+    private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository by dependencies.guildRepository
+    private val rankService: net.lumalyte.lg.application.services.RankService by dependencies.rankService
+    private val memberService: MemberService by dependencies.memberService
+    private val configService: ConfigService by dependencies.configService
+    private val hologramService: net.lumalyte.lg.infrastructure.services.VaultHologramService by dependencies.hologramService
+    private val lang: LangService by dependencies.lang
 
     private val logger = LoggerFactory.getLogger(VaultProtectionListener::class.java)
 

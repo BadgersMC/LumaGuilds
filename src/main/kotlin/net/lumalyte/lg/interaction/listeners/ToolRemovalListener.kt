@@ -15,13 +15,14 @@ import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.block.data.type.DecoratedPot
 import org.bukkit.event.player.PlayerInteractEvent
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 
-class ToolRemovalListener : Listener, KoinComponent {
-    private val isItemClaimTool: IsItemClaimTool by inject()
-    private val isItemMoveTool: IsItemMoveTool by inject()
+class ToolRemovalListener(
+    isItemClaimTool: Lazy<IsItemClaimTool>,
+    isItemMoveTool: Lazy<IsItemMoveTool>,
+) : Listener {
+    private val isItemClaimTool: IsItemClaimTool by isItemClaimTool
+    private val isItemMoveTool: IsItemMoveTool by isItemMoveTool
 
 
     @EventHandler

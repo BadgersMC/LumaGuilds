@@ -9,16 +9,17 @@ import net.lumalyte.lg.application.actions.claim.permission.GrantClaimWidePermis
 import net.lumalyte.lg.application.results.claim.permission.GrantClaimWidePermissionResult
 import org.bukkit.entity.Player
 import net.lumalyte.lg.domain.values.ClaimPermission
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.UUID
 import kotlin.getValue
 
 @CommandAlias("claim")
-class TrustAllCommand : ClaimCommand(), KoinComponent {
-    private val lang: LangService by inject()
-    private val grantClaimWidePermission: GrantClaimWidePermission by inject()
-    private val getClaimDetails: GetClaimDetails by inject()
+class TrustAllCommand(
+    claimDependencies: ClaimCommandDependencies,
+    grantClaimWidePermission: Lazy<GrantClaimWidePermission>,
+) : ClaimCommand(claimDependencies) {
+    private val lang: LangService by claimDependencies.lang
+    private val grantClaimWidePermission: GrantClaimWidePermission by grantClaimWidePermission
+    private val getClaimDetails: GetClaimDetails by claimDependencies.getClaimDetails
 
     @Subcommand("trustall")
     @CommandPermission("lumaguilds.command.claim.trustall")

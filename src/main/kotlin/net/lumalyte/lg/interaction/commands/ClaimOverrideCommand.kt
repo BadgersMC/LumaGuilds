@@ -9,14 +9,15 @@ import co.aikar.commands.annotation.Default
 import net.lumalyte.lg.application.actions.player.ToggleClaimOverride
 import net.lumalyte.lg.application.results.player.ToggleClaimOverrideResult
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import kotlin.getValue
 
 @CommandAlias("claimoverride")
-class ClaimOverrideCommand: BaseCommand(), KoinComponent {
-    private val lang: LangService by inject()
-    private val toggleClaimOverride: ToggleClaimOverride by inject()
+class ClaimOverrideCommand(
+    lang: Lazy<LangService>,
+    toggleClaimOverride: Lazy<ToggleClaimOverride>,
+) : BaseCommand() {
+    private val lang: LangService by lang
+    private val toggleClaimOverride: ToggleClaimOverride by toggleClaimOverride
 
     @Default
     @CommandPermission("lumaguilds.command.claimoverride")

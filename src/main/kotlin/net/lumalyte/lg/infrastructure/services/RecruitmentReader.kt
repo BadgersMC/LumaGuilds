@@ -3,17 +3,15 @@ package net.lumalyte.lg.infrastructure.services
 import net.badgersmc.nexus.i18n.LangService
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /** Native shells keep their client appearance; text and inventory pages retain guild context. */
 internal class RecruitmentReader(
+    private val lang: LangService,
     private val player: Player,
     private val content: RecruitmentBookContent,
     private val valid: () -> Boolean,
     private val back: () -> Unit,
-) : KoinComponent {
-    private val lang: LangService by inject()
+) {
     private val epoch = GuildMenuLifecycle.generation(player)
     private val token = epoch.get()
     private var presentation: Long? = null

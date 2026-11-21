@@ -1,7 +1,5 @@
 package net.lumalyte.lg.interaction.listeners
 
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.PhysicalGoldRequest
 import net.lumalyte.lg.domain.gold.GuildGoldResult
@@ -50,10 +48,12 @@ class VaultInventoryListener(
     private val memberService: MemberService,
     private val platformDetectionService: PlatformDetectionService,
     private val progressionRepository: ProgressionRepository,
-) : Listener, KoinComponent {
+    bankService: Lazy<BankService>,
+    lang: Lazy<LangService>,
+) : Listener {
 
-    private val bankService: BankService by inject()
-    private val lang: LangService by inject()
+    private val bankService: BankService by bankService
+    private val lang: LangService by lang
 
     private val logger = LoggerFactory.getLogger(VaultInventoryListener::class.java)
 

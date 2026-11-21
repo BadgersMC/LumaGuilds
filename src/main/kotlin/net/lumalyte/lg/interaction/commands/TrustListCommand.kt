@@ -13,16 +13,18 @@ import net.lumalyte.lg.application.actions.claim.permission.GetPlayersWithPermis
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import net.lumalyte.lg.infrastructure.ChatInfoBuilder
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import kotlin.math.ceil
 
 @CommandAlias("claim")
-class TrustListCommand : ClaimCommand(), KoinComponent {
-    private val lang: LangService by inject()
-    private val getPlayersWithPermissionInClaim: GetPlayersWithPermissionInClaim by inject()
-    private val getClaimDetails: GetClaimDetails by inject()
-    private val getClaimPlayerPermissions: GetClaimPlayerPermissions by inject()
+class TrustListCommand(
+    claimDependencies: ClaimCommandDependencies,
+    getPlayersWithPermissionInClaim: Lazy<GetPlayersWithPermissionInClaim>,
+    getClaimPlayerPermissions: Lazy<GetClaimPlayerPermissions>,
+) : ClaimCommand(claimDependencies) {
+    private val lang: LangService by claimDependencies.lang
+    private val getPlayersWithPermissionInClaim: GetPlayersWithPermissionInClaim by getPlayersWithPermissionInClaim
+    private val getClaimDetails: GetClaimDetails by claimDependencies.getClaimDetails
+    private val getClaimPlayerPermissions: GetClaimPlayerPermissions by getClaimPlayerPermissions
 
     @Subcommand("trustlist")
     @CommandPermission("lumaguilds.command.claim.trustlist")

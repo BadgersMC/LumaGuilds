@@ -8,13 +8,13 @@ import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import net.lumalyte.lg.interaction.menus.misc.ClaimListMenu
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 @CommandAlias("claimmenu")
-class ClaimMenuCommand : BaseCommand(), KoinComponent {
+class ClaimMenuCommand(
+    menuFactory: Lazy<MenuFactory>,
+) : BaseCommand() {
 
-    private val menuFactory: MenuFactory by inject()
+    private val menuFactory: MenuFactory by menuFactory
 
     @Default
     @CommandPermission("lumaguilds.command.claimmenu")

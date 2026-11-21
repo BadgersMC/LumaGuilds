@@ -11,8 +11,6 @@ import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.values.ChatChannelIds
 import net.lumalyte.lg.infrastructure.services.RoseChatQuickChat
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /**
  * Quick mod chat: `/gmc <message>` sends one message to guild moderators
@@ -21,10 +19,14 @@ import org.koin.core.component.inject
  * `/gmc` alone shows help text. Only usable by guild moderators.
  */
 @CommandAlias("gmc")
-internal class QuickModChatCommand : BaseCommand(), KoinComponent {
-    private val lang: LangService by inject()
-    private val guildService: GuildService by inject()
-    private val memberService: MemberService by inject()
+internal class QuickModChatCommand(
+    lang: Lazy<LangService>,
+    guildService: Lazy<GuildService>,
+    memberService: Lazy<MemberService>,
+) : BaseCommand() {
+    private val lang: LangService by lang
+    private val guildService: GuildService by guildService
+    private val memberService: MemberService by memberService
 
     /** Shows usage help when `/gmc` is typed without arguments. */
     @Default

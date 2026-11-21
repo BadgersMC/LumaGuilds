@@ -11,15 +11,16 @@ import net.lumalyte.lg.application.actions.claim.metadata.UpdateClaimDescription
 import net.lumalyte.lg.application.results.common.TextValidationErrorResult
 import net.lumalyte.lg.application.results.claim.metadata.UpdateClaimAttributeResult
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.UUID
 
 @CommandAlias("claim")
-class DescriptionCommand : ClaimCommand(), KoinComponent {
-    private val lang: LangService by inject()
-    private val updateClaimDescription: UpdateClaimDescription by inject()
-    private val getClaimDetails: GetClaimDetails by inject()
+class DescriptionCommand(
+    claimDependencies: ClaimCommandDependencies,
+    updateClaimDescription: Lazy<UpdateClaimDescription>,
+) : ClaimCommand(claimDependencies) {
+    private val lang: LangService by claimDependencies.lang
+    private val updateClaimDescription: UpdateClaimDescription by updateClaimDescription
+    private val getClaimDetails: GetClaimDetails by claimDependencies.getClaimDetails
 
     @Subcommand("description")
     @CommandPermission("lumaguilds.command.claim.description")

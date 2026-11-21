@@ -36,16 +36,20 @@ import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.world.StructureGrowEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.UUID
 
-class ClaimDestructionListener: Listener, KoinComponent {
-    private val lang: LangService by inject()
-    private val getClaimAnchorAtPosition: GetClaimAnchorAtPosition by inject()
-    private val breakClaimAnchor: BreakClaimAnchor by inject()
-    private val doesPlayerHaveClaimOverride: DoesPlayerHaveClaimOverride by inject()
-    private val claimManagementAuthorizer: ClaimManagementAuthorizer by inject()
+class ClaimDestructionListener(
+    lang: Lazy<LangService>,
+    getClaimAnchorAtPosition: Lazy<GetClaimAnchorAtPosition>,
+    breakClaimAnchor: Lazy<BreakClaimAnchor>,
+    doesPlayerHaveClaimOverride: Lazy<DoesPlayerHaveClaimOverride>,
+    claimManagementAuthorizer: Lazy<ClaimManagementAuthorizer>,
+) : Listener {
+    private val lang: LangService by lang
+    private val getClaimAnchorAtPosition: GetClaimAnchorAtPosition by getClaimAnchorAtPosition
+    private val breakClaimAnchor: BreakClaimAnchor by breakClaimAnchor
+    private val doesPlayerHaveClaimOverride: DoesPlayerHaveClaimOverride by doesPlayerHaveClaimOverride
+    private val claimManagementAuthorizer: ClaimManagementAuthorizer by claimManagementAuthorizer
 
     @EventHandler
     fun onClaimHubDestroy(event: BlockBreakEvent) {

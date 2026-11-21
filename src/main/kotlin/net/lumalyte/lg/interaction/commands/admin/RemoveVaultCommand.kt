@@ -9,8 +9,6 @@ import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.command.TabCompleter
 import org.slf4j.LoggerFactory
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /**
  * Admin command to forcibly remove a guild's vault.
@@ -19,10 +17,11 @@ import org.koin.core.component.inject
  */
 class RemoveVaultCommand(
     private val guildService: GuildService,
-    private val vaultService: GuildVaultService
-) : CommandExecutor, TabCompleter, KoinComponent {
+    private val vaultService: GuildVaultService,
+    lang: Lazy<LangService>,
+) : CommandExecutor, TabCompleter {
 
-    private val lang: LangService by inject()
+    private val lang: LangService by lang
     private val logger = LoggerFactory.getLogger(RemoveVaultCommand::class.java)
 
     override fun onCommand(

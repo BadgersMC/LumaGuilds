@@ -14,9 +14,28 @@ import net.lumalyte.lg.domain.entities.RelationType
 import org.bukkit.Bukkit
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.UUID
+
+/** Explicit lazy collaborators for [LumaGuildsChannel] (REQ-NEXUS-DI-1..3); each resolves on first use. */
+data class LumaGuildsChannelDependencies(
+    val memberService: Lazy<MemberService>,
+    val guildService: Lazy<GuildService>,
+    val relationService: Lazy<RelationService>,
+    val chatSettingsRepository: Lazy<ChatSettingsRepository>,
+    val rankSettings: Lazy<net.lumalyte.lg.application.services.GuildChatRankSettingsService>,
+    val rankService: Lazy<net.lumalyte.lg.application.services.RankService>,
+)
+
+/** Implemented by the RoseChat [ChannelProvider] that hands [LumaGuildsChannel] its explicit dependencies. */
+interface LumaGuildsChannelDependencySource {
+    val channelDependencies: LumaGuildsChannelDependencies
+}
+
+private fun dependenciesOf(provider: ChannelProvider): LumaGuildsChannelDependencies =
+    (provider as? LumaGuildsChannelDependencySource)?.channelDependencies
+        ?: throw IllegalStateException(
+            "LumaGuildsChannel requires a ChannelProvider implementing LumaGuildsChannelDependencySource",
+        )
 
 /**
  * RoseChat [Channel] backed by LumaGuilds guild membership.
@@ -29,14 +48,23 @@ import java.util.UUID
  * Recipients are computed at call time from live guild data, respecting
  * per-player chat visibility toggles stored in [ChatSettingsRepository].
  */
-class LumaGuildsChannel(provider: ChannelProvider) : RoseChatChannel(provider), KoinComponent {
+class LumaGuildsChannel(
+    provider: ChannelProvider,
+    dependencies: LumaGuildsChannelDependencies,
+) : RoseChatChannel(provider) {
 
-    private val memberService: MemberService by inject()
-    private val guildService: GuildService by inject()
-    private val relationService: RelationService by inject()
-    private val chatSettingsRepository: ChatSettingsRepository by inject()
-    private val rankSettings: net.lumalyte.lg.application.services.GuildChatRankSettingsService by inject()
-    private val rankService: net.lumalyte.lg.application.services.RankService by inject()
+    /**
+     * RoseChat instantiates channel generators reflectively with only their [ChannelProvider]; the LumaGuilds
+     * provider carries the explicit dependency bundle. Fails closed for any other provider.
+     */
+    constructor(provider: ChannelProvider) : this(provider, dependenciesOf(provider))
+
+    private val memberService: MemberService by dependencies.memberService
+    private val guildService: GuildService by dependencies.guildService
+    private val relationService: RelationService by dependencies.relationService
+    private val chatSettingsRepository: ChatSettingsRepository by dependencies.chatSettingsRepository
+    private val rankSettings: net.lumalyte.lg.application.services.GuildChatRankSettingsService by dependencies.rankSettings
+    private val rankService: net.lumalyte.lg.application.services.RankService by dependencies.rankService
     private var guildRankFormat: String? = null
 
     /** Resolved from the `channel-type` key in `channels.yml` (default: GUILD). */

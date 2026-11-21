@@ -20,16 +20,29 @@ import net.lumalyte.lg.domain.entities.Partition
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition3D
 
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
-open class ClaimCommand : BaseCommand(), KoinComponent {
-    private val lang: LangService by inject()
-    private val getPartitionByPosition: GetPartitionByPosition by inject()
-    private val doesPlayerHaveClaimOverride: DoesPlayerHaveClaimOverride by inject()
-    private val getClaimDetails: GetClaimDetails by inject()
-    private val givePlayerClaimTool: GivePlayerClaimTool by inject()
-    private val claimManagementAuthorizer: ClaimManagementAuthorizer by inject()
+/**
+ * Explicit lazy collaborators shared by [ClaimCommand] and its ACF subcommand classes (REQ-NEXUS-DI-1..3).
+ * Each resolves on first use, so claim services stay untouched until a claim command runs.
+ */
+data class ClaimCommandDependencies(
+    val lang: Lazy<LangService>,
+    val getPartitionByPosition: Lazy<GetPartitionByPosition>,
+    val doesPlayerHaveClaimOverride: Lazy<DoesPlayerHaveClaimOverride>,
+    val getClaimDetails: Lazy<GetClaimDetails>,
+    val givePlayerClaimTool: Lazy<GivePlayerClaimTool>,
+    val claimManagementAuthorizer: Lazy<ClaimManagementAuthorizer>,
+)
+
+open class ClaimCommand(
+    claimDependencies: ClaimCommandDependencies,
+) : BaseCommand() {
+    private val lang: LangService by claimDependencies.lang
+    private val getPartitionByPosition: GetPartitionByPosition by claimDependencies.getPartitionByPosition
+    private val doesPlayerHaveClaimOverride: DoesPlayerHaveClaimOverride by claimDependencies.doesPlayerHaveClaimOverride
+    private val getClaimDetails: GetClaimDetails by claimDependencies.getClaimDetails
+    private val givePlayerClaimTool: GivePlayerClaimTool by claimDependencies.givePlayerClaimTool
+    private val claimManagementAuthorizer: ClaimManagementAuthorizer by claimDependencies.claimManagementAuthorizer
 
     @CommandAlias("claim")
     @CommandPermission("lumaguilds.command.claim")

@@ -13,16 +13,17 @@ import org.bukkit.event.inventory.InventoryDragEvent
 import org.bukkit.event.inventory.InventoryType
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /**
  * Listener for handling banner placement in the Guild Banner Menu
  */
-class BannerSelectionListener : Listener, KoinComponent {
+class BannerSelectionListener(
+    guildService: Lazy<GuildService>,
+    lang: Lazy<LangService>,
+) : Listener {
 
-    private val guildService: GuildService by inject()
-    private val lang: LangService by inject()
+    private val guildService: GuildService by guildService
+    private val lang: LangService by lang
 
     @EventHandler
     fun onInventoryClick(event: InventoryClickEvent) {

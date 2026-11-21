@@ -11,16 +11,17 @@ import net.lumalyte.lg.application.actions.claim.metadata.UpdateClaimName
 import net.lumalyte.lg.application.results.common.TextValidationErrorResult
 import net.lumalyte.lg.application.results.claim.metadata.UpdateClaimNameResult
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.UUID
 import kotlin.getValue
 
 @CommandAlias("claim")
-class RenameCommand : ClaimCommand(), KoinComponent {
-    private val lang: LangService by inject()
-    private val updateClaimName: UpdateClaimName by inject()
-    private val getClaimDetails: GetClaimDetails by inject()
+class RenameCommand(
+    claimDependencies: ClaimCommandDependencies,
+    updateClaimName: Lazy<UpdateClaimName>,
+) : ClaimCommand(claimDependencies) {
+    private val lang: LangService by claimDependencies.lang
+    private val updateClaimName: UpdateClaimName by updateClaimName
+    private val getClaimDetails: GetClaimDetails by claimDependencies.getClaimDetails
 
     @Subcommand("rename")
     @CommandPermission("lumaguilds.command.claim.rename")

@@ -34,12 +34,13 @@ import org.bukkit.event.player.*
 import org.bukkit.event.raid.RaidTriggerEvent
 import org.bukkit.event.vehicle.VehicleDestroyEvent
 import org.bukkit.event.weather.LightningStrikeEvent
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
-class PlayerClaimProtectionListener: Listener, KoinComponent {
-    private val lang: LangService by inject()
-    private val isPlayerActionAllowed: IsPlayerActionAllowed by inject()
+class PlayerClaimProtectionListener(
+    lang: Lazy<LangService>,
+    isPlayerActionAllowed: Lazy<IsPlayerActionAllowed>,
+) : Listener {
+    private val lang: LangService by lang
+    private val isPlayerActionAllowed: IsPlayerActionAllowed by isPlayerActionAllowed
 
     @EventHandler
     fun onBlockBreak(event: BlockBreakEvent) {

@@ -10,16 +10,17 @@ import net.lumalyte.lg.application.actions.claim.metadata.GetClaimDetails
 import net.lumalyte.lg.application.actions.claim.partition.RemovePartition
 import net.lumalyte.lg.application.results.claim.partition.RemovePartitionResult
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.UUID
 import kotlin.getValue
 
 @CommandAlias("claim")
-class RemoveCommand : ClaimCommand(), KoinComponent {
-    private val lang: LangService by inject()
-    private val removePartition: RemovePartition by inject()
-    private val getClaimDetails: GetClaimDetails by inject()
+class RemoveCommand(
+    claimDependencies: ClaimCommandDependencies,
+    removePartition: Lazy<RemovePartition>,
+) : ClaimCommand(claimDependencies) {
+    private val lang: LangService by claimDependencies.lang
+    private val removePartition: RemovePartition by removePartition
+    private val getClaimDetails: GetClaimDetails by claimDependencies.getClaimDetails
 
     @Subcommand("remove")
     @CommandPermission("lumaguilds.command.claim.remove")

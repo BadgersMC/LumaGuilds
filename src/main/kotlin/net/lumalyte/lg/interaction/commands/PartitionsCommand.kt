@@ -11,16 +11,17 @@ import net.lumalyte.lg.application.actions.claim.metadata.GetClaimDetails
 import net.lumalyte.lg.application.actions.claim.partition.GetClaimPartitions
 import org.bukkit.entity.Player
 import net.lumalyte.lg.infrastructure.ChatInfoBuilder
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.UUID
 import kotlin.math.ceil
 
 @CommandAlias("claim")
-class PartitionsCommand : ClaimCommand(), KoinComponent {
-    private val lang: LangService by inject()
-    private val getClaimPartitions: GetClaimPartitions by inject()
-    private val getClaimDetails: GetClaimDetails by inject()
+class PartitionsCommand(
+    claimDependencies: ClaimCommandDependencies,
+    getClaimPartitions: Lazy<GetClaimPartitions>,
+) : ClaimCommand(claimDependencies) {
+    private val lang: LangService by claimDependencies.lang
+    private val getClaimPartitions: GetClaimPartitions by getClaimPartitions
+    private val getClaimDetails: GetClaimDetails by claimDependencies.getClaimDetails
 
     @Subcommand("partitions")
     @CommandPermission("lumaguilds.command.claim.partitions")

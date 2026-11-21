@@ -11,15 +11,16 @@ import net.lumalyte.lg.application.actions.claim.flag.DisableClaimFlag
 import net.lumalyte.lg.application.results.claim.flags.DisableClaimFlagResult
 import org.bukkit.entity.Player
 import net.lumalyte.lg.domain.values.Flag
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.UUID
 
 @CommandAlias("claim")
-class RemoveFlagCommand : ClaimCommand(), KoinComponent {
-    private val lang: LangService by inject()
-    private val disableClaimFlag: DisableClaimFlag by inject()
-    private val getClaimDetails: GetClaimDetails by inject()
+class RemoveFlagCommand(
+    claimDependencies: ClaimCommandDependencies,
+    disableClaimFlag: Lazy<DisableClaimFlag>,
+) : ClaimCommand(claimDependencies) {
+    private val lang: LangService by claimDependencies.lang
+    private val disableClaimFlag: DisableClaimFlag by disableClaimFlag
+    private val getClaimDetails: GetClaimDetails by claimDependencies.getClaimDetails
 
     @Subcommand("removeflag")
     @CommandPermission("lumaguilds.command.claim.removeflag")

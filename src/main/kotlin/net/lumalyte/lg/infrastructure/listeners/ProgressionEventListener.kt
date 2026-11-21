@@ -79,6 +79,8 @@ class ProgressionEventListener(
     private val virtualDispatcher: CoroutineDispatcher,
     private val taskScope: CoroutineScope,
     private val provenanceOperations: BlockProvenanceOperationQueue,
+    /** Optional Apollo (Lunar Client) service; null when Apollo is absent. Invoked per XP multiplier check. */
+    private val lunarClientService: () -> net.lumalyte.lg.application.services.apollo.LunarClientService?,
 ) : Listener {
 
     private val logger = LoggerFactory.getLogger(ProgressionEventListener::class.java)
@@ -539,9 +541,8 @@ class ProgressionEventListener(
 
     private fun lunarMultiplier(player: Player): Int {
         return try {
-            val lunarClientService = org.koin.core.context.GlobalContext.get()
-                .getOrNull<net.lumalyte.lg.application.services.apollo.LunarClientService>()
-            if (lunarClientService != null && lunarClientService.isLunarClient(player)) 2 else 1
+            val lunarClient = lunarClientService()
+            if (lunarClient != null && lunarClient.isLunarClient(player)) 2 else 1
         } catch (e: Exception) {
             1
         }

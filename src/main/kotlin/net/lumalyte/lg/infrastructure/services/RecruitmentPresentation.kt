@@ -13,17 +13,15 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.event.ClickCallback
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
-import org.koin.core.component.inject
 import java.time.Duration
 
 private const val MAX_INPUT_LENGTH = 2_000
 
 /** Native presentation only; all input and private reads are reauthorized by the caller. */
-internal object RecruitmentPresentation : org.koin.core.component.KoinComponent {
+internal object RecruitmentPresentation {
     private const val BOOK_COLUMNS = 12
     private const val BOOK_ROWS = 12
     private const val MAX_BOOK_PAGES = 100
-    private val PLATFORMS: net.lumalyte.lg.application.services.PlatformDetectionService by inject()
 
     fun supportsDialog(player: Player): Boolean {
         return Bukkit.getPluginManager().isPluginEnabled("packetevents") &&
@@ -110,14 +108,17 @@ internal object RecruitmentPresentation : org.koin.core.component.KoinComponent 
             .build()
     }
 
+    /** The caller supplies its own platform detection and locale services (REQ-NEXUS-DI-1). */
     fun book(
         player: Player,
         content: RecruitmentBookContent,
         valid: () -> Boolean,
         back: () -> Unit,
+        platforms: net.lumalyte.lg.application.services.PlatformDetectionService,
+        lang: net.badgersmc.nexus.i18n.LangService,
     ) {
-        RecruitmentReader(player, content, valid, back).open(
-            PLATFORMS.isBedrockPlayer(player),
+        RecruitmentReader(lang, player, content, valid, back).open(
+            platforms.isBedrockPlayer(player),
             supportsDialog(player),
         )
     }

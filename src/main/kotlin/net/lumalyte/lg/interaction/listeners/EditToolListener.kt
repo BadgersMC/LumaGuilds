@@ -40,30 +40,50 @@ import net.lumalyte.lg.infrastructure.adapters.bukkit.toPosition3D
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.UUID
+
+/** Explicit lazy collaborators for [EditToolListener] (REQ-NEXUS-DI-1..3); each resolves on first use. */
+data class EditToolListenerDependencies(
+    val lang: Lazy<LangService>,
+    val getPartitionByPosition: Lazy<GetPartitionByPosition>,
+    val displayVisualisation: Lazy<DisplayVisualisation>,
+    val createPartition: Lazy<CreatePartition>,
+    val getRemainingClaimBlockCount: Lazy<GetRemainingClaimBlockCount>,
+    val getClaimAtPosition: Lazy<GetClaimAtPosition>,
+    val doesPlayerHaveClaimOverride: Lazy<DoesPlayerHaveClaimOverride>,
+    val resizePartition: Lazy<ResizePartition>,
+    val isItemClaimTool: Lazy<IsItemClaimTool>,
+    val coroutineScope: Lazy<CoroutineScope>,
+    val menuFactory: Lazy<net.lumalyte.lg.interaction.menus.MenuFactory>,
+    val schedulerService: Lazy<SchedulerService>,
+    val displaySelectionVisualisation: Lazy<DisplaySelectionVisualisation>,
+    val clearSelectionVisualisation: Lazy<ClearSelectionVisualisation>,
+    val refreshVisualisation: Lazy<RefreshVisualisation>,
+    val claimManagementAuthorizer: Lazy<ClaimManagementAuthorizer>,
+)
 
 /**
  * Actions based on using the claim tool.
  */
-class EditToolListener: Listener, KoinComponent {
-    private val lang: LangService by inject()
-    private val getPartitionByPosition: GetPartitionByPosition by inject()
-    private val displayVisualisation: DisplayVisualisation by inject()
-    private val createPartition: CreatePartition by inject()
-    private val getRemainingClaimBlockCount: GetRemainingClaimBlockCount by inject()
-    private val getClaimAtPosition: GetClaimAtPosition by inject()
-    private val doesPlayerHaveClaimOverride: DoesPlayerHaveClaimOverride by inject()
-    private val resizePartition: ResizePartition by inject()
-    private val isItemClaimTool: IsItemClaimTool by inject()
-    private val coroutineScope: CoroutineScope by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
-    private val schedulerService: SchedulerService by inject()
-    private val displaySelectionVisualisation: DisplaySelectionVisualisation by inject()
-    private val clearSelectionVisualisation: ClearSelectionVisualisation by inject()
-    private val refreshVisualisation: RefreshVisualisation by inject()
-    private val claimManagementAuthorizer: ClaimManagementAuthorizer by inject()
+class EditToolListener(
+    dependencies: EditToolListenerDependencies,
+) : Listener {
+    private val lang: LangService by dependencies.lang
+    private val getPartitionByPosition: GetPartitionByPosition by dependencies.getPartitionByPosition
+    private val displayVisualisation: DisplayVisualisation by dependencies.displayVisualisation
+    private val createPartition: CreatePartition by dependencies.createPartition
+    private val getRemainingClaimBlockCount: GetRemainingClaimBlockCount by dependencies.getRemainingClaimBlockCount
+    private val getClaimAtPosition: GetClaimAtPosition by dependencies.getClaimAtPosition
+    private val doesPlayerHaveClaimOverride: DoesPlayerHaveClaimOverride by dependencies.doesPlayerHaveClaimOverride
+    private val resizePartition: ResizePartition by dependencies.resizePartition
+    private val isItemClaimTool: IsItemClaimTool by dependencies.isItemClaimTool
+    private val coroutineScope: CoroutineScope by dependencies.coroutineScope
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by dependencies.menuFactory
+    private val schedulerService: SchedulerService by dependencies.schedulerService
+    private val displaySelectionVisualisation: DisplaySelectionVisualisation by dependencies.displaySelectionVisualisation
+    private val clearSelectionVisualisation: ClearSelectionVisualisation by dependencies.clearSelectionVisualisation
+    private val refreshVisualisation: RefreshVisualisation by dependencies.refreshVisualisation
+    private val claimManagementAuthorizer: ClaimManagementAuthorizer by dependencies.claimManagementAuthorizer
 
     // Map of player id to the partition and the first selected corner to resize a partition
     private val firstSelectedCornerResize: MutableMap<UUID, Pair<UUID, Position2D>> = mutableMapOf()

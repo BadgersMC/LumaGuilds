@@ -11,22 +11,34 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+
+/** Explicit lazy collaborators for [PlayerSessionListener] (REQ-NEXUS-DI-1..3); each resolves on first use. */
+data class PlayerSessionListenerDependencies(
+    val teleportationService: Lazy<TeleportationService>,
+    val hologramService: Lazy<VaultHologramService>,
+    val vaultInventoryManager: Lazy<VaultInventoryManager>,
+    val guildChatListener: Lazy<GuildChatListener>,
+    val warNotificationService: Lazy<WarNotificationService>,
+    val questCompletionNotifier: Lazy<QuestCompletionNotifier>,
+    val guildLoginNotificationService: Lazy<GuildLoginNotificationService>,
+    val questAvailabilityNotifier: Lazy<net.lumalyte.lg.infrastructure.services.QuestAvailabilityNotifierBukkit>,
+)
 
 /**
  * Listens to player session events (join, quit) and performs cleanup.
  */
-class PlayerSessionListener : Listener, KoinComponent {
+class PlayerSessionListener(
+    dependencies: PlayerSessionListenerDependencies,
+) : Listener {
 
-    private val teleportationService: TeleportationService by inject()
-    private val hologramService: VaultHologramService by inject()
-    private val vaultInventoryManager: VaultInventoryManager by inject()
-    private val guildChatListener: GuildChatListener by inject()
-    private val warNotificationService: WarNotificationService by inject()
-    private val questCompletionNotifier: QuestCompletionNotifier by inject()
-    private val guildLoginNotificationService: GuildLoginNotificationService by inject()
-    private val questAvailabilityNotifier: net.lumalyte.lg.infrastructure.services.QuestAvailabilityNotifierBukkit by inject()
+    private val teleportationService: TeleportationService by dependencies.teleportationService
+    private val hologramService: VaultHologramService by dependencies.hologramService
+    private val vaultInventoryManager: VaultInventoryManager by dependencies.vaultInventoryManager
+    private val guildChatListener: GuildChatListener by dependencies.guildChatListener
+    private val warNotificationService: WarNotificationService by dependencies.warNotificationService
+    private val questCompletionNotifier: QuestCompletionNotifier by dependencies.questCompletionNotifier
+    private val guildLoginNotificationService: GuildLoginNotificationService by dependencies.guildLoginNotificationService
+    private val questAvailabilityNotifier: net.lumalyte.lg.infrastructure.services.QuestAvailabilityNotifierBukkit by dependencies.questAvailabilityNotifier
 
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {

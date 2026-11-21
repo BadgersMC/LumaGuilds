@@ -12,19 +12,21 @@ import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /** Fullscreen announcements share the existing permission, mute and rate-limit path. */
 @CommandAlias("gfa")
-internal class FullscreenAnnounceCommand :
-    BaseCommand(),
-    KoinComponent {
-    private val guilds: GuildService by inject()
-    private val members: MemberService by inject()
-    private val service: ChatService by inject()
-    private val penalties: net.lumalyte.lg.application.services.PenaltyService by inject()
-    private val lang: LangService by inject()
+internal class FullscreenAnnounceCommand(
+    guilds: Lazy<GuildService>,
+    members: Lazy<MemberService>,
+    service: Lazy<ChatService>,
+    penalties: Lazy<net.lumalyte.lg.application.services.PenaltyService>,
+    lang: Lazy<LangService>,
+) : BaseCommand() {
+    private val guilds: GuildService by guilds
+    private val members: MemberService by members
+    private val service: ChatService by service
+    private val penalties: net.lumalyte.lg.application.services.PenaltyService by penalties
+    private val lang: LangService by lang
 
     @Default
     @CommandPermission("lumaguilds.guild.chat")

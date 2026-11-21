@@ -6,17 +6,18 @@ import org.bukkit.command.Command
 import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /**
  * Command to view Bedrock form cache statistics
  * Usage: /bedrockcachestats
  */
-class BedrockCacheStatsCommand : CommandExecutor, KoinComponent {
+class BedrockCacheStatsCommand(
+    lang: Lazy<LangService>,
+    formCacheService: Lazy<FormCacheService>,
+) : CommandExecutor {
 
-    private val lang: LangService by inject()
-    private val formCacheService: FormCacheService by inject()
+    private val lang: LangService by lang
+    private val formCacheService: FormCacheService by formCacheService
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         // Check permissions

@@ -11,15 +11,16 @@ import net.lumalyte.lg.application.actions.claim.metadata.GetClaimDetails
 import net.lumalyte.lg.application.results.claim.flags.EnableClaimFlagResult
 import org.bukkit.entity.Player
 import net.lumalyte.lg.domain.values.Flag
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.UUID
 
 @CommandAlias("claim")
-class AddFlagCommand : ClaimCommand(), KoinComponent {
-    private val lang: LangService by inject()
-    private val enableClaimFlag: EnableClaimFlag by inject()
-    private val getClaimDetails: GetClaimDetails by inject()
+class AddFlagCommand(
+    claimDependencies: ClaimCommandDependencies,
+    enableClaimFlag: Lazy<EnableClaimFlag>,
+) : ClaimCommand(claimDependencies) {
+    private val lang: LangService by claimDependencies.lang
+    private val enableClaimFlag: EnableClaimFlag by enableClaimFlag
+    private val getClaimDetails: GetClaimDetails by claimDependencies.getClaimDetails
 
     @Subcommand("addflag")
     @CommandPermission("lumaguilds.command.claim.addflag")

@@ -9,11 +9,11 @@ import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.player.PlayerHarvestBlockEvent
 import org.bukkit.event.player.PlayerInteractEvent
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
-class HarvestReplantListener: Listener, KoinComponent {
-    private val config: MainConfig by inject()
+class HarvestReplantListener(
+    config: Lazy<MainConfig>,
+) : Listener {
+    private val config: MainConfig by config
 
     @EventHandler
     fun onInventoryClose(event: PlayerInteractEvent) {

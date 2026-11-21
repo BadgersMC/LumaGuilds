@@ -33,37 +33,77 @@ import org.bukkit.Location
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
 import java.util.UUID
-import org.koin.core.component.inject
+
+/** Explicit lazy collaborators for [GuildCommand] (REQ-NEXUS-DI-1..3); each resolves on first use. */
+internal data class GuildCommandDependencies(
+    val lang: Lazy<LangService>,
+    val guildService: Lazy<GuildService>,
+    val lfgService: Lazy<net.lumalyte.lg.application.services.LfgService>,
+    val guildRepository: Lazy<net.lumalyte.lg.application.persistence.GuildRepository>,
+    val rankService: Lazy<RankService>,
+    val chatRankSettings: Lazy<net.lumalyte.lg.application.services.GuildChatRankSettingsService>,
+    val memberService: Lazy<MemberService>,
+    val inviteBlocks: Lazy<net.lumalyte.lg.application.services.InviteBlockService>,
+    val vaultService: Lazy<net.lumalyte.lg.application.services.GuildVaultService>,
+    val warService: Lazy<net.lumalyte.lg.application.services.WarService>,
+    val configService: Lazy<ConfigService>,
+    val menuFactory: Lazy<MenuFactory>,
+    val progressionService: Lazy<net.lumalyte.lg.application.services.ProgressionService>,
+    val historyRepository: Lazy<MembershipHistoryRepository>,
+    val guildChatListener: Lazy<net.lumalyte.lg.interaction.listeners.GuildChatListener>,
+    val adminOverrideService: Lazy<net.lumalyte.lg.application.services.AdminOverrideService>,
+    val teleportationService: Lazy<net.lumalyte.lg.infrastructure.services.TeleportationService>,
+    val bannermanListeners: Lazy<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners>,
+    val strikeService: Lazy<net.lumalyte.lg.application.services.StrikeService>,
+    val bankService: Lazy<net.lumalyte.lg.application.services.BankService>,
+    val guildCostService: Lazy<net.lumalyte.lg.application.services.GuildCostService>,
+    val guildHomeActivationService: Lazy<net.lumalyte.lg.application.services.GuildHomeActivationService>,
+    val warBannerService: Lazy<net.lumalyte.lg.infrastructure.services.WarBannerServiceBukkit>,
+    val guildLoginNotificationService: Lazy<net.lumalyte.lg.application.services.GuildLoginNotificationService>,
+    /** Used by ally homes and the relation subcommands; resolved on first use. */
+    val relationService: Lazy<net.lumalyte.lg.application.services.RelationService>,
+    /** Used only by `/g emoji`; resolved on first use. */
+    val nexoEmojiService: Lazy<net.lumalyte.lg.infrastructure.services.NexoEmojiService>,
+    /** Used only by `/g join` open-recruitment admission; resolved on first use. */
+    val guildRecruitmentService: Lazy<net.lumalyte.lg.application.services.GuildRecruitmentService>,
+    /** Used only by `/g start dismiss`; resolved on first use. */
+    val guildOnboardingRepository: Lazy<net.lumalyte.lg.application.persistence.GuildOnboardingRepository>,
+)
 
 @CommandAlias("guild|g")
-class GuildCommand : BaseCommand(), KoinComponent {
+class GuildCommand internal constructor(
+    dependencies: GuildCommandDependencies,
+) : BaseCommand() {
 
-    private val lang: LangService by inject()
-    private val guildService: GuildService by inject()
-    private val lfgService: net.lumalyte.lg.application.services.LfgService by inject()
-    private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository by inject()
-    private val rankService: RankService by inject()
-    private val chatRankSettings: net.lumalyte.lg.application.services.GuildChatRankSettingsService by inject()
-    private val memberService: MemberService by inject()
-    private val inviteBlocks: net.lumalyte.lg.application.services.InviteBlockService by inject()
-    private val vaultService: net.lumalyte.lg.application.services.GuildVaultService by inject()
-    private val warService: net.lumalyte.lg.application.services.WarService by inject()
-    private val configService: ConfigService by inject()
-    private val menuFactory: MenuFactory by inject()
-    private val progressionService: net.lumalyte.lg.application.services.ProgressionService by inject()
-    private val historyRepository: MembershipHistoryRepository by inject()
-    private val guildChatListener: net.lumalyte.lg.interaction.listeners.GuildChatListener by inject()
-    private val adminOverrideService: net.lumalyte.lg.application.services.AdminOverrideService by inject()
-    private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
-    private val bannermanListeners: net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners by inject()
-    private val strikeService: net.lumalyte.lg.application.services.StrikeService by inject()
-    private val bankService: net.lumalyte.lg.application.services.BankService by inject()
-    private val guildCostService: net.lumalyte.lg.application.services.GuildCostService by inject()
-    private val guildHomeActivationService: net.lumalyte.lg.application.services.GuildHomeActivationService by inject()
-    private val warBannerService: net.lumalyte.lg.infrastructure.services.WarBannerServiceBukkit by inject()
-    private val guildLoginNotificationService: net.lumalyte.lg.application.services.GuildLoginNotificationService by inject()
+    private val lang: LangService by dependencies.lang
+    private val guildService: GuildService by dependencies.guildService
+    private val lfgService: net.lumalyte.lg.application.services.LfgService by dependencies.lfgService
+    private val guildRepository: net.lumalyte.lg.application.persistence.GuildRepository by dependencies.guildRepository
+    private val rankService: RankService by dependencies.rankService
+    private val chatRankSettings: net.lumalyte.lg.application.services.GuildChatRankSettingsService by dependencies.chatRankSettings
+    private val memberService: MemberService by dependencies.memberService
+    private val inviteBlocks: net.lumalyte.lg.application.services.InviteBlockService by dependencies.inviteBlocks
+    private val vaultService: net.lumalyte.lg.application.services.GuildVaultService by dependencies.vaultService
+    private val warService: net.lumalyte.lg.application.services.WarService by dependencies.warService
+    private val configService: ConfigService by dependencies.configService
+    private val menuFactory: MenuFactory by dependencies.menuFactory
+    private val progressionService: net.lumalyte.lg.application.services.ProgressionService by dependencies.progressionService
+    private val historyRepository: MembershipHistoryRepository by dependencies.historyRepository
+    private val guildChatListener: net.lumalyte.lg.interaction.listeners.GuildChatListener by dependencies.guildChatListener
+    private val adminOverrideService: net.lumalyte.lg.application.services.AdminOverrideService by dependencies.adminOverrideService
+    private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by dependencies.teleportationService
+    private val bannermanListeners: net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners by dependencies.bannermanListeners
+    private val strikeService: net.lumalyte.lg.application.services.StrikeService by dependencies.strikeService
+    private val bankService: net.lumalyte.lg.application.services.BankService by dependencies.bankService
+    private val guildCostService: net.lumalyte.lg.application.services.GuildCostService by dependencies.guildCostService
+    private val guildHomeActivationService: net.lumalyte.lg.application.services.GuildHomeActivationService by dependencies.guildHomeActivationService
+    private val warBannerService: net.lumalyte.lg.infrastructure.services.WarBannerServiceBukkit by dependencies.warBannerService
+    private val guildLoginNotificationService: net.lumalyte.lg.application.services.GuildLoginNotificationService by dependencies.guildLoginNotificationService
+    private val relationService: net.lumalyte.lg.application.services.RelationService by dependencies.relationService
+    private val nexoEmojiService: net.lumalyte.lg.infrastructure.services.NexoEmojiService by dependencies.nexoEmojiService
+    private val guildRecruitmentService: net.lumalyte.lg.application.services.GuildRecruitmentService by dependencies.guildRecruitmentService
+    private val guildOnboardingRepository: net.lumalyte.lg.application.persistence.GuildOnboardingRepository by dependencies.guildOnboardingRepository
 
     private val lastHomeTeleport = mutableMapOf<java.util.UUID, Long>()
 
@@ -778,7 +818,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
         if (targetGuild.id == ownGuild.id) {
             return targetGuild
         }
-        val relationService: net.lumalyte.lg.application.services.RelationService by inject()
         if (relationService.getRelationType(ownGuild.id, targetGuild.id)
             != net.lumalyte.lg.domain.entities.RelationType.ALLY) {
             player.sendMessage(lang.msg("command.migrated.guild.resolveallytarget.is_not_an_ally_of_your_guild", "guild" to targetGuild.name))
@@ -953,7 +992,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         // Direct emoji setting via command parameter
-        val nexoEmojiService: net.lumalyte.lg.infrastructure.services.NexoEmojiService by inject()
 
         // Validate emoji format
         if (!nexoEmojiService.isValidEmojiFormat(emoji)) {
@@ -1664,11 +1702,11 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         // Check if guild is open - if so, allow direct joining without invitation
-        val recruitment: net.lumalyte.lg.application.services.GuildRecruitmentService by inject()
+        val recruitment = guildRecruitmentService
         if (recruitment.listings.profile(guild).mode == net.lumalyte.lg.domain.recruitment.RecruitmentMode.JOIN_IMMEDIATELY) {
             // Open guild - no invitation required
             if (guild.joinFeeEnabled && guild.joinFeeAmount > 0) {
-                val factory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+                val factory = menuFactory
                 val navigator = net.lumalyte.lg.interaction.menus.MenuNavigator(player)
                 val menu = factory.createLfgBrowserMenu(navigator, player)
                 menu.passData(guild)
@@ -1767,7 +1805,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
     @Subcommand("lfg|browse|recruitment")
     @CommandPermission("lumaguilds.guild.lfg")
     fun onLfg(player: Player) {
-        val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
         val menuNavigator = net.lumalyte.lg.interaction.menus.MenuNavigator(player)
 
         menuNavigator.openMenu(menuFactory.createLfgBrowserMenu(menuNavigator, player))
@@ -2663,7 +2700,7 @@ class GuildCommand : BaseCommand(), KoinComponent {
     @Subcommand("start dismiss")
     @CommandPermission("lumaguilds.guild.help")
     fun onDismissGettingStarted(player: Player) {
-        val repository = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.persistence.GuildOnboardingRepository>()
+        val repository = guildOnboardingRepository
         val dismissed = guildService.getPlayerGuilds(player.uniqueId).map { repository.dismiss(player.uniqueId, it.id) }
         if (dismissed.any { !it }) {
             player.sendMessage(lang.msg("onboarding.failed")); return
@@ -2726,7 +2763,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         // Get relation service
-        val relationService: net.lumalyte.lg.application.services.RelationService by inject()
 
         // Check current relation
         val currentRelation = relationService.getRelationType(guild.id, targetGuild.id)
@@ -2799,7 +2835,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         // Get relation service
-        val relationService: net.lumalyte.lg.application.services.RelationService by inject()
 
         // Check current relation
         val currentRelation = relationService.getRelationType(guild.id, targetGuild.id)
@@ -2867,7 +2902,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         // Get relation service
-        val relationService: net.lumalyte.lg.application.services.RelationService by inject()
 
         // Check current relation
         val currentRelation = relationService.getRelationType(guild.id, targetGuild.id)
@@ -2935,7 +2969,6 @@ class GuildCommand : BaseCommand(), KoinComponent {
         }
 
         // Get relation service
-        val relationService: net.lumalyte.lg.application.services.RelationService by inject()
 
         // Check current relation
         val currentRelation = relationService.getRelationType(guild.id, targetGuild.id)

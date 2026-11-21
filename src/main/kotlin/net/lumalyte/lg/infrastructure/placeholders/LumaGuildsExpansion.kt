@@ -19,8 +19,6 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import me.clip.placeholderapi.expansion.PlaceholderExpansion
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
@@ -31,6 +29,25 @@ import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+
+/** Explicit lazy collaborators for [LumaGuildsExpansion] (REQ-NEXUS-DI-1..3); each resolves on first use. */
+data class LumaGuildsExpansionDependencies(
+    val guildService: Lazy<GuildService>,
+    val memberService: Lazy<MemberService>,
+    val bankService: Lazy<BankService>,
+    val killService: Lazy<KillService>,
+    val rankService: Lazy<RankService>,
+    val warService: Lazy<WarService>,
+    val relationService: Lazy<RelationService>,
+    val progressionRepository: Lazy<ProgressionRepository>,
+    val progressionService: Lazy<ProgressionService>,
+    val configService: Lazy<ConfigService>,
+    val leaderboardRepository: Lazy<LeaderboardRepository>,
+    val nexoEmojiService: Lazy<NexoEmojiService>,
+    val questService: Lazy<QuestService>,
+    val storage: Lazy<Storage<Database>>,
+    val seasonalElo: Lazy<net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator>,
+)
 
 /**
  * PlaceholderAPI expansion for LumaGuilds plugin.
@@ -91,23 +108,25 @@ import java.util.concurrent.ConcurrentHashMap
  *     %lumaguilds_top_level_3_value%
  *     %lumaguilds_top_activity_2_members%
  */
-class LumaGuildsExpansion : PlaceholderExpansion(), KoinComponent {
+class LumaGuildsExpansion(
+    dependencies: LumaGuildsExpansionDependencies,
+) : PlaceholderExpansion() {
 
-    private val guildService: GuildService by inject()
-    private val memberService: MemberService by inject()
-    private val bankService: BankService by inject()
-    private val killService: KillService by inject()
-    private val rankService: RankService by inject()
-    private val warService: WarService by inject()
-    private val relationService: RelationService by inject()
-    private val progressionRepository: ProgressionRepository by inject()
-    private val progressionService: ProgressionService by inject()
-    private val configService: ConfigService by inject()
-    private val leaderboardRepository: LeaderboardRepository by inject()
-    private val nexoEmojiService: NexoEmojiService by inject()
-    private val questService: QuestService by inject()
-    private val storage: Storage<Database> by inject()
-    private val seasonalElo: net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator by inject()
+    private val guildService: GuildService by dependencies.guildService
+    private val memberService: MemberService by dependencies.memberService
+    private val bankService: BankService by dependencies.bankService
+    private val killService: KillService by dependencies.killService
+    private val rankService: RankService by dependencies.rankService
+    private val warService: WarService by dependencies.warService
+    private val relationService: RelationService by dependencies.relationService
+    private val progressionRepository: ProgressionRepository by dependencies.progressionRepository
+    private val progressionService: ProgressionService by dependencies.progressionService
+    private val configService: ConfigService by dependencies.configService
+    private val leaderboardRepository: LeaderboardRepository by dependencies.leaderboardRepository
+    private val nexoEmojiService: NexoEmojiService by dependencies.nexoEmojiService
+    private val questService: QuestService by dependencies.questService
+    private val storage: Storage<Database> by dependencies.storage
+    private val seasonalElo: net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator by dependencies.seasonalElo
 
     private val miniMessage = MiniMessage.miniMessage()
     private val plainSerializer = PlainTextComponentSerializer.plainText()

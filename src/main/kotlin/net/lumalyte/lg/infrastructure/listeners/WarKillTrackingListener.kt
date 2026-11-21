@@ -10,19 +10,21 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.entity.PlayerDeathEvent
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 
 /**
  * Tracks PvP kills during guild wars and updates war statistics.
  * This listener ensures that wars can progress and end based on kill objectives.
  */
-class WarKillTrackingListener : Listener, KoinComponent {
+class WarKillTrackingListener(
+    warService: Lazy<WarService>,
+    memberService: Lazy<MemberService>,
+    lang: Lazy<LangService>,
+) : Listener {
 
-    private val warService: WarService by inject()
-    private val memberService: MemberService by inject()
-    private val lang: LangService by inject()
+    private val warService: WarService by warService
+    private val memberService: MemberService by memberService
+    private val lang: LangService by lang
 
     private val logger = LoggerFactory.getLogger(WarKillTrackingListener::class.java)
 

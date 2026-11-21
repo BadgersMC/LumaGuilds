@@ -17,23 +17,35 @@ import org.bukkit.Bukkit
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
-@CommandAlias("pc|pchat|partychat")
-class PartyChatCommand : BaseCommand(), KoinComponent {
+/** Explicit lazy collaborators for [PartyChatCommand] (REQ-NEXUS-DI-1..3); each resolves on first use. */
+data class PartyChatCommandDependencies(
+    val lang: Lazy<LangService>,
+    val chatService: Lazy<ChatService>,
+    val partyService: Lazy<PartyService>,
+    val guildService: Lazy<GuildService>,
+    val memberService: Lazy<MemberService>,
+    val partyRepository: Lazy<PartyRepository>,
+    val preferenceRepository: Lazy<PlayerPartyPreferenceRepository>,
+    val configService: Lazy<ConfigService>,
+)
 
-    private val lang: LangService by inject()
-    private val chatService: ChatService by inject()
-    private val partyService: PartyService by inject()
-    private val guildService: GuildService by inject()
-    private val memberService: MemberService by inject()
-    private val partyRepository: PartyRepository by inject()
-    private val preferenceRepository: PlayerPartyPreferenceRepository by inject()
-    private val configService: ConfigService by inject()
+@CommandAlias("pc|pchat|partychat")
+class PartyChatCommand(
+    dependencies: PartyChatCommandDependencies,
+) : BaseCommand() {
+
+    private val lang: LangService by dependencies.lang
+    private val chatService: ChatService by dependencies.chatService
+    private val partyService: PartyService by dependencies.partyService
+    private val guildService: GuildService by dependencies.guildService
+    private val memberService: MemberService by dependencies.memberService
+    private val partyRepository: PartyRepository by dependencies.partyRepository
+    private val preferenceRepository: PlayerPartyPreferenceRepository by dependencies.preferenceRepository
+    private val configService: ConfigService by dependencies.configService
 
     private fun checkPartiesEnabled(player: Player): Boolean {
         if (!configService.loadConfig().partiesEnabled) {

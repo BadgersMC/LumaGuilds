@@ -10,16 +10,17 @@ import net.lumalyte.lg.application.actions.claim.permission.RevokePlayerClaimPer
 import net.lumalyte.lg.application.results.claim.permission.RevokePlayerClaimPermissionResult
 import org.bukkit.entity.Player
 import net.lumalyte.lg.domain.values.ClaimPermission
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.UUID
 import kotlin.getValue
 
 @CommandAlias("claim")
-class UntrustCommand : ClaimCommand(), KoinComponent {
-    private val lang: LangService by inject()
-    private val revokePlayerClaimPermission: RevokePlayerClaimPermission by inject()
-    private val getClaimDetails: GetClaimDetails by inject()
+class UntrustCommand(
+    claimDependencies: ClaimCommandDependencies,
+    revokePlayerClaimPermission: Lazy<RevokePlayerClaimPermission>,
+) : ClaimCommand(claimDependencies) {
+    private val lang: LangService by claimDependencies.lang
+    private val revokePlayerClaimPermission: RevokePlayerClaimPermission by revokePlayerClaimPermission
+    private val getClaimDetails: GetClaimDetails by claimDependencies.getClaimDetails
 
     @Subcommand("untrust")
     @CommandPermission("lumaguilds.command.claim.untrust")

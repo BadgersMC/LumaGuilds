@@ -10,8 +10,6 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.entity.EntityDamageByEntityEvent
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 import java.util.UUID
 
@@ -27,11 +25,15 @@ import java.util.UUID
  * without Bukkit server state: `resolveTerritoryGuild` (location → guild claim)
  * and `shouldCancelPvp` (attacker/victim/territory → cancel?).
  */
-class ClaimPvpProtectionListener : Listener, KoinComponent {
+class ClaimPvpProtectionListener(
+    combatService: Lazy<CombatService>,
+    getClaimAtPosition: Lazy<GetClaimAtPosition>,
+    guildService: Lazy<GuildService>,
+) : Listener {
 
-    private val combatService: CombatService by inject()
-    private val getClaimAtPosition: GetClaimAtPosition by inject()
-    private val guildService: GuildService by inject()
+    private val combatService: CombatService by combatService
+    private val getClaimAtPosition: GetClaimAtPosition by getClaimAtPosition
+    private val guildService: GuildService by guildService
 
     private val logger = LoggerFactory.getLogger(ClaimPvpProtectionListener::class.java)
 

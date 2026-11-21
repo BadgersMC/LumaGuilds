@@ -14,8 +14,6 @@ import net.lumalyte.lg.application.actions.claim.permission.GetPlayersWithPermis
 import org.bukkit.entity.Player
 import net.lumalyte.lg.infrastructure.ChatInfoBuilder
 import org.bukkit.Bukkit
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -23,14 +21,21 @@ import java.util.*
 
 
 @CommandAlias("claim")
-class InfoCommand : ClaimCommand(), KoinComponent {
-    private val lang: LangService by inject()
-    private val getClaimDetails: GetClaimDetails by inject()
-    private val getClaimFlags: GetClaimFlags by inject()
-    private val getClaimPermissions: GetClaimPermissions by inject()
-    private val getClaimPartitions: GetClaimPartitions by inject()
-    private val getClaimBlockCount: GetClaimBlockCount by inject()
-    private val getPlayersWithPermissionInClaim: GetPlayersWithPermissionInClaim by inject()
+class InfoCommand(
+    claimDependencies: ClaimCommandDependencies,
+    getClaimFlags: Lazy<GetClaimFlags>,
+    getClaimPermissions: Lazy<GetClaimPermissions>,
+    getClaimPartitions: Lazy<GetClaimPartitions>,
+    getClaimBlockCount: Lazy<GetClaimBlockCount>,
+    getPlayersWithPermissionInClaim: Lazy<GetPlayersWithPermissionInClaim>,
+) : ClaimCommand(claimDependencies) {
+    private val lang: LangService by claimDependencies.lang
+    private val getClaimDetails: GetClaimDetails by claimDependencies.getClaimDetails
+    private val getClaimFlags: GetClaimFlags by getClaimFlags
+    private val getClaimPermissions: GetClaimPermissions by getClaimPermissions
+    private val getClaimPartitions: GetClaimPartitions by getClaimPartitions
+    private val getClaimBlockCount: GetClaimBlockCount by getClaimBlockCount
+    private val getPlayersWithPermissionInClaim: GetPlayersWithPermissionInClaim by getPlayersWithPermissionInClaim
 
     @Subcommand("info")
     @CommandPermission("lumaguilds.command.claim.info")

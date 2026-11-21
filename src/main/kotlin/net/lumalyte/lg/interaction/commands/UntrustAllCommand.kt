@@ -9,15 +9,16 @@ import net.lumalyte.lg.application.actions.claim.permission.RevokeClaimWidePermi
 import net.lumalyte.lg.application.results.claim.permission.RevokeClaimWidePermissionResult
 import org.bukkit.entity.Player
 import net.lumalyte.lg.domain.values.ClaimPermission
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.UUID
 
 @CommandAlias("claim")
-class UntrustAllCommand : ClaimCommand(), KoinComponent {
-    private val lang: LangService by inject()
-    private val revokeClaimWidePermission: RevokeClaimWidePermission by inject()
-    private val getClaimDetails: GetClaimDetails by inject()
+class UntrustAllCommand(
+    claimDependencies: ClaimCommandDependencies,
+    revokeClaimWidePermission: Lazy<RevokeClaimWidePermission>,
+) : ClaimCommand(claimDependencies) {
+    private val lang: LangService by claimDependencies.lang
+    private val revokeClaimWidePermission: RevokeClaimWidePermission by revokeClaimWidePermission
+    private val getClaimDetails: GetClaimDetails by claimDependencies.getClaimDetails
 
     @Subcommand("untrustall")
     @CommandPermission("lumaguilds.command.claim.untrustall")

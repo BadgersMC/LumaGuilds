@@ -8,16 +8,18 @@ import net.lumalyte.lg.application.actions.claim.metadata.GetClaimBlockCount
 import net.lumalyte.lg.application.actions.claim.ListPlayerClaims
 import org.bukkit.entity.Player
 import net.lumalyte.lg.infrastructure.ChatInfoBuilder
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import kotlin.getValue
 import kotlin.math.ceil
 
 @CommandAlias("claimlist")
-class ClaimListCommand : BaseCommand(), KoinComponent {
-    private val lang: LangService by inject()
-    private val listPlayerClaims: ListPlayerClaims by inject()
-    private val getClaimBlockCount: GetClaimBlockCount by inject()
+class ClaimListCommand(
+    lang: Lazy<LangService>,
+    listPlayerClaims: Lazy<ListPlayerClaims>,
+    getClaimBlockCount: Lazy<GetClaimBlockCount>,
+) : BaseCommand() {
+    private val lang: LangService by lang
+    private val listPlayerClaims: ListPlayerClaims by listPlayerClaims
+    private val getClaimBlockCount: GetClaimBlockCount by getClaimBlockCount
 
     @Default
     @CommandPermission("lumaguilds.command.claimlist")

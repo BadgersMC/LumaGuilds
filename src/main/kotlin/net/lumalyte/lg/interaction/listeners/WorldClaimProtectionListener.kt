@@ -63,12 +63,13 @@ import org.bukkit.event.weather.LightningStrikeEvent
 import org.bukkit.event.world.StructureGrowEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.projectiles.BlockProjectileSource
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
-class WorldClaimProtectionListener: Listener, KoinComponent {
-    private val isWorldActionAllowed: IsWorldActionAllowed by inject()
-    private val getClaimAtPosition: GetClaimAtPosition by inject()
+class WorldClaimProtectionListener(
+    isWorldActionAllowed: Lazy<IsWorldActionAllowed>,
+    getClaimAtPosition: Lazy<GetClaimAtPosition>,
+) : Listener {
+    private val isWorldActionAllowed: IsWorldActionAllowed by isWorldActionAllowed
+    private val getClaimAtPosition: GetClaimAtPosition by getClaimAtPosition
 
     @EventHandler
     fun onBlockBurn(event: BlockBurnEvent) {

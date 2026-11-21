@@ -9,8 +9,6 @@ import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.domain.values.ChatChannelIds
 import net.lumalyte.lg.infrastructure.services.RoseChatQuickChat
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /**
  * Quick ally chat: `/gac <message>` sends one message to ally chat without
@@ -20,9 +18,12 @@ import org.koin.core.component.inject
  * `/gac` alone shows help text.
  */
 @CommandAlias("gac")
-internal class QuickAllyChatCommand : BaseCommand(), KoinComponent {
-    private val lang: LangService by inject()
-    private val guildService: GuildService by inject()
+internal class QuickAllyChatCommand(
+    lang: Lazy<LangService>,
+    guildService: Lazy<GuildService>,
+) : BaseCommand() {
+    private val lang: LangService by lang
+    private val guildService: GuildService by guildService
 
     /** Shows usage help when `/gac` is typed without arguments. */
     @Default
