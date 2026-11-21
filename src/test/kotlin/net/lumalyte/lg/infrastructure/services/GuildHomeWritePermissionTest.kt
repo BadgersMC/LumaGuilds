@@ -8,13 +8,9 @@ import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.config.MainConfig
 import net.lumalyte.lg.domain.entities.*
 import net.lumalyte.lg.domain.values.Position3D
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
-import org.koin.dsl.module
 import java.time.Instant
 import java.util.UUID
 
@@ -34,9 +30,7 @@ class GuildHomeWritePermissionTest {
 
     @BeforeEach
     fun setup() {
-        stopKoin()
         every { configService.loadConfig() } returns MainConfig(chapterTwoRewardsEnabled = false, claimsEnabled = false)
-        startKoin { modules(module { single { configService } }) }
         val guild = Guild(
             id = guildId, name = "Homes", createdAt = Instant.now(),
             homes = GuildHomes(mapOf("existing" to home))
@@ -57,11 +51,9 @@ class GuildHomeWritePermissionTest {
             mockk(relaxed = true), mockk(relaxed = true), adminOverride,
             mockk(relaxed = true),
             homeAccess = LegacyHomeAccessTestAdapter,
+            configServiceProvider = { configService },
         )
     }
-
-    @AfterEach
-    fun cleanup() = stopKoin()
 
     @Test
     fun `MANAGE_HOME permits writing an existing guild home without MANAGE_MEMBERS`() {
@@ -80,7 +72,7 @@ class GuildHomeWritePermissionTest {
     fun `direct service allows moving homes anywhere without a claim provider even when claims enabled`() {
         actorPermissions = setOf(RankPermission.MANAGE_HOME)
         every { configService.loadConfig() } returns MainConfig(chapterTwoRewardsEnabled = false, claimsEnabled = true)
-        // Only ConfigService is registered in Koin: no GetClaimAtPosition implementation.
+        // Only ConfigService is supplied: no GetClaimAtPosition implementation.
         // The repository rejects persistence after authorization, so verify the write stage.
         val overworld = home.copy(position = Position3D(120, 72, -50))
         val nether = home.copy(worldId = UUID.randomUUID(), position = Position3D(-12, 70, 8))

@@ -8,8 +8,6 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerQuitEvent
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.*
 
 /**
@@ -23,9 +21,9 @@ interface ChatInputHandler {
 /**
  * Listener for handling chat input when players are prompted to enter guild tag
  */
-class ChatInputListener : Listener, KoinComponent {
-
-    private val configService: ConfigService by inject()
+class ChatInputListener(
+    private val configService: ConfigService,
+) : Listener {
 
     init {
         // Initialize ChatInputListener

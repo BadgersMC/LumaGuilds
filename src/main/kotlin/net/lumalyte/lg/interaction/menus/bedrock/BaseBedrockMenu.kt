@@ -25,7 +25,8 @@ import java.util.logging.Logger
 abstract class BaseBedrockMenu(
     protected val menuNavigator: MenuNavigator,
     protected val player: Player,
-    protected val logger: Logger
+    protected val logger: Logger,
+    private val dependencies: BedrockMenuDependencies? = null,
 ) : Menu, BedrockMenu, KoinComponent {
 
     companion object {
@@ -64,20 +65,29 @@ abstract class BaseBedrockMenu(
 
     private val openGeneration = AtomicLong()
 
-    protected val menuFactory: MenuFactory by inject()
-    protected val bedrockLocalization: BedrockLocalizationService by inject()
-    private val plugin: Plugin by inject()
-    private val lang: LangService by inject()
-    protected val formCacheService: net.lumalyte.lg.application.services.FormCacheService by inject()
-    protected val formValidationService: net.lumalyte.lg.application.services.FormValidationService by inject()
+    // Compatibility delegates are evaluated only for legacy menu instances.
+    // Explicit Nexus-created menus never query Koin.
+    private val legacyMenuFactory: MenuFactory by inject()
+    private val legacyLocalization: BedrockLocalizationService by inject()
+    private val legacyPlugin: Plugin by inject()
+    private val legacyLang: LangService by inject()
+    private val legacyCache: net.lumalyte.lg.application.services.FormCacheService by inject()
+    private val legacyValidation: net.lumalyte.lg.application.services.FormValidationService by inject()
+    private val legacyConfig: net.lumalyte.lg.application.services.ConfigService by inject()
+
+    protected val menuFactory get() = dependencies?.menuFactory ?: legacyMenuFactory
+    protected val bedrockLocalization get() = dependencies?.localization ?: legacyLocalization
+    private val plugin get() = dependencies?.plugin ?: legacyPlugin
+    private val lang get() = dependencies?.lang ?: legacyLang
+    protected val formCacheService get() = dependencies?.cache ?: legacyCache
+    protected val formValidationService get() = dependencies?.validation ?: legacyValidation
 
     /**
      * Gets the Bedrock configuration
      */
     protected fun getBedrockConfig(): BedrockConfig {
         return try {
-            val configService: net.lumalyte.lg.application.services.ConfigService by inject()
-            configService.loadConfig().bedrock
+            (dependencies?.config ?: legacyConfig).loadConfig().bedrock
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Could not load Bedrock config, using defaults: ${e.message}")
@@ -158,7 +168,7 @@ abstract class BaseBedrockMenu(
     /**
      * Bedrock-specific navigation helper
      */
-    protected val bedrockNavigator by lazy { BedrockMenuNavigator(menuNavigator, player, menuFactory) }
+    protected val bedrockNavigator by lazy { BedrockMenuNavigator(menuNavigator, player, menuFactory, lang) }
 
     /**
      * Helper method to handle navigation back to previous menu

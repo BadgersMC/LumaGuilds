@@ -15,6 +15,9 @@ import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.api.events.GuildMemberJoinEvent
 import net.lumalyte.lg.api.events.GuildMemberRemovedEvent
 import net.lumalyte.lg.api.events.GuildOwnershipTransferEvent
+import net.lumalyte.lg.infrastructure.services.apollo.GuildTeamService
+import net.lumalyte.lg.infrastructure.services.apollo.GuildWaypointService
+import net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService
 import org.bukkit.Bukkit
 import org.slf4j.LoggerFactory
 import java.time.Instant
@@ -30,6 +33,11 @@ class MemberServiceBukkit(
     private val adminOverrideService: AdminOverrideService,
     private val guildRewards: net.lumalyte.lg.application.services.GuildRewardService? = null,
     private val invalidateClaimPermissionCache: (UUID) -> Unit = {},
+    // Optional integrations are resolved on demand, after guild-core construction.
+    // This avoids Apollo -> GuildService -> MemberService constructor cycles.
+    private val guildTeamProvider: () -> GuildTeamService? = { null },
+    private val guildWaypointProvider: () -> GuildWaypointService? = { null },
+    private val guildNotificationProvider: () -> GuildNotificationService? = { null },
 ) : MemberService {
 
     private val logger = LoggerFactory.getLogger(MemberServiceBukkit::class.java)
@@ -102,10 +110,10 @@ class MemberServiceBukkit(
 
             // Update Apollo team and waypoints (if available)
             try {
-                val guildTeamService = org.koin.core.context.GlobalContext.get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildTeamService>()
+                val guildTeamService = guildTeamProvider()
                 guildTeamService?.onPlayerJoinGuild(playerId, guildId)
 
-                val guildWaypointService = org.koin.core.context.GlobalContext.get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildWaypointService>()
+                val guildWaypointService = guildWaypointProvider()
                 val player = org.bukkit.Bukkit.getPlayer(playerId)
                 if (player != null) {
                     guildWaypointService?.showGuildHomeWaypoints(player)
@@ -161,10 +169,10 @@ class MemberServiceBukkit(
 
             // Update Apollo team and waypoints (if available)
             try {
-                val guildTeamService = org.koin.core.context.GlobalContext.get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildTeamService>()
+                val guildTeamService = guildTeamProvider()
                 guildTeamService?.onPlayerLeaveGuild(playerId, guildId)
 
-                val guildWaypointService = org.koin.core.context.GlobalContext.get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildWaypointService>()
+                val guildWaypointService = guildWaypointProvider()
                 val player = org.bukkit.Bukkit.getPlayer(playerId)
                 if (player != null) {
                     // Refresh waypoints to remove old guild's homes
@@ -177,7 +185,7 @@ class MemberServiceBukkit(
 
             // Send Apollo notification (if available)
             try {
-                val notificationService = org.koin.core.context.GlobalContext.get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService>()
+                val notificationService = guildNotificationProvider()
                 val player = org.bukkit.Bukkit.getPlayer(playerId)
                 val playerName = player?.name ?: "Player"
                 val wasKicked = actorId != playerId
@@ -271,7 +279,7 @@ class MemberServiceBukkit(
 
             // Send Apollo notification (if available)
             try {
-                val notificationService = org.koin.core.context.GlobalContext.get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService>()
+                val notificationService = guildNotificationProvider()
                 val actor = org.bukkit.Bukkit.getPlayer(actorId)
                 val actorName = actor?.name ?: "Admin"
 

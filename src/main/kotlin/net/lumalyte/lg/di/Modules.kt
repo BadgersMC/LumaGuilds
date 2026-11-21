@@ -252,7 +252,13 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
     // Core services
     single<ConfigService> { ConfigServiceBukkit { get<LumaGuilds>().config } }
     single { get<ConfigService>().loadConfig() }
-    single<PlayerMetadataService> { PlayerMetadataServiceVault(get(), get()) }
+    single<PlayerMetadataService> {
+        PlayerMetadataServiceVault(
+            get(),
+            get(),
+            get<CoroutineDispatcher>(named("VirtualDispatcher"))
+        )
+    }
 
     // Utilities
     single<LangService> {
@@ -276,7 +282,31 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
 
     // Menu factory
     single<net.lumalyte.lg.interaction.menus.MenuFactory> {
-        net.lumalyte.lg.interaction.menus.MenuFactory(get(), get(), get(), get())
+        val legacyScope = this
+        net.lumalyte.lg.interaction.menus.MenuFactory(get(), get(), get(), get()).apply {
+            // Retain the production Koin graph, resolving claim services only when the Java menu opens.
+            bindClaimTrustMenuDependencies {
+                net.lumalyte.lg.interaction.menus.management.ClaimTrustMenuDependencies(
+                    lang = legacyScope.get<LangService>(),
+                    getPlayersWithPermissionInClaim = legacyScope.get<GetPlayersWithPermissionInClaim>(),
+                    getClaimPlayerPermissions = legacyScope.get<GetClaimPlayerPermissions>(),
+                )
+            }
+            bindClaimPlayerMenuDependencies {
+                net.lumalyte.lg.interaction.menus.management.ClaimPlayerMenuDependencies(
+                    lang = legacyScope.get<LangService>(),
+                    getPlayersWithPermissionInClaim = legacyScope.get<GetPlayersWithPermissionInClaim>(),
+                )
+            }
+            bindGettingStartedDependencies { factory ->
+                net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedNavigationDependencies(
+                    service = legacyScope.get<net.lumalyte.lg.application.services.GuildGettingStartedService>(),
+                    menuFactory = factory,
+                    prompts = legacyScope.get<net.lumalyte.lg.application.persistence.GuildOnboardingRepository>(),
+                    lang = legacyScope.get<LangService>(),
+                )
+            }
+        }
     }
 }
 
@@ -444,19 +474,24 @@ fun guildsModule() = module {
         GuildServiceBukkit(
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
             homeAccess = get(),
+            configServiceProvider = { get<ConfigService>() },
+            rewardServiceProvider = { get<net.lumalyte.lg.application.services.GuildRewardService>() },
+            progressionServiceProvider = { get<ProgressionService>() },
+            onBannermanBannerChanged = { guildId ->
+                get<net.lumalyte.lg.infrastructure.bukkit.bannerman.BannermanListeners>()
+                    .onGuildBannerChanged(guildId)
+            },
         )
     }
     single<RankService> {
         RankServiceBukkit(
             get(), get(), get(), get(), get(),
             invalidateClaimPermissionCacheForPlayer = { playerId ->
-                org.koin.core.context.GlobalContext.get()
-                    .getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
+                getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
                     ?.invalidatePlayerCache(playerId)
             },
             invalidateClaimPermissionCacheForGuild = { guildId ->
-                org.koin.core.context.GlobalContext.get()
-                    .getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
+                getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
                     ?.invalidateGuildCache(guildId)
             },
             adminOverrideService = get(),
@@ -466,16 +501,18 @@ fun guildsModule() = module {
         MemberServiceBukkit(
             get(), get(), get(), get(), get(), get(), get(), get(),
             invalidateClaimPermissionCache = { playerId ->
-                org.koin.core.context.GlobalContext.get()
-                    .getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
+                getOrNull<net.lumalyte.lg.application.services.GuildRolePermissionResolver>()
                     ?.invalidatePlayerCache(playerId)
             },
+            guildTeamProvider = { getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildTeamService>() },
+            guildWaypointProvider = { getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildWaypointService>() },
+            guildNotificationProvider = { getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService>() },
         )
     }
     single<RelationService> { RelationServiceBukkit(get(), get(), get()) }
     single<LfgService> { LfgServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
-    single<GuildBannerService> { GuildBannerServiceBukkit() }
-    single<AuditService> { AuditServiceBukkit() }
+    single<GuildBannerService> { GuildBannerServiceBukkit(get(), get()) }
+    single<AuditService> { AuditServiceBukkit(get()) }
     single<NexoEmojiService> { NexoEmojiService(get(), guildCosmetics = get()) }
     single<net.lumalyte.lg.application.services.AdminOverrideService> {
         net.lumalyte.lg.infrastructure.services.AdminOverrideServiceImpl()
@@ -529,7 +566,11 @@ fun guildsModule() = module {
  */
 fun guildClaimsIntegrationModule() = module {
     single<GuildRolePermissionResolver> {
-        GuildRolePermissionResolverBukkit(get(), get(), get(), get(), get(), get())
+        GuildRolePermissionResolverBukkit(
+            get(), get(), get(), get(), get(), get(),
+            taskScope = get<CoroutineScope>(),
+            cleanupDispatcher = get<CoroutineDispatcher>(named("VirtualDispatcher")),
+        )
     }
 }
 
@@ -590,9 +631,9 @@ fun socialModule() = module {
     single<ChatService> { ChatServiceBukkit(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     // Listeners
-    single<ChatInputListener> { ChatInputListener() }
+    single<ChatInputListener> { ChatInputListener(get()) }
     single<net.lumalyte.lg.interaction.listeners.GuildChatListener> {
-        net.lumalyte.lg.interaction.listeners.GuildChatListener()
+        net.lumalyte.lg.interaction.listeners.GuildChatListener(get(), get(), get(), get())
     }
     single<net.lumalyte.lg.infrastructure.listeners.GuildChannelCreationListener> {
         net.lumalyte.lg.infrastructure.listeners.GuildChannelCreationListener(get(), get())
@@ -992,6 +1033,7 @@ single {
             blockProvenanceRepository = get(),
             plugin = get(),
             virtualDispatcher = get(named("VirtualDispatcher")),
+            taskScope = get<CoroutineScope>(),
             provenanceOperations = get(),
         )
     }
@@ -1252,7 +1294,11 @@ fun vaultModule() = module {
 fun utilitiesModule() = module {
     // Async task service for virtual thread I/O operations
     single<net.lumalyte.lg.infrastructure.services.AsyncTaskService> {
-        net.lumalyte.lg.infrastructure.services.AsyncTaskService()
+        net.lumalyte.lg.infrastructure.services.AsyncTaskService(
+            scope = get<CoroutineScope>(),
+            virtualDispatcher = get<CoroutineDispatcher>(named("VirtualDispatcher")),
+            plugin = get<LumaGuilds>()
+        )
     }
 
     // Other utilities

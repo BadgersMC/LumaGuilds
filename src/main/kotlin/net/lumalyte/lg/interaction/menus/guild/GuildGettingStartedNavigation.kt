@@ -1,29 +1,27 @@
 package net.lumalyte.lg.interaction.menus.guild
 
-import net.badgersmc.nexus.i18n.LangService
-import net.lumalyte.lg.application.services.GuildGettingStartedService
 import net.lumalyte.lg.application.services.GuildStartTopic
 import net.lumalyte.lg.application.services.GuildStartStep
 import net.lumalyte.lg.application.services.GuildStartState
 import net.lumalyte.lg.domain.entities.Guild
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-import net.lumalyte.lg.application.persistence.GuildOnboardingRepository
 import net.lumalyte.lg.infrastructure.i18n.gui
-import net.lumalyte.lg.infrastructure.i18n.bedrock
 import net.lumalyte.lg.interaction.help.HelpTopicsRenderer
-import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.UUID
 
 /** Both UIs re-resolve membership and action authority at click time. */
-internal class GuildGettingStartedNavigation(private val navigator: MenuNavigator, private val player: Player, private val guildId: UUID?) : KoinComponent {
-    private val service: GuildGettingStartedService by inject()
-    private val factory: MenuFactory by inject()
-    private val prompts: GuildOnboardingRepository by inject()
-    private val lang: LangService by inject()
+internal class GuildGettingStartedNavigation(
+    private val navigator: MenuNavigator,
+    private val player: Player,
+    private val guildId: UUID?,
+    dependencies: GuildGettingStartedNavigationDependencies,
+) {
+    private val service = dependencies.service
+    private val factory = dependencies.menuFactory
+    private val prompts = dependencies.prompts
+    private val lang = dependencies.lang
     fun snapshot() = runCatching { service.snapshot(player.uniqueId, guildId) }.getOrNull()
     fun title(topic: GuildStartTopic) = when (topic) {
         GuildStartTopic.MEMBERSHIP -> lang.gui("onboarding.topics.membership")

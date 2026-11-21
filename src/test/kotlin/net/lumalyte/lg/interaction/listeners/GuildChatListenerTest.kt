@@ -10,6 +10,7 @@ import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.application.services.PenaltyService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.domain.values.ChatChannelIds
@@ -21,9 +22,6 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
-import org.koin.dsl.module
 import java.time.Instant
 import java.util.UUID
 
@@ -33,6 +31,7 @@ internal class GuildChatListenerTest {
     private val adapter = mockk<RoseChatAdapter>()
     private val guildService = mockk<GuildService>()
     private val memberService = mockk<MemberService>()
+    private val penaltyService = mockk<PenaltyService>()
     private val lang = mockk<LangService>(relaxed = true)
 
     private val player = mockk<Player>(relaxed = true)
@@ -48,24 +47,32 @@ internal class GuildChatListenerTest {
 
     @BeforeEach
     fun setUp() {
-        stopKoin()
-        startKoin {
-            modules(module {
-                single { guildService }
-                single { memberService }
-                single { lang }
-                single { GuildChatListener() }
-            })
-        }
-
         every { player.uniqueId } returns playerId
         every { modChannel.id } returns ChatChannelIds.MODCHAT
         every { defaultChannel.id } returns "global"
         every { otherChannel.id } returns "local"
 
-        listener = GuildChatListener().apply {
+        listener = GuildChatListener(guildService, memberService, penaltyService, lang).apply {
             adapter = this@GuildChatListenerTest.adapter
         }
+    }
+
+    @Test
+    fun `listener is constructor injected without Koin service location`() {
+        assertFalse(org.koin.core.component.KoinComponent::class.java.isAssignableFrom(GuildChatListener::class.java))
+    }
+
+    @Test
+    fun `guild mute blocks entering guild chat through injected penalty service`() {
+        val guildChannel = mockk<Channel>()
+        every { guildChannel.id } returns ChatChannelIds.GUILD
+        every { adapter.getChannel(ChatChannelIds.GUILD) } returns guildChannel
+        every { adapter.getCurrentChannel(player) } returns otherChannel
+        every { guildService.getPlayerGuilds(playerId) } returns setOf(guildA)
+        every { penaltyService.isGuildMuted(guildA.id) } returns true
+
+        assertFalse(listener.toggleGuildChat(player))
+        verify(exactly = 0) { adapter.switchChannel(any(), any()) }
     }
 
     // ══════════════════════════════════════════════════════════════════

@@ -1,5 +1,14 @@
 package net.lumalyte.lg.infrastructure.services
 
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import net.lumalyte.lg.application.persistence.ClaimRepository
 import net.lumalyte.lg.application.persistence.RankClaimPermissionProfileRepository
 import net.lumalyte.lg.application.services.AdminOverrideService
@@ -11,7 +20,6 @@ import net.lumalyte.lg.domain.values.ClaimPermission
 import org.slf4j.LoggerFactory
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
@@ -27,6 +35,8 @@ class GuildRolePermissionResolverBukkit(
     private val configService: ConfigService,
     private val adminOverrideService: AdminOverrideService,
     private val rankClaimPermissionProfiles: RankClaimPermissionProfileRepository,
+    private val taskScope: CoroutineScope,
+    private val cleanupDispatcher: CoroutineDispatcher,
 ) : GuildRolePermissionResolver {
     
     private val logger = LoggerFactory.getLogger(GuildRolePermissionResolverBukkit::class.java)
@@ -37,28 +47,31 @@ class GuildRolePermissionResolverBukkit(
     // Cache for storing guild membership: playerId+guildId -> Boolean
     private val membershipCache = ConcurrentHashMap<String, Boolean>()
     
-    // Scheduled executor for cache cleanup
-    private val executor = Executors.newSingleThreadScheduledExecutor()
-    
-    init {
-        // Schedule periodic cache cleanup every hour
-        executor.scheduleAtFixedRate({
-            try {
-                // Clear old cache entries to prevent memory buildup
-                val maxSize = 10000
-                if (permissionCache.size > maxSize) {
-                    permissionCache.clear()
-                    logger.debug("Cleared permission cache due to size limit")
-                }
-                if (membershipCache.size > maxSize) {
-                    membershipCache.clear()
-                    logger.debug("Cleared membership cache due to size limit")
-                }
-            } catch (e: Exception) {
-            // Service operation - catching all exceptions to prevent service failure
-                logger.warn("Error during cache cleanup", e)
+    // Child of the plugin's managed scope; never allocates an independent executor.
+    private val cleanupJob: Job = taskScope.launch(cleanupDispatcher) {
+        while (isActive) {
+            delay(TimeUnit.HOURS.toMillis(1))
+            pruneOversizedCaches()
+        }
+    }
+
+    private fun pruneOversizedCaches() {
+        try {
+            // Preserve the hourly size cap from the previous scheduled executor.
+            val maxSize = 10_000
+            if (permissionCache.size > maxSize) {
+                permissionCache.clear()
+                logger.debug("Cleared permission cache due to size limit")
             }
-        }, 1, 1, TimeUnit.HOURS)
+            if (membershipCache.size > maxSize) {
+                membershipCache.clear()
+                logger.debug("Cleared membership cache due to size limit")
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logger.warn("Error during cache cleanup", e)
+        }
     }
     
     override fun hasPermission(playerId: UUID, claimId: UUID, permission: ClaimPermission): Boolean {
@@ -217,14 +230,13 @@ class GuildRolePermissionResolverBukkit(
      * Cleanup resources when the service is destroyed.
      */
     override fun shutdown() {
-        executor.shutdown()
-        try {
-            if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
-                executor.shutdownNow()
+        // Stop only our cleanup child. Other plugin/Nexus jobs must remain active.
+        // Keep the original one-second maximum shutdown wait.
+        cleanupJob.cancel()
+        runBlocking {
+            kotlinx.coroutines.withTimeoutOrNull(TimeUnit.SECONDS.toMillis(1)) {
+                cleanupJob.cancelAndJoin()
             }
-        } catch (e: InterruptedException) {
-            executor.shutdownNow()
-            Thread.currentThread().interrupt()
         }
         clearCache()
     }

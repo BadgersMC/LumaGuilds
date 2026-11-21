@@ -33,7 +33,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicBoolean
 
 class DiscordSrvGuildProfileSubscription internal constructor(
@@ -43,7 +43,7 @@ class DiscordSrvGuildProfileSubscription internal constructor(
     private val killService: KillService,
     private val warService: WarService,
     private val seasonalElo: SeasonalEloCoordinator,
-    private val executor: ExecutorService,
+    private val executor: Executor,
 ) : ListenerAdapter(), DiscordGuildProfileSubscription, SlashCommandProvider {
     private val logger = LoggerFactory.getLogger(DiscordSrvGuildProfileSubscription::class.java)
     private val registered = AtomicBoolean(false)

@@ -2,6 +2,9 @@ package net.lumalyte.lg.interaction.menus
 
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.PlatformDetectionService
+import net.lumalyte.lg.application.services.ChatService
+import net.lumalyte.lg.application.services.GuildListService
+import net.lumalyte.lg.interaction.menus.bedrock.BedrockMenuDependencies
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockConfirmationMenu
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildBankMenu
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildControlPanelMenu
@@ -18,6 +21,7 @@ import net.lumalyte.lg.interaction.menus.bedrock.BedrockJoinRequirementsMenu
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockTagEditorMenu
 import net.lumalyte.lg.interaction.menus.common.ConfirmationMenu
 import net.lumalyte.lg.interaction.menus.guild.GuildInfoMenu
+import net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedNavigationDependencies
 import net.lumalyte.lg.interaction.menus.guild.GuildDisbandConfirmationMenu
 import net.lumalyte.lg.interaction.menus.guild.GuildInviteConfirmationMenu
 import net.lumalyte.lg.interaction.menus.guild.GuildKickConfirmationMenu
@@ -29,6 +33,8 @@ import net.lumalyte.lg.interaction.menus.guild.GuildSelectionMenu
 import net.lumalyte.lg.interaction.menus.guild.JoinRequirementsMenu
 import net.lumalyte.lg.interaction.menus.guild.LfgBrowserMenu
 import net.lumalyte.lg.interaction.menus.guild.PartyCreationMenu
+import net.lumalyte.lg.interaction.menus.management.ClaimPlayerMenuDependencies
+import net.lumalyte.lg.interaction.menus.management.ClaimTrustMenuDependencies
 import org.bukkit.entity.Player
 import java.util.logging.Logger
 
@@ -40,7 +46,41 @@ class MenuFactory(
     private val configService: net.lumalyte.lg.application.services.ConfigService,
     private val logger: Logger,
     private val lang: LangService,
+    private val bedrockDependencyProvider: ((MenuFactory) -> BedrockMenuDependencies)? = null,
+    private val chatServiceProvider: (() -> ChatService)? = null,
 ) {
+    private val bedrockDependencies by lazy { bedrockDependencyProvider?.invoke(this) }
+    private var guildListServiceProvider: (() -> GuildListService)? = null
+    private var gettingStartedDependenciesProvider: ((MenuFactory) -> GuildGettingStartedNavigationDependencies)? = null
+    private var claimTrustDependenciesProvider: (() -> ClaimTrustMenuDependencies)? = null
+    private var claimPlayerDependenciesProvider: (() -> ClaimPlayerMenuDependencies)? = null
+
+    /** Resolve claim services on demand; claims may be disabled and no provider is invoked at startup. */
+    internal fun bindClaimTrustMenuDependencies(provider: () -> ClaimTrustMenuDependencies) {
+        check(claimTrustDependenciesProvider == null) { "Claim trust menu dependencies already bound" }
+        claimTrustDependenciesProvider = provider
+    }
+
+    /** Resolve claim player menu services on demand; no provider is invoked at startup or for Bedrock. */
+    internal fun bindClaimPlayerMenuDependencies(provider: () -> ClaimPlayerMenuDependencies) {
+        check(claimPlayerDependenciesProvider == null) { "Claim player menu dependencies already bound" }
+        claimPlayerDependenciesProvider = provider
+    }
+
+    /** Bind shared onboarding navigation explicitly without constructing cyclic service graphs at startup. */
+    internal fun bindGettingStartedDependencies(provider: (MenuFactory) -> GuildGettingStartedNavigationDependencies) {
+        check(gettingStartedDependenciesProvider == null) { "Onboarding navigation provider already bound" }
+        gettingStartedDependenciesProvider = provider
+    }
+
+    private fun gettingStartedDependencies(): GuildGettingStartedNavigationDependencies =
+        checkNotNull(gettingStartedDependenciesProvider) { "Onboarding navigation provider was not bound" }(this)
+
+    /** Only the Nexus graph configures this internal directory-service provider. */
+    internal fun bindGuildListService(provider: () -> GuildListService) {
+        check(guildListServiceProvider == null) { "Guild directory provider already bound" }
+        guildListServiceProvider = provider
+    }
 
     /**
      * Determines if Bedrock menus should be used for a player based on configuration and platform detection
@@ -93,10 +133,10 @@ class MenuFactory(
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
             // Use Bedrock confirmation menu to provide enhanced Bedrock experience
-            BedrockConfirmationMenu(menuNavigator, player, title, callback = callback, logger = logger)
+            BedrockConfirmationMenu(menuNavigator, player, title, callback = callback, logger = logger, dependencies = bedrockDependencies)
         } else {
             // Fall back to Java confirmation menu
-            ConfirmationMenu(menuNavigator, player, title, callback)
+            ConfirmationMenu(menuNavigator, player, title, lang, callback)
         }
     }
 
@@ -120,11 +160,12 @@ class MenuFactory(
                 message = message,
                 callback = callback,
                 cancelCallback = cancelCallback,
-                logger = logger
+                logger = logger,
+                dependencies = bedrockDependencies,
             )
         } else {
             // Fall back to Java confirmation menu (basic version)
-            ConfirmationMenu(menuNavigator, player, title, callback)
+            ConfirmationMenu(menuNavigator, player, title, lang, callback)
         }
     }
 
@@ -272,7 +313,8 @@ class MenuFactory(
                 menuNavigator,
                 player,
                 logger,
-            )
+                dependencies = bedrockDependencies,
+            ).withGuildListServiceProvider(guildListServiceProvider)
         } else {
             net.lumalyte.lg.interaction.menus.guild.GuildListMenu(menuNavigator, player)
         }
@@ -689,15 +731,21 @@ class MenuFactory(
     }
 
     /** Permission-aware guild onboarding for both menu clients. */
-    fun createGuildGettingStartedMenu(navigator: MenuNavigator, player: Player, guildId: java.util.UUID?): Menu =
-        if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildGettingStartedMenu(navigator, player, guildId, logger)
+    fun createGuildGettingStartedMenu(navigator: MenuNavigator, player: Player, guildId: java.util.UUID?): Menu {
+        val dependencies = gettingStartedDependencies()
+        return if (shouldUseBedrockMenus(player)) {
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildGettingStartedMenu(
+                navigator, player, guildId, logger, dependencies, bedrockDependencies,
+            )
         } else {
-            net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedMenu(navigator, player, guildId)
+            net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedMenu(navigator, player, guildId, lang, dependencies)
         }
+    }
 
     fun createPlayerChatSettingsMenu(navigator: MenuNavigator, player: Player): Menu =
-        if (shouldUseBedrockMenus(player)) net.lumalyte.lg.interaction.menus.bedrock.BedrockPlayerChatSettingsMenu(navigator, player, logger)
+        if (shouldUseBedrockMenus(player)) net.lumalyte.lg.interaction.menus.bedrock.BedrockPlayerChatSettingsMenu(
+            navigator, player, logger, dependencies = bedrockDependencies, chatServiceProvider = chatServiceProvider,
+        )
         else net.lumalyte.lg.interaction.menus.guild.PlayerChatSettingsMenu(navigator, player)
 
     fun createGuildStallMenu(menuNavigator: MenuNavigator, player: Player, guild: net.lumalyte.lg.domain.entities.Guild): Menu =
@@ -981,7 +1029,10 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimTrustMenu(menuNavigator, player, claim as net.lumalyte.lg.domain.entities.Claim, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.management.ClaimTrustMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim)
+            val deps = checkNotNull(claimTrustDependenciesProvider) { "Claim trust menu dependencies were not bound" }()
+            net.lumalyte.lg.interaction.menus.management.ClaimTrustMenu(
+                menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim, this, deps,
+            )
         }
     }
 
@@ -1024,9 +1075,12 @@ class MenuFactory(
         claim: Any? // Will be Claim when claims are available
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimPlayerMenu(menuNavigator, player, claim as net.lumalyte.lg.domain.entities.Claim, logger)
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimPlayerMenu(menuNavigator, player, claim as net.lumalyte.lg.domain.entities.Claim, logger, lang, bedrockDependencies)
         } else {
-            net.lumalyte.lg.interaction.menus.management.ClaimPlayerMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim)
+            val deps = checkNotNull(claimPlayerDependenciesProvider) { "Claim player menu dependencies were not bound" }()
+            net.lumalyte.lg.interaction.menus.management.ClaimPlayerMenu(
+                menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim, deps,
+            )
         }
     }
 
@@ -1096,7 +1150,7 @@ class MenuFactory(
      */
     fun createClaimCreationMenu(player: Player, menuNavigator: MenuNavigator, location: org.bukkit.Location): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimCreationMenu(menuNavigator, player, logger)
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimCreationMenu(menuNavigator, player, logger, lang, bedrockDependencies)
         } else {
             net.lumalyte.lg.interaction.menus.management.ClaimCreationMenu(player, menuNavigator, location)
         }
@@ -1111,7 +1165,7 @@ class MenuFactory(
         player: Player
     ): Menu {
         return if (shouldUseBedrockMenus(player)) {
-            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimTransferNamingMenu(menuNavigator, player, (claim as net.lumalyte.lg.domain.entities.Claim).id, logger)
+            net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimTransferNamingMenu(menuNavigator, player, (claim as net.lumalyte.lg.domain.entities.Claim).id, logger, lang, bedrockDependencies)
         } else {
             net.lumalyte.lg.interaction.menus.management.ClaimTransferNamingMenu(menuNavigator, claim as? net.lumalyte.lg.domain.entities.Claim, player)
         }

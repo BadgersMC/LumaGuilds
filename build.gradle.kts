@@ -80,8 +80,12 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.10.2")
 
-    // nexus-i18n for LangService — all player-facing strings in en_US.yml
-    implementation("com.github.BadgersMC.Nexus:nexus-i18n:v2.1.1")
+    // Pin all Nexus modules to the same reviewed Paper 26.2 command-composition commit.
+    // This migration branch is NOT deployable until Koin and ACF are fully replaced.
+    val nexusCommit = "5ae8b6424f39d3de8098cdbd46c178d3f8700205"
+    implementation("com.github.BadgersMC.Nexus:nexus-core:$nexusCommit")
+    implementation("com.github.BadgersMC.Nexus:nexus-paper:$nexusCommit")
+    implementation("com.github.BadgersMC.Nexus:nexus-i18n:$nexusCommit")
 
     // QR Code generation
     implementation("com.google.zxing:core:3.5.3")

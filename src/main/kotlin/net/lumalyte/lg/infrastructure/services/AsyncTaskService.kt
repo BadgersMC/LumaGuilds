@@ -1,107 +1,69 @@
 package net.lumalyte.lg.infrastructure.services
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
-import org.koin.core.qualifier.named
+import org.bukkit.plugin.Plugin
 import java.util.concurrent.CompletableFuture
 
 /**
- * Service for running blocking I/O operations on virtual threads.
+ * Runs blocking I/O on the virtual-thread dispatcher owned by the plugin's DI context.
  *
- * Use this for:
- * - Network I/O (HTTP requests, webhooks)
- * - File I/O (backups, exports)
- * - Any blocking operation that would waste a platform thread
- *
- * Virtual threads make these operations essentially free - they park
- * instead of blocking when waiting for I/O.
+ * The injected scope is owned by Nexus after cutover; while the migration is in progress,
+ * the legacy bootstrap supplies its existing plugin scope. No detached CoroutineScopes
+ * or independent executor services are created by this class.
  */
-class AsyncTaskService : KoinComponent {
-
-    private val virtualDispatcher: CoroutineDispatcher by inject(named("VirtualDispatcher"))
-
+class AsyncTaskService(
+    private val scope: CoroutineScope,
+    private val virtualDispatcher: CoroutineDispatcher,
+    private val plugin: Plugin
+) {
     /**
-     * Run a blocking I/O operation on a virtual thread.
-     * Returns a CompletableFuture for Java interop.
-     *
-     * Example:
-     * ```kotlin
-     * asyncTaskService.runAsync {
-     *     httpClient.send(request) // Blocking HTTP call
-     * }.thenAccept { result ->
-     *     // Handle result on main thread
-     * }
-     * ```
+     * Run a blocking operation on the virtual-thread dispatcher.
+     * Cancelling the owning plugin scope completes the future exceptionally,
+     * including when cancellation happens before execution begins.
      */
     fun <T> runAsync(block: () -> T): CompletableFuture<T> {
         val future = CompletableFuture<T>()
-
-        // Execute on virtual thread via dispatcher
-        CoroutineScope(virtualDispatcher).launch {
+        val job = scope.launch(virtualDispatcher) {
             try {
-                val result = block()
-                future.complete(result)
-            } catch (e: Exception) {
-                future.completeExceptionally(e)
+                future.complete(block())
+            } catch (cancelled: CancellationException) {
+                future.cancel(true)
+                throw cancelled
+            } catch (error: Exception) {
+                future.completeExceptionally(error)
             }
         }
-
+        job.invokeOnCompletion { error ->
+            if (error != null && !future.isDone) future.completeExceptionally(error)
+        }
         return future
     }
 
-    /**
-     * Run a blocking I/O operation on a virtual thread (suspend version).
-     *
-     * Example:
-     * ```kotlin
-     * suspend fun sendWebhook() {
-     *     val result = asyncTaskService.runSuspend {
-     *         httpClient.send(request)
-     *     }
-     * }
-     * ```
-     */
-    suspend fun <T> runSuspend(block: () -> T): T {
-        return withContext(virtualDispatcher) {
-            block()
-        }
-    }
+    /** Run a blocking operation as a suspend function on the owned virtual dispatcher. */
+    suspend fun <T> runSuspend(block: () -> T): T =
+        withContext(virtualDispatcher) { block() }
 
     /**
-     * Run a blocking I/O operation on a virtual thread with callback.
-     * Useful when you can't use CompletableFuture or coroutines.
-     *
-     * Example:
-     * ```kotlin
-     * asyncTaskService.runAsyncCallback(
-     *     task = { httpClient.send(request) },
-     *     onSuccess = { result -> println("Success: $result") },
-     *     onError = { error -> println("Error: ${error.message}") }
-     * )
-     * ```
+     * Run blocking I/O and dispatch its callback to Bukkit's primary thread.
+     * The owning plugin instance is provided directly (never looked up by name).
      */
     fun <T> runAsyncCallback(
         task: () -> T,
         onSuccess: (T) -> Unit,
         onError: (Throwable) -> Unit = {}
     ) {
-        CoroutineScope(virtualDispatcher).launch {
+        scope.launch(virtualDispatcher) {
             try {
                 val result = task()
-                // Callback on main thread for safety
-                org.bukkit.Bukkit.getScheduler().runTask(
-                    org.bukkit.Bukkit.getPluginManager().getPlugin("LumaGuilds")!!,
-                    Runnable { onSuccess(result) }
-                )
-            } catch (e: Exception) {
-                org.bukkit.Bukkit.getScheduler().runTask(
-                    org.bukkit.Bukkit.getPluginManager().getPlugin("LumaGuilds")!!,
-                    Runnable { onError(e) }
-                )
+                plugin.server.scheduler.runTask(plugin, Runnable { onSuccess(result) })
+            } catch (error: Exception) {
+                if (plugin.isEnabled) {
+                    plugin.server.scheduler.runTask(plugin, Runnable { onError(error) })
+                }
             }
         }
     }

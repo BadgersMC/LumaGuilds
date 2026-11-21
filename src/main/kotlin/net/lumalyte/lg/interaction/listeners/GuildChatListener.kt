@@ -13,8 +13,6 @@ import net.lumalyte.lg.infrastructure.services.RoseChatAdapter
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.event.Listener
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -28,12 +26,12 @@ import java.util.concurrent.ConcurrentHashMap
  * but no @EventHandler methods are declared and the class is no longer registered as
  * a Bukkit listener.
  */
-class GuildChatListener : Listener, KoinComponent {
-
-    private val guildService: GuildService by inject()
-    private val memberService: MemberService by inject()
-    private val penaltyService: PenaltyService by inject()
-    private val lang: LangService by inject()
+class GuildChatListener(
+    private val guildService: GuildService,
+    private val memberService: MemberService,
+    private val penaltyService: PenaltyService,
+    private val lang: LangService,
+) : Listener {
 
     private val logger = LoggerFactory.getLogger(GuildChatListener::class.java)
 
