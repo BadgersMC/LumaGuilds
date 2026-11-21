@@ -82,6 +82,14 @@ abstract class BaseBedrockMenu(
     protected val formCacheService get() = dependencies?.cache ?: legacyCache
     protected val formValidationService get() = dependencies?.validation ?: legacyValidation
 
+    /** Explicit dependencies for converted forms and the child forms they construct (REQ-NEXUS-DI-1). */
+    protected val bedrockDependencies: BedrockMenuDependencies
+        get() = checkNotNull(dependencies) { "Bedrock menu dependencies were not supplied" }
+
+    /** Typed lazy collaborators for converted forms; resolved through the explicit menu factory. */
+    protected val services: net.lumalyte.lg.interaction.menus.MenuServices
+        get() = bedrockDependencies.menuFactory.menuServices
+
     /**
      * Gets the Bedrock configuration
      */

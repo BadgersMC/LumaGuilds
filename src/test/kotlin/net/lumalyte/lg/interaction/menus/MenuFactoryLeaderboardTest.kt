@@ -9,9 +9,7 @@ import net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildLeaderboardMenu
 import net.lumalyte.lg.interaction.menus.guild.GuildLeaderboardDialogMenu
 import org.bukkit.entity.Player
 import org.junit.jupiter.api.*
-import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
-import org.koin.dsl.module
 import java.time.Instant
 import java.util.UUID
 import java.util.logging.Logger
@@ -23,12 +21,20 @@ internal class MenuFactoryLeaderboardTest {
         stopKoin()
         val guilds = mockk<GuildService>(); val members = mockk<MemberService>(); val quests = mockk<QuestService>()
         val lang = mockk<LangService>()
-        startKoin { modules(module { single { guilds }; single { members }; single { quests }; single { lang } }) }
         val player = mockk<Player>(); every { player.name } returns "Viewer"
         val platform = mockk<PlatformDetectionService>(); val config = mockk<ConfigService>()
         every { config.loadConfig() } returns MainConfig()
         every { platform.isCumulusAvailable() } returns true
-        val factory = MenuFactory(platform, config, Logger.getAnonymousLogger(), lang)
+        // Explicit services replace the former global-Koin lookup (REQ-NEXUS-DI-1); no Koin is started.
+        val factory = MenuFactory(
+            platform, config, Logger.getAnonymousLogger(), lang,
+            menuServicesProvider = { owner ->
+                testMenuServices(owner, mapOf(
+                    GuildService::class to guilds, MemberService::class to members,
+                    QuestService::class to quests, LangService::class to lang,
+                ))
+            },
+        )
         val guild = Guild(UUID.randomUUID(), "Guild", createdAt = Instant.EPOCH)
         every { platform.isBedrockPlayer(player) } returns false
         assertIs<GuildLeaderboardDialogMenu>(factory.createGuildLeaderboardMenu(mockk(), player, guild))

@@ -48,8 +48,18 @@ class MenuFactory(
     private val lang: LangService,
     private val bedrockDependencyProvider: ((MenuFactory) -> BedrockMenuDependencies)? = null,
     private val chatServiceProvider: (() -> ChatService)? = null,
+    private val menuServicesProvider: ((MenuFactory) -> MenuServices)? = null,
 ) {
     private val bedrockDependencies by lazy { bedrockDependencyProvider?.invoke(this) }
+    private val menuServicesOrNull by lazy { menuServicesProvider?.invoke(this) }
+
+    /** Explicit Bedrock collaborators for converted forms; fails closed instead of using a Koin fallback. */
+    internal fun requiredBedrockDependencies(): BedrockMenuDependencies =
+        checkNotNull(bedrockDependencies) { "Bedrock menu dependencies were not bound" }
+
+    /** Typed lazy menu collaborators bound by the active composition root; never a global Koin lookup. */
+    internal val menuServices: MenuServices
+        get() = checkNotNull(menuServicesOrNull) { "Menu services were not bound" }
     private var guildListServiceProvider: (() -> GuildListService)? = null
     private var gettingStartedDependenciesProvider: ((MenuFactory) -> GuildGettingStartedNavigationDependencies)? = null
     private var claimTrustDependenciesProvider: (() -> ClaimTrustMenuDependencies)? = null
@@ -390,11 +400,11 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockPartyCreationMenu(menuNavigator, player, guild, logger)
         } else {
-            val guildService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.GuildService>()
-            val partyService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.PartyService>()
-            val rankService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.RankService>()
-            val memberService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.MemberService>()
-            val chatInputListener = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.interaction.listeners.ChatInputListener>()
+            val guildService = menuServices.guildService.value
+            val partyService = menuServices.partyService.value
+            val rankService = menuServices.rankService.value
+            val memberService = menuServices.memberService.value
+            val chatInputListener = menuServices.chatInputListener.value
             PartyCreationMenu(menuNavigator, player, guild, guildService, partyService, rankService, memberService, chatInputListener, configService, this, lang)
         }
     }
@@ -425,9 +435,9 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             BedrockGuildControlPanelMenu(menuNavigator, player, guild, logger)
         } else {
-            val guildService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.GuildService>()
-            val rankService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.RankService>()
-            val memberService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.MemberService>()
+            val guildService = menuServices.guildService.value
+            val rankService = menuServices.rankService.value
+            val memberService = menuServices.memberService.value
 
             // Always use the new dashboard layout — Nexo only provides prettier
             // textures; the layout and fallback items work without it.
@@ -451,17 +461,16 @@ class MenuFactory(
         if (shouldUseBedrockMenus(player)) {
             return createGuildControlPanelMenu(menuNavigator, player, guild)
         }
-        val koin = org.koin.core.context.GlobalContext.get()
         return net.lumalyte.lg.interaction.menus.guild.GuildControlPanelMenu(
             menuNavigator, player, guild,
-            koin.get<net.lumalyte.lg.application.services.GuildService>(),
-            koin.get<net.lumalyte.lg.application.services.RankService>(),
-            koin.get<net.lumalyte.lg.application.services.MemberService>(),
-            koin.get<net.lumalyte.lg.application.services.GuildVaultService>(),
+            menuServices.guildService.value,
+            menuServices.rankService.value,
+            menuServices.memberService.value,
+            menuServices.guildVaultService.value,
             this,
-            koin.get<net.lumalyte.lg.application.services.ConfigService>(),
-            koin.get<net.lumalyte.lg.application.services.ProgressionService>(),
-            koin.get<net.lumalyte.lg.application.persistence.ProgressionRepository>(),
+            menuServices.configService.value,
+            menuServices.progressionService.value,
+            menuServices.progressionRepository.value,
         )
     }
 
@@ -477,10 +486,10 @@ class MenuFactory(
             // Use Bedrock guild settings menu with CustomForm
             BedrockGuildSettingsMenu(menuNavigator, player, guild, logger)
         } else {
-            val guildService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.GuildService>()
-            val menuItemBuilder = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.utils.MenuItemBuilder>()
-            val progressionService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.ProgressionService>()
-            val progressionRepository = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.persistence.ProgressionRepository>()
+            val guildService = menuServices.guildService.value
+            val menuItemBuilder = menuServices.menuItemBuilder.value
+            val progressionService = menuServices.progressionService.value
+            val progressionRepository = menuServices.progressionRepository.value
             net.lumalyte.lg.interaction.menus.guild.GuildSettingsMenu(menuNavigator, player, guild, guildService, menuItemBuilder, this, configService, progressionService, progressionRepository)
         }
     }
@@ -864,15 +873,14 @@ class MenuFactory(
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
-        val adminOverride = org.koin.core.context.GlobalContext.getOrNull()
-            ?.getOrNull<net.lumalyte.lg.application.services.AdminOverrideService>()
+        val adminOverride = menuServicesOrNull?.adminOverrideServiceOrNull?.value
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildProgressionInfoMenu(menuNavigator, player, guild, logger, adminOverride)
         } else {
-            val guildService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.GuildService>()
-            val memberService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.MemberService>()
-            val progressionService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.ProgressionService>()
-            val menuItemBuilder = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.utils.MenuItemBuilder>()
+            val guildService = menuServices.guildService.value
+            val memberService = menuServices.memberService.value
+            val progressionService = menuServices.progressionService.value
+            val menuItemBuilder = menuServices.menuItemBuilder.value
             net.lumalyte.lg.interaction.menus.guild.GuildProgressionMenu(
                 menuNavigator, player, guild,
                 guildService, memberService, progressionService,
@@ -889,9 +897,10 @@ class MenuFactory(
         if (shouldUseBedrockMenus(player)) {
             return net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildLeaderboardMenu(menuNavigator, player, guild, logger)
         }
-        val koin = org.koin.core.context.GlobalContext.get()
+        val services = menuServices
         return net.lumalyte.lg.interaction.menus.guild.GuildLeaderboardDialogMenu(
-            menuNavigator, player, guild, koin.get(), koin.get(), koin.get(), koin.get(),
+            menuNavigator, player, guild,
+            services.guildService.value, services.memberService.value, services.questService.value, services.langService.value,
         )
     }
 
@@ -900,17 +909,16 @@ class MenuFactory(
         player: Player,
         guild: net.lumalyte.lg.domain.entities.Guild
     ): Menu {
-        val adminOverride = org.koin.core.context.GlobalContext.getOrNull()
-            ?.getOrNull<net.lumalyte.lg.application.services.AdminOverrideService>()
+        val adminOverride = menuServicesOrNull?.adminOverrideServiceOrNull?.value
         if (shouldUseBedrockMenus(player)) {
             return net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildQuestsMenu(
                 menuNavigator, player, guild, logger, adminOverride
             )
         }
-        val memberService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.MemberService>()
-        val guildService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.GuildService>()
-        val questService = org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.QuestService>()
-        val lang = org.koin.core.context.GlobalContext.get().get<net.badgersmc.nexus.i18n.LangService>()
+        val memberService = menuServices.memberService.value
+        val guildService = menuServices.guildService.value
+        val questService = menuServices.questService.value
+        val lang = menuServices.langService.value
         return net.lumalyte.lg.interaction.menus.guild.GuildQuestsMenu(
             menuNavigator, player, guild, memberService, guildService, questService, lang, adminOverride
         )

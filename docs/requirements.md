@@ -593,3 +593,23 @@ The approved recruitment behavior, player/recruiter flows, discovery integration
 
 The catalog-backed Chronicle and durable guild goal follow CHR-001 through
 CHR-005 in [the Chronicle specification](plans/2026-10-16-guild-chronicle.md).
+
+## Nexus DI migration (behavior-preserving, 2026-11-21)
+
+Framework-only requirements for the KoinComponent-to-Nexus migration described in
+[`NEXUS-MIGRATION.md`](NEXUS-MIGRATION.md). They introduce no gameplay behavior.
+
+### REQ-NEXUS-DI-1 — Explicit constructor dependencies
+**Ubiquitous.** Every migrated menu, Bedrock form, command, listener, placeholder expansion and service SHALL receive its collaborators through its constructor or an explicit typed dependency bundle/provider supplied by a composition root, and SHALL NOT implement `KoinComponent`, use `by inject()`, `getKoin()` or `GlobalContext` lookups. A global textual rename or a generic resolver interface wrapping Koin or Nexus SHALL NOT satisfy this requirement.
+
+### REQ-NEXUS-DI-2 — Behavior parity
+**Ubiquitous.** A migrated class SHALL preserve its Java and Bedrock rendering, navigation targets and back-navigation, authorization checks, locale keys and placeholders, optional-service (`getOrNull`) fallbacks and the timing of dependency resolution that previously avoided startup cycles.
+
+### REQ-NEXUS-DI-3 — Lazy and optional resolution
+**State-driven.** WHILE claims are disabled or an optional integration (Vault, Apollo, DiscordSRV, PlaceholderAPI, CombatLogX) is absent THE SYSTEM SHALL start without resolving those dependencies; composition roots SHALL bind them as typed lazy providers that are invoked only when the dependent feature is used.
+
+### REQ-NEXUS-DI-4 — Dual composition roots without dual activation
+**Ubiquitous.** Each migrated constructor SHALL be wired in both the transitional legacy Koin graph (`di/Modules.kt`, `LumaGuilds.kt`) and the inert Nexus graph (`di/nexus/*Bindings.kt`). The live plugin lifecycle SHALL remain Koin/ACF-owned and the Nexus context SHALL NOT be activated until a separate cutover proves parity.
+
+### REQ-NEXUS-DI-5 — Verified inventory
+**Event-driven.** WHEN a migration tranche is integrated THE SYSTEM's evidence SHALL report the remaining exact `KoinComponent` declarations, imports, comments, `by inject()` and global-lookup counts from a reproducible scan, and SHALL NOT claim completion while any production reference remains.

@@ -283,7 +283,22 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
     // Menu factory
     single<net.lumalyte.lg.interaction.menus.MenuFactory> {
         val legacyScope = this
-        net.lumalyte.lg.interaction.menus.MenuFactory(get(), get(), get(), get()).apply {
+        net.lumalyte.lg.interaction.menus.MenuFactory(
+            get(), get(), get(), get(),
+            // Explicit Bedrock form collaborators; same Koin singletons the base-class fallback resolved.
+            bedrockDependencyProvider = { factory ->
+                net.lumalyte.lg.interaction.menus.bedrock.BedrockMenuDependencies(
+                    menuFactory = factory,
+                    localization = legacyScope.get<net.lumalyte.lg.application.services.BedrockLocalizationService>(),
+                    plugin = legacyScope.get<Plugin>(),
+                    lang = legacyScope.get<LangService>(),
+                    cache = legacyScope.get<net.lumalyte.lg.application.services.FormCacheService>(),
+                    validation = legacyScope.get<net.lumalyte.lg.application.services.FormValidationService>(),
+                    config = legacyScope.get<ConfigService>(),
+                )
+            },
+            menuServicesProvider = { factory -> legacyScope.legacyMenuServices(factory) },
+        ).apply {
             // Retain the production Koin graph, resolving claim services only when the Java menu opens.
             bindClaimTrustMenuDependencies {
                 net.lumalyte.lg.interaction.menus.management.ClaimTrustMenuDependencies(

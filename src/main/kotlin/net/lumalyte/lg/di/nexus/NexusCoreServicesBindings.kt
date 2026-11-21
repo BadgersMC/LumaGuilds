@@ -87,6 +87,7 @@ internal fun NexusContext.registerCoreServiceBindings(plugin: LumaGuilds) {
                 )
             },
             chatServiceProvider = { getBean<ChatService>() },
+            menuServicesProvider = { factory -> nexusMenuServices(factory) },
         ).apply {
             // Lazy: absent claim bindings remain optional until claims are enabled and this menu opens.
             bindClaimTrustMenuDependencies {

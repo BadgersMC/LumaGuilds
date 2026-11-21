@@ -1097,3 +1097,9 @@ Menu audit follow-up (REQ-063):
   - Local verification:79focused pass; full2298pass/106skip/0failure/error.
     Source-only local follow-up to PR19; publication, hosted checks, real-client
     visual acceptance and mobile-accessible preview delivery remain outstanding.
+
+## Nexus DI migration — complete KoinComponent removal (PR #254, 2026-11-21)
+- [~] **NEXUS-DI-COMPLETE** Convert every remaining KoinComponent / `by inject()` / global Koin lookup in production Kotlin to explicit constructor injection or typed lazy dependency bundles, wired in both the transitional Koin graph and the inert Nexus graph.
+  - Tag: `TDD`
+  - References: REQ-NEXUS-DI-1 through REQ-NEXUS-DI-5; `docs/NEXUS-MIGRATION.md`; plan and baseline manifest `docs/superpowers/plans/2026-11-21-complete-nexus-di-migration.md`.
+  - Evidence: recorded per tranche in the plan; Nexus activation, ACF removal and runtime acceptance remain separate gates.
