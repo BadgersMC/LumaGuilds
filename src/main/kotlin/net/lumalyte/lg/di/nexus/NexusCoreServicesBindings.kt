@@ -11,6 +11,8 @@ import net.lumalyte.lg.application.services.FormCacheService
 import net.lumalyte.lg.application.services.FormValidationService
 import net.lumalyte.lg.application.services.GuildGettingStartedService
 import net.lumalyte.lg.application.persistence.GuildOnboardingRepository
+import net.lumalyte.lg.application.actions.claim.permission.GetClaimPlayerPermissions
+import net.lumalyte.lg.application.actions.claim.permission.GetPlayersWithPermissionInClaim
 import net.lumalyte.lg.application.services.PlatformDetectionService
 import net.lumalyte.lg.application.services.PlayerMetadataService
 import net.lumalyte.lg.config.MainConfig
@@ -20,6 +22,7 @@ import net.lumalyte.lg.infrastructure.services.FormCacheServiceGuava
 import net.lumalyte.lg.infrastructure.services.FormValidationServiceImpl
 import net.lumalyte.lg.infrastructure.services.PlayerMetadataServiceVault
 import net.lumalyte.lg.interaction.menus.MenuFactory
+import net.lumalyte.lg.interaction.menus.management.ClaimTrustMenuDependencies
 import net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedNavigationDependencies
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockMenuDependencies
 import org.bukkit.plugin.Plugin
@@ -84,6 +87,14 @@ internal fun NexusContext.registerCoreServiceBindings(plugin: LumaGuilds) {
             },
             chatServiceProvider = { getBean<ChatService>() },
         ).apply {
+            // Lazy: absent claim bindings remain optional until claims are enabled and this menu opens.
+            bindClaimTrustMenuDependencies {
+                ClaimTrustMenuDependencies(
+                    lang = getBean<LangService>(),
+                    getPlayersWithPermissionInClaim = getBean<GetPlayersWithPermissionInClaim>(),
+                    getClaimPlayerPermissions = getBean<GetClaimPlayerPermissions>(),
+                )
+            }
             bindGuildListService { getBean<GuildListService>() }
             bindGettingStartedDependencies { factory ->
                 GuildGettingStartedNavigationDependencies(

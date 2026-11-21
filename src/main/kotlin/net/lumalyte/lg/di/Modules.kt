@@ -284,6 +284,14 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
     single<net.lumalyte.lg.interaction.menus.MenuFactory> {
         val legacyScope = this
         net.lumalyte.lg.interaction.menus.MenuFactory(get(), get(), get(), get()).apply {
+            // Retain the production Koin graph, resolving claim services only when the Java menu opens.
+            bindClaimTrustMenuDependencies {
+                net.lumalyte.lg.interaction.menus.management.ClaimTrustMenuDependencies(
+                    lang = legacyScope.get<LangService>(),
+                    getPlayersWithPermissionInClaim = legacyScope.get<GetPlayersWithPermissionInClaim>(),
+                    getClaimPlayerPermissions = legacyScope.get<GetClaimPlayerPermissions>(),
+                )
+            }
             bindGettingStartedDependencies { factory ->
                 net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedNavigationDependencies(
                     service = legacyScope.get<net.lumalyte.lg.application.services.GuildGettingStartedService>(),

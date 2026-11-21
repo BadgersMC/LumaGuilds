@@ -12,6 +12,7 @@ import net.lumalyte.lg.application.actions.claim.permission.GetClaimPlayerPermis
 import net.lumalyte.lg.application.actions.claim.permission.GetPlayersWithPermissionInClaim
 import net.lumalyte.lg.domain.entities.Claim
 import net.lumalyte.lg.interaction.menus.Menu
+import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.utils.createHead
 import net.lumalyte.lg.utils.lore
@@ -21,17 +22,26 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.UUID
 import kotlin.math.ceil
 
-class ClaimTrustMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                     private val claim: Claim?): Menu, KoinComponent {
-    private val lang: LangService by inject()
-    private val getPlayersWithPermissionInClaim: GetPlayersWithPermissionInClaim by inject()
-    private val getClaimPlayerPermissions: GetClaimPlayerPermissions by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+/** Explicit dependencies shared by legacy Koin and inactive Nexus menu construction. */
+data class ClaimTrustMenuDependencies(
+    val lang: LangService,
+    val getPlayersWithPermissionInClaim: GetPlayersWithPermissionInClaim,
+    val getClaimPlayerPermissions: GetClaimPlayerPermissions,
+)
+
+class ClaimTrustMenu(
+    private val menuNavigator: MenuNavigator,
+    private val player: Player,
+    private val claim: Claim?,
+    private val menuFactory: MenuFactory,
+    dependencies: ClaimTrustMenuDependencies,
+) : Menu {
+    private val lang = dependencies.lang
+    private val getPlayersWithPermissionInClaim = dependencies.getPlayersWithPermissionInClaim
+    private val getClaimPlayerPermissions = dependencies.getClaimPlayerPermissions
 
     private var page = 1
 

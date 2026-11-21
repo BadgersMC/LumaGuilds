@@ -33,6 +33,7 @@ import net.lumalyte.lg.interaction.menus.guild.GuildSelectionMenu
 import net.lumalyte.lg.interaction.menus.guild.JoinRequirementsMenu
 import net.lumalyte.lg.interaction.menus.guild.LfgBrowserMenu
 import net.lumalyte.lg.interaction.menus.guild.PartyCreationMenu
+import net.lumalyte.lg.interaction.menus.management.ClaimTrustMenuDependencies
 import org.bukkit.entity.Player
 import java.util.logging.Logger
 
@@ -50,6 +51,13 @@ class MenuFactory(
     private val bedrockDependencies by lazy { bedrockDependencyProvider?.invoke(this) }
     private var guildListServiceProvider: (() -> GuildListService)? = null
     private var gettingStartedDependenciesProvider: ((MenuFactory) -> GuildGettingStartedNavigationDependencies)? = null
+    private var claimTrustDependenciesProvider: (() -> ClaimTrustMenuDependencies)? = null
+
+    /** Resolve claim services on demand; claims may be disabled and no provider is invoked at startup. */
+    internal fun bindClaimTrustMenuDependencies(provider: () -> ClaimTrustMenuDependencies) {
+        check(claimTrustDependenciesProvider == null) { "Claim trust menu dependencies already bound" }
+        claimTrustDependenciesProvider = provider
+    }
 
     /** Bind shared onboarding navigation explicitly without constructing cyclic service graphs at startup. */
     internal fun bindGettingStartedDependencies(provider: (MenuFactory) -> GuildGettingStartedNavigationDependencies) {
@@ -1013,7 +1021,10 @@ class MenuFactory(
         return if (shouldUseBedrockMenus(player)) {
             net.lumalyte.lg.interaction.menus.bedrock.BedrockClaimTrustMenu(menuNavigator, player, claim as net.lumalyte.lg.domain.entities.Claim, logger)
         } else {
-            net.lumalyte.lg.interaction.menus.management.ClaimTrustMenu(menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim)
+            val deps = checkNotNull(claimTrustDependenciesProvider) { "Claim trust menu dependencies were not bound" }()
+            net.lumalyte.lg.interaction.menus.management.ClaimTrustMenu(
+                menuNavigator, player, claim as? net.lumalyte.lg.domain.entities.Claim, this, deps,
+            )
         }
     }
 
