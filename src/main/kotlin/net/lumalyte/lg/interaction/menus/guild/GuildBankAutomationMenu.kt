@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.interaction.menus.MenuServices
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import net.badgersmc.nexus.i18n.LangService
@@ -32,8 +33,6 @@ import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /**
  * Guild Bank Automation menu with scheduled tasks, rewards, and alerts (REQ-010)
@@ -41,16 +40,17 @@ import org.koin.core.component.inject
 class GuildBankAutomationMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
-    private val guild: Guild
-) : Menu, KoinComponent, ChatInputHandler {
+    private val guild: Guild,
+    services: MenuServices
+) : Menu, ChatInputHandler {
 
-    private val bankService: BankService by inject()
-    private val bankSettingsRepository: BankSettingsRepository by inject()
-    private val bankAutomationService: BankAutomationService by inject()
-    private val configService: net.lumalyte.lg.application.services.ConfigService by inject()
-    private val chatInputListener: ChatInputListener by inject()
-    private val lang: LangService by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+    private val bankService: BankService by services.bankService
+    private val bankSettingsRepository: BankSettingsRepository by services.bankSettingsRepository
+    private val bankAutomationService: BankAutomationService by services.bankAutomationService
+    private val configService: net.lumalyte.lg.application.services.ConfigService by services.configService
+    private val chatInputListener: ChatInputListener by services.chatInputListener
+    private val lang: LangService by services.langService
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by services.menuFactory
 
     // GUI components
     private lateinit var gui: ChestGui

@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.interaction.menus.MenuServices
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.services.*
@@ -11,26 +12,25 @@ import net.lumalyte.lg.infrastructure.services.*
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /** Every page is rebuilt from the active catalog and committed guild state. */
 internal class GuildChronicleMenu(
     private val navigator: MenuNavigator,
     private val player: Player,
     private val guild: Guild,
+    private val services: MenuServices,
     private val presenter: GuildDialogPresenter = GuildMenuDialog(),
     private val initialRewardId: String? = null,
     private val returnToBrowser: (() -> Unit)? = null,
     private val initialPrestige: Boolean = false,
     private val reviewPrestige: (() -> Unit)? = null,
-) : Menu, KoinComponent {
-    private val chronicle: GuildChronicleService by inject()
-    private val members: MemberService by inject()
-    private val purchases: GuildRewardPurchaseService by inject()
-    private val config: ConfigService by inject()
-    private val lang: LangService by inject()
-    private val prestigeService: GuildPrestigeService by inject()
+) : Menu {
+    private val chronicle: GuildChronicleService by services.guildChronicleService
+    private val members: MemberService by services.memberService
+    private val purchases: GuildRewardPurchaseService by services.guildRewardPurchaseService
+    private val config: ConfigService by services.configService
+    private val lang: LangService by services.langService
+    private val prestigeService: GuildPrestigeService by services.guildPrestigeService
     private var page: Int? = null
     private var branch = ChronicleBranch.ALL
     private var prestigeTab = 0
@@ -116,7 +116,8 @@ internal class GuildChronicleMenu(
                 else {
                     val token = navigator.currentNavigationToken()
                     GuildRewardPurchaseMenu(player, quote, reward.name, { detail(id) },
-                        getKoin().getOrNull<GuildService>()?.getGuild(guild.id)?.guiTheme ?: guild.guiTheme,
+                        services,
+                        services.guildServiceOrNull.value?.getGuild(guild.id)?.guiTheme ?: guild.guiTheme,
                         { valid(token) }).open()
                 }
             })
@@ -234,7 +235,7 @@ internal class GuildChronicleMenu(
         val token = navigator.currentNavigationToken()
         if (!valid(token)) return
         if (!presenter.show(player, GuildDialogPage(lang.gui("chronicle.title"), items, actions, back,
-                columns = 2, theme = getKoin().getOrNull<GuildService>()?.getGuild(guild.id)?.guiTheme ?: guild.guiTheme, subtitle = subtitle, bodyActions = tabs),
+                columns = 2, theme = services.guildServiceOrNull.value?.getGuild(guild.id)?.guiTheme ?: guild.guiTheme, subtitle = subtitle, bodyActions = tabs),
                 { valid(token) }, { player.sendMessage(lang.msg("chapter_two_rewards.unavailable")) })) {
             player.sendMessage(lang.msg("chapter_two_rewards.unavailable"))
         }

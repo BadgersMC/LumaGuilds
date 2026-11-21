@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.interaction.menus.MenuServices
 import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
@@ -26,16 +27,15 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.time.format.DateTimeFormatter
 
 class GuildMemberListMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                         private var guild: Guild): Menu, KoinComponent {
+                         private var guild: Guild,
+                         services: MenuServices): Menu {
 
-    private val memberService: MemberService by inject()
-    private val rankService: RankService by inject()
-    private val lang: LangService by inject()
+    private val memberService: MemberService by services.memberService
+    private val rankService: RankService by services.rankService
+    private val lang: LangService by services.langService
 
     override fun open() {
         val gui = ChestGui(6, MenuTitleBuilder.build(

@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.interaction.menus.MenuServices
 import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
@@ -25,8 +26,6 @@ import org.bukkit.Bukkit
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -38,13 +37,14 @@ import java.time.temporal.ChronoUnit
 class GuildBankStatisticsMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
-    private val guild: Guild
-) : Menu, KoinComponent {
+    private val guild: Guild,
+    services: MenuServices
+) : Menu {
 
-    private val bankService: BankService by inject()
-    private val lang: LangService by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
-    private val memberService: net.lumalyte.lg.application.services.MemberService by inject()
+    private val bankService: BankService by services.bankService
+    private val lang: LangService by services.langService
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by services.menuFactory
+    private val memberService: net.lumalyte.lg.application.services.MemberService by services.memberService
 
     // GUI components
     private lateinit var gui: ChestGui

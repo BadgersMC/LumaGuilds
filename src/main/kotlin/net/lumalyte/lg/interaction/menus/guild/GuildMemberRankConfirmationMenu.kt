@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.interaction.menus.MenuServices
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import net.badgersmc.nexus.i18n.LangService
@@ -25,8 +26,6 @@ import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.SkullMeta
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 import java.util.*
 
@@ -35,13 +34,14 @@ class GuildMemberRankConfirmationMenu(
     private val player: Player,
     private val guild: Guild,
     private val targetMember: Member,
-    private val newRank: Rank
-) : Menu, KoinComponent {
+    private val newRank: Rank,
+    services: MenuServices
+) : Menu {
 
-    private val guildService: GuildService by inject()
-    private val memberService: MemberService by inject()
-    private val rankService: RankService by inject()
-    private val lang: LangService by inject()
+    private val guildService: GuildService by services.guildService
+    private val memberService: MemberService by services.memberService
+    private val rankService: RankService by services.rankService
+    private val lang: LangService by services.langService
 
     private val logger = LoggerFactory.getLogger(GuildMemberRankConfirmationMenu::class.java)
 

@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.interaction.menus.MenuServices
 import net.lumalyte.lg.utils.inventoryframework.addPane
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -25,8 +26,6 @@ import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.atomic.AtomicLong
@@ -34,11 +33,12 @@ import java.util.concurrent.atomic.AtomicLong
 class GuildListMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
-) : Menu, KoinComponent {
-    private val guildListService: GuildListService by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
-    private val lang: LangService by inject()
-    private val plugin: LumaGuilds by inject()
+    services: MenuServices,
+) : Menu {
+    private val guildListService: GuildListService by services.guildListService
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by services.menuFactory
+    private val lang: LangService by services.langService
+    private val plugin: LumaGuilds by services.lumaGuilds
 
     private var currentPage = 0
     private var sortKey = GuildListSortKey.ALL_TIME_ACTIVE

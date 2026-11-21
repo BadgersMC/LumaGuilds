@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.interaction.menus.MenuServices
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import net.lumalyte.lg.utils.NexoItemProvider
@@ -26,20 +27,19 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 class AllyHomeAccessMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
-    private val guild: Guild
-) : Menu, KoinComponent {
+    private val guild: Guild,
+    services: MenuServices
+) : Menu {
 
-    private val rankService: RankService by inject()
-    private val guildService: GuildService by inject()
-    private val relationService: RelationService by inject()
-    private val menuFactory: MenuFactory by inject()
-    private val lang: LangService by inject()
+    private val rankService: RankService by services.rankService
+    private val guildService: GuildService by services.guildService
+    private val relationService: RelationService by services.relationService
+    private val menuFactory: MenuFactory by services.menuFactory
+    private val lang: LangService by services.langService
 
     override fun open() {
         if (!rankService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_HOME)) {

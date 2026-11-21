@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.interaction.menus.MenuServices
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextDecoration
@@ -22,8 +23,6 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.UUID
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.PhysicalGoldRequest
 import net.lumalyte.lg.domain.gold.GuildGoldResult
@@ -39,11 +38,12 @@ class GoldWithdrawMenu(
     private val guildId: UUID,
     private val guildName: String,
     private val vaultInventoryManager: VaultInventoryManager,
-    private val transactionLogger: VaultTransactionLogger
-) : Listener, KoinComponent {
+    private val transactionLogger: VaultTransactionLogger,
+    services: MenuServices
+) : Listener {
 
-    private val bankService: BankService by inject()
-    private val lang: LangService by inject()
+    private val bankService: BankService by services.bankService
+    private val lang: LangService by services.langService
 
     private lateinit var inventory: Inventory
     private var isOpen = false

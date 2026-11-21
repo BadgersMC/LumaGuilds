@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.interaction.menus.MenuServices
 import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
@@ -25,8 +26,6 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 private const val RECRUITMENT_COLUMN = 4
 
@@ -43,12 +42,13 @@ class GuildControlPanelMenu(
     private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory,
     private val configService: ConfigService,
     private val progressionService: ProgressionService,
-    private val progressionRepository: ProgressionRepository
-): Menu, KoinComponent {
+    private val progressionRepository: ProgressionRepository,
+    private val services: MenuServices
+): Menu {
 
-    private val lang: LangService by inject()
-    private val nexoEmojiService: NexoEmojiService by inject()
-    private val adminOverrideService: AdminOverrideService by inject()
+    private val lang: LangService by services.langService
+    private val nexoEmojiService: NexoEmojiService by services.nexoEmojiService
+    private val adminOverrideService: AdminOverrideService by services.adminOverrideService
 
     override fun open() {
         val playerId = player.uniqueId
@@ -81,7 +81,7 @@ class GuildControlPanelMenu(
         }.name(lang.gui("achievements.title"))) { event ->
             event.isCancelled = true
             if (memberService.getMember(player.uniqueId, guild.id) != null) {
-                menuNavigator.openMenu(GuildAchievementsMenu(menuNavigator, player, guild))
+                menuNavigator.openMenu(GuildAchievementsMenu(menuNavigator, player, guild, services = services))
             } else if (adminOverrideService.getViewedGuild(player.uniqueId) == guild.id) {
                 menuNavigator.openMenu(
                     GuildAchievementsMenu(
@@ -90,6 +90,7 @@ class GuildControlPanelMenu(
                         guild,
                         guildMilestones = true,
                         adminOverrideService = adminOverrideService,
+                        services = services,
                     ),
                 )
             }

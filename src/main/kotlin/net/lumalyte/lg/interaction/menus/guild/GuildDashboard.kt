@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.interaction.menus.MenuServices
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import net.badgersmc.nexus.i18n.LangService
@@ -23,8 +24,6 @@ import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /**
  * Guild Dashboard — the hub-and-spoke entry point for guild management.
@@ -39,19 +38,19 @@ class GuildDashboard(
     private val guildService: GuildService,
     private val rankService: RankService,
     private val memberService: MemberService,
-    private val menuFactory: MenuFactory
-) : Menu, KoinComponent {
-    private val lang: LangService by inject()
-    private val bankService: BankService by inject()
-    private val nexoEmojiService: NexoEmojiService by inject()
+    private val menuFactory: MenuFactory,
+    private val services: MenuServices
+) : Menu {
+    private val lang: LangService by services.langService
+    private val bankService: BankService by services.bankService
+    private val nexoEmojiService: NexoEmojiService by services.nexoEmojiService
 
     override fun open() {
         val playerId = player.uniqueId
 
         // Security check
         if (memberService.getMember(playerId, guild.id) == null &&
-            !org.koin.core.context.GlobalContext.get()
-                .get<AdminOverrideService>().hasOverride(playerId)) {
+            !services.adminOverrideService.value.hasOverride(playerId)) {
             player.sendMessage(lang.msg("menu.dashboard.feedback.not_member"))
             menuNavigator.goBack()
             return

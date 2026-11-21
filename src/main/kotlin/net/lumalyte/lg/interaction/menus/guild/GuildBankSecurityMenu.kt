@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.interaction.menus.MenuServices
 import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
@@ -30,8 +31,6 @@ import net.kyori.adventure.text.format.TextDecoration
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -43,16 +42,17 @@ import java.time.temporal.ChronoUnit
 class GuildBankSecurityMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
-    private val guild: Guild
-) : Menu, KoinComponent, ChatInputHandler {
+    private val guild: Guild,
+    private val services: MenuServices
+) : Menu, ChatInputHandler {
 
     private enum class RiskLevel { LOW, MEDIUM, HIGH, CRITICAL }
 
-    private val bankService: BankService by inject()
-    private val guildService: GuildService by inject()
-    private val bankSettingsRepository: BankSettingsRepository by inject()
-    private val chatInputListener: ChatInputListener by inject()
-    private val lang: LangService by inject()
+    private val bankService: BankService by services.bankService
+    private val guildService: GuildService by services.guildService
+    private val bankSettingsRepository: BankSettingsRepository by services.bankSettingsRepository
+    private val chatInputListener: ChatInputListener by services.chatInputListener
+    private val lang: LangService by services.langService
 
     // GUI components
     private lateinit var gui: ChestGui
@@ -249,7 +249,7 @@ class GuildBankSecurityMenu(
         val backGuiItem = GuiItem(backItem) { event ->
             event.isCancelled = true
             menuNavigator.returnTo(GuildBankMenu::class.java) {
-                GuildBankMenu(menuNavigator, player, guild)
+                GuildBankMenu(menuNavigator, player, guild, services = services)
             }
         }
         mainPane.addItem(backGuiItem, 0, 0)
@@ -262,7 +262,7 @@ class GuildBankSecurityMenu(
         )
         val auditGuiItem = GuiItem(auditItem) { event ->
             event.isCancelled = true
-            menuNavigator.openMenu(GuildBankTransactionHistoryMenu(menuNavigator, player, guild))
+            menuNavigator.openMenu(GuildBankTransactionHistoryMenu(menuNavigator, player, guild, services = services))
         }
         mainPane.addItem(auditGuiItem, 1, 0)
 

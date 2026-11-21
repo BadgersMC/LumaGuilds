@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.interaction.menus.MenuServices
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import net.lumalyte.lg.utils.NexoItemProvider
@@ -30,8 +31,6 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.time.Duration
 import java.time.Instant
 import java.util.*
@@ -39,14 +38,15 @@ import java.util.*
 class AlliesListMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
-    private var guild: Guild
-) : Menu, KoinComponent {
+    private var guild: Guild,
+    private val services: MenuServices
+) : Menu {
 
-    private val guildService: GuildService by inject()
-    private val memberService: MemberService by inject()
-    private val relationService: RelationService by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
-    private val lang: LangService by inject()
+    private val guildService: GuildService by services.guildService
+    private val memberService: MemberService by services.memberService
+    private val relationService: RelationService by services.relationService
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by services.menuFactory
+    private val lang: LangService by services.langService
 
     private lateinit var alliesPane: PaginatedPane
     private var currentPage = 0
@@ -263,7 +263,7 @@ class AlliesListMenu(
 
     private fun breakAlliance(relation: Relation, guildName: String) {
         // Use repository to remove relation (unilateral break)
-        val relationRepository: net.lumalyte.lg.application.persistence.RelationRepository by inject()
+        val relationRepository: net.lumalyte.lg.application.persistence.RelationRepository by services.relationRepository
         val success = relationRepository.remove(relation.id)
 
         if (success) {

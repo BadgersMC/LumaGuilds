@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.interaction.menus.MenuServices
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import net.lumalyte.lg.utils.NexoItemProvider
@@ -28,16 +29,15 @@ import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.SkullMeta
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 class GuildKickMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                   private var guild: Guild): Menu, KoinComponent {
+                   private var guild: Guild,
+                   services: MenuServices): Menu {
 
-    private val guildService: GuildService by inject()
-    private val memberService: MemberService by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
-    private val lang: LangService by inject()
+    private val guildService: GuildService by services.guildService
+    private val memberService: MemberService by services.memberService
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by services.menuFactory
+    private val lang: LangService by services.langService
 
     private lateinit var memberPane: StaticPane
     private var currentPage = 0

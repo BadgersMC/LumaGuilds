@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.interaction.menus.MenuServices
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
@@ -18,8 +19,6 @@ import net.lumalyte.lg.utils.name
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /**
  * Confirms a previously quoted prestige. The same quote (and transaction ID) survives
@@ -31,9 +30,10 @@ class GuildPrestigeConfirmationMenu(
     private val retainedRewardName: String,
     private val back: () -> Unit,
     private val success: () -> Unit,
-) : Menu, KoinComponent {
-    private val prestige: GuildPrestigeService by inject()
-    private val lang: LangService by inject()
+    services: MenuServices,
+) : Menu {
+    private val prestige: GuildPrestigeService by services.guildPrestigeService
+    private val lang: LangService by services.langService
 
     internal fun createGui(): ChestGui {
         val gui = ChestGui(3, lang.guiTitle("menu.guild_progression.prestige.confirmation.title"))
