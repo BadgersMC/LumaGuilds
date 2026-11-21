@@ -13,7 +13,6 @@ import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.ModalForm
-import org.koin.core.component.inject
 import java.util.logging.Logger
 
 /** Keeps one immutable prestige quote alive across uncertain retries. */
@@ -25,10 +24,11 @@ class BedrockPrestigeConfirmationMenu(
     private val back: () -> Unit,
     private val success: () -> Unit,
     logger: Logger,
-) : BaseBedrockMenu(menuNavigator, player, logger) {
-    private val prestige: GuildPrestigeService by inject()
-    private val lang: LangService by inject()
-    private val plugin: Plugin by inject()
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
+    private val prestige: GuildPrestigeService by services.guildPrestigeService
+    private val lang: LangService by services.langService
+    private val plugin: Plugin by services.plugin
 
     override fun getForm(): Form = ModalForm.builder()
         .title(lang.bedrock("menu.guild_progression.prestige.confirmation.title"))

@@ -12,7 +12,6 @@ import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
-import org.koin.core.component.inject
 import java.util.logging.Logger
 
 class BedrockGuildRelationBrowserMenu(
@@ -21,17 +20,18 @@ class BedrockGuildRelationBrowserMenu(
     private val guild: Guild,
     private val relationType: RelationType,
     logger: Logger,
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
     init {
         require(relationType == RelationType.ALLY || relationType == RelationType.ENEMY) {
             "BedrockGuildRelationBrowserMenu only supports ALLY or ENEMY"
         }
     }
 
-    private val guildService: GuildService by inject()
-    private val memberService: MemberService by inject()
-    private val relationService: RelationService by inject()
-    private val lang: LangService by inject()
+    private val guildService: GuildService by services.guildService
+    private val memberService: MemberService by services.memberService
+    private val relationService: RelationService by services.relationService
+    private val lang: LangService by services.langService
 
     private var currentPage = 0
 

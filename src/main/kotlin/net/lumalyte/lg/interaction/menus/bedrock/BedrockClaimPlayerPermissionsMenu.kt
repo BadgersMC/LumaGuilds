@@ -15,8 +15,6 @@ import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.UUID
 import java.util.logging.Logger
 
@@ -29,13 +27,14 @@ class BedrockClaimPlayerPermissionsMenu(
     player: Player,
     private val claim: Claim,
     private val targetPlayerId: UUID,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
 
-    private val lang: LangService by inject()
-    private val getClaimPlayerPermissions: GetClaimPlayerPermissions by inject()
-    private val grantPlayerClaimPermission: GrantPlayerClaimPermission by inject()
-    private val revokePlayerClaimPermission: RevokePlayerClaimPermission by inject()
+    private val lang: LangService by services.langService
+    private val getClaimPlayerPermissions: GetClaimPlayerPermissions by services.getClaimPlayerPermissions
+    private val grantPlayerClaimPermission: GrantPlayerClaimPermission by services.grantPlayerClaimPermission
+    private val revokePlayerClaimPermission: RevokePlayerClaimPermission by services.revokePlayerClaimPermission
 
     override fun getForm(): Form {
         val targetPlayerName = Bukkit.getOfflinePlayer(targetPlayerId).name ?: lang.bedrock("menu.common.unknown_player")

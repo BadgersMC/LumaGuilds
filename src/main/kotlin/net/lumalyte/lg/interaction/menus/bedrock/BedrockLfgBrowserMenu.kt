@@ -14,7 +14,6 @@ import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
-import org.koin.core.component.inject
 import java.util.logging.Logger
 import kotlin.math.ceil
 
@@ -23,13 +22,14 @@ class BedrockLfgBrowserMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     logger: Logger,
-    private val page: Int = 0
-) : BaseBedrockMenu(menuNavigator, player, logger) {
-    private val lfgService: LfgService by inject()
-    private val memberService: MemberService by inject()
-    private val configService: ConfigService by inject()
-    private val lang: LangService by inject()
-    private val plugin: Plugin by inject()
+    private val page: Int = 0,
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
+    private val lfgService: LfgService by services.lfgService
+    private val memberService: MemberService by services.memberService
+    private val configService: ConfigService by services.configService
+    private val lang: LangService by services.langService
+    private val plugin: Plugin by services.plugin
 
     override fun getForm(): Form {
         val guilds = lfgService.getAvailableGuilds()
@@ -67,7 +67,7 @@ class BedrockLfgBrowserMenu(
             builder = builder.button(lang.bedrock("bedrock.lfg_browser.button.previous"))
             actions += {
                 bedrockNavigator.openMenu(
-                    BedrockLfgBrowserMenu(menuNavigator, player, logger, safePage - 1)
+                    BedrockLfgBrowserMenu(menuNavigator, player, logger, safePage - 1, dependencies = bedrockDependencies)
                 )
             }
         }
@@ -75,7 +75,7 @@ class BedrockLfgBrowserMenu(
             builder = builder.button(lang.bedrock("bedrock.lfg_browser.button.next"))
             actions += {
                 bedrockNavigator.openMenu(
-                    BedrockLfgBrowserMenu(menuNavigator, player, logger, safePage + 1)
+                    BedrockLfgBrowserMenu(menuNavigator, player, logger, safePage + 1, dependencies = bedrockDependencies)
                 )
             }
         }

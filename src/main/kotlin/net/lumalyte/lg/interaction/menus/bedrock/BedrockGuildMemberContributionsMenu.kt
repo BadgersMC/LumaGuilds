@@ -11,7 +11,6 @@ import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
-import org.koin.core.component.inject
 import java.util.logging.Logger
 
 /** Paged Bedrock view of every member contribution returned by BankService. */
@@ -19,11 +18,12 @@ class BedrockGuildMemberContributionsMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
-    private val bankService: BankService by inject()
-    private val lang: LangService by inject()
-    private val plugin: Plugin by inject()
+    logger: Logger,
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
+    private val bankService: BankService by services.bankService
+    private val lang: LangService by services.langService
+    private val plugin: Plugin by services.plugin
     private var page = 0
 
     override fun getForm(): Form {

@@ -12,8 +12,6 @@ import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.SimpleForm
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.time.Duration
 import java.util.logging.Logger
 
@@ -25,12 +23,13 @@ class BedrockGuildRelationsMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger), KoinComponent {
+    logger: Logger,
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
 
-    private val relationService: RelationService by inject()
-    private val guildService: GuildService by inject()
-    private val lang: LangService by inject()
+    private val relationService: RelationService by services.relationService
+    private val guildService: GuildService by services.guildService
+    private val lang: LangService by services.langService
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
@@ -174,7 +173,7 @@ class BedrockGuildRelationsMenu(
             }
             .build()
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, this@BedrockGuildRelationsMenu.bedrockDependencies) {
             override fun getForm(): Form = formWithHandler
 
             override fun handleResponse(player: Player, response: Any?) {
@@ -233,7 +232,7 @@ class BedrockGuildRelationsMenu(
             }
             .build()
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, this@BedrockGuildRelationsMenu.bedrockDependencies) {
             override fun getForm(): Form = formWithHandler
 
             override fun handleResponse(player: Player, response: Any?) {
@@ -293,7 +292,7 @@ class BedrockGuildRelationsMenu(
             }
             .build()
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, this@BedrockGuildRelationsMenu.bedrockDependencies) {
             override fun getForm(): Form = formWithHandler
 
             override fun handleResponse(player: Player, response: Any?) {
@@ -366,7 +365,7 @@ class BedrockGuildRelationsMenu(
             }
             .build()
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, this@BedrockGuildRelationsMenu.bedrockDependencies) {
             override fun getForm(): Form = formWithHandler
 
             override fun handleResponse(player: Player, response: Any?) {
@@ -395,7 +394,7 @@ class BedrockGuildRelationsMenu(
             }
             .build()
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, this@BedrockGuildRelationsMenu.bedrockDependencies) {
             override fun getForm(): Form = form
 
             override fun handleResponse(player: Player, response: Any?) {
@@ -453,7 +452,7 @@ class BedrockGuildRelationsMenu(
             }
             .build()
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, this@BedrockGuildRelationsMenu.bedrockDependencies) {
             override fun getForm(): Form = form
 
             override fun handleResponse(player: Player, response: Any?) {
@@ -515,7 +514,7 @@ class BedrockGuildRelationsMenu(
             }
             .build()
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, this@BedrockGuildRelationsMenu.bedrockDependencies) {
             override fun getForm(): Form = form
 
             override fun handleResponse(player: Player, response: Any?) {
@@ -603,7 +602,7 @@ class BedrockGuildRelationsMenu(
                 getForm() // Back to main menu
             }
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, this@BedrockGuildRelationsMenu.bedrockDependencies) {
             override fun getForm(): Form = form.build()
 
             override fun handleResponse(player: Player, response: Any?) {
@@ -660,7 +659,7 @@ class BedrockGuildRelationsMenu(
             }
             .build()
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, this@BedrockGuildRelationsMenu.bedrockDependencies) {
             override fun getForm(): Form = formWithHandler
 
             override fun handleResponse(player: Player, response: Any?) {
@@ -719,7 +718,7 @@ class BedrockGuildRelationsMenu(
             }
             .build()
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, this@BedrockGuildRelationsMenu.bedrockDependencies) {
             override fun getForm(): Form = formWithHandler
 
             override fun handleResponse(player: Player, response: Any?) {
@@ -829,7 +828,7 @@ class BedrockGuildRelationsMenu(
             }
             .build()
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, this@BedrockGuildRelationsMenu.bedrockDependencies) {
             override fun getForm(): Form = formWithHandler
 
             override fun handleResponse(player: Player, response: Any?) {

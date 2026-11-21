@@ -17,7 +17,6 @@ import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
-import org.koin.core.component.inject
 import java.util.logging.Logger
 
 /** Bedrock rank editing over the complete current RankPermission model. */
@@ -26,14 +25,15 @@ class BedrockRankEditMenu(
     player: Player,
     private val guild: Guild,
     private val rank: Rank,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
-    private val rankService: RankService by inject()
-    private val guildService: GuildService by inject()
+    logger: Logger,
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
+    private val rankService: RankService by services.rankService
+    private val guildService: GuildService by services.guildService
     private val authorization by lazy { BedrockGuildAuthorization(guildService) }
-    private val configService: ConfigService by inject()
-    private val lang: LangService by inject()
-    private val plugin: Plugin by inject()
+    private val configService: ConfigService by services.configService
+    private val lang: LangService by services.langService
+    private val plugin: Plugin by services.plugin
 
     override fun getForm(): Form {
         if (!authorization.canManageRanks(player.uniqueId, guild.id)) {

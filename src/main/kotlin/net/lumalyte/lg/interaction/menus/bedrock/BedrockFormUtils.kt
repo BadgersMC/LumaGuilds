@@ -14,8 +14,6 @@ import org.geysermc.cumulus.form.SimpleForm
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.response.CustomFormResponse
 import org.geysermc.cumulus.util.FormImage
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /**
  * Adds a button with image to a SimpleForm using Cumulus FormImage API
@@ -50,9 +48,7 @@ fun org.geysermc.cumulus.form.SimpleForm.Builder.addButtonWithImage(
 /**
  * Utility class for managing Bedrock form components and images
  */
-object BedrockFormUtils : KoinComponent {
-
-    private val lang: LangService by inject()
+object BedrockFormUtils {
 
     /**
      * Creates a form image based on configuration using Cumulus FormImage API
@@ -409,25 +405,25 @@ object BedrockFormUtils : KoinComponent {
     /**
      * Creates a section header with consistent formatting
      */
-    fun createSectionHeader(title: String): LabelComponent {
+    fun createSectionHeader(lang: LangService, title: String): LabelComponent {
         return LabelComponent.of(lang.bedrock("bedrock.form_utils.label.section", "text" to title))
     }
 
     /**
      * Creates an error message label
      */
-    fun createErrorLabel(message: String): LabelComponent {
+    fun createErrorLabel(lang: LangService, message: String): LabelComponent {
         return LabelComponent.of(lang.bedrock("bedrock.form_utils.label.error", "text" to message))
     }
 
     /**
      * Creates a success message label
      */
-    fun createSuccessLabel(message: String): LabelComponent {
+    fun createSuccessLabel(lang: LangService, message: String): LabelComponent {
         return LabelComponent.of(lang.bedrock("bedrock.form_utils.label.success", "text" to message))
     }
 
-    fun createInfoLabel(message: String): LabelComponent {
+    fun createInfoLabel(lang: LangService, message: String): LabelComponent {
         return LabelComponent.of(lang.bedrock("bedrock.form_utils.label.info", "text" to message))
     }
 

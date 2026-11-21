@@ -12,15 +12,16 @@ import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.ModalForm
-import org.koin.core.component.inject
 import java.util.logging.Logger
 
 class BedrockRewardPurchaseMenu(navigator: MenuNavigator, player: Player,
     private val quote: RewardPurchaseRequest, private val rewardName: String,
-    private val back: () -> Unit, logger: Logger) : BaseBedrockMenu(navigator, player, logger) {
-    private val purchases: GuildRewardPurchaseService by inject()
-    private val lang: LangService by inject()
-    private val serverPlugin: Plugin by inject()
+    private val back: () -> Unit, logger: Logger,
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(navigator, player, logger, dependencies) {
+    private val purchases: GuildRewardPurchaseService by services.guildRewardPurchaseService
+    private val lang: LangService by services.langService
+    private val serverPlugin: Plugin by services.plugin
 
     override fun getForm(): Form = ModalForm.builder()
         .title(lang.bedrock("chapter_two_rewards.purchase.title"))

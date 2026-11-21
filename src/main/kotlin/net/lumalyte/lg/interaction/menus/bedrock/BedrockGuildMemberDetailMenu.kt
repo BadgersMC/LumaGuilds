@@ -15,7 +15,6 @@ import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
-import org.koin.core.component.inject
 import java.util.logging.Logger
 
 /** Selected-member Bedrock actions matching the supported Java rank-change and kick flows. */
@@ -24,12 +23,13 @@ class BedrockGuildMemberDetailMenu(
     player: Player,
     private val guild: Guild,
     private val member: Member,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
-    private val guildService: GuildService by inject()
-    private val rankService: RankService by inject()
-    private val lang: LangService by inject()
-    private val plugin: Plugin by inject()
+    logger: Logger,
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
+    private val guildService: GuildService by services.guildService
+    private val rankService: RankService by services.rankService
+    private val lang: LangService by services.langService
+    private val plugin: Plugin by services.plugin
 
     override fun getForm(): Form {
         val targetName = Bukkit.getOfflinePlayer(member.playerId).name

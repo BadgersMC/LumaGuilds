@@ -7,7 +7,6 @@ import net.lumalyte.lg.interaction.menus.MenuFactory
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.ModalForm
-import org.koin.core.component.inject
 import java.util.logging.Logger
 
 /**
@@ -22,11 +21,10 @@ class BedrockConfirmationMenu(
     private val callback: () -> Unit,
     private val cancelCallback: (() -> Unit)?,
     logger: Logger,
-    private val dependencies: BedrockMenuDependencies? = null,
+    private val dependencies: BedrockMenuDependencies,
 ) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
 
-    private val legacyLang: LangService by inject()
-    private val lang get() = dependencies?.lang ?: legacyLang
+    private val lang get() = dependencies.lang
     private val message: String = message ?: lang.bedrock("bedrock.confirmation.default_message")
 
     // Overloaded constructor for backward compatibility
@@ -36,7 +34,7 @@ class BedrockConfirmationMenu(
         title: String,
         callback: () -> Unit,
         logger: Logger,
-        dependencies: BedrockMenuDependencies? = null,
+        dependencies: BedrockMenuDependencies,
     ) : this(menuNavigator, player, title, null, callback, null, logger, dependencies)
 
     override fun getForm(): Form {

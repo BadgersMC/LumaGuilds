@@ -16,8 +16,6 @@ import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.ModalForm
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.logging.Logger
 
 /**
@@ -28,16 +26,17 @@ class BedrockGuildBankMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
 
-    private val bankService: BankService by inject()
-    private val configService: ConfigService by inject()
-    private val guildService: GuildService by inject()
+    private val bankService: BankService by services.bankService
+    private val configService: ConfigService by services.configService
+    private val guildService: GuildService by services.guildService
     private val authorization by lazy { BedrockGuildAuthorization(guildService) }
-    private val physicalCurrencyService: PhysicalCurrencyService by inject()
-    private val bankSettingsRepository: BankSettingsRepository by inject()
-    private val lang: LangService by inject()
+    private val physicalCurrencyService: PhysicalCurrencyService by services.physicalCurrencyService
+    private val bankSettingsRepository: BankSettingsRepository by services.bankSettingsRepository
+    private val lang: LangService by services.langService
 
     override fun getForm(): Form {
         // Use physical currency from inventory if enabled, otherwise use Vault balance

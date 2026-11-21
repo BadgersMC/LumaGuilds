@@ -11,7 +11,6 @@ import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-import org.koin.core.component.inject
 import java.util.UUID
 import java.util.logging.Logger
 
@@ -21,12 +20,11 @@ internal class BedrockGuildGettingStartedMenu(
     guildId: UUID?,
     logger: Logger,
     navigationDependencies: GuildGettingStartedNavigationDependencies,
-    private val dependencies: BedrockMenuDependencies? = null,
+    private val dependencies: BedrockMenuDependencies,
 ) : BaseBedrockMenu(navigator, player, logger, dependencies) {
     private val navigation = GuildGettingStartedNavigation(navigator, player, guildId, navigationDependencies)
     private val lang: LangService = navigationDependencies.lang
-    private val legacyPlugin: Plugin by inject()
-    private val plugin get() = dependencies?.plugin ?: legacyPlugin
+    private val plugin get() = dependencies.plugin
     override fun shouldCacheForm() = false
     override fun getForm(): Form {
         val token = menuNavigator.currentNavigationToken()

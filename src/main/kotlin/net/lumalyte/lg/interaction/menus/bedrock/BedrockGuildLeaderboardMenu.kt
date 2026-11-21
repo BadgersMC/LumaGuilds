@@ -14,18 +14,18 @@ import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
-import org.koin.core.component.inject
 import java.util.logging.Logger
 
 /** Same ranking snapshot as Java, presented through native Cumulus controls. */
 internal class BedrockGuildLeaderboardMenu(
     navigator: MenuNavigator, player: Player, private val own: Guild?, logger: Logger,
-) : BaseBedrockMenu(navigator, player, logger) {
-    private val guilds: GuildService by inject()
-    private val members: MemberService by inject()
-    private val quests: QuestService by inject()
-    private val lang: LangService by inject()
-    private val plugin: Plugin by inject()
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(navigator, player, logger, dependencies) {
+    private val guilds: GuildService by services.guildService
+    private val members: MemberService by services.memberService
+    private val quests: QuestService by services.questService
+    private val lang: LangService by services.langService
+    private val plugin: Plugin by services.plugin
     private var tab = 0
     private var page = 0
     private val responses = RecruitmentResponseSession {
@@ -82,7 +82,7 @@ internal class BedrockGuildLeaderboardMenu(
         snapshot.rows.forEach { row ->
             action("#${row.rank} ${row.guild.name}${if (row.guild.id == own?.id) " (you)" else ""}\n" +
                 "${row.score} ${labels[tab]} · ${row.members} ${lang.bedrock("dialog_v2.members")}") {
-                menuNavigator.openMenu(BedrockGuildRecruitmentMenu(menuNavigator, player, logger, row.guild.id))
+                menuNavigator.openMenu(BedrockGuildRecruitmentMenu(menuNavigator, player, logger, row.guild.id, dependencies = bedrockDependencies))
             }
         }
         if (page > 0) action(lang.bedrock("recruitment.previous")) { page--; open() }

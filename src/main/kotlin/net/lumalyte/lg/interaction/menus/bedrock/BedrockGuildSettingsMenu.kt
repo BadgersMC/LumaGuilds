@@ -16,7 +16,6 @@ import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
-import org.koin.core.component.inject
 import java.time.Duration
 import java.util.logging.Logger
 
@@ -40,20 +39,21 @@ class BedrockGuildSettingsMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private var guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
 
-    private val guildService: GuildService by inject()
+    private val guildService: GuildService by services.guildService
     private val authorization by lazy { BedrockGuildAuthorization(guildService) }
-    private val configService: ConfigService by inject()
-    private val lang: LangService by inject()
-    private val chatRankSettings: net.lumalyte.lg.application.services.GuildChatRankSettingsService by inject()
-    private val reconnectSettings: GuildChatReconnectSettingsService by inject()
-    private val plugin: Plugin by inject()
+    private val configService: ConfigService by services.configService
+    private val lang: LangService by services.langService
+    private val chatRankSettings: net.lumalyte.lg.application.services.GuildChatRankSettingsService by services.guildChatRankSettingsService
+    private val reconnectSettings: GuildChatReconnectSettingsService by services.guildChatReconnectSettingsService
+    private val plugin: Plugin by services.plugin
 
     // Holiday styles (REQ-121) are locked until earned; without the ledger they stay locked.
     private val themeAccess by lazy {
-        getKoin().getOrNull<net.lumalyte.lg.application.services.GuildCosmeticUnlockService>()
+        services.guildCosmeticUnlockServiceOrNull.value
     }
 
     private fun isThemeAvailable(theme: GuiTheme): Boolean =
