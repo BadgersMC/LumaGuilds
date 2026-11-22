@@ -1109,3 +1109,10 @@ Menu audit follow-up (REQ-063):
 - [ ] **NEXUS-LIFECYCLE-CUTOVER** Replace legacy bootstrap with one Nexus owner, preserving storage, external APIs, optional integrations and shutdown/failure cleanup. Tag: `TDD`. References: REQ-NEXUS-CUTOVER-2/3; `docs/NEXUS-MIGRATION.md` strict ordering.
 - [ ] **NEXUS-LEGACY-REMOVAL** Remove production Koin/ACF source and packaging after parity; retain IDB. Tag: `TDD`. References: REQ-NEXUS-CUTOVER-4.
 - [ ] **NEXUS-RELEASE-ACCEPTANCE** Run full Java 25/MariaDB checks, review quality findings and prove live Paper Java/Bedrock behavior. Tag: `TDD`. References: REQ-NEXUS-CUTOVER-4. Evidence: live acceptance and production release are not established by previous consumer tests.
+
+### Desktop restore and command integration
+
+- Verified both Git bundles and restored claim and lifecycle patches independently on `5359deb5`. The guild and party ports are integrated locally on top of the PlaceholderAPI fix at `b8bcd32b`.
+- Added a singleton-resolution regression to `GuildNexusFoundationTest`. With both ports present, 54 of 55 focused tests passed and the new assertion failed because Nexus had no `GuildCommandHandlers` bean. After registering the shared handlers and completions, all 55 passed on Java 25 at the existing Nexus pin.
+- Local Nexus `eb55c12a4547f07a9553ecd522989e046c093dda` passed the Paper module suite. The Guilds build still consumes `5ae8b642`. The root-argument fix stays local and another developer owns publication to the Guilds branch.
+- GitHub reports a successful build on `5359deb500a04f4477cce42ddc201c3ff9dda54e`. Codacy requires action there (1,522 added issues and 490 resolved). Exact-candidate hosted CI, MariaDB, and live Java/Bedrock acceptance remain open.

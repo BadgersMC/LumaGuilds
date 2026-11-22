@@ -13,6 +13,9 @@ import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import net.lumalyte.lg.infrastructure.services.AsyncTaskService
 import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
 import net.lumalyte.lg.infrastructure.services.TeleportationService
+import net.lumalyte.lg.interaction.commands.GuildCommandCompletions
+import net.lumalyte.lg.interaction.commands.GuildCommandHandlers
+import net.lumalyte.lg.interaction.commands.PartyChatHandler
 import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.plugin.Plugin
 import java.io.File
@@ -86,6 +89,20 @@ internal class GuildNexusFoundation private constructor(
                 context.registerIntegrationBindings(plugin)
                 context.registerProgressionListenerBindings()
                 context.registerInteractionListenerBindings(claimsEnabled)
+                context.registerBean("guildCommandHandlers", GuildCommandHandlers::class) {
+                    GuildCommandHandlers(context.nexusGuildCommandDependencies())
+                }
+                context.registerBean("partyChatHandler", PartyChatHandler::class) {
+                    PartyChatHandler(context.nexusPartyChatCommandDependencies())
+                }
+                context.registerBean("guildCommandCompletions", GuildCommandCompletions::class) {
+                    GuildCommandCompletions(
+                        guildService = lazy { context.getBean() },
+                        memberService = lazy { context.getBean() },
+                        relationService = lazy { context.getBean() },
+                        nexoEmojiService = lazy { context.getBean() },
+                    )
+                }
 
                 // Nexus owns and closes its CoroutineScope and virtual-thread dispatchers.
                 // Do not create a second pluginScope / ExecutorService here.

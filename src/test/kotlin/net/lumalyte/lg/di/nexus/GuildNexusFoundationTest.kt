@@ -10,6 +10,9 @@ import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import net.lumalyte.lg.infrastructure.services.AsyncTaskService
 import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
 import net.lumalyte.lg.application.services.FormValidationService
+import net.lumalyte.lg.interaction.commands.GuildCommandHandlers
+import net.lumalyte.lg.interaction.commands.GuildCommandCompletions
+import net.lumalyte.lg.interaction.commands.PartyChatHandler
 import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.plugin.Plugin
@@ -40,6 +43,9 @@ class GuildNexusFoundationTest {
         val context = foundation.context
         val scope = context.getBean<CoroutineScope>()
         try {
+            assertSame(context.getBean<GuildCommandHandlers>(), context.getBean<GuildCommandHandlers>())
+            assertSame(context.getBean<PartyChatHandler>(), context.getBean<PartyChatHandler>())
+            assertSame(context.getBean<GuildCommandCompletions>(), context.getBean<GuildCommandCompletions>())
             assertSame(plugin, context.getBean<LumaGuilds>())
             assertSame(plugin, context.getBean<JavaPlugin>())
             assertSame(plugin, context.getBean<Plugin>())
