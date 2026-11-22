@@ -1103,3 +1103,9 @@ Menu audit follow-up (REQ-063):
   - Tag: `TDD`
   - References: REQ-NEXUS-DI-1 through REQ-NEXUS-DI-5; `docs/NEXUS-MIGRATION.md`; plan and baseline manifest `docs/superpowers/plans/2026-11-21-complete-nexus-di-migration.md`.
   - Evidence: all 181 initial component-token files and all 206 consumer-manifest files converted. Production component tokens and injection delegates: zero. Combined 663 tests pass; full Java 25 clean regression: 2,826 total / 2,720 executed / 106 skipped / zero failures/errors. Source-pattern scan: 1,054 files, zero findings/errors. Exact-head hosted CI is checked separately on PR #254. Nexus activation, ACF removal and real-client acceptance remain separate gates.
+
+## Nexus runtime cutover — PR #254 (2026-11-21)
+- [~] **NEXUS-COMMAND-PARITY** Complete guild/party command ports and prove every legacy route, alias, permission, resolver and completion against the pinned Nexus command tree. Tag: `TDD`. References: REQ-NEXUS-CUTOVER-1; `docs/NEXUS-MIGRATION.md`. Evidence: investigation started from green `5359deb5`; Market is the runtime reference. No activation yet.
+- [ ] **NEXUS-LIFECYCLE-CUTOVER** Replace legacy bootstrap with one Nexus owner, preserving storage, external APIs, optional integrations and shutdown/failure cleanup. Tag: `TDD`. References: REQ-NEXUS-CUTOVER-2/3; `docs/NEXUS-MIGRATION.md` strict ordering.
+- [ ] **NEXUS-LEGACY-REMOVAL** Remove production Koin/ACF source and packaging after parity; retain IDB. Tag: `TDD`. References: REQ-NEXUS-CUTOVER-4.
+- [ ] **NEXUS-RELEASE-ACCEPTANCE** Run full Java 25/MariaDB checks, review quality findings and prove live Paper Java/Bedrock behavior. Tag: `TDD`. References: REQ-NEXUS-CUTOVER-4. Evidence: live acceptance and production release are not established by previous consumer tests.

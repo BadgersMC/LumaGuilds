@@ -613,3 +613,17 @@ Framework-only requirements for the KoinComponent-to-Nexus migration described i
 
 ### REQ-NEXUS-DI-5 — Verified inventory
 **Event-driven.** WHEN a migration tranche is integrated THE SYSTEM's evidence SHALL report the remaining exact `KoinComponent` declarations, imports, comments, `by inject()` and global-lookup counts from a reproducible scan, and SHALL NOT claim completion while any production reference remains.
+
+## Nexus command and lifecycle cutover (2026-11-21)
+
+### REQ-NEXUS-CUTOVER-1 — Command parity
+**Ubiquitous.** Nexus commands SHALL preserve the existing guild, claim, party-chat and quick-chat command roots, aliases, default routes, nested routes, permission nodes, player/console restrictions, optional and greedy arguments, current-state authorization, and permission-filtered completions. Framework parser differences SHALL be recorded and tested before activation; missing routes SHALL block cutover.
+
+### REQ-NEXUS-CUTOVER-2 — Single runtime owner
+**Event-driven.** WHEN persistence initialization succeeds and command parity is proven THE SYSTEM SHALL activate exactly one Nexus context, publish the existing Bukkit service contracts using the same singleton service instances, register optional integrations and listeners, and start managed tasks only after their dependencies are healthy. THE SYSTEM SHALL NOT activate Koin or ACF alongside Nexus. Claims-disabled and absent optional-plugin configurations SHALL remain supported.
+
+### REQ-NEXUS-CUTOVER-3 — Shutdown and failed startup
+**Event-driven.** WHEN startup fails or the plugin disables THE SYSTEM SHALL unregister its published services and integrations, stop its schedules/listeners, finish required persistence flushes, close its Nexus context, and finally close its storage exactly once. Cleanup SHALL tolerate partial initialization and repeated calls, preserve committed guild data, and leave no plugin-owned worker running.
+
+### REQ-NEXUS-CUTOVER-4 — Packaging and acceptance
+**Ubiquitous.** The completed release candidate SHALL contain no production Koin or ACF dependencies, imports, shading or legacy command-injection utilities, while retaining Aikar IDB persistence. Exact-head Java 25 regression, MariaDB CI, command-tree registration, and live Paper Java/Bedrock integration acceptance SHALL be reported separately. Source completion SHALL NOT imply live acceptance, merge or production deployment.
