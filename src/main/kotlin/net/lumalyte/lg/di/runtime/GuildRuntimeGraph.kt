@@ -167,7 +167,7 @@ internal interface GuildRuntimeGraph {
     val discordGuildRoleGateway: DiscordGuildRoleGateway
     val guildDiscordRoleService: GuildDiscordRoleService
 
-    val lumaGuildsExpansion: LumaGuildsExpansion
+    val lumaGuildsExpansion: LumaGuildsExpansion?
     val lunarClientService: LunarClientService?
     val guildTeamService: GuildTeamService?
     val guildTeamListener: GuildTeamListener?
@@ -296,7 +296,7 @@ internal class NexusGuildRuntimeGraph(
     override val discordGuildRoleGateway: DiscordGuildRoleGateway get() = bean()
     override val guildDiscordRoleService: GuildDiscordRoleService get() = bean()
 
-    override val lumaGuildsExpansion: LumaGuildsExpansion get() = bean()
+    override val lumaGuildsExpansion: LumaGuildsExpansion? get() = optional()
     override val lunarClientService: LunarClientService? get() = optional()
     override val guildTeamService: GuildTeamService? get() = optional()
     override val guildTeamListener: GuildTeamListener? get() = optional()

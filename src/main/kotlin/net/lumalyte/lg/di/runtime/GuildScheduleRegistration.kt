@@ -30,8 +30,6 @@ internal class GuildScheduleRegistration(
     private val logger get() = plugin.logger
 
     fun start() {
-        // Registered first so it runs last in TASKS: anything not stopped explicitly is cancelled.
-        shutdown.register(ShutdownStage.TASKS, "remaining Bukkit tasks") { scheduler.cancelTasks(plugin) }
         startManagedCleanup()
         startVault()
         startProjections()

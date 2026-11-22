@@ -212,7 +212,9 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
     single<JavaPlugin> { plugin }
     single<File> { plugin.dataFolder }
     single<FileConfiguration> { plugin.config }
-    single<Chat?> { plugin.metadata }
+    if (plugin.server.pluginManager.getPlugin("Vault") != null) {
+        single<Chat?> { plugin.server.servicesManager.getRegistration(Chat::class.java)?.provider }
+    }
     single<CoroutineScope> { plugin.pluginScope }
     single<java.util.logging.Logger> { get<LumaGuilds>().logger }
 

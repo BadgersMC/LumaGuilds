@@ -38,14 +38,13 @@ import java.util.logging.Logger
  */
 internal fun NexusContext.registerCoreServiceBindings(plugin: LumaGuilds) {
     // Vault Chat is optional. Do not register a nullable singleton in Nexus.
-    plugin.metadata?.let { chat ->
-        registerBean("vaultChat", Chat::class, chat)
-        registerBean("playerMetadataService", PlayerMetadataService::class) {
-            PlayerMetadataServiceVault(
-                getBean<Chat>(),
-                getBean<MainConfig>(),
-                requireNotNull(dispatchers).virtualThread
-            )
+    val server = plugin.server
+    if (server.pluginManager.getPlugin("Vault") != null) {
+        server.servicesManager.getRegistration(Chat::class.java)?.provider?.let { chat ->
+            registerBean("vaultChat", Chat::class, chat)
+            registerBean("playerMetadataService", PlayerMetadataService::class) {
+                PlayerMetadataServiceVault(chat, getBean<MainConfig>(), requireNotNull(dispatchers).virtualThread)
+            }
         }
     }
 

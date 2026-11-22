@@ -84,9 +84,9 @@ internal class GuildListenerRegistration(
         listen(graph.bannermanListeners)
 
         val progressionEventListener = graph.progressionEventListener
-        listen(progressionEventListener)
         // Cancels/joins only its child flush job, then drains pending XP before the context closes.
         shutdown.register(ShutdownStage.FLUSH, "progression XP flush") { progressionEventListener.shutdown() }
+        listen(progressionEventListener)
         listen(graph.questProgressListener)
         listen(graph.guildChannelCreationListener)
 
@@ -123,12 +123,14 @@ internal class GuildListenerRegistration(
 
         // Vanilla icons for Bedrock players and Vanilla-style guilds; plain titles for Bedrock.
         runCatching {
-            net.lumalyte.lg.infrastructure.services.MenuIconAdapter(
+            val icons = net.lumalyte.lg.infrastructure.services.MenuIconAdapter(
                 plugin,
                 graph.platformDetectionService,
                 graph.guildService,
                 bedrockConfig = { graph.configService.loadConfig().bedrock },
-            ).register()
+            )
+            shutdown.register(ShutdownStage.INTEGRATIONS, "menu icon packet listener", icons::close)
+            icons.register()
         }.onFailure { plugin.logger.warning("Menu icon adapter not started: ${it.message}") }
     }
 
@@ -171,7 +173,9 @@ internal class GuildListenerRegistration(
     private fun registerRoseChatChannels() {
         try {
             val channelManager = dev.rosewood.rosechat.api.RoseChatAPI.getInstance().channelManager
-            channelManager.register(LumaGuildsChannelProvider(graph.channelDependencies()))
+            val provider = LumaGuildsChannelProvider(graph.channelDependencies())
+            shutdown.register(ShutdownStage.INTEGRATIONS, "RoseChat channel provider") { provider.unregisterFrom(channelManager) }
+            channelManager.register(provider)
             Bukkit.getScheduler().runTaskLater(plugin, Runnable {
                 try {
                     channelManager.reload()

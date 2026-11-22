@@ -45,9 +45,10 @@ class NexusIntegrationBindingsTest {
     }
 
     /** Runs [block] with Bukkit's plugin manager reporting Apollo-Bukkit as installed or not. */
-    private inline fun withApollo(installed: Boolean, block: (PluginManager) -> Unit) {
+    private inline fun withApollo(installed: Boolean, placeholders: Boolean = true, block: (PluginManager) -> Unit) {
         val plugins = mockk<PluginManager>()
         every { plugins.getPlugin("Apollo-Bukkit") } returns if (installed) mockk<Plugin>() else null
+        every { plugins.getPlugin("PlaceholderAPI") } returns if (placeholders) mockk<Plugin>() else null
         mockkStatic(Bukkit::class)
         try {
             every { Bukkit.getPluginManager() } returns plugins
@@ -74,6 +75,13 @@ class NexusIntegrationBindingsTest {
     }
 
     @Test
+    fun `missing PlaceholderAPI does not register a bean that links its expansion superclass`() = withContext { context ->
+        withApollo(installed = false, placeholders = false) {
+            assertTrue(registeredNames(context, pluginWith(yaml())).isEmpty())
+        }
+    }
+
+    @Test
     fun `without Apollo-Bukkit only the PlaceholderAPI expansion is registered`() = withContext { context ->
         withApollo(installed = false) { plugins ->
             // Strict config: Koin short-circuits before reading apollo.enabled when Apollo is absent.
@@ -91,7 +99,7 @@ class NexusIntegrationBindingsTest {
     }
 
     @Test
-    fun `plugin manager failure is treated as Apollo not installed`() = withContext { context ->
+    fun `plugin manager failure leaves optional integrations unregistered`() = withContext { context ->
         mockkStatic(Bukkit::class)
         try {
             every { Bukkit.getPluginManager() } throws IllegalStateException("server not ready")
@@ -99,7 +107,7 @@ class NexusIntegrationBindingsTest {
             val plugin = mockk<LumaGuilds>()
             every { plugin.config } returns config
 
-            assertEquals(setOf("lumaGuildsExpansion"), registeredNames(context, plugin))
+            assertTrue(registeredNames(context, plugin).isEmpty())
             confirmVerified(config)
         } finally {
             unmockkStatic(Bukkit::class)

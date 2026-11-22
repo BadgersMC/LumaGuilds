@@ -53,7 +53,8 @@ import net.lumalyte.lg.infrastructure.services.VaultGuildCreationPaymentAdapter
 import net.lumalyte.lg.infrastructure.services.VaultPersonalEconomyAdapter
 import net.lumalyte.lg.infrastructure.services.WarBannerServiceBukkit
 import net.lumalyte.lg.infrastructure.vault.VaultInventoryManager
-import net.milkbowl.vault.economy.Economy
+import net.lumalyte.lg.infrastructure.services.currentVaultEconomy
+import net.lumalyte.lg.application.services.PersonalEconomyPort
 import org.bukkit.Bukkit
 import org.bukkit.Material
 import java.time.LocalDate
@@ -321,11 +322,11 @@ internal fun NexusContext.registerEconomyBindings() {
  * Vault personal economy; the provider and player lookups run on every call (never at
  * construction), so availability tracks Bukkit's ServicesManager exactly as in Koin.
  */
-private fun vaultPersonalEconomy(): VaultPersonalEconomyAdapter =
-    VaultPersonalEconomyAdapter(
-        { Bukkit.getServicesManager().getRegistration(Economy::class.java)?.provider },
-        { Bukkit.getOfflinePlayer(it) },
-    )
+private fun vaultPersonalEconomy(): PersonalEconomyPort {
+    // Creating the provider method reference links Vault's Economy return type.
+    if (Bukkit.getPluginManager().getPlugin("Vault") == null) return PersonalEconomyPort.Unavailable
+    return VaultPersonalEconomyAdapter(::currentVaultEconomy) { Bukkit.getOfflinePlayer(it) }
+}
 
 @Suppress("UNCHECKED_CAST")
 private fun NexusContext.economyStorage(): Storage<Database> = getBean<Storage<*>>() as Storage<Database>

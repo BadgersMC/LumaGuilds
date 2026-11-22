@@ -2,6 +2,9 @@ package net.lumalyte.lg.di.nexus
 
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
+import net.badgersmc.nexus.core.NexusContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.isActive
 import net.lumalyte.lg.LumaGuilds
@@ -22,6 +25,7 @@ import org.junit.jupiter.api.io.TempDir
 import java.io.File
 import java.util.logging.Logger
 import kotlin.test.assertFalse
+import kotlin.test.assertFailsWith
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
@@ -30,14 +34,31 @@ class GuildNexusFoundationTest {
     lateinit var tempDir: File
 
     @Test
+    fun `failure linking an optional API while preparing the graph closes its active scope`() {
+        val plugin = mockk<LumaGuilds>()
+        every { plugin.dataFolder } throws NoClassDefFoundError("optional API")
+        val context = NexusContext.create(classLoader = javaClass.classLoader, contextName = "test")
+        val scope = requireNotNull(context.scope)
+        mockkObject(NexusContext.Companion)
+        try {
+            every { NexusContext.create(classLoader = any(), contextName = "LumaGuilds") } returns context
+            assertFailsWith<NoClassDefFoundError> { GuildNexusFoundation.prepare(plugin, mockk()) }
+            assertFalse(scope.isActive, "Startup rollback owns the context as soon as creation succeeds")
+        } finally {
+            unmockkObject(NexusContext.Companion)
+            context.close()
+        }
+    }
+
+    @Test
     fun `foundation registers production contracts and delegates coroutine ownership to Nexus`() {
         val plugin = mockk<LumaGuilds>()
         val config = YamlConfiguration()
         val storage = mockk<Storage<*>>()
+        every { plugin.server.pluginManager.getPlugin("Vault") } returns null
         every { plugin.dataFolder } returns tempDir
         every { plugin.config } returns config
         every { plugin.logger } returns Logger.getLogger("GuildNexusFoundationTest")
-        every { plugin.metadata } returns null
 
         val foundation = GuildNexusFoundation.prepare(plugin, storage)
         val context = foundation.context
@@ -76,7 +97,7 @@ class GuildNexusFoundationTest {
             assertTrue("webApiServer" in context.getBeanNames())
             assertTrue("discordAccountLinkSubscription" in context.getBeanNames())
             assertTrue("discordGuildProfileSubscription" in context.getBeanNames())
-            assertTrue("lumaGuildsExpansion" in context.getBeanNames())
+            assertFalse("lumaGuildsExpansion" in context.getBeanNames())
             assertTrue("blockProvenanceOperationQueue" in context.getBeanNames())
             assertFalse("playerMetadataService" in context.getBeanNames())
             assertSame(context.scope, scope)

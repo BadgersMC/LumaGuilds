@@ -24,11 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.logging.Logger
 
 /**
- * The initial, isolated Nexus foundation for the Koin-to-Nexus migration.
- *
- * This is intentionally NOT activated by LumaGuilds.onEnable yet. Startup, storage migrations,
- * listener registration and the ACF command tree must move together in the final cutover.
- * Running two live containers would risk duplicate lifecycle owners and schedulers.
+ * Owns the Guilds context between successful storage migration and runtime shutdown.
  */
 internal class GuildNexusFoundation private constructor(
     val context: NexusContext
@@ -109,8 +105,12 @@ internal class GuildNexusFoundation private constructor(
                 // Nexus owns and closes its CoroutineScope and virtual-thread dispatchers.
                 // Do not create a second pluginScope / ExecutorService here.
                 return GuildNexusFoundation(context)
-            } catch (failure: Exception) {
-                context.close()
+            } catch (failure: Throwable) {
+                try {
+                    context.close()
+                } catch (cleanup: Throwable) {
+                    failure.addSuppressed(cleanup)
+                }
                 throw failure
             }
         }

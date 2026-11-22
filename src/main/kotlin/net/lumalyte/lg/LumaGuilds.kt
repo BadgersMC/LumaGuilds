@@ -17,8 +17,6 @@ import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadMariaDBStorage
 import net.lumalyte.lg.infrastructure.persistence.storage.VirtualThreadSQLiteStorage
 import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
-import net.milkbowl.vault.chat.Chat
-import org.bukkit.Bukkit
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
 import java.io.IOException
@@ -34,8 +32,6 @@ import java.util.logging.Level
  * (REQ-NEXUS-CUTOVER-2/3). Koin and ACF are not started.
  */
 class LumaGuilds : JavaPlugin() {
-    var metadata: Chat? = null // Nullable - only initialized if Vault plugin exists
-
     /**
      * Legacy Koin test-graph hook only (di/Modules.kt). The Nexus runtime never initializes it;
      * remove with the legacy module during central contraction.
@@ -417,13 +413,6 @@ class LumaGuilds : JavaPlugin() {
             logger.warning("Could not load secret easter egg: ${e.message}")
         }
         logger.info("=== END SECRET PREVIEW ===")
-    }
-
-    internal fun initialiseVaultDependency() {
-        if (Bukkit.getPluginManager().getPlugin("Vault") != null) {
-            server.servicesManager.getRegistration(Chat::class.java)?.let { metadata = it.provider }
-            logger.info(Chat::class.java.toString())
-        }
     }
 
     private fun graph(): GuildRuntimeGraph =

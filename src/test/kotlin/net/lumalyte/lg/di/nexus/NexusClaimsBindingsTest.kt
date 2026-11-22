@@ -25,10 +25,10 @@ class NexusClaimsBindingsTest {
 
     private fun createFixture(claimsEnabled: Boolean): GuildNexusFoundation {
         val plugin = mockk<LumaGuilds>()
+        every { plugin.server.pluginManager.getPlugin("Vault") } returns null
         every { plugin.dataFolder } returns tempDir
         every { plugin.config } returns YamlConfiguration()
         every { plugin.logger } returns Logger.getLogger("NexusClaimsBindingsTest")
-        every { plugin.metadata } returns null
         return GuildNexusFoundation.prepare(plugin, mockk<Storage<*>>(), claimsEnabled)
     }
 

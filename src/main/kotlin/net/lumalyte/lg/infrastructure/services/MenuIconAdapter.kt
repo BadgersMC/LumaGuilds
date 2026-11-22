@@ -60,6 +60,7 @@ internal class MenuIconAdapter(
     hookPacketEvents: ((MenuIconAdapter) -> Unit)? = null,
     private val glyphLookup: (String) -> Component? = ::nexoGlyph,
     private val variantLookup: (String) -> ItemStack? = NexoItemProvider::getItemStack,
+    private val unhookPacketEvents: (MenuIconAdapter) -> Unit = { PacketEvents.getAPI().eventManager.unregisterListener(it) },
 ) : PacketListenerAbstract(PacketListenerPriority.HIGHEST), Listener {
     private val bedrockPlayers: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
     private val vanillaStylePlayers: MutableSet<UUID> = ConcurrentHashMap.newKeySet()
@@ -80,6 +81,13 @@ internal class MenuIconAdapter(
         hookPacketEvents ?: { PacketEvents.getAPI().eventManager.registerListener(it) }
 
     @Volatile private var hooked = false
+
+    fun close() {
+        if (hooked) {
+            unhookPacketEvents(this)
+            hooked = false
+        }
+    }
 
     // Published on the Bukkit thread; packet callbacks never call Nexo or Bukkit services.
     @Volatile private var titleGlyphs: Map<String, Component> = emptyMap()

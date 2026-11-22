@@ -4,8 +4,16 @@ import net.lumalyte.lg.application.services.ExternalTransferResult
 import net.lumalyte.lg.application.services.PersonalEconomyPort
 import net.milkbowl.vault.economy.Economy
 import net.milkbowl.vault.economy.EconomyResponse
+import org.bukkit.Bukkit
 import org.bukkit.OfflinePlayer
 import java.util.UUID
+
+/** Resolve the current provider on every use, including after replacements or a late enable. */
+internal fun currentVaultEconomy(): Economy? {
+    val server = Bukkit.getServer()
+    if (server.pluginManager.getPlugin("Vault") == null) return null
+    return server.servicesManager.getRegistration(Economy::class.java)?.provider
+}
 
 class VaultPersonalEconomyAdapter(
     private val economyProvider: () -> Economy?,

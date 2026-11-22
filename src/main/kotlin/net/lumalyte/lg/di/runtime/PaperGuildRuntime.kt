@@ -45,8 +45,6 @@ internal class PaperGuildRuntime(
     }
 
     override fun activate(storage: Storage<Database>): ActiveGuildRuntime {
-        // Optional Vault Chat metadata is read by the core bindings, so resolve it first.
-        plugin.initialiseVaultDependency()
         val foundation = GuildNexusFoundation.prepare(plugin, storage, claimsEnabled)
         return ActiveGuildRuntime(foundation, NexusGuildRuntimeGraph(foundation.context, claimsEnabled), storage)
     }
@@ -73,6 +71,7 @@ internal class PaperGuildRuntime(
     override fun registerIntegrations(context: ActiveGuildRuntime, shutdown: RuntimeShutdown) {
         val graph = context.graph
         // First listener registrations (Apollo) happen here; release every plugin listener in TASKS.
+        shutdown.register(ShutdownStage.TASKS, "remaining Bukkit tasks") { plugin.server.scheduler.cancelTasks(plugin) }
         shutdown.register(ShutdownStage.TASKS, "Bukkit listeners") { HandlerList.unregisterAll(plugin) }
         registerPlaceholderExpansion(graph, shutdown)
         registerApollo(graph, shutdown)
@@ -116,7 +115,7 @@ internal class PaperGuildRuntime(
             return
         }
         try {
-            val expansion = graph.lumaGuildsExpansion
+            val expansion = graph.lumaGuildsExpansion ?: return
             if (expansion.register()) {
                 shutdown.register(ShutdownStage.INTEGRATIONS, "PlaceholderAPI expansion") { expansion.unregister() }
                 logColored("✓ Successfully registered LumaGuilds PlaceholderAPI expansion!")

@@ -26,44 +26,17 @@ internal const val GUILD_WAYPOINT_SERVICE_BEAN = "guildWaypointService"
 /** Bukkit plugin name gating every Apollo (Lunar Client) definition, as in Koin. */
 private const val APOLLO_PLUGIN_NAME = "Apollo-Bukkit"
 
-/**
- * Nexus replacement for the legacy Koin `integrationModule(plugin)` (Modules.kt).
- *
- * Registration-time behaviour mirrors Koin exactly:
- *  - LumaGuildsExpansion is always registered (Koin `singleOf(::LumaGuildsExpansion)`), as a
- *    lazy singleton. It is NOT registered with PlaceholderAPI here; that stays in
- *    LumaGuilds.initialisePlaceholderAPI (PlaceholderAPI presence check + `register()`).
- *  - Apollo-Bukkit presence is checked once, via `Bukkit.getPluginManager().getPlugin(...)`,
- *    with any Exception treated as "not installed" (same `catch (e: Exception)` as Koin).
- *  - `apollo.enabled` is only read when Apollo-Bukkit is present (short-circuit preserved);
- *    feature flags `apollo.teams|waypoints|notifications|richpresence.enabled` (default true)
- *    are only read when Apollo is enabled, in the legacy order.
- *  - When Apollo-Bukkit is absent or disabled, no Apollo-typed bean is registered at all, so
- *    optional lookups (`containsBean`) stay false and no Apollo class is ever constructed.
- *
- * Nothing is constructed at registration time: every service and listener is a lazy
- * singleton built on first `getBean`. Only `plugin.config` and the Bukkit plugin manager are
- * touched here, exactly as the Koin module body did.
- *
- * Logging difference (intentional): Koin logged "Apollo integration enabled/disabled" while
- * building the module because that module WAS the live graph. This Nexus foundation is inert
- * (not activated by LumaGuilds.onEnable), so logging here would falsely claim the integration
- * is live. The status line belongs to the live cutover / listener-registration step.
- *
- * Cutover blockers (not refactored in this tranche):
- * Optional event collaborators are supplied through typed callbacks and remain unresolved until use.
- */
+/** Register only installed optional APIs. Their services are constructed lazily by the active graph. */
 internal fun NexusContext.registerIntegrationBindings(plugin: LumaGuilds) {
-    // PlaceholderAPI expansion: lazy; PlaceholderAPI registration is left to plugin startup.
-    integrationSingleton { nexusLumaGuildsExpansion() }
-
-    val apolloAvailable = try {
-        Bukkit.getPluginManager().getPlugin(APOLLO_PLUGIN_NAME) != null
+    fun installed(name: String): Boolean = try {
+        Bukkit.getPluginManager().getPlugin(name) != null
     } catch (e: Exception) {
         false
     }
 
-    if (!apolloAvailable || !plugin.config.getBoolean("apollo.enabled", true)) return
+    // Even a lazy bean definition links the expansion and its PlaceholderAPI superclass.
+    if (installed("PlaceholderAPI")) integrationSingleton { nexusLumaGuildsExpansion() }
+    if (!installed(APOLLO_PLUGIN_NAME) || !plugin.config.getBoolean("apollo.enabled", true)) return
 
     // Registered under the shared application contract, not the Bukkit implementation.
     integrationSingleton<LunarClientService> { LunarClientServiceBukkit() }

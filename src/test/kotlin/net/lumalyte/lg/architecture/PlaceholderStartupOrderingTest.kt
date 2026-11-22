@@ -1,32 +1,34 @@
 package net.lumalyte.lg.architecture
 
 import net.lumalyte.lg.LumaGuilds
+import net.lumalyte.lg.di.runtime.GuildRuntimeLifecycle
+import net.lumalyte.lg.di.runtime.PaperGuildRuntime
 import org.junit.jupiter.api.Test
 import java.lang.classfile.ClassFile
 import java.lang.classfile.instruction.InvokeInstruction
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/**
- * REQ-NEXUS-CUTOVER-2/3: optional integration factories must not run before their container exists.
- * Checks the compiled entry point without booting a server or relying on a container from a prior enable.
- * Real Paper/PlaceholderAPI registration remains a separate integration acceptance gate.
- */
+/** Verify first-start ordering through the compiled production entry point and its lifecycle owner. */
 class PlaceholderStartupOrderingTest {
-    @Test
-    fun `first startup registers placeholders only after starting its dependency container`() {
-        val bytes = checkNotNull(LumaGuilds::class.java.getResourceAsStream("LumaGuilds.class")) {
-            "Compiled LumaGuilds entry point must be available"
-        }.use { it.readBytes() }
-        val startup = ClassFile.of().parse(bytes).methods().single { it.methodName().stringValue() == "onEnable" }
-        val calls = startup.code().orElseThrow().filterIsInstance<InvokeInstruction>()
+    private fun calls(type: Class<*>, method: String): List<String> {
+        val bytes = type.getResourceAsStream("${type.simpleName}.class")!!.use { it.readBytes() }
+        val implementation = ClassFile.of().parse(bytes).methods().single {
+            it.methodName().stringValue() == method && !it.flags().has(java.lang.reflect.AccessFlag.BRIDGE)
+        }
+        return implementation.code().orElseThrow().filterIsInstance<InvokeInstruction>()
             .map { it.name().stringValue() }
-        val containerStarted = calls.indexOf("startKoin")
-        val placeholdersRegistered = calls.indexOf("initialisePlaceholderAPI")
+    }
 
-        assertTrue(containerStarted >= 0, "The active container must be started by the entry point")
-        assertEquals(1, calls.count { it == "initialisePlaceholderAPI" }, "Register the optional expansion once")
-        assertTrue(placeholdersRegistered > containerStarted,
-            "First-start PlaceholderAPI registration resolves dependencies and must follow container startup")
+    @Test
+    fun `first startup registers placeholders only after activating the dependency graph`() {
+        val entry = calls(LumaGuilds::class.java, "onEnable")
+        assertEquals(1, entry.count { it == "start" })
+        val start = calls(GuildRuntimeLifecycle::class.java, "start")
+        assertEquals(1, start.count { it == "activate" })
+        assertEquals(1, start.count { it == "registerIntegrations" })
+        assertTrue(start.indexOf("activate") < start.indexOf("registerIntegrations"))
+        assertEquals(1, calls(PaperGuildRuntime::class.java, "registerIntegrations")
+            .count { it == "registerPlaceholderExpansion" })
     }
 }
