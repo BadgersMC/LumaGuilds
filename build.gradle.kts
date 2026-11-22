@@ -217,6 +217,11 @@ tasks.register<Test>("mariaDbRewardTest") {
     shouldRunAfter(tasks.test)
 }
 
+// Only the installable shaded plugin belongs in the release artifact directory.
+tasks.jar {
+    destinationDirectory.set(layout.buildDirectory.dir("intermediates/plain"))
+}
+
 tasks.shadowJar {
     archiveBaseName.set("LumaGuilds")
     archiveClassifier.set("")
