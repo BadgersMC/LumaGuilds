@@ -151,13 +151,13 @@ class FormStateManagerLifecycleTest {
         assertFalse(manager.contains("Executors."), "FormStateManager must not allocate its own executor")
         assertFalse(manager.contains("ScheduledExecutorService"))
 
+        // The single Nexus runtime starts it on the context scope and virtual-thread dispatcher,
+        // and records its shutdown before the context closes.
+        val schedules = java.io.File("src/main/kotlin/net/lumalyte/lg/di/runtime/GuildScheduleRegistration.kt").readText()
+        assertTrue(schedules.contains("FormStateManager.start(graph.scope, graph.virtualDispatcher)"))
+        assertTrue(schedules.contains("ShutdownStage.FLUSH, \"Bedrock form state\") { FormStateManager.shutdown() }"))
         val plugin = java.io.File("src/main/kotlin/net/lumalyte/lg/LumaGuilds.kt").readText()
-        val koinStart = plugin.indexOf("startKoin {")
-        val formStart = plugin.indexOf("FormStateManager.start(")
-        assertTrue(koinStart >= 0 && formStart > koinStart, "FormStateManager must start after Koin")
-        val call = plugin.substring(formStart, minOf(plugin.length, formStart + 300))
-        assertTrue(call.contains("pluginScope"))
-        assertTrue(call.contains("named(\"VirtualDispatcher\")"))
+        assertFalse(plugin.contains("startKoin"), "Koin must not own the live scope")
     }
 
     @Test

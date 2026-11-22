@@ -48,7 +48,10 @@ class NexusClaimsBindingsTest {
                     "claimPvpProtectionListener", "toolRemovalListener", "worldClaimProtectionListener", "closeInventoryListener",
                 )
                 assertTrue(claimListeners.all { it in enabledOnly }, "claim listeners must remain conditional")
-                val originalBindings = enabledOnly - claimListeners
+                // Shared collaborator for Nexus claim commands; conditional like the listeners.
+                val claimCommandCollaborators = setOf("nexusClaimAccess")
+                assertTrue(claimCommandCollaborators.all { it in enabledOnly }, "claim command collaborators must remain conditional")
+                val originalBindings = enabledOnly - claimListeners - claimCommandCollaborators
                 assertEquals(81, originalBindings.size) // 80 claimsModule + 1 guild-claims integration
                 assertTrue("guildRolePermissionResolver" in originalBindings)
                 assertEquals(80, (originalBindings - "guildRolePermissionResolver").size)

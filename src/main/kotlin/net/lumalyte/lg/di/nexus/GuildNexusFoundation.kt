@@ -7,6 +7,7 @@ import net.badgersmc.nexus.i18n.Locale
 import net.lumalyte.lg.LumaGuilds
 import net.lumalyte.lg.application.services.ConfigService
 import net.lumalyte.lg.config.MainConfig
+import net.lumalyte.lg.di.runtime.registerCommandBindings
 import net.lumalyte.lg.infrastructure.i18n.LocaleCompatibilityMigrator
 import net.lumalyte.lg.infrastructure.i18n.LumaGuildsLang
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
@@ -103,6 +104,7 @@ internal class GuildNexusFoundation private constructor(
                         nexoEmojiService = lazy { context.getBean() },
                     )
                 }
+                context.registerCommandBindings(claimsEnabled)
 
                 // Nexus owns and closes its CoroutineScope and virtual-thread dispatchers.
                 // Do not create a second pluginScope / ExecutorService here.

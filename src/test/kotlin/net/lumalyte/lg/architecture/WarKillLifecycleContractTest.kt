@@ -28,7 +28,7 @@ class WarKillLifecycleContractTest {
     @Test
     fun `war expiry maintenance has a production scheduler`() {
         val pluginSource = Files.readString(Path.of(
-            "src/main/kotlin/net/lumalyte/lg/LumaGuilds.kt"
+            "src/main/kotlin/net/lumalyte/lg/di/runtime/GuildScheduleRegistration.kt"
         ))
 
         assertTrue(
