@@ -177,7 +177,7 @@ import co.aikar.idb.Database
 import net.lumalyte.lg.infrastructure.persistence.storage.Storage
 import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
 
-import net.lumalyte.lg.infrastructure.services.PlayerMetadataServiceVault
+import net.lumalyte.lg.infrastructure.services.playerMetadataService
 import net.lumalyte.lg.infrastructure.services.ToolItemServiceBukkit
 import net.lumalyte.lg.infrastructure.services.VisualisationServiceBukkit
 import net.lumalyte.lg.infrastructure.services.VisualisationPerformanceServiceBukkit
@@ -191,7 +191,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asCoroutineDispatcher
-import net.milkbowl.vault.chat.Chat
 import org.bukkit.configuration.file.FileConfiguration
 import org.bukkit.plugin.Plugin
 import org.bukkit.plugin.java.JavaPlugin
@@ -212,9 +211,6 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
     single<JavaPlugin> { plugin }
     single<File> { plugin.dataFolder }
     single<FileConfiguration> { plugin.config }
-    if (plugin.server.pluginManager.getPlugin("Vault") != null) {
-        single<Chat?> { plugin.server.servicesManager.getRegistration(Chat::class.java)?.provider }
-    }
     single<CoroutineScope> { plugin.pluginScope }
     single<java.util.logging.Logger> { get<LumaGuilds>().logger }
 
@@ -255,11 +251,7 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
     single<ConfigService> { ConfigServiceBukkit { get<LumaGuilds>().config } }
     single { get<ConfigService>().loadConfig() }
     single<PlayerMetadataService> {
-        PlayerMetadataServiceVault(
-            get(),
-            get(),
-            get<CoroutineDispatcher>(named("VirtualDispatcher"))
-        )
+        playerMetadataService(plugin.server, get(), get<CoroutineDispatcher>(named("VirtualDispatcher")))
     }
 
     // Utilities

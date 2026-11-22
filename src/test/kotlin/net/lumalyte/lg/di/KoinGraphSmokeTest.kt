@@ -68,6 +68,7 @@ internal class KoinGraphSmokeTest {
     @ValueSource(booleans = [true, false])
     fun `every definition in the real koin graph resolves`(claimsEnabled: Boolean) {
         val plugin = mockk<LumaGuilds>(relaxed = true)
+        every { plugin.server } returns org.bukkit.Bukkit.getServer()
         every { plugin.dataFolder } returns tempDir.toFile()
         every { plugin.config } returns YamlConfiguration().apply {
             set("claims_enabled", claimsEnabled)

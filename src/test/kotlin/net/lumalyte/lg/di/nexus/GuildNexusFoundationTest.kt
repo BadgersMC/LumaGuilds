@@ -53,7 +53,10 @@ class GuildNexusFoundationTest {
     @Test
     fun `foundation registers production contracts and delegates coroutine ownership to Nexus`() {
         val plugin = mockk<LumaGuilds>()
-        val config = YamlConfiguration()
+        val config = YamlConfiguration().apply {
+            set("claim_limit", 7)
+            set("claim_block_limit", 361)
+        }
         val storage = mockk<Storage<*>>()
         every { plugin.server.pluginManager.getPlugin("Vault") } returns null
         every { plugin.dataFolder } returns tempDir
@@ -99,7 +102,14 @@ class GuildNexusFoundationTest {
             assertTrue("discordGuildProfileSubscription" in context.getBeanNames())
             assertFalse("lumaGuildsExpansion" in context.getBeanNames())
             assertTrue("blockProvenanceOperationQueue" in context.getBeanNames())
-            assertFalse("playerMetadataService" in context.getBeanNames())
+            val limits = context.getBean<net.lumalyte.lg.application.services.PlayerMetadataService>()
+            val player = java.util.UUID.randomUUID()
+            kotlin.test.assertEquals(7, limits.getPlayerClaimLimit(player))
+            kotlin.test.assertEquals(361, limits.getPlayerClaimBlockLimit(player))
+            kotlinx.coroutines.runBlocking {
+                kotlin.test.assertEquals(7, limits.getPlayerClaimLimitAsync(player))
+                kotlin.test.assertEquals(361, limits.getPlayerClaimBlockLimitAsync(player))
+            }
             assertSame(context.scope, scope)
             assertTrue(scope.isActive)
         } finally {

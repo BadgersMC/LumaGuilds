@@ -2,7 +2,6 @@ package net.lumalyte.lg.utils
 
 import com.nexomc.nexo.api.NexoItems
 import com.nexomc.nexo.api.events.NexoItemsLoadedEvent
-import org.bukkit.Bukkit
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.inventory.ItemStack
@@ -46,7 +45,9 @@ object NexoItemProvider : Listener {
      * Registers the [NexoItemsLoadedEvent] listener. Call once from the plugin's [onEnable].
      */
     fun register(plugin: Plugin) {
-        Bukkit.getPluginManager().registerEvents(this, plugin)
+        val plugins = plugin.server.pluginManager
+        if (plugins.getPlugin("Nexo") == null) return
+        plugins.registerEvents(this, plugin)
         logger.info("NexoItemProvider registered — waiting for NexoItemsLoadedEvent")
     }
 

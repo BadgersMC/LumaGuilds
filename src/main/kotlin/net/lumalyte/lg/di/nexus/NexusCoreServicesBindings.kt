@@ -20,7 +20,7 @@ import net.lumalyte.lg.infrastructure.services.BedrockLocalizationServiceFloodga
 import net.lumalyte.lg.infrastructure.services.FloodgatePlatformDetectionService
 import net.lumalyte.lg.infrastructure.services.FormCacheServiceGuava
 import net.lumalyte.lg.infrastructure.services.FormValidationServiceImpl
-import net.lumalyte.lg.infrastructure.services.PlayerMetadataServiceVault
+import net.lumalyte.lg.infrastructure.services.playerMetadataService
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.management.ClaimPlayerMenuDependencies
 import net.lumalyte.lg.interaction.menus.management.ClaimTrustMenuDependencies
@@ -28,7 +28,6 @@ import net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedNavigationDepe
 import net.lumalyte.lg.interaction.menus.bedrock.BedrockMenuDependencies
 import org.bukkit.plugin.Plugin
 import net.lumalyte.lg.utils.MenuItemBuilder
-import net.milkbowl.vault.chat.Chat
 import java.util.logging.Logger
 
 /**
@@ -37,15 +36,8 @@ import java.util.logging.Logger
  * and dispatcher aliases are intentionally NOT recreated here.
  */
 internal fun NexusContext.registerCoreServiceBindings(plugin: LumaGuilds) {
-    // Vault Chat is optional. Do not register a nullable singleton in Nexus.
-    val server = plugin.server
-    if (server.pluginManager.getPlugin("Vault") != null) {
-        server.servicesManager.getRegistration(Chat::class.java)?.provider?.let { chat ->
-            registerBean("vaultChat", Chat::class, chat)
-            registerBean("playerMetadataService", PlayerMetadataService::class) {
-                PlayerMetadataServiceVault(chat, getBean<MainConfig>(), requireNotNull(dispatchers).virtualThread)
-            }
-        }
+    registerBean("playerMetadataService", PlayerMetadataService::class) {
+        playerMetadataService(plugin.server, getBean<MainConfig>(), requireNotNull(dispatchers).virtualThread)
     }
 
     registerBean("platformDetectionService", PlatformDetectionService::class) {
