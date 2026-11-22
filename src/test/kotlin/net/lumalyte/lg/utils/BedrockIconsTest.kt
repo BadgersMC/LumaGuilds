@@ -15,7 +15,7 @@ internal class BedrockIconsTest {
     /** Themed titles lose the background glyph and shifts but keep the text. */
     @Test
     fun themedTitleKeepsOnlyText() {
-        val raw = MenuTitleBuilder.build(GuiTheme.ENTHUSIA, 3, "Guild Actions")
+        val raw = MenuTitleBuilder.format(GuiTheme.ENTHUSIA, 3, "Guild Actions")
         assertTrue(BedrockIcons.isThemedTitle(raw))
         assertEquals("Guild Actions", plain(BedrockIcons.plainTitle(Component.text(raw))))
     }

@@ -1,5 +1,9 @@
 package net.lumalyte.lg.utils
 
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.mockkStatic
+import org.bukkit.Bukkit
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -20,6 +24,27 @@ import org.junit.jupiter.params.provider.CsvSource
  */
 @Suppress("MagicNumber")
 class MenuTitleBuilderTest {
+
+    @Test
+    fun missingNexoUsesReadableVanillaTitleEvenWhenGuildSelectsATheme() {
+        mockkStatic(Bukkit::class) {
+            every { Bukkit.getServer() } returns mockk {
+                every { pluginManager.isPluginEnabled("Nexo") } returns false
+            }
+            assertEquals("§rGuild Actions", MenuTitleBuilder.build(GuiTheme.ENTHUSIA, 3, "§fGuild Actions"))
+        }
+    }
+
+    @Test
+    fun enabledNexoUsesSelectedPackBackground() {
+        mockkStatic(Bukkit::class) {
+            every { Bukkit.getServer() } returns mockk {
+                every { pluginManager.isPluginEnabled("Nexo") } returns true
+            }
+            assertEquals("<shift:-8><glyph:guild_bg_enthusia_3_row><shift:-162>Cedar",
+                MenuTitleBuilder.build(GuiTheme.ENTHUSIA, 3, "Cedar"))
+        }
+    }
 
     // ---------------------------------------------------------------
     // 1. Row-count → glyph selection
@@ -59,7 +84,7 @@ class MenuTitleBuilderTest {
         expectedGlyphName: String
     ) {
         val theme = GuiTheme.valueOf(themeName)
-        val title = MenuTitleBuilder.build(theme, rows)
+        val title = MenuTitleBuilder.format(theme, rows)
         assertTrue(
             title.contains(expectedGlyphName),
             "Expected title '$title' to contain glyph '$expectedGlyphName'"
@@ -72,7 +97,7 @@ class MenuTitleBuilderTest {
 
     @Test
     fun `positioning prefix is always shift -8`() {
-        val title = MenuTitleBuilder.build(GuiTheme.ENTHUSIA, 3)
+        val title = MenuTitleBuilder.format(GuiTheme.ENTHUSIA, 3)
         assertTrue(
             title.startsWith("<shift:-8>"),
             "Expected title '$title' to start with '<shift:-8>'"
@@ -84,7 +109,7 @@ class MenuTitleBuilderTest {
         val titles =
             GuiTheme.entries.filter { it.hasBackground }.flatMap { theme ->
                 listOf(1, 3, 4, 5, 6).map { rows ->
-                    MenuTitleBuilder.build(theme, rows)
+                    MenuTitleBuilder.format(theme, rows)
                         .substringBefore("<glyph:")
                 }
             }
@@ -101,7 +126,7 @@ class MenuTitleBuilderTest {
     @Test
     fun `glyph name contains the correct row count`() {
         for (rows in listOf(1, 3, 4, 5, 6)) {
-            val title = MenuTitleBuilder.build(rows = rows)
+            val title = MenuTitleBuilder.format(rows = rows)
             assertTrue(
                 title.contains("_${rows}_row"),
                 "Expected title '$title' for $rows-row menu to contain '_${rows}_row'"
@@ -116,7 +141,7 @@ class MenuTitleBuilderTest {
     /** Default theme is ENTHUSIA. */
     @Test
     fun defaultThemeIsEnthusia() {
-        val title = MenuTitleBuilder.build(rows = 3)
+        val title = MenuTitleBuilder.format(rows = 3)
         assertTrue(title.contains("guild_bg_enthusia_3_row"))
     }
 
@@ -126,7 +151,7 @@ class MenuTitleBuilderTest {
 
     @Test
     fun `no stray content after the glyph tag when no title`() {
-        val title = MenuTitleBuilder.build(GuiTheme.FROSTBOUND, 6)
+        val title = MenuTitleBuilder.format(GuiTheme.FROSTBOUND, 6)
         assertTrue(
             title.endsWith("<glyph:guild_bg_frostbound_6_row>"),
             "Expected title to end with glyph tag, got: '$title'",
@@ -139,7 +164,7 @@ class MenuTitleBuilderTest {
 
     @Test
     fun `title text appears after rewind shift`() {
-        val title = MenuTitleBuilder.build(GuiTheme.ENTHUSIA, 3, "⚔ My Guild")
+        val title = MenuTitleBuilder.format(GuiTheme.ENTHUSIA, 3, "⚔ My Guild")
         val expectedEnd = "<shift:-162>⚔ My Guild"
         assertTrue(
             title.endsWith(expectedEnd),
@@ -149,7 +174,7 @@ class MenuTitleBuilderTest {
 
     @Test
     fun `title is appended without unsupported standard MiniMessage tags`() {
-        val title = MenuTitleBuilder.build(rows = 5, title = "Test Menu")
+        val title = MenuTitleBuilder.format(rows = 5, title = "Test Menu")
         assertFalse(
             title.contains("<white>"),
             "Expected title '$title' not to contain an unsupported white tag"
@@ -158,7 +183,7 @@ class MenuTitleBuilderTest {
 
     @Test
     fun `background glyph appears before rewind and title`() {
-        val title = MenuTitleBuilder.build(GuiTheme.VOIDLIGHT, 4, "Info")
+        val title = MenuTitleBuilder.format(GuiTheme.VOIDLIGHT, 4, "Info")
         val glyphIdx = title.indexOf("<glyph:guild_bg_voidlight_4_row>")
         val rewindIdx = title.indexOf("<shift:-162>")
         val textIdx = title.indexOf("Info")
@@ -172,7 +197,7 @@ class MenuTitleBuilderTest {
         val guildName = "Enthusia"
         val page = 1
         val total = 3
-        val title = MenuTitleBuilder.build(GuiTheme.FROSTBOUND, 6, "§6Info - $guildName §8• Page $page/$total")
+        val title = MenuTitleBuilder.format(GuiTheme.FROSTBOUND, 6, "§6Info - $guildName §8• Page $page/$total")
         assertTrue(title.contains("§6Info - Enthusia §8• Page 1/3"),
             "Dynamic title not preserved, got: '$title'")
     }
@@ -183,7 +208,7 @@ class MenuTitleBuilderTest {
 
     @Test
     fun `three row menu with title`() {
-        val title = MenuTitleBuilder.build(GuiTheme.ENTHUSIA, 3, "⚔ Dashboard")
+        val title = MenuTitleBuilder.format(GuiTheme.ENTHUSIA, 3, "⚔ Dashboard")
         assertTrue(title.startsWith("<shift:-8>"), "3-row must start with shift:-8")
         assertTrue(title.contains("<glyph:guild_bg_enthusia_3_row>"), "3-row must use 3_row glyph")
         assertTrue(title.contains("⚔ Dashboard"), "Title text must be present")
@@ -191,7 +216,7 @@ class MenuTitleBuilderTest {
 
     @Test
     fun `six row menu with title`() {
-        val title = MenuTitleBuilder.build(GuiTheme.VERDANT, 6, "Member Management")
+        val title = MenuTitleBuilder.format(GuiTheme.VERDANT, 6, "Member Management")
         assertTrue(title.startsWith("<shift:-8>"), "6-row must start with shift:-8")
         assertTrue(title.contains("<glyph:guild_bg_verdant_6_row>"), "6-row must use 6_row glyph")
         assertTrue(title.contains("Member Management"), "Title text must be present")
@@ -206,7 +231,7 @@ class MenuTitleBuilderTest {
     fun vanillaHasNoGlyphOrShifts() {
         assertFalse(GuiTheme.VANILLA.hasBackground)
         for (rows in listOf(1, 3, 4, 5, 6)) {
-            val title = MenuTitleBuilder.build(GuiTheme.VANILLA, rows, "§fGuild Actions")
+            val title = MenuTitleBuilder.format(GuiTheme.VANILLA, rows, "§fGuild Actions")
             assertFalse(title.contains("<glyph:"), "Vanilla title must not use a glyph: '$title'")
             assertFalse(title.contains("<shift:"), "Vanilla title must not shift: '$title'")
         }
@@ -215,9 +240,9 @@ class MenuTitleBuilderTest {
     /** Vanilla theme keeps the title text in the default dark chest colour. */
     @Test
     fun vanillaKeepsDefaultTitleColour() {
-        assertEquals("§rGuild Actions", MenuTitleBuilder.build(GuiTheme.VANILLA, 3, "§fGuild Actions"))
-        assertEquals("§r⚔ War - §cRed", MenuTitleBuilder.build(GuiTheme.VANILLA, 3, "§f⚔ War - §cRed"))
-        assertEquals("", MenuTitleBuilder.build(GuiTheme.VANILLA, 3))
+        assertEquals("§rGuild Actions", MenuTitleBuilder.format(GuiTheme.VANILLA, 3, "§fGuild Actions"))
+        assertEquals("§r⚔ War - §cRed", MenuTitleBuilder.format(GuiTheme.VANILLA, 3, "§f⚔ War - §cRed"))
+        assertEquals("", MenuTitleBuilder.format(GuiTheme.VANILLA, 3))
     }
 
     /** Every other theme still draws a background. */
@@ -262,7 +287,7 @@ class MenuTitleBuilderTest {
             )
         for (legacy in legacyThemes) {
             assertEquals(GuiTheme.ENTHUSIA, legacy.resolved(), legacy.name)
-            assertTrue(MenuTitleBuilder.build(legacy, 4, "X").contains("<glyph:guild_bg_enthusia_4_row>"), legacy.name)
+            assertTrue(MenuTitleBuilder.format(legacy, 4, "X").contains("<glyph:guild_bg_enthusia_4_row>"), legacy.name)
         }
         assertEquals(GuiTheme.ENTHUSIA, GuiTheme.fromKey("no_such_theme"))
         assertEquals(GuiTheme.OBSIDIAN, GuiTheme.fromKey("obsidian"))
