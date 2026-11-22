@@ -45,6 +45,15 @@ class NexusGuildCommandDispatchTest {
         every { it.sender } returns sender
     }
 
+    @Test
+    fun `Paper registrar attaches guild alias to the shared handler`() {
+        val player = player(all = true)
+        val dispatcher = guild.dispatcher
+        assertEquals(1, dispatcher.execute("g", source(player)))
+        assertEquals(1, dispatcher.execute("g rename Iron Order", source(player)))
+        verify { handlers.onDefault(player) }
+        verify { handlers.onRename(player, "Iron Order") }
+    }
     private data class Case(val path: String, val command: String, val expect: GuildCommandHandlers.(Player) -> Unit)
 
     private val cases = listOf(

@@ -196,19 +196,33 @@ class NexusPartyChatCommandParityTest {
         assertEquals("command.migrated.party_chat.clear.returned_to_global_chat", result.messages.first())
     }
 
-    /**
-     * Framework difference: ACF's multi-word vararg default skipped the guard, Nexus has one
-     * greedy default route and applies it uniformly (no message is routed while disabled).
-     */
     @Test
-    fun `nexus guards multi-word messages while parties are disabled`() {
-        val fixture = Fixture(false).apply { prefer(party("Raid")) }
-        NexusPartyChatCommand(PartyChatHandler(fixture.dependencies)).execute(fixture.player, "hello party")
-        assertEquals(
-            listOf("command.migrated.party_chat.checkpartiesenabled.parties_are_disabled_on_this_server"),
-            fixture.sent,
-        )
-        assertTrue(fixture.routed.isEmpty())
+    fun `disabled party multiword messages preserve the legacy stored-party behavior`() {
+        val result = parity(false, { prefer(party("Raid")) },
+            { onPartyChat(it, "hello", "party") }, { execute(it, "hello   party") })
+        assertEquals(listOf("hello party"), result.routed)
+    }
+
+    @Test
+    fun `registered party aliases use the same stored preference for switches and greedy messages`() {
+        val fixture = Fixture(true)
+        val raid = fixture.party("Raid")
+        val handler = PartyChatHandler(fixture.dependencies)
+        val dispatcher = commandDispatcher(setOf("pc"), mapOf(PartyChatHandler::class to handler),
+            mapOf(NexusPartyChatSuggestions.KEY to NexusPartyChatSuggestions.provider { handler })).dispatcher
+        val source = mockk<CommandSourceStack>()
+        every { source.sender } returns fixture.player
+        every { source.executor } returns fixture.player
+        every { fixture.player.hasPermission("lumaguilds.partychat") } returns true
+        for (line in listOf("pc", "pchat switch", "partychat rAiD", "pc hello   party")) {
+            assertEquals(1, dispatcher.execute(line, source), line)
+        }
+        assertEquals(raid.id, fixture.transcript().preference)
+        assertEquals(listOf("hello party"), fixture.routed)
+        val partial = dispatcher.parse("pchat switch Ra", source)
+        assertEquals(listOf("Raid"), dispatcher.getCompletionSuggestions(partial).get().list.map { it.text })
+        assertEquals(1, dispatcher.execute("pchat switch GLOBAL", source))
+        assertEquals(null, fixture.transcript().preference)
     }
 
     // --- Default route ---------------------------------------------------------------------
@@ -464,6 +478,7 @@ class NexusPartyChatCommandParityTest {
     fun `nexus suggestion provider filters by typed prefix for the executing player`() {
         val fixture = Fixture(true).apply { party("Raid"); party("Mine") }
         val handler = PartyChatHandler(fixture.dependencies)
+        every { fixture.player.hasPermission("lumaguilds.partychat") } returns true
         val provider = NexusPartyChatSuggestions.provider { handler }
 
         fun suggest(sender: CommandSender, typed: String): List<String> {
@@ -479,9 +494,22 @@ class NexusPartyChatCommandParityTest {
 
         assertEquals(listOf("GLOBAL", "Mine", "Raid"), suggest(fixture.player, ""))
         assertEquals(listOf("Raid"), suggest(fixture.player, "ra"))
-        assertEquals(listOf("GLOBAL"), suggest(mockk<CommandSender>(relaxed = true), "g"))
+        assertEquals(emptyList(), suggest(mockk<CommandSender>(relaxed = true), "g"))
     }
 
+    @Test
+    fun `revoked partychat permission hides stored party names from root argument suggestions`() {
+        val fixture = Fixture(true).apply { party("Raid") }
+        val handler = PartyChatHandler(fixture.dependencies)
+        val dispatcher = commandDispatcher(setOf("pc"), mapOf(PartyChatHandler::class to handler),
+            mapOf(NexusPartyChatSuggestions.KEY to NexusPartyChatSuggestions.provider { handler })).dispatcher
+        val source = mockk<CommandSourceStack>()
+        every { source.sender } returns fixture.player
+        every { source.executor } returns fixture.player
+        every { fixture.player.hasPermission("lumaguilds.partychat") } returns false
+        val parsed = dispatcher.parse("pc Ra", source)
+        assertTrue(dispatcher.getCompletionSuggestions(parsed).get().list.isEmpty())
+    }
     private companion object {
         val PLAYER_ID: UUID = UUID.nameUUIDFromBytes("player".toByteArray())
         val GUILD_ID: UUID = UUID.nameUUIDFromBytes("guild".toByteArray())

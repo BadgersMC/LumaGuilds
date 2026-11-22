@@ -2,17 +2,21 @@ package net.lumalyte.lg.interaction.commands.nexus
 
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.suggestion.SuggestionProvider
-import com.mojang.brigadier.tree.LiteralCommandNode
+import io.mockk.every
 import io.mockk.mockk
 import io.papermc.paper.command.brigadier.CommandSourceStack
+import io.papermc.paper.command.brigadier.Commands
+import io.papermc.paper.plugin.lifecycle.event.handler.LifecycleEventHandler
+import io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import net.badgersmc.nexus.core.BeanFactory
 import net.badgersmc.nexus.paper.commands.PaperCommandDefinition
 import net.badgersmc.nexus.paper.commands.PaperCommandRegistry
 import net.badgersmc.nexus.paper.commands.PaperCommandScanner
 import org.bukkit.plugin.java.JavaPlugin
+import org.mockbukkit.mockbukkit.command.brigadier.PaperCommandsMock
 import kotlin.reflect.KClass
 
 /** Package holding every inactive Nexus command class (claims, chat and guild families). */
@@ -40,31 +44,53 @@ internal class GuildDispatcher(
     val beans: List<Any>,
 )
 
-/**
- * Builds the actual pinned Nexus Brigadier tree for the merged `/guild` root. Command beans are
- * constructed by constructor-parameter type from [beans]; only Paper's lifecycle registrar (which
- * also attaches root aliases such as `/g`) is bypassed.
- */
-@Suppress("UNCHECKED_CAST")
+/** Runs the public Nexus registry callback with MockBukkit's Paper registrar and alias handling. */
 internal fun guildDispatcher(
     beans: Map<KClass<*>, Any>,
     suggestions: Map<String, SuggestionProvider<CommandSourceStack>>,
+): GuildDispatcher = commandDispatcher(setOf("guild"), beans, suggestions)
+
+internal fun commandDispatcher(
+    roots: Set<String>,
+    beans: Map<KClass<*>, Any>,
+    suggestions: Map<String, SuggestionProvider<CommandSourceStack>> = emptyMap(),
 ): GuildDispatcher {
-    val definitions = guildRootDefinitions()
-    val plan = planRoots(definitions).single()
-    val routeClass = Class.forName("net.badgersmc.nexus.paper.commands.PaperCommandRegistry\$Route")
-    val routeConstructor = routeClass.declaredConstructors.single().apply { isAccessible = true }
-    val instances = mutableListOf<Any>()
-    val routes = definitions.flatMap { definition ->
-        val bean = instantiate(definition.commandClass, beans).also { instances += it }
-        definition.subcommands.map { routeConstructor.newInstance(it, bean) }
+    val definitions = PaperCommandScanner()
+        .scanCommands(NEXUS_COMMAND_PACKAGE, NexusGuildFixtureAnchor::class.java.classLoader)
+        .filter { it.annotation.name in roots }
+    return registerCommandDefinitions(definitions, beans, suggestions)
+}
+
+internal fun registerCommandDefinitions(
+    definitions: List<PaperCommandDefinition>,
+    beans: Map<KClass<*>, Any>,
+    suggestions: Map<String, SuggestionProvider<CommandSourceStack>> = emptyMap(),
+): GuildDispatcher {
+    val plugin = mockk<JavaPlugin>(relaxed = true)
+    every { plugin.pluginMeta.name } returns "LumaGuilds"
+    val registrar = PaperCommandsMock().apply {
+        newDispatcher()
+        setCurrentContext(plugin)
     }
-    val registry = PaperCommandRegistry(
-        mockk<JavaPlugin>(), CoroutineScope(SupervisorJob() + Dispatchers.Unconfined), mockk<BeanFactory>(), suggestions,
-    )
-    val tree = PaperCommandRegistry::class.java.declaredMethods.single { it.name == "buildCommandTree" }
-        .apply { isAccessible = true }.invoke(registry, plan, routes) as LiteralCommandNode<CommandSourceStack>
-    return GuildDispatcher(CommandDispatcher<CommandSourceStack>().apply { root.addChild(tree) }, instances)
+    val event = mockk<ReloadableRegistrarEvent<Commands>>()
+    every { event.registrar() } returns registrar
+    every {
+        plugin.lifecycleManager.registerEventHandler(
+            LifecycleEvents.COMMANDS,
+            any<LifecycleEventHandler<ReloadableRegistrarEvent<Commands>>>(),
+        )
+    } answers {
+        secondArg<LifecycleEventHandler<ReloadableRegistrarEvent<Commands>>>().run(event)
+    }
+    val factory = mockk<BeanFactory>()
+    val instances = mutableListOf<Any>()
+    every { factory.createFactory(any<KClass<Any>>()) } answers {
+        val type = firstArg<KClass<Any>>()
+        val create = { (beans[type] ?: instantiate(type, beans)).also { instances += it } }
+        create
+    }
+    PaperCommandRegistry(plugin, CoroutineScope(Dispatchers.Unconfined), factory, suggestions).registerAll(definitions)
+    return GuildDispatcher(registrar.dispatcher, instances)
 }
 
 private fun instantiate(type: KClass<*>, beans: Map<KClass<*>, Any>): Any {

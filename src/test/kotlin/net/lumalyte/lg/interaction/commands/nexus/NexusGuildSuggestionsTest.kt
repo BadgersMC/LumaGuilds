@@ -6,6 +6,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import io.papermc.paper.command.brigadier.CommandSourceStack
+import net.lumalyte.lg.interaction.commands.GuildCommandHandlers
 import net.lumalyte.lg.interaction.commands.GuildCommandCompletions
 import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
@@ -23,6 +24,17 @@ class NexusGuildSuggestionsTest {
         return providers.getValue(key).getSuggestions(context, SuggestionsBuilder(typed, 0)).get().list.map { it.text }.toSet()
     }
 
+    @Test
+    fun `home unlock permission alone cannot list home destinations through the shared literal`() {
+        val player = mockk<Player>()
+        every { player.hasPermission(any<String>()) } answers { firstArg<String>() == "lumaguilds.guild.sethome" }
+        every { completions.accessibleHomes(player) } returns listOf("SecretBase")
+        val dispatcher = guildDispatcher(mapOf(GuildCommandHandlers::class to mockk<GuildCommandHandlers>()), providers).dispatcher
+        val source = mockk<CommandSourceStack> { every { sender } returns player }
+        val parsed = dispatcher.parse("g home Se", source)
+        assertEquals(emptyList(), dispatcher.getCompletionSuggestions(parsed).get().list.map { it.text })
+        verify(exactly = 0) { completions.accessibleHomes(player) }
+    }
     @Test
     fun `provider map covers exactly the keys referenced by guild routes`() {
         val referenced = guildRootDefinitions().flatMap { d -> d.subcommands.flatMap { it.suggestions.values } }.toSet()

@@ -68,7 +68,7 @@ class NexusPartyChatCommand(
 /**
  * Nexus equivalent of the legacy ACF `@parties` async completion. Central registration passes
  * `mapOf(NexusPartyChatSuggestions.KEY to NexusPartyChatSuggestions.provider { handler })` to
- * `PaperCommandRegistry`. Non-player senders receive only `GLOBAL` (legacy behavior).
+ * `PaperCommandRegistry`. The provider uses the same sender and permission as execution.
  */
 object NexusPartyChatSuggestions {
     const val KEY = "parties"
@@ -76,9 +76,10 @@ object NexusPartyChatSuggestions {
     fun provider(handler: () -> PartyChatHandler): SuggestionProvider<CommandSourceStack> =
         SuggestionProvider { context, builder ->
             val source = context.source
-            val player = source.executor as? Player ?: source.sender as? Player
+            val player = source.sender as? Player ?: return@SuggestionProvider builder.buildFuture()
+            if (!player.hasPermission(PARTY_CHAT_PERMISSION)) return@SuggestionProvider builder.buildFuture()
             val typed = builder.remainingLowerCase
-            handler().partySuggestions(player?.uniqueId)
+            handler().partySuggestions(player.uniqueId)
                 .filter { it.lowercase(Locale.ROOT).startsWith(typed) }
                 .forEach(builder::suggest)
             builder.buildFuture()

@@ -41,19 +41,20 @@ class PartyChatHandler(dependencies: PartyChatCommandDependencies) {
         return true
     }
 
-    /**
-     * Nexus single optional greedy default route. Null/blank shows party info; a single word naming
-     * an accessible party switches to it; anything else is routed as a party message. The disabled
-     * guard applies to every input (ACF's multi-word vararg overload skipped it).
-     */
+    /** Matches the legacy no-argument, single-word and vararg party-chat overloads. */
     fun defaultRoute(player: Player, input: String?) {
-        if (!checkPartiesEnabled(player)) return
-        if (input.isNullOrBlank()) {
-            showCurrentPartyInfo(player)
+        val message = input.orEmpty().split(' ').filter(String::isNotEmpty).joinToString(" ")
+        if (' ' in message) {
+            // The legacy vararg route sent to the stored party even when party switching was disabled.
+            sendPartyMessage(player, message)
             return
         }
-        val candidate = input.trim().takeUnless { token -> token.any(Char::isWhitespace) }
-        switchOrSend(player, candidate, input)
+        if (!checkPartiesEnabled(player)) return
+        if (message.isBlank()) {
+            showCurrentPartyInfo(player)
+        } else {
+            switchOrSend(player, message, message)
+        }
     }
 
     /** Switches to [partyCandidate] when it names an accessible party, otherwise routes [message]. */

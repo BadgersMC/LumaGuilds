@@ -49,7 +49,10 @@ internal fun nexusGuildSuggestionProviders(
             GUILDS_OR_PLAYERS to any { completions.guildsOrPlayers() },
             ALLY_GUILDS to player(completions::allyGuilds),
             GUILD_HOMES to player(completions::guildHomes),
-            GUILD_ACCESSIBLE_HOMES to player(completions::accessibleHomes),
+            GUILD_ACCESSIBLE_HOMES to player { sender ->
+                // The shared home literal can also be reached with only the home unlock permission.
+                if (sender.hasPermission("lumaguilds.guild.home")) completions.accessibleHomes(sender) else emptyList()
+            },
             UNLOCKED_EMOJIS to player(completions::unlockedEmojis),
             ON_OFF to any { GuildCommandCompletions.ON_OFF },
             ON_OFF_TOGGLE to any { GuildCommandCompletions.ON_OFF_TOGGLE },

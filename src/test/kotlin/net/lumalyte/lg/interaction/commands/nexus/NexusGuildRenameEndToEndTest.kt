@@ -14,6 +14,8 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.entities.RankPermission
 import net.lumalyte.lg.interaction.commands.GuildCommandDependencies
 import net.lumalyte.lg.interaction.commands.GuildCommandHandlers
+import net.lumalyte.lg.utils.GuildHomeSafety
+import org.bukkit.Location
 import org.bukkit.entity.Player
 import org.junit.jupiter.api.Test
 import java.util.UUID
@@ -62,6 +64,38 @@ class NexusGuildRenameEndToEndTest {
         verify(exactly = 0) { guildService.renameGuild(guildId, "Another Name", playerId) }
     }
 
+    @Test
+    fun `ally home success through alias starts the cooldown for the main home route`() {
+        val lang = mockk<LangService>(relaxed = true)
+        val guilds = mockk<GuildService>(relaxed = true)
+        val config = mockk<ConfigService>()
+        every { config.loadConfig() } returns MainConfig().apply { guild.homeTeleportCooldownSeconds = 120 }
+        val deps = dependencies(lang, guilds, mockk(), config)
+        val playerId = UUID.randomUUID()
+        val player = mockk<Player>(relaxed = true)
+        every { player.uniqueId } returns playerId
+        every { player.hasPermission(any<String>()) } returns true
+        val guildId = UUID.randomUUID()
+        val guild = mockk<Guild> { every { id } returns guildId }
+        every { guilds.getPlayerGuilds(playerId) } returns setOf(guild)
+        every { guilds.getHome(guildId, "main") } returns mockk()
+        every { deps.guildHomeActivationService.value.isActive(guildId, "main") } returns true
+        every { guilds.canUseHome(playerId, guildId, "main") } returns true
+        every { deps.progressionService.value.getHomeCooldownMultiplier(guildId) } returns 1.0
+        val teleports = deps.teleportationService.value
+        every { teleports.startTeleport(player, any(), any()) } answers { thirdArg<() -> Unit>()() }
+        val providers = NexusGuildCommandParityTest.suggestionKeys.associateWith {
+            SuggestionProvider<CommandSourceStack> { _, builder -> builder.buildFuture() }
+        }
+        val dispatcher = guildDispatcher(mapOf(GuildCommandHandlers::class to GuildCommandHandlers(deps)), providers).dispatcher
+        val source = mockk<CommandSourceStack> { every { sender } returns player }
+        GuildHomeSafety.checkAndRemember(player, Location(null, 1.0, 2.0, 3.0))
+        kotlin.test.assertEquals(1, dispatcher.execute("g allyhome confirm", source))
+        kotlin.test.assertEquals(1, dispatcher.execute("guild home", source))
+        verify(exactly = 1) { teleports.startTeleport(player, any(), any()) }
+        verify { lang.msg("command.migrated.guild.home.please_wait_s_before_teleporting_again", *anyVararg()) }
+        verify(exactly = 0) { teleports.startTeleportGuarded(any(), any(), any(), any()) }
+    }
     private fun dependencies(
         lang: LangService,
         guildService: GuildService,
