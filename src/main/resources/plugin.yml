@@ -9,38 +9,6 @@ softdepend: [Vault, PlaceholderAPI, LiteBans, EnthusiaStaff, EnthusiaPlaytime, N
 depend: [RoseChat]
 
 commands:
-  guild:
-    description: Guild management commands
-    usage: /guild <subcommand> [args]
-    aliases: [g]
-  claim:
-    description: Claim management commands
-    usage: /claim <subcommand> [args]
-  claimlist:
-    description: List all your claims
-    usage: /claimlist
-  claimmenu:
-    description: Open claim management menu
-    usage: /claimmenu
-  claimoverride:
-    description: Override claim permissions
-    usage: /claimoverride <subcommand> [args]
-  pc:
-    description: Party chat commands
-    usage: /pc <subcommand> [args]
-    aliases: [pchat, partychat]
-  gc:
-    description: Send a quick message to guild chat without changing your chat channel
-    usage: /gc [message]
-  gac:
-    description: Send a quick message to ally chat without changing your chat channel
-    usage: /gac [message]
-  gmc:
-    description: Send a quick message to guild mod chat (moderators only)
-    usage: /gmc [message]
-  ga:
-    description: Send a guild announcement (moderators only)
-    usage: /ga [color] <message>
   lumaguilds:
     description: LumaGuilds administrative commands
     usage: /lumaguilds <subcommand> [args]

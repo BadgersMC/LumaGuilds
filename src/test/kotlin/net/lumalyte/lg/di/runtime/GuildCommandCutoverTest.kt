@@ -15,6 +15,14 @@ class GuildCommandCutoverTest {
     private val commandSources = File("src/main/kotlin/net/lumalyte/lg/interaction/commands")
 
     @Test
+    fun `Bukkit descriptor reserves only the administrative commands owned by Bukkit`() {
+        val descriptor = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(File("src/main/resources/plugin.yml"))
+        val commands = requireNotNull(descriptor.getConfigurationSection("commands"))
+        assertEquals(setOf("lumaguilds", "bedrockcachestats", "vaultrollback", "bankcredit", "removevault"), commands.getKeys(false))
+        val labels = commands.getKeys(false) + commands.getKeys(false).flatMap { commands.getStringList("$it.aliases") }
+        assertTrue(GuildCommandParity.legacyRoots.flatMap { it.labels }.none { it in labels })
+    }
+    @Test
     fun `legacy root inventory matches every ACF command alias`() {
         val aliasGroups = commandSources.listFiles { file -> file.extension == "kt" }!!
             .flatMap { file -> Regex("""@CommandAlias\("([^"]+)"\)""").findAll(file.readText()).map { it.groupValues[1] }.toList() }
