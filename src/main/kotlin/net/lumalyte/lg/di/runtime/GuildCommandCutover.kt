@@ -1,7 +1,8 @@
 package net.lumalyte.lg.di.runtime
 
 import net.badgersmc.nexus.commands.annotations.Command
-import net.lumalyte.lg.interaction.commands.nexus.GuildHelpCommands
+import net.lumalyte.lg.interaction.commands.nexus.NexusGuildCommands
+import net.lumalyte.lg.interaction.commands.nexus.NexusPartyChatCommand
 import net.lumalyte.lg.interaction.commands.nexus.NexusClaimAddFlagCommand
 import net.lumalyte.lg.interaction.commands.nexus.NexusClaimDescriptionCommand
 import net.lumalyte.lg.interaction.commands.nexus.NexusClaimInfoCommand
@@ -87,7 +88,8 @@ internal fun evaluateCommandParity(
 /** The explicit Nexus command classes owned by command-family ports. Integrated centrally. */
 internal object NexusCommandCatalog {
     private val shared: List<KClass<*>> = listOf(
-        GuildHelpCommands::class,
+        NexusGuildCommands::class,
+        NexusPartyChatCommand::class,
         NexusQuickGuildChatCommand::class,
         NexusQuickAllyChatCommand::class,
         NexusQuickModChatCommand::class,
@@ -149,9 +151,9 @@ internal object GuildCommandParity {
      */
     val status: Map<String, RootParity> = mapOf(
         "guild" to RootParity.Unproven(
-            "only `guild help` is ported; remaining GuildCommand routes (including greedy rename) await the guild-command port",
+            "guild routes are present; live Paper dispatch has not been verified",
         ),
-        "pc" to RootParity.Unproven("party-chat port has not landed"),
+        "pc" to RootParity.Unproven("party chat requires the root-argument fix and live Paper dispatch evidence"),
         "gc" to RootParity.Unproven(PINNED_ROOT_ARGUMENT_DEFECT),
         "gac" to RootParity.Unproven(PINNED_ROOT_ARGUMENT_DEFECT),
         "gmc" to RootParity.Unproven(PINNED_ROOT_ARGUMENT_DEFECT),

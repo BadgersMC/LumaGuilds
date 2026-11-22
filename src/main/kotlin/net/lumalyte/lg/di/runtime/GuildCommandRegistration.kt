@@ -1,7 +1,7 @@
 package net.lumalyte.lg.di.runtime
 
 import net.badgersmc.nexus.paper.commands.PaperCommandRegistry
-import net.badgersmc.nexus.paper.commands.PaperCommandScanner
+import net.lumalyte.lg.interaction.commands.nexus.scanGuildCommandDefinitions
 import net.lumalyte.lg.LumaGuilds
 import net.lumalyte.lg.di.nexus.nexusBedrockCacheStatsCommand
 import net.lumalyte.lg.di.nexus.nexusLumaGuildsCommand
@@ -34,8 +34,7 @@ internal class NexusGuildCommandRegistration(
 
     override fun register(plugin: LumaGuilds, runtime: ActiveGuildRuntime, claimsEnabled: Boolean) {
         val catalog = NexusCommandCatalog.classes(claimsEnabled).toSet()
-        val definitions = PaperCommandScanner()
-            .scanCommands(NEXUS_COMMAND_PACKAGE, plugin.javaClass.classLoader)
+        val definitions = scanGuildCommandDefinitions(plugin.javaClass.classLoader)
             .filter { it.commandClass in catalog }
         val found = definitions.map { it.commandClass }.toSet()
         check(found == catalog) { "Nexus command catalog classes not found by the scanner: ${catalog - found}" }
@@ -45,12 +44,11 @@ internal class NexusGuildCommandRegistration(
             plugin,
             graph.scope,
             runtime.foundation.context.getBeanFactory(),
-            guildCommandSuggestions(
-                graph,
-                offlineName = { Bukkit.getOfflinePlayer(it).name },
-                onlinePlayerNames = { Bukkit.getOnlinePlayers().map { it.name } },
-                serverThread = Bukkit.getScheduler().getMainThreadExecutor(plugin),
-                isServerThread = { Bukkit.isPrimaryThread() },
+            runtimeCommandSuggestions(
+                runtime.foundation.context.getBean(),
+                runtime.foundation.context.getBean(),
+                claimsEnabled,
+                Bukkit.getScheduler().getMainThreadExecutor(plugin),
             ),
         ).registerAll(definitions)
         plugin.logColored("✓ Nexus command tree registered (${definitions.size} classes)")
@@ -77,9 +75,5 @@ internal class NexusGuildCommandRegistration(
             it.setExecutor(command)
             it.tabCompleter = command
         }
-    }
-
-    private companion object {
-        const val NEXUS_COMMAND_PACKAGE = "net.lumalyte.lg.interaction.commands.nexus"
     }
 }

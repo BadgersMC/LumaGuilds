@@ -5,7 +5,6 @@ import co.aikar.commands.annotation.CommandCompletion
 import co.aikar.commands.annotation.CommandPermission
 import co.aikar.commands.annotation.Default
 import co.aikar.commands.annotation.Subcommand as AcfSubcommand
-import net.badgersmc.nexus.paper.commands.PaperCommandScanner
 import net.badgersmc.nexus.paper.commands.annotations.Greedy
 import net.badgersmc.nexus.paper.commands.annotations.Suggests
 import net.lumalyte.lg.interaction.commands.PartyChatCommand
@@ -25,10 +24,7 @@ class NexusPartyChatCommandMetadataTest {
     private val permission = "lumaguilds.partychat"
 
     private val definition by lazy {
-        val definitions = PaperCommandScanner().scanCommands(
-            NexusPartyChatCommand::class.java.packageName,
-            NexusPartyChatCommand::class.java.classLoader,
-        )
+        val definitions = scanGuildCommandDefinitions()
         assertNotNull(definitions.singleOrNull { it.commandClass == NexusPartyChatCommand::class })
     }
 

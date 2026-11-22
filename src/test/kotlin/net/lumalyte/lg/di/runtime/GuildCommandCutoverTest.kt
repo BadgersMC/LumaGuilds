@@ -98,7 +98,7 @@ class GuildCommandCutoverTest {
             assertFalse(report.proven)
             val blocked = report.missing.map { it.name }.toSet() + report.missingAliases.keys + report.unproven.keys
             assertEquals(GuildCommandParity.requiredRoots(claimsEnabled).map { it.name }.toSet(), blocked)
-            assertTrue("pc" in report.missing.map { it.name }, "party chat has no Nexus port yet")
+            assertTrue(report.missing.isEmpty(), report.describe())
 
             val failure = assertThrows<CommandCutoverBlocked> { GuildCommandParity.requireProven(claimsEnabled) }
             assertTrue(failure.message!!.contains("pc"))

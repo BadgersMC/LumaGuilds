@@ -14,17 +14,13 @@ import kotlinx.coroutines.Dispatchers
 import net.badgersmc.nexus.core.BeanFactory
 import net.badgersmc.nexus.paper.commands.PaperCommandDefinition
 import net.badgersmc.nexus.paper.commands.PaperCommandRegistry
-import net.badgersmc.nexus.paper.commands.PaperCommandScanner
 import org.bukkit.plugin.java.JavaPlugin
 import org.mockbukkit.mockbukkit.command.brigadier.PaperCommandsMock
 import kotlin.reflect.KClass
 
-/** Package holding every inactive Nexus command class (claims, chat and guild families). */
-internal const val NEXUS_COMMAND_PACKAGE = "net.lumalyte.lg.interaction.commands.nexus"
-
 /** All scanned Nexus definitions merged under the `/guild` root, exactly as the planner groups them. */
 internal fun guildRootDefinitions(): List<PaperCommandDefinition> =
-    PaperCommandScanner().scanCommands(NEXUS_COMMAND_PACKAGE, NexusGuildFixtureAnchor::class.java.classLoader)
+    scanGuildCommandDefinitions()
         .filter { it.annotation.name.equals("guild", ignoreCase = true) }
 
 /** Invokes the pinned (internal) `PaperCommandPlanner.plan`, which rejects duplicate routes per root. */
@@ -55,8 +51,7 @@ internal fun commandDispatcher(
     beans: Map<KClass<*>, Any>,
     suggestions: Map<String, SuggestionProvider<CommandSourceStack>> = emptyMap(),
 ): GuildDispatcher {
-    val definitions = PaperCommandScanner()
-        .scanCommands(NEXUS_COMMAND_PACKAGE, NexusGuildFixtureAnchor::class.java.classLoader)
+    val definitions = scanGuildCommandDefinitions()
         .filter { it.annotation.name in roots }
     return registerCommandDefinitions(definitions, beans, suggestions)
 }
@@ -101,5 +96,3 @@ private fun instantiate(type: KClass<*>, beans: Map<KClass<*>, Any>): Any {
     }
     return constructor.callBy(arguments)
 }
-
-private object NexusGuildFixtureAnchor
