@@ -48,10 +48,12 @@ jobs:
         persist-credentials: false
         ref: ${{ github.event.pull_request.head.sha || github.sha }}
       
-    - name: Setup JDK 25
+    - name: Set up JDK 21 for Nexus core and JDK 25 for Guilds
       uses: actions/setup-java@v4
       with:
-        java-version: '25'
+        java-version: |
+          21
+          25
         distribution: 'temurin'
 
     # Compile against the canonical official Rosewood 26.2 source.
