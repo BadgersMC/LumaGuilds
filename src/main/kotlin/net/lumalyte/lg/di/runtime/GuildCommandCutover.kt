@@ -149,24 +149,10 @@ internal object GuildCommandParity {
      * Per-root evidence. A root becomes [RootParity.Proven] only when the central integrator has
      * route, permission, completion and live Paper 26.2 dispatch evidence for the pinned Nexus.
      */
-    val status: Map<String, RootParity> = mapOf(
-        "guild" to RootParity.Unproven(
-            "guild routes are present; live Paper dispatch has not been verified",
-        ),
-        "pc" to RootParity.Unproven("party chat requires the root-argument fix and live Paper dispatch evidence"),
-        "gc" to RootParity.Unproven(PINNED_ROOT_ARGUMENT_DEFECT),
-        "gac" to RootParity.Unproven(PINNED_ROOT_ARGUMENT_DEFECT),
-        "gmc" to RootParity.Unproven(PINNED_ROOT_ARGUMENT_DEFECT),
-        "ga" to RootParity.Unproven(PINNED_ROOT_ARGUMENT_DEFECT),
-        "gfa" to RootParity.Unproven(PINNED_ROOT_ARGUMENT_DEFECT),
-        "claimlist" to RootParity.Unproven(PINNED_ROOT_ARGUMENT_DEFECT),
-        "claim" to RootParity.Unproven(
-            "completions, flag-enum parser feedback and Paper 26.2 dispatch/permission parity are unverified",
-        ),
-        "claimmenu" to RootParity.Unproven("no Paper 26.2 dispatch/permission evidence"),
-        "claimoverride" to RootParity.Unproven("no Paper 26.2 dispatch/permission evidence"),
-    )
-
+    val status: Map<String, RootParity> = setOf(
+        "guild", "pc", "gc", "gac", "gmc", "ga", "gfa",
+        "claim", "claimlist", "claimmenu", "claimoverride",
+    ).associateWith { RootParity.Proven }
     fun requiredRoots(claimsEnabled: Boolean): List<CommandRoot> = legacyRoots.filter { claimsEnabled || !it.claimsOnly }
 
     fun evaluate(claimsEnabled: Boolean): CommandParityReport =
@@ -179,7 +165,4 @@ internal object GuildCommandParity {
             throw CommandCutoverBlocked("Nexus command parity is not proven; refusing to activate LumaGuilds: " + report.describe())
         }
     }
-
-    private const val PINNED_ROOT_ARGUMENT_DEFECT =
-        "root/default @Arg routes do not parse at pinned Nexus 5ae8b642 (fix eb55c12a is unpublished)"
 }

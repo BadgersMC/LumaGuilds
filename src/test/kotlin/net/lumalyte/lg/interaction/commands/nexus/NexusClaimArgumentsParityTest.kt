@@ -149,7 +149,9 @@ class NexusClaimArgumentsParityTest {
         every { actor.hasPermission("acf.seevanish") } returns true
         trust("Hidden BUILD")
         verify(exactly = 0) { grant.execute(any(), any(), any()) }
-        verify(exactly = 1) { lang.msg("command.claim.hidden_player_confirm", "player" to "Hidden") }
+        verify(exactly = 1) {
+            lang.msg("command.claim.hidden_player_confirm", "player" to "Hidden", "confirmed_name" to "\"Hidden:confirm\"")
+        }
 
         assertEquals(1, trust("Hidden:confirm BUILD"))
         verify(exactly = 1) { grant.execute(claimId, targetId, ClaimPermission.BUILD) }
@@ -253,4 +255,18 @@ class NexusClaimArgumentsParityTest {
         every { actor.hasPermission("lumaguilds.command.claim.trust") } returns false
         assertTrue(provider.getSuggestions(context, SuggestionsBuilder("", 0)).get().isEmpty)
     }
-}
+
+    @Test
+    fun `Floodgate name completions can be parsed by the advertised client string argument`() {
+        val name = "@Bedrock"
+        every { server.onlinePlayers } returns listOf(target(name))
+        val context = mockk<CommandContext<CommandSourceStack>> {
+            every { source } returns this@NexusClaimArgumentsParityTest.source
+        }
+        val provider = claimCommandSuggestionProviders().getValue("claim.players.trust")
+        for (prefix in listOf("@B", "\"@B")) {
+            val builder = SuggestionsBuilder(prefix, 0)
+            val text = provider.getSuggestions(context, builder).get().list.single().text
+            assertEquals(name, StringArgumentType.string().parse(com.mojang.brigadier.StringReader(text)))
+        }
+    }}

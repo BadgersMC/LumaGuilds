@@ -139,7 +139,7 @@ jobs:
       - name: Build shadowJar
         env:
           RELEASE_VERSION: ${{ steps.bump.outputs.version }}
-        run: ./gradlew shadowJar --no-daemon "-PreleaseVersion=$RELEASE_VERSION"
+        run: ./gradlew shadowJar verifyRuntimePackaging --no-daemon "-PreleaseVersion=$RELEASE_VERSION"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

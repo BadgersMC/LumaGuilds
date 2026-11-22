@@ -134,7 +134,7 @@ jobs:
     - name: Build Gradle using shadowJar
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: ./gradlew shadowJar
+      run: ./gradlew shadowJar verifyRuntimePackaging
 
     - name: Save Artifact
       uses: actions/upload-artifact@v4

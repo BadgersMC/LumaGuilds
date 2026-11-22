@@ -64,7 +64,9 @@ internal fun resolveClaimPlayer(actor: Player, token: ClaimArgumentToken, lang: 
         if (raw.endsWith(":confirm")) return matches.singleOrNull() ?: noClaimPlayer(actor, lang)
         if (hidden.size > 1) return noClaimPlayer(actor, lang)
         if (visible.isEmpty()) {
-            actor.sendMessage(lang.msg("command.claim.hidden_player_confirm", "player" to hidden.single().name))
+            val name = hidden.single().name
+            actor.sendMessage(lang.msg("command.claim.hidden_player_confirm", "player" to name,
+                "confirmed_name" to StringArgumentType.escapeIfRequired("$name:confirm")))
             return null
         }
     }
@@ -97,7 +99,9 @@ private fun claimSuggestions(
 ): SuggestionProvider<CommandSourceStack> = SuggestionProvider { context, builder ->
     val player = context.source.sender as? Player
     if (player != null && player.hasPermission("lumaguilds.command.claim.$operation")) {
-        values(player).filter { it.startsWith(builder.remaining, ignoreCase = true) }.forEach(builder::suggest)
+        val prefix = builder.remaining.removePrefix("\"")
+        values(player).filter { it.startsWith(prefix, ignoreCase = true) }
+            .map(StringArgumentType::escapeIfRequired).forEach(builder::suggest)
     }
     builder.buildFuture()
 }

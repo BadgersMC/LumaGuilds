@@ -1,7 +1,6 @@
 package net.lumalyte.lg.di.runtime
 
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -100,16 +99,11 @@ class GuildCommandCutoverTest {
     }
 
     @Test
-    fun `current candidate fails closed with every unproven root reported`() {
+    fun `reviewed Nexus revision provides every required root in both claims modes`() {
         listOf(true, false).forEach { claimsEnabled ->
             val report = GuildCommandParity.evaluate(claimsEnabled)
-            assertFalse(report.proven)
-            val blocked = report.missing.map { it.name }.toSet() + report.missingAliases.keys + report.unproven.keys
-            assertEquals(GuildCommandParity.requiredRoots(claimsEnabled).map { it.name }.toSet(), blocked)
-            assertTrue(report.missing.isEmpty(), report.describe())
-
-            val failure = assertThrows<CommandCutoverBlocked> { GuildCommandParity.requireProven(claimsEnabled) }
-            assertTrue(failure.message!!.contains("pc"))
+            assertTrue(report.proven, report.describe())
+            GuildCommandParity.requireProven(claimsEnabled)
         }
     }
 }

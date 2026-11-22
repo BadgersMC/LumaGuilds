@@ -1698,7 +1698,7 @@ command:
       already_exists: 'Claim <claim> already has flag <flag>.'
       success: 'Flag <flag> has been added to claim <claim>.'
     already_have_tool: You already have the claim tool in your inventory.
-    hidden_player_confirm: '<yellow><player> is hidden. Use <player>:confirm as the player name to confirm.'
+    hidden_player_confirm: '<yellow><player> is hidden. Use <confirmed_name> as the player name to confirm.'
     description:
       blacklisted_word: 'Description contains a blacklisted word: <word>'
       blank: Description is blank.
