@@ -1106,9 +1106,9 @@ Menu audit follow-up (REQ-063):
 
 ## Nexus runtime cutover — PR #254 (2026-11-21)
 - [~] **NEXUS-COMMAND-PARITY** Complete guild/party command ports and prove every legacy route, alias, permission, resolver and completion against the pinned Nexus command tree. Tag: `TDD`. References: REQ-NEXUS-CUTOVER-1; `docs/NEXUS-MIGRATION.md`. Evidence: investigation started from green `5359deb5`; Market is the runtime reference. No activation yet.
-- [ ] **NEXUS-LIFECYCLE-CUTOVER** Replace legacy bootstrap with one Nexus owner, preserving storage, external APIs, optional integrations and shutdown/failure cleanup. Tag: `TDD`. References: REQ-NEXUS-CUTOVER-2/3; `docs/NEXUS-MIGRATION.md` strict ordering.
-- [ ] **NEXUS-LEGACY-REMOVAL** Remove production Koin/ACF source and packaging after parity; retain IDB. Tag: `TDD`. References: REQ-NEXUS-CUTOVER-4.
-- [ ] **NEXUS-RELEASE-ACCEPTANCE** Run full Java 25/MariaDB checks, review quality findings and prove live Paper Java/Bedrock behavior. Tag: `TDD`. References: REQ-NEXUS-CUTOVER-4. Evidence: live acceptance and production release are not established by previous consumer tests.
+- [x] **NEXUS-LIFECYCLE-CUTOVER** Replace legacy bootstrap with one Nexus owner, preserving storage, external APIs, optional integrations and shutdown/failure cleanup. Tag: `TDD`. References: REQ-NEXUS-CUTOVER-2/3; `docs/NEXUS-MIGRATION.md` strict ordering.
+- [x] **NEXUS-LEGACY-REMOVAL** Remove production Koin/ACF source and packaging after parity; retain IDB. Tag: `TDD`. References: REQ-NEXUS-CUTOVER-4.
+- [~] **NEXUS-RELEASE-ACCEPTANCE** Run full Java 25/MariaDB checks, review quality findings and prove live Paper Java/Bedrock behavior. Tag: `TDD`. References: REQ-NEXUS-CUTOVER-4. Evidence: live acceptance and production release are not established by previous consumer tests.
 
 ### Desktop restore and command integration
 

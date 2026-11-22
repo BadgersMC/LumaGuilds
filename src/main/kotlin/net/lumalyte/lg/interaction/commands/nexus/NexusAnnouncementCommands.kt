@@ -55,7 +55,11 @@ class NexusQuickAnnounceCommand(
         val announcement = (if (colorOverride != null) tokens.drop(1) else tokens).joinToString(" ")
         if (announcement.isBlank()) {
             player.sendMessage(
-                lang.msg("command.migrated.quick_ally_chat.message.message_cannot_be_empty"),
+                if (tokens.isEmpty()) {
+                    lang.msg("command.migrated.quick_announce.announce.provide_a_message_usage_ga_color_message")
+                } else {
+                    lang.msg("command.migrated.quick_ally_chat.message.message_cannot_be_empty")
+                },
             )
             return
         }
