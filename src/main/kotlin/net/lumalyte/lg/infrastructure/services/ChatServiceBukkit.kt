@@ -357,8 +357,8 @@ class ChatServiceBukkit(
         try {
             val config = configService.loadConfig().party
 
-            if (!config.partyChatEnabled) {
-                // Fallback to basic formatting if disabled
+            if (!config.partyChatEnabled || !Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+                // Use the built-in localized format when placeholder expansion is unavailable.
                 return if (guildTag.isNotEmpty()) {
                     lang.plain("notification.chat.party.with_tag", "tag" to guildTag, "player" to senderName, "message" to message)
                 } else {

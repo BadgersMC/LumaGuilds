@@ -1130,3 +1130,10 @@ Menu audit follow-up (REQ-063):
 - Server dispatch accepts literal Floodgate names and privileged hidden-player confirmation. The client grammar check failed when a suggestion inserted a bare @ name. Completions now quote tokens as needed and hidden-player feedback shows a quoted confirmation token.
 - Production packaging checks require Nexus and relocated Aikar IDB, and detect both relocated and original ACF classes, ACF locale resources and Koin classes. Legacy comparison fixtures remain test-only. The acceptance probe binds to the enabled Guilds instance through typed service accessors.
 - The earlier runtime checkpoint `e4a11a31` passed 2,958 Java 25 tests including 106 skipped and zero failures or errors. Exact-head Java 25, local MariaDB, shaded-artifact and production-JAR Paper smoke results are recorded with the local handoff. Hosted CI and real Java/Bedrock gameplay acceptance remain open.
+
+### Live client acceptance on cd72a606
+
+- Dawn Java 26.3 and Dawn Bedrock 1.26.65 joined the same Paper lab through separate authenticated identities. Guild creation, invitation and joining worked. Java inventory and Bedrock form opened. Both clients could list claims with the specific permission and were denied claim override. The Java party selection survived a server restart.
+- Release blocked. In a new guild without an emoji in the Nexo-absent lab, sending a party message failed on both clients. Both traces reach ChatServiceBukkit.formatGuildTag at line 97 and the Guild constructor at line 67. Java inventory titles displayed raw glyph markup in this lab. Hosted CI and deployment remain outstanding.
+
+- Party delivery follow-up. The no-emoji formatting regression reproduced the Guild constructor failure on the original candidate. Applied the fork fix from FainNeito/LumaGuilds commit 09c3831c and used the localized party format when the optional PlaceholderAPI plugin is absent. Both focused regressions passed on JDK 25. Full-suite and two-client receipts accompany the rebuilt local artifact.
