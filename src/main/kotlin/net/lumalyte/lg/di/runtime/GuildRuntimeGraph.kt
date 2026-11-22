@@ -8,6 +8,7 @@ import net.lumalyte.lg.application.persistence.GuildInvitationRepository
 import net.lumalyte.lg.application.persistence.GuildShopXpRepository
 import net.lumalyte.lg.application.persistence.MembershipHistoryRepository
 import net.lumalyte.lg.application.persistence.ProgressionRepository
+import net.lumalyte.lg.application.persistence.QuestRepository
 import net.lumalyte.lg.application.persistence.RelationRepository
 import net.lumalyte.lg.application.persistence.WarRepository
 import net.lumalyte.lg.application.services.AdminOverrideService
@@ -34,6 +35,7 @@ import net.lumalyte.lg.application.services.PartyService
 import net.lumalyte.lg.application.services.PhysicalCurrencyService
 import net.lumalyte.lg.application.services.PlatformDetectionService
 import net.lumalyte.lg.application.services.ProgressionService
+import net.lumalyte.lg.application.services.QuestService
 import net.lumalyte.lg.application.services.RankService
 import net.lumalyte.lg.application.services.RelationService
 import net.lumalyte.lg.application.services.StrikeService
@@ -117,6 +119,8 @@ internal interface GuildRuntimeGraph {
     val strikesConfig: StrikesConfig
 
     val guildService: GuildService
+    val questService: QuestService
+    val questRepository: QuestRepository
     val memberService: MemberService
     val rankService: RankService
     val bankService: BankService
@@ -246,6 +250,8 @@ internal class NexusGuildRuntimeGraph(
     override val strikesConfig: StrikesConfig get() = bean()
 
     override val guildService: GuildService get() = bean()
+    override val questService: QuestService get() = bean()
+    override val questRepository: QuestRepository get() = bean()
     override val memberService: MemberService get() = bean()
     override val rankService: RankService get() = bean()
     override val bankService: BankService get() = bean()

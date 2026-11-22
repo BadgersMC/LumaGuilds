@@ -1,18 +1,39 @@
 package net.lumalyte.lg.acceptance;
 
-import org.koin.java.KoinJavaComponent;
+import net.lumalyte.lg.LumaGuilds;
+import net.lumalyte.lg.application.persistence.QuestRepository;
+import net.lumalyte.lg.application.services.GuildService;
+import net.lumalyte.lg.application.services.QuestService;
+import org.bukkit.plugin.Plugin;
 
-/** Keep Kotlin KClass and Function signatures inside the provider's classloader. */
+/** Typed services from the Guilds instance pinned by the current probe operation. */
 public final class ProbeServices {
-    private ProbeServices() { }
+    private final LumaGuilds provider;
 
-    public static void requireOwner(ClassLoader owner) {
-        if (KoinJavaComponent.class.getClassLoader() != owner) {
-            throw new IllegalStateException("Koin must come from the pinned Guilds plugin");
-        }
+    private ProbeServices(LumaGuilds provider) {
+        this.provider = provider;
     }
 
-    public static <T> T resolve(Class<T> type) {
-        return type.cast(KoinJavaComponent.get(type));
+    public static ProbeServices bind(Plugin plugin) {
+        if (!(plugin instanceof LumaGuilds guilds) ||
+                plugin.getClass().getClassLoader() != LumaGuilds.class.getClassLoader()) {
+            throw new IllegalStateException("Probe services must come from the pinned Guilds plugin");
+        }
+        if (!guilds.isEnabled()) {
+            throw new IllegalStateException("Guilds is disabled");
+        }
+        return new ProbeServices(guilds);
+    }
+
+    public GuildService getGuilds() {
+        return provider.getGuildService();
+    }
+
+    public QuestRepository getRepository() {
+        return provider.getQuestRepository();
+    }
+
+    public QuestService getQuests() {
+        return provider.getQuestService();
     }
 }

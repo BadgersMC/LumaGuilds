@@ -440,6 +440,10 @@ class LumaGuilds : JavaPlugin() {
      */
     fun getGuildService(): net.lumalyte.lg.application.services.GuildService = graph().guildService
 
+    fun getQuestService(): net.lumalyte.lg.application.services.QuestService = graph().questService
+
+    fun getQuestRepository(): net.lumalyte.lg.application.persistence.QuestRepository = graph().questRepository
+
     fun getGuildVaultService(): net.lumalyte.lg.application.services.GuildVaultService = graph().guildVaultService
 
     fun getMemberService(): net.lumalyte.lg.application.services.MemberService = graph().memberService
