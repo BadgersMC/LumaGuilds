@@ -7,6 +7,7 @@ import net.badgersmc.nexus.i18n.LangService
 import net.badgersmc.nexus.paper.commands.annotations.Permission
 import net.badgersmc.nexus.paper.commands.annotations.PlayerOnly
 import net.badgersmc.nexus.paper.commands.annotations.Subcommand
+import net.badgersmc.nexus.paper.commands.annotations.Suggests
 import net.lumalyte.lg.application.actions.claim.metadata.GetClaimDetails
 import net.lumalyte.lg.application.actions.claim.permission.GrantClaimWidePermission
 import net.lumalyte.lg.application.actions.claim.permission.RevokeClaimWidePermission
@@ -20,17 +21,17 @@ import net.lumalyte.lg.infrastructure.i18n.plain
 import org.bukkit.entity.Player
 
 /**
- * Strict, case-insensitive ClaimPermission lookup. Nexus Paper has no ClaimPermission resolver,
- * so handlers take a String. No trimming or partial matching: anything else is invalid.
+ * Finite permission lookup with the legacy enum resolver's case/punctuation normalization.
+ * Partial prefixes are rejected.
  */
 internal fun parseClaimPermission(raw: String): ClaimPermission? =
-    ClaimPermission.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) }
+    ClaimPermission.entries.firstOrNull { normalizedClaimEnumName(it.name) == normalizedClaimEnumName(raw) }
 
 /**
  * Inactive Nexus equivalent of the ACF /claim trustall handler.
  * MANAGE_PERMISSIONS is checked live, immediately before the mutation.
- * Parity gap: ACF tab-completion and its built-in invalid-argument message are not reproduced;
- * invalid values reply with the existing general.error message.
+ * Operation-specific completions preserve permission filtering. Invalid values still reply with
+ * general.error rather than the former framework's built-in invalid-argument diagnostic.
  */
 @Command(name = "claim")
 class NexusTrustAllCommand(
@@ -42,7 +43,12 @@ class NexusTrustAllCommand(
     @Subcommand("trustall")
     @Permission("lumaguilds.command.claim.trustall")
     @PlayerOnly
-    fun trustAll(@Context player: Player, @Arg(name = "permission") permissionName: String) {
+    fun trustAll(
+        @Context player: Player,
+        @Arg(name = "permission") @Suggests("claim.permissions.trustall") permission: ClaimArgumentToken,
+    ) = trustAll(player, permission.value)
+
+    fun trustAll(player: Player, permissionName: String) {
         val permission = parseClaimPermission(permissionName)
         if (permission == null) {
             player.sendMessage(lang.msg("general.error"))
@@ -84,7 +90,12 @@ class NexusUntrustAllCommand(
     @Subcommand("untrustall")
     @Permission("lumaguilds.command.claim.untrustall")
     @PlayerOnly
-    fun untrustAll(@Context player: Player, @Arg(name = "permission") permissionName: String) {
+    fun untrustAll(
+        @Context player: Player,
+        @Arg(name = "permission") @Suggests("claim.permissions.untrustall") permission: ClaimArgumentToken,
+    ) = untrustAll(player, permission.value)
+
+    fun untrustAll(player: Player, permissionName: String) {
         val permission = parseClaimPermission(permissionName)
         if (permission == null) {
             player.sendMessage(lang.msg("general.error"))

@@ -4,7 +4,6 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import net.badgersmc.nexus.i18n.LangService
-import net.badgersmc.nexus.paper.commands.PaperCommandScanner
 import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.actions.claim.ListPlayerClaims
 import net.lumalyte.lg.application.actions.claim.metadata.GetClaimBlockCount
@@ -42,10 +41,7 @@ class NexusClaimPaginationCommandsTest {
 
     @Test
     fun `new handlers preserve ACF root and subcommand permissions and optional page arguments`() {
-        val definitions = PaperCommandScanner().scanCommands(
-            NexusClaimListCommand::class.java.packageName,
-            NexusClaimListCommand::class.java.classLoader,
-        )
+        val definitions = scanGuildCommandDefinitions()
         data class Route(
             val type: kotlin.reflect.KClass<*>,
             val root: String,

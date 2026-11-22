@@ -7,6 +7,7 @@ import net.badgersmc.nexus.i18n.LangService
 import net.badgersmc.nexus.paper.commands.annotations.Permission
 import net.badgersmc.nexus.paper.commands.annotations.PlayerOnly
 import net.badgersmc.nexus.paper.commands.annotations.Subcommand
+import net.badgersmc.nexus.paper.commands.annotations.Suggests
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import net.lumalyte.lg.application.actions.claim.metadata.GetClaimDetails
 import net.lumalyte.lg.application.actions.claim.permission.GrantPlayerClaimPermission
@@ -22,12 +23,10 @@ import org.bukkit.entity.Player
 /**
  * Inactive Nexus equivalent of the ACF /claim trust handler.
  *
- * Target lookup: Nexus Paper's built-in Player argument (Paper player selector). The legacy ACF
- * OnlinePlayer resolver is not reproduced. Parity gaps: no ACF partial-name matching or
- * tab-completion parity (Paper selector completion/syntax applies, so selectors such as @p resolve
- * to their first match), and unresolved targets/invalid permission values are reported by
- * Nexus/Brigadier or general.error rather than ACF's built-in messages. A target that resolves but
- * is no longer online is rejected with general.error before any claim lookup or mutation.
+ * Target lookup uses the server's exact/partial name matcher and preserves visibility, ambiguity
+ * and explicit vanished-player confirmation. Selectors are never interpreted. Unresolved targets
+ * and invalid permission values retain general.error rather than the former framework's built-in
+ * diagnostics. A target that resolves but is no longer online is rejected before claim lookup.
  * MANAGE_PERMISSIONS is checked live, immediately before the mutation.
  */
 @Command(name = "claim")
@@ -42,8 +41,17 @@ class NexusTrustCommand(
     @PlayerOnly
     fun trust(
         @Context player: Player,
-        @Arg(name = "player") target: Player,
-        @Arg(name = "permission") permissionName: String,
+        @Arg(name = "player") @Suggests("claim.players.trust") target: ClaimArgumentToken,
+        @Arg(name = "permission") @Suggests("claim.permissions.trust") permission: ClaimArgumentToken,
+    ) {
+        val resolved = resolveClaimPlayer(player, target, lang) ?: return
+        trust(player, resolved, permission.value)
+    }
+
+    fun trust(
+        player: Player,
+        target: Player,
+        permissionName: String,
     ) {
         val permission = parseClaimPermission(permissionName)
         if (permission == null || !target.isOnline) {
@@ -91,8 +99,17 @@ class NexusUntrustCommand(
     @PlayerOnly
     fun untrust(
         @Context player: Player,
-        @Arg(name = "player") target: Player,
-        @Arg(name = "permission") permissionName: String,
+        @Arg(name = "player") @Suggests("claim.players.untrust") target: ClaimArgumentToken,
+        @Arg(name = "permission") @Suggests("claim.permissions.untrust") permission: ClaimArgumentToken,
+    ) {
+        val resolved = resolveClaimPlayer(player, target, lang) ?: return
+        untrust(player, resolved, permission.value)
+    }
+
+    fun untrust(
+        player: Player,
+        target: Player,
+        permissionName: String,
     ) {
         val permission = parseClaimPermission(permissionName)
         if (permission == null || !target.isOnline) {

@@ -5,7 +5,6 @@ import io.mockk.mockk
 import io.mockk.verify
 import io.mockk.verifyOrder
 import net.badgersmc.nexus.i18n.LangService
-import net.badgersmc.nexus.paper.commands.PaperCommandScanner
 import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.actions.claim.metadata.GetClaimDetails
 import net.lumalyte.lg.application.actions.claim.permission.GrantClaimWidePermission
@@ -60,11 +59,8 @@ class NexusClaimWidePermissionCommandsTest {
     private fun untrust() = NexusUntrustAllCommand(lang, access, revoke, details)
 
     @Test
-    fun scannerPreservesPermissionsAndRequiredStringArgument() {
-        val definitions = PaperCommandScanner().scanCommands(
-            NexusTrustAllCommand::class.java.packageName,
-            NexusTrustAllCommand::class.java.classLoader,
-        )
+    fun scannerPreservesPermissionsAndRequiredPermissionArgument() {
+        val definitions = scanGuildCommandDefinitions()
         for ((type, sub, perm) in listOf(
             Triple(NexusTrustAllCommand::class, "trustall", "lumaguilds.command.claim.trustall"),
             Triple(NexusUntrustAllCommand::class, "untrustall", "lumaguilds.command.claim.untrustall"),
@@ -81,15 +77,17 @@ class NexusClaimWidePermissionCommandsTest {
     }
 
     @Test
-    fun parserIsStrictCaseInsensitiveAndCoversEveryPermission() {
+    fun parserPreservesLegacySimplifiedEnumMatchingAndCoversEveryPermission() {
         ClaimPermission.entries.forEach {
             assertEquals(it, parseClaimPermission(it.name))
             assertEquals(it, parseClaimPermission(it.name.lowercase()))
         }
         assertNull(parseClaimPermission(""))
-        assertNull(parseClaimPermission(" build"))
-        assertNull(parseClaimPermission("build "))
+        assertEquals(ClaimPermission.BUILD, parseClaimPermission(" build"))
+        assertEquals(ClaimPermission.BUILD, parseClaimPermission("build "))
+        assertEquals(ClaimPermission.BUILD, parseClaimPermission("b-u_i.l-d"))
         assertNull(parseClaimPermission("bogus"))
+        assertNull(parseClaimPermission("bui"), "legacy enum matching does not accept partial prefixes")
         assertNull(parseClaimPermission("BUILD,HARVEST"))
     }
 

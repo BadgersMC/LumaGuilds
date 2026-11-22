@@ -4,6 +4,7 @@ import net.badgersmc.nexus.commands.annotations.Arg
 import net.badgersmc.nexus.commands.annotations.Command
 import net.badgersmc.nexus.commands.annotations.Context
 import net.badgersmc.nexus.i18n.LangService
+import net.badgersmc.nexus.paper.commands.annotations.Greedy
 import net.badgersmc.nexus.paper.commands.annotations.Permission
 import net.badgersmc.nexus.paper.commands.annotations.PlayerOnly
 import net.badgersmc.nexus.paper.commands.annotations.Subcommand
@@ -84,7 +85,7 @@ class NexusClaimRenameCommand(
     @Subcommand("rename")
     @Permission("lumaguilds.command.claim.rename")
     @PlayerOnly
-    fun rename(@Context player: Player, @Arg(name = "name") name: String) {
+    fun rename(@Context player: Player, @Arg(name = "name") @Greedy name: String) {
         val partition = access.partitionAtPlayer(player) ?: return
         if (!access.hasPermission(player, partition, RankPermission.MANAGE_CLAIMS)) return
 

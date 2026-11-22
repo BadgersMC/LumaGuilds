@@ -5,7 +5,6 @@ import io.mockk.mockk
 import io.mockk.verify
 import io.mockk.verifyOrder
 import net.badgersmc.nexus.i18n.LangService
-import net.badgersmc.nexus.paper.commands.PaperCommandScanner
 import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.services.ChatService
 import net.lumalyte.lg.application.services.GuildService
@@ -38,10 +37,7 @@ class NexusAnnouncementCommandsTest {
 
     @Test
     fun `ga and gfa each expose one optional greedy player-only default route`() {
-        val defs = PaperCommandScanner().scanCommands(
-            NexusQuickAnnounceCommand::class.java.packageName,
-            NexusQuickAnnounceCommand::class.java.classLoader,
-        )
+        val defs = scanGuildCommandDefinitions()
         for ((clazz, name) in listOf(
             NexusQuickAnnounceCommand::class to "ga",
             NexusFullscreenAnnounceCommand::class to "gfa",

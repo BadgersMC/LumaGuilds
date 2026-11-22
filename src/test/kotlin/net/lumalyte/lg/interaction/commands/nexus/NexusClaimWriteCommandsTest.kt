@@ -4,7 +4,6 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import net.badgersmc.nexus.i18n.LangService
-import net.badgersmc.nexus.paper.commands.PaperCommandScanner
 import net.badgersmc.nexus.paper.commands.annotations.Greedy
 import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.actions.claim.flag.DisableClaimFlag
@@ -59,10 +58,7 @@ class NexusClaimWriteCommandsTest {
 
     @Test
     fun scannerPreservesRoutesPermissionsAndTypedArguments() {
-        val definitions = PaperCommandScanner().scanCommands(
-            NexusClaimDescriptionCommand::class.java.packageName,
-            NexusClaimDescriptionCommand::class.java.classLoader,
-        )
+        val definitions = scanGuildCommandDefinitions()
         data class Route(val type: kotlin.reflect.KClass<*>, val name: String, val argName: String, val permission: String)
         val routes = listOf(
             Route(NexusClaimDescriptionCommand::class, "description", "description", "lumaguilds.command.claim.description"),
@@ -77,7 +73,7 @@ class NexusClaimWriteCommandsTest {
             assertTrue(handler.isPlayerOnly)
             val arg = handler.parameters.single { it.isArg }
             assertEquals(route.argName, arg.name)
-            assertEquals(String::class, arg.type)
+            assertEquals(if (route.name == "description") String::class else ClaimArgumentToken::class, arg.type)
             assertTrue(!arg.isOptional)
         }
         val method = NexusClaimDescriptionCommand::class.java.declaredMethods.single { it.name == "description" }

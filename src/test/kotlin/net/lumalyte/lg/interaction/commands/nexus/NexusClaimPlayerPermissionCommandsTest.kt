@@ -5,7 +5,6 @@ import io.mockk.mockk
 import io.mockk.verify
 import io.mockk.verifyOrder
 import net.badgersmc.nexus.i18n.LangService
-import net.badgersmc.nexus.paper.commands.PaperCommandScanner
 import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.actions.claim.metadata.GetClaimDetails
 import net.lumalyte.lg.application.actions.claim.permission.GrantPlayerClaimPermission
@@ -66,10 +65,7 @@ class NexusClaimPlayerPermissionCommandsTest {
 
     @Test
     fun scannerPreservesPermissionsPlayerOnlyAndArguments() {
-        val definitions = PaperCommandScanner().scanCommands(
-            NexusTrustCommand::class.java.packageName,
-            NexusTrustCommand::class.java.classLoader,
-        )
+        val definitions = scanGuildCommandDefinitions()
         for ((type, sub, perm) in listOf(
             Triple(NexusTrustCommand::class, "trust", "lumaguilds.command.claim.trust"),
             Triple(NexusUntrustCommand::class, "untrust", "lumaguilds.command.claim.untrust"),
@@ -82,6 +78,10 @@ class NexusClaimPlayerPermissionCommandsTest {
             val args = handler.parameters.filter { it.isArg }
             assertEquals(listOf("player", "permission"), args.map { it.name })
             assertTrue(args.all { !it.isOptional })
+            assertEquals(
+                mapOf("player" to "claim.players.$sub", "permission" to "claim.permissions.$sub"),
+                handler.suggestions,
+            )
         }
     }
 

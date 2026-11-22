@@ -4,7 +4,6 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import net.badgersmc.nexus.i18n.LangService
-import net.badgersmc.nexus.paper.commands.PaperCommandScanner
 import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.actions.claim.metadata.GetClaimDetails
 import net.lumalyte.lg.application.actions.claim.partition.RemovePartition
@@ -48,10 +47,7 @@ class NexusClaimSafetyCommandsTest {
 
     @Test
     fun scannerPreservesPermissionsAndPlayerOnly() {
-        val definitions = PaperCommandScanner().scanCommands(
-            NexusClaimRemoveCommand::class.java.packageName,
-            NexusClaimRemoveCommand::class.java.classLoader,
-        )
+        val definitions = scanGuildCommandDefinitions()
         val remove = assertNotNull(definitions.singleOrNull { it.commandClass == NexusClaimRemoveCommand::class })
         assertEquals("claim", remove.annotation.name)
         val removeHandler = assertNotNull(remove.subcommands.singleOrNull { it.path == listOf("remove") })

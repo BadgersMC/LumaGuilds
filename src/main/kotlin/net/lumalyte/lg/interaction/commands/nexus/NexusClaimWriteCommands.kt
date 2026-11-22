@@ -8,6 +8,7 @@ import net.badgersmc.nexus.paper.commands.annotations.Greedy
 import net.badgersmc.nexus.paper.commands.annotations.Permission
 import net.badgersmc.nexus.paper.commands.annotations.PlayerOnly
 import net.badgersmc.nexus.paper.commands.annotations.Subcommand
+import net.badgersmc.nexus.paper.commands.annotations.Suggests
 import net.lumalyte.lg.application.actions.claim.flag.DisableClaimFlag
 import net.lumalyte.lg.application.actions.claim.flag.EnableClaimFlag
 import net.lumalyte.lg.application.actions.claim.metadata.GetClaimDetails
@@ -79,7 +80,12 @@ class NexusClaimAddFlagCommand(
     @Subcommand("addflag")
     @Permission("lumaguilds.command.claim.addflag")
     @PlayerOnly
-    fun addFlag(@Context player: Player, @Arg(name = "flag") flagName: String) {
+    fun addFlag(
+        @Context player: Player,
+        @Arg(name = "flag") @Suggests("claim.flags.add") flag: ClaimArgumentToken,
+    ) = addFlag(player, flag.value)
+
+    fun addFlag(player: Player, flagName: String) {
         val flag = parseFlag(flagName) ?: run {
             player.sendMessage(lang.msg("general.error"))
             return
@@ -116,7 +122,12 @@ class NexusClaimRemoveFlagCommand(
     @Subcommand("removeflag")
     @Permission("lumaguilds.command.claim.removeflag")
     @PlayerOnly
-    fun removeFlag(@Context player: Player, @Arg(name = "flag") flagName: String) {
+    fun removeFlag(
+        @Context player: Player,
+        @Arg(name = "flag") @Suggests("claim.flags.remove") flag: ClaimArgumentToken,
+    ) = removeFlag(player, flag.value)
+
+    fun removeFlag(player: Player, flagName: String) {
         val flag = parseFlag(flagName) ?: run {
             player.sendMessage(lang.msg("general.error"))
             return
@@ -143,9 +154,9 @@ class NexusClaimRemoveFlagCommand(
     }
 }
 
-/** Nexus Paper currently has no built-in enum resolver. Parse the finite Flag enum case-insensitively. */
+/** Match the legacy finite-enum parser's normalization while retaining the original enum values. */
 private fun parseFlag(value: String): Flag? =
-    Flag.entries.firstOrNull { it.name.equals(value, ignoreCase = true) }
+    Flag.entries.firstOrNull { normalizedClaimEnumName(it.name) == normalizedClaimEnumName(value) }
 
 private fun claimName(lang: LangService, details: GetClaimDetails, id: UUID): String =
     details.execute(id)?.name ?: lang.plain("general.name_error")

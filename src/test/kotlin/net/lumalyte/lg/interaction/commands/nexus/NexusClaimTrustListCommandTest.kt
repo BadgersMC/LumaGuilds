@@ -6,7 +6,6 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import io.mockk.verify
 import net.badgersmc.nexus.i18n.LangService
-import net.badgersmc.nexus.paper.commands.PaperCommandScanner
 import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.actions.claim.metadata.GetClaimDetails
 import net.lumalyte.lg.application.actions.claim.permission.GetClaimPlayerPermissions
@@ -73,10 +72,7 @@ class NexusClaimTrustListCommandTest {
 
     @Test
     fun scannerPreservesPermissionPlayerOnlyAndOptionalPage() {
-        val definitions = PaperCommandScanner().scanCommands(
-            NexusClaimTrustListCommand::class.java.packageName,
-            NexusClaimTrustListCommand::class.java.classLoader,
-        )
+        val definitions = scanGuildCommandDefinitions()
         val definition = assertNotNull(definitions.singleOrNull { it.commandClass == NexusClaimTrustListCommand::class })
         assertEquals("claim", definition.annotation.name)
         val handler = assertNotNull(definition.subcommands.singleOrNull { it.path == listOf("trustlist") })

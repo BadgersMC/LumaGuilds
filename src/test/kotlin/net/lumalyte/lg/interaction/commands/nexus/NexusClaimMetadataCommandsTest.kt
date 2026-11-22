@@ -6,7 +6,6 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import io.mockk.verify
 import net.badgersmc.nexus.i18n.LangService
-import net.badgersmc.nexus.paper.commands.PaperCommandScanner
 import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.actions.claim.flag.GetClaimFlags
 import net.lumalyte.lg.application.actions.claim.metadata.GetClaimBlockCount
@@ -58,10 +57,7 @@ class NexusClaimMetadataCommandsTest {
 
     @Test
     fun scannerPreservesClaimInfoAndRenamePermissionsAndRequiredNameArgument() {
-        val definitions = PaperCommandScanner().scanCommands(
-            NexusClaimInfoCommand::class.java.packageName,
-            NexusClaimInfoCommand::class.java.classLoader,
-        )
+        val definitions = scanGuildCommandDefinitions()
         for ((type, subcommand, permission) in listOf(
             Triple(NexusClaimInfoCommand::class, "info", "lumaguilds.command.claim.info"),
             Triple(NexusClaimRenameCommand::class, "rename", "lumaguilds.command.claim.rename"),
@@ -75,6 +71,7 @@ class NexusClaimMetadataCommandsTest {
                 val arg = handler.parameters.single { it.isArg }
                 assertEquals("name", arg.name)
                 assertTrue(!arg.isOptional)
+                assertEquals(setOf("name"), handler.greedyParameters)
             } else {
                 assertTrue(handler.parameters.all { it.isContext })
             }

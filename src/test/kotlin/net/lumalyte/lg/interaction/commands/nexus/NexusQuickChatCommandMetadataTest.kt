@@ -6,7 +6,6 @@ import io.mockk.verify
 import io.mockk.verifyOrder
 import net.badgersmc.nexus.paper.commands.annotations.Greedy
 import net.badgersmc.nexus.i18n.LangService
-import net.badgersmc.nexus.paper.commands.PaperCommandScanner
 import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.MemberService
@@ -31,10 +30,7 @@ class NexusQuickChatCommandMetadataTest {
 
     @Test
     fun `quick chat roots expose one player-only default route with optional greedy message`() {
-        val definitions = PaperCommandScanner().scanCommands(
-            NexusQuickGuildChatCommand::class.java.packageName,
-            NexusQuickGuildChatCommand::class.java.classLoader,
-        )
+        val definitions = scanGuildCommandDefinitions()
         for ((type, rootName) in roots) {
             val definition = assertNotNull(definitions.singleOrNull { it.commandClass == type }, rootName)
             assertEquals(rootName, definition.annotation.name)
