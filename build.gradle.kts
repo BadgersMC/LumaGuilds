@@ -81,7 +81,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.10.2")
 
     // Pin all Nexus modules to the same reviewed Paper 26.2 command-composition commit.
-    val nexusCommit = "eb55c12a4547f07a9553ecd522989e046c093dda"
+    val nexusCommit = providers.gradleProperty("nexusCommit").get()
     implementation("com.github.BadgersMC.Nexus:nexus-core:$nexusCommit")
     implementation("com.github.BadgersMC.Nexus:nexus-paper:$nexusCommit")
     implementation("com.github.BadgersMC.Nexus:nexus-i18n:$nexusCommit")

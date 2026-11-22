@@ -1,7 +1,7 @@
 # LumaGuilds migration to Nexus (Paper 26.2 only)
 
 Baseline: LumaGuilds `33d6300c` (merged 26.2 quest craft event).
-Framework pin: Nexus `5ae8b6424f39d3de8098cdbd46c178d3f8700205` (PR #13 merged).
+The local cutover uses Nexus `eb55c12a4547f07a9553ecd522989e046c093dda`. Restore its Git bundle from the handoff and use a clean checkout. With the two repositories alongside each other, run `./gradlew -PnexusSourceDir=../nexus test verifyRuntimePackaging verifyAcceptanceProbePackaging` on JDK 25. The same pin covers core, Paper and i18n. GitHub CI needs a published dependency before it can build this revision without the local source.
 This branch is a migration workspace, **not a deployable release**.
 
 ## Target architecture
