@@ -88,7 +88,6 @@ class LumaGuilds : JavaPlugin() {
         pluginScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         scheduler = server.scheduler
         initialiseVaultDependency()
-        initialisePlaceholderAPI()
         commandManager = PaperCommandManager(this)
 
         // Enable case-insensitive command completion and parsing
@@ -96,6 +95,9 @@ class LumaGuilds : JavaPlugin() {
 
         // Start Koin with modular architecture
         startKoin { modules(appModule(this@LumaGuilds, storage, claimsEnabled)) }
+
+        // The expansion factory resolves from the active graph, including on the first enable.
+        initialisePlaceholderAPI()
 
         // Bedrock form state cleanup runs as a child of pluginScope; onDisable stops it via shutdown().
         net.lumalyte.lg.interaction.menus.bedrock.FormStateManager.start(
