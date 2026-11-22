@@ -197,6 +197,7 @@ import org.bukkit.plugin.java.JavaPlugin
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import org.koin.dsl.onClose
 import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -204,14 +205,14 @@ import java.util.concurrent.Executors
 /**
  * Core module - Plugin instance, configuration, storage, and foundational services
  */
-fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
+fun coreModule(plugin: LumaGuilds, storage: Storage<*>, scope: CoroutineScope) = module {
     // Plugin dependencies
     single<Plugin> { plugin }
     single<LumaGuilds> { plugin }
     single<JavaPlugin> { plugin }
     single<File> { plugin.dataFolder }
     single<FileConfiguration> { plugin.config }
-    single<CoroutineScope> { plugin.pluginScope }
+    single<CoroutineScope> { scope }
     single<java.util.logging.Logger> { get<LumaGuilds>().logger }
 
     // Virtual thread executors (Java 21+)
@@ -233,7 +234,7 @@ fun coreModule(plugin: LumaGuilds, storage: Storage<*>) = module {
                 }
             }
         }
-    }
+    } onClose { it?.shutdownNow() }
 
     // Virtual thread dispatcher for Kotlin coroutines
     single<CoroutineDispatcher>(named("VirtualDispatcher")) {
@@ -1422,8 +1423,8 @@ fun integrationModule(plugin: LumaGuilds) = module {
  * Main application module that combines all feature modules
  * This is the entry point for Koin dependency injection
  */
-fun appModule(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = true) = listOf(
-        coreModule(plugin, storage),
+fun appModule(plugin: LumaGuilds, storage: Storage<*>, scope: CoroutineScope, claimsEnabled: Boolean = true) = listOf(
+        coreModule(plugin, storage, scope),
         guildsModule(),
         socialModule(),
         progressionModule(),

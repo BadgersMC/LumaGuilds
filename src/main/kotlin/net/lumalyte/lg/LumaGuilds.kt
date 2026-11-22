@@ -1,7 +1,6 @@
 package net.lumalyte.lg
 
 import co.aikar.idb.Database
-import kotlinx.coroutines.CoroutineScope
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import net.lumalyte.lg.di.runtime.ActiveGuildRuntime
@@ -32,12 +31,6 @@ import java.util.logging.Level
  * (REQ-NEXUS-CUTOVER-2/3). Koin and ACF are not started.
  */
 class LumaGuilds : JavaPlugin() {
-    /**
-     * Legacy Koin test-graph hook only (di/Modules.kt). The Nexus runtime never initializes it;
-     * remove with the legacy module during central contraction.
-     */
-    lateinit var pluginScope: CoroutineScope
-
     internal lateinit var vaultProtectionListener: net.lumalyte.lg.infrastructure.listeners.VaultProtectionListener
     internal var enabledAtMillis: Long = 0L
         private set

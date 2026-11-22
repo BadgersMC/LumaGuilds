@@ -11,7 +11,6 @@ import kotlin.test.assertTrue
  */
 class NexusRuntimeOwnershipTest {
     private val root = File("src/main/kotlin/net/lumalyte/lg")
-    private val legacyGraphFiles = setOf("di/Modules.kt", "di/LegacyMenuServices.kt", "di/LegacyInteractionDependencies.kt")
 
     private fun productionFiles() = root.walkTopDown().filter { it.isFile && it.extension == "kt" }.toList()
 
@@ -39,9 +38,8 @@ class NexusRuntimeOwnershipTest {
     @Test
     fun `the legacy Koin module is not invoked by production code`() {
         val invocations = Regex("""\bappModule\(""")
-        val outsideDeclaration = productionFiles().filterNot { it.relativeTo(root).invariantSeparatorsPath in legacyGraphFiles }
 
-        assertEquals(emptyList(), offenders(invocations, outsideDeclaration))
+        assertEquals(emptyList(), offenders(invocations, productionFiles()))
     }
 
     @Test

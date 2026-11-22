@@ -8,14 +8,15 @@ import java.io.File
 
 class OptionalLiteBansWiringTest {
     @Test
-    fun `core koin graph does not load LiteBans bound classes`() {
-        val source = File("src/main/kotlin/net/lumalyte/lg/di/Modules.kt").readText()
-        val start = source.indexOf("fun guildsModule()")
-        val end = source.indexOf("fun guildClaimsIntegrationModule()", start)
-        val guildsModule = source.substring(start, end)
-
-        assertFalse(guildsModule.contains("single<net.lumalyte.lg.infrastructure.litebans.LiteBansStrikeListener>"))
-        assertFalse(guildsModule.contains("single<net.lumalyte.lg.infrastructure.litebans.StrikeBackfillService>"))
+    fun `core Nexus graph does not load LiteBans bound classes`() {
+        val bindings = File("src/main/kotlin/net/lumalyte/lg/di/nexus").listFiles()!!
+            .filter { it.extension == "kt" }
+        assertTrue(bindings.isNotEmpty())
+        bindings.forEach { file ->
+            val source = file.readText()
+            assertFalse("LiteBansStrikeListener(" in source, file.name)
+            assertFalse("StrikeBackfillService(" in source, file.name)
+        }
     }
 
     @Test
