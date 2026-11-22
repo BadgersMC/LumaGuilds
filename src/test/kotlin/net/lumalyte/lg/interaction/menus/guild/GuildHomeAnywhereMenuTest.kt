@@ -50,7 +50,7 @@ internal class GuildHomeAnywhereMenuTest : GuildRankMenuFixture() {
         val (guilds, activation) = installPaidHomeFixture()
         val world = (player.server as org.mockbukkit.mockbukkit.ServerMock).addSimpleWorld("java-nether")
         player.teleport(Location(world, 30.0, 75.0, -8.0))
-        val menu = io.mockk.spyk(GuildHomeMenu(MenuNavigator(player), player, guild))
+        val menu = io.mockk.spyk(GuildHomeMenu(MenuNavigator(player), player, guild, services = javaALegacyMenuServices()))
         every { menu.open() } returns Unit // Do not render the full menu after the successful write.
 
         GuildHomeMenu::class.java.getDeclaredMethod("setGuildHome", String::class.java)
@@ -74,6 +74,7 @@ internal class GuildHomeAnywhereMenuTest : GuildRankMenuFixture() {
         player.teleport(Location(world, 6.0, 68.0, 15.0))
         val menu = BedrockGuildHomeMenu(
             mockk<MenuNavigator>(relaxed = true), player, guild, Logger.getLogger("BedrockHomeAnywhereTest"),
+            dependencies = net.lumalyte.lg.interaction.menus.bedrock.bedrockWorkerLegacyDependencies(),
         )
 
         BedrockGuildHomeMenu::class.java.getDeclaredMethod("showSetHomeMenu")
@@ -102,7 +103,7 @@ internal class GuildHomeAnywhereMenuTest : GuildRankMenuFixture() {
         val unsafe = Location(world, 10.0, 69.0, 10.0)
         unsafe.block.type = org.bukkit.Material.LAVA
         player.teleport(unsafe)
-        val menu = io.mockk.spyk(GuildHomeMenu(MenuNavigator(player), player, guild))
+        val menu = io.mockk.spyk(GuildHomeMenu(MenuNavigator(player), player, guild, services = javaALegacyMenuServices()))
         every { menu.open() } returns Unit
 
         GuildHomeMenu::class.java.getDeclaredMethod("setGuildHome", String::class.java)
@@ -127,6 +128,7 @@ internal class GuildHomeAnywhereMenuTest : GuildRankMenuFixture() {
         player.teleport(unsafe)
         val menu = BedrockGuildHomeMenu(
             mockk<MenuNavigator>(relaxed = true), player, guild, Logger.getLogger("BedrockUnsafeHomeTest"),
+            dependencies = net.lumalyte.lg.interaction.menus.bedrock.bedrockWorkerLegacyDependencies(),
         )
 
         BedrockGuildHomeMenu::class.java.getDeclaredMethod("showSetHomeMenu")

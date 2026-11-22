@@ -33,7 +33,7 @@ internal class FullscreenAnnounceCommandTest {
 
     @Test fun announcementLimits() {
         val fixture = Fixture()
-        val command = FullscreenAnnounceCommand()
+        val command = net.lumalyte.lg.interaction.testListenerFullscreenAnnounceCommand()
         command.announce(fixture.player, MESSAGE)
         verify(exactly = 0) { fixture.chat.sendGuildAnnouncement(any(), any(), any()) }
         fixture.muted = false

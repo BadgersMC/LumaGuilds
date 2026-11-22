@@ -94,7 +94,8 @@ class ChatServiceBukkit(
     }
 
     private fun formatGuildTag(guild: Guild, brackets: Boolean = true): String {
-        val displayedGuild = guild.copy(emoji = nexoEmojiService.getEmojiPlaceholder(guild.emoji))
+        // An emoji whose glyph no longer resolves comes back empty; Guild rejects that, so drop it.
+        val displayedGuild = guild.copy(emoji = displayEmoji(nexoEmojiService.getEmojiPlaceholder(guild.emoji)))
         return GuildDisplayUtils.createGuildTag(displayedGuild, brackets)
     }
 
@@ -356,8 +357,8 @@ class ChatServiceBukkit(
         try {
             val config = configService.loadConfig().party
 
-            if (!config.partyChatEnabled) {
-                // Fallback to basic formatting if disabled
+            if (!config.partyChatEnabled || !Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+                // Use the built-in localized format when placeholder expansion is unavailable.
                 return if (guildTag.isNotEmpty()) {
                     lang.plain("notification.chat.party.with_tag", "tag" to guildTag, "player" to senderName, "message" to message)
                 } else {
@@ -674,6 +675,10 @@ class ChatServiceBukkit(
     }
 
     companion object {
+        /** A value Guild accepts as its emoji (`:name:`), or null to show none. */
+        internal fun displayEmoji(placeholder: String?): String? =
+            placeholder?.takeIf { it.length > 2 && it.startsWith(":") && it.endsWith(":") }
+
         const val UNKNOWN_PLAYER = "Unknown"
 
         /**

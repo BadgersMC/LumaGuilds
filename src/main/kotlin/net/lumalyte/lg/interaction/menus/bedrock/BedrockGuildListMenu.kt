@@ -9,7 +9,6 @@ import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
-import org.koin.core.component.inject
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.logging.Logger
@@ -18,10 +17,18 @@ class BedrockGuildListMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     logger: Logger,
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    private val dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
 
-    private val guildListService: GuildListService by inject()
-    private val lang: LangService by inject()
+    private var guildListServiceProvider: (() -> GuildListService)? = null
+
+    /** Bound by the owning MenuFactory before this screen is opened. */
+    internal fun withGuildListServiceProvider(provider: (() -> GuildListService)?): BedrockGuildListMenu = apply {
+        guildListServiceProvider = provider
+    }
+
+    private val guildListService by lazy { guildListServiceProvider?.invoke() ?: services.guildListService.value }
+    private val lang get() = dependencies.lang
 
     private var currentPage = 0
     private var sortKey = GuildListSortKey.ALL_TIME_ACTIVE

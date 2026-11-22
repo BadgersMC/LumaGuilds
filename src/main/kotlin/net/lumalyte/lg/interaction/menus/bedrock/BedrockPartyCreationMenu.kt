@@ -13,8 +13,6 @@ import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.time.Duration
 import java.util.UUID
 import java.util.logging.Logger
@@ -27,13 +25,14 @@ class BedrockPartyCreationMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
 
-    private val partyService: PartyService by inject()
-    private val configService: ConfigService by inject()
-    private val guildRepository: GuildRepository by inject()
-    private val lang: LangService by inject()
+    private val partyService: PartyService by services.partyService
+    private val configService: ConfigService by services.configService
+    private val guildRepository: GuildRepository by services.guildRepository
+    private val lang: LangService by services.langService
 
     override fun getForm(): Form {
         if (!partyService.canManageParties(player.uniqueId, guild.id)) {

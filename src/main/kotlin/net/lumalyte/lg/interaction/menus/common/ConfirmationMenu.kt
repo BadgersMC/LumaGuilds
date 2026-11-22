@@ -15,13 +15,10 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
-import kotlin.getValue
 
 class ConfirmationMenu(val menuNavigator: MenuNavigator, val player: Player, val title: String,
-                       val callbackAction: () -> Unit): Menu, KoinComponent {
-    private val lang: LangService by inject()
+                       private val lang: LangService,
+                       val callbackAction: () -> Unit): Menu {
 
     override fun open() {
         val gui = HopperGui(title)

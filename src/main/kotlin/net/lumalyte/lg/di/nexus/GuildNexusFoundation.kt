@@ -1,0 +1,124 @@
+package net.lumalyte.lg.di.nexus
+
+import net.badgersmc.nexus.core.NexusContext
+import net.badgersmc.nexus.i18n.LangHost
+import net.badgersmc.nexus.i18n.LangService
+import net.badgersmc.nexus.i18n.Locale
+import net.lumalyte.lg.LumaGuilds
+import net.lumalyte.lg.application.services.ConfigService
+import net.lumalyte.lg.config.MainConfig
+import net.lumalyte.lg.di.runtime.registerCommandBindings
+import net.lumalyte.lg.infrastructure.i18n.LocaleCompatibilityMigrator
+import net.lumalyte.lg.infrastructure.i18n.LumaGuildsLang
+import net.lumalyte.lg.infrastructure.persistence.storage.Storage
+import net.lumalyte.lg.infrastructure.services.AsyncTaskService
+import net.lumalyte.lg.infrastructure.services.ConfigServiceBukkit
+import net.lumalyte.lg.infrastructure.services.TeleportationService
+import net.lumalyte.lg.interaction.commands.GuildCommandCompletions
+import net.lumalyte.lg.interaction.commands.GuildCommandHandlers
+import net.lumalyte.lg.interaction.commands.PartyChatHandler
+import org.bukkit.configuration.file.FileConfiguration
+import org.bukkit.plugin.Plugin
+import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.logging.Logger
+
+/**
+ * Owns the Guilds context between successful storage migration and runtime shutdown.
+ */
+internal class GuildNexusFoundation private constructor(
+    val context: NexusContext
+) : AutoCloseable {
+    private val closed = AtomicBoolean(false)
+
+    companion object {
+        /**
+         * Called only after LumaGuilds config, storage and database migrations have succeeded.
+         * Bean definitions are lazy; the existing locale migrator runs on first LangService use.
+         */
+        fun prepare(plugin: LumaGuilds, storage: Storage<*>, claimsEnabled: Boolean = true): GuildNexusFoundation {
+            val context = NexusContext.create(
+                classLoader = plugin.javaClass.classLoader,
+                contextName = "LumaGuilds"
+            )
+            try {
+                context.registerBean("plugin", LumaGuilds::class, plugin)
+                context.registerBean("pluginContract", Plugin::class, plugin)
+                context.registerBean("dataFolder", File::class, plugin.dataFolder)
+                context.registerBean("bukkitConfig", FileConfiguration::class, plugin.config)
+                context.registerBean("pluginLogger", Logger::class, plugin.logger)
+                context.registerBean("storage", Storage::class, storage)
+
+                context.registerBean("configService", ConfigService::class) {
+                    // Reload-aware, like the original Koin coreModule config provider.
+                    ConfigServiceBukkit { plugin.config }
+                }
+                context.registerBean("mainConfig", MainConfig::class) {
+                    context.getBean<ConfigService>().loadConfig()
+                }
+                context.registerBean("langService", LangService::class) {
+                    LocaleCompatibilityMigrator.migrate(plugin.dataFolder, plugin.logger)
+                    LangService(LangHost.of(plugin), Locale("en_US"), LumaGuildsLang::class.java)
+                }
+
+                context.registerCoreServiceBindings(plugin)
+
+                context.registerBean("asyncTaskService", AsyncTaskService::class) {
+                    AsyncTaskService(
+                        scope = context.getBean(),
+                        virtualDispatcher = requireNotNull(context.dispatchers).virtualThread,
+                        plugin = context.getBean<Plugin>()
+                    )
+                }
+                context.registerBean("teleportationService", TeleportationService::class) {
+                    TeleportationService(context.getBean<Plugin>(), context.getBean<LangService>())
+                }
+                if (claimsEnabled) context.registerClaimBindings()
+                context.registerGuildCoreBindings(claimsEnabled)
+                context.registerSocialBindings()
+                context.registerProgressionBindings()
+                context.registerEconomyBindings()
+                context.registerVaultBindings()
+                context.registerWarBindings()
+                context.registerQuestBindings()
+                context.registerWebBindings()
+                context.registerDiscordBindings()
+                context.registerIntegrationBindings(plugin)
+                context.registerProgressionListenerBindings()
+                context.registerInteractionListenerBindings(claimsEnabled)
+                context.registerBean("guildCommandHandlers", GuildCommandHandlers::class) {
+                    GuildCommandHandlers(context.nexusGuildCommandDependencies())
+                }
+                context.registerBean("partyChatHandler", PartyChatHandler::class) {
+                    PartyChatHandler(context.nexusPartyChatCommandDependencies())
+                }
+                context.registerBean("guildCommandCompletions", GuildCommandCompletions::class) {
+                    GuildCommandCompletions(
+                        guildService = lazy { context.getBean() },
+                        memberService = lazy { context.getBean() },
+                        relationService = lazy { context.getBean() },
+                        nexoEmojiService = lazy { context.getBean() },
+                    )
+                }
+                context.registerCommandBindings(claimsEnabled)
+
+                // Nexus owns and closes its CoroutineScope and virtual-thread dispatchers.
+                // Do not create a second pluginScope / ExecutorService here.
+                return GuildNexusFoundation(context)
+            } catch (failure: Throwable) {
+                try {
+                    context.close()
+                } catch (cleanup: Throwable) {
+                    failure.addSuppressed(cleanup)
+                }
+                throw failure
+            }
+        }
+    }
+
+    override fun close() {
+        if (closed.compareAndSet(false, true)) {
+            context.close()
+        }
+    }
+}

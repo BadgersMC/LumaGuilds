@@ -17,7 +17,7 @@ internal class GuildContributionReturnTest : GuildParentReturnFixture() {
         every { bank.open() } answers { visits += "bank"; Unit }
         every { history.open() } answers { visits += "history"; Unit }
         every { factory.createGuildBankTransactionHistoryMenu(navigator, player, guild) } returns history
-        val contributions = traced(GuildMemberContributionsMenu(navigator, player, guild), "contributions", visits)
+        val contributions = traced(GuildMemberContributionsMenu(navigator, player, guild, services = javaALegacyMenuServices()), "contributions", visits)
         navigator.openMenu(dashboard(visits))
         navigator.openMenu(bank)
         navigator.openMenu(history)

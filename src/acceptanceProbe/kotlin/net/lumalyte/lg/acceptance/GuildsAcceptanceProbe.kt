@@ -1,9 +1,6 @@
 package net.lumalyte.lg.acceptance
 
 import net.lumalyte.lg.api.events.GuildBankContributionEvent
-import net.lumalyte.lg.application.persistence.QuestRepository
-import net.lumalyte.lg.application.services.GuildService
-import net.lumalyte.lg.application.services.QuestService
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.command.ConsoleCommandSender
@@ -21,9 +18,6 @@ import java.util.UUID
 /** Separate opt-in TEST tool; absent from the LumaGuilds production artifact. */
 class GuildsAcceptanceProbe : JavaPlugin(), Listener {
     private val journal get() = dataFolder.toPath().resolve("quest-fixture.json")
-    private val repository get() = ProbeServices.resolve(QuestRepository::class.java)
-    private val quests get() = ProbeServices.resolve(QuestService::class.java)
-    private val guilds get() = ProbeServices.resolve(GuildService::class.java)
     private val actor get() = UUID.fromString(config.getString("actor-uuid"))
     private var latest: GuildBankContributionEvent? = null
 
@@ -36,7 +30,7 @@ class GuildsAcceptanceProbe : JavaPlugin(), Listener {
         dataFolder.mkdirs()
         server.pluginManager.registerEvents(this, this)
         // An interrupted fixture is restored first, even after its action window expires.
-        if (Files.exists(journal)) runCatching { gate(cleanup = true); closeQuest() }
+        if (Files.exists(journal)) runCatching { closeQuest(gate(cleanup = true)) }
             .onFailure { logger.severe("Acceptance fixture requires review: ${it.message}") }
         server.scheduler.runTaskTimer(this, Runnable {
             if (Files.exists(journal) && runCatching {
@@ -48,11 +42,11 @@ class GuildsAcceptanceProbe : JavaPlugin(), Listener {
     override fun onDisable() = restoreIfOpen()
 
     private fun restoreIfOpen() {
-        if (Files.exists(journal)) runCatching { gate(cleanup = true); closeQuest() }
+        if (Files.exists(journal)) runCatching { closeQuest(gate(cleanup = true)) }
             .onFailure { logger.severe("Acceptance fixture requires review: ${it.message}") }
     }
 
-    private fun gate(cleanup: Boolean = false) {
+    private fun gate(cleanup: Boolean = false): ProbeServices {
         reloadConfig()
         check(config.getBoolean("enabled", false)) { "Probe disabled" }
         val bridge = requireNotNull(server.pluginManager.getPlugin("EnthusiaTestBridge"))
@@ -69,36 +63,37 @@ class GuildsAcceptanceProbe : JavaPlugin(), Listener {
         check(marker["environment"] == "TEST" && marker["environment-id"] == config.getString("environment-id"))
         check(marker["deployment-nonce"] == bridge.config.getString("deployment-nonce"))
         val guildsPlugin = requireNotNull(server.pluginManager.getPlugin("LumaGuilds"))
-        ProbeServices.requireOwner(guildsPlugin.javaClass.classLoader)
         val jar = java.nio.file.Path.of(guildsPlugin.javaClass.protectionDomain.codeSource.location.toURI())
         val hash = MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(jar))
             .joinToString("") { "%02x".format(it) }
         check(hash == config.getString("guilds-sha256")) { "Guilds pin mismatch" }
+        val services = ProbeServices.bind(guildsPlugin)
         if (!cleanup) {
             val end = Instant.parse(config.getString("expires-at"))
             check(Instant.now().isBefore(end) && end.isBefore(Instant.now().plusSeconds(7200)))
             check(server.onlinePlayers.all { it.uniqueId == actor }) { "Other participants online" }
             val player = requireNotNull(server.getPlayer(actor))
             check(player.name == "FainNeito")
-            val guild = guilds.getPlayerGuilds(actor).single()
+            val guild = services.guilds.getPlayerGuilds(actor).single()
             check(guild.name == "GoldProofOct26") { "Disposable guild required" }
         }
+        return services
     }
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         if (sender !is ConsoleCommandSender) return true
         runCatching {
             check(args.size == 1)
-            gate(cleanup = args[0] == "quest-close")
+            val services = gate(cleanup = args[0] == "quest-close")
             when (args[0]) {
-                "snapshot" -> snapshot()
-                "quest-open" -> openQuest()
-                "quest-close" -> closeQuest()
+                "snapshot" -> snapshot(services)
+                "quest-open" -> openQuest(services)
+                "quest-close" -> closeQuest(services)
                 "replay-last" -> {
                     val event = requireNotNull(latest)
-                    check(event.playerId == actor && guilds.getPlayerGuilds(actor).single().id == event.guildId)
-                    quests.incrementBankDeposit(event.guildId, actor, event.transactionId)
-                    snapshot()
+                    check(event.playerId == actor && services.guilds.getPlayerGuilds(actor).single().id == event.guildId)
+                    services.quests.incrementBankDeposit(event.guildId, actor, event.transactionId)
+                    snapshot(services)
                 }
                 else -> error("Unknown closed operation")
             }
@@ -106,34 +101,34 @@ class GuildsAcceptanceProbe : JavaPlugin(), Listener {
         return true
     }
 
-    private fun openQuest() {
+    private fun openQuest(services: ProbeServices) {
         check(!Files.exists(journal)) { "Journal already exists; reconcile first" }
-        val original = requireNotNull(repository.getActiveQuestSet())
+        val original = requireNotNull(services.repository.getActiveQuestSet())
         val updated = QuestFixturePlan.install(original)
         val record = JSONObject().put("week", original.weekId).put("hash", QuestFixturePlan.fingerprint(original))
         Files.writeString(journal, record.toString(), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)
-        repository.saveActiveQuestSet(updated)
-        check(repository.getActiveQuestSet() == updated)
+        services.repository.saveActiveQuestSet(updated)
+        check(services.repository.getActiveQuestSet() == updated)
         logger.info("ACCEPTANCE quest-open count=5000 reward=500 original-hash=${record.getString("hash")}")
-        snapshot()
+        snapshot(services)
     }
 
-    private fun closeQuest() {
+    private fun closeQuest(services: ProbeServices) {
         if (!Files.exists(journal)) { logger.info("ACCEPTANCE fixture already closed"); return }
         val record = JSONObject(Files.readString(journal))
-        val restored = QuestFixturePlan.restore(requireNotNull(repository.getActiveQuestSet()),
+        val restored = QuestFixturePlan.restore(requireNotNull(services.repository.getActiveQuestSet()),
             record.getString("week"), record.getString("hash"))
-        repository.saveActiveQuestSet(restored)
-        check(repository.getActiveQuestSet() == restored)
+        services.repository.saveActiveQuestSet(restored)
+        check(services.repository.getActiveQuestSet() == restored)
         Files.move(journal, dataFolder.toPath().resolve("closed-${System.currentTimeMillis()}.json"))
         logger.info("ACCEPTANCE original quest definitions restored exactly")
     }
 
-    private fun snapshot() {
-        val guild = guilds.getPlayerGuilds(actor).single()
-        val week = requireNotNull(repository.getActiveQuestSet())
+    private fun snapshot(services: ProbeServices) {
+        val guild = services.guilds.getPlayerGuilds(actor).single()
+        val week = requireNotNull(services.repository.getActiveQuestSet())
         logger.info("ACCEPTANCE guild=${guild.id} bank=${guild.bankBalance} fixture=" +
-            week.quests.firstOrNull { it.id == QuestFixturePlan.ID }?.let { quests.progressFor(guild.id, it.id) })
+            week.quests.firstOrNull { it.id == QuestFixturePlan.ID }?.let { services.quests.progressFor(guild.id, it.id) })
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

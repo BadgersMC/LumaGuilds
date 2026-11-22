@@ -15,9 +15,7 @@ import net.lumalyte.lg.domain.entities.MemberContribution
 import net.lumalyte.lg.domain.entities.TransactionType
 import net.lumalyte.lg.domain.entities.AuditAction
 import net.lumalyte.lg.domain.entities.RankPermission
-import net.milkbowl.vault.economy.Economy
 import org.bukkit.Bukkit
-import org.bukkit.plugin.RegisteredServiceProvider
 import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.util.UUID
@@ -81,9 +79,6 @@ class BankServiceBukkit(
 
     private val logger = LoggerFactory.getLogger(BankServiceBukkit::class.java)
 
-    // Vault Economy integration
-    private var economy: Economy? = null
-
     init {
         setupEconomy()
     }
@@ -100,35 +95,20 @@ class BankServiceBukkit(
             return
         }
 
-        val rsp: RegisteredServiceProvider<Economy>? = Bukkit.getServer().servicesManager.getRegistration(Economy::class.java)
-        if (rsp == null) {
+        val economy = currentVaultEconomy()
+        if (economy == null) {
             logger.info("Waiting for a Vault economy provider to register; Guild Bank checks availability before each operation")
             return
         }
 
-        economy = rsp.provider
-        logger.info("Successfully hooked into economy provider: ${economy?.javaClass?.simpleName}")
-    }
-
-    /**
-     * Get the Vault economy instance
-     */
-    private fun getEconomy(): Economy? {
-        val registered = Bukkit.getServer().servicesManager.getRegistration(Economy::class.java)?.provider
-        if (registered !== economy) {
-            economy = registered
-            if (registered != null) {
-                logger.info("Successfully hooked into economy provider: ${registered.javaClass.simpleName}")
-            }
-        }
-        return economy
+        logger.info("Successfully hooked into economy provider: ${economy.javaClass.simpleName}")
     }
 
     /**
      * Check if Vault economy is available and working
      */
     fun isEconomyAvailable(): Boolean {
-        val economy = getEconomy()
+        val economy = currentVaultEconomy()
         return economy != null
     }
 
@@ -136,7 +116,7 @@ class BankServiceBukkit(
      * Get the name of the current economy provider
      */
     fun getEconomyProviderName(): String? {
-        return getEconomy()?.javaClass?.simpleName ?: "None"
+        return currentVaultEconomy()?.javaClass?.simpleName ?: "None"
     }
 
     override fun quoteJoinFee(guildId: UUID, amount: Int): Int? =
@@ -317,7 +297,7 @@ class BankServiceBukkit(
 
     override fun getPlayerBalance(playerId: UUID): Int {
         try {
-            val economy = getEconomy()
+            val economy = currentVaultEconomy()
             if (economy == null) {
                 logger.error("Cannot get player balance: Vault economy not available")
                 return 0
@@ -455,7 +435,7 @@ class BankServiceBukkit(
 
     override fun withdrawPlayer(playerId: UUID, amount: Int, reason: String?): Boolean {
         try {
-            val economy = getEconomy()
+            val economy = currentVaultEconomy()
             if (economy == null) {
                 logger.error("Cannot withdraw from player balance: Vault economy not available")
                 return false
@@ -516,7 +496,7 @@ class BankServiceBukkit(
 
     override fun depositPlayer(playerId: UUID, amount: Int, reason: String?): Boolean {
         try {
-            val economy = getEconomy()
+            val economy = currentVaultEconomy()
             if (economy == null) {
                 logger.error("Cannot deposit to player balance: Vault economy not available")
                 return false

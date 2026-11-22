@@ -32,7 +32,7 @@ internal class GuildPenaltyReturnTest : GuildParentReturnFixture() {
         val options = mockk<GuildStrikePenaltyMenu>(relaxed = true)
         every { options.open() } answers { visits += "options"; Unit }
         val confirmation = traced(
-            GuildStrikePenaltyConfirmMenu(navigator, player, guild, PenaltyType.LEVEL_REDUCTION, StrikesConfig()),
+            GuildStrikePenaltyConfirmMenu(navigator, player, guild, PenaltyType.LEVEL_REDUCTION, StrikesConfig(), services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()),
             "confirmation", visits,
         )
         navigator.openMenu(dashboard(visits))

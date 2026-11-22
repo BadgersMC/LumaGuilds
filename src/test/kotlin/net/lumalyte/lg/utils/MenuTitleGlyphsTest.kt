@@ -21,7 +21,7 @@ internal class MenuTitleGlyphsTest {
         for (theme in GuiTheme.SELECTABLE.filter { it.hasBackground }) {
             for (rows in 1..6) {
                 val suffix = "${theme.name.lowercase()}_${rows}_row"
-                val raw = Component.text(MenuTitleBuilder.build(theme, rows, "Statistics"))
+                val raw = Component.text(MenuTitleBuilder.format(theme, rows, "Statistics"))
                 val background = Component.text("\uE900\uF801").font(nexoFont)
                 val requests = mutableListOf<String>()
                 val fixed = MenuTitleGlyphs.withGlyphFonts(raw) { id ->
@@ -68,7 +68,7 @@ internal class MenuTitleGlyphsTest {
     /** Background glyph tag becomes the glyph with its nexo font. */
     @Test
     fun backgroundTagGetsNexoFont() {
-        val raw = Component.text(MenuTitleBuilder.build(GuiTheme.ENTHUSIA, 6, "Guild Settings"))
+        val raw = Component.text(MenuTitleBuilder.format(GuiTheme.ENTHUSIA, 6, "Guild Settings"))
         val fixed = MenuTitleGlyphs.withGlyphFonts(raw, lookup)
         assertTrue(fonts(fixed).any { it.first == "ꁅ" && it.second == nexoFont }, fonts(fixed).toString())
         val plain = PlainTextComponentSerializer.plainText().serialize(fixed)
@@ -79,7 +79,7 @@ internal class MenuTitleGlyphsTest {
     /** Unknown glyphs keep their tag so nexo can still try. */
     @Test
     fun unknownGlyphKeepsTag() {
-        val raw = Component.text(MenuTitleBuilder.build(GuiTheme.VOIDLIGHT, 3, "X"))
+        val raw = Component.text(MenuTitleBuilder.format(GuiTheme.VOIDLIGHT, 3, "X"))
         assertEquals(raw, MenuTitleGlyphs.withGlyphFonts(raw, lookup))
     }
 

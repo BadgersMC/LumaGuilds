@@ -29,10 +29,12 @@ jobs:
       with:
         persist-credentials: false
 
-    - name: Setup JDK 25
+    - name: Set up JDK 21 for Nexus core and JDK 25 for Guilds
       uses: actions/setup-java@v3
       with:
-        java-version: '25'
+        java-version: |
+          21
+          25
         distribution: 'temurin'
 
     # Compile against the canonical official Rosewood 26.2 source. Enthusia-specific
@@ -134,7 +136,7 @@ jobs:
     - name: Build Gradle using shadowJar
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: ./gradlew shadowJar
+      run: ./gradlew shadowJar verifyRuntimePackaging
 
     - name: Save Artifact
       uses: actions/upload-artifact@v4

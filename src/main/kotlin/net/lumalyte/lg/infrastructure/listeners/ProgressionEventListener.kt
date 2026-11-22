@@ -4,8 +4,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -79,7 +77,10 @@ class ProgressionEventListener(
     private val blockProvenanceRepository: BlockProvenanceRepository,
     private val plugin: Plugin,
     private val virtualDispatcher: CoroutineDispatcher,
+    private val taskScope: CoroutineScope,
     private val provenanceOperations: BlockProvenanceOperationQueue,
+    /** Optional Apollo (Lunar Client) service; null when Apollo is absent. Invoked per XP multiplier check. */
+    private val lunarClientService: () -> net.lumalyte.lg.application.services.apollo.LunarClientService?,
 ) : Listener {
 
     private val logger = LoggerFactory.getLogger(ProgressionEventListener::class.java)
@@ -98,7 +99,8 @@ class ProgressionEventListener(
         cachedProgressionConfig.entityPools
     )
 
-    private val flushScope = CoroutineScope(SupervisorJob() + virtualDispatcher)
+    // Launched as a child of the plugin's managed scope. Shutdown cancels only
+    // the flush job, then drains XP before the owner closes the dispatcher/DB.
     @Volatile private var flushJob: Job? = null
 
     init {
@@ -128,7 +130,6 @@ class ProgressionEventListener(
         // Force-drain everything still buffered, ignoring cooldowns, before final guild flush.
         flushEligiblePlayerCounters(force = true)
         flushPendingGuildXp()
-        flushScope.cancel()
     }
 
     private fun rebuildExperienceSourceCache(config: ProgressionConfig) {
@@ -149,7 +150,7 @@ class ProgressionEventListener(
 
     private fun startFlushTask() {
         flushJob?.cancel()
-        flushJob = flushScope.launch {
+        flushJob = taskScope.launch(virtualDispatcher) {
             while (isActive) {
                 delay(FLUSH_INTERVAL_MS)
                 try {
@@ -540,9 +541,8 @@ class ProgressionEventListener(
 
     private fun lunarMultiplier(player: Player): Int {
         return try {
-            val lunarClientService = org.koin.core.context.GlobalContext.get()
-                .getOrNull<net.lumalyte.lg.application.services.apollo.LunarClientService>()
-            if (lunarClientService != null && lunarClientService.isLunarClient(player)) 2 else 1
+            val lunarClient = lunarClientService()
+            if (lunarClient != null && lunarClient.isLunarClient(player)) 2 else 1
         } catch (e: Exception) {
             1
         }

@@ -18,8 +18,6 @@ import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
 import org.geysermc.floodgate.api.FloodgateApi
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.UUID
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -32,15 +30,16 @@ class BedrockGuildHomeMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
 
-    private val guildService: GuildService by inject()
-    private val homeActivationService: net.lumalyte.lg.application.services.GuildHomeActivationService by inject()
-    private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by inject()
-    private val plugin: Plugin by inject()
-    private val lang: LangService by inject()
-    private val configService: ConfigService by inject()
+    private val guildService: GuildService by services.guildService
+    private val homeActivationService: net.lumalyte.lg.application.services.GuildHomeActivationService by services.guildHomeActivationService
+    private val teleportationService: net.lumalyte.lg.infrastructure.services.TeleportationService by services.teleportationService
+    private val plugin: Plugin by services.plugin
+    private val lang: LangService by services.langService
+    private val configService: ConfigService by services.configService
 
     override fun getForm(): Form {
         val homes = guildService.getHomes(guild.id)
@@ -128,7 +127,7 @@ class BedrockGuildHomeMenu(
                     } else {
                         player.sendMessage(lang.msg("bedrock.home.feedback.restore_unavailable", "home" to homeName))
                     }
-                    bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+                    bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
                     return
                 }
                 if (!homeActivationService.isActive(guild.id, homeName)) {
@@ -247,7 +246,7 @@ class BedrockGuildHomeMenu(
         ) {
             player.sendMessage(lang.msg("menu.guild_home.feedback.unsafe_set"))
             player.sendMessage(lang.msg("menu.guild_home.feedback.safety_hint"))
-            bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+            bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
             return
         }
 
@@ -288,7 +287,7 @@ class BedrockGuildHomeMenu(
         }
 
         // Reopen menu to refresh
-        bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+        bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
     }
 
     private fun activateSavedHome(homeName: String) {
@@ -309,7 +308,7 @@ class BedrockGuildHomeMenu(
             is HomeActivationCostResult.PaymentFailed -> player.sendMessage(lang.msg("bedrock.home.feedback.activation_review", "transaction" to result.transactionId))
             is HomeActivationCostResult.ActivationFailed -> player.sendMessage(lang.msg("bedrock.home.feedback.activation_failed", "home" to homeName))
         }
-        bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+        bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
     }
 
     private fun showHomeAccessSelection(homes: net.lumalyte.lg.domain.entities.GuildHomes) {
@@ -329,13 +328,13 @@ class BedrockGuildHomeMenu(
                             menuFactory.createHomeAccessMenu(menuNavigator, player, guild, homeName)
                         )
                     } else {
-                        bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+                        bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
                     }
                 })
             }
             .closedOrInvalidResultHandler { _, _ ->
                 Bukkit.getScheduler().runTask(plugin, Runnable {
-                    bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+                    bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
                 })
             }
             .build()
@@ -376,7 +375,7 @@ class BedrockGuildHomeMenu(
                 Bukkit.getScheduler().runTask(
                     plugin,
                     Runnable {
-                        bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+                        bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
                     },
                 )
             }
@@ -394,7 +393,7 @@ class BedrockGuildHomeMenu(
         }
 
         // Reopen menu to refresh
-        bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+        bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
     }
 
     override fun handleResponse(player: Player, response: Any?) {

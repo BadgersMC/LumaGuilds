@@ -20,8 +20,6 @@ import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
 import org.bukkit.Bukkit
 import org.bukkit.plugin.Plugin
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.logging.Logger
@@ -36,15 +34,16 @@ class BedrockGuildProgressionInfoMenu(
     private val guild: Guild,
     logger: Logger,
     private val adminOverrideService: AdminOverrideService? = null,
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
 
-    private val progressionService: ProgressionService by inject()
-    private val progressionRepository: ProgressionRepository by inject()
-    private val lang: LangService by inject()
-    private val purchases: GuildRewardPurchaseService by inject()
-    private val prestige: GuildPrestigeService by inject()
-    private val members: MemberService by inject()
-    private val serverPlugin: Plugin by inject()
+    private val progressionService: ProgressionService by services.progressionService
+    private val progressionRepository: ProgressionRepository by services.progressionRepository
+    private val lang: LangService by services.langService
+    private val purchases: GuildRewardPurchaseService by services.guildRewardPurchaseService
+    private val prestige: GuildPrestigeService by services.guildPrestigeService
+    private val members: MemberService by services.memberService
+    private val serverPlugin: Plugin by services.plugin
 
     private fun isScopedInspector(): Boolean {
         val isMember = members.getMember(player.uniqueId, guild.id) != null
@@ -151,14 +150,15 @@ class BedrockGuildProgressionInfoMenu(
                             open()
                         } else {
                             BedrockRewardPurchaseMenu(
-                                menuNavigator, player, quote, offer.reward.name, ::open, logger
+                                menuNavigator, player, quote, offer.reward.name, ::open, logger,
+                                dependencies = bedrockDependencies,
                             ).open()
                         }
                         return@Runnable
                     }
                     if (index == offers.size) {
                         bedrockNavigator.openMenu(
-                            BedrockPrestigeSelectionMenu(menuNavigator, player, guild, logger)
+                            BedrockPrestigeSelectionMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies)
                         )
                     } else if (index == offers.size + 1) {
                         openQuests()

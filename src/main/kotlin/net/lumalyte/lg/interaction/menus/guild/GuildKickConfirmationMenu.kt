@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.interaction.menus.MenuServices
 import net.lumalyte.lg.utils.inventoryframework.addPane
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.gui
@@ -25,16 +26,15 @@ import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.SkullMeta
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 class GuildKickConfirmationMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                               private val guild: Guild, private val memberToKick: Member): Menu, KoinComponent {
+                               private val guild: Guild, private val memberToKick: Member,
+    services: MenuServices): Menu {
 
-    private val guildService: GuildService by inject()
-    private val memberService: MemberService by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
-    private val lang: LangService by inject()
+    private val guildService: GuildService by services.guildService
+    private val memberService: MemberService by services.memberService
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by services.menuFactory
+    private val lang: LangService by services.langService
 
     override fun open() {
         // Create 3x9 chest GUI

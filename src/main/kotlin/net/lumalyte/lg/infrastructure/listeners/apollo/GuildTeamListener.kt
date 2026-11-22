@@ -2,6 +2,7 @@ package net.lumalyte.lg.infrastructure.listeners.apollo
 
 import net.lumalyte.lg.application.services.MemberService
 import net.lumalyte.lg.api.events.GuildTrackingChangedEvent
+import net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService
 import net.lumalyte.lg.infrastructure.services.apollo.GuildTeamService
 import net.lumalyte.lg.infrastructure.services.apollo.GuildWaypointService
 import org.bukkit.event.EventHandler
@@ -17,7 +18,9 @@ import org.slf4j.LoggerFactory
 class GuildTeamListener(
     private val guildTeamService: GuildTeamService,
     private val memberService: MemberService,
-    private val guildWaypointService: GuildWaypointService? = null
+    private val guildWaypointService: GuildWaypointService? = null,
+    /** Optional notification service (null when Apollo notifications are disabled); resolved on each join. */
+    private val guildNotificationService: () -> GuildNotificationService?,
 ) : Listener {
 
     private val logger = LoggerFactory.getLogger(GuildTeamListener::class.java)
@@ -38,7 +41,7 @@ class GuildTeamListener(
             guildWaypointService?.onPlayerJoin(player)
 
             // Send welcome notification to Lunar Client users
-            val notificationService = org.koin.core.context.GlobalContext.get().getOrNull<net.lumalyte.lg.infrastructure.services.apollo.GuildNotificationService>()
+            val notificationService = guildNotificationService()
             notificationService?.sendWelcomeNotification(player)
         } catch (e: Exception) {
             logger.error("Error handling player join for Apollo services: ${e.message}", e)

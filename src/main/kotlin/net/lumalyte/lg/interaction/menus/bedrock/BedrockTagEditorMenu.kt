@@ -13,8 +13,6 @@ import net.lumalyte.lg.utils.GuildTagValidationMessages
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.logging.Logger
 import net.kyori.adventure.text.minimessage.MiniMessage
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
@@ -28,12 +26,13 @@ class BedrockTagEditorMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
 
-    private val guildService: GuildService by inject()
-    private val configService: ConfigService by inject()
-    private val lang: LangService by inject()
+    private val guildService: GuildService by services.guildService
+    private val configService: ConfigService by services.configService
+    private val lang: LangService by services.langService
 
     override fun getForm(): Form {
         val currentTag = guildService.getTag(guild.id)
@@ -68,7 +67,7 @@ class BedrockTagEditorMenu(
                         player.sendMessage(lang.msg("bedrock.tag_editor.qr.url"))
                         player.sendMessage(lang.msg("bedrock.tag_editor.qr.divider"))
                         // Reopen the menu so they can continue editing
-                        bedrockNavigator.openMenu(BedrockTagEditorMenu(menuNavigator, player, guild, logger))
+                        bedrockNavigator.openMenu(BedrockTagEditorMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
                         return@validResultHandler
                     }
 

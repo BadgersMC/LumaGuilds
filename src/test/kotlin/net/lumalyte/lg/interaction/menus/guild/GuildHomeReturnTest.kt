@@ -14,8 +14,8 @@ import kotlin.test.assertEquals
 internal class GuildHomeReturnTest : GuildParentReturnFixture() {
     @Test fun `home and ally access Back unwind to the existing homes screen even after repeated clicks`() {
         val constructors: List<(MenuNavigator) -> Menu> = listOf(
-            { HomeAccessMenu(it, player, guild, "Home") },
-            { AllyHomeAccessMenu(it, player, guild) },
+            { HomeAccessMenu(it, player, guild, "Home", services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()) },
+            { AllyHomeAccessMenu(it, player, guild, services = javaALegacyMenuServices()) },
         )
         constructors.forEach { create ->
             val navigator = MenuNavigator(player)
@@ -38,15 +38,15 @@ internal class GuildHomeReturnTest : GuildParentReturnFixture() {
 
     @Test fun `revoked home permission returns without leaving the denied editor in history`() {
         every { ranks.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_HOME) } returns false
-        assertGuardReturn { HomeAccessMenu(it, player, guild, "Home") }
-        assertGuardReturn { AllyHomeAccessMenu(it, player, guild) }
+        assertGuardReturn { HomeAccessMenu(it, player, guild, "Home", services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()) }
+        assertGuardReturn { AllyHomeAccessMenu(it, player, guild, services = javaALegacyMenuServices()) }
     }
 
     @Test fun `removed home returns without reopening the missing-home editor on Back`() {
         every { ranks.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_HOME) } returns true
         val guilds = GlobalContext.get().get<GuildService>()
         every { guilds.getHome(guild.id, "Home") } returns null
-        assertGuardReturn { HomeAccessMenu(it, player, guild, "Home") }
+        assertGuardReturn { HomeAccessMenu(it, player, guild, "Home", services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()) }
     }
 
     @Test fun `direct denied entry creates one homes fallback and Back does not retry the editor`() {
@@ -54,7 +54,7 @@ internal class GuildHomeReturnTest : GuildParentReturnFixture() {
         val homes = mockk<GuildHomeMenu>(relaxed = true)
         every { ranks.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_HOME) } returns false
         every { factory.createGuildHomeMenu(navigator, player, guild) } returns homes
-        navigator.openMenu(HomeAccessMenu(navigator, player, guild, "Home"))
+        navigator.openMenu(HomeAccessMenu(navigator, player, guild, "Home", services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices()))
         navigator.goBack()
         verify(exactly = 1) { homes.open() }
         verify(exactly = 1) { factory.createGuildHomeMenu(navigator, player, guild) }

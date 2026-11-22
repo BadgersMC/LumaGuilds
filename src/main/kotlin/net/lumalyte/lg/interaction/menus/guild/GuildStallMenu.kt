@@ -26,8 +26,7 @@ import org.bukkit.inventory.Inventory
 import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 
 // Literal title keys keep the existing locale source-contract scanner authoritative.
 
@@ -38,12 +37,12 @@ internal class GuildStallMenu(
     private val player: Player,
     private val guild: Guild,
     private val bedrock: Boolean,
+    private val services: MenuServices,
     private val client: GuildStallReadService = GuildStallReadClient(),
-) : Menu,
-    KoinComponent {
-    private val plugin: Plugin by inject()
-    private val members: MemberService by inject()
-    private val lang: LangService by inject()
+) : Menu {
+    private val plugin: Plugin by services.plugin
+    private val members: MemberService by services.memberService
+    private val lang: LangService by services.langService
     private val presentation by lazy { GuildStallPresentation(lang) }
     private var selected: String? = null
     private var page = 0
@@ -199,7 +198,10 @@ internal class GuildStallMenu(
         private val token: Long,
         private val summary: Component,
         private val rows: List<Row>,
-    ) : BaseBedrockMenu(menuNavigator, actor, plugin.logger) {
+    ) : BaseBedrockMenu(
+        menuNavigator, actor, plugin.logger,
+        this@GuildStallMenu.services.menuFactory.value.requiredBedrockDependencies(),
+    ) {
         override fun getForm(): Form {
             val plain =
                 net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer

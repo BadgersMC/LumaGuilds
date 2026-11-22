@@ -8,8 +8,6 @@ import org.bukkit.command.CommandExecutor
 import org.bukkit.command.CommandSender
 import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /**
  * Admin command to manually credit a player's Vault balance.
@@ -18,10 +16,11 @@ import org.koin.core.component.inject
  * Usage: /bankcredit <player> <amount>
  */
 class BankCreditCommand(
-    private val bankService: BankService
-) : CommandExecutor, TabCompleter, KoinComponent {
+    private val bankService: BankService,
+    lang: Lazy<LangService>,
+) : CommandExecutor, TabCompleter {
 
-    private val lang: LangService by inject()
+    private val lang: LangService by lang
 
     override fun onCommand(
         sender: CommandSender,

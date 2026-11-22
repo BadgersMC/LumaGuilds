@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.interaction.menus.MenuServices
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
 import net.badgersmc.nexus.i18n.LangService
@@ -31,8 +32,6 @@ import net.lumalyte.lg.utils.name
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /**
  * Guild Progression Menu — shows guild level, period-aware XP caps per source, and rewards.
@@ -56,12 +55,13 @@ class GuildProgressionMenu(
     private val menuFactory: MenuFactory,
     private val menuItemBuilder: MenuItemBuilder,
     private val configService: ConfigService,
+    private val services: MenuServices,
     private val adminOverrideService: AdminOverrideService? = null,
-) : Menu, KoinComponent {
+) : Menu {
 
-    private val lang: LangService by inject()
-    private val rewardPurchases: GuildRewardPurchaseService by inject()
-    private val prestigeService: GuildPrestigeService by inject()
+    private val lang: LangService by services.langService
+    private val rewardPurchases: GuildRewardPurchaseService by services.guildRewardPurchaseService
+    private val prestigeService: GuildPrestigeService by services.guildPrestigeService
 
     private var currentPage = 0
     private var rewardState: GuildRewardRead = GuildRewardRead.Disabled
@@ -225,10 +225,10 @@ class GuildProgressionMenu(
     private fun progressionDialogActions() =
         listOfNotNull(
             if (isMember()) nativeAction(lang.gui("achievements.title")) {
-                menuNavigator.openMenu(GuildAchievementsMenu(menuNavigator, player, guild))
+                menuNavigator.openMenu(GuildAchievementsMenu(menuNavigator, player, guild, services = services))
             } else null,
             if (isMember() && rewardState is GuildRewardRead.Available) nativeAction(lang.gui("chronicle.title")) {
-                menuNavigator.openMenu(GuildChronicleMenu(menuNavigator, player, guild))
+                menuNavigator.openMenu(GuildChronicleMenu(menuNavigator, player, guild, services = services))
             } else null,
             nativeAction(lang.gui("guild_dialogs.progression.quests"), ::openNativeQuests),
             nativeAction(lang.gui("dialog_v2.leaderboard")) {
@@ -260,12 +260,11 @@ class GuildProgressionMenu(
     private fun openNativePrestige() {
         if (!isMember()) return
         menuNavigator.openMenu(GuildChronicleMenu(menuNavigator, player, guild,
-            initialPrestige = true, reviewPrestige = ::openPrestigeSelection))
+            initialPrestige = true, reviewPrestige = ::openPrestigeSelection, services = services))
     }
 
     private fun repoProgression(): GuildProgressionDisplay? {
-        val repo = org.koin.core.context.GlobalContext.get()
-            .get<net.lumalyte.lg.application.persistence.ProgressionRepository>()
+        val repo = services.progressionRepository.value
         val prog = repo.getGuildProgression(guild.id) ?: return null
         val (currentXp, neededXp) = progressionService.getLevelProgress(prog.totalExperience)
         val chapterTwo = rewardState as? GuildRewardRead.Available
@@ -461,7 +460,7 @@ class GuildProgressionMenu(
                 if (!isMember() || offer.status != RewardOfferStatus.AVAILABLE) return@GuiItem
                 val quote = rewardPurchases.quote(player.uniqueId, guild.id, offer.reward.id)
                 if (quote == null) player.sendMessage(lang.msg("chapter_two_rewards.purchase.no_quote"))
-                else GuildRewardPurchaseMenu(player, quote, offer.reward.name, ::openRewardCatalog).open()
+                else GuildRewardPurchaseMenu(player, quote, offer.reward.name, ::openRewardCatalog, services = services).open()
             }, index % 9, index / 9)
         }
         val benefits = state.entitlements
@@ -494,7 +493,7 @@ class GuildProgressionMenu(
             }
             referenceItem(icon, listOf(title, referenceRewardEffect(lang, offer.reward.effect)), referenceAction(title, icon) {
                 GuildChronicleMenu(menuNavigator, player, guild, initialRewardId = offer.reward.id,
-                    returnToBrowser = ::openRewardCatalog).open()
+                    returnToBrowser = ::openRewardCatalog, services = services).open()
             }, right = listOf(lang.rewardStatus(offer.status),
                 lang.gui("chapter_two_rewards.level_price", "level" to offer.reward.level, "price" to offer.reward.price)),
                 section = if (index == 0 || visible[index - 1].reward.level != offer.reward.level)
@@ -625,7 +624,7 @@ class GuildProgressionMenu(
                     player.sendMessage(lang.msg("menu.guild_progression.prestige.feedback.quote_failed"))
                     open()
                 } else {
-                    GuildPrestigeConfirmationMenu(player, quote, reward.name, ::openPrestigeSelection, ::open).open()
+                    GuildPrestigeConfirmationMenu(player, quote, reward.name, ::openPrestigeSelection, ::open, services = services).open()
                 }
             }, index % 9, index / 9)
         }

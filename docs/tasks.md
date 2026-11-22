@@ -1097,3 +1097,47 @@ Menu audit follow-up (REQ-063):
   - Local verification:79focused pass; full2298pass/106skip/0failure/error.
     Source-only local follow-up to PR19; publication, hosted checks, real-client
     visual acceptance and mobile-accessible preview delivery remain outstanding.
+
+## Nexus DI migration — complete KoinComponent removal (PR #254, 2026-11-21)
+- [x] **NEXUS-DI-COMPLETE** Convert every remaining KoinComponent / `by inject()` / global Koin lookup in production Kotlin to explicit constructor injection or typed lazy dependency bundles, wired in both the transitional Koin graph and the inert Nexus graph.
+  - Tag: `TDD`
+  - References: REQ-NEXUS-DI-1 through REQ-NEXUS-DI-5; `docs/NEXUS-MIGRATION.md`; plan and baseline manifest `docs/superpowers/plans/2026-11-21-complete-nexus-di-migration.md`.
+  - Evidence: all 181 initial component-token files and all 206 consumer-manifest files converted. Production component tokens and injection delegates: zero. Combined 663 tests pass; full Java 25 clean regression: 2,826 total / 2,720 executed / 106 skipped / zero failures/errors. Source-pattern scan: 1,054 files, zero findings/errors. Exact-head hosted CI is checked separately on PR #254. Nexus activation, ACF removal and real-client acceptance remain separate gates.
+
+## Nexus runtime cutover — PR #254 (2026-11-21)
+- [~] **NEXUS-COMMAND-PARITY** Complete guild/party command ports and prove every legacy route, alias, permission, resolver and completion against the pinned Nexus command tree. Tag: `TDD`. References: REQ-NEXUS-CUTOVER-1; `docs/NEXUS-MIGRATION.md`. Evidence: investigation started from green `5359deb5`; Market is the runtime reference. No activation yet.
+- [x] **NEXUS-LIFECYCLE-CUTOVER** Replace legacy bootstrap with one Nexus owner, preserving storage, external APIs, optional integrations and shutdown/failure cleanup. Tag: `TDD`. References: REQ-NEXUS-CUTOVER-2/3; `docs/NEXUS-MIGRATION.md` strict ordering.
+- [x] **NEXUS-LEGACY-REMOVAL** Remove production Koin/ACF source and packaging after parity; retain IDB. Tag: `TDD`. References: REQ-NEXUS-CUTOVER-4.
+- [~] **NEXUS-RELEASE-ACCEPTANCE** Run full Java 25/MariaDB checks, review quality findings and prove live Paper Java/Bedrock behavior. Tag: `TDD`. References: REQ-NEXUS-CUTOVER-4. Evidence: live acceptance and production release are not established by previous consumer tests.
+
+### Desktop restore and command integration
+
+- Verified both Git bundles and restored claim and lifecycle patches independently on `5359deb5`. The guild and party ports are integrated locally on top of the PlaceholderAPI fix at `b8bcd32b`.
+- Added a singleton-resolution regression to `GuildNexusFoundationTest`. With both ports present, 54 of 55 focused tests passed and the new assertion failed because Nexus had no `GuildCommandHandlers` bean. After registering the shared handlers and completions, all 55 passed on Java 25 at the existing Nexus pin.
+- Local Nexus `eb55c12a4547f07a9553ecd522989e046c093dda` passed the Paper module suite. At that checkpoint Guilds consumed `5ae8b642`. The root-argument fix stays local and another developer owns publication to the Guilds branch.
+- GitHub reports a successful build on `5359deb500a04f4477cce42ddc201c3ff9dda54e`. Codacy requires action there (1,522 added issues and 490 resolved). Exact-candidate hosted CI, MariaDB, and live Java/Bedrock acceptance remain open.
+
+- The local `handoff/integration` command checkpoint `0412a40f` passed the full Java 25 suite (2,877 tests, 106 skipped, zero failures/errors), shadowJar and acceptance-probe packaging. Its legacy bootstrap failed a clean Paper 26.2 start with only RoseChat installed because Vault Chat was absent.
+- Restored lifecycle baseline on `5359deb5` passed 2,874 tests with 106 skipped and zero failures/errors. The historical two failures did not reproduce. The claim snapshot reproduced two assertion-fixture failures, and running additional suites exposed command-scanner ordering. Claim fixes cover literal Floodgate names beginning with @, partial matching, hidden-player confirmation, metadata and multiword rename. Original-pin claim regression: 104 passed.
+- The combined runtime now registers the complete command catalog with shared handlers and suggestions. Both claims modes scan only after custom argument registration. All dispatcher fixtures now use the public Nexus registry with a Paper registrar test double. With local Nexus `eb55c12a`, 182 integrated command/runtime tests passed on Java 25, including dispatcher alias, shared-cooldown, console, party preference and permission-filtered completion regressions.
+- The published Nexus pin still fails root arguments. At this intermediate checkpoint the production preflight blocked activation.
+
+### Local cutover candidate
+
+- The local Guilds branch pins Nexus `eb55c12a4547f07a9553ecd522989e046c093dda`. The `nexusSourceDir` Gradle property can resolve the pinned modules from the handoff checkout. The Nexus commit is unpublished. The existing Guilds PR has a separate push owner.
+- On Paper 26.2 build 129, duplicate Bukkit command declarations intercepted the aliases. Removing the ten migrated roots from plugin.yml restored the full guild and party trees under their aliases and namespaces. The instrumented test server registered 11 roots from 23 classes with claims enabled, seven roots from seven classes with claims disabled, and the PlaceholderAPI expansion on a clean first start.
+- Initial missing-Vault and missing-PlaceholderAPI boots exposed eager optional class loading. The runtime now resolves both integrations conditionally, supplies configured claim limits without a Vault Chat provider, and skips event registration when Nexo is absent. Tests verify service identity, failed startup rollback, external listener cleanup, repeated shutdown and flush ordering.
+- Server dispatch accepts literal Floodgate names and privileged hidden-player confirmation. The client grammar check failed when a suggestion inserted a bare @ name. Completions now quote tokens as needed and hidden-player feedback shows a quoted confirmation token.
+- Production packaging checks require Nexus and relocated Aikar IDB, and detect both relocated and original ACF classes, ACF locale resources and Koin classes. Legacy comparison fixtures remain test-only. The acceptance probe binds to the enabled Guilds instance through typed service accessors.
+- The earlier runtime checkpoint `e4a11a31` passed 2,958 Java 25 tests including 106 skipped and zero failures or errors. Exact-head Java 25, local MariaDB, shaded-artifact and production-JAR Paper smoke results are recorded with the local handoff. Hosted CI and real Java/Bedrock gameplay acceptance remain open.
+
+### Live client acceptance on cd72a606
+
+- Dawn Java 26.3 and Dawn Bedrock 1.26.65 joined the same Paper lab through separate authenticated identities. Guild creation, invitation and joining worked. Java inventory and Bedrock form opened. Both clients could list claims with the specific permission and were denied claim override. The Java party selection survived a server restart.
+- Release blocked. In a new guild without an emoji in the Nexo-absent lab, sending a party message failed on both clients. Both traces reach ChatServiceBukkit.formatGuildTag at line 97 and the Guild constructor at line 67. Java inventory titles displayed raw glyph markup in this lab. Hosted CI and deployment remain outstanding.
+
+- Party delivery follow-up. The no-emoji formatting regression reproduced the Guild constructor failure on the original candidate. Applied the fork fix from FainNeito/LumaGuilds commit 09c3831c and used the localized party format when the optional PlaceholderAPI plugin is absent. Both focused regressions passed on JDK 25. Full-suite and two-client receipts accompany the rebuilt local artifact.
+
+- Java inventory title follow-up. Dawn 26.3 reproduced literal background and shift tags on the no-Nexo Paper lab at 63c46ed4. The new builder regression also failed there. Select the existing vanilla title style when Nexo is unavailable. With Nexo enabled the same three-row Enthusia title still selects the glyph declared by FainNeito/Enthusia-Pack at fc3748ce. All 73 focused title, glyph and icon checks passed on JDK 25. Exact-head suite and live receipts accompany the local handoff.
+
+- CI dependency follow-up. A clean checkout of d4b63508 with the workflow API jars failed offline compilation because the three direct Nexus coordinates at eb55c12a were unpublished. Guilds now includes the four required Nexus modules at that exact revision as Gradle source dependencies. Build and PR CI explicitly provision JDK 21 alongside 25. The release workflow already provisions both. Exact-head clean-checkout evidence accompanies the owner handoff.

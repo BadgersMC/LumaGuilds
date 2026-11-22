@@ -16,7 +16,7 @@ class GuildPrestigeUiContractTest {
 
     @Test
     fun `prestige is a live level 100 flow rather than future update copy`() {
-        assertTrue(progressionSource.contains("private val prestigeService: GuildPrestigeService by inject()"))
+        assertTrue(progressionSource.contains("private val prestigeService: GuildPrestigeService by services.guildPrestigeService"))
         assertTrue(progressionSource.contains("prestigeService.overview(guild.id)"))
         assertTrue(progressionSource.contains("prestigeService.quote(player.uniqueId, guild.id, reward.id)"))
         assertTrue(progressionSource.contains("fresh.currentLevel == 100"))

@@ -55,19 +55,54 @@ class PermissionConsistencyTest {
         return nodes
     }
 
-    /** All permission nodes referenced by @CommandPermission in main sources. */
-    private fun usedNodes(): Set<String> {
-        val perm = Regex("""@CommandPermission\("([\w.]+)"\)""")
-        val used = mutableSetOf<String>()
-        sourceRoot.walkTopDown()
-            .filter { it.extension == "kt" }
-            .forEach { f ->
-                f.readLines().forEach { line ->
-                    perm.findAll(line).forEach { used += it.groupValues[1] }
+    private val kotlinFiles: List<File> by lazy {
+        sourceRoot.walkTopDown().filter { it.extension == "kt" }.toList()
+    }
+
+    /** Legacy ACF `@CommandPermission("node")` string nodes (may legitimately become empty once ACF is removed). */
+    private fun acfNodes(): Set<String> {
+        val perm = Regex("""@CommandPermission\(\s*"([\w.]+)"\s*\)""")
+        return kotlinFiles.flatMap { f -> perm.findAll(f.readText()).map { it.groupValues[1] }.toList() }.toSet()
+    }
+
+    /** Top-level `const val NAME = "literal"` string constants across main sources. */
+    private fun stringConstants(): Map<String, String> {
+        val const = Regex("""const\s+val\s+(\w+)\s*(?::\s*String\s*)?=\s*"([^"$\\]*)"""")
+        val out = mutableMapOf<String, String>()
+        kotlinFiles.forEach { f -> const.findAll(f.readText()).forEach { out[it.groupValues[1]] = it.groupValues[2] } }
+        return out
+    }
+
+    /**
+     * Nexus `@Permission(...)` nodes: string literals plus const-val identifiers.
+     * Any argument that is neither a literal nor a resolvable constant is returned
+     * in [second] so callers can fail loudly instead of silently skipping it.
+     */
+    private fun nexusNodes(): Pair<Set<String>, Set<String>> {
+        val arg = Regex("""@Permission\(\s*(?:value\s*=\s*)?([^)]*?)\s*\)""")
+        val literal = Regex(""""([\w.]+)"""")
+        val ident = Regex("""[A-Za-z_]\w*""")
+        val consts = stringConstants()
+        val nodes = mutableSetOf<String>()
+        val unresolved = mutableSetOf<String>()
+        kotlinFiles.forEach { f ->
+            arg.findAll(f.readText()).forEach { m ->
+                val raw = m.groupValues[1]
+                val lits = literal.findAll(raw).map { it.groupValues[1] }.toList()
+                nodes += lits
+                // Non-literal remainder: identifiers outside quotes must resolve to constants.
+                val rest = raw.replace(Regex("\"[^\"]*\""), " ")
+                ident.findAll(rest).map { it.value }.forEach { id ->
+                    val v = consts[id]
+                    if (v != null) nodes += v else unresolved += "${f.name}:$id"
                 }
             }
-        return used
+        }
+        return nodes to unresolved
     }
+
+    /** All permission nodes referenced by ACF @CommandPermission and Nexus @Permission in main sources. */
+    private fun usedNodes(): Set<String> = acfNodes() + nexusNodes().first
 
     /** `default:` value of an individually-declared node, or null if undeclared. */
     private fun individualDefault(node: String): String? {
@@ -92,7 +127,20 @@ class PermissionConsistencyTest {
     }
 
     @Test
-    fun `every CommandPermission node used in code is declared in plugin yml`() {
+    fun `permission extraction is not vacuous and resolves every Nexus permission token`() {
+        val (nexus, unresolved) = nexusNodes()
+        assertEquals(emptySet<String>(), unresolved,
+            "Nexus @Permission arguments that are neither string literals nor const val strings " +
+                "(scanner cannot validate them against plugin.yml): $unresolved")
+        assertTrue(nexus.isNotEmpty(), "No Nexus @Permission nodes extracted; scanner is vacuous or Nexus sources moved")
+        assertTrue("lumaguilds.guild.chat" in nexus,
+            "const-val token QUICK_CHAT_PERMISSION must resolve to lumaguilds.guild.chat; got $nexus")
+        assertTrue(usedNodes().isNotEmpty(), "No permission nodes extracted from ACF or Nexus sources")
+        assertTrue(declaredNodes().isNotEmpty(), "No nodes parsed from plugin.yml")
+    }
+
+    @Test
+    fun `every ACF CommandPermission and Nexus Permission node used in code is declared in plugin yml`() {
         val missing = usedNodes() - declaredNodes()
         assertEquals(emptySet<String>(), missing,
             "Permission nodes used in code but missing from plugin.yml " +

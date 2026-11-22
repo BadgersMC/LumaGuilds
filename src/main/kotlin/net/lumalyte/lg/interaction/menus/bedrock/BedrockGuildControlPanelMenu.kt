@@ -9,7 +9,6 @@ import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.SimpleForm
 import org.geysermc.cumulus.form.Form
-import org.koin.core.component.inject
 import java.util.logging.Logger
 
 /**
@@ -19,11 +18,12 @@ class BedrockGuildControlPanelMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
 
-    private val configService: ConfigService by inject()
-    private val lang: LangService by inject()
+    private val configService: ConfigService by services.configService
+    private val lang: LangService by services.langService
 
     private data class MenuButton(
         val label: String,
@@ -55,63 +55,63 @@ class BedrockGuildControlPanelMenu(
         })
         // Always present buttons
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.members"), config.guildMembersIconUrl, config.guildMembersIconPath) {
-            bedrockNavigator.openMenu(BedrockGuildMemberListMenu(menuNavigator, player, guild, logger))
+            bedrockNavigator.openMenu(BedrockGuildMemberListMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
         })
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.settings"), config.guildSettingsIconUrl, config.guildSettingsIconPath) {
-            bedrockNavigator.openMenu(BedrockGuildSettingsMenu(menuNavigator, player, guild, logger))
+            bedrockNavigator.openMenu(BedrockGuildSettingsMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
         })
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.bank"), config.guildBankIconUrl, config.guildBankIconPath) {
-            bedrockNavigator.openMenu(BedrockGuildBankMenu(menuNavigator, player, guild, logger))
+            bedrockNavigator.openMenu(BedrockGuildBankMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
         })
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.ranks"), config.editIconUrl, config.editIconPath) {
-            bedrockNavigator.openMenu(BedrockGuildRankManagementMenu(menuNavigator, player, guild, null, logger))
+            bedrockNavigator.openMenu(BedrockGuildRankManagementMenu(menuNavigator, player, guild, null, logger, dependencies = bedrockDependencies))
         })
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.quests"), config.editIconUrl, config.editIconPath) {
             bedrockNavigator.openMenu(menuFactory.createGuildQuestsMenu(menuNavigator, player, guild))
         })
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.tag"), config.editIconUrl, config.editIconPath) {
-            bedrockNavigator.openMenu(BedrockTagEditorMenu(menuNavigator, player, guild, logger))
+            bedrockNavigator.openMenu(BedrockTagEditorMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
         })
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.statistics"), config.editIconUrl, config.editIconPath) {
-            bedrockNavigator.openMenu(BedrockGuildStatisticsMenu(menuNavigator, player, guild, logger))
+            bedrockNavigator.openMenu(BedrockGuildStatisticsMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
         })
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.information"), config.guildSettingsIconUrl, config.guildSettingsIconPath) {
-            bedrockNavigator.openMenu(BedrockGuildInfoMenu(menuNavigator, player, guild, logger))
+            bedrockNavigator.openMenu(BedrockGuildInfoMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
         })
 
         // Conditionally add mode button
         if (mainConfig.guild.modeSwitchingEnabled) {
             buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.mode"), config.guildSettingsIconUrl, config.guildSettingsIconPath) {
-                bedrockNavigator.openMenu(BedrockGuildModeMenu(menuNavigator, player, guild, logger))
+                bedrockNavigator.openMenu(BedrockGuildModeMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
             })
         }
 
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.rank_list"), config.guildSettingsIconUrl, config.guildSettingsIconPath) {
-            bedrockNavigator.openMenu(BedrockGuildRankListMenu(menuNavigator, player, guild, logger))
+            bedrockNavigator.openMenu(BedrockGuildRankListMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
         })
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.invite"), config.guildSettingsIconUrl, config.guildSettingsIconPath) {
-            bedrockNavigator.openMenu(BedrockGuildInviteMenu(menuNavigator, player, guild, logger))
+            bedrockNavigator.openMenu(BedrockGuildInviteMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
         })
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.kick"), config.guildSettingsIconUrl, config.guildSettingsIconPath) {
-            bedrockNavigator.openMenu(BedrockGuildKickMenu(menuNavigator, player, guild, logger))
+            bedrockNavigator.openMenu(BedrockGuildKickMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
         })
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.change_rank"), config.guildSettingsIconUrl, config.guildSettingsIconPath) {
-            bedrockNavigator.openMenu(BedrockGuildPromotionMenu(menuNavigator, player, guild, logger))
+            bedrockNavigator.openMenu(BedrockGuildPromotionMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
         })
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.progression"), config.guildSettingsIconUrl, config.guildSettingsIconPath) {
-            bedrockNavigator.openMenu(BedrockGuildProgressionInfoMenu(menuNavigator, player, guild, logger))
+            bedrockNavigator.openMenu(BedrockGuildProgressionInfoMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
         })
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.homes"), config.guildSettingsIconUrl, config.guildSettingsIconPath) {
-            bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger))
+            bedrockNavigator.openMenu(BedrockGuildHomeMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
         })
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.emoji"), config.guildSettingsIconUrl, config.guildSettingsIconPath) {
-            bedrockNavigator.openMenu(BedrockGuildEmojiMenu(menuNavigator, player, guild, logger))
+            bedrockNavigator.openMenu(BedrockGuildEmojiMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
         })
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.wars"), config.guildSettingsIconUrl, config.guildSettingsIconPath) {
-            bedrockNavigator.openMenu(BedrockGuildWarManagementMenu(menuNavigator, player, guild, logger))
+            bedrockNavigator.openMenu(BedrockGuildWarManagementMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
         })
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.relations"), config.guildSettingsIconUrl, config.guildSettingsIconPath) {
-            bedrockNavigator.openMenu(BedrockGuildRelationsMenu(menuNavigator, player, guild, logger))
+            bedrockNavigator.openMenu(BedrockGuildRelationsMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
         })
         buttons.add(MenuButton(lang.bedrock("bedrock.control_panel.button.close"), config.closeIconUrl, config.closeIconPath) {
             bedrockNavigator.goBack()

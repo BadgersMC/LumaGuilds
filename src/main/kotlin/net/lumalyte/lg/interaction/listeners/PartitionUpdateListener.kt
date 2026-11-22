@@ -12,14 +12,17 @@ import org.bukkit.Chunk
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
-class PartitionUpdateListener: Listener, KoinComponent {
-    private val getClaimDetails: GetClaimDetails by inject()
-    private val getClaimPartitions: GetClaimPartitions by inject()
-    private val isPlayerVisualising: IsPlayerVisualising by inject()
-    private val refreshVisualisation: RefreshVisualisation by inject()
+class PartitionUpdateListener(
+    getClaimDetails: Lazy<GetClaimDetails>,
+    getClaimPartitions: Lazy<GetClaimPartitions>,
+    isPlayerVisualising: Lazy<IsPlayerVisualising>,
+    refreshVisualisation: Lazy<RefreshVisualisation>,
+) : Listener {
+    private val getClaimDetails: GetClaimDetails by getClaimDetails
+    private val getClaimPartitions: GetClaimPartitions by getClaimPartitions
+    private val isPlayerVisualising: IsPlayerVisualising by isPlayerVisualising
+    private val refreshVisualisation: RefreshVisualisation by refreshVisualisation
 
     @EventHandler
     fun onPartitionUpdate(event: PartitionModificationEvent) {

@@ -14,12 +14,23 @@ import org.bukkit.entity.Player
 import org.bukkit.event.Listener
 import org.bukkit.metadata.FixedMetadataValue
 import org.bukkit.plugin.Plugin
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
 import java.util.UUID
+
+/** Explicit lazy collaborators for [PartyChatListener] (REQ-NEXUS-DI-1..3); each resolves on first use. */
+data class PartyChatListenerDependencies(
+    val chatService: Lazy<ChatService>,
+    val preferenceRepository: Lazy<PlayerPartyPreferenceRepository>,
+    val partyRepository: Lazy<PartyRepository>,
+    val guildService: Lazy<GuildService>,
+    val memberService: Lazy<MemberService>,
+    val configService: Lazy<ConfigService>,
+    val chatInputListener: Lazy<ChatInputListener>,
+    val plugin: Lazy<Plugin>,
+    val lang: Lazy<LangService>,
+)
 
 /**
  * Listener that intercepts regular chat messages and routes them to party chat
@@ -38,17 +49,19 @@ import java.util.UUID
  * Note: This listener does NOT use @EventHandler annotation - it is manually
  * registered in LumaGuilds.kt with a configurable priority from config.yml
  */
-class PartyChatListener : Listener, KoinComponent {
+class PartyChatListener(
+    dependencies: PartyChatListenerDependencies,
+) : Listener {
 
-    private val chatService: ChatService by inject()
-    private val preferenceRepository: PlayerPartyPreferenceRepository by inject()
-    private val partyRepository: PartyRepository by inject()
-    private val guildService: GuildService by inject()
-    private val memberService: MemberService by inject()
-    private val configService: ConfigService by inject()
-    private val chatInputListener: ChatInputListener by inject()
-    private val plugin: Plugin by inject()
-    private val lang: LangService by inject()
+    private val chatService: ChatService by dependencies.chatService
+    private val preferenceRepository: PlayerPartyPreferenceRepository by dependencies.preferenceRepository
+    private val partyRepository: PartyRepository by dependencies.partyRepository
+    private val guildService: GuildService by dependencies.guildService
+    private val memberService: MemberService by dependencies.memberService
+    private val configService: ConfigService by dependencies.configService
+    private val chatInputListener: ChatInputListener by dependencies.chatInputListener
+    private val plugin: Plugin by dependencies.plugin
+    private val lang: LangService by dependencies.lang
 
     private val chatClaimMeta = "lumaguilds:chat_claimed"
 

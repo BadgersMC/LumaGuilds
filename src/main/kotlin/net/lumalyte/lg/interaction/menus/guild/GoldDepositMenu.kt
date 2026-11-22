@@ -1,7 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.PhysicalGoldRequest
 import net.lumalyte.lg.domain.gold.GuildGoldResult
@@ -38,11 +37,12 @@ class GoldDepositMenu(
     private val guildId: UUID,
     private val guildName: String,
     private val vaultInventoryManager: VaultInventoryManager,
-    private val transactionLogger: VaultTransactionLogger
-) : Listener, KoinComponent {
+    private val transactionLogger: VaultTransactionLogger,
+    private val services: MenuServices
+) : Listener {
 
-    private val bankService: BankService by inject()
-    private val lang: LangService by inject()
+    private val bankService: BankService by services.bankService
+    private val lang: LangService by services.langService
 
     private lateinit var inventory: Inventory
     private var isOpen = false
@@ -195,7 +195,7 @@ class GoldDepositMenu(
 
         isOpen = false
 
-        val physical: net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter by inject()
+        val physical: net.lumalyte.lg.infrastructure.services.BukkitPhysicalGoldAdapter by services.bukkitPhysicalGoldAdapter
         try {
             physical.withDepositInventory(player.uniqueId, inventory, setOf(13, 22)) {
                 val amount = if (confirm) bankService.getMaxPhysicalDeposit(guildId, player.uniqueId) else 0

@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.interaction.menus.MenuServices
 import net.lumalyte.lg.utils.inventoryframework.addPane
 import com.github.stefvanschie.inventoryframework.gui.GuiItem
 import com.github.stefvanschie.inventoryframework.gui.type.ChestGui
@@ -13,16 +14,15 @@ import net.lumalyte.lg.interaction.menus.Menu
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /** The same quote survives an uncertain result, so every retry has the same transaction ID. */
 class GuildRewardPurchaseMenu(private val player: Player, private val quote: RewardPurchaseRequest,
     private val rewardName: String, private val back: () -> Unit,
+    services: MenuServices,
     private val theme: net.lumalyte.lg.utils.GuiTheme = net.lumalyte.lg.utils.GuiTheme.DEFAULT,
-    private val valid: () -> Boolean = { true }) : Menu, KoinComponent {
-    private val purchases: GuildRewardPurchaseService by inject()
-    private val lang: LangService by inject()
+    private val valid: () -> Boolean = { true }) : Menu {
+    private val purchases: GuildRewardPurchaseService by services.guildRewardPurchaseService
+    private val lang: LangService by services.langService
 
     internal fun createGui(): ChestGui {
         val gui = ChestGui(3, net.lumalyte.lg.utils.MenuTitleBuilder.build(theme, 3,

@@ -6,13 +6,13 @@ import net.lumalyte.lg.application.services.GuildRecruitmentService
 import net.lumalyte.lg.application.services.GuildService
 import net.lumalyte.lg.application.services.LfgService
 import net.lumalyte.lg.application.services.MemberService
+import net.lumalyte.lg.application.services.PlatformDetectionService
 import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.domain.recruitment.RecruitmentMode
 import net.lumalyte.lg.domain.recruitment.RecruitmentProfile
 import net.lumalyte.lg.domain.values.JoinRequirement
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 import java.util.UUID
 
 internal enum class RecruitmentScreen {
@@ -60,14 +60,16 @@ internal data class RecruitmentInput(val label: String, val value: String, val a
 internal class RecruitmentController(
     internal val player: Player,
     internal val refresh: () -> Unit,
+    private val services: MenuServices,
     internal val returnGuard: () -> (() -> Boolean) = { { true } },
-) : KoinComponent {
-    internal val service: GuildRecruitmentService by inject()
-    internal val guilds: GuildService by inject()
-    internal val members: MemberService by inject()
-    internal val lfg: LfgService by inject()
-    internal val directory: RecruitmentDirectoryRepository by inject()
-    internal val lang: LangService by inject()
+) {
+    internal val service: GuildRecruitmentService by services.guildRecruitmentService
+    internal val guilds: GuildService by services.guildService
+    internal val members: MemberService by services.memberService
+    internal val lfg: LfgService by services.lfgService
+    internal val directory: RecruitmentDirectoryRepository by services.recruitmentDirectoryRepository
+    internal val lang: LangService by services.langService
+    internal val platforms: PlatformDetectionService by services.platformDetectionService
     internal var screen = RecruitmentScreen.BROWSE
     internal var methodReturn = RecruitmentScreen.SETTINGS
     internal var initialized = false

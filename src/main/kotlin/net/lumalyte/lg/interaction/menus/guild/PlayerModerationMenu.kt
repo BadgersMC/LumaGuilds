@@ -29,8 +29,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.SkullMeta
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 import java.time.Duration
 import java.time.Instant
 import java.util.UUID
@@ -44,13 +43,14 @@ class PlayerModerationMenu(
     private val player: Player,
     private var guild: Guild,
     private var party: Party,
-    private val targetPlayerId: UUID
-) : Menu, KoinComponent {
+    private val targetPlayerId: UUID,
+    private val services: MenuServices,
+) : Menu {
 
-    private val memberService: MemberService by inject()
-    private val partyService: PartyService by inject()
-    private val menuFactory: MenuFactory by inject()
-    private val lang: LangService by inject()
+    private val memberService: MemberService by services.memberService
+    private val partyService: PartyService by services.partyService
+    private val menuFactory: MenuFactory by services.menuFactory
+    private val lang: LangService by services.langService
 
     override fun open() {
         // Check permission
@@ -322,7 +322,7 @@ class PlayerModerationMenu(
 
         pane.addItem(GuiItem(backItem) {
             menuNavigator.returnToWithData(PartyModerationMenu::class.java, party) {
-                PartyModerationMenu(menuNavigator, player, guild, party)
+                PartyModerationMenu(menuNavigator, player, guild, party, services = services)
             }
         }, 4, 2)
     }

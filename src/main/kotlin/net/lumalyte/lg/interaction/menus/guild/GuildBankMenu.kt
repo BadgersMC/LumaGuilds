@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.interaction.menus.MenuServices
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import net.badgersmc.nexus.i18n.LangService
@@ -39,8 +40,6 @@ import org.bukkit.event.inventory.InventoryType
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.scheduler.BukkitRunnable
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import kotlin.math.max
 import kotlin.math.min
 
@@ -50,15 +49,16 @@ import kotlin.math.min
 class GuildBankMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
-    private var guild: Guild
-) : Menu, KoinComponent, Listener {
+    private var guild: Guild,
+    private val services: MenuServices
+) : Menu, Listener {
 
-    private val vaultInventoryManager: net.lumalyte.lg.infrastructure.vault.VaultInventoryManager by inject()
-    private val lang: LangService by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
-    private val guildService: net.lumalyte.lg.application.services.GuildService by inject()
-    private val bankService: BankService by inject() // Keep for transaction history only
-    private val memberService: net.lumalyte.lg.application.services.MemberService by inject()
+    private val vaultInventoryManager: net.lumalyte.lg.infrastructure.vault.VaultInventoryManager by services.vaultInventoryManager
+    private val lang: LangService by services.langService
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by services.menuFactory
+    private val guildService: net.lumalyte.lg.application.services.GuildService by services.guildService
+    private val bankService: BankService by services.bankService // Keep for transaction history only
+    private val memberService: net.lumalyte.lg.application.services.MemberService by services.memberService
 
     // GUI components
     private lateinit var gui: ChestGui
@@ -292,7 +292,7 @@ class GuildBankMenu(
      * Open the detailed transaction history menu
      */
     private fun openTransactionHistory() {
-        val historyMenu = GuildBankTransactionHistoryMenu(menuNavigator, player, guild)
+        val historyMenu = GuildBankTransactionHistoryMenu(menuNavigator, player, guild, services = services)
         menuNavigator.openMenu(historyMenu)
     }
 

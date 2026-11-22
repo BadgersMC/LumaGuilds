@@ -9,12 +9,8 @@ import net.lumalyte.lg.domain.entities.Guild
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
-import org.koin.dsl.module
 import java.time.Instant
 import java.util.UUID
 
@@ -30,16 +26,14 @@ class GuildGettingStartedNavigationTest {
     private lateinit var navigation: GuildGettingStartedNavigation
 
     @BeforeEach fun setup() {
-        stopKoin()
         every { player.isOnline } returns true
         every { service.snapshot(any(), any()) } answers { current }
         every { lang.msg(any()) } answers { Component.text(firstArg<String>()) }
-        startKoin { modules(module {
-            single { service }; single { factory }; single { navigator }; single { prompts }; single { lang }
-        }) }
-        navigation = GuildGettingStartedNavigation(navigator, player, guild.id)
+        navigation = GuildGettingStartedNavigation(
+            navigator, player, guild.id,
+            GuildGettingStartedNavigationDependencies(service, factory, prompts, lang),
+        )
     }
-    @AfterEach fun cleanup() = stopKoin()
 
     @Test fun `revoked membership after display denies stale click`() {
         navigation.snapshot()

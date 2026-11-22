@@ -41,7 +41,7 @@ internal class GuildPrestigeInformationTest : RecruitmentDialogFixture() {
         loadKoinModules(module { single { service }; single { members }; single { config }; single { prestige }; single { purchases } })
         var reviews = 0
         val nav = MenuNavigator(player)
-        nav.openMenu(GuildChronicleMenu(nav, player, guild, presenter, initialPrestige = true, reviewPrestige = { reviews++ }))
+        nav.openMenu(GuildChronicleMenu(nav, player, guild, javaALegacyMenuServices(), presenter, initialPrestige = true, reviewPrestige = { reviews++ }))
         val plain = PlainTextComponentSerializer.plainText()
         renderedPage!!.bodyActions[1].action()
         assertEquals(6, renderedPage!!.items.size)

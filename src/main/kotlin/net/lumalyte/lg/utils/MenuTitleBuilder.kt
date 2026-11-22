@@ -1,5 +1,7 @@
 package net.lumalyte.lg.utils
 
+import org.bukkit.Bukkit
+
 /**
  * Builds ChestGui titles that use Nexo font-glyph overlays for
  * themed guild-menu backgrounds.
@@ -46,6 +48,11 @@ object MenuTitleBuilder {
      * @return       Title string for the ChestGui constructor.
      */
     fun build(theme: GuiTheme = GuiTheme.DEFAULT, rows: Int, title: String = ""): String {
+        val hasNexo = Bukkit.getServer()?.pluginManager?.isPluginEnabled("Nexo") == true
+        return format(if (hasNexo) theme else GuiTheme.VANILLA, rows, title)
+    }
+
+    internal fun format(theme: GuiTheme = GuiTheme.DEFAULT, rows: Int, title: String = ""): String {
         val theme = theme.resolved()
         // Vanilla style: plain chest title. White text is meant for the dark themed backgrounds,
         // so it is reset to the default chest colour; other colours are kept.

@@ -41,11 +41,14 @@ class SpawnBannerWiringTest {
 
     @Test
     fun pluginStartsAndStopsDynamicBannerReconciliation() {
-        val source = File("src/main/kotlin/net/lumalyte/lg/LumaGuilds.kt").readText()
-        assertTrue(source.contains("SpawnBannerListener"))
-        assertTrue(source.contains("GuildLeaderboardProjectionService>().start"))
-        assertTrue(source.contains("spawnBannerService.start()"))
-        assertTrue(source.contains("GuildLeaderboardProjectionService>()?.stop()"))
-        assertTrue(source.contains("SpawnBannerServiceBukkit>()?.stop()"))
+        val listeners = File("src/main/kotlin/net/lumalyte/lg/di/runtime/GuildListenerRegistration.kt").readText()
+        val schedules = File("src/main/kotlin/net/lumalyte/lg/di/runtime/GuildScheduleRegistration.kt").readText()
+        assertTrue(listeners.contains("listen(graph.spawnBannerListener)"))
+        assertTrue(schedules.contains("val projection = graph.guildLeaderboardProjectionService"))
+        assertTrue(schedules.contains("projection.start {"))
+        assertTrue(schedules.contains("spawnBanners.refreshLeaderboard(key.type, key.period)"))
+        assertTrue(schedules.contains("spawnBanners.start()"))
+        assertTrue(schedules.contains("{ projection.stop() }"))
+        assertTrue(schedules.contains("{ spawnBanners.stop() }"))
     }
 }

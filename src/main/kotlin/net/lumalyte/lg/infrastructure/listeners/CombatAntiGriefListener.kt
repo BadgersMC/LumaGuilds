@@ -10,8 +10,6 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.BlockExplodeEvent
 import org.bukkit.event.entity.EntityExplodeEvent
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 
 /**
@@ -28,11 +26,15 @@ import org.slf4j.LoggerFactory
  * player source can be determined, the explosion is NOT attributed to anyone
  * and block damage proceeds (explicit no-actor policy).
  */
-class CombatAntiGriefListener : Listener, KoinComponent {
+class CombatAntiGriefListener(
+    configService: Lazy<ConfigService>,
+    warService: Lazy<WarService>,
+    memberService: Lazy<MemberService>,
+) : Listener {
 
-    private val configService: ConfigService by inject()
-    private val warService: WarService by inject()
-    private val memberService: MemberService by inject()
+    private val configService: ConfigService by configService
+    private val warService: WarService by warService
+    private val memberService: MemberService by memberService
 
     private val logger = LoggerFactory.getLogger(CombatAntiGriefListener::class.java)
 

@@ -76,7 +76,7 @@ class GuildEmojiClearTest {
 
         val player = server.addPlayer()
         val guild = Guild(id = guildId, name = "Clearable", emoji = storedEmoji, createdAt = Instant.EPOCH)
-        val menu = GuildEmojiMenu(mockk<MenuNavigator>(relaxed = true), player, guild)
+        val menu = GuildEmojiMenu(mockk<MenuNavigator>(relaxed = true), player, guild, services = javaALegacyMenuServices())
         val pane = StaticPane(0, 0, 9, 3)
         val addClearButton = GuildEmojiMenu::class.java.getDeclaredMethod(
             "addClearButton",

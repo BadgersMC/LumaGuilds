@@ -20,14 +20,13 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 
 class ClaimIconMenu(private val player: Player, private val menuNavigator: MenuNavigator,
-                    private val claim: Claim?): Menu, KoinComponent {
-    private val lang: LangService by inject()
-    private val updateClaimIcon: UpdateClaimIcon by inject()
-    private val schedulerService: SchedulerService by inject()
+                    private val claim: Claim?, private val services: MenuServices): Menu {
+    private val lang: LangService by services.langService
+    private val updateClaimIcon: UpdateClaimIcon by services.updateClaimIcon
+    private val schedulerService: SchedulerService by services.schedulerService
 
     override fun open() {
         if (claim == null) {

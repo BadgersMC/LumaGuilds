@@ -1,0 +1,69 @@
+package net.lumalyte.lg.interaction.commands
+
+import net.badgersmc.nexus.i18n.LangService
+import net.lumalyte.lg.infrastructure.i18n.plain
+
+import co.aikar.commands.annotation.CommandAlias
+import co.aikar.commands.annotation.CommandPermission
+import co.aikar.commands.annotation.Subcommand
+import net.lumalyte.lg.application.actions.claim.flag.EnableClaimFlag
+import net.lumalyte.lg.application.actions.claim.metadata.GetClaimDetails
+import net.lumalyte.lg.application.results.claim.flags.EnableClaimFlagResult
+import org.bukkit.entity.Player
+import net.lumalyte.lg.domain.values.Flag
+import java.util.UUID
+
+@CommandAlias("claim")
+class AddFlagCommand(
+    claimDependencies: ClaimCommandDependencies,
+    enableClaimFlag: Lazy<EnableClaimFlag>,
+) : ClaimCommand(claimDependencies) {
+    private val lang: LangService by claimDependencies.lang
+    private val enableClaimFlag: EnableClaimFlag by enableClaimFlag
+    private val getClaimDetails: GetClaimDetails by claimDependencies.getClaimDetails
+
+    @Subcommand("addflag")
+    @CommandPermission("lumaguilds.command.claim.addflag")
+    fun onAddFlag(player: Player, flag: Flag) {
+        // Gets the partition at the player's current location
+        val partition = getPartitionAtPlayer(player) ?: return
+        if (!isPlayerHasClaimPermission(player, partition, net.lumalyte.lg.domain.entities.RankPermission.MANAGE_FLAGS)) return
+
+        // Assign common variables
+        val claimId = partition.claimId
+        val playerId = player.uniqueId
+
+        // Add flag to the claim and notify player of result
+        val message = when (enableClaimFlag.execute(flag, partition.claimId)) {
+            EnableClaimFlagResult.Success -> lang.msg(
+                "command.claim.add_flag.success",
+                "flag" to getFlagName(playerId, flag),
+                "claim" to getClaimName(playerId, claimId),
+            )
+            EnableClaimFlagResult.AlreadyExists -> lang.msg(
+                "command.claim.add_flag.already_exists",
+                "claim" to getClaimName(playerId, claimId),
+                "flag" to getFlagName(playerId, flag),
+            )
+            EnableClaimFlagResult.ClaimNotFound -> lang.msg("command.common.unknown_claim")
+            EnableClaimFlagResult.StorageError -> lang.msg("general.error")
+        }
+
+        // Output to player chat
+        player.sendMessage(message)
+    }
+
+    /**
+     * Helper function to retrieve the claim name or a default error message if not found.
+     */
+    private fun getClaimName(playerId: UUID, claimId: UUID): String {
+        return getClaimDetails.execute(claimId)?.name ?: lang.plain("general.name_error")
+    }
+
+    /**
+     * Helper function to retrieve the name of the permission.
+     */
+    private fun getFlagName(playerId: UUID, flag: Flag): String {
+        return lang.plain(flag.nameKey)
+    }
+}

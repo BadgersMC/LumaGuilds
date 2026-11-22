@@ -23,20 +23,20 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 
 class HomeAccessMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private val guild: Guild,
-    private val homeName: String
-) : Menu, KoinComponent {
+    private val homeName: String,
+    private val services: MenuServices,
+) : Menu {
 
-    private val rankService: RankService by inject()
-    private val guildService: GuildService by inject()
-    private val menuFactory: MenuFactory by inject()
-    private val lang: LangService by inject()
+    private val rankService: RankService by services.rankService
+    private val guildService: GuildService by services.guildService
+    private val menuFactory: MenuFactory by services.menuFactory
+    private val lang: LangService by services.langService
 
     override fun open() {
         if (!rankService.hasPermission(player.uniqueId, guild.id, RankPermission.MANAGE_HOME)) {

@@ -171,6 +171,7 @@ internal class GuildChatReconnectMenuTest {
                     mockk(),
                     mockk(),
                     mockk(),
+                    services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices(),
                 ),
             )
         every { menu.open() } just Runs
@@ -178,7 +179,7 @@ internal class GuildChatReconnectMenuTest {
     }
 
     private fun bedrock() =
-        spyk(BedrockGuildSettingsMenu(navigator, player, guild, Logger.getLogger("ReconnectMenuTest"))).also {
+        spyk(BedrockGuildSettingsMenu(navigator, player, guild, Logger.getLogger("ReconnectMenuTest"), dependencies = net.lumalyte.lg.interaction.menus.bedrock.bedrockWorkerLegacyDependencies())).also {
             // Transport is external; validation and submitted form handlers remain real.
             every { it.reopen() } just Runs
         }

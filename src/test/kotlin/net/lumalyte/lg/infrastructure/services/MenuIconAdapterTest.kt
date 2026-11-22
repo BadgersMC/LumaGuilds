@@ -29,6 +29,7 @@ internal class MenuIconAdapterTest {
     private var bedrock = BedrockConfig()
     private var packetEventsUp = false
     private var hooked = 0
+    private var unhooked = 0
     private val adapter =
         MenuIconAdapter(
             plugin = mockk<Plugin>(relaxed = true),
@@ -37,7 +38,23 @@ internal class MenuIconAdapterTest {
             bedrockConfig = { bedrock },
             packetEventsReady = { packetEventsUp },
             hookPacketEvents = { hooked++ },
+            unhookPacketEvents = { unhooked++ },
         )
+
+    @Test fun shutdownDetachesTheRegisteredPacketListenerOnce() {
+        packetEventsUp = true
+        adapter.register()
+        adapter.close()
+        adapter.close()
+        assertEquals(1, hooked)
+        assertEquals(1, unhooked)
+    }
+
+    @Test fun shutdownWithoutPacketEventsDoesNotTouchItsApi() {
+        adapter.register()
+        adapter.close()
+        assertEquals(0, unhooked)
+    }
 
     private fun player(bedrock: Boolean, theme: GuiTheme?): Player {
         val id = UUID.randomUUID()

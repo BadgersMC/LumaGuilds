@@ -3,6 +3,12 @@ package net.lumalyte.lg.infrastructure.services
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.isActive
 import net.lumalyte.lg.application.persistence.ClaimRepository
 import net.lumalyte.lg.application.persistence.RankClaimPermissionProfileRepository
 import net.lumalyte.lg.application.services.AdminOverrideService
@@ -22,6 +28,7 @@ import java.util.UUID
 class GuildRolePermissionResolverBukkitTest {
 
     private lateinit var resolver: GuildRolePermissionResolverBukkit
+    private lateinit var taskScope: CoroutineScope
     private lateinit var memberService: MemberService
     private lateinit var rankService: RankService
     private lateinit var claimRepository: ClaimRepository
@@ -67,7 +74,8 @@ class GuildRolePermissionResolverBukkitTest {
         )
         every { configService.loadConfig() } returns mockConfig
 
-        // Create resolver instance
+        // The resolver shares an owner scope; it does not create an executor.
+        taskScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
         resolver = GuildRolePermissionResolverBukkit(
             memberService = memberService,
             rankService = rankService,
@@ -75,12 +83,34 @@ class GuildRolePermissionResolverBukkitTest {
             configService = configService,
             adminOverrideService = adminOverrideService,
             rankClaimPermissionProfiles = rankClaimPermissionProfiles,
+            taskScope = taskScope,
+            cleanupDispatcher = Dispatchers.Unconfined,
         )
     }
 
     @AfterEach
     fun tearDown() {
         resolver.shutdown()
+        taskScope.cancel()
+    }
+
+    @Test
+    fun `shutdown cancels only the cache cleanup child job`() {
+        val ownerJob = taskScope.coroutineContext[Job]!!
+        assertTrue(ownerJob.isActive)
+        assertEquals(1, ownerJob.children.count { it.isActive })
+
+        resolver.shutdown()
+
+        assertTrue(ownerJob.isActive, "Shutting down the resolver must not cancel its owner scope")
+        assertFalse(ownerJob.children.any { it.isActive })
+    }
+
+    @Test
+    fun `shutdown after owner cancellation still clears and stops cleanup`() {
+        taskScope.cancel()
+        resolver.shutdown()
+        assertFalse(taskScope.coroutineContext[Job]!!.isActive)
     }
 
     @Test

@@ -11,10 +11,19 @@ import dev.rosewood.rosechat.lib.rosegarden.config.CommentedConfigurationSection
  * channels.yml sections with `plugin: LumaGuilds` should be handled by
  * [LumaGuildsChannel].
  *
- * Registered in [LumaGuilds.onEnable] after Koin is initialised so that
- * guild/ally/modchat channels resolve from `channels.yml` on a delayed reload.
+ * The runtime registers the provider before RoseChat reads the guild channels on a delayed reload.
  */
-class LumaGuildsChannelProvider : ChannelProvider() {
+class LumaGuildsChannelProvider(
+    override val channelDependencies: LumaGuildsChannelDependencies,
+) : ChannelProvider(), LumaGuildsChannelDependencySource {
+
+    internal fun unregisterFrom(manager: ChannelManager) {
+        manager.channelProviders.entries.removeIf { it.value === this }
+        manager.channels.entries.removeIf { it.value.provider === this }
+        if (manager.defaultChannel?.provider === this) {
+            manager.defaultChannel = manager.channels.values.firstOrNull { it.settings.isDefault }
+        }
+    }
 
     override fun getSupportedPlugin(): String = "LumaGuilds"
 

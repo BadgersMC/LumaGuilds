@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.interaction.menus.MenuServices
 import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -14,25 +15,24 @@ import net.lumalyte.lg.infrastructure.services.*
 import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /** Branches and selection use native clickable text; the complete panning tree is in Advancements. */
 internal class GuildAchievementsMenu(
     private val navigator: MenuNavigator,
     private val player: Player,
     private val guild: Guild,
+    services: MenuServices,
     private val presenter: GuildDialogPresenter = GuildMenuDialog(),
     private var guildMilestones: Boolean = false,
     private val fromStatistics: Boolean = false,
     private val adminOverrideService: AdminOverrideService? = null,
-) : Menu, KoinComponent {
-    private val runtime: GuildAchievementRuntime by inject()
-    private val members: MemberService by inject()
-    private val guilds: GuildService by inject()
-    private val lang: LangService by inject()
-    private val kills: net.lumalyte.lg.application.services.KillService by inject()
-    private val wars: net.lumalyte.lg.application.services.WarService by inject()
+) : Menu {
+    private val runtime: GuildAchievementRuntime by services.guildAchievementRuntime
+    private val members: MemberService by services.memberService
+    private val guilds: GuildService by services.guildService
+    private val lang: LangService by services.langService
+    private val kills: net.lumalyte.lg.application.services.KillService by services.killService
+    private val wars: net.lumalyte.lg.application.services.WarService by services.warService
     private var guildPage = 0
     private var category = "Foundations"
     private var page = 0

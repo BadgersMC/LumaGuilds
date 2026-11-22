@@ -12,11 +12,12 @@ import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.player.PlayerDropItemEvent
 import org.bukkit.event.player.PlayerItemHeldEvent
 import org.bukkit.plugin.java.JavaPlugin
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
-class EditToolVisualisingListener(private val plugin: JavaPlugin): Listener, KoinComponent {
-    private val syncToolVisualization: SyncToolVisualization by inject()
+class EditToolVisualisingListener(
+    private val plugin: JavaPlugin,
+    syncToolVisualization: Lazy<SyncToolVisualization>,
+) : Listener {
+    private val syncToolVisualization: SyncToolVisualization by syncToolVisualization
 
     /**
      * Triggers when the player swaps to the claim tool in their inventory.

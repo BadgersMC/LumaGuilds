@@ -41,6 +41,8 @@ internal fun RecruitmentController.answers(application: GuildApplication): Recru
                     }
             },
             { run { refresh() } },
+            platforms = platforms,
+            lang = lang,
         )
     }
 }

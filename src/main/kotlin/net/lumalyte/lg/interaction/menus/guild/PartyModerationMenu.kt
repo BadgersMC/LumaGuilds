@@ -31,8 +31,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.SkullMeta
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 import java.util.UUID
 
 /**
@@ -42,14 +41,15 @@ class PartyModerationMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private var guild: Guild,
-    private var party: Party
-) : Menu, KoinComponent {
+    private var party: Party,
+    private val services: MenuServices,
+) : Menu {
 
-    private val guildService: GuildService by inject()
-    private val memberService: MemberService by inject()
-    private val partyService: PartyService by inject()
-    private val menuFactory: MenuFactory by inject()
-    private val lang: LangService by inject()
+    private val guildService: GuildService by services.guildService
+    private val memberService: MemberService by services.memberService
+    private val partyService: PartyService by services.partyService
+    private val menuFactory: MenuFactory by services.menuFactory
+    private val lang: LangService by services.langService
 
     private var currentPage = 0
     private val itemsPerPage = 36 // 9x4 grid for players
@@ -290,7 +290,7 @@ class PartyModerationMenu(
     }
 
     private fun openPlayerModerationMenu(targetPlayerId: UUID) {
-        menuNavigator.openMenu(PlayerModerationMenu(menuNavigator, player, guild, party, targetPlayerId))
+        menuNavigator.openMenu(PlayerModerationMenu(menuNavigator, player, guild, party, targetPlayerId, services = services))
     }
 
     override fun passData(data: Any?) {

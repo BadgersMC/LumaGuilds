@@ -62,6 +62,7 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:26.2.build.129-stable")
     compileOnly("com.github.retrooper:packetevents-spigot:2.11.2")
     compileOnly("com.discordsrv:discordsrv:1.28.0")
+    testCompileOnly("com.discordsrv:discordsrv:1.28.0")
     // Provider-neutral EnthusiaStaff lifecycle API; CI builds the exact pinned source into libs/.
     // Runtime classes are supplied by the EnthusiaStaff plugin through the soft dependency.
     val enthusiaStaffModerationApi = files("libs/EnthusiaStaff-moderation-api.jar")
@@ -72,16 +73,19 @@ dependencies {
     implementation("org.slf4j:slf4j-nop:2.0.13")
     implementation("com.zaxxer:HikariCP:5.1.0")
     implementation("org.mariadb.jdbc:mariadb-java-client:3.3.2")
-    implementation("co.aikar:acf-paper:0.5.1-SNAPSHOT")
+    testImplementation("co.aikar:acf-paper:0.5.1-SNAPSHOT")
     implementation("co.aikar:idb-core:1.0.0-SNAPSHOT")
     implementation("com.github.stefvanschie.inventoryframework:IF:0.12.2-SNAPSHOT")
-    implementation("io.insert-koin:koin-core:4.0.2")
+    testImplementation("io.insert-koin:koin-core:4.0.2")
     implementation("org.json:json:20240303")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.10.2")
 
-    // nexus-i18n for LangService — all player-facing strings in en_US.yml
-    implementation("com.github.BadgersMC.Nexus:nexus-i18n:v2.1.1")
+    // Pin all Nexus modules to the same reviewed Paper 26.2 command-composition commit.
+    val nexusCommit = providers.gradleProperty("nexusCommit").get()
+    implementation("com.github.BadgersMC.Nexus:nexus-core:$nexusCommit")
+    implementation("com.github.BadgersMC.Nexus:nexus-paper:$nexusCommit")
+    implementation("com.github.BadgersMC.Nexus:nexus-i18n:$nexusCommit")
 
     // QR Code generation
     implementation("com.google.zxing:core:3.5.3")
@@ -133,6 +137,9 @@ dependencies {
     // Lunar Client Apollo API
     compileOnly("com.lunarclient:apollo-api:1.2.3")
     compileOnly("com.lunarclient:apollo-extra-adventure4:1.2.3")
+    // Constructor/provider regressions exercise Apollo contracts without starting the optional plugin.
+    testRuntimeOnly("com.lunarclient:apollo-api:1.2.3")
+    testRuntimeOnly("com.lunarclient:apollo-extra-adventure4:1.2.3")
 
 }
 
@@ -210,6 +217,11 @@ tasks.register<Test>("mariaDbRewardTest") {
     shouldRunAfter(tasks.test)
 }
 
+// Only the installable shaded plugin belongs in the release artifact directory.
+tasks.jar {
+    destinationDirectory.set(layout.buildDirectory.dir("intermediates/plain"))
+}
+
 tasks.shadowJar {
     archiveBaseName.set("LumaGuilds")
     archiveClassifier.set("")
@@ -218,7 +230,6 @@ tasks.shadowJar {
     mergeServiceFiles()
 
     relocate("com.zaxxer.hikari", "net.lumalyte.lg.shaded.hikari")
-    relocate("co.aikar.commands", "net.lumalyte.lg.shaded.acf")
     relocate("co.aikar.idb", "net.lumalyte.lg.shaded.idb")
 
     exclude("META-INF/maven/**")
@@ -250,9 +261,27 @@ tasks.register<Jar>("acceptanceProbeJar") {
     from(acceptanceProbe.output)
 }
 
+val verifyRuntimePackaging = tasks.register("verifyRuntimePackaging") {
+    group = "verification"
+    val pluginJar = tasks.shadowJar.flatMap { it.archiveFile }
+    inputs.file(pluginJar)
+    doLast {
+        JarFile(pluginJar.get().asFile).use { jar ->
+            val forbiddenPrefixes = listOf("org/koin/", "co/aikar/commands/", "co/aikar/locales/",
+                "net/lumalyte/lg/shaded/acf/", "acf-core_", "acf-minecraft_", "META-INF/koin-")
+            val leftovers = jar.entries().asSequence().map { it.name }
+                .filter { path -> forbiddenPrefixes.any { path.startsWith(it) } }.take(10).toList()
+            check(leftovers.isEmpty()) { "Legacy command or DI framework packaged: $leftovers" }
+            for (required in listOf("net/lumalyte/lg/shaded/idb/DB.class", "net/badgersmc/nexus/core/NexusContext.class",
+                "net/badgersmc/nexus/paper/commands/PaperCommandRegistry.class")) {
+                check(jar.getEntry(required) != null) { "Missing runtime class $required" }
+            }
+        }
+    }
+}
 tasks.register("verifyAcceptanceProbePackaging") {
     group = "verification"
-    dependsOn(tasks.shadowJar, "acceptanceProbeJar")
+    dependsOn(verifyRuntimePackaging, "acceptanceProbeJar")
     doLast {
         JarFile(tasks.shadowJar.get().archiveFile.get().asFile).use { jar ->
             check(jar.entries().asSequence().none { it.name.startsWith("net/lumalyte/lg/acceptance/") })

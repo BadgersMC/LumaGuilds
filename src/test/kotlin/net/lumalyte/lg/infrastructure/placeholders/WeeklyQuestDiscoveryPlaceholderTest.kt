@@ -33,7 +33,7 @@ class WeeklyQuestDiscoveryPlaceholderTest {
     @AfterEach fun teardown() { stopKoin() }
 
     @Test fun `playerless spawn placeholders display names and uncapped scores with cached leaderboard`() {
-        val expansion = LumaGuildsExpansion()
+        val expansion = net.lumalyte.lg.interaction.testListenerLumaGuildsExpansion()
         assertEquals("true", expansion.onPlaceholderRequest(null, "guild_weekly_quests_available"))
         assertEquals("Mine Stone", expansion.onPlaceholderRequest(null, "guild_weekly_quest_1_name"))
         assertEquals("Everlights", expansion.onPlaceholderRequest(null, "guild_weekly_quest_1_top_1_guild"))
@@ -42,7 +42,7 @@ class WeeklyQuestDiscoveryPlaceholderTest {
     }
 
     @Test fun `missing and out of range positions return empty`() {
-        val expansion = LumaGuildsExpansion()
+        val expansion = net.lumalyte.lg.interaction.testListenerLumaGuildsExpansion()
         for (field in listOf("top_0_score", "top_101_score", "top_2_guild")) {
             assertEquals("", expansion.onPlaceholderRequest(null, "guild_weekly_quest_1_$field"))
         }
@@ -50,7 +50,7 @@ class WeeklyQuestDiscoveryPlaceholderTest {
     }
 
     @Test fun `new week bypasses old leaderboard cache`() {
-        val expansion = LumaGuildsExpansion()
+        val expansion = net.lumalyte.lg.interaction.testListenerLumaGuildsExpansion()
         assertEquals("175", expansion.onPlaceholderRequest(null, "guild_weekly_quest_1_top_1_score"))
         every { quests.activeQuestSet() } returns week.copy(weekId = "second")
         every { quests.leaderboardFor(quest.id, 100) } returns emptyList()
@@ -65,7 +65,7 @@ class WeeklyQuestDiscoveryPlaceholderTest {
         every { quests.guildProgress(guildId) } returns listOf(GuildQuestProgress("first", quest.id, guildId, currentCount = 175))
         every { quests.isWeeklyBonusAwarded(guildId) } returns false
         every { quests.rankFor(guildId, quest.id) } returns 1
-        val expansion = LumaGuildsExpansion()
+        val expansion = net.lumalyte.lg.interaction.testListenerLumaGuildsExpansion()
         assertEquals("175", expansion.onPlaceholderRequest(player, "guild_weekly_quest_1_score"))
         repeat(2) { assertEquals("1", expansion.onPlaceholderRequest(player, "guild_weekly_quest_1_rank")) }
         verify(exactly = 1) { quests.rankFor(guildId, quest.id) }

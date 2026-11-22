@@ -14,8 +14,6 @@ import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.logging.Logger
 
 /**
@@ -26,13 +24,14 @@ class BedrockClaimWidePermissionsMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val claim: Claim,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
 
-    private val lang: LangService by inject()
-    private val getClaimPermissions: GetClaimPermissions by inject()
-    private val grantClaimWidePermission: GrantClaimWidePermission by inject()
-    private val revokeClaimWidePermission: RevokeClaimWidePermission by inject()
+    private val lang: LangService by services.langService
+    private val getClaimPermissions: GetClaimPermissions by services.getClaimPermissions
+    private val grantClaimWidePermission: GrantClaimWidePermission by services.grantClaimWidePermission
+    private val revokeClaimWidePermission: RevokeClaimWidePermission by services.revokeClaimWidePermission
 
     override fun getForm(): Form {
         val current = getClaimPermissions.execute(claim.id).toSet()

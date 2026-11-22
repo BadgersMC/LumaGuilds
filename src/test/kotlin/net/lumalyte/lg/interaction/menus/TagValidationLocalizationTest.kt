@@ -60,7 +60,7 @@ class TagValidationLocalizationTest {
     @Test
     fun `java tag editor localizes typed interactive failure`() {
         val player = server.addPlayer()
-        val menu = TagEditorMenu(mockk(relaxed = true), player, guild())
+        val menu = TagEditorMenu(mockk(relaxed = true), player, guild(), services = net.lumalyte.lg.interaction.menus.javaBLegacyTestMenuServices())
         val validate = TagEditorMenu::class.java.getDeclaredMethod("validateTag", String::class.java)
             .apply { isAccessible = true }
 

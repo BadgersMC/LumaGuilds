@@ -36,7 +36,7 @@ class GuildQuestRoutingTest {
         every { guilds.getPlayerGuilds(player.uniqueId) } returns setOf(mockk<Guild>())
         every { factory.createGuildQuestsMenu(any(), player, any()) } returns menu
         val manager = BukkitCommandManager(plugin)
-        manager.registerCommand(GuildCommand())
+        manager.registerCommand(net.lumalyte.lg.interaction.testListenerGuildCommand())
         for (root in listOf("g", "guild")) {
             for (path in listOf("quest", "quests", "quest menu", "quests menu")) {
                 clearMocks(menu, answers = false)

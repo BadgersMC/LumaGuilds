@@ -23,7 +23,7 @@ internal class MenuFactoryRecruitmentTest {
         every { player.name } returns "RecruitmentPlayer"
         every { config.loadConfig() } returns MainConfig()
         every { platform.isCumulusAvailable() } returns true
-        val factory = MenuFactory(platform, config, Logger.getAnonymousLogger(), mockk<LangService>())
+        val factory = boundTestMenuFactory(platform, config, Logger.getAnonymousLogger(), mockk<LangService>())
         every { platform.isBedrockPlayer(player) } returns false
         assertIs<GuildRecruitmentMenu>(factory.createLfgBrowserMenu(mockk(), player))
         every { platform.isBedrockPlayer(player) } returns true

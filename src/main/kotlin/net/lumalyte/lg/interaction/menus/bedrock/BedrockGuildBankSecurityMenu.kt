@@ -11,8 +11,6 @@ import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.logging.Logger
 
 /**
@@ -23,13 +21,14 @@ class BedrockGuildBankSecurityMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
 
-    private val bankSettingsRepository: BankSettingsRepository by inject()
-    private val guildService: GuildService by inject()
+    private val bankSettingsRepository: BankSettingsRepository by services.bankSettingsRepository
+    private val guildService: GuildService by services.guildService
     private val authorization by lazy { BedrockGuildAuthorization(guildService) }
-    private val lang: LangService by inject()
+    private val lang: LangService by services.langService
 
     override fun getForm(): Form {
         if (!authorization.canManageBankSettings(player.uniqueId, guild.id)) {

@@ -56,7 +56,7 @@ internal class RecruitmentReaderInventoryTest {
     @Test
     fun escapeReturnsOnce() {
         var returns = 0
-        RecruitmentReader(player, content, { true }) {
+        RecruitmentReader(org.koin.core.context.GlobalContext.get().get<net.badgersmc.nexus.i18n.LangService>(), player, content, { true }) {
             returns++
         }.open(false, false)
         assertEquals(READER_INVENTORY_SIZE, player.openInventory.topInventory.size)
@@ -70,7 +70,7 @@ internal class RecruitmentReaderInventoryTest {
     @Test
     fun replacementDoesNotReopen() {
         var returns = 0
-        RecruitmentReader(player, content, { true }) {
+        RecruitmentReader(org.koin.core.context.GlobalContext.get().get<net.badgersmc.nexus.i18n.LangService>(), player, content, { true }) {
             returns++
         }.open(false, false)
         player.closeInventory(InventoryCloseEvent.Reason.OPEN_NEW)
@@ -82,7 +82,7 @@ internal class RecruitmentReaderInventoryTest {
     fun revokedAccessCannotReturn() {
         var authorized = true
         var returns = 0
-        RecruitmentReader(player, content, { authorized }) {
+        RecruitmentReader(org.koin.core.context.GlobalContext.get().get<net.badgersmc.nexus.i18n.LangService>(), player, content, { authorized }) {
             returns++
         }.open(false, false)
         player.closeInventory(InventoryCloseEvent.Reason.PLAYER)
@@ -94,7 +94,7 @@ internal class RecruitmentReaderInventoryTest {
     @Test
     fun delayedReturnRespectsNewMenu() {
         var returns = 0
-        RecruitmentReader(player, content, { true }) {
+        RecruitmentReader(org.koin.core.context.GlobalContext.get().get<net.badgersmc.nexus.i18n.LangService>(), player, content, { true }) {
             returns++
         }.open(false, false)
         player.closeInventory(InventoryCloseEvent.Reason.PLAYER)

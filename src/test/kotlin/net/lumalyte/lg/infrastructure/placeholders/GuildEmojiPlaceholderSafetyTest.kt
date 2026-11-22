@@ -30,7 +30,7 @@ internal class GuildEmojiPlaceholderSafetyTest {
     @Test
     fun omitsSavedMenuGlyphs() {
         val player = configuredPlayer()
-        val expansion = LumaGuildsExpansion()
+        val expansion = net.lumalyte.lg.interaction.testListenerLumaGuildsExpansion()
         listOf("guild_emoji", "guild_emoji_minimessage", "guild_emoji_font").forEach {
             assertEquals("", expansion.onPlaceholderRequest(player, it))
         }

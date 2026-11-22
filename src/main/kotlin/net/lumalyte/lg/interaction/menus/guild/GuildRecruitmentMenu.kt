@@ -22,8 +22,7 @@ import net.lumalyte.lg.utils.name
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 
 private const val BOARD_COLUMNS = 9
 private const val BOARD_ROWS = 6
@@ -39,10 +38,11 @@ private const val LORE_ROWS = 16
 internal class GuildRecruitmentMenu(
     private val navigator: MenuNavigator,
     private val player: Player,
+    private val services: MenuServices,
     initialGuild: java.util.UUID? = null,
-) : Menu, KoinComponent {
+) : Menu {
     private val controller =
-        RecruitmentController(player, ::open) {
+        RecruitmentController(player, ::open, services = services) {
             val token = navigator.currentNavigationToken()
             val guard: () -> Boolean = { navigator.isNavigationCurrent(token) }
             guard
@@ -53,9 +53,9 @@ internal class GuildRecruitmentMenu(
                 screen = RecruitmentScreen.PROFILE
             }
         }
-    private val inputListener: ChatInputListener by inject()
-    private val lang: LangService by inject()
-    private val emojis: NexoEmojiService by inject()
+    private val inputListener: ChatInputListener by services.chatInputListener
+    private val lang: LangService by services.langService
+    private val emojis: NexoEmojiService by services.nexoEmojiService
     private val nativeMenu =
         RecruitmentDialogMenu(
             controller,

@@ -59,7 +59,7 @@ class GuildRewardPurchaseMenuTest {
     }
 
     @Test fun `Java viewing and cancellation never call purchase`() {
-        val gui = GuildRewardPurchaseMenu(player, quote, "Bank I", { returned++ }).createGui()
+        val gui = GuildRewardPurchaseMenu(player, quote, "Bank I", { returned++ }, services = javaALegacyMenuServices()).createGui()
         val cancel = gui.panes.flatMap { it.items }.single { it.item.type == Material.RED_DYE }
         cancel.callAction(mockk(relaxed = true))
         assertEquals(1, returned)
@@ -68,7 +68,7 @@ class GuildRewardPurchaseMenuTest {
 
     @Test fun `stale Java fallback confirmation cannot spend or reopen its parent`() {
         var valid = true
-        val gui = GuildRewardPurchaseMenu(player, quote, "Bank I", { returned++ }, valid = { valid }).createGui()
+        val gui = GuildRewardPurchaseMenu(player, quote, "Bank I", { returned++ }, valid = { valid }, services = javaALegacyMenuServices()).createGui()
         val confirm = gui.panes.flatMap { it.items }.single { it.item.type == Material.LIME_DYE }
         val cancel = gui.panes.flatMap { it.items }.single { it.item.type == Material.RED_DYE }
         valid = false
@@ -81,7 +81,7 @@ class GuildRewardPurchaseMenuTest {
     @Test fun `Java failure leaves same quote for retry and completion refreshes catalog`() {
         val applied = RewardPurchaseResult.Applied(quote.transactionId, quote.rewardId, 100, 1000, 900, 1)
         every { purchases.confirm(player.uniqueId, quote) } returnsMany listOf(RewardPurchaseResult.Failed(quote.transactionId), applied)
-        val gui = GuildRewardPurchaseMenu(player, quote, "Bank I", { returned++ }).createGui()
+        val gui = GuildRewardPurchaseMenu(player, quote, "Bank I", { returned++ }, services = javaALegacyMenuServices()).createGui()
         val confirm = gui.panes.flatMap { it.items }.single { it.item.type == Material.LIME_DYE }
         confirm.callAction(mockk(relaxed = true))
         assertEquals(0, returned)
@@ -91,7 +91,9 @@ class GuildRewardPurchaseMenuTest {
     }
 
     private fun bedrock() = BedrockRewardPurchaseMenu(mockk<MenuNavigator>(relaxed = true), player,
-        quote, "Bank I", { returned++ }, Logger.getLogger("RewardPurchaseMenuTest"))
+        quote, "Bank I", { returned++ }, Logger.getLogger("RewardPurchaseMenuTest"),
+        dependencies = net.lumalyte.lg.interaction.menus.bedrock.bedrockWorkerLegacyDependencies(),
+)
 
     private fun respond(form: ModalForm, response: String) {
         val definition: FormDefinition<ModalForm, *, *> = FormDefinitions.instance().definitionFor(form)

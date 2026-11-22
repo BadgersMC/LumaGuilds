@@ -13,8 +13,6 @@ import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.SimpleForm
 import org.geysermc.cumulus.form.Form
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.logging.Logger
@@ -27,15 +25,16 @@ class BedrockGuildWarManagementMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger), KoinComponent {
+    logger: Logger,
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
 
-    private val warService: WarService by inject()
-    private val guildService: GuildService by inject()
-    private val bankService: BankService by inject()
-    private val memberService: MemberService by inject()
-    private val seasonalElo: net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator by inject()
-    private val lang: LangService by inject()
+    private val warService: WarService by services.warService
+    private val guildService: GuildService by services.guildService
+    private val bankService: BankService by services.bankService
+    private val memberService: MemberService by services.memberService
+    private val seasonalElo: net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator by services.seasonalEloCoordinator
+    private val lang: LangService by services.langService
 
     override fun getForm(): Form {
         val config = getBedrockConfig()
@@ -157,7 +156,7 @@ class BedrockGuildWarManagementMenu(
             }
             .build()
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, this@BedrockGuildWarManagementMenu.bedrockDependencies) {
             override fun getForm(): Form = formWithHandler
 
             override fun handleResponse(player: Player, response: Any?) {
@@ -230,7 +229,7 @@ class BedrockGuildWarManagementMenu(
             }
             .build()
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, this@BedrockGuildWarManagementMenu.bedrockDependencies) {
             override fun getForm(): Form = formWithHandler
 
             override fun handleResponse(player: Player, response: Any?) {
@@ -242,7 +241,7 @@ class BedrockGuildWarManagementMenu(
     }
 
     private fun openDeclareWarMenu() {
-        bedrockNavigator.openMenu(BedrockGuildWarDeclarationMenu(menuNavigator, player, guild, logger))
+        bedrockNavigator.openMenu(BedrockGuildWarDeclarationMenu(menuNavigator, player, guild, logger, dependencies = bedrockDependencies))
     }
 
     private fun openWarHistoryMenu() {
@@ -296,7 +295,7 @@ class BedrockGuildWarManagementMenu(
             }
             .build()
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, this@BedrockGuildWarManagementMenu.bedrockDependencies) {
             override fun getForm(): Form = formWithHandler
 
             override fun handleResponse(player: Player, response: Any?) {
@@ -341,7 +340,7 @@ class BedrockGuildWarManagementMenu(
                 getForm() // Back to main menu
             }
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, this@BedrockGuildWarManagementMenu.bedrockDependencies) {
             override fun getForm(): Form = form.build()
 
             override fun handleResponse(player: Player, response: Any?) {
@@ -391,7 +390,7 @@ class BedrockGuildWarManagementMenu(
                 getForm() // Back to main menu
             }
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, this@BedrockGuildWarManagementMenu.bedrockDependencies) {
             override fun getForm(): Form = form.build()
 
             override fun handleResponse(player: Player, response: Any?) {
@@ -441,7 +440,7 @@ class BedrockGuildWarManagementMenu(
             }
             .build()
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, this@BedrockGuildWarManagementMenu.bedrockDependencies) {
             override fun getForm(): Form = formWithHandler
 
             override fun handleResponse(player: Player, response: Any?) {
@@ -493,7 +492,7 @@ class BedrockGuildWarManagementMenu(
             }
             .build()
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, this@BedrockGuildWarManagementMenu.bedrockDependencies) {
             override fun getForm(): Form = formWithHandler
 
             override fun handleResponse(player: Player, response: Any?) {
@@ -606,7 +605,7 @@ class BedrockGuildWarManagementMenu(
             }
             .build()
 
-        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger) {
+        bedrockNavigator.openMenu(object : BaseBedrockMenu(menuNavigator, player, logger, this@BedrockGuildWarManagementMenu.bedrockDependencies) {
             override fun getForm(): Form = formWithHandler
 
             override fun handleResponse(player: Player, response: Any?) {

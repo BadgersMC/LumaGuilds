@@ -295,6 +295,9 @@ private class Fixture(
             members,
             mockk(relaxed = true),
             progression,
+            lang = lazy { org.koin.core.context.GlobalContext.get().get<net.badgersmc.nexus.i18n.LangService>() },
+            bankService = lazy { org.koin.core.context.GlobalContext.get().get<net.lumalyte.lg.application.services.BankService>() },
+            menuServices = { net.lumalyte.lg.interaction.testListenerVaultMenuServices() },
         )
 
     init {

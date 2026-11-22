@@ -39,7 +39,7 @@ internal class GuildAchievementsMenuTest : RecruitmentDialogFixture() {
             net.lumalyte.lg.infrastructure.services.GuildDialogTransitions.shown(p)
             presenter.show(p, page, valid, failure)
         }
-        return MenuNavigator(player).also { it.openMenu(GuildAchievementsMenu(it, player, guild, observedPresenter)) }
+        return MenuNavigator(player).also { it.openMenu(GuildAchievementsMenu(it, player, guild, javaALegacyMenuServices(), observedPresenter)) }
     }
 
     /** A scoped nonmember can inspect guild milestones only while bypass remains active. */
@@ -56,7 +56,7 @@ internal class GuildAchievementsMenuTest : RecruitmentDialogFixture() {
         var scoped = true
         val admin = mockk<AdminOverrideService>()
         every { admin.getViewedGuild(actor) } answers { if (scoped) guild.id else null }
-        val menu = GuildAchievementsMenu(nav, player, guild, guildMilestones = true, adminOverrideService = admin)
+        val menu = GuildAchievementsMenu(nav, player, guild, guildMilestones = true, adminOverrideService = admin, services = javaALegacyMenuServices())
         val valid = GuildAchievementsMenu::class.java.getDeclaredMethod("valid", Long::class.javaPrimitiveType)
         valid.isAccessible = true
         assertTrue(valid.invoke(menu, 7L) as Boolean)
@@ -113,7 +113,7 @@ internal class GuildAchievementsMenuTest : RecruitmentDialogFixture() {
         every { runtime.read(player) } returns AchievementRecord()
         loadKoinModules(module { single { members }; single { kills }; single { wars }; single { runtime } })
         val nav = MenuNavigator(player)
-        nav.openMenu(GuildAchievementsMenu(nav, player, guild, presenter, guildMilestones = true))
+        nav.openMenu(GuildAchievementsMenu(nav, player, guild, javaALegacyMenuServices(), presenter, guildMilestones = true))
         val plain = PlainTextComponentSerializer.plainText()
         assertEquals(5, renderedPage!!.items.size)
         assertTrue(plain.serialize(renderedPage!!.items.first().text).contains("First Blood"))
@@ -143,7 +143,7 @@ internal class GuildAchievementsMenuTest : RecruitmentDialogFixture() {
         every { runtime.track(player, any()) } answers { record = record.copy(tracked = secondArg()); true }
         loadKoinModules(module { single { runtime }; single { members } })
         val nav = MenuNavigator(player)
-        nav.openMenu(GuildAchievementsMenu(nav, player, guild, presenter))
+        nav.openMenu(GuildAchievementsMenu(nav, player, guild, javaALegacyMenuServices(), presenter))
         val plain = PlainTextComponentSerializer.plainText()
         assertEquals(1, renderedPage!!.items.size)
         assertEquals(5, renderedPage!!.diagram.size) // Four actual branch rows plus inspector tabs.

@@ -5,14 +5,13 @@ import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.application.persistence.GuildOnboardingRepository
+import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.Material
 import org.bukkit.plugin.java.JavaPlugin
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
-import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
-import org.koin.dsl.module
 import org.mockbukkit.mockbukkit.MockBukkit
 import java.time.Instant
 import java.util.UUID
@@ -21,10 +20,9 @@ import kotlin.test.assertTrue
 
 class GuildGettingStartedMenuTest {
     @AfterEach fun cleanup() {
-        stopKoin(); unmockkStatic(JavaPlugin::class); MockBukkit.unmock()
+        unmockkStatic(JavaPlugin::class); MockBukkit.unmock()
     }
     @Test fun `Java guide renders all topics without long unwrapped lore`() {
-        stopKoin()
         val server = MockBukkit.mock()
         val player = server.addPlayer()
         val plugin = MockBukkit.createMockPlugin()
@@ -38,8 +36,10 @@ class GuildGettingStartedMenuTest {
         every { lang.msg(any(), *anyVararg()) } answers {
             Component.text("First steps explain permissions and unlock requirements without changing configured purchase prices.")
         }
-        startKoin { modules(module { single { service }; single { lang } }) }
-        GuildGettingStartedMenu(MenuNavigator(player), player, guild.id).open()
+        val navigationDependencies = GuildGettingStartedNavigationDependencies(
+            service, mockk<MenuFactory>(relaxed = true), mockk<GuildOnboardingRepository>(), lang,
+        )
+        GuildGettingStartedMenu(MenuNavigator(player), player, guild.id, lang, navigationDependencies).open()
         val inventory = player.openInventory.topInventory
         assertEquals(27, inventory.size)
         for (slot in 9..17) {

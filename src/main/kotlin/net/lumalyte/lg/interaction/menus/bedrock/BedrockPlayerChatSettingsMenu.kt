@@ -9,17 +9,18 @@ import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
-import org.koin.core.component.inject
 import java.util.logging.Logger
 
 internal class BedrockPlayerChatSettingsMenu(
     navigator: MenuNavigator,
     player: Player,
     logger: Logger,
-) : BaseBedrockMenu(navigator, player, logger) {
-    private val service: ChatService by inject()
-    private val lang: LangService by inject()
-    private val plugin: Plugin by inject()
+    private val dependencies: BedrockMenuDependencies,
+    chatServiceProvider: (() -> ChatService)? = null,
+) : BaseBedrockMenu(navigator, player, logger, dependencies) {
+    private val service by lazy { chatServiceProvider?.invoke() ?: services.chatService.value }
+    private val lang get() = dependencies.lang
+    private val plugin get() = dependencies.plugin
 
     override fun shouldCacheForm() = false
 

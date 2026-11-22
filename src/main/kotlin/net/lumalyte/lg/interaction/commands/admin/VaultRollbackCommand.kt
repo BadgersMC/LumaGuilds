@@ -11,8 +11,6 @@ import org.bukkit.entity.Player
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.UUID
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /**
  * Admin command to list and restore vault backups.
@@ -23,10 +21,11 @@ import org.koin.core.component.inject
  */
 class VaultRollbackCommand(
     private val guildService: GuildService,
-    private val backupService: VaultBackupService
-) : CommandExecutor, TabCompleter, KoinComponent {
+    private val backupService: VaultBackupService,
+    lang: Lazy<LangService>,
+) : CommandExecutor, TabCompleter {
 
-    private val lang: LangService by inject()
+    private val lang: LangService by lang
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         .withZone(ZoneId.systemDefault())
 

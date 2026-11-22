@@ -74,7 +74,7 @@ internal class GuildInviteBlockRoutingTest {
                     },
                 )
             }
-            BukkitCommandManager(plugin).registerCommand(GuildCommand())
+            BukkitCommandManager(plugin).registerCommand(net.lumalyte.lg.interaction.testListenerGuildCommand())
         }
     }
 }

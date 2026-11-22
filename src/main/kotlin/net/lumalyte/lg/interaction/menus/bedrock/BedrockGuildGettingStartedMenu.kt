@@ -4,20 +4,27 @@ import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.infrastructure.i18n.bedrock
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedNavigation
+import net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedNavigationDependencies
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
-import org.koin.core.component.inject
 import java.util.UUID
 import java.util.logging.Logger
 
-internal class BedrockGuildGettingStartedMenu(navigator: MenuNavigator, player: Player, guildId: UUID?, logger: Logger) : BaseBedrockMenu(navigator, player, logger) {
-    private val navigation = GuildGettingStartedNavigation(navigator, player, guildId)
-    private val lang: LangService by inject()
-    private val plugin: Plugin by inject()
+internal class BedrockGuildGettingStartedMenu(
+    navigator: MenuNavigator,
+    player: Player,
+    guildId: UUID?,
+    logger: Logger,
+    navigationDependencies: GuildGettingStartedNavigationDependencies,
+    private val dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(navigator, player, logger, dependencies) {
+    private val navigation = GuildGettingStartedNavigation(navigator, player, guildId, navigationDependencies)
+    private val lang: LangService = navigationDependencies.lang
+    private val plugin get() = dependencies.plugin
     override fun shouldCacheForm() = false
     override fun getForm(): Form {
         val token = menuNavigator.currentNavigationToken()

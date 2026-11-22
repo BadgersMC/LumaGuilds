@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction.menus.guild
 
+import net.lumalyte.lg.interaction.menus.MenuServices
 import net.lumalyte.lg.utils.inventoryframework.addPane
 
 import net.lumalyte.lg.utils.NexoItemProvider
@@ -25,24 +26,23 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 import java.text.DecimalFormat
 import java.util.*
 
 class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                         private var guild: Guild): Menu, KoinComponent {
+                         private var guild: Guild,
+                         private val services: MenuServices): Menu {
 
-    private val killService: KillService by inject()
-    private val warService: WarService by inject()
-    private val memberService: MemberService by inject()
-    private val bankService: BankService by inject()
-    private val guildService: GuildService by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
-    private val lang: LangService by inject()
-    private val leaderboardService: LeaderboardService by inject()
-    private val invitationStatisticsService: InvitationStatisticsService by inject()
+    private val killService: KillService by services.killService
+    private val warService: WarService by services.warService
+    private val memberService: MemberService by services.memberService
+    private val bankService: BankService by services.bankService
+    private val guildService: GuildService by services.guildService
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by services.menuFactory
+    private val lang: LangService by services.langService
+    private val leaderboardService: LeaderboardService by services.leaderboardService
+    private val invitationStatisticsService: InvitationStatisticsService by services.invitationStatisticsService
 
     private val logger = LoggerFactory.getLogger(GuildStatisticsMenu::class.java)
 
@@ -741,7 +741,7 @@ class GuildStatisticsMenu(private val menuNavigator: MenuNavigator, private val 
 
         val guiItem = GuiItem(item) {
             if (net.lumalyte.lg.infrastructure.services.RecruitmentPresentation.supportsDialog(player)) {
-                menuNavigator.openMenu(GuildAchievementsMenu(menuNavigator, player, guild, guildMilestones = true, fromStatistics = true))
+                menuNavigator.openMenu(GuildAchievementsMenu(menuNavigator, player, guild, guildMilestones = true, fromStatistics = true, services = services))
             } else {
                 openAchievementsDetail()
             }

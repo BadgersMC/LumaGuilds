@@ -17,8 +17,6 @@ import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.time.Duration
 import java.util.logging.Logger
 
@@ -30,16 +28,17 @@ class BedrockGuildWarDeclarationMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private val guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
 
-    private val warService: WarService by inject()
-    private val guildRepository: GuildRepository by inject()
-    private val memberService: MemberService by inject()
-    private val configService: ConfigService by inject()
-    private val bankService: BankService by inject()
-    private val seasonalElo: net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator by inject()
-    private val lang: LangService by inject()
+    private val warService: WarService by services.warService
+    private val guildRepository: GuildRepository by services.guildRepository
+    private val memberService: MemberService by services.memberService
+    private val configService: ConfigService by services.configService
+    private val bankService: BankService by services.bankService
+    private val seasonalElo: net.lumalyte.lg.infrastructure.services.SeasonalEloCoordinator by services.seasonalEloCoordinator
+    private val lang: LangService by services.langService
 
     override fun getForm(): Form {
         if (!memberService.hasPermission(player.uniqueId, guild.id, RankPermission.DECLARE_WAR)) {

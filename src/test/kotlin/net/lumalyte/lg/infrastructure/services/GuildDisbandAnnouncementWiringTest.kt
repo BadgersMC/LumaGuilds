@@ -77,11 +77,8 @@ class GuildDisbandAnnouncementWiringTest {
 
     @Test
     fun `dependency injection wires disband announcement service`() {
-        val modules = File(
-            "src/main/kotlin/net/lumalyte/lg/di/Modules.kt"
-        ).readText()
-
-        assertTrue(modules.contains("GuildDisbandAnnouncementServiceBukkit("))
-        assertTrue(modules.contains("GuildDisbandedListener(get(), get(), get(), get())"))
+        val bindings = File("src/main/kotlin/net/lumalyte/lg/di/nexus")
+        assertTrue(bindings.resolve("NexusWarBindings.kt").readText().contains("GuildDisbandAnnouncementServiceBukkit("))
+        assertTrue(bindings.resolve("NexusSocialBindings.kt").readText().contains("GuildDisbandedListener(getBean(), getBean(), getBean<LangService>(), getBean())"))
     }
 }

@@ -13,8 +13,6 @@ import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.bukkit.scheduler.BukkitRunnable
 import org.geysermc.floodgate.api.FloodgateApi
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import java.util.logging.Logger
@@ -25,8 +23,9 @@ import java.util.logging.Logger
 abstract class BaseBedrockMenu(
     protected val menuNavigator: MenuNavigator,
     protected val player: Player,
-    protected val logger: Logger
-) : Menu, BedrockMenu, KoinComponent {
+    protected val logger: Logger,
+    private val dependencies: BedrockMenuDependencies,
+) : Menu, BedrockMenu {
 
     companion object {
         // Track active forms and their timeout tasks
@@ -64,20 +63,27 @@ abstract class BaseBedrockMenu(
 
     private val openGeneration = AtomicLong()
 
-    protected val menuFactory: MenuFactory by inject()
-    protected val bedrockLocalization: BedrockLocalizationService by inject()
-    private val plugin: Plugin by inject()
-    private val lang: LangService by inject()
-    protected val formCacheService: net.lumalyte.lg.application.services.FormCacheService by inject()
-    protected val formValidationService: net.lumalyte.lg.application.services.FormValidationService by inject()
+    protected val menuFactory get() = dependencies.menuFactory
+    protected val bedrockLocalization get() = dependencies.localization
+    private val plugin get() = dependencies.plugin
+    private val lang get() = dependencies.lang
+    protected val formCacheService get() = dependencies.cache
+    protected val formValidationService get() = dependencies.validation
+
+    /** Explicit dependencies for converted forms and the child forms they construct (REQ-NEXUS-DI-1). */
+    protected val bedrockDependencies: BedrockMenuDependencies
+        get() = dependencies
+
+    /** Typed lazy collaborators for converted forms; resolved through the explicit menu factory. */
+    protected val services: net.lumalyte.lg.interaction.menus.MenuServices
+        get() = bedrockDependencies.menuFactory.menuServices
 
     /**
      * Gets the Bedrock configuration
      */
     protected fun getBedrockConfig(): BedrockConfig {
         return try {
-            val configService: net.lumalyte.lg.application.services.ConfigService by inject()
-            configService.loadConfig().bedrock
+            dependencies.config.loadConfig().bedrock
         } catch (e: Exception) {
             // Menu operation - catching all exceptions to prevent UI failure
             logger.warning("Could not load Bedrock config, using defaults: ${e.message}")
@@ -158,7 +164,7 @@ abstract class BaseBedrockMenu(
     /**
      * Bedrock-specific navigation helper
      */
-    protected val bedrockNavigator by lazy { BedrockMenuNavigator(menuNavigator, player, menuFactory) }
+    protected val bedrockNavigator by lazy { BedrockMenuNavigator(menuNavigator, player, menuFactory, lang) }
 
     /**
      * Helper method to handle navigation back to previous menu

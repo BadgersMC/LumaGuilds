@@ -21,7 +21,6 @@ import java.nio.file.Path
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class BankServiceBukkitDelegationTest {
@@ -154,18 +153,13 @@ class BankServiceBukkitDelegationTest {
         val plugin = MockBukkit.createMockPlugin("Vault")
         val original = mockk<Economy>(relaxed = true)
         val replacement = mockk<Economy>(relaxed = true)
+        val player = (Bukkit.getServer() as org.mockbukkit.mockbukkit.ServerMock).addPlayer()
+        every { original.getBalance(player) } returns 10.0
+        every { replacement.getBalance(player) } returns 20.0
         registerEconomy(original, plugin)
-        assertTrue(bank.isEconomyAvailable())
-        assertSame(original, cachedEconomy())
+        assertEquals(10, bank.getPlayerBalance(player.uniqueId))
         registerEconomy(replacement, plugin, ServicePriority.Highest)
-        assertTrue(bank.isEconomyAvailable())
-        assertSame(replacement, cachedEconomy())
-    }
-
-    private fun cachedEconomy(): Economy? {
-        val field =
-            BankServiceBukkit::class.java.getDeclaredField("economy").apply { isAccessible = true }
-        return field.get(bank) as Economy?
+        assertEquals(20, bank.getPlayerBalance(player.uniqueId))
     }
 
     private fun registerEconomy(

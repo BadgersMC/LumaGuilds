@@ -43,7 +43,7 @@ class GuildProgressionQuestNavigationTest {
         every { admin.getViewedGuild(playerId) } answers { if (scoped) guild.id else null }
         val menu =
             GuildProgressionMenu(
-                mockk(), player, guild, mockk(), members, mockk(), mockk(), mockk(), mockk(), admin,
+                mockk(), player, guild, mockk(), members, mockk(), mockk(), mockk(), mockk(), javaALegacyMenuServices(), admin,
             )
         val check = GuildProgressionMenu::class.java.getDeclaredMethod("canOpenQuests").also { it.isAccessible = true }
         org.junit.jupiter.api.Assertions.assertTrue(check.invoke(menu) as Boolean)
@@ -71,7 +71,7 @@ class GuildProgressionQuestNavigationTest {
             every { raw(any()) } returns TEST_LANG
         }
         stopKoin(); startKoin { modules(module { single { lang }; single { members }; single { factory } }) }
-        val menu = GuildProgressionMenu(navigator, player, guild, mockk(), members, mockk(), factory, mockk(), mockk())
+        val menu = GuildProgressionMenu(navigator, player, guild, mockk(), members, mockk(), factory, mockk(), mockk(), services = javaALegacyMenuServices())
         val pane = StaticPane(0, 0, 9, 6)
         val method = GuildProgressionMenu::class.java.getDeclaredMethod("addQuestsButton", StaticPane::class.java,
             Int::class.javaPrimitiveType, Int::class.javaPrimitiveType).apply { isAccessible = true }
@@ -80,7 +80,9 @@ class GuildProgressionQuestNavigationTest {
         verify(exactly = if (member && permission) 1 else 0) { navigator.openMenu(target) }
         clearMocks(navigator, answers = false)
         val bedrock = net.lumalyte.lg.interaction.menus.bedrock.BedrockGuildProgressionInfoMenu(
-            navigator, player, guild, plugin.logger)
+            navigator, player, guild, plugin.logger,
+            dependencies = net.lumalyte.lg.interaction.menus.bedrock.bedrockWorkerLegacyDependencies(),
+)
         bedrock.javaClass.getDeclaredMethod("openQuests").apply { isAccessible = true }.invoke(bedrock)
         verify(exactly = if (member && permission) 1 else 0) { navigator.openMenu(target) }
     }

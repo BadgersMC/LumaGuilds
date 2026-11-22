@@ -25,8 +25,7 @@ import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 
 /**
  * Admin penalty GUI — shows a guild's strike ledger and offers the four
@@ -40,11 +39,12 @@ class GuildStrikePenaltyMenu(
     private val player: Player,
     private val guild: Guild,
     private val strikesConfig: StrikesConfig,
-) : Menu, KoinComponent {
+    private val services: MenuServices,
+) : Menu {
 
-    private val strikeService: StrikeService by inject()
-    private val penaltyService: PenaltyService by inject()
-    private val lang: LangService by inject()
+    private val strikeService: StrikeService by services.strikeService
+    private val penaltyService: PenaltyService by services.penaltyService
+    private val lang: LangService by services.langService
 
     override fun open() {
         val guildName = GuildResolver.displayName(guild)
@@ -143,7 +143,7 @@ class GuildStrikePenaltyMenu(
             .lore(lang.gui("menu.guild_strike_penalty.action.confirm"))
         pane.addItem(GuiItem(item) {
             menuNavigator.openMenu(
-                GuildStrikePenaltyConfirmMenu(menuNavigator, player, guild, type, strikesConfig)
+                GuildStrikePenaltyConfirmMenu(menuNavigator, player, guild, type, strikesConfig, services = services)
             )
         }, x, y)
     }

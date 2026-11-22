@@ -593,3 +593,37 @@ The approved recruitment behavior, player/recruiter flows, discovery integration
 
 The catalog-backed Chronicle and durable guild goal follow CHR-001 through
 CHR-005 in [the Chronicle specification](plans/2026-10-16-guild-chronicle.md).
+
+## Nexus DI migration (behavior-preserving, 2026-11-21)
+
+Framework-only requirements for the KoinComponent-to-Nexus migration described in
+[`NEXUS-MIGRATION.md`](NEXUS-MIGRATION.md). They introduce no gameplay behavior.
+
+### REQ-NEXUS-DI-1 — Explicit constructor dependencies
+**Ubiquitous.** Every migrated menu, Bedrock form, command, listener, placeholder expansion and service SHALL receive its collaborators through its constructor or an explicit typed dependency bundle/provider supplied by a composition root, and SHALL NOT implement `KoinComponent`, use `by inject()`, `getKoin()` or `GlobalContext` lookups. A global textual rename or a generic resolver interface wrapping Koin or Nexus SHALL NOT satisfy this requirement.
+
+### REQ-NEXUS-DI-2 — Behavior parity
+**Ubiquitous.** A migrated class SHALL preserve its Java and Bedrock rendering, navigation targets and back-navigation, authorization checks, locale keys and placeholders, optional-service (`getOrNull`) fallbacks and the timing of dependency resolution that previously avoided startup cycles.
+
+### REQ-NEXUS-DI-3 — Lazy and optional resolution
+**State-driven.** WHILE claims are disabled or an optional integration (Vault, Apollo, DiscordSRV, PlaceholderAPI, CombatLogX) is absent THE SYSTEM SHALL start without resolving those dependencies; composition roots SHALL bind them as typed lazy providers that are invoked only when the dependent feature is used.
+
+### REQ-NEXUS-DI-4 — Dual composition roots without dual activation
+**Ubiquitous.** Each migrated constructor SHALL be wired in both the transitional legacy Koin graph (`di/Modules.kt`, `LumaGuilds.kt`) and the inert Nexus graph (`di/nexus/*Bindings.kt`). The live plugin lifecycle SHALL remain Koin/ACF-owned and the Nexus context SHALL NOT be activated until a separate cutover proves parity.
+
+### REQ-NEXUS-DI-5 — Verified inventory
+**Event-driven.** WHEN a migration tranche is integrated THE SYSTEM's evidence SHALL report the remaining exact `KoinComponent` declarations, imports, comments, `by inject()` and global-lookup counts from a reproducible scan, and SHALL NOT claim completion while any production reference remains.
+
+## Nexus command and lifecycle cutover (2026-11-21)
+
+### REQ-NEXUS-CUTOVER-1 — Command parity
+**Ubiquitous.** Nexus commands SHALL preserve the existing guild, claim, party-chat and quick-chat command roots, aliases, default routes, nested routes, permission nodes, player/console restrictions, optional and greedy arguments, current-state authorization, and permission-filtered completions. Framework parser differences SHALL be recorded and tested before activation; missing routes SHALL block cutover.
+
+### REQ-NEXUS-CUTOVER-2 — Single runtime owner
+**Event-driven.** WHEN persistence initialization succeeds and command parity is proven THE SYSTEM SHALL activate exactly one Nexus context, publish the existing Bukkit service contracts using the same singleton service instances, register optional integrations and listeners, and start managed tasks only after their dependencies are healthy. THE SYSTEM SHALL NOT activate Koin or ACF alongside Nexus. Claims-disabled and absent optional-plugin configurations SHALL remain supported.
+
+### REQ-NEXUS-CUTOVER-3 — Shutdown and failed startup
+**Event-driven.** WHEN startup fails or the plugin disables THE SYSTEM SHALL unregister its published services and integrations, stop its schedules/listeners, finish required persistence flushes, close its Nexus context, and finally close its storage exactly once. Cleanup SHALL tolerate partial initialization and repeated calls, preserve committed guild data, and leave no plugin-owned worker running.
+
+### REQ-NEXUS-CUTOVER-4 — Packaging and acceptance
+**Ubiquitous.** The completed release candidate SHALL contain no production Koin or ACF dependencies, imports, shading or legacy command-injection utilities, while retaining Aikar IDB persistence. Exact-head Java 25 regression, MariaDB CI, command-tree registration, and live Paper Java/Bedrock integration acceptance SHALL be reported separately. Source completion SHALL NOT imply live acceptance, merge or production deployment.

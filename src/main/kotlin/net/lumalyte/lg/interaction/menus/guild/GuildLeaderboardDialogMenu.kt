@@ -28,6 +28,7 @@ internal class GuildLeaderboardDialogMenu(
     private val quests: QuestService,
     private val lang: LangService,
     private val dialog: GuildDialogPresenter = GuildMenuDialog(),
+    private val openRecruitment: ((Guild) -> Unit)? = null,
 ) : Menu {
     private var tab = 0
     private var page = 0
@@ -61,7 +62,7 @@ internal class GuildLeaderboardDialogMenu(
                     Component.join(JoinConfiguration.newlines(), lines),
                     lines,
                     referenceAction(Component.text(guild.name), "lg_nav_info") {
-                        navigator.openMenu(GuildRecruitmentMenu(navigator, player, guild.id))
+                        checkNotNull(openRecruitment) { "Leaderboard recruitment navigation was not bound" }(guild)
                     },
                     rightLines = listOf(Component.text(row.score.toString()), when (tab) {
                         0 -> lang.gui("dialog_v2.rank_level")

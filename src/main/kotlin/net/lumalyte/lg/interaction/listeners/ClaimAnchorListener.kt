@@ -26,17 +26,28 @@ import net.lumalyte.lg.interaction.menus.management.ClaimManagementMenu
 import net.lumalyte.lg.interaction.menus.management.ClaimTransferMenu
 import org.bukkit.Bukkit
 import org.bukkit.inventory.EquipmentSlot
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
-class ClaimAnchorListener(): Listener, KoinComponent {
-    private val lang: LangService by inject()
-    private val getClaimAnchorAtPosition: GetClaimAnchorAtPosition by inject()
-    private val createClaim: CreateClaim by inject()
-    private val doesPlayerHaveTransferRequest: DoesPlayerHaveTransferRequest by inject()
-    private val doesPlayerHaveClaimOverride: DoesPlayerHaveClaimOverride by inject()
-    private val claimManagementAuthorizer: ClaimManagementAuthorizer by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+/** Explicit lazy collaborators for [ClaimAnchorListener] (REQ-NEXUS-DI-1..3); each resolves on first use. */
+data class ClaimAnchorListenerDependencies(
+    val lang: Lazy<LangService>,
+    val getClaimAnchorAtPosition: Lazy<GetClaimAnchorAtPosition>,
+    val createClaim: Lazy<CreateClaim>,
+    val doesPlayerHaveTransferRequest: Lazy<DoesPlayerHaveTransferRequest>,
+    val doesPlayerHaveClaimOverride: Lazy<DoesPlayerHaveClaimOverride>,
+    val claimManagementAuthorizer: Lazy<ClaimManagementAuthorizer>,
+    val menuFactory: Lazy<net.lumalyte.lg.interaction.menus.MenuFactory>,
+)
+
+class ClaimAnchorListener(
+    dependencies: ClaimAnchorListenerDependencies,
+) : Listener {
+    private val lang: LangService by dependencies.lang
+    private val getClaimAnchorAtPosition: GetClaimAnchorAtPosition by dependencies.getClaimAnchorAtPosition
+    private val createClaim: CreateClaim by dependencies.createClaim
+    private val doesPlayerHaveTransferRequest: DoesPlayerHaveTransferRequest by dependencies.doesPlayerHaveTransferRequest
+    private val doesPlayerHaveClaimOverride: DoesPlayerHaveClaimOverride by dependencies.doesPlayerHaveClaimOverride
+    private val claimManagementAuthorizer: ClaimManagementAuthorizer by dependencies.claimManagementAuthorizer
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by dependencies.menuFactory
 
     @EventHandler
     fun onPlayerClaimHubInteract(event: PlayerInteractEvent) {

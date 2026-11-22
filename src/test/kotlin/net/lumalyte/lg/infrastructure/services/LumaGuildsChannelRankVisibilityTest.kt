@@ -36,7 +36,9 @@ class LumaGuildsChannelRankVisibilityTest {
         startKoin { modules(module {
             single { guilds }; single { members }; single { ranks }; single { settings }
         }) }
-        val channel = LumaGuildsChannel(mockk<ChannelProvider>(relaxed = true))
+        val channel = LumaGuildsChannel(mockk<ChannelProvider>(relaxed = true),
+            dependencies = net.lumalyte.lg.interaction.testListenerLumaGuildsChannelDependencies(),
+        )
         channel.onLoad("guild", YamlConfiguration().apply {
             set("channel-type", "GUILD")
             set("formats.chat", "{player}: {message}")

@@ -9,7 +9,7 @@ class GuildListWiringTest {
     @Test
     fun `guild list command opens bounded cross platform browser`() {
         val command = File(
-            "src/main/kotlin/net/lumalyte/lg/interaction/commands/GuildCommand.kt"
+            "src/main/kotlin/net/lumalyte/lg/interaction/commands/GuildCommandHandlers.kt"
         ).readText()
         val factory = File(
             "src/main/kotlin/net/lumalyte/lg/interaction/menus/MenuFactory.kt"
@@ -18,7 +18,7 @@ class GuildListWiringTest {
         assertTrue(command.contains("menuFactory.createGuildListMenu(menuNavigator, player)"))
         assertTrue(factory.contains("fun createGuildListMenu("))
         assertTrue(factory.contains("BedrockGuildListMenu("))
-        assertTrue(factory.contains("GuildListMenu(menuNavigator, player)"))
+        assertTrue(factory.contains("GuildListMenu(menuNavigator, player, services = menuServices)"))
     }
 
     @Test

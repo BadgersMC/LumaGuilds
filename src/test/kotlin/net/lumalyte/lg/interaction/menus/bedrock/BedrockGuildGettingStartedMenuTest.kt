@@ -5,6 +5,8 @@ import net.badgersmc.nexus.i18n.LangService
 import net.kyori.adventure.text.Component
 import net.lumalyte.lg.application.services.*
 import net.lumalyte.lg.domain.entities.Guild
+import net.lumalyte.lg.application.persistence.GuildOnboardingRepository
+import net.lumalyte.lg.interaction.menus.guild.GuildGettingStartedNavigationDependencies
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.plugin.Plugin
@@ -13,16 +15,13 @@ import org.geysermc.cumulus.form.impl.FormDefinition
 import org.geysermc.cumulus.form.impl.FormDefinitions
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
-import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
-import org.koin.dsl.module
 import org.mockbukkit.mockbukkit.MockBukkit
 import java.time.Instant
 import java.util.UUID
 import java.util.logging.Logger
 
 class BedrockGuildGettingStartedMenuTest {
-    @AfterEach fun cleanup() { stopKoin(); MockBukkit.unmock() }
+    @AfterEach fun cleanup() { MockBukkit.unmock() }
 
     @Test fun `current native form opens existing rank menu on server tick`() {
         val fixture = Fixture()
@@ -55,16 +54,27 @@ class BedrockGuildGettingStartedMenuTest {
         private val guild = Guild(UUID.randomUUID(), "Guide", createdAt = Instant.now())
         private val form: SimpleForm
         init {
-            stopKoin()
             val plugin = MockBukkit.createMockPlugin()
             val lang = mockk<LangService>()
             every { lang.msg(any(), *anyVararg()) } answers { Component.text(firstArg<String>()) }
             every { service.snapshot(any(), any()) } returns GuildStartSnapshot(guild,
                 GuildStartTopic.entries.map { GuildStartStep(it, GuildStartState.AVAILABLE, it, "onboarding.permission") }, 1, 5)
-            startKoin { modules(module {
-                single { service }; single { factory }; single { lang }; single<Plugin> { plugin }
-            }) }
-            form = BedrockGuildGettingStartedMenu(navigator, player, guild.id, Logger.getAnonymousLogger()).getForm() as SimpleForm
+            val navigationDependencies = GuildGettingStartedNavigationDependencies(
+                service, factory, mockk<GuildOnboardingRepository>(), lang,
+            )
+            val baseDependencies = BedrockMenuDependencies(
+                menuFactory = factory,
+                localization = mockk(),
+                plugin = plugin,
+                lang = lang,
+                cache = mockk(),
+                validation = mockk(),
+                config = mockk(),
+            )
+            form = BedrockGuildGettingStartedMenu(
+                navigator, player, guild.id, Logger.getAnonymousLogger(),
+                navigationDependencies, baseDependencies,
+            ).getForm() as SimpleForm
         }
         fun respond() {
             val definition: FormDefinition<SimpleForm, *, *> = FormDefinitions.instance().definitionFor(form)

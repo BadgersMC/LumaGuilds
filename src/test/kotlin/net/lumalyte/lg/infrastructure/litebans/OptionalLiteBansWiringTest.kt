@@ -8,21 +8,22 @@ import java.io.File
 
 class OptionalLiteBansWiringTest {
     @Test
-    fun `core koin graph does not load LiteBans bound classes`() {
-        val source = File("src/main/kotlin/net/lumalyte/lg/di/Modules.kt").readText()
-        val start = source.indexOf("fun guildsModule()")
-        val end = source.indexOf("fun guildClaimsIntegrationModule()", start)
-        val guildsModule = source.substring(start, end)
-
-        assertFalse(guildsModule.contains("single<net.lumalyte.lg.infrastructure.litebans.LiteBansStrikeListener>"))
-        assertFalse(guildsModule.contains("single<net.lumalyte.lg.infrastructure.litebans.StrikeBackfillService>"))
+    fun `core Nexus graph does not load LiteBans bound classes`() {
+        val bindings = File("src/main/kotlin/net/lumalyte/lg/di/nexus").listFiles()!!
+            .filter { it.extension == "kt" }
+        assertTrue(bindings.isNotEmpty())
+        bindings.forEach { file ->
+            val source = file.readText()
+            assertFalse("LiteBansStrikeListener(" in source, file.name)
+            assertFalse("StrikeBackfillService(" in source, file.name)
+        }
     }
 
     @Test
     fun `LiteBans classes are constructed only inside guarded runtime hook`() {
-        val source = File("src/main/kotlin/net/lumalyte/lg/LumaGuilds.kt").readText()
+        val source = File("src/main/kotlin/net/lumalyte/lg/di/runtime/GuildListenerRegistration.kt").readText()
         val start = source.indexOf("private fun registerLiteBansStrikeHook()")
-        val end = source.indexOf("private fun registerRoseChatChannels()", start)
+        val end = source.indexOf("private fun parsePriority(", start)
         val hook = source.substring(start, end)
 
         assertTrue(hook.contains("liteBansStrikeHookRegistered || enthusiaStaffStrikeFeed != null"))
@@ -44,7 +45,7 @@ class OptionalLiteBansWiringTest {
     @Test
     fun optionalStaffPreferred() {
         val pluginYml = File("src/main/resources/plugin.yml").readText()
-        val source = File("src/main/kotlin/net/lumalyte/lg/LumaGuilds.kt").readText()
+        val source = File("src/main/kotlin/net/lumalyte/lg/di/runtime/GuildListenerRegistration.kt").readText()
 
         assertTrue(pluginYml.contains("EnthusiaStaff"))
         assertFalse(Regex("""(?m)^depend:.*EnthusiaStaff""").containsMatchIn(pluginYml))
@@ -55,13 +56,20 @@ class OptionalLiteBansWiringTest {
 
     @Test
     fun `partial startup shutdown does not hard resolve vault services`() {
-        val source = File("src/main/kotlin/net/lumalyte/lg/LumaGuilds.kt").readText()
-        val start = source.indexOf("override fun onDisable()")
-        val shutdown = source.substring(start)
+        // Shutdown only releases what startup acquired: onDisable resolves nothing, and each vault
+        // stop is recorded after its start (GuildRuntimeLifecycleTest proves partial-start release).
+        val plugin = File("src/main/kotlin/net/lumalyte/lg/LumaGuilds.kt").readText()
+        val disable = plugin.substringAfter("override fun onDisable()").substringBefore("fun initConfig()")
+        assertFalse(disable.contains("graph()"))
+        assertFalse(disable.contains("getBean"))
 
-        assertFalse(shutdown.contains("get().get<net.lumalyte.lg.infrastructure.vault.VaultAutoSaveService>()"))
-        assertFalse(shutdown.contains("get().get<net.lumalyte.lg.application.services.VaultBackupService>()"))
-        assertFalse(shutdown.contains("get().get<net.lumalyte.lg.infrastructure.services.VaultHologramService>()"))
-        assertTrue(shutdown.contains("getOrNull<net.lumalyte.lg.infrastructure.vault.VaultAutoSaveService>()"))
+        val schedules = File("src/main/kotlin/net/lumalyte/lg/di/runtime/GuildScheduleRegistration.kt").readText()
+        listOf(
+            "autoSave.start()" to "\"vault auto-save\") { autoSave.stop() }",
+            "backups.startAutoBackup(" to "\"vault backups\") { backups.stopAutoBackup() }",
+            "holograms.start()" to "\"vault holograms\") { holograms.stop() }",
+        ).forEach { (start, stop) ->
+            assertTrue(schedules.indexOf(start) in 0 until schedules.indexOf(stop), "$stop must be recorded after $start")
+        }
     }
 }

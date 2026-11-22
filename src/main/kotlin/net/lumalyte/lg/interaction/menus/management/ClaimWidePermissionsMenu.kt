@@ -23,18 +23,17 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 import java.util.UUID
 
 class ClaimWidePermissionsMenu(private val menuNavigator: MenuNavigator, private val player: Player,
-                               private val claim: Claim?): Menu, KoinComponent {
-    private val lang: LangService by inject()
-    private val grantAllClaimWidePermissions : GrantAllClaimWidePermissions by inject()
-    private val revokeAllClaimWidePermissions: RevokeAllClaimWidePermissions by inject()
-    private val getClaimPermissions: GetClaimPermissions by inject()
-    private val grantClaimWidePermission: GrantClaimWidePermission by inject()
-    private val revokeClaimWidePermission: RevokeClaimWidePermission by inject()
+                               private val claim: Claim?, private val services: MenuServices): Menu {
+    private val lang: LangService by services.langService
+    private val grantAllClaimWidePermissions : GrantAllClaimWidePermissions by services.grantAllClaimWidePermissions
+    private val revokeAllClaimWidePermissions: RevokeAllClaimWidePermissions by services.revokeAllClaimWidePermissions
+    private val getClaimPermissions: GetClaimPermissions by services.getClaimPermissions
+    private val grantClaimWidePermission: GrantClaimWidePermission by services.grantClaimWidePermission
+    private val revokeClaimWidePermission: RevokeClaimWidePermission by services.revokeClaimWidePermission
 
     override fun open() {
         if (claim == null) {

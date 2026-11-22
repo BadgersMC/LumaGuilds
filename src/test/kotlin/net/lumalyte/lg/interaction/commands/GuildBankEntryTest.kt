@@ -50,7 +50,7 @@ internal class GuildBankEntryTest {
                 },
             )
         }
-        GuildCommand().onBank(player)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onBank(player)
         verify(exactly = 1) { menu.open() }
     }
 
@@ -71,7 +71,7 @@ internal class GuildBankEntryTest {
                 },
             )
         }
-        GuildCommand().onBank(player)
+        net.lumalyte.lg.interaction.testListenerGuildCommand().onBank(player)
         verify(exactly = 0) { factory.createGuildBankMenu(any(), any(), any()) }
         verify(exactly = 1) { player.sendMessage(any<net.kyori.adventure.text.Component>()) }
     }

@@ -36,7 +36,7 @@ class GuildLeaderboardRoutingTest {
         startKoin { modules(module { single { guilds }; single { factory }; single { lang } }) }
         every { guilds.getPlayerGuilds(player.uniqueId) } returns setOf(mockk<Guild>())
         every { factory.createGuildLeaderboardMenu(any(), player, any()) } returns menu
-        BukkitCommandManager(plugin).registerCommand(GuildCommand())
+        BukkitCommandManager(plugin).registerCommand(net.lumalyte.lg.interaction.testListenerGuildCommand())
         for (root in listOf("g", "guild")) {
             clearMocks(menu, answers = false)
             server.dispatchCommand(player, "$root leaderboard")
@@ -57,7 +57,7 @@ class GuildLeaderboardRoutingTest {
         startKoin { modules(module { single { guilds }; single { factory }; single { lang } }) }
         every { guilds.getPlayerGuilds(player.uniqueId) } returns emptySet()
         every { factory.createGuildLeaderboardMenu(any(), player, null) } returns menu
-        BukkitCommandManager(plugin).registerCommand(GuildCommand())
+        BukkitCommandManager(plugin).registerCommand(net.lumalyte.lg.interaction.testListenerGuildCommand())
         for (root in listOf("g", "guild")) {
             clearMocks(menu, answers = false)
             server.dispatchCommand(player, "$root leaderboard")

@@ -22,16 +22,15 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 
 class ClaimCreationMenu(private val player: Player, private val menuNavigator: MenuNavigator,
-                        private val location: Location): Menu, KoinComponent {
-    private val lang: LangService by inject()
-    private val playerMetadataService: PlayerMetadataService by inject()
-    private val listPlayerClaims: ListPlayerClaims by inject()
-    private val isNewClaimLocationValid: IsNewClaimLocationValid by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
+                        private val location: Location, private val services: MenuServices): Menu {
+    private val lang: LangService by services.langService
+    private val playerMetadataService: PlayerMetadataService by services.playerMetadataService
+    private val listPlayerClaims: ListPlayerClaims by services.listPlayerClaims
+    private val isNewClaimLocationValid: IsNewClaimLocationValid by services.isNewClaimLocationValid
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by services.menuFactory
 
     override fun open() {
         val playerId = player.uniqueId
@@ -66,7 +65,7 @@ class ClaimCreationMenu(private val player: Player, private val menuNavigator: M
                         "remaining_claims" to playerMetadataService.getPlayerClaimLimit(playerId) - playerClaimCount,
                     ))
                 val guiIconEditorItem = GuiItem(iconEditorItem) {
-                    menuNavigator.openMenu(ClaimNamingMenu(player, menuNavigator, location))
+                    menuNavigator.openMenu(ClaimNamingMenu(player, menuNavigator, location, services = services))
                 }
                 pane.addItem(guiIconEditorItem, 4, 0)
                 gui.show(player)

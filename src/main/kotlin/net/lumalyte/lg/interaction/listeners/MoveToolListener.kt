@@ -13,14 +13,16 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.block.BlockPlaceEvent
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import java.util.UUID
 
-class MoveToolListener: Listener, KoinComponent {
-    private val lang: LangService by inject()
-    private val moveClaimAnchor: MoveClaimAnchor by inject()
-    private val getClaimIdFromMoveTool: GetClaimIdFromMoveTool by inject()
+class MoveToolListener(
+    lang: Lazy<LangService>,
+    moveClaimAnchor: Lazy<MoveClaimAnchor>,
+    getClaimIdFromMoveTool: Lazy<GetClaimIdFromMoveTool>,
+) : Listener {
+    private val lang: LangService by lang
+    private val moveClaimAnchor: MoveClaimAnchor by moveClaimAnchor
+    private val getClaimIdFromMoveTool: GetClaimIdFromMoveTool by getClaimIdFromMoveTool
 
     @EventHandler
     fun onClaimMoveBlockPlace(event: BlockPlaceEvent) {

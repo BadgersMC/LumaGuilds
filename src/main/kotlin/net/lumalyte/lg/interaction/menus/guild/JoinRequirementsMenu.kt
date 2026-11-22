@@ -26,8 +26,7 @@ import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 
 /**
  * Menu showing join requirements for a guild via LFG.
@@ -36,14 +35,15 @@ import org.koin.core.component.inject
 class JoinRequirementsMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
-    private val guild: Guild
-) : Menu, KoinComponent {
+    private val guild: Guild,
+    private val services: MenuServices,
+) : Menu {
 
-    private val lfgService: LfgService by inject()
-    private val configService: ConfigService by inject()
-    private val physicalCurrencyService: PhysicalCurrencyService by inject()
-    private val bankService: BankService by inject()
-    private val lang: LangService by inject()
+    private val lfgService: LfgService by services.lfgService
+    private val configService: ConfigService by services.configService
+    private val physicalCurrencyService: PhysicalCurrencyService by services.physicalCurrencyService
+    private val bankService: BankService by services.bankService
+    private val lang: LangService by services.langService
 
     override fun open() {
         val gui = ChestGui(3, MenuTitleBuilder.build(guild.guiTheme, 3, lang.guiTitle("menu.join_requirements.title", "guild" to guild.name)))

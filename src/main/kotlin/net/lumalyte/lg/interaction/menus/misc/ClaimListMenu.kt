@@ -17,13 +17,12 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 import kotlin.math.ceil
 
-class ClaimListMenu(private val menuNavigator: MenuNavigator, private val player: Player): Menu, KoinComponent {
-    private val lang: LangService by inject()
-    private val listPlayerClaims: ListPlayerClaims by inject()
+class ClaimListMenu(private val menuNavigator: MenuNavigator, private val player: Player, private val services: MenuServices): Menu {
+    private val lang: LangService by services.langService
+    private val listPlayerClaims: ListPlayerClaims by services.listPlayerClaims
 
     var page = 1
 

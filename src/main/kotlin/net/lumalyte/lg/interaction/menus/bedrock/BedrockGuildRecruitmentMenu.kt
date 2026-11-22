@@ -10,7 +10,6 @@ import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
 import org.geysermc.cumulus.form.SimpleForm
-import org.koin.core.component.inject
 import java.util.logging.Logger
 
 private const val BEDROCK_PAGE_SIZE = 8
@@ -21,9 +20,10 @@ internal class BedrockGuildRecruitmentMenu(
     player: Player,
     logger: Logger,
     initialGuild: java.util.UUID? = null,
-) : BaseBedrockMenu(navigator, player, logger) {
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(navigator, player, logger, dependencies) {
     private val controller =
-        RecruitmentController(player, ::open) {
+        RecruitmentController(player, ::open, services = menuFactory.menuServices) {
             val token = navigator.currentNavigationToken()
             val guard: () -> Boolean = { navigator.isNavigationCurrent(token) }
             guard
@@ -40,8 +40,8 @@ internal class BedrockGuildRecruitmentMenu(
             val guard: () -> Boolean = { navigator.isNavigationCurrent(token) }
             guard
         }
-    private val plugin: Plugin by inject()
-    private val lang: LangService by inject()
+    private val plugin: Plugin by services.plugin
+    private val lang: LangService by services.langService
 
     /** Forms are user-specific snapshots and must never enter the shared form cache. */
     override fun shouldCacheForm(): Boolean = false

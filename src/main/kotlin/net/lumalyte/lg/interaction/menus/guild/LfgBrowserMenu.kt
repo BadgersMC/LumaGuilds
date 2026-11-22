@@ -25,8 +25,7 @@ import org.bukkit.Material
 import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 
 /**
  * Menu for browsing guilds available via LFG (Looking For Guild).
@@ -34,14 +33,15 @@ import org.koin.core.component.inject
  */
 class LfgBrowserMenu(
     private val menuNavigator: MenuNavigator,
-    private val player: Player
-) : Menu, KoinComponent {
+    private val player: Player,
+    private val services: MenuServices,
+) : Menu {
 
-    private val lfgService: LfgService by inject()
-    private val memberService: MemberService by inject()
-    private val configService: ConfigService by inject()
-    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by inject()
-    private val lang: LangService by inject()
+    private val lfgService: LfgService by services.lfgService
+    private val memberService: MemberService by services.memberService
+    private val configService: ConfigService by services.configService
+    private val menuFactory: net.lumalyte.lg.interaction.menus.MenuFactory by services.menuFactory
+    private val lang: LangService by services.langService
 
     override fun open() {
         val gui = ChestGui(6, MenuTitleBuilder.build(GuiTheme.DEFAULT, 6, lang.guiTitle("menu.lfg_browser.title")))

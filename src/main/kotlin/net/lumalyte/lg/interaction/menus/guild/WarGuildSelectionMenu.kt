@@ -23,19 +23,19 @@ import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 
 class WarGuildSelectionMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private val availableGuilds: List<Guild>,
     private val callback: (Guild) -> Unit,
+    private val services: MenuServices,
     private var currentPage: Int = 0
-) : Menu, KoinComponent {
+) : Menu {
 
-    private val memberService: MemberService by inject()
-    private val lang: LangService by inject()
+    private val memberService: MemberService by services.memberService
+    private val lang: LangService by services.langService
 
     companion object {
         private const val GUILDS_PER_PAGE = 28 // 4 rows

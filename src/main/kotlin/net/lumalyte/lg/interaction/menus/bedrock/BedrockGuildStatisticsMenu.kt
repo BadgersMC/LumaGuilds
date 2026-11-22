@@ -21,7 +21,6 @@ import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import org.geysermc.cumulus.form.CustomForm
 import org.geysermc.cumulus.form.Form
-import org.koin.core.component.inject
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.logging.Logger
@@ -35,19 +34,20 @@ class BedrockGuildStatisticsMenu(
     menuNavigator: MenuNavigator,
     player: Player,
     private var guild: Guild,
-    logger: Logger
-) : BaseBedrockMenu(menuNavigator, player, logger) {
+    logger: Logger,
+    dependencies: BedrockMenuDependencies,
+) : BaseBedrockMenu(menuNavigator, player, logger, dependencies) {
 
-    private val killService: KillService by inject()
-    private val warService: WarService by inject()
-    private val memberService: MemberService by inject()
-    private val bankService: BankService by inject()
-    private val guildService: GuildService by inject()
-    private val leaderboardService: LeaderboardService by inject()
-    private val invitationStatisticsService: InvitationStatisticsService by inject()
-    private val progressionRepository: ProgressionRepository by inject()
-    private val lang: LangService by inject()
-    private val plugin: Plugin by inject()
+    private val killService: KillService by services.killService
+    private val warService: WarService by services.warService
+    private val memberService: MemberService by services.memberService
+    private val bankService: BankService by services.bankService
+    private val guildService: GuildService by services.guildService
+    private val leaderboardService: LeaderboardService by services.leaderboardService
+    private val invitationStatisticsService: InvitationStatisticsService by services.invitationStatisticsService
+    private val progressionRepository: ProgressionRepository by services.progressionRepository
+    private val lang: LangService by services.langService
+    private val plugin: Plugin by services.plugin
     private var invitationPage = 0
 
     companion object {

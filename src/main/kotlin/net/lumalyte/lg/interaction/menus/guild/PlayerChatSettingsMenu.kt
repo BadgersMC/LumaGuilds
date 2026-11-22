@@ -15,17 +15,16 @@ import net.lumalyte.lg.utils.name
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 
 /** Personal preferences are independent of guild management permissions. */
 internal class PlayerChatSettingsMenu(
     private val navigator: MenuNavigator,
     private val player: Player,
-) : Menu,
-    KoinComponent {
-    private val service: ChatService by inject()
-    private val lang: LangService by inject()
+    private val services: MenuServices,
+) : Menu {
+    private val service: ChatService by services.chatService
+    private val lang: LangService by services.langService
 
     override fun open() {
         val settings = service.getVisibilitySettings(player.uniqueId)

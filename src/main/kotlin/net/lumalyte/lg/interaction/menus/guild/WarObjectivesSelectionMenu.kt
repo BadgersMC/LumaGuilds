@@ -23,18 +23,18 @@ import org.bukkit.Sound
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
 import org.bukkit.inventory.ItemStack
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import net.lumalyte.lg.interaction.menus.MenuServices
 
 class WarObjectivesSelectionMenu(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
     private val currentObjectives: MutableSet<WarObjective>,
-    private val callback: (Set<WarObjective>) -> Unit
-) : Menu, KoinComponent {
+    private val callback: (Set<WarObjective>) -> Unit,
+    private val services: MenuServices,
+) : Menu {
 
-    private val configService: ConfigService by inject()
-    private val lang: LangService by inject()
+    private val configService: ConfigService by services.configService
+    private val lang: LangService by services.langService
     private val tempObjectives = currentObjectives.toMutableSet()
 
     override fun open() {

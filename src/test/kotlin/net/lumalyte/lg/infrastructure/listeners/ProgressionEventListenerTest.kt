@@ -3,7 +3,12 @@ package net.lumalyte.lg.infrastructure.listeners
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.isActive
 import net.lumalyte.lg.application.persistence.BlockProvenanceRepository
 import net.lumalyte.lg.application.persistence.MemberRepository
 import net.lumalyte.lg.application.services.ConfigService
@@ -29,6 +34,9 @@ import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.Executor
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class ProgressionEventListenerTest {
     private val guildId = UUID.randomUUID()
@@ -59,7 +67,7 @@ class ProgressionEventListenerTest {
                 )
             }
         } finally {
-            fixture.listener.shutdown()
+            fixture.close()
         }
     }
 
@@ -87,7 +95,7 @@ class ProgressionEventListenerTest {
                 )
             }
         } finally {
-            fixture.listener.shutdown()
+            fixture.close()
         }
     }
 
@@ -113,7 +121,7 @@ class ProgressionEventListenerTest {
                 )
             }
         } finally {
-            fixture.listener.shutdown()
+            fixture.close()
         }
     }
 
@@ -135,7 +143,46 @@ class ProgressionEventListenerTest {
                 fixture.progressionService.awardPlayerActivity(any(), any(), any(), any(), any())
             }
         } finally {
+            fixture.close()
+        }
+    }
+
+    @Test
+    fun `flush is a child of the injected scope and shutdown drains pending XP without canceling siblings`() {
+        val fixture = fixture()
+        val owner = fixture.taskScope.coroutineContext[Job]!!
+        try {
+            assertTrue(owner.isActive)
+            assertEquals(1, owner.children.count { it.isActive })
+            fixture.listener.awardGuildExperienceByGuildId(guildId, 19, ExperienceSource.FISHING)
+            verify(exactly = 0) {
+                fixture.progressionService.awardExperience(guildId, 19, ExperienceSource.FISHING)
+            }
+
             fixture.listener.shutdown()
+
+            verify(exactly = 1) {
+                fixture.progressionService.awardExperience(guildId, 19, ExperienceSource.FISHING)
+            }
+            assertTrue(owner.isActive, "Stopping one listener must not cancel the Nexus plugin scope")
+            assertFalse(owner.children.any { it.isActive }, "The listener's periodic job must be stopped")
+        } finally {
+            fixture.close()
+        }
+    }
+
+    @Test
+    fun `shutdown force-drains pending XP even when the owning scope was canceled first`() {
+        val fixture = fixture()
+        try {
+            fixture.listener.awardGuildExperienceByGuildId(guildId, 23, ExperienceSource.FISHING)
+            fixture.taskScope.cancel()
+            fixture.listener.shutdown()
+            verify(exactly = 1) {
+                fixture.progressionService.awardExperience(guildId, 23, ExperienceSource.FISHING)
+            }
+        } finally {
+            fixture.close()
         }
     }
 
@@ -158,6 +205,7 @@ class ProgressionEventListenerTest {
             every { uniqueId } returns playerId
             every { gameMode } returns GameMode.SURVIVAL
         }
+        val taskScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
         val listener = ProgressionEventListener(
             progressionService = progressionService,
             memberService = mockk<MemberService>(relaxed = true),
@@ -171,14 +219,22 @@ class ProgressionEventListenerTest {
             blockProvenanceRepository = mockk<BlockProvenanceRepository>(relaxed = true),
             plugin = plugin,
             virtualDispatcher = Dispatchers.Unconfined,
+            taskScope = taskScope,
             provenanceOperations = BlockProvenanceOperationQueue(Executor { it.run() }),
+            lunarClientService = { org.koin.core.context.GlobalContext.getOrNull()?.getOrNull<net.lumalyte.lg.application.services.apollo.LunarClientService>() },
         )
-        return Fixture(listener, progressionService, player)
+        return Fixture(listener, progressionService, player, taskScope)
     }
 
     private data class Fixture(
         val listener: ProgressionEventListener,
         val progressionService: ProgressionService,
         val player: Player,
-    )
+        val taskScope: CoroutineScope,
+    ) {
+        fun close() {
+            listener.shutdown()
+            taskScope.cancel()
+        }
+    }
 }

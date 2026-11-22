@@ -67,7 +67,9 @@ internal fun RecruitmentController.profile(): List<RecruitmentButton> {
                 ),
                 { navigationValid() && selected == current.id && screen == RecruitmentScreen.PROFILE },
                 { run { refresh() } },
-            )
+            platforms = platforms,
+            lang = lang,
+        )
         }
     if (service.listings.spaces(guild.id) > 0 && members.getPlayerGuilds(player.uniqueId).isEmpty()) {
         when (profile.mode) {

@@ -283,3 +283,6 @@ site/
 /resourcepack/
 /docs/previews/*.png
 
+
+# Kotlin compiler/Gradle persistent cache
+.kotlin/

@@ -3,8 +3,6 @@ package net.lumalyte.lg.infrastructure.services
 import net.lumalyte.lg.application.services.AuditService
 import net.lumalyte.lg.application.persistence.AuditRepository
 import net.lumalyte.lg.domain.entities.AuditRecord
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import org.slf4j.LoggerFactory
 import java.sql.SQLException
 import java.time.Instant
@@ -16,10 +14,9 @@ import java.util.UUID
  * This service provides comprehensive auditing for all key actions in the system,
  * including structured logging with context for better debugging and monitoring.
  */
-class AuditServiceBukkit : AuditService, KoinComponent {
-    
+class AuditServiceBukkit(private val auditRepository: AuditRepository) : AuditService {
+
     private val logger = LoggerFactory.getLogger(javaClass)
-    private val auditRepository: AuditRepository by inject()
     
     override fun recordAction(
         actorId: UUID,

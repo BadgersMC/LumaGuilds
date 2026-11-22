@@ -7,8 +7,6 @@ import net.lumalyte.lg.infrastructure.services.*
 import net.lumalyte.lg.infrastructure.persistence.storage.SqlDialect
 import org.bukkit.Bukkit
 import org.junit.jupiter.api.Test
-import org.koin.core.context.*
-import org.koin.dsl.module
 import java.time.Instant
 import java.util.UUID
 import kotlin.test.*
@@ -61,14 +59,13 @@ class GuildDisbandAtomicityTest : RewardSqlTestFixture() {
         val memberService = mockk<MemberService> { every { getGuildMembers(guild.id) } returns setOf(member) }
         val config = mockk<ConfigService>(relaxed = true)
         every { config.loadConfig().guild.creationCooldown } returns net.lumalyte.lg.domain.values.GuildCreationCooldown()
-        stopKoin()
-        startKoin { modules(module { single<ConfigService> { config } }) }
         mockkStatic(Bukkit::class)
         every { Bukkit.getPluginManager() } returns mockk(relaxed = true)
         try {
             val service = GuildServiceBukkit(guilds, ranks, members, mockk(), memberService,
                 mockk(), vault, holograms, relations, history, mockk(), mockk(relaxed = true),
-                homeAccess = net.lumalyte.lg.infrastructure.services.LegacyHomeAccessTestAdapter)
+                homeAccess = net.lumalyte.lg.infrastructure.services.LegacyHomeAccessTestAdapter,
+                configServiceProvider = { config })
             assertEquals(!fail, service.disbandGuild(guild.id, UUID(0, 0)))
             val expected = if (fail) 1 else 0
             for (table in listOf("members", "ranks")) {
@@ -103,7 +100,6 @@ class GuildDisbandAtomicityTest : RewardSqlTestFixture() {
             }
         } finally {
             unmockkStatic(Bukkit::class)
-            stopKoin()
         }
     }
 }

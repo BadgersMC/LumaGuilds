@@ -5,8 +5,6 @@ import net.lumalyte.lg.interaction.menus.Menu
 import net.lumalyte.lg.interaction.menus.MenuNavigator
 import net.lumalyte.lg.interaction.menus.MenuFactory
 import org.bukkit.entity.Player
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
 /**
  * Helper class for Bedrock menu navigation patterns
@@ -15,9 +13,9 @@ import org.koin.core.component.inject
 class BedrockMenuNavigator(
     private val menuNavigator: MenuNavigator,
     private val player: Player,
-    private val menuFactory: MenuFactory
-) : KoinComponent {
-    private val lang: LangService by inject()
+    private val menuFactory: MenuFactory,
+    private val lang: LangService,
+) {
 
     /**
      * Creates a back button handler that can be used in Bedrock forms

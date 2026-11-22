@@ -82,7 +82,7 @@ class GuildRewardCatalogControlsTest {
         every { anyConstructed<ChestGui>().addPane(any(), capture(panes)) } just Runs
         every { anyConstructed<ChestGui>().show(any()) } just Runs
         val guilds = mockk<GuildService> { every { getGuild(guild.id) } returns guild }
-        val menu = GuildProgressionMenu(mockk(), player, guild, guilds, members, progression, mockk(), mockk(), mockk())
+        val menu = GuildProgressionMenu(mockk(), player, guild, guilds, members, progression, mockk(), mockk(), mockk(), services = javaALegacyMenuServices())
         GuildProgressionMenu::class.java.getDeclaredMethod("openRewardCatalog").apply { isAccessible = true }.invoke(menu)
         val books = panes.flatMap { it.items }.filter { it.item.type == Material.BOOK }
         // Includes AUDIT_PENDING, which must stay non-quotable on both client types.
@@ -96,7 +96,7 @@ class GuildRewardCatalogControlsTest {
     }
 
     @Test fun `Bedrock unavailable selections never request a purchase quote`() {
-        val menu = spyk(BedrockGuildProgressionInfoMenu(mockk(relaxed = true), player, guild, Logger.getLogger("CatalogTest")))
+        val menu = spyk(BedrockGuildProgressionInfoMenu(mockk(relaxed = true), player, guild, Logger.getLogger("CatalogTest"), dependencies = net.lumalyte.lg.interaction.menus.bedrock.bedrockWorkerLegacyDependencies()))
         every { menu.open() } just Runs
         for ((index, status) in statuses.withIndex()) {
             if (status == RewardOfferStatus.AVAILABLE) continue

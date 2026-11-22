@@ -1,7 +1,5 @@
 package net.lumalyte.lg.interaction.listeners
 
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 import net.lumalyte.lg.application.services.BankService
 import net.lumalyte.lg.application.services.PhysicalGoldRequest
 import net.lumalyte.lg.domain.gold.GuildGoldResult
@@ -50,10 +48,13 @@ class VaultInventoryListener(
     private val memberService: MemberService,
     private val platformDetectionService: PlatformDetectionService,
     private val progressionRepository: ProgressionRepository,
-) : Listener, KoinComponent {
+    bankService: Lazy<BankService>,
+    lang: Lazy<LangService>,
+    private val menuServices: () -> net.lumalyte.lg.interaction.menus.MenuServices,
+) : Listener {
 
-    private val bankService: BankService by inject()
-    private val lang: LangService by inject()
+    private val bankService: BankService by bankService
+    private val lang: LangService by lang
 
     private val logger = LoggerFactory.getLogger(VaultInventoryListener::class.java)
 
@@ -216,7 +217,7 @@ class VaultInventoryListener(
                     player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                     return
                 }
-                val depositMenu = GoldDepositMenu(plugin, player, guildId, guildName, vaultInventoryManager, transactionLogger)
+                val depositMenu = GoldDepositMenu(plugin, player, guildId, guildName, vaultInventoryManager, transactionLogger, services = menuServices())
                 depositMenu.open()
             }
             // Right Click: Open withdraw menu
@@ -227,7 +228,7 @@ class VaultInventoryListener(
                     player.playSound(player.location, Sound.ENTITY_VILLAGER_NO, 1.0f, 1.0f)
                     return
                 }
-                val withdrawMenu = GoldWithdrawMenu(plugin, player, guildId, guildName, vaultInventoryManager, transactionLogger)
+                val withdrawMenu = GoldWithdrawMenu(plugin, player, guildId, guildName, vaultInventoryManager, transactionLogger, services = menuServices())
                 withdrawMenu.open()
             }
             else -> {
