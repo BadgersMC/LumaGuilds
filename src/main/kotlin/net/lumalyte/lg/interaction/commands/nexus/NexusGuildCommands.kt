@@ -25,11 +25,10 @@ import net.lumalyte.lg.interaction.commands.nexus.NexusGuildSuggestionKeys.UNLOC
 import org.bukkit.entity.Player
 
 /**
- * Inactive Nexus adapter for the complete `/guild` (`/g`) family — metadata only.
+ * Nexus adapter for the complete `/guild` (`/g`) family — metadata only.
  *
- * Every route delegates to the single shared [GuildCommandHandlers] (also behind the ACF
- * [net.lumalyte.lg.interaction.commands.GuildCommand]), so permissions are route-scoped exactly as
- * in ACF, authorization/persistence stay in the handlers, and the home/ally-home cooldown is shared.
+ * Every route delegates to one [GuildCommandHandlers] instance for authorization, persistence
+ * and the shared home/ally-home cooldown.
  *
  * Framework differences recorded for REQ-NEXUS-CUTOVER-1:
  * - Nexus `@Subcommand` has no `a|b` alias syntax: each ACF alias is its own delegating route.
@@ -37,8 +36,6 @@ import org.bukkit.entity.Player
  *   Non-final strings (`create <name>`, `home <homeName>`, `allyhome <guildName>`, `truce <guildName>`)
  *   stay single words as in ACF.
  * - Arguments stay `String`, never Paper's online `Player` selector, so offline names reach handlers.
- *
- * INACTIVE: not registered until the all-at-once Nexus command cutover; ACF stays authoritative.
  */
 @Command(name = "guild", aliases = ["g"])
 internal class NexusGuildCommands(private val handlers: GuildCommandHandlers) {

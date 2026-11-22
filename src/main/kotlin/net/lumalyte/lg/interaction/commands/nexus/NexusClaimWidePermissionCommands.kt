@@ -28,7 +28,7 @@ internal fun parseClaimPermission(raw: String): ClaimPermission? =
     ClaimPermission.entries.firstOrNull { normalizedClaimEnumName(it.name) == normalizedClaimEnumName(raw) }
 
 /**
- * Inactive Nexus equivalent of the ACF /claim trustall handler.
+ * Nexus handler for /claim trustall.
  * MANAGE_PERMISSIONS is checked live, immediately before the mutation.
  * Operation-specific completions preserve permission filtering. Invalid values still reply with
  * general.error rather than the former framework's built-in invalid-argument diagnostic.
@@ -77,7 +77,7 @@ class NexusTrustAllCommand(
 }
 
 /**
- * Inactive Nexus equivalent of the ACF /claim untrustall handler.
+ * Nexus handler for /claim untrustall.
  * Same parity gap as [NexusTrustAllCommand].
  */
 @Command(name = "claim")

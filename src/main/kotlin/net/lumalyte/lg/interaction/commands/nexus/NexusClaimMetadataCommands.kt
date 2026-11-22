@@ -30,7 +30,7 @@ import java.time.format.FormatStyle
 import java.util.Locale
 
 /**
- * Inactive Nexus equivalents for the ACF /claim info and /claim rename handlers.
+ * Nexus handlers for /claim info and /claim rename.
  * Share the live-access checks without retaining authorization across invocations.
  */
 @Command(name = "claim")

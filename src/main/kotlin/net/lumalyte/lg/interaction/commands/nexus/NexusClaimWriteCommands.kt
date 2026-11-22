@@ -25,7 +25,7 @@ import org.bukkit.entity.Player
 import java.util.UUID
 
 /**
- * Inactive Nexus-native claim mutations. Never register alongside ACF before cutover.
+ * Nexus claim description and flag mutations.
  * All authorization checks execute per request and before state mutation.
  */
 @Command(name = "claim")

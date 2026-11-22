@@ -17,9 +17,7 @@ import java.time.Instant
 import java.util.UUID
 
 /**
- * Framework-free /pc behavior shared by the transitional ACF [PartyChatCommand] and the inactive
- * Nexus `NexusPartyChatCommand` (REQ-NEXUS-CUTOVER-1). Bodies are moved verbatim from the legacy
- * ACF command; collaborators resolve lazily on first use (REQ-NEXUS-DI-1..3).
+ * Party chat behavior and stored preferences shared by Nexus routes and their completion provider.
  */
 class PartyChatHandler(dependencies: PartyChatCommandDependencies) {
 

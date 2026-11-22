@@ -20,10 +20,6 @@ import java.util.Locale
  * ACF exposed three @Default overloads (none / one word / vararg) and two `switch` overloads.
  * Nexus gets exactly one default route with an optional greedy message and one `switch` route
  * with an optional target; all behavior lives in the shared PartyChatHandler.
- *
- * INACTIVE: not registered until the all-at-once Nexus command cutover; the legacy ACF command
- * remains authoritative. The default greedy route additionally depends on the Nexus root-argument
- * fix (pinned 5ae8b642 attaches no argument nodes to `@Subcommand("")` routes).
  */
 
 private const val PARTY_CHAT_PERMISSION = "lumaguilds.partychat"

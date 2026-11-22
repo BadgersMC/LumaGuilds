@@ -13,8 +13,7 @@ import net.lumalyte.lg.interaction.menus.MenuNavigator
 import org.bukkit.entity.Player
 
 /**
- * ACF-free equivalents of /claim and /claimmenu. Kept inactive until the
- * complete Nexus command and dependency-graph cutover.
+ * Claim tool and claim menu commands.
  */
 @Command(name = "claim")
 class NexusClaimToolCommand(

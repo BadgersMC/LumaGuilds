@@ -9,7 +9,7 @@ class ClaimAuditWiringTest {
     @Test
     fun `claim info resolves the claims owner rather than the viewer`() {
         val source = File(
-            "src/main/kotlin/net/lumalyte/lg/interaction/commands/InfoCommand.kt"
+            "src/main/kotlin/net/lumalyte/lg/interaction/commands/nexus/NexusClaimMetadataCommands.kt"
         ).readText()
         assertTrue(source.contains("Bukkit.getOfflinePlayer(claim.playerId)"))
         assertFalse(source.contains("Bukkit.getOfflinePlayer(player.uniqueId)"))
@@ -36,14 +36,11 @@ class ClaimAuditWiringTest {
 
     @Test
     fun `claim list and partition list share bounded pagination`() {
-        val claimList = File(
-            "src/main/kotlin/net/lumalyte/lg/interaction/commands/ClaimListCommand.kt"
+        val source = File(
+            "src/main/kotlin/net/lumalyte/lg/interaction/commands/nexus/NexusClaimPaginationCommands.kt"
         ).readText()
-        val partitions = File(
-            "src/main/kotlin/net/lumalyte/lg/interaction/commands/PartitionsCommand.kt"
-        ).readText()
-        assertTrue(claimList.contains("pageBounds(playerClaims.size, page)"))
-        assertTrue(partitions.contains("pageBounds(partitions.size, page)"))
-        assertFalse(partitions.contains("for (i in 0..9 + page)"))
+        assertTrue(source.contains("pageBounds(claims.size, currentPage)"))
+        assertTrue(source.contains("pageBounds(partitions.size, currentPage)"))
+        assertFalse(source.contains("for (i in 0..9 + page)"))
     }
 }

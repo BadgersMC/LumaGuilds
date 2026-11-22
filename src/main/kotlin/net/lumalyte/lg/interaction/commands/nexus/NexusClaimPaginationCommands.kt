@@ -20,8 +20,7 @@ import org.bukkit.entity.Player
 import kotlin.math.ceil
 
 /**
- * ACF-free paginated claim listings. These handlers must stay inactive until
- * the single Nexus command cutover; do not register alongside legacy ACF.
+ * Paginated claim and partition listings.
  */
 @Command(name = "claimlist")
 class NexusClaimListCommand(

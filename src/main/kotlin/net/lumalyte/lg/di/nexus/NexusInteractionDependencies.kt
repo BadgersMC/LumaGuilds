@@ -85,69 +85,10 @@ internal fun NexusContext.nexusLumaGuildsChannelDependencies(): net.lumalyte.lg.
         rankService = lazy { getBean<net.lumalyte.lg.application.services.RankService>() },
     )
 
-internal fun NexusContext.nexusAddFlagCommand(): net.lumalyte.lg.interaction.commands.AddFlagCommand =
-    net.lumalyte.lg.interaction.commands.AddFlagCommand(
-        claimDependencies = nexusClaimCommandDependencies(),
-        enableClaimFlag = lazy { getBean<net.lumalyte.lg.application.actions.claim.flag.EnableClaimFlag>() },
-    )
-
 internal fun NexusContext.nexusBedrockCacheStatsCommand(): net.lumalyte.lg.interaction.commands.BedrockCacheStatsCommand =
     net.lumalyte.lg.interaction.commands.BedrockCacheStatsCommand(
         lang = lazy { getBean<net.badgersmc.nexus.i18n.LangService>() },
         formCacheService = lazy { getBean<net.lumalyte.lg.application.services.FormCacheService>() },
-    )
-
-internal fun NexusContext.nexusClaimCommand(): net.lumalyte.lg.interaction.commands.ClaimCommand =
-    net.lumalyte.lg.interaction.commands.ClaimCommand(
-        claimDependencies = nexusClaimCommandDependencies(),
-    )
-
-internal fun NexusContext.nexusClaimCommandDependencies(): net.lumalyte.lg.interaction.commands.ClaimCommandDependencies =
-    net.lumalyte.lg.interaction.commands.ClaimCommandDependencies(
-        lang = lazy { getBean<net.badgersmc.nexus.i18n.LangService>() },
-        getPartitionByPosition = lazy { getBean<net.lumalyte.lg.application.actions.claim.partition.GetPartitionByPosition>() },
-        doesPlayerHaveClaimOverride = lazy { getBean<net.lumalyte.lg.application.actions.player.DoesPlayerHaveClaimOverride>() },
-        getClaimDetails = lazy { getBean<net.lumalyte.lg.application.actions.claim.metadata.GetClaimDetails>() },
-        givePlayerClaimTool = lazy { getBean<net.lumalyte.lg.application.actions.player.tool.GivePlayerClaimTool>() },
-        claimManagementAuthorizer = lazy { getBean<net.lumalyte.lg.application.services.ClaimManagementAuthorizer>() },
-    )
-
-internal fun NexusContext.nexusClaimListCommand(): net.lumalyte.lg.interaction.commands.ClaimListCommand =
-    net.lumalyte.lg.interaction.commands.ClaimListCommand(
-        lang = lazy { getBean<net.badgersmc.nexus.i18n.LangService>() },
-        listPlayerClaims = lazy { getBean<net.lumalyte.lg.application.actions.claim.ListPlayerClaims>() },
-        getClaimBlockCount = lazy { getBean<net.lumalyte.lg.application.actions.claim.metadata.GetClaimBlockCount>() },
-    )
-
-internal fun NexusContext.nexusClaimMenuCommand(): net.lumalyte.lg.interaction.commands.ClaimMenuCommand =
-    net.lumalyte.lg.interaction.commands.ClaimMenuCommand(
-        menuFactory = lazy { getBean<net.lumalyte.lg.interaction.menus.MenuFactory>() },
-    )
-
-internal fun NexusContext.nexusClaimOverrideCommand(): net.lumalyte.lg.interaction.commands.ClaimOverrideCommand =
-    net.lumalyte.lg.interaction.commands.ClaimOverrideCommand(
-        lang = lazy { getBean<net.badgersmc.nexus.i18n.LangService>() },
-        toggleClaimOverride = lazy { getBean<net.lumalyte.lg.application.actions.player.ToggleClaimOverride>() },
-    )
-
-internal fun NexusContext.nexusDescriptionCommand(): net.lumalyte.lg.interaction.commands.DescriptionCommand =
-    net.lumalyte.lg.interaction.commands.DescriptionCommand(
-        claimDependencies = nexusClaimCommandDependencies(),
-        updateClaimDescription = lazy { getBean<net.lumalyte.lg.application.actions.claim.metadata.UpdateClaimDescription>() },
-    )
-
-internal fun NexusContext.nexusFullscreenAnnounceCommand(): net.lumalyte.lg.interaction.commands.FullscreenAnnounceCommand =
-    net.lumalyte.lg.interaction.commands.FullscreenAnnounceCommand(
-        guilds = lazy { getBean<net.lumalyte.lg.application.services.GuildService>() },
-        members = lazy { getBean<net.lumalyte.lg.application.services.MemberService>() },
-        service = lazy { getBean<net.lumalyte.lg.application.services.ChatService>() },
-        penalties = lazy { getBean<net.lumalyte.lg.application.services.PenaltyService>() },
-        lang = lazy { getBean<net.badgersmc.nexus.i18n.LangService>() },
-    )
-
-internal fun NexusContext.nexusGuildCommand(): net.lumalyte.lg.interaction.commands.GuildCommand =
-    net.lumalyte.lg.interaction.commands.GuildCommand(
-        dependencies = nexusGuildCommandDependencies(),
     )
 
 internal fun NexusContext.nexusGuildCommandDependencies(): net.lumalyte.lg.interaction.commands.GuildCommandDependencies =
@@ -182,16 +123,6 @@ internal fun NexusContext.nexusGuildCommandDependencies(): net.lumalyte.lg.inter
         guildOnboardingRepository = lazy { getBean<net.lumalyte.lg.application.persistence.GuildOnboardingRepository>() },
     )
 
-internal fun NexusContext.nexusInfoCommand(): net.lumalyte.lg.interaction.commands.InfoCommand =
-    net.lumalyte.lg.interaction.commands.InfoCommand(
-        claimDependencies = nexusClaimCommandDependencies(),
-        getClaimFlags = lazy { getBean<net.lumalyte.lg.application.actions.claim.flag.GetClaimFlags>() },
-        getClaimPermissions = lazy { getBean<net.lumalyte.lg.application.actions.claim.permission.GetClaimPermissions>() },
-        getClaimPartitions = lazy { getBean<net.lumalyte.lg.application.actions.claim.partition.GetClaimPartitions>() },
-        getClaimBlockCount = lazy { getBean<net.lumalyte.lg.application.actions.claim.metadata.GetClaimBlockCount>() },
-        getPlayersWithPermissionInClaim = lazy { getBean<net.lumalyte.lg.application.actions.claim.permission.GetPlayersWithPermissionInClaim>() },
-    )
-
 internal fun NexusContext.nexusLumaGuildsCommand(): net.lumalyte.lg.interaction.commands.LumaGuildsCommand =
     net.lumalyte.lg.interaction.commands.LumaGuildsCommand(
         dependencies = nexusLumaGuildsCommandDependencies(),
@@ -214,17 +145,6 @@ internal fun NexusContext.nexusLumaGuildsCommandDependencies(): net.lumalyte.lg.
         progressionEventListener = { if (containsBean("progressionEventListener")) getBean<net.lumalyte.lg.infrastructure.listeners.ProgressionEventListener>() else null },
     )
 
-internal fun NexusContext.nexusPartitionsCommand(): net.lumalyte.lg.interaction.commands.PartitionsCommand =
-    net.lumalyte.lg.interaction.commands.PartitionsCommand(
-        claimDependencies = nexusClaimCommandDependencies(),
-        getClaimPartitions = lazy { getBean<net.lumalyte.lg.application.actions.claim.partition.GetClaimPartitions>() },
-    )
-
-internal fun NexusContext.nexusPartyChatCommand(): net.lumalyte.lg.interaction.commands.PartyChatCommand =
-    net.lumalyte.lg.interaction.commands.PartyChatCommand(
-        dependencies = nexusPartyChatCommandDependencies(),
-    )
-
 internal fun NexusContext.nexusPartyChatCommandDependencies(): net.lumalyte.lg.interaction.commands.PartyChatCommandDependencies =
     net.lumalyte.lg.interaction.commands.PartyChatCommandDependencies(
         lang = lazy { getBean<net.badgersmc.nexus.i18n.LangService>() },
@@ -235,83 +155,6 @@ internal fun NexusContext.nexusPartyChatCommandDependencies(): net.lumalyte.lg.i
         partyRepository = lazy { getBean<net.lumalyte.lg.application.persistence.PartyRepository>() },
         preferenceRepository = lazy { getBean<net.lumalyte.lg.application.persistence.PlayerPartyPreferenceRepository>() },
         configService = lazy { getBean<net.lumalyte.lg.application.services.ConfigService>() },
-    )
-
-internal fun NexusContext.nexusQuickAllyChatCommand(): net.lumalyte.lg.interaction.commands.QuickAllyChatCommand =
-    net.lumalyte.lg.interaction.commands.QuickAllyChatCommand(
-        lang = lazy { getBean<net.badgersmc.nexus.i18n.LangService>() },
-        guildService = lazy { getBean<net.lumalyte.lg.application.services.GuildService>() },
-    )
-
-internal fun NexusContext.nexusQuickAnnounceCommand(): net.lumalyte.lg.interaction.commands.QuickAnnounceCommand =
-    net.lumalyte.lg.interaction.commands.QuickAnnounceCommand(
-        lang = lazy { getBean<net.badgersmc.nexus.i18n.LangService>() },
-        chatService = lazy { getBean<net.lumalyte.lg.application.services.ChatService>() },
-        guildService = lazy { getBean<net.lumalyte.lg.application.services.GuildService>() },
-        memberService = lazy { getBean<net.lumalyte.lg.application.services.MemberService>() },
-    )
-
-internal fun NexusContext.nexusQuickGuildChatCommand(): net.lumalyte.lg.interaction.commands.QuickGuildChatCommand =
-    net.lumalyte.lg.interaction.commands.QuickGuildChatCommand(
-        lang = lazy { getBean<net.badgersmc.nexus.i18n.LangService>() },
-        guildService = lazy { getBean<net.lumalyte.lg.application.services.GuildService>() },
-        penaltyService = lazy { getBean<net.lumalyte.lg.application.services.PenaltyService>() },
-    )
-
-internal fun NexusContext.nexusQuickModChatCommand(): net.lumalyte.lg.interaction.commands.QuickModChatCommand =
-    net.lumalyte.lg.interaction.commands.QuickModChatCommand(
-        lang = lazy { getBean<net.badgersmc.nexus.i18n.LangService>() },
-        guildService = lazy { getBean<net.lumalyte.lg.application.services.GuildService>() },
-        memberService = lazy { getBean<net.lumalyte.lg.application.services.MemberService>() },
-    )
-
-internal fun NexusContext.nexusRemoveCommand(): net.lumalyte.lg.interaction.commands.RemoveCommand =
-    net.lumalyte.lg.interaction.commands.RemoveCommand(
-        claimDependencies = nexusClaimCommandDependencies(),
-        removePartition = lazy { getBean<net.lumalyte.lg.application.actions.claim.partition.RemovePartition>() },
-    )
-
-internal fun NexusContext.nexusRemoveFlagCommand(): net.lumalyte.lg.interaction.commands.RemoveFlagCommand =
-    net.lumalyte.lg.interaction.commands.RemoveFlagCommand(
-        claimDependencies = nexusClaimCommandDependencies(),
-        disableClaimFlag = lazy { getBean<net.lumalyte.lg.application.actions.claim.flag.DisableClaimFlag>() },
-    )
-
-internal fun NexusContext.nexusRenameCommand(): net.lumalyte.lg.interaction.commands.RenameCommand =
-    net.lumalyte.lg.interaction.commands.RenameCommand(
-        claimDependencies = nexusClaimCommandDependencies(),
-        updateClaimName = lazy { getBean<net.lumalyte.lg.application.actions.claim.metadata.UpdateClaimName>() },
-    )
-
-internal fun NexusContext.nexusTrustAllCommand(): net.lumalyte.lg.interaction.commands.TrustAllCommand =
-    net.lumalyte.lg.interaction.commands.TrustAllCommand(
-        claimDependencies = nexusClaimCommandDependencies(),
-        grantClaimWidePermission = lazy { getBean<net.lumalyte.lg.application.actions.claim.permission.GrantClaimWidePermission>() },
-    )
-
-internal fun NexusContext.nexusTrustCommand(): net.lumalyte.lg.interaction.commands.TrustCommand =
-    net.lumalyte.lg.interaction.commands.TrustCommand(
-        claimDependencies = nexusClaimCommandDependencies(),
-        grantPlayerClaimPermission = lazy { getBean<net.lumalyte.lg.application.actions.claim.permission.GrantPlayerClaimPermission>() },
-    )
-
-internal fun NexusContext.nexusTrustListCommand(): net.lumalyte.lg.interaction.commands.TrustListCommand =
-    net.lumalyte.lg.interaction.commands.TrustListCommand(
-        claimDependencies = nexusClaimCommandDependencies(),
-        getPlayersWithPermissionInClaim = lazy { getBean<net.lumalyte.lg.application.actions.claim.permission.GetPlayersWithPermissionInClaim>() },
-        getClaimPlayerPermissions = lazy { getBean<net.lumalyte.lg.application.actions.claim.permission.GetClaimPlayerPermissions>() },
-    )
-
-internal fun NexusContext.nexusUntrustAllCommand(): net.lumalyte.lg.interaction.commands.UntrustAllCommand =
-    net.lumalyte.lg.interaction.commands.UntrustAllCommand(
-        claimDependencies = nexusClaimCommandDependencies(),
-        revokeClaimWidePermission = lazy { getBean<net.lumalyte.lg.application.actions.claim.permission.RevokeClaimWidePermission>() },
-    )
-
-internal fun NexusContext.nexusUntrustCommand(): net.lumalyte.lg.interaction.commands.UntrustCommand =
-    net.lumalyte.lg.interaction.commands.UntrustCommand(
-        claimDependencies = nexusClaimCommandDependencies(),
-        revokePlayerClaimPermission = lazy { getBean<net.lumalyte.lg.application.actions.claim.permission.RevokePlayerClaimPermission>() },
     )
 
 internal fun NexusContext.nexusBannerSelectionListener(): net.lumalyte.lg.interaction.listeners.BannerSelectionListener =

@@ -21,7 +21,7 @@ import net.lumalyte.lg.infrastructure.i18n.plain
 import org.bukkit.entity.Player
 
 /**
- * Inactive Nexus equivalent of the ACF /claim trust handler.
+ * Nexus handler for /claim trust.
  *
  * Target lookup uses the server's exact/partial name matcher and preserves visibility, ambiguity
  * and explicit vanished-player confirmation. Selectors are never interpreted. Unresolved targets
@@ -84,7 +84,7 @@ class NexusTrustCommand(
 }
 
 /**
- * Inactive Nexus equivalent of the ACF /claim untrust handler. Same target lookup and parity
+ * Nexus handler for /claim untrust. Same target lookup and parity
  * gaps as [NexusTrustCommand].
  */
 @Command(name = "claim")

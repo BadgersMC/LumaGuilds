@@ -21,9 +21,8 @@ import org.bukkit.entity.Player
 import java.util.UUID
 
 /**
- * Inactive Nexus equivalents of ACF /ga and /gfa.
+ * Guild announcement commands /ga and /gfa.
  * One optional greedy-message handler per root preserves bare-command help.
- * Never register these alongside the live ACF roots.
  */
 @Command(name = "ga")
 class NexusQuickAnnounceCommand(

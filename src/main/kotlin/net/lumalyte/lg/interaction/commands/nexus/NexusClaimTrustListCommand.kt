@@ -18,7 +18,7 @@ import org.bukkit.entity.Player
 import kotlin.math.ceil
 
 /**
- * Inactive Nexus equivalent of the ACF /claim trustlist handler. Do not register alongside legacy ACF.
+ * Nexus handler for /claim trustlist.
  *
  * Deliberate LEGACY QUIRKS preserved (see TrustListCommand); do not "fix" without a spec change:
  *  - page validity uses a 10-per-page rule: valid iff page >= 1 && page * 10 - 9 <= trusted count;

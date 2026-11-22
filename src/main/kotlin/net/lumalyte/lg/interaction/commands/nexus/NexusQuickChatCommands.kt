@@ -25,9 +25,6 @@ import org.bukkit.entity.Player
  * ACF exposed two @Default handlers per root (no-args usage and vararg message).
  * Nexus gets exactly ONE default route per root with an optional greedy message:
  * null/blank shows the legacy usage text, anything else dispatches via RoseChat.
- *
- * INACTIVE: not registered until the all-at-once Nexus command cutover; the
- * legacy ACF commands remain authoritative.
  */
 
 private const val QUICK_CHAT_PERMISSION = "lumaguilds.guild.chat"

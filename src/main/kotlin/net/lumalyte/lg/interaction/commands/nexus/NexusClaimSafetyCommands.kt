@@ -17,7 +17,7 @@ import org.bukkit.entity.Player
 import java.util.UUID
 
 /**
- * Inactive Nexus equivalents for the ACF /claim remove and /claimoverride handlers.
+ * Nexus handlers for /claim remove and /claimoverride.
  * Authorization is evaluated per invocation through [NexusClaimAccess].
  */
 @Command(name = "claim")

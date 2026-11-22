@@ -1,5 +1,6 @@
 package net.lumalyte.lg.interaction
 
+import co.aikar.commands.BaseCommand
 import net.badgersmc.nexus.i18n.LangService
 import net.lumalyte.lg.application.services.PlatformDetectionService
 import net.lumalyte.lg.infrastructure.listeners.CombatAntiGriefListener
@@ -189,8 +190,11 @@ class ListenersWorkerKoinFreeRegressionTest {
     fun manifestSourcesContainNoKoinLookups() {
         val forbidden = Regex("KoinComponent|org\\.koin|by inject|getKoin|GlobalContext")
         val files = (shapes.keys + RecruitmentPresentation::class)
-            .mapNotNull { it.qualifiedName }
-            .map { File("src/main/kotlin/" + it.replace('.', '/') + ".kt") }
+            .map { type ->
+                val sourceSet = if (BaseCommand::class.java.isAssignableFrom(type.java)) "test" else "main"
+                val path = requireNotNull(type.qualifiedName).replace('.', '/')
+                File("src/$sourceSet/kotlin/$path.kt")
+            }
         assertEquals(emptyList(), files.filterNot(File::isFile).map(File::getPath), "manifest sources must exist")
         assertEquals(53, files.size)
         val offenders = files.flatMap { file ->

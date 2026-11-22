@@ -34,10 +34,7 @@ import org.bukkit.entity.Player
 import java.util.UUID
 
 /**
- * Framework-free `/guild` handler logic shared by the transitional ACF adapter
- * ([GuildCommand]) and the inactive Nexus adapter
- * ([net.lumalyte.lg.interaction.commands.nexus.NexusGuildCommands]).
- *
+ * Guild command behavior for [net.lumalyte.lg.interaction.commands.nexus.NexusGuildCommands].
  * One instance owns per-player command state (the shared home/ally-home teleport
  * cooldown), so every adapter route MUST delegate to the same instance (REQ-NEXUS-CUTOVER-1).
  */

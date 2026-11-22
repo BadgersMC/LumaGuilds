@@ -14,6 +14,13 @@ class GuildCommandCutoverTest {
     private val commandSources = File("src/main/kotlin/net/lumalyte/lg/interaction/commands")
 
     @Test
+    fun `production command sources have no ACF dependencies`() {
+        val offenders = commandSources.walkTopDown().filter { source ->
+            source.extension == "kt" && source.useLines { lines -> lines.any { it.startsWith("import co.aikar.commands.") } }
+        }.map { it.relativeTo(commandSources).invariantSeparatorsPath }.sorted().toList()
+        assertEquals(emptyList(), offenders)
+    }
+    @Test
     fun `Bukkit descriptor reserves only the administrative commands owned by Bukkit`() {
         val descriptor = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(File("src/main/resources/plugin.yml"))
         val commands = requireNotNull(descriptor.getConfigurationSection("commands"))
@@ -23,7 +30,8 @@ class GuildCommandCutoverTest {
     }
     @Test
     fun `legacy root inventory matches every ACF command alias`() {
-        val aliasGroups = commandSources.listFiles { file -> file.extension == "kt" }!!
+        val fixtures = File("src/test/kotlin/net/lumalyte/lg/interaction/commands")
+        val aliasGroups = fixtures.listFiles { file -> file.extension == "kt" }!!
             .flatMap { file -> Regex("""@CommandAlias\("([^"]+)"\)""").findAll(file.readText()).map { it.groupValues[1] }.toList() }
             .map { group -> group.split('|').toSet() }
             .toSet()
