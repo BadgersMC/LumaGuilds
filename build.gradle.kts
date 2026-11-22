@@ -62,6 +62,7 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:26.2.build.129-stable")
     compileOnly("com.github.retrooper:packetevents-spigot:2.11.2")
     compileOnly("com.discordsrv:discordsrv:1.28.0")
+    testCompileOnly("com.discordsrv:discordsrv:1.28.0")
     // Provider-neutral EnthusiaStaff lifecycle API; CI builds the exact pinned source into libs/.
     // Runtime classes are supplied by the EnthusiaStaff plugin through the soft dependency.
     val enthusiaStaffModerationApi = files("libs/EnthusiaStaff-moderation-api.jar")
