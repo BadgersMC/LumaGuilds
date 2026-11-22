@@ -422,7 +422,7 @@ class CommandLocalizationTest {
     @Test
     fun `component-capable guild feedback does not use legacy fragments`() {
         val guildCommand = Path.of(System.getProperty("user.dir"))
-            .resolve("src/main/kotlin/net/lumalyte/lg/interaction/commands/GuildCommand.kt")
+            .resolve("src/main/kotlin/net/lumalyte/lg/interaction/commands/GuildCommandHandlers.kt")
         val componentFragmentKeys = setOf(
             "command.migrated.guild.homes.main",
             "command.migrated.guild.history.blank_line",

@@ -747,103 +747,28 @@ class LumaGuilds : JavaPlugin() {
         // ACF handles tab completion automatically through @CommandCompletion annotations
         // Register custom async completions for dynamic data
 
-        // Register custom player name completion for all online players
-        commandManager.commandCompletions.registerAsyncCompletion("allplayers") { context ->
-            Bukkit.getOnlinePlayers().map { it.name }
-        }
-
-        commandManager.commandCompletions.registerAsyncCompletion("guildmembers") { context ->
-            val player = context.player ?: return@registerAsyncCompletion emptyList()
-            val guildService = get().get<net.lumalyte.lg.application.services.GuildService>()
-            val memberService = get().get<net.lumalyte.lg.application.services.MemberService>()
-            val guilds = guildService.getPlayerGuilds(player.uniqueId)
-            if (guilds.isEmpty()) return@registerAsyncCompletion emptyList()
-            val guild = guilds.first()
-            memberService.getGuildMembers(guild.id)
-                .filter { it.playerId != player.uniqueId }
-                .mapNotNull { Bukkit.getOfflinePlayer(it.playerId).name }
-        }
-
-        commandManager.commandCompletions.registerAsyncCompletion("guilds") { _ ->
-            val guildService = get().get<net.lumalyte.lg.application.services.GuildService>()
-            net.lumalyte.lg.utils.GuildResolver.suggestions(guildService)
-        }
-
+        // Guild-family completion sources are shared with the inactive Nexus providers.
+        val guildCompletions = net.lumalyte.lg.interaction.commands.GuildCommandCompletions(
+            guildService = lazy { get().get<net.lumalyte.lg.application.services.GuildService>() },
+            memberService = lazy { get().get<net.lumalyte.lg.application.services.MemberService>() },
+            relationService = lazy { get().get<net.lumalyte.lg.application.services.RelationService>() },
+            nexoEmojiService = lazy { get().get<net.lumalyte.lg.infrastructure.services.NexoEmojiService>() },
+        )
+        val completions = commandManager.commandCompletions
+        completions.registerAsyncCompletion("allplayers") { _ -> guildCompletions.allPlayers() }
+        completions.registerAsyncCompletion("guildmembers") { c -> c.player?.let(guildCompletions::guildMembers) ?: emptyList() }
+        completions.registerAsyncCompletion("guilds") { _ -> guildCompletions.guilds() }
         // Pending invites for the executing player (used by /g decline, /g join in closed guilds)
-        commandManager.commandCompletions.registerAsyncCompletion("pendinginvites") { context ->
-            val player = context.player ?: return@registerAsyncCompletion emptyList()
-            net.lumalyte.lg.infrastructure.services.GuildInvitationManager.getInvites(player.uniqueId)
-                .map { (_, guildName) -> net.lumalyte.lg.utils.ColorCodeUtils.stripAllFormatting(guildName).trim() }
-                .filter { it.isNotBlank() }
-                .distinct()
-                .sorted()
-        }
-
+        completions.registerAsyncCompletion("pendinginvites") { c -> c.player?.let(guildCompletions::pendingInvites) ?: emptyList() }
         // Guilds OR online player names — used by /g info, which supports both.
-        commandManager.commandCompletions.registerAsyncCompletion("guildsorplayers") { _ ->
-            val guildService = get().get<net.lumalyte.lg.application.services.GuildService>()
-            val guildNames = net.lumalyte.lg.utils.GuildResolver.suggestions(guildService)
-            val playerNames = Bukkit.getOnlinePlayers().mapNotNull { it.name }
-            (guildNames + playerNames).distinct().sorted()
-        }
-
+        completions.registerAsyncCompletion("guildsorplayers") { _ -> guildCompletions.guildsOrPlayers() }
         // Ally guilds whose ally-home the executing player can teleport to.
-        // Includes the player's OWN guild (gated by canUseOwnAllyHome) plus every active ALLY
-        // that has an ally-home set and passes canUseAllyHome (rank perm + inbound whitelist).
-        commandManager.commandCompletions.registerAsyncCompletion("allyguilds") { context ->
-            val player = context.player ?: return@registerAsyncCompletion emptyList()
-            val guildService = get().get<net.lumalyte.lg.application.services.GuildService>()
-            val relationService = get().get<net.lumalyte.lg.application.services.RelationService>()
-            val guilds = guildService.getPlayerGuilds(player.uniqueId)
-            if (guilds.isEmpty()) return@registerAsyncCompletion emptyList()
-            val sourceGuild = guilds.first()
-            val results = mutableListOf<String>()
-            // Own guild's ally-home, when set and the player's rank may use it.
-            if (sourceGuild.allyHome != null &&
-                guildService.canUseOwnAllyHome(player.uniqueId, sourceGuild.id)) {
-                results.add(sourceGuild.name)
-            }
-            relationService
-                .getGuildRelationsByType(sourceGuild.id, net.lumalyte.lg.domain.entities.RelationType.ALLY)
-                .mapNotNullTo(results) { rel ->
-                    val otherId = rel.getOtherGuild(sourceGuild.id)
-                    val other = guildService.getGuild(otherId) ?: return@mapNotNullTo null
-                    if (other.allyHome == null) return@mapNotNullTo null
-                    if (!guildService.canUseAllyHome(player.uniqueId, sourceGuild.id, other.id)) return@mapNotNullTo null
-                    other.name
-                }
-            results.distinct().sorted()
-        }
-
-        commandManager.commandCompletions.registerAsyncCompletion("guildhomes") { context ->
-            val player = context.player ?: return@registerAsyncCompletion emptyList()
-            val guildService = get().get<net.lumalyte.lg.application.services.GuildService>()
-            val guilds = guildService.getPlayerGuilds(player.uniqueId)
-            if (guilds.isEmpty()) return@registerAsyncCompletion emptyList()
-            val guild = guilds.first()
-            guildService.getHomes(guild.id).homeNames.toList()
-        }
-
+        completions.registerAsyncCompletion("allyguilds") { c -> c.player?.let(guildCompletions::allyGuilds) ?: emptyList() }
+        completions.registerAsyncCompletion("guildhomes") { c -> c.player?.let(guildCompletions::guildHomes) ?: emptyList() }
         // Current membership/rank caches are read on the server thread, like the home command.
-        commandManager.commandCompletions.registerCompletion("guildaccessiblehomes") { context ->
-            val player = context.player ?: return@registerCompletion emptyList()
-            val service = get().get<net.lumalyte.lg.application.services.GuildService>()
-            val guild = service.getPlayerGuilds(player.uniqueId).firstOrNull()
-            if (guild == null) emptyList() else service.accessibleHomeNames(player.uniqueId, guild.id)
-        }
-
-        // Register unlocked emojis completion (shows only emojis the player has permission to use)
-        commandManager.commandCompletions.registerAsyncCompletion("unlockedemojis") { context ->
-            val player = context.player ?: return@registerAsyncCompletion emptyList()
-            val nexoEmojiService = get().get<net.lumalyte.lg.infrastructure.services.NexoEmojiService>()
-
-            // Get emoji names player has permission for and format as :emojiname:
-            val guildId = get().get<net.lumalyte.lg.application.services.GuildService>()
-                .getPlayerGuilds(player.uniqueId).firstOrNull()?.id
-            nexoEmojiService.getPlayerUnlockedEmojis(player, guildId).map { emojiName ->
-                ":$emojiName:"
-            }
-        }
+        completions.registerCompletion("guildaccessiblehomes") { c -> c.player?.let(guildCompletions::accessibleHomes) ?: emptyList() }
+        // Unlocked emojis (only emojis the player has permission to use), formatted as :emojiname:
+        completions.registerAsyncCompletion("unlockedemojis") { c -> c.player?.let(guildCompletions::unlockedEmojis) ?: emptyList() }
 
         // Register parties completion (shows available parties for the player)
         commandManager.commandCompletions.registerAsyncCompletion("parties") { context ->
